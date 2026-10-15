@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Upgrade to Weekly Digest Insider</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F5F3FF;color:#1F2937;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:15px;line-height:1.5}
+a{color:#4338CA;text-decoration:none}a:hover{color:#3730A3}
+select{height:44px;padding:0 12px;border:1px solid #C9CED6;border-radius:9px;font:inherit;font-size:14px;width:100%;box-sizing:border-box;background:#fff}
+
+/* accessibility */
+:focus-visible{outline:2px solid #0F766E;outline-offset:2px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-9999px;top:8px;z-index:100;background:#fff;color:#0B1220;padding:8px 12px;border-radius:8px;border:1px solid #0F766E;font-weight:600;text-decoration:none}
+.skip:focus{left:8px}
+p a:not(.btn),span a:not(.btn):not([style*="color"]),td a:not(.btn):not([style*="color"]),li a:not(.btn),label a,.k a,.lead a{text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+.content > * a:not(.btn):not(p a):not(span a):not(td a):not(li a):not(label a):not(.k a),.top a:not(.btn),nav a:not(.btn),footer a:not(.btn){min-height:24px;display:inline-flex;align-items:center}
+input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F766E}
+.in,select.in,textarea.in,input.in{border-color:#8B94A3}
+@media (max-width:767px){
+  .sc-host{overflow-wrap:anywhere}
+  .sc-host table,.sc-host td,.sc-host th{overflow-wrap:normal}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+}
+
+/* expansion components (phases 1-8) */
+.num,.tbl td.r{font-variant-numeric:tabular-nums}
+.tbl th.r,.tbl td.r{text-align:right}
+.tbl tr.sel td{background:#F0FDFA}
+.tbl tr.xp td{background:#FBFBFC}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.stat{padding:14px 16px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.stat .v{font-size:22px;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums;line-height:1.25;margin-top:2px}
+.stat .s{font-size:12px;color:#5B6472;font-weight:500}
+.stat.hot{border-color:#FCA5A5;background:#FFF5F5}
+.strip{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;background:#0B1220;color:#fff;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.sk{background:#E9ECF0;border-radius:6px;display:inline-block}
+.bar{height:6px;border-radius:3px;background:#EEF0F3;overflow:hidden}.bar i{display:block;height:100%;border-radius:3px}
+.ptab{display:flex;border-bottom:1px solid #E3E6EB}
+.ptab button{flex:1;height:38px;border:0;background:none;font:inherit;font-size:12.5px;font-weight:600;color:#5B6472;cursor:pointer;border-bottom:2px solid transparent;padding:0 6px;white-space:nowrap}
+.ptab button.on{color:#0B1220;border-bottom-color:#0F766E}
+.seg{display:inline-flex;border:1px solid #D4D8DF;border-radius:8px;overflow:hidden;flex:none}
+.seg button{height:30px;padding:0 11px;border:0;background:#fff;font:inherit;font-size:12px;font-weight:600;color:#4B5563;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.seg button + button{border-left:1px solid #E3E6EB}
+.seg button.on{background:#0B1220;color:#fff}
+.cbx{border-radius:10px;overflow:hidden;border:1px solid #1F2937;background:#0B1220;min-width:0}
+.cbh{display:flex;align-items:center;gap:2px;padding:6px 8px;border-bottom:1px solid #1F2937;background:#111827;flex-wrap:wrap}
+.cbh button{height:28px;padding:0 10px;border:0;border-radius:6px;background:none;color:#B4BAC4;font:inherit;font-size:12px;font-weight:600;cursor:pointer}
+.cbh button.on{background:#273244;color:#fff}
+.cbh .cp{margin-left:auto;display:inline-flex;align-items:center;gap:6px;color:#E5E7EB;border:1px solid #374151}
+.cbx pre{margin:0;padding:12px 14px;font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace;font-size:12.5px;line-height:1.6;color:#E5E7EB;white-space:pre-wrap;overflow-wrap:anywhere}
+.cbx .c1{color:#93C5FD}.cbx .c2{color:#86EFAC}.cbx .c3{color:#FCD34D}.cbx .c4{color:#9CA3AF}.cbx .c5{color:#F9A8D4}
+.cbx .cm{color:#9CA3AF}
+.ev{display:flex;gap:14px;align-items:flex-start;padding:12px 0;border-top:1px solid #EEF0F3}
+.ev:first-child{border-top:0}
+.ev .ic{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.ev .tx{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.ev .tm{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;color:#5B6472;flex:none;padding-top:5px}
+.spin{width:14px;height:14px;border-radius:50%;border:2px solid #C9CED6;border-top-color:#0F766E;flex:none;display:inline-block}
+.mask{display:inline-flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;color:#4B5563;white-space:nowrap}
+.mask svg{flex:none}
+.tok{display:inline-flex;align-items:center;gap:4px;padding:0 6px;border-radius:5px;background:#EDE9FE;color:#5B21B6;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:.86em;font-weight:500;line-height:1.55;white-space:nowrap;vertical-align:baseline}
+.tok.s{background:#FEF3C7;color:#92400E}
+.tok.e{background:#FEE2E2;color:#991B1B;text-decoration:underline wavy #DC2626;text-underline-offset:3px}
+.mk{display:inline-flex;align-items:center;height:22px;padding:0 7px;border-radius:6px;background:#EEF0F3;color:#374151;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;white-space:nowrap}
+.toast{display:flex;gap:12px;align-items:center;padding:10px 12px 10px 14px;border-radius:10px;background:#0B1220;color:#fff;font-size:13.5px;box-shadow:0 12px 30px rgba(11,18,32,.25);max-width:520px;box-sizing:border-box}
+.toast .t{flex:1;min-width:0}
+.toast .k{color:#C3C2B7}
+.toast .btn{min-height:28px;padding:0 10px;font-size:12px;background:transparent;border-color:#4B5563;color:#fff}
+.toast .x{width:28px;height:28px;border:0;background:transparent;color:#9CA3AF;border-radius:6px;font-size:16px;cursor:pointer}
+.ti{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.scrim{position:absolute;inset:0;background:rgba(11,18,32,.32);z-index:55}
+.drw{position:absolute;top:0;right:0;bottom:0;width:600px;max-width:100%;background:#fff;border-left:1px solid #E3E6EB;box-shadow:-18px 0 40px rgba(11,18,32,.18);z-index:60;display:flex;flex-direction:column;box-sizing:border-box;overflow:hidden}
+.drw .dwh{display:flex;align-items:flex-start;gap:12px;padding:18px 22px 14px;border-bottom:1px solid #EEF0F3}
+.drw .dwb{padding:18px 22px;display:flex;flex-direction:column;gap:18px;overflow:auto}
+.drw h3{margin:0;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472}
+.empty{padding:44px 28px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;border-style:dashed}
+.empty .tt{font-size:18px;font-weight:700;letter-spacing:-.01em}
+.empty .ds{color:#4B5563;max-width:560px}
+.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:14px 18px;border-bottom:1px solid #EEF0F3}
+.fchips{display:flex;gap:6px;flex-wrap:wrap;padding:12px 18px;border-bottom:1px solid #EEF0F3}
+.fchip{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:999px;border:1px solid #D4D8DF;background:#fff;font:inherit;font-size:12.5px;font-weight:600;color:#374151;cursor:pointer;white-space:nowrap}
+.fchip b{font-weight:600;color:#5B6472;font-variant-numeric:tabular-nums}
+.fchip.on{background:#0B1220;border-color:#0B1220;color:#fff}.fchip.on b{color:#C9CED6}
+.live{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:#166534}
+.live .dot{box-shadow:0 0 0 4px rgba(22,101,52,.15)}
+.foot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid #EEF0F3}
+.spark{display:block}
+.lnk{display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:13px}
+.ttl{margin:0;font-size:22px;font-weight:700;letter-spacing:-.02em;line-height:1.2}
+.lead{margin:0;color:#4B5563;font-size:14px;max-width:760px}
+.state-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(460px,100%),1fr));gap:16px;align-items:start}
+.flowr{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px}
+.flowr .arw{color:#9AA3B2}
+.pill{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:8px;border:1px solid #E3E6EB;background:#F9FAFB;font-size:12.5px;font-weight:600;white-space:nowrap}
+.vline{display:flex;gap:10px;align-items:baseline;padding:8px 0;border-top:1px solid #EEF0F3;font-size:13px}
+.vline:first-child{border-top:0}
+.hl{background:#FEF2F2;box-shadow:inset 3px 0 0 #DC2626}
+.lines{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;line-height:1.7;background:#0B1220;color:#E5E7EB;border-radius:8px;overflow:hidden}
+.lines div{display:flex;gap:12px;padding:0 12px}
+.lines .ln{color:#9CA3AF;width:22px;text-align:right;flex:none;user-select:none}
+.lines .er{background:rgba(220,38,38,.22)}
+.callout{position:absolute;z-index:5}
+.only-phone{display:none}
+@media (max-width:1100px){.drw{width:520px}}
+@media (max-width:767px){.drw{width:100%;border-left:0}.stats{grid-template-columns:repeat(2,minmax(0,1fr))!important}.ttl{font-size:19px}}
+
+.pcard{width:100%;background:#fff;border:1px solid #E3E6EB;border-radius:16px;padding:32px;box-sizing:border-box;display:flex;flex-direction:column;gap:18px}
+.pbtn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:9px;background:#4338CA;color:#fff;font-weight:700;font-size:14px;border:0;cursor:pointer;text-decoration:none;font-family:inherit}
+.pbtn:hover{background:#3730A3;color:#fff}
+.pbtn2{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:9px;border:1px solid #C9CED6;background:#fff;color:#1F2937;font-weight:700;font-size:14px;cursor:pointer;text-decoration:none;font-family:inherit}
+.pin{height:44px;padding:0 14px;border:1px solid #8B94A3;border-radius:9px;font:inherit;font-size:14px;box-sizing:border-box;background:#fff;min-width:0;width:100%}
+.pmut{color:#5B6472}
+.tag{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;background:#EEF0F3;color:#4B5563}
+.brand{display:flex;align-items:center;gap:12px}
+.brand .m{width:40px;height:40px;border-radius:10px;background:#0B1220;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:16px}
+@media (max-width:767px){.pcard{padding:22px}.sc-host [style*="minmax(min("]{grid-template-columns:1fr!important}}
+
+/* phase 6b public pages */
+input[type=checkbox],input[type=radio]{accent-color:#4338CA}
+:focus-visible{outline-color:#4338CA}
+.mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace}
+.num{font-variant-numeric:tabular-nums}
+.k{font-size:12.5px;color:#5B6472}
+.plbl{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:600;color:#1F2937;min-width:0}
+.plbl .opt{font-weight:400;color:#5B6472}
+.plbl .pin,.plbl .pta{font-weight:400;color:#1F2937}
+.pin::placeholder,.pta::placeholder{color:#6B7280;opacity:1}
+.pta{min-height:96px;padding:10px 14px;border:1px solid #8B94A3;border-radius:9px;font:inherit;font-size:14px;box-sizing:border-box;background:#fff;width:100%;resize:vertical}
+.pfs{border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;min-width:0}
+.pfs legend{font-size:13px;font-weight:600;color:#1F2937;padding:0;margin-bottom:8px}
+.ropt{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border:1px solid #C9CED6;border-radius:10px;background:#fff;cursor:pointer;box-sizing:border-box;min-width:0}
+.ropt input{margin-top:3px;flex:none}
+.ropt.on{border-color:#4338CA;box-shadow:0 0 0 1px #4338CA;background:#F5F3FF}
+.rpill{display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:0 14px;border:1px solid #C9CED6;border-radius:9px;font-size:14px;background:#fff;cursor:pointer;box-sizing:border-box}
+.rpill.on{border-color:#4338CA;background:#F5F3FF;font-weight:600}
+.pbox{display:flex;gap:10px;align-items:flex-start;padding:14px 16px;border:1px solid #E3E6EB;border-radius:12px;background:#F9FAFB;font-size:14px;color:#374151}
+.pbox.lav{border-color:#DDD6FE;background:#F5F3FF}
+.pbox.ok{border-color:#BBF7D0;background:#F0FDF4;color:#14532D}
+.pbox.warn{border-color:#FCD34D;background:#FFFBEB;color:#78350F}
+.pbox.bad{border-color:#FCA5A5;background:#FFF5F5;color:#7F1D1D}
+.pbox svg{flex:none;margin-top:2px}
+.pdiv{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;font-size:13px;color:#5B6472;border-top:1px solid #EEF0F3;padding-top:14px}
+.pnote{font-size:12.5px;color:#5B6472;line-height:1.5}
+.pagelbl{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px;color:#4B5563}
+.pagelbl .url{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:999px;background:#fff;border:1px solid #DDD6FE;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;color:#1F2937}
+.pstat{background:#fff;border:1px solid #E3E6EB;border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.pstat .l{font-size:13px;color:#5B6472;font-weight:500}
+.pstat .v{font-size:26px;font-weight:700;letter-spacing:-.02em;line-height:1.2;font-variant-numeric:tabular-nums;color:#1F2937}
+.pstat .s{font-size:12.5px;color:#5B6472}
+.faq details{border-top:1px solid #EEF0F3;padding:14px 0}
+.faq details:first-of-type{border-top:0;padding-top:4px}
+.faq summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;gap:12px;align-items:center;font-weight:600;font-size:15px;color:#1F2937}
+.faq summary::-webkit-details-marker{display:none}
+.faq p{margin:8px 0 0;font-size:14px;color:#374151;line-height:1.55}
+.ribbon{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;padding:9px 16px;background:#EDE9FE;color:#5B21B6;font-size:13px;font-weight:600;text-align:center}
+.sw2{display:inline-flex;gap:4px;padding:4px;border:1px solid #C9CED6;border-radius:999px;background:#fff}
+.sw2 label{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 16px;border-radius:999px;font-size:14px;font-weight:600;color:#374151;cursor:pointer;white-space:nowrap}
+.sw2 label.on{background:#4338CA;color:#fff}
+.sw2 input{position:absolute;opacity:0;width:1px;height:1px}
+.ptag{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;background:#EDE9FE;color:#4338CA;white-space:nowrap}
+.strip{margin-top:6px}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;flex:none}
+.tiers .fine{min-height:55px}
+@media (max-width:600px){.fcbtn{flex:1 1 100%!important}}
+@media (max-width:767px){.pstat .v{font-size:22px}.sw2 label{padding:0 12px}}
+</style>
+</helmet>
+<div style="min-height:100vh;background:#F5F3FF;position:relative">
+<div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:40px 16px 32px;box-sizing:border-box"><main style="width:100%;max-width:680px;display:flex;flex-direction:column;gap:18px"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div class="brand"><span class="m">A</span><span style="font-weight:700;font-size:18px">Acme</span></div><a href="PublicArchive.dc.html" style="font-size:14px;font-weight:600">Back to the archive</a></div><section style="display:flex;flex-direction:column;gap:12px;align-items:center;text-align:center;padding:6px 0 2px"><h1 style="margin:0;font-size:28px;font-weight:700;letter-spacing:-.02em;line-height:1.15;color:#1F2937">Get more from the Weekly Digest</h1><p style="margin:0;font-size:16px;line-height:1.55;color:#374151;text-align:center">The free Weekly Digest stays free. Insider adds a deep dive every Tuesday, and the people behind it.</p><div role="group" aria-label="Billing period" style="display:inline-flex;gap:2px;padding:3px;border-radius:10px;background:#EDE9FE;align-self:center"><button type="button" aria-pressed="false" style="height:34px;padding:0 14px;border:0;border-radius:8px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;background:none;color:#4B5563">Monthly</button><button type="button" aria-pressed="true" style="height:34px;padding:0 14px;border:0;border-radius:8px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;background:#fff;color:#0B1220;box-shadow:0 1px 2px rgba(11,18,32,.12)">Yearly <span style="color:#4338CA;font-weight:700">· 2 months free</span></button></div></section><article style="display:flex;gap:12px 20px;align-items:center;flex-wrap:wrap;padding:18px;border-radius:14px;background:#fff;border:1px solid #E3E6EB;box-sizing:border-box" aria-label="Free"><div style="display:flex;flex-direction:column;gap:4px;flex:1 1 300px;min-width:0"><div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap"><h3 style="margin:0;font-weight:700;font-size:16px;color:#0B1220;text-transform:none;letter-spacing:normal">Free</h3><span style="color:#4B5563;font-size:14px">$0 · the Weekly Digest, every Tuesday</span></div><span style="font-size:13.5px;color:#4B5563">The weekly issue, with what shipped and what's next, and the public archive.</span></div><div class="fcbtn" style="flex:0 1 200px;min-width:180px"><a href="PublicSubscribe.dc.html" style="display:flex;align-items:center;justify-content:center;height:42px;padding:0 16px;border-radius:9px;font-weight:700;font-size:14px;text-decoration:none;box-sizing:border-box;background:#fff;color:#1F2937;border:1px solid #C9CED6">Subscribe free</a></div></article><div class="tiers" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px 16px;padding-top:12px"><article style="position:relative;display:flex;flex-direction:column;gap:12px;padding:22px 17px 17px;border-radius:14px;background:#fff;border:2px solid #4338CA;min-width:0;box-sizing:border-box" aria-label="Weekly Digest Insider"><span style="position:absolute;top:-12px;left:18px;display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:999px;background:#4338CA;color:#fff;font-size:12px;font-weight:700">Most popular</span><h3 style="margin:0;font-weight:700;font-size:16px;color:#0B1220;text-transform:none;letter-spacing:normal">Weekly Digest Insider</h3><div style="display:flex;flex-direction:column;gap:2px"><span style="display:flex;align-items:baseline;gap:4px;flex-wrap:wrap"><span style="font-size:28px;font-weight:700;letter-spacing:-.02em;color:#0B1220;font-variant-numeric:tabular-nums">$80</span><span style="color:#4B5563;font-size:14px">a year</span></span><span style="color:#5B6472;font-size:13px">$6.67 a month, billed yearly</span></div><span style="display:inline-flex;align-self:flex-start;align-items:center;height:24px;padding:0 9px;border-radius:999px;background:#EDE9FE;color:#4338CA;font-size:12px;font-weight:600">14 days free</span><ul style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:7px"><li style="display:flex;gap:8px;align-items:flex-start;font-size:13.5px;line-height:1.4;color:#1F2937"><span style="flex:none;margin-top:1px"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#4338CA" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg></span><span>A members-only deep dive every Tuesday</span></li><li style="display:flex;gap:8px;align-items:flex-start;font-size:13.5px;line-height:1.4;color:#1F2937"><span style="flex:none;margin-top:1px"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#4338CA" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg></span><span>The full archive of deep dives</span></li><li style="display:flex;gap:8px;align-items:flex-start;font-size:13.5px;line-height:1.4;color:#1F2937"><span style="flex:none;margin-top:1px"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#4338CA" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg></span><span>Quarterly roadmap calls with the Acme team</span></li><li style="display:flex;gap:8px;align-items:flex-start;font-size:13.5px;line-height:1.4;color:#1F2937"><span style="flex:none;margin-top:1px"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#4338CA" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg></span><span>Reply to any issue and an editor answers</span></li></ul><div style="margin-top:auto;display:flex;flex-direction:column;gap:8px;padding-top:4px"><a href="PublicEarnStates.dc.html" style="display:flex;align-items:center;justify-content:center;height:42px;padding:0 16px;border-radius:9px;font-weight:700;font-size:14px;text-decoration:none;font-family:inherit;box-sizing:border-box;text-align:center;background:#4338CA;color:#fff;border:0">Start your free trial</a><span class="fine" style="font-size:12.5px;color:#5B6472;line-height:1.45">Card needed. Free until 29 Oct, then $80 a year from 29 Oct. We email you 3 days before the trial ends.</span></div></article><article style="position:relative;display:flex;flex-direction:column;gap:12px;padding:23px 18px 18px;border-radius:14px;background:#fff;border:1px solid #E3E6EB;min-width:0;box-sizing:border-box" aria-label="Founding member"><h3 style="margin:0;font-weight:700;font-size:16px;color:#0B1220;text-transform:none;letter-spacing:normal">Founding member</h3><div style="display:flex;flex-direction:column;gap:2px"><span style="display:flex;align-items:baseline;gap:4px;flex-wrap:wrap"><span style="font-size:28px;font-weight:700;letter-spacing:-.02em;color:#0B1220;font-variant-numeric:tabular-nums">$200</span><span style="color:#4B5563;font-size:14px">a year</span></span><span style="color:#5B6472;font-size:13px">$16.67 a month, billed yearly</span></div><ul style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:7px"><li style="display:flex;gap:8px;align-items:flex-start;font-size:13.5px;line-height:1.4;color:#1F2937"><span style="flex:none;margin-top:1px"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#4338CA" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg></span><span>Everything in Insider</span></li><li style="display:flex;gap:8px;align-items:flex-start;font-size:13.5px;line-height:1.4;color:#1F2937"><span style="flex:none;margin-top:1px"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#4338CA" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg></span><span>Your name in the annual thank-you issue</span></li><li style="display:flex;gap:8px;align-items:flex-start;font-size:13.5px;line-height:1.4;color:#1F2937"><span style="flex:none;margin-top:1px"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#4338CA" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg></span><span>Early access to Acme betas</span></li></ul><div style="margin-top:auto;display:flex;flex-direction:column;gap:8px;padding-top:4px"><a href="PublicEarnStates.dc.html" style="display:flex;align-items:center;justify-content:center;height:42px;padding:0 16px;border-radius:9px;font-weight:700;font-size:14px;text-decoration:none;font-family:inherit;box-sizing:border-box;text-align:center;background:#fff;color:#1F2937;border:1px solid #C9CED6">Become a founding member</a><span class="fine" style="font-size:12.5px;color:#5B6472;line-height:1.45">Charged $200 today. Renews on 15 Oct 2027; we email you 7 days before.</span></div></article></div><span class="pnote" style="text-align:center">Prices in US dollars, before tax. Checkout adds any sales tax or VAT for your address.</span><div class="pbox " role="note"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="#4338CA" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 1.5 13.5 3.5v4.5c0 3-2.3 5.3-5.5 6.5C4.8 13.3 2.5 11 2.5 8V3.5z" stroke-linejoin="round"></path><path d="m5.5 8 1.8 1.8L10.8 6"></path></svg><span style="flex:1;min-width:0">Payments go straight to Acme through Stripe. Acme never sees your card. Cancel any time from your email preferences; you keep access until the end of what you've paid for.</span></div><section class="pcard faq" style="gap:6px" aria-labelledby="faq-t"><h2 id="faq-t" style="margin:0 0 6px;font-size:18px;font-weight:700;color:#1F2937">Questions</h2><details open><summary>When am I charged?<span style="display:inline-flex;transform:rotate(180deg)"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#5B6472" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></span></summary><p>With the 14-day trial, on the day it ends, and we email you 3 days before. Without a trial, when you subscribe. Yearly plans renew once a year, with a reminder 7 days before.</p></details><details open><summary>Can I switch between monthly and yearly?<span style="display:inline-flex;transform:rotate(180deg)"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#5B6472" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></span></summary><p>Yes, any time, from “Manage your subscription” in your email preferences. Stripe credits what you've already paid.</p></details><details open><summary>Do I keep the free issues?<span style="display:inline-flex;transform:rotate(180deg)"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#5B6472" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></span></summary><p>Yes. Insider comes on top of the free Weekly Digest. If you cancel, the free issue keeps arriving every Tuesday.</p></details></section></main><footer style="display:flex;gap:10px 16px;align-items:center;margin-top:18px;font-size:12.5px;color:#5B6472;flex-wrap:wrap;justify-content:center"><a href="https://acme.io/terms" style="color:#5B6472">Terms of sale</a><span aria-hidden="true">·</span><a href="https://acme.io/privacy" style="color:#5B6472">Privacy</a><span aria-hidden="true">·</span><a href="Landing.dc.html" style="color:#5B6472">Sent with ReputeCast</a></footer></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":720,"height":1436}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

@@ -133,6 +133,21 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
   .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
   .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
 }
+
+/* lead: table cells may wrap so every column fits its card */
+.tbl td,.tbl th{white-space:normal}.tbl .badge,.tbl .btn{white-space:nowrap}
+
+/* nav: phones show four sections plus More */
+.side .nav a.more{display:none}
+@media (max-width:767px){.side .nav a.xm{display:none!important}.side .nav a.more{display:flex}.side .nav a.more.on{background:#E3F1EE;color:#0F766E}}
+/* shell: the icon rail keeps only the import button (the footer's inline display:flex beat the rail rule) */
+@media (max-width:1100px){.side .sidefoot > :not(.btn){display:none!important}}
+/* shell: avatar initials sit in the middle */
+.av{display:inline-flex;align-items:center;justify-content:center;flex:none}
+.ubtn .av{border-radius:50%;font-weight:700}
+.ws .av{font-weight:700}
+/* switches: a disabled switch looks disabled */
+.tg:disabled,.tgx:disabled{opacity:.45;cursor:not-allowed}
 </style>
 </helmet>
 <div class="app" style="display:flex;flex-wrap:wrap;align-items:stretch;min-height:100vh">
@@ -146,12 +161,16 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
     <nav class="nav" style="display:flex;flex-direction:column;gap:2px;margin-top:8px" aria-label="Main">
       <a href="Main.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z"></path></svg><span class="nl">Overview</span></a>
       <a href="Campaigns.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M14 2 2 7l5 2 2 5zM7 9l7-7" stroke-linejoin="round"></path></svg><span class="nl">Campaigns</span></a>
-      <a href="AutomationsList.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="4" cy="3" r="2"></circle><circle cx="4" cy="13" r="2"></circle><circle cx="12" cy="8" r="2"></circle><path d="M4 5v6M6 8h4"></path></svg><span class="nl">Automations</span></a>
+      <a href="AutomationsList.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="4" cy="3" r="2"></circle><circle cx="4" cy="13" r="2"></circle><circle cx="12" cy="8" r="2"></circle><path d="M4 5v6M6 8h4"></path></svg><span class="nl">Automations</span></a>
+      <a href="Transactional.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="1.5"></rect><path d="m2 4.5 6 4.5 6-4.5"></path></svg><span class="nl">Transactional</span></a>
       <a href="Contacts.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="6" cy="5" r="2.5"></circle><path d="M1.5 14a4.5 4.5 0 0 1 9 0M11 3a2.5 2.5 0 0 1 0 5M14.5 14a4 4 0 0 0-3-3.8"></path></svg><span class="nl">Audience</span></a>
-      <a href="FormBuilder.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="2"></rect><path d="M5 6h6M5 9h6M5 12h3"></path></svg><span class="nl">Forms &amp; pages</span></a>
+      <a href="GrowOverview.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 12.5 6 8.5l3 3 5-5.5"></path><path d="M10.5 5.5H14V9"></path></svg><span class="nl">Grow</span></a>
+      <a href="EarnOverview.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M10 5.9H7.1a1.3 1.3 0 0 0 0 2.6h1.8a1.3 1.3 0 0 1 0 2.6H6M8 4.4v1.5M8 11.1v1.5"></path></svg><span class="nl">Earn</span></a>
+      <a href="FormBuilder.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="2"></rect><path d="M5 6h6M5 9h6M5 12h3"></path></svg><span class="nl">Forms &amp; pages</span></a>
       <a href="Deliverability.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 1.5 13.5 3.5v4.5c0 3-2.3 5.3-5.5 6.5C4.8 13.3 2.5 11 2.5 8V3.5z" stroke-linejoin="round"></path><path d="m5.5 8 1.8 1.8L10.8 6"></path></svg><span class="nl">Deliverability</span></a>
-      <a href="Providers.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="5" rx="1.5"></rect><rect x="2" y="9" width="12" height="5" rx="1.5"></rect><path d="M5 4.5h.01M5 11.5h.01" stroke-width="2" stroke-linecap="round"></path></svg><span class="nl">Sending providers</span></a>
-      <a href="WorkspaceSettings.dc.html" class="on"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 4h7M13 4h1M2 8h2M8 8h6M2 12h7M13 12h1"></path><circle cx="11" cy="4" r="1.8"></circle><circle cx="6" cy="8" r="1.8"></circle><circle cx="11" cy="12" r="1.8"></circle></svg><span class="nl">Settings</span></a>
+      <a href="Providers.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="5" rx="1.5"></rect><rect x="2" y="9" width="12" height="5" rx="1.5"></rect><path d="M5 4.5h.01M5 11.5h.01" stroke-width="2" stroke-linecap="round"></path></svg><span class="nl">Sending providers</span></a>
+      <a href="WorkspaceSettings.dc.html" class="on xm" aria-current="page"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 4h7M13 4h1M2 8h2M8 8h6M2 12h7M13 12h1"></path><circle cx="11" cy="4" r="1.8"></circle><circle cx="6" cy="8" r="1.8"></circle><circle cx="11" cy="12" r="1.8"></circle></svg><span class="nl">Settings</span></a>
+      <a href="ShellMore.dc.html" class="more on" aria-label="More: Automations, Transactional, Grow, Earn, Forms & pages, Sending providers, Settings"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="3.5" cy="8" r="1.2"></circle><circle cx="8" cy="8" r="1.2"></circle><circle cx="12.5" cy="8" r="1.2"></circle></svg><span class="nl">More</span></a>
     </nav>
   </aside>
 
@@ -159,7 +178,7 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
     <header class="top" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 28px;background:#fff;border-bottom:1px solid #E3E6EB">
       <h1 style="margin:0;font-size:18px;font-weight:600;letter-spacing:-.01em">Settings</h1>
       <span class="badge ok" style="margin-left:auto">Open-source edition · every feature included</span>
-          <nav class="tabs" aria-label="Sections" style="flex-basis:100%;min-width:0;margin-left:0"><a href="WorkspaceSettings.dc.html">General</a><a href="SettingsSenders.dc.html" class="on" aria-current="page">Senders</a><a href="SettingsProviders.dc.html">Providers</a><a href="SettingsTeam.dc.html">Team</a><a href="Roles.dc.html">Roles</a><a href="ApprovalPolicy.dc.html">Approvals</a><a href="SettingsKeys.dc.html">Keys &amp; MCP</a><a href="SettingsAPI.dc.html">Webhooks</a><a href="SettingsIntegrations.dc.html">Integrations</a><a href="SettingsAudit.dc.html">Audit log</a></nav>
+          <nav class="tabs" aria-label="Sections" style="flex-basis:100%;min-width:0;margin-left:0"><a href="WorkspaceSettings.dc.html">General</a><a href="SettingsSenders.dc.html" class="on" aria-current="page">Senders</a><a href="SettingsProviders.dc.html">Providers</a><a href="SettingsTeam.dc.html">Team</a><a href="Roles.dc.html">Roles</a><a href="ApprovalPolicy.dc.html">Approvals</a><a href="SettingsKeys.dc.html">Keys &amp; MCP</a><a href="SettingsAPI.dc.html">Webhooks</a><a href="IntegrationsCatalog.dc.html">Integrations</a><a href="SettingsAudit.dc.html">Audit log</a></nav>
           <div class="tools" style="margin-left:auto"><a href="Notifications.dc.html" class="ibtn" aria-label="Notifications, 3 unread"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 11V7a4 4 0 0 1 8 0v4l1.5 1.5h-11zM6.5 14a1.5 1.5 0 0 0 3 0"></path></svg><span class="cnt" aria-hidden="true">3</span></a><button class="ubtn" type="button" aria-haspopup="menu" aria-label="Account menu for Linh Nguyen"><span class="av" style="width:26px;height:26px;font-size:11px;background:#DBEAFE;color:#1E40AF" aria-hidden="true">LN</span><span class="unm">Linh</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button></div>
     </header>
 
@@ -172,7 +191,7 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
             <tbody>
               <tr><td><span style="font-weight:600">Acme Newsletter</span><div class="k mono">digest@news.acme.io</div></td><td class="mono">hello@acme.io</td><td><span class="badge pur">Broadcasts</span></td><td><span class="badge ok">Verified</span></td><td><span class="badge ok">Verified</span></td><td><span class="badge ok">Verified</span></td><td><button class="btn sm">Edit</button></td></tr>
               <tr><td><span style="font-weight:600">Acme</span><div class="k mono">hello@news.acme.io</div></td><td class="mono">hello@acme.io</td><td><span class="badge pur">Automations</span></td><td><span class="badge ok">Verified</span></td><td><span class="badge ok">Verified</span></td><td><span class="badge ok">Verified</span></td><td><button class="btn sm">Edit</button></td></tr>
-              <tr><td><span style="font-weight:600">Acme accounts</span><div class="k mono">no-reply@news.acme.io</div></td><td class="mono">support@acme.io</td><td><span class="badge pur">System</span></td><td><span class="badge ok">Verified</span></td><td><span class="badge ok">Verified</span></td><td><span class="badge mut">Not used</span></td><td><button class="btn sm">Edit</button></td></tr>
+              <tr><td><span style="font-weight:600">Acme accounts</span><div class="k mono">no-reply@news.acme.io</div></td><td class="mono">support@acme.io</td><td><span class="badge pur">System</span></td><td><span class="badge ok">Verified</span></td><td><span class="badge ok">Verified</span></td><td><span class="badge mut">Not used</span></td><td><button class="btn sm">Edit</button></td></tr><tr><td><span style="font-weight:600">Acme Cloud</span><div class="k mono">no-reply@notify.acme.io</div></td><td class="mono">support@acme.io</td><td><span class="badge pur">Transactional</span></td><td><span class="badge ok">Verified</span></td><td><span class="badge ok">Verified</span></td><td><span class="badge mut">Not used</span></td><td><button class="btn sm">Edit</button></td></tr><tr><td><span style="font-weight:600">Acme Billing</span><div class="k mono">billing@notify.acme.io</div></td><td class="mono">billing@acme.io</td><td><span class="badge pur">Transactional</span> <span class="k">SMTP relay</span></td><td><span class="badge ok">Verified</span></td><td><span class="badge ok">Verified</span></td><td><span class="badge mut">Not used</span></td><td><button class="btn sm">Edit</button></td></tr>
               <tr><td><span style="font-weight:600">Marcus Chen</span><div class="k mono">marcus@acme.io</div></td><td class="mono">marcus@acme.io</td><td class="k">personal sends</td><td><span class="badge warn">Pending · acme.io DKIM</span></td><td><span class="badge mut">Not set up</span></td><td><span class="badge mut">Not set up</span></td><td><a href="SetupDomain.dc.html" class="btn sm">Verify</a></td></tr>
             </tbody>
           </table>
@@ -180,12 +199,12 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
       </section>
 
       <section class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid #EEF0F3;flex-wrap:wrap;gap:8px"><div style="display:flex;flex-direction:column"><h2 class="h2">Domains</h2><span class="k">DNS checked every 30 minutes; a change here shows up in Send Readiness within the hour.</span></div><a href="SetupDomain.dc.html" class="btn">Add domain</a></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid #EEF0F3;flex-wrap:wrap;gap:8px"><div style="display:flex;flex-direction:column"><h2 class="h2">Domains</h2><span class="k">DNS checked every 30 minutes; a change here shows up in Send Readiness within the hour. Transactional mail has a subdomain of its own, notify.acme.io, so its reputation stays apart from newsletters.</span></div><a href="SetupDomain.dc.html" class="btn">Add domain</a></div>
         <div style="overflow-x:auto">
           <table class="tbl">
             <thead><tr><th scope="col">Domain</th><th scope="col">Used by</th><th scope="col">DKIM</th><th scope="col">SPF</th><th scope="col">DMARC</th><th scope="col">Return-path</th><th scope="col">Tracking domain</th><th scope="col">BIMI</th><th scope="col"></th></tr></thead>
             <tbody>
-              <tr><td><span class="mono" style="font-weight:600">news.acme.io</span><div class="k">primary sending domain</div></td><td>SES · Postmark · Postal</td><td><span class="badge ok">3 of 3 providers</span></td><td><span class="badge ok">pass · -all</span></td><td><span class="badge ok">p=quarantine</span></td><td><span class="badge ok">bounce. · rp.</span></td><td><span class="badge ok">go.news.acme.io</span></td><td><span class="badge mut">Not set</span></td><td><a href="SetupDomain.dc.html" class="btn sm">Records</a></td></tr>
+              <tr><td><span class="mono" style="font-weight:600">news.acme.io</span><div class="k">primary sending domain</div></td><td>SES · Postmark · Postal</td><td><span class="badge ok">3 of 3 providers</span></td><td><span class="badge ok">pass · -all</span></td><td><span class="badge ok">p=quarantine</span></td><td><span class="badge ok">bounce. · rp.</span></td><td><span class="badge ok">go.news.acme.io</span></td><td><span class="badge mut">Not set</span></td><td><a href="SetupDomain.dc.html" class="btn sm">Records</a></td></tr><tr><td><span class="mono" style="font-weight:600">notify.acme.io</span><div class="k">transactional mail only</div></td><td>Postmark · SES</td><td><span class="badge ok">2 of 2 providers</span></td><td><span class="badge ok">pass · -all</span></td><td><span class="badge ok">p=quarantine</span></td><td><span class="badge ok">pm-bounces. · bounce.</span></td><td><span class="badge mut">Off · no tracking</span></td><td><span class="badge mut">Not set</span></td><td><a href="SetupDomain.dc.html" class="btn sm">Records</a></td></tr>
               <tr><td><span class="mono" style="font-weight:600">acme.io</span><div class="k">corporate domain, personal sends</div></td><td>SES</td><td><span class="badge warn">Pending CNAME 2 of 3</span></td><td><span class="badge ok">pass</span></td><td><span class="badge warn">p=none</span></td><td><span class="badge mut">Default</span></td><td><span class="badge mut">None</span></td><td><span class="badge mut">Not set</span></td><td><a href="SetupDomain.dc.html" class="btn sm">Records</a></td></tr>
             </tbody>
           </table>
@@ -196,7 +215,7 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
         <h2 class="h2">Defaults</h2>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px">
           <label class="lbl">Default From for new campaigns<select class="in"><option>Acme Newsletter · digest@news.acme.io</option><option>Acme · hello@news.acme.io</option></select></label>
-          <label class="lbl">Reply handling<select class="in"><option>Forward replies to hello@acme.io</option><option>Keep replies in ReputeCast inbox</option></select></label>
+          <label class="lbl">Default From for transactional templates<select class="in"><option>Acme Cloud · no-reply@notify.acme.io</option><option>Acme Billing · billing@notify.acme.io</option></select></label> <label class="lbl">Reply handling<select class="in"><option>Forward replies to hello@acme.io</option><option>Keep replies in ReputeCast inbox</option></select></label>
           <label class="lbl">Footer address<input class="in" value="Acme Inc · 500 Market St, Suite 1200 · San Francisco, CA 94105"></label>
           <label class="lbl">Link tracking domain<select class="in"><option>go.news.acme.io · verified</option><option>Provider default</option></select></label>
         </div>
@@ -206,7 +225,7 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":985}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1312}}'>
 class Component extends DCLogic {
   renderVals() {
     return {};

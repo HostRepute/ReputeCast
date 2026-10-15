@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Composer · languages · German outdated</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F4F6;color:#0B1220;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:13px;line-height:1.45}
+a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
+.mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:32px;padding:0 12px;border-radius:7px;border:1px solid #D4D8DF;background:#FFFFFF;color:#0B1220;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;white-space:nowrap;box-sizing:border-box}
+.btn:hover{background:#F3F4F6;color:#0B1220}
+.btn.pri{background:#0F766E;border-color:#0F766E;color:#FFFFFF}.btn.pri:hover{background:#115E59;color:#FFFFFF}
+.btn.ic{width:32px;padding:0}
+.badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;flex:none}
+.ok{background:#DCFCE7;color:#166534}.warn{background:#FEF3C7;color:#92400E}.bad{background:#FEE2E2;color:#991B1B}.info{background:#DBEAFE;color:#1E40AF}.mut{background:#EEF0F3;color:#4B5563}.pur{background:#EDE9FE;color:#5B21B6}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;flex:none}
+.k{font-size:12px;color:#5B6472;font-weight:500}
+.in{height:32px;padding:0 9px;border:1px solid #D4D8DF;border-radius:7px;background:#fff;font:inherit;font-size:12.5px;color:#0B1220;box-sizing:border-box;min-width:0}
+.ptab{display:flex;border-bottom:1px solid #E3E6EB}
+.ptab button{flex:1;height:38px;border:0;background:none;font:inherit;font-size:12.5px;font-weight:600;color:#5B6472;cursor:pointer;border-bottom:2px solid transparent}
+.ptab button.on{color:#0B1220;border-bottom-color:#0F766E}
+.grp{padding:10px 12px 4px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#5B6472}
+.blk{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 6px;border:1px solid #E3E6EB;border-radius:8px;background:#fff;font-size:11.5px;font-weight:500;color:#374151;cursor:grab;text-align:center}
+.blk svg{width:22px;height:22px;stroke:#374151;fill:none;stroke-width:1.5}
+.blk.rc{border-color:#99F6E4;background:#F0FDFA}
+.seg{display:inline-flex;border:1px solid #D4D8DF;border-radius:7px;overflow:hidden}
+.seg button{height:30px;padding:0 10px;border:0;background:#fff;font:inherit;font-size:12px;font-weight:600;color:#5B6472;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.seg button.on{background:#0B1220;color:#fff}
+.email{width:600px;background:#fff;box-shadow:0 1px 3px rgba(11,18,32,.12);font-family:Georgia,'Times New Roman',serif;color:#1F2937;flex:none}
+.sec{position:relative;padding:16px 24px}
+.sec:hover{outline:1px dashed #93C5FD;outline-offset:-1px}
+.ph{display:flex;align-items:center;justify-content:center;background:#E9ECF0;color:#5B6472;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12px;font-weight:500;border:1px dashed #C9CED6}
+.tb{position:absolute;top:-30px;right:-2px;display:flex;background:#1D4ED8;border-radius:6px 6px 0 0;padding:2px}
+.tb button{width:26px;height:26px;border:0;background:none;color:#fff;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.tb svg{width:14px;height:14px;stroke:#fff;fill:none;stroke-width:1.8}
+.lab{position:absolute;top:-30px;left:-2px;background:#1D4ED8;color:#fff;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:11px;font-weight:600;padding:0 8px;height:26px;display:inline-flex;align-items:center;border-radius:6px 6px 0 0;margin-top:2px}
+.prop{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border-bottom:1px solid #EEF0F3}
+.prop .t{font-size:12px;font-weight:600}
+.row4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.row2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.sw{width:22px;height:22px;border-radius:5px;border:1px solid #D4D8DF;flex:none}
+.bc{display:flex;align-items:center;gap:6px;font-size:12px;color:#5B6472}
+.bc b{color:#0B1220;font-weight:600}
+
+/* responsive shell */
+@media (max-width:1100px){
+  .side{flex:0 0 72px!important;max-width:72px;padding:14px 8px!important;gap:4px!important}
+  .side .nl,.side .brand-t,.side .ws{display:none}
+  .side .nav a{justify-content:center;padding:0!important;height:44px}
+  .side .nav svg{width:20px;height:20px}
+  .side > a[aria-label="ReputeCast home"]{justify-content:center;padding:6px 0!important}
+  .side .sidefoot{align-items:center}
+  .side .sidefoot > *{display:none}
+  .side .sidefoot > a.btn{display:inline-flex;width:44px;height:44px;padding:0!important;justify-content:center!important;font-size:0;gap:0}
+  .side .sidefoot > a.btn svg{width:18px;height:18px}
+  .top{padding:12px 16px!important}
+  .content{padding:16px!important}
+}
+@media (max-width:767px){
+  .app{flex-direction:column}
+  .side{flex:none!important;max-width:none!important;width:auto!important;position:fixed;left:0;right:0;bottom:0;z-index:50;flex-direction:row!important;align-items:center;padding:6px 6px!important;border-right:0!important;border-top:1px solid #E3E6EB;background:#fff!important;box-sizing:border-box;gap:0!important}
+  .side > a[aria-label="ReputeCast home"],.side .ws,.side .sidefoot{display:none!important}
+  .side .nav{flex-direction:row!important;flex:1;justify-content:space-around;margin-top:0!important;gap:0!important}
+  .side .nav a{height:44px;width:44px;flex:none;padding:0!important;justify-content:center;border-radius:10px}
+  .side .nl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;display:block}
+  .side .nav a.on{background:#E3F1EE;color:#0F766E}
+  .mainc{padding-bottom:72px}
+  .top{padding:12px 12px!important;gap:8px!important}
+  .top h1{font-size:16px!important}
+  .top .in{width:100%!important}
+  .tabs{flex-wrap:nowrap!important;overflow-x:auto;max-width:100%;margin-left:0!important;padding-bottom:2px}
+  .tabs a{flex:none}
+  .content{padding:12px!important;gap:12px!important}
+  .cpanel{max-width:none!important;flex:1 1 100%!important}
+}
+@media (min-width:768px) and (max-width:1100px){
+  .cpanel{max-width:none!important}
+}
+
+/* responsive phone fixes */
+@media (max-width:767px){
+  .app{flex-wrap:nowrap!important}
+  .mainc{width:100%;max-width:100%}
+  .content > *{min-width:0;max-width:100%}
+  .content .in,.content select,.content input,.content textarea{max-width:100%;min-width:0}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+  .sc-host [style*="flex: 1 1"]{min-width:0}
+  .sc-host select.in,.sc-host input.in{width:0;min-width:100%}
+  .sc-host .mono{overflow-wrap:anywhere}
+  .sc-host .sk{max-width:100%}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px;max-width:100%}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host .tabs .badge{white-space:nowrap}
+  .sc-host .side .btn{white-space:nowrap}
+  .sc-host [style*="grid-template-columns: repeat("]{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))!important}
+  .sc-host [style*="minmax(260px"],.sc-host [style*="minmax(280px"],.sc-host [style*="minmax(300px"],.sc-host [style*="minmax(320px"],.sc-host [style*="minmax(340px"],.sc-host [style*="minmax(360px"],.sc-host [style*="minmax(380px"],.sc-host [style*="minmax(420px"]{grid-template-columns:1fr!important}
+  .sc-host [style*="radial-gradient"]{overflow:auto}
+  .sc-host [style*="display: grid"] > *{min-width:0}
+  .sc-host header > div{max-width:100%;min-width:0}
+  .sc-host pre,.sc-host .lines{max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]) > div[style*="flex: 1"]{min-width:120px}
+}
+
+/* accessibility */
+:focus-visible{outline:2px solid #0F766E;outline-offset:2px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-9999px;top:8px;z-index:100;background:#fff;color:#0B1220;padding:8px 12px;border-radius:8px;border:1px solid #0F766E;font-weight:600;text-decoration:none}
+.skip:focus{left:8px}
+p a:not(.btn),span a:not(.btn):not([style*="color"]),td a:not(.btn):not([style*="color"]),li a:not(.btn),label a,.k a,.lead a{text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+.content > * a:not(.btn):not(p a):not(span a):not(td a):not(li a):not(label a):not(.k a),.top a:not(.btn),nav a:not(.btn),footer a:not(.btn){min-height:24px;display:inline-flex;align-items:center}
+input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F766E}
+.in,select.in,textarea.in,input.in{border-color:#8B94A3}
+@media (max-width:767px){
+  .sc-host{overflow-wrap:anywhere}
+  .sc-host table,.sc-host td,.sc-host th{overflow-wrap:normal}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+}
+
+/* expansion components (phases 1-8) */
+.num,.tbl td.r{font-variant-numeric:tabular-nums}
+.tbl th.r,.tbl td.r{text-align:right}
+.tbl tr.sel td{background:#F0FDFA}
+.tbl tr.xp td{background:#FBFBFC}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.stat{padding:14px 16px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.stat .v{font-size:22px;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums;line-height:1.25;margin-top:2px}
+.stat .s{font-size:12px;color:#5B6472;font-weight:500}
+.stat.hot{border-color:#FCA5A5;background:#FFF5F5}
+.strip{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;background:#0B1220;color:#fff;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.sk{background:#E9ECF0;border-radius:6px;display:inline-block}
+.bar{height:6px;border-radius:3px;background:#EEF0F3;overflow:hidden}.bar i{display:block;height:100%;border-radius:3px}
+.ptab{display:flex;border-bottom:1px solid #E3E6EB}
+.ptab button{flex:1;height:38px;border:0;background:none;font:inherit;font-size:12.5px;font-weight:600;color:#5B6472;cursor:pointer;border-bottom:2px solid transparent;padding:0 6px;white-space:nowrap}
+.ptab button.on{color:#0B1220;border-bottom-color:#0F766E}
+.seg{display:inline-flex;border:1px solid #D4D8DF;border-radius:8px;overflow:hidden;flex:none}
+.seg button{height:30px;padding:0 11px;border:0;background:#fff;font:inherit;font-size:12px;font-weight:600;color:#4B5563;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.seg button + button{border-left:1px solid #E3E6EB}
+.seg button.on{background:#0B1220;color:#fff}
+.cbx{border-radius:10px;overflow:hidden;border:1px solid #1F2937;background:#0B1220;min-width:0}
+.cbh{display:flex;align-items:center;gap:2px;padding:6px 8px;border-bottom:1px solid #1F2937;background:#111827;flex-wrap:wrap}
+.cbh button{height:28px;padding:0 10px;border:0;border-radius:6px;background:none;color:#B4BAC4;font:inherit;font-size:12px;font-weight:600;cursor:pointer}
+.cbh button.on{background:#273244;color:#fff}
+.cbh .cp{margin-left:auto;display:inline-flex;align-items:center;gap:6px;color:#E5E7EB;border:1px solid #374151}
+.cbx pre{margin:0;padding:12px 14px;font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace;font-size:12.5px;line-height:1.6;color:#E5E7EB;white-space:pre-wrap;overflow-wrap:anywhere}
+.cbx .c1{color:#93C5FD}.cbx .c2{color:#86EFAC}.cbx .c3{color:#FCD34D}.cbx .c4{color:#9CA3AF}.cbx .c5{color:#F9A8D4}
+.cbx .cm{color:#9CA3AF}
+.ev{display:flex;gap:14px;align-items:flex-start;padding:12px 0;border-top:1px solid #EEF0F3}
+.ev:first-child{border-top:0}
+.ev .ic{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.ev .tx{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.ev .tm{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;color:#5B6472;flex:none;padding-top:5px}
+.spin{width:14px;height:14px;border-radius:50%;border:2px solid #C9CED6;border-top-color:#0F766E;flex:none;display:inline-block}
+.mask{display:inline-flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;color:#4B5563;white-space:nowrap}
+.mask svg{flex:none}
+.tok{display:inline-flex;align-items:center;gap:4px;padding:0 6px;border-radius:5px;background:#EDE9FE;color:#5B21B6;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:.86em;font-weight:500;line-height:1.55;white-space:nowrap;vertical-align:baseline}
+.tok.s{background:#FEF3C7;color:#92400E}
+.tok.e{background:#FEE2E2;color:#991B1B;text-decoration:underline wavy #DC2626;text-underline-offset:3px}
+.mk{display:inline-flex;align-items:center;height:22px;padding:0 7px;border-radius:6px;background:#EEF0F3;color:#374151;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;white-space:nowrap}
+.toast{display:flex;gap:12px;align-items:center;padding:10px 12px 10px 14px;border-radius:10px;background:#0B1220;color:#fff;font-size:13.5px;box-shadow:0 12px 30px rgba(11,18,32,.25);max-width:520px;box-sizing:border-box}
+.toast .t{flex:1;min-width:0}
+.toast .k{color:#C3C2B7}
+.toast .btn{min-height:28px;padding:0 10px;font-size:12px;background:transparent;border-color:#4B5563;color:#fff}
+.toast .x{width:28px;height:28px;border:0;background:transparent;color:#9CA3AF;border-radius:6px;font-size:16px;cursor:pointer}
+.ti{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.scrim{position:absolute;inset:0;background:rgba(11,18,32,.32);z-index:55}
+.drw{position:absolute;top:0;right:0;bottom:0;width:600px;max-width:100%;background:#fff;border-left:1px solid #E3E6EB;box-shadow:-18px 0 40px rgba(11,18,32,.18);z-index:60;display:flex;flex-direction:column;box-sizing:border-box;overflow:hidden}
+.drw .dwh{display:flex;align-items:flex-start;gap:12px;padding:18px 22px 14px;border-bottom:1px solid #EEF0F3}
+.drw .dwb{padding:18px 22px;display:flex;flex-direction:column;gap:18px;overflow:auto}
+.drw h3{margin:0;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472}
+.empty{padding:44px 28px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;border-style:dashed}
+.empty .tt{font-size:18px;font-weight:700;letter-spacing:-.01em}
+.empty .ds{color:#4B5563;max-width:560px}
+.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:14px 18px;border-bottom:1px solid #EEF0F3}
+.fchips{display:flex;gap:6px;flex-wrap:wrap;padding:12px 18px;border-bottom:1px solid #EEF0F3}
+.fchip{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:999px;border:1px solid #D4D8DF;background:#fff;font:inherit;font-size:12.5px;font-weight:600;color:#374151;cursor:pointer;white-space:nowrap}
+.fchip b{font-weight:600;color:#5B6472;font-variant-numeric:tabular-nums}
+.fchip.on{background:#0B1220;border-color:#0B1220;color:#fff}.fchip.on b{color:#C9CED6}
+.live{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:#166534}
+.live .dot{box-shadow:0 0 0 4px rgba(22,101,52,.15)}
+.foot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid #EEF0F3}
+.spark{display:block}
+.lnk{display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:13px}
+.ttl{margin:0;font-size:22px;font-weight:700;letter-spacing:-.02em;line-height:1.2}
+.lead{margin:0;color:#4B5563;font-size:14px;max-width:760px}
+.state-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(460px,100%),1fr));gap:16px;align-items:start}
+.flowr{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px}
+.flowr .arw{color:#9AA3B2}
+.pill{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:8px;border:1px solid #E3E6EB;background:#F9FAFB;font-size:12.5px;font-weight:600;white-space:nowrap}
+.vline{display:flex;gap:10px;align-items:baseline;padding:8px 0;border-top:1px solid #EEF0F3;font-size:13px}
+.vline:first-child{border-top:0}
+.hl{background:#FEF2F2;box-shadow:inset 3px 0 0 #DC2626}
+.lines{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;line-height:1.7;background:#0B1220;color:#E5E7EB;border-radius:8px;overflow:hidden}
+.lines div{display:flex;gap:12px;padding:0 12px}
+.lines .ln{color:#9CA3AF;width:22px;text-align:right;flex:none;user-select:none}
+.lines .er{background:rgba(220,38,38,.22)}
+.callout{position:absolute;z-index:5}
+.only-phone{display:none}
+@media (max-width:1100px){.drw{width:520px}}
+@media (max-width:767px){.drw{width:100%;border-left:0}.stats{grid-template-columns:repeat(2,minmax(0,1fr))!important}.ttl{font-size:19px}}
+
+.av{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex:none}
+.row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.row > *{min-width:0}
+.card{background:#FFFFFF;border:1px solid #E3E6EB;border-radius:10px}
+.h2{margin:0;font-size:15px;font-weight:600}
+.lbl{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:#4B5563}
+.note{display:flex;gap:8px 10px;align-items:flex-start;flex-wrap:wrap;padding:10px 12px;border-radius:8px;font-size:12.5px;line-height:1.45}
+.note > :last-child{flex:1 1 220px;min-width:0}
+.note.i{background:#EFF6FF;border:1px solid #BFDBFE;color:#1E3A8A}
+.note.w{background:#FFFBEB;border:1px solid #FCD34D;color:#78350F}
+.note.b{background:#FFF5F5;border:1px solid #FCA5A5;color:#7F1D1D}
+.note.g{background:#F0FDF4;border:1px solid #BBF7D0;color:#14532D}
+.note.n{background:#F3F4F6;border:1px solid #E3E6EB;color:#374151}
+.btn.sm{min-height:28px;padding:0 10px;font-size:12px}
+.btn:disabled,.btn[aria-disabled="true"]{opacity:.55;cursor:not-allowed}
+.btn.danger{color:#991B1B;border-color:#FCA5A5}
+.kv{display:grid;grid-template-columns:max-content 1fr;gap:6px 14px;font-size:12.5px;margin:0}
+.kv dt{color:#5B6472;font-weight:500;margin:0}.kv dd{margin:0;min-width:0}
+.chip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px;border-radius:999px;border:1px solid #D4D8DF;background:#fff;font-size:12px;font-weight:500;white-space:nowrap}
+.code{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace;font-size:12px;background:#0B1220;color:#E5E7EB;border-radius:8px;padding:10px 12px;white-space:pre-wrap;overflow-wrap:anywhere;margin:0}
+.diff{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;border:1px solid #E3E6EB;border-radius:8px;overflow:hidden}
+.diff div{padding:6px 12px;white-space:pre-wrap;overflow-wrap:anywhere}
+.diff .del{background:#FEF2F2;color:#991B1B}.diff .add{background:#F0FDF4;color:#166534}.diff .ctx{color:#4B5563}
+input[type=checkbox].tg{appearance:none;-webkit-appearance:none;width:36px;height:22px;border-radius:999px;background:#6B7280;position:relative;cursor:pointer;flex:none;margin:0;border:0}
+input[type=checkbox].tg::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff}
+input[type=checkbox].tg:checked{background:#0F766E}input[type=checkbox].tg:checked::after{left:16px}
+.ovl{position:absolute;inset:0;background:rgba(11,18,32,.45);display:flex;align-items:flex-start;justify-content:center;padding:64px 16px;box-sizing:border-box;z-index:60}
+.dlg{width:100%;max-width:640px;display:flex;flex-direction:column;background:#fff;border-radius:12px;box-shadow:0 24px 60px rgba(11,18,32,.3);font-size:13.5px}
+.dh{padding:18px 22px 0;display:flex;flex-direction:column;gap:6px}
+.db{padding:16px 22px;display:flex;flex-direction:column;gap:14px}
+.df{padding:14px 22px 18px;display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;border-top:1px solid #EEF0F3;align-items:center}
+.vrow{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border:1px solid #E3E6EB;border-radius:8px;background:#fff}
+.vrow.on{border-color:#0F766E;box-shadow:0 0 0 1px #0F766E}
+.vname{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;font-weight:600;color:#0B1220}
+.pbody{display:flex;flex-direction:column;gap:10px;padding:12px}
+.chk{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-top:1px solid #EEF0F3;font-size:12.5px}
+.chk:first-child{border-top:0}
+.idchip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 9px;border-radius:7px;background:#F3F4F6;border:1px solid #E3E6EB;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;color:#374151;white-space:nowrap}
+.radio{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid #E3E6EB;border-radius:8px;cursor:pointer}
+.radio.on{border-color:#0F766E;background:#F0FDFA}
+.radio input{margin-top:2px}
+
+/* phase 2b: languages and accessibility */
+.lchip{display:inline-flex;align-items:center;gap:8px;min-height:28px;padding:0 4px 0 10px;border:1px solid #D4D8DF;border-radius:999px;background:#fff;color:#0B1220;font-size:12.5px;font-weight:600;white-space:nowrap;box-sizing:border-box;flex:none}
+.ltag{display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:5px;background:#F3F4F6;border:1px solid #E3E6EB;color:#374151;font-size:11.5px;font-weight:600;white-space:nowrap}
+.lsw{gap:8px}
+.lsw .badge{height:20px;font-size:11px}
+.lmenu{position:absolute;top:calc(100% + 6px);left:0;width:372px;z-index:70;padding:6px}
+.lopt{display:grid;grid-template-columns:16px minmax(0,1fr) auto;gap:2px 10px;align-items:center;padding:8px 10px;border-radius:8px;cursor:pointer;font-size:13px}
+.lopt:hover{background:#F3F4F6}
+.lopt.on{background:#F0FDFA}
+.lopt .nm{font-weight:600;display:flex;gap:8px;align-items:center;flex-wrap:wrap;min-width:0}
+.lopt .rc{font-size:12px;color:#5B6472;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.lopt .sub{grid-column:2 / 4;font-size:12px;color:#5B6472}
+.menu{position:absolute;z-index:40;background:#fff;border:1px solid #D4D8DF;border-radius:10px;box-shadow:0 12px 32px rgba(11,18,32,.16);padding:6px;min-width:260px;display:flex;flex-direction:column;gap:2px;box-sizing:border-box}
+.menu > a,.menu > button{display:flex;align-items:center;gap:10px;min-height:36px;padding:0 10px;border-radius:8px;color:#0B1220;font:inherit;font-size:13px;font-weight:500;background:none;border:0;text-align:left;cursor:pointer;width:100%;box-sizing:border-box;text-decoration:none}
+.menu > a:hover,.menu > button:hover{background:#F3F4F6;color:#0B1220}
+.menu > button:disabled{cursor:not-allowed;color:#5B6472}
+.menu hr{border:0;border-top:1px solid #EEF0F3;margin:4px 0;width:100%}
+.menu .mh{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472;padding:8px 10px 4px}
+.mail{width:600px;max-width:100%;background:#fff;box-shadow:0 1px 3px rgba(11,18,32,.12);font-family:Georgia,'Times New Roman',serif;color:#1F2937;flex:none;box-sizing:border-box;position:relative}
+.esec{position:relative;padding:16px 24px}
+.eph{display:flex;align-items:center;justify-content:center;background:#E9ECF0;color:#5B6472;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12px;font-weight:500;border:1px dashed #C9CED6;text-align:center;padding:0 8px;box-sizing:border-box}
+.ecols{display:flex;gap:16px}
+.ecols > div{flex:1;min-width:0}
+.ebtn{display:inline-block;padding:9px 14px;border-radius:6px;background:#0F766E;color:#fff;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:13px;font-weight:600;text-decoration:none}
+.wtag{position:absolute;display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px;border-radius:6px;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:11.5px;font-weight:700;box-shadow:0 2px 6px rgba(11,18,32,.18);z-index:3;white-space:nowrap;line-height:1}
+.wtag.w{background:#FEF3C7;color:#92400E;border:1px solid #FCD34D}.wtag.b{background:#FEE2E2;color:#991B1B;border:1px solid #FCA5A5}
+.wtag.n{background:#F3F4F6;color:#374151;border:1px solid #C9CED6}.wtag.i{background:#DBEAFE;color:#1E40AF;border:1px solid #93C5FD}
+.esel{outline:2px solid #1D4ED8;outline-offset:-2px;margin-top:28px}
+.wtagl{display:flex;margin:0 0 10px}
+.wtagl .wtag{position:static;box-shadow:0 1px 3px rgba(11,18,32,.14)}
+.lnkbtn{display:inline-flex;align-items:center;gap:5px;border:0;background:none;padding:0;font:inherit;font-size:12px;font-weight:600;color:#0F766E;cursor:pointer;min-height:24px;white-space:nowrap}
+.lnkbtn:hover{color:#115E59;text-decoration:underline}
+.elab{position:absolute;top:-24px!important;left:0!important;display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;border-radius:6px 6px 0 0;background:#1D4ED8;color:#fff;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:11px;font-weight:600;white-space:nowrap;z-index:3}
+.iss{display:flex;flex-direction:column;gap:8px;padding:12px 14px;border-bottom:1px solid #EEF0F3}
+.iss .ih{display:flex;gap:8px;align-items:flex-start}
+.iss .ih .t{font-weight:600;font-size:13px;line-height:1.4;flex:1;min-width:0}
+.iss .path{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11.5px;color:#5B6472;overflow-wrap:anywhere;line-height:1.5}
+.iss .meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.iss .fix{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.iss.on{background:#F8FAFF;box-shadow:inset 3px 0 0 #1D4ED8}
+.sevb{height:20px!important;font-size:11px!important}
+.sugg{display:flex;align-items:center;gap:10px;padding:7px 8px 7px 7px;border:1px solid #E3E6EB;border-radius:8px;background:#fff;font-size:12.5px;min-width:0}
+.sugg .swt{width:30px;height:30px;border-radius:6px;flex:none;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:11px;font-weight:700;box-shadow:inset 0 0 0 1px rgba(11,18,32,.12)}
+.sugg .st{display:flex;flex-direction:column;gap:1px;flex:1;min-width:0;line-height:1.3}
+.sugg .st b{font-weight:600}
+.sugg.on{border-color:#0F766E;box-shadow:0 0 0 1px #0F766E}
+.cchip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap;flex:none;font-variant-numeric:tabular-nums}
+.cchip.f{background:#FEE2E2;color:#991B1B}.cchip.p{background:#DCFCE7;color:#166534}.cchip.u{background:#EEF0F3;color:#4B5563}
+.wcag{width:100%;border-collapse:collapse;font-size:12.5px}
+.wcag th,.wcag td{padding:6px 8px;border-bottom:1px solid #EEF0F3;text-align:left;white-space:nowrap}
+.wcag th{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#5B6472}
+.wcag tr:last-child td{border-bottom:0}
+.pf{display:inline-flex;align-items:center;gap:5px;font-weight:600}
+.pf.y{color:#166534}.pf.n{color:#991B1B}
+.cmph{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);background:#F9FAFB;border-bottom:1px solid #E3E6EB;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#5B6472}
+.cmph > div{padding:10px 18px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.cmph > div + div{border-left:1px solid #E3E6EB}
+.cmpr{border-bottom:1px solid #E3E6EB}
+.cmpr .rh{display:flex;gap:8px 12px;align-items:center;flex-wrap:wrap;padding:10px 18px 0}
+.cmpr .rh .bn{font-weight:600;font-size:13px}
+.cmpr .rh .ra{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+.cmpc{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.cmpc > div{padding:10px 18px 14px;min-width:0;font-size:13.5px;line-height:1.55}
+.cmpc > div + div{border-left:1px solid #EEF0F3}
+.cmpc .src{color:#374151;padding-top:19px!important}
+.cmpc .tl{display:none;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#5B6472;margin-bottom:4px}
+.edbox{border:1px solid #8B94A3;border-radius:8px;padding:8px 10px;background:#fff;color:#0B1220}
+.edbox.on{border-color:#0F766E;box-shadow:0 0 0 2px rgba(15,118,110,.18)}
+.edbox.ro{border-color:#E3E6EB;background:#F9FAFB}
+select.in:disabled,input.in:disabled{background:#F3F4F6;color:#4B5563;border-color:#D4D8DF;cursor:not-allowed}
+.dl{background:#FEE2E2;color:#991B1B;text-decoration:line-through;text-decoration-thickness:1px;border-radius:3px;padding:0 2px}
+.da{background:#DCFCE7;color:#166534;border-radius:3px;padding:0 2px}
+.cmpr.att{background:#FFFDF5}
+.cmpr.new{background:#F8FBFF}
+.cmpr.rem{background:#FBFBFC}
+@media (max-width:1100px){
+  .cmph{grid-template-columns:1fr}.cmph > div + div{display:none}
+  .cmpc{grid-template-columns:1fr}.cmpc > div + div{border-left:0;padding-top:0}
+  .cmpc .tl{display:block}
+  .cmpc .src{padding-top:10px!important}
+}
+.chk{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-top:1px solid #EEF0F3;font-size:12.5px}
+.chk:first-child{border-top:0}
+.pbody{display:flex;flex-direction:column;gap:10px;padding:12px}
+.prop{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border-bottom:1px solid #EEF0F3}
+.prop .t{font-size:12px;font-weight:600}
+.row2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.sw{width:22px;height:22px;border-radius:5px;border:1px solid #D4D8DF;flex:none}
+.crow{display:flex;gap:12px;align-items:flex-start;padding:11px 16px;border-top:1px solid #EEF0F3;flex-wrap:wrap}
+.crow .rt{display:flex;flex-direction:column;gap:2px;flex:1 1 260px;min-width:0}
+.crow .t{font-weight:500}
+.crow.w{background:#FFFBEB}.crow.b{background:#FFF5F5}
+.crow > .badge{margin-top:1px}
+.crow .acts{display:flex;gap:8px;flex-wrap:wrap}
+.cgrp{display:flex;align-items:center;justify-content:space-between;gap:6px 10px;padding:12px 16px;background:#F9FAFB;border-top:1px solid #E3E6EB;flex-wrap:wrap}
+.cgrp:first-child{border-top:0;border-radius:10px 10px 0 0}
+.cgrp .new{height:20px;font-size:11px}
+.sum{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:13px}
+.n{font-weight:600;font-variant-numeric:tabular-nums}
+label.rad{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid #E3E6EB;border-radius:8px;cursor:pointer}
+label.rad input{margin-top:3px;flex:none}
+.only-narrow{display:none}
+.tbl tr.nob td{border-bottom:0}
+.tbl tr.subr td{padding-top:0}
+label.rad.on{border-color:#0F766E;background:#F0FDFA}
+.tscroll{overflow-x:auto;max-width:100%}
+.mini{border:1px solid #E3E6EB;border-radius:10px;background:#fff;overflow:hidden;display:flex;flex-direction:column}
+.minih{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid #E3E6EB;background:#fff}
+.minicanvas{background:#E9ECF0;padding:18px 16px;display:flex;flex-direction:column;align-items:center;gap:12px}
+.annot{border:1px dashed #9AA3B2;border-radius:10px;background:#FBFBFC;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.annot h2{margin:0;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#4B5563}
+.annot ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:5px;font-size:13px;color:#374151}
+.pubfoot{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center;font-size:12.5px;color:#5B6472}
+.pubfoot a{color:#5B6472}
+.pubfoot a[aria-current]{color:#1F2937;font-weight:700;text-decoration:none}
+@media (max-width:1100px){
+  .side .sidefoot > *:not(.btn){display:none!important}
+  .sc-host .no-narrow{display:none!important}
+  .sc-host .only-narrow{display:flex!important;flex-direction:column}
+}
+@media (max-width:767px){
+  .lmenu{position:static!important;width:auto!important;margin-top:8px;box-shadow:0 6px 18px rgba(11,18,32,.12)}
+  .lsw-wrap{flex:1 1 100%}
+  .ecols{flex-direction:column}
+  .lb{grid-template-columns:minmax(0,1fr) auto!important;gap:0 12px!important}
+  .lb .ld{grid-column:1 / -1;margin:0 0 8px}
+  .esec{padding:14px 16px}
+}
+
+/* phase 2b composer additions */
+.ptab button{padding:0 8px}
+.cright{flex:1 1 360px;max-width:360px}
+.lsw-wrap{position:relative}
+.ccanvas{flex:1;overflow:auto;padding:28px 24px 40px;display:flex;flex-direction:column;align-items:center;gap:16px}
+.cbanner{width:600px;max-width:100%;box-sizing:border-box}
+.ponly{display:none}
+.pvas{min-width:0}
+@media (min-width:768px) and (max-width:1100px){.cright{max-width:none}}
+@media (max-width:767px){
+  .cpanel.cblocks{display:none!important}
+  .ponly{display:inline-flex}
+  .ccanvas{padding:16px 12px 24px}
+  .cright{max-width:none!important;flex:1 1 100%!important}
+  .pvas{flex:1 1 100%}
+  .pvas select{flex:1 1 0;width:0;min-width:0!important;max-width:none!important}
+  .zoomhint{display:none}
+}
+</style>
+</helmet>
+<div style="min-height:100vh;display:flex;flex-direction:column;background:#F3F4F6;position:relative">
+<div style="min-height:100vh;display:flex;flex-direction:column">
+  <a href="#main" class="skip">Skip to content</a>
+  <header style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 16px;background:#fff;border-bottom:1px solid #E3E6EB">
+    <a href="Campaigns.dc.html" class="btn ic" aria-label="Back to campaigns"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m10 3-5 5 5 5"></path></svg></a>
+    <div style="display:flex;flex-direction:column;gap:0;min-width:0">
+      <label class="k" for="cname" style="font-size:11px">Campaign</label>
+      <input id="cname" value="Weekly Digest #143" style="border:0;padding:0;min-height:28px;font:inherit;font-size:15px;font-weight:700;color:#0B1220;background:none;min-width:180px;width:180px">
+    </div>
+    <span class="badge mut">Draft · autosaved 11:20</span>
+    <div class="lsw-wrap"><button class="btn lsw" type="button" aria-haspopup="listbox" aria-expanded="true" aria-controls="lsw-menu" aria-label="Language version: German, outdated. Change language"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M1.8 8h12.4M8 1.8c1.8 1.7 2.7 3.8 2.7 6.2S9.8 12.5 8 14.2C6.2 12.5 5.3 10.4 5.3 8S6.2 3.5 8 1.8z"></path></svg><span>German</span><span class="badge warn">Outdated</span><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button><div class="menu lmenu" id="lsw-menu" role="listbox" aria-label="Language versions of Weekly Digest #143"><div class="mh" style="display:flex;justify-content:space-between"><span>Language versions</span><span>Readers</span></div><div class="lopt" role="option" aria-selected="false"><span></span><span class="nm">English<span class="badge info" style="height:20px;font-size:11px">Source</span></span><span class="rc">26,890</span><span class="sub">English, no language and other languages</span></div><div class="lopt" role="option" aria-selected="false"><span></span><span class="nm">Spanish<span class="badge ok" style="height:20px;font-size:11px">Up to date</span></span><span class="rc">2,740</span><span class="sub">Daniel Park · 15 Oct 11:20 · from v9</span></div><div class="lopt on" role="option" aria-selected="true"><span><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#0F766E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg></span><span class="nm">German<span class="badge warn" style="height:20px;font-size:11px">Outdated · 2 blocks</span></span><span class="rc">1,468</span><span class="sub">Sofia Rossi · 14 Oct 16:20 · from v6</span></div><div class="lopt" role="option" aria-selected="false"><span></span><span class="nm">Vietnamese<span class="badge mut" style="height:20px;font-size:11px">Missing · gets English</span></span><span class="rc">506</span><span class="sub">Readers get English</span></div><hr><button type="button"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1.5" y="2.5" width="5.6" height="11" rx="1.2"></rect><path d="M9.3 2.5h4a1.2 1.2 0 0 1 1.2 1.2v8.6a1.2 1.2 0 0 1-1.2 1.2h-4z"></path></svg>Compare languages</button><button type="button"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3v10M3 8h10"></path></svg>Add language</button><hr><div style="display:flex;flex-direction:column;gap:2px;padding:6px 10px 4px"><span style="font-size:12px;font-weight:600;color:#4B5563">Written in English</span><span class="k">The source. It can change only while the email has one version.</span></div><button type="button" disabled aria-describedby="ai-na"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 1.8 9.4 6.6 14.2 8 9.4 9.4 8 14.2 6.6 9.4 1.8 8 6.6 6.6z"></path></svg>Translate with AI<span class="badge mut" id="ai-na" style="margin-left:auto;height:20px;font-size:11px">Not available yet</span></button></div></div>
+    
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-left:4px">
+      <button class="btn" aria-label="Audience: Weekly Digest, 31,604 recipients"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="6" cy="5" r="2.5"></circle><path d="M1.5 14a4.5 4.5 0 0 1 9 0M11 3a2.5 2.5 0 0 1 0 5M14.5 14a4 4 0 0 0-3-3.8"></path></svg>Weekly Digest · 31,604</button>
+      <button class="btn">From: Acme Newsletter &lt;digest@news.acme.io&gt;</button>
+    </div>
+    <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap"><a href="ComposerPreview.dc.html" class="btn">Preview</a><button class="btn">Send test</button><a href="SendReadinessAccessibility.dc.html" class="btn pri">Review &amp; send</a></div>
+  </header>
+  <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;padding:10px 16px;background:#fff;border-bottom:1px solid #E3E6EB">
+    <label style="display:flex;flex-direction:column;gap:2px;flex:2 1 300px;min-width:0"><span class="k" style="font-size:11px">Subject · German</span><input class="in" value="Geplante Rollouts, schnellere Exporte und noch 6 Wochen für die v1-API"></label>
+    <label style="display:flex;flex-direction:column;gap:2px;flex:2 1 300px;min-width:0"><span class="k" style="font-size:11px">Preheader · German</span><input class="in" value="Planen Sie eine Flag-Änderung für 2 Uhr nachts und schlafen Sie weiter."></label>
+    <div style="flex:3 1 340px;display:flex;flex-direction:column;gap:2px;min-width:0"><span class="k" style="font-size:11px">Inbox preview · Gmail · German</span>
+      <div style="display:flex;gap:10px;align-items:center;height:32px;padding:0 10px;border:1px solid #E3E6EB;border-radius:7px;background:#F9FAFB;font-size:12.5px;white-space:nowrap;overflow:hidden" data-allow-clip="1">
+        <span style="font-weight:700;width:112px;overflow:hidden;text-overflow:ellipsis;flex:none">Acme Newsletter</span>
+        <span style="overflow:hidden;text-overflow:ellipsis;min-width:0"><b style="font-weight:600">Geplante Rollouts, schnellere Exporte und noch 6 Wochen für die v1-API</b><span style="color:#5B6472"> - Planen Sie eine Flag-Änderung für 2 Uhr nachts und schlafen Sie weiter.</span></span>
+        <span class="k" style="margin-left:auto;flex:none">9:00 AM</span>
+      </div>
+    </div>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;flex:1;align-items:stretch">
+    <aside class="cpanel cblocks" aria-label="Blocks" style="flex:1 1 272px;max-width:272px;background:#fff;border-right:1px solid #E3E6EB;display:flex;flex-direction:column">
+      <div class="ptab" role="tablist"><button class="on" role="tab" aria-selected="true">Blocks</button><button role="tab" aria-selected="false">Layers</button><button role="tab" aria-selected="false">Templates</button></div>
+      <div style="padding:8px 12px"><input aria-label="Search blocks" class="in" placeholder="Search blocks" style="width:100%"></div>
+      <div class="grp">Layout · MJML</div>
+      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:0 12px 8px">
+        <div class="blk" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"></rect></svg>1 column</div>
+        <div class="blk" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="8" height="14" rx="2"></rect><rect x="13" y="5" width="8" height="14" rx="2"></rect></svg>2 columns</div>
+        <div class="blk" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="2" y="5" width="6" height="14" rx="1.5"></rect><rect x="9" y="5" width="6" height="14" rx="1.5"></rect><rect x="16" y="5" width="6" height="14" rx="1.5"></rect></svg>3 columns</div>
+        <div class="blk" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="18" rx="2"></rect><rect x="6" y="7" width="12" height="10" rx="1"></rect></svg>Wrapper</div>
+        <div class="blk" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M7 15h10M7 11h6"></path></svg>Hero</div>
+        <div class="blk" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 12h18M12 3v18"></path></svg>Group</div>
+      </div>
+      <div class="grp">Content · MJML</div>
+      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:0 12px 8px">
+        <div class="blk" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"></path></svg>Text</div>
+        <div class="blk" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="m3 16 5-5 4 4 3-3 6 6"></path><circle cx="16" cy="9" r="1.5"></circle></svg>Image</div>
+        <div class="blk" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="8" rx="4"></rect></svg>Button</div>
+        <div class="blk" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 12h18"></path></svg>Divider</div>
+        <div class="blk" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 6v12M20 6v12M8 12h8"></path></svg>Spacer</div>
+        <div class="blk" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="6" cy="12" r="2.5"></circle><circle cx="12" cy="12" r="2.5"></circle><circle cx="18" cy="12" r="2.5"></circle></svg>Social</div>
+        <div class="blk" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"></path></svg>Navbar</div>
+        <div class="blk" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m8 7-4 5 4 5M16 7l4 5-4 5"></path></svg>Raw HTML</div>
+        <div class="blk" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"></rect><path d="M8 9h8M8 13h8"></path></svg>Table</div>
+      </div>
+      <div class="grp">ReputeCast blocks</div>
+      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:0 12px 8px">
+        <div class="blk rc" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"></rect><circle cx="7.5" cy="9.5" r="1.5"></circle><path d="M12 9h6"></path></svg>Header + logo</div>
+        <div class="blk rc" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M6 8h12M6 12h8M6 16h6"></path></svg>Article card</div>
+        <div class="blk rc" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"></rect><rect x="6" y="6" width="12" height="7" rx="1"></rect><path d="M6 17h6"></path></svg>Product card</div>
+        <div class="blk rc" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="12" width="18" height="8" rx="2"></rect><path d="M6 16h8"></path></svg>Footer + unsubscribe</div>
+        <div class="blk rc" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18"></path></svg>Saved sections · 4</div>
+      </div>
+    </aside>
+    <section role="main" id="main" style="flex:999 1 520px;min-width:0;display:flex;flex-direction:column;background:#E9ECF0">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 14px;background:#fff;border-bottom:1px solid #E3E6EB">
+        <button class="btn ponly" type="button"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3v10M3 8h10"></path></svg>Blocks</button>
+        <div class="seg" role="group" aria-label="Device"><button class="on" aria-pressed="true">Desktop · 600</button><button aria-pressed="false">Mobile · 375</button></div>
+        <div class="seg" role="group" aria-label="View"><button class="on" aria-pressed="true">Visual</button><button aria-pressed="false">MJML</button><button aria-pressed="false">HTML</button></div>
+        <label class="pvas" style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:#4B5563"><span style="white-space:nowrap">Preview as</span><select class="in" style="height:30px;max-width:230px"><option>Sam Rivera · English</option><option>Lucía Fernández · Spanish</option><option selected>Jonas Weber · German</option><option>Phạm Minh Anh · Vietnamese, gets English</option><option>Rafael Souza · Portuguese, gets English</option></select></label>
+        <span class="k zoomhint" style="margin-left:auto">Zoom 100% · ⌘S save</span>
+      </div>
+      <div class="ccanvas"><div class="cbanner"><div class="note w" role="note"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#B45309" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M8 4.8v3.6M8 10.9v.1"></path></svg><div style="display:flex;flex-direction:column;gap:4px;min-width:0;flex:1 1 320px"><span style="font-weight:700">German is outdated</span><div>2 blocks changed in English since Sofia Rossi translated it on 14 Oct. German readers get it as it is until someone updates it or marks it up to date.<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><a href="ComposerCompare.dc.html" class="btn sm pri"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1.5" y="2.5" width="5.6" height="11" rx="1.2"></rect><path d="M9.3 2.5h4a1.2 1.2 0 0 1 1.2 1.2v8.6a1.2 1.2 0 0 1-1.2 1.2h-4z"></path></svg>Compare</a><button class="btn sm" type="button">Mark as up to date</button></div></div></div></div></div><div class="mail" style="width:600px"><div class="esec" style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:18px 24px;border-bottom:1px solid #EEF0F3"><a href="https://acme.io" class="eph" style="width:96px;height:28px;flex:none;color:#5B6472">Logo · Acme</a><span style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12px;color:#5B6472;text-align:right">Blog · Doku · Changelog</span></div><div class="esec" style="padding:20px 24px 6px"><div class="eph" style="height:200px;">scheduled-rollouts.png · 552×200 · no alt text</div></div><div class="esec" style="padding:12px 24px 4px"><h1 style="margin:0;font-size:26px;line-height:1.2;font-weight:700;color:#0B1220">Geplante Rollouts sind da</h1></div><div class="esec esel" style="padding:8px 24px 18px"><div class="wtagl" style="justify-content:flex-start"><span class="wtag w"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3v6M8 12v.5"></path></svg>Changed in English</span></div><span class="elab" style="top:-26px;left:-2px">mj-text · intro</span><p style="margin:0;font-size:15px;line-height:1.6">Hallo <span class="tok">{{_lq0}}</span>, Sie können Flag-Änderungen jetzt im Voraus planen. <a href="https://docs.acme.io/rollouts" style="color:#0F766E;text-decoration:underline">Hier klicken</a>, um zu sehen, wie es funktioniert.</p></div><div class="esec" style="padding:18px 24px 18px"><div class="wtagl" style="justify-content:flex-start"><span class="wtag w"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3v6M8 12v.5"></path></svg>Changed in English</span></div><div class="ecols"><div><div class="eph" style="height:120px;margin-bottom:10px">Image · 268×120</div><h3 style="margin:0 0 6px;font-size:17px;line-height:1.3;color:#0B1220">Geplante Rollouts</h3><p style="margin:0 0 10px;font-size:14px;line-height:1.5;color:#374151">Wählen Sie die Minute, in der ein Flag umschaltet. Jede geplante Änderung steht im Audit-Log.</p><a href="https://docs.acme.io/rollouts" class="ebtn">Zur Dokumentation</a></div><div><div class="eph" style="height:120px;margin-bottom:10px">Image · 268×120</div><h3 style="margin:0 0 6px;font-size:17px;line-height:1.3;color:#0B1220">Schnellere CSV-Exporte</h3><p style="margin:0 0 10px;font-size:14px;line-height:1.5;color:#374151">Exporte laufen jetzt bis zu 3× schneller.</p><a href="https://acme.io/changelog" class="ebtn">Zum Changelog</a></div></div></div><div class="esec" style="padding:16px 24px 8px;border-top:1px solid #EEF0F3"><h2 style="margin:0 0 6px;font-size:17px;line-height:1.3;color:#0B1220">Noch 6 Wochen für die v1-API</h2><p style="margin:0;font-size:14px;line-height:1.55;color:#374151">Die v1-API antwortet ab dem 30. November nicht mehr. Migrationsanleitung: <a href="https://docs.acme.io/migrate-v2" style="color:#0F766E;text-decoration:underline;overflow-wrap:anywhere">https://docs.acme.io/migrate-v2</a></p></div><div class="esec" style="padding:14px 24px 22px;text-align:center"><a href="https://docs.acme.io/migrate-v2" style="display:inline-block;padding:12px 22px;border-radius:6px;background:#5EBFB0;color:#FFFFFF;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:15px;font-weight:700;text-decoration:none">Migration planen</a></div><div class="esec" style="padding:10px 24px 16px;display:flex;justify-content:center;gap:10px"><a href="https://x.com/acme" aria-label="Acme on X" style="width:28px;height:28px;border-radius:50%;background:#374151;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:11px;font-weight:700;text-decoration:none">X</a><a href="https://linkedin.com/company/acme" aria-label="Acme on LinkedIn" style="width:28px;height:28px;border-radius:50%;background:#374151;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:11px;font-weight:700;text-decoration:none">in</a><a href="https://github.com/acme" aria-label="Acme on GitHub" style="width:28px;height:28px;border-radius:50%;background:#374151;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:11px;font-weight:700;text-decoration:none">GH</a></div><div class="esec" style="padding:16px 24px;background:#F3F4F6;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:11px;color:#5B6472;text-align:center;line-height:1.6">Acme Inc · 500 Market St, Suite 1200 · San Francisco, CA 94105<br><a href="PublicUnsubscribe.dc.html">Abmelden</a> · <a href="PublicPreferences.dc.html">E-Mail-Einstellungen</a> · <a href="PublicArchive.dc.html">Im Browser ansehen</a></div></div></div>
+    </section>
+    <aside class="cpanel cright" aria-label="Properties and checks" style="background:#fff;border-left:1px solid #E3E6EB;display:flex;flex-direction:column">
+      <div class="ptab" role="tablist"><button role="tab" aria-selected="false">Style</button><button role="tab" class="on" aria-selected="true">Settings</button><button role="tab" aria-selected="false">Deliverability</button><button role="tab" aria-selected="false">Accessibility · 6</button></div>
+      <div class="pbody" style="gap:14px"><div style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:600">mj-text · Intro</span><span class="k">Text block in the German version</span></div><label class="lbl">Text role<select class="in"><option selected>Paragraph</option><option>Heading 1</option><option>Heading 2</option><option>Heading 3</option></select><span class="k" style="font-weight:500">Screen readers announce headings and their level. The text keeps its look.</span></label><div style="display:flex;flex-direction:column;gap:10px;padding-top:12px;border-top:1px solid #EEF0F3"><div class="row" style="justify-content:space-between;gap:8px"><span style="font-weight:600">This block in German</span><span class="badge warn" style="height:20px;font-size:11px">Changed in English</span></div><dl class="kv"><dt>Translated</dt><dd>from English v6 · Sofia Rossi, 14 Oct 16:20</dd><dt>English now</dt><dd>v9 · Sofia Rossi, 15 Oct 09:12</dd></dl><div class="diff" style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12.5px"><div class="ctx" style="background:#F9FAFB;font-weight:600">English · v6 → v9</div><div class="ctx">…you can now schedule flag changes ahead of time<span class="da">, in any timezone</span>.</div></div><div style="display:flex;gap:6px;flex-wrap:wrap"><a href="ComposerCompare.dc.html" class="btn sm"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1.5" y="2.5" width="5.6" height="11" rx="1.2"></rect><path d="M9.3 2.5h4a1.2 1.2 0 0 1 1.2 1.2v8.6a1.2 1.2 0 0 1-1.2 1.2h-4z"></path></svg>Compare</a><button class="btn sm" type="button">Mark this block as up to date</button></div></div><div style="display:flex;flex-direction:column;gap:8px;padding-top:12px;border-top:1px solid #EEF0F3"><span style="font-weight:600">Personalization</span><label class="lbl"><span>Fallback for <span class="mono" style="font-weight:500">first_name</span> in German</span><input class="in" value="zusammen"></label><span class="k">Tokens are shared by every language. Their fallback text is set per language: English uses “there”.</span></div></div>
+    </aside>
+  </div>
+  <footer style="display:flex;align-items:center;gap:8px 14px;flex-wrap:wrap;padding:8px 16px;background:#fff;border-top:1px solid #E3E6EB">
+    <div class="bc"><span>mjml</span><span>›</span><span>mj-body</span><span>›</span><span>mj-section</span><span>›</span><b>mj-text</b></div>
+    <span class="k" style="margin-left:auto">German · 71 KB of 102 KB · 7 images · 15 links</span>
+    <span class="badge warn"><span class="dot"></span>6 accessibility issues (2 serious)</span>
+    <a href="ComposerStates.dc.html" class="k">Version history · 9 versions</a>
+  </footer>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1571}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { _lq0: "{{ first_name | default: \"zusammen\" }}" };
+  }
+}
+</script>
+</body>
+</html>

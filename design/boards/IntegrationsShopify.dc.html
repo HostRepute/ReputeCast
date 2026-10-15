@@ -1,0 +1,503 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Settings · Integrations · Shopify · Acme Merch</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F4F6;color:#0B1220;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;line-height:1.45}
+a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
+.mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace}
+.card{background:#FFFFFF;border:1px solid #E3E6EB;border-radius:10px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:36px;padding:0 14px;border-radius:8px;border:1px solid #D4D8DF;background:#FFFFFF;color:#0B1220;font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;box-sizing:border-box}
+.btn:hover{background:#F3F4F6;color:#0B1220}
+.btn.pri{background:#0F766E;border-color:#0F766E;color:#FFFFFF}.btn.pri:hover{background:#115E59;color:#FFFFFF}
+.btn.sm{min-height:30px;padding:0 10px;font-size:12px}
+.badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;flex:none}
+.ok{background:#DCFCE7;color:#166534}.warn{background:#FEF3C7;color:#92400E}.bad{background:#FEE2E2;color:#991B1B}.info{background:#DBEAFE;color:#1E40AF}.mut{background:#EEF0F3;color:#4B5563}.pur{background:#EDE9FE;color:#5B21B6}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;flex:none}
+.nav a{display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;border-radius:8px;color:#4B5563;font-weight:500}
+.nav a:hover{background:#EEF0F3;color:#0B1220}.nav a.on{background:#E3F1EE;color:#0F766E}
+.nav svg{width:16px;height:16px;flex:none}
+.tabs{display:flex;gap:4px;flex-wrap:wrap}
+.tabs a{display:inline-flex;align-items:center;height:34px;padding:0 12px;border-radius:8px;color:#4B5563;font-weight:500;font-size:13px}
+.tabs a:hover{background:#EEF0F3;color:#0B1220}.tabs a.on{background:#0B1220;color:#fff}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{text-align:left;font-weight:600;color:#5B6472;padding:10px 12px;border-bottom:1px solid #E3E6EB;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+.tbl td{padding:11px 12px;border-bottom:1px solid #EEF0F3;vertical-align:middle;white-space:nowrap}
+.tbl tr:last-child td{border-bottom:0}
+.k{font-size:12px;color:#5B6472;font-weight:500}
+.h2{margin:0;font-size:15px;font-weight:600}
+.in{height:36px;padding:0 10px;border:1px solid #D4D8DF;border-radius:8px;background:#fff;font:inherit;font-size:13px;color:#0B1220;box-sizing:border-box;min-width:0}
+.lbl{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:#4B5563}
+
+
+/* shell additions: workspace switcher, notification bell, user menu */
+.ws{display:flex;align-items:center;gap:8px;margin:2px 0 4px;padding:7px 10px;border:1px solid #E3E6EB;border-radius:8px;background:#fff;color:#0B1220;font:inherit;text-align:left;cursor:pointer;width:100%;box-sizing:border-box}
+.ws:hover{background:#F3F4F6}
+.ws .wsn{display:flex;flex-direction:column;line-height:1.25;min-width:0;flex:1}
+.ws .wsn b{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ws .wsn span{font-size:11px;color:#5B6472;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tools{display:flex;align-items:center;gap:8px;margin-left:8px}
+.ibtn{position:relative;display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:1px solid #D4D8DF;background:#fff;color:#0B1220;cursor:pointer;padding:0;flex:none}
+.ibtn:hover{background:#F3F4F6}
+.ibtn .cnt{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#B91C1C;color:#fff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box}
+.ubtn{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 10px 0 4px;border-radius:8px;border:1px solid #D4D8DF;background:#fff;color:#0B1220;font:inherit;font-size:13px;font-weight:600;cursor:pointer;flex:none}
+.ubtn:hover{background:#F3F4F6}
+.menu{position:absolute;z-index:40;background:#fff;border:1px solid #D4D8DF;border-radius:10px;box-shadow:0 12px 32px rgba(11,18,32,.16);padding:6px;min-width:260px;display:flex;flex-direction:column;gap:2px;box-sizing:border-box}
+.menu a,.menu button{display:flex;align-items:center;gap:10px;min-height:36px;padding:0 10px;border-radius:8px;color:#0B1220;font:inherit;font-size:13px;font-weight:500;background:none;border:0;text-align:left;cursor:pointer;width:100%;box-sizing:border-box;text-decoration:none}
+.menu a:hover,.menu button:hover{background:#F3F4F6;color:#0B1220}
+.menu hr{border:0;border-top:1px solid #EEF0F3;margin:4px 0;width:100%}
+.menu .mh{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472;padding:8px 10px 4px}
+@media (max-width:767px){.tools{margin-left:0}.menu{min-width:0;max-width:calc(100vw - 24px)}}
+
+
+/* add-on components */
+.av{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex:none}
+.tbl td.c,.tbl th.c{text-align:center}
+.tbl td{white-space:normal;vertical-align:middle}
+.tbl td.nw,.tbl td .badge{white-space:nowrap}
+.tbl td .btn{white-space:nowrap}
+.flag{display:inline-flex;align-items:center;gap:4px;color:#B45309;font-weight:700;font-size:11px;white-space:nowrap}
+input[type=checkbox].tg{appearance:none;-webkit-appearance:none;width:40px;height:24px;border-radius:999px;background:#6B7280;position:relative;cursor:pointer;flex:none;margin:0;border:0}
+input[type=checkbox].tg::after{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff}
+input[type=checkbox].tg:checked{background:#0F766E}input[type=checkbox].tg:checked::after{left:18px}
+.row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.col{display:flex;flex-direction:column;gap:10px}
+.sec{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid #EEF0F3;flex-wrap:wrap;gap:8px}
+.pad{padding:16px 18px}
+.note{display:flex;gap:8px 10px;align-items:flex-start;flex-wrap:wrap;padding:12px 14px;border-radius:8px;font-size:13px;line-height:1.45}
+.note > :last-child{flex:1 1 320px;min-width:0}
+.note > .badge{margin-top:1px}
+.note.i{background:#EFF6FF;border:1px solid #BFDBFE;color:#1E3A8A}
+.note.w{background:#FFFBEB;border:1px solid #FCD34D;color:#78350F}
+.note.b{background:#FFF5F5;border:1px solid #FCA5A5;color:#7F1D1D}
+.note.g{background:#F0FDF4;border:1px solid #BBF7D0;color:#14532D}
+.note.n{background:#F3F4F6;border:1px solid #E3E6EB;color:#374151}
+.btn:disabled,.btn[aria-disabled="true"]{opacity:.55;cursor:not-allowed}
+.btn.danger{color:#991B1B;border-color:#FCA5A5}.btn.danger:hover{background:#FEF2F2;color:#991B1B}
+.btn.danger.pri{background:#B91C1C;border-color:#B91C1C;color:#fff}.btn.danger.pri:hover{background:#991B1B;color:#fff}
+.kv{display:grid;grid-template-columns:max-content 1fr;gap:7px 18px;font-size:13px;margin:0}
+.kv dt{color:#5B6472;font-weight:500;margin:0}.kv dd{margin:0;min-width:0}
+.chip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;border:1px solid #D4D8DF;background:#fff;font-size:12.5px;font-weight:500;white-space:nowrap}
+.code{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace;font-size:12.5px;background:#0B1220;color:#E5E7EB;border-radius:8px;padding:12px 14px;white-space:pre-wrap;overflow-wrap:anywhere;margin:0}
+.diff{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;border:1px solid #E3E6EB;border-radius:8px;overflow:hidden}
+.diff div{padding:6px 12px;white-space:pre-wrap;overflow-wrap:anywhere}
+.diff .del{background:#FEF2F2;color:#991B1B}.diff .add{background:#F0FDF4;color:#166534}.diff .ctx{color:#4B5563}
+.ovl{position:absolute;inset:0;background:rgba(11,18,32,.45);display:flex;align-items:flex-start;justify-content:center;padding:72px 16px;box-sizing:border-box;z-index:60}
+.dlg{width:100%;max-width:640px;display:flex;flex-direction:column;background:#fff;border-radius:12px;box-shadow:0 24px 60px rgba(11,18,32,.3)}
+.dh{padding:18px 22px 0;display:flex;flex-direction:column;gap:6px}
+.db{padding:16px 22px;display:flex;flex-direction:column;gap:12px}
+.df{padding:14px 22px 18px;display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;border-top:1px solid #EEF0F3;align-items:center}
+.steps{display:flex;flex-direction:column;gap:2px}
+.row > *{min-width:0}
+
+/* expansion components (phases 1-8) */
+.num,.tbl td.r{font-variant-numeric:tabular-nums}
+.tbl th.r,.tbl td.r{text-align:right}
+.tbl tr.sel td{background:#F0FDFA}
+.tbl tr.xp td{background:#FBFBFC}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.stat{padding:14px 16px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.stat .v{font-size:22px;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums;line-height:1.25;margin-top:2px}
+.stat .s{font-size:12px;color:#5B6472;font-weight:500}
+.stat.hot{border-color:#FCA5A5;background:#FFF5F5}
+.strip{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;background:#0B1220;color:#fff;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.sk{background:#E9ECF0;border-radius:6px;display:inline-block}
+.bar{height:6px;border-radius:3px;background:#EEF0F3;overflow:hidden}.bar i{display:block;height:100%;border-radius:3px}
+.ptab{display:flex;border-bottom:1px solid #E3E6EB}
+.ptab button{flex:1;height:38px;border:0;background:none;font:inherit;font-size:12.5px;font-weight:600;color:#5B6472;cursor:pointer;border-bottom:2px solid transparent;padding:0 6px;white-space:nowrap}
+.ptab button.on{color:#0B1220;border-bottom-color:#0F766E}
+.seg{display:inline-flex;border:1px solid #D4D8DF;border-radius:8px;overflow:hidden;flex:none}
+.seg button{height:30px;padding:0 11px;border:0;background:#fff;font:inherit;font-size:12px;font-weight:600;color:#4B5563;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.seg button + button{border-left:1px solid #E3E6EB}
+.seg button.on{background:#0B1220;color:#fff}
+.cbx{border-radius:10px;overflow:hidden;border:1px solid #1F2937;background:#0B1220;min-width:0}
+.cbh{display:flex;align-items:center;gap:2px;padding:6px 8px;border-bottom:1px solid #1F2937;background:#111827;flex-wrap:wrap}
+.cbh button{height:28px;padding:0 10px;border:0;border-radius:6px;background:none;color:#B4BAC4;font:inherit;font-size:12px;font-weight:600;cursor:pointer}
+.cbh button.on{background:#273244;color:#fff}
+.cbh .cp{margin-left:auto;display:inline-flex;align-items:center;gap:6px;color:#E5E7EB;border:1px solid #374151}
+.cbx pre{margin:0;padding:12px 14px;font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace;font-size:12.5px;line-height:1.6;color:#E5E7EB;white-space:pre-wrap;overflow-wrap:anywhere}
+.cbx .c1{color:#93C5FD}.cbx .c2{color:#86EFAC}.cbx .c3{color:#FCD34D}.cbx .c4{color:#9CA3AF}.cbx .c5{color:#F9A8D4}
+.cbx .cm{color:#9CA3AF}
+.ev{display:flex;gap:14px;align-items:flex-start;padding:12px 0;border-top:1px solid #EEF0F3}
+.ev:first-child{border-top:0}
+.ev .ic{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.ev .tx{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.ev .tm{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;color:#5B6472;flex:none;padding-top:5px}
+.spin{width:14px;height:14px;border-radius:50%;border:2px solid #C9CED6;border-top-color:#0F766E;flex:none;display:inline-block}
+.mask{display:inline-flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;color:#4B5563;white-space:nowrap}
+.mask svg{flex:none}
+.tok{display:inline-flex;align-items:center;gap:4px;padding:0 6px;border-radius:5px;background:#EDE9FE;color:#5B21B6;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:.86em;font-weight:500;line-height:1.55;white-space:nowrap;vertical-align:baseline}
+.tok.s{background:#FEF3C7;color:#92400E}
+.tok.e{background:#FEE2E2;color:#991B1B;text-decoration:underline wavy #DC2626;text-underline-offset:3px}
+.mk{display:inline-flex;align-items:center;height:22px;padding:0 7px;border-radius:6px;background:#EEF0F3;color:#374151;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;white-space:nowrap}
+.toast{display:flex;gap:12px;align-items:center;padding:10px 12px 10px 14px;border-radius:10px;background:#0B1220;color:#fff;font-size:13.5px;box-shadow:0 12px 30px rgba(11,18,32,.25);max-width:520px;box-sizing:border-box}
+.toast .t{flex:1;min-width:0}
+.toast .k{color:#C3C2B7}
+.toast .btn{min-height:28px;padding:0 10px;font-size:12px;background:transparent;border-color:#4B5563;color:#fff}
+.toast .x{width:28px;height:28px;border:0;background:transparent;color:#9CA3AF;border-radius:6px;font-size:16px;cursor:pointer}
+.ti{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.scrim{position:absolute;inset:0;background:rgba(11,18,32,.32);z-index:55}
+.drw{position:absolute;top:0;right:0;bottom:0;width:600px;max-width:100%;background:#fff;border-left:1px solid #E3E6EB;box-shadow:-18px 0 40px rgba(11,18,32,.18);z-index:60;display:flex;flex-direction:column;box-sizing:border-box;overflow:hidden}
+.drw .dwh{display:flex;align-items:flex-start;gap:12px;padding:18px 22px 14px;border-bottom:1px solid #EEF0F3}
+.drw .dwb{padding:18px 22px;display:flex;flex-direction:column;gap:18px;overflow:auto}
+.drw h3{margin:0;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472}
+.empty{padding:44px 28px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;border-style:dashed}
+.empty .tt{font-size:18px;font-weight:700;letter-spacing:-.01em}
+.empty .ds{color:#4B5563;max-width:560px}
+.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:14px 18px;border-bottom:1px solid #EEF0F3}
+.fchips{display:flex;gap:6px;flex-wrap:wrap;padding:12px 18px;border-bottom:1px solid #EEF0F3}
+.fchip{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:999px;border:1px solid #D4D8DF;background:#fff;font:inherit;font-size:12.5px;font-weight:600;color:#374151;cursor:pointer;white-space:nowrap}
+.fchip b{font-weight:600;color:#5B6472;font-variant-numeric:tabular-nums}
+.fchip.on{background:#0B1220;border-color:#0B1220;color:#fff}.fchip.on b{color:#C9CED6}
+.live{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:#166534}
+.live .dot{box-shadow:0 0 0 4px rgba(22,101,52,.15)}
+.foot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid #EEF0F3}
+.spark{display:block}
+.lnk{display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:13px}
+.ttl{margin:0;font-size:22px;font-weight:700;letter-spacing:-.02em;line-height:1.2}
+.lead{margin:0;color:#4B5563;font-size:14px;max-width:760px}
+.state-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(460px,100%),1fr));gap:16px;align-items:start}
+.flowr{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px}
+.flowr .arw{color:#9AA3B2}
+.pill{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:8px;border:1px solid #E3E6EB;background:#F9FAFB;font-size:12.5px;font-weight:600;white-space:nowrap}
+.vline{display:flex;gap:10px;align-items:baseline;padding:8px 0;border-top:1px solid #EEF0F3;font-size:13px}
+.vline:first-child{border-top:0}
+.hl{background:#FEF2F2;box-shadow:inset 3px 0 0 #DC2626}
+.lines{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;line-height:1.7;background:#0B1220;color:#E5E7EB;border-radius:8px;overflow:hidden}
+.lines div{display:flex;gap:12px;padding:0 12px}
+.lines .ln{color:#9CA3AF;width:22px;text-align:right;flex:none;user-select:none}
+.lines .er{background:rgba(220,38,38,.22)}
+.callout{position:absolute;z-index:5}
+.only-phone{display:none}
+@media (max-width:1100px){.drw{width:520px}}
+@media (max-width:767px){.drw{width:100%;border-left:0}.stats{grid-template-columns:repeat(2,minmax(0,1fr))!important}.ttl{font-size:19px}}
+
+/* phase 2a · integrations hub */
+.cap{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 7px;border-radius:5px;font-size:11px;font-weight:600;border:1px solid #E3E6EB;background:#F9FAFB;color:#374151;white-space:nowrap}
+.itile{width:40px;height:40px;border-radius:10px;background:#F3F4F6;border:1px solid #E3E6EB;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#374151;flex:none;box-sizing:border-box;letter-spacing:-.01em}
+.itile.lg{width:52px;height:52px;border-radius:12px;font-size:17px}
+.itile.sm{width:30px;height:30px;border-radius:8px;font-size:11px}
+.icard{display:flex;flex-direction:column;gap:12px;padding:16px 16px 14px;min-width:0;box-sizing:border-box}
+.icard .ih{display:flex;gap:12px;align-items:flex-start}
+.icard .nm{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1}
+.icard h3{margin:0;font-size:15px;font-weight:600;line-height:1.3}
+.icard .ds{margin:0;color:#374151;font-size:13px;line-height:1.45}
+.caps{display:flex;gap:5px;flex-wrap:wrap}
+.icard .why{display:flex;gap:7px;align-items:flex-start;font-size:12.5px;line-height:1.4;color:#92400E;font-weight:500}
+.icard .why svg{margin-top:1px}
+.icard .ft{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:8px 10px;padding-top:12px;border-top:1px solid #EEF0F3;flex-wrap:wrap}
+.icard .ft .k{flex:1 1 160px;min-width:0}
+.icard.inv{background:#F0FDFA;border-color:#99F6E4}
+.icard.inv .ft{border-top-color:#CCFBF1}
+.ipage{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(340px,100%),1fr));gap:28px 16px;align-items:start}
+.igrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(340px,100%),1fr));gap:16px;align-items:stretch}
+.igrp{display:flex;flex-direction:column;gap:12px;min-width:0;align-self:stretch}
+.igrp.full{grid-column:1/-1}
+.igrp > .icard{flex:1}
+.gh{display:flex;align-items:flex-end;justify-content:space-between;gap:6px 14px;flex-wrap:wrap}
+.gh .gt{display:flex;flex-direction:column;gap:2px;min-width:0}
+.gh h2{margin:0;font-size:16px;font-weight:700;letter-spacing:-.01em}
+.ichips{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.isearch{display:flex;align-items:center;gap:8px;height:36px;padding:0 10px;border:1px solid #8B94A3;border-radius:8px;background:#fff;box-sizing:border-box;width:300px;max-width:100%}
+.isearch input{border:0;outline:0;font:inherit;font-size:13px;flex:1;min-width:0;background:none;color:#0B1220}
+.banner{display:flex;gap:10px;align-items:center;padding:10px 12px 10px 14px;border-radius:10px;font-size:13.5px;line-height:1.45;border:1px solid #FCD34D;background:#FFFBEB;color:#78350F;flex-wrap:wrap}
+.banner .bi{display:flex;gap:10px;align-items:flex-start;flex:1 1 360px;min-width:0}
+.banner .bi svg{margin-top:2px;flex:none}
+.banner .bt{flex:1;min-width:0}
+.banner.b{border-color:#FCA5A5;background:#FFF5F5;color:#7F1D1D}
+.banner .btn{background:#fff}
+.mby{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px 0 3px;border-radius:999px;background:#EEF0F3;color:#374151;font-size:12px;font-weight:600;white-space:nowrap;text-decoration:none;flex:none}
+.mby:hover{background:#E3E6EB;color:#0B1220}
+.mby .mt{width:16px;height:16px;border-radius:5px;background:#fff;border:1px solid #D4D8DF;display:inline-flex;align-items:center;justify-content:center;font-size:8.5px;font-weight:700;color:#374151;box-sizing:border-box;letter-spacing:-.02em}
+.prl{display:flex;flex-direction:column}
+.phd{font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#4B5563;padding:12px 0 6px;display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.phd .k{text-transform:none;letter-spacing:0}
+.prow{display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px solid #EEF0F3}
+.prow .pl{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:2px}
+.prow .pn{font-weight:600;font-size:13.5px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.prow .pd{font-size:12px;color:#5B6472;font-weight:500;line-height:1.4}
+.prow .pp{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:4px 6px;flex:0 1 auto;max-width:48%}
+.prow .pw{font-size:12px;line-height:1.4;color:#991B1B;font-weight:500}
+.prow.lk{background:#F9FAFB;margin:0 -12px;padding:9px 12px;border-radius:8px;border-top-color:transparent}
+.prow.lk + .prow{border-top-color:transparent}
+.prow .st{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:2px;min-width:92px;text-align:right}
+.chk3{display:flex;gap:6px 14px;flex-wrap:wrap;align-items:center;font-size:12.5px;color:#374151}
+.chk3 span{display:inline-flex;gap:5px;align-items:center;white-space:nowrap}
+.stp{display:flex;gap:6px 8px;flex-wrap:wrap;list-style:none;margin:0;padding:0;align-items:center}
+.stp li{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:#5B6472;white-space:nowrap}
+.stp .n{width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;border:1.5px solid #C9CED6;box-sizing:border-box;background:#fff;color:#4B5563}
+.stp li.cur{color:#0F766E}.stp li.cur .n{background:#0F766E;border-color:#0F766E;color:#fff}
+.stp li.done{color:#166534}.stp li.done .n{background:#DCFCE7;border-color:#86EFAC}
+.stp li.off .n{border-style:dashed}
+.stp .sep{color:#6B7280;font-weight:500}
+.inl{display:flex;gap:8px;align-items:center;flex-wrap:nowrap}
+.inl .in{flex:1;min-width:0}
+.ol{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px;counter-reset:s}
+.ol li{display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.45;counter-increment:s}
+.ol li::before{content:counter(s);width:20px;height:20px;border-radius:50%;background:#EEF0F3;color:#374151;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex:none;margin-top:0}
+.bl{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-top:1px solid #EEF0F3;font-size:13px;line-height:1.45}
+.bl:first-child{border-top:0;padding-top:2px}
+.bl > .badge{min-width:74px;justify-content:center;margin-top:1px}
+.dz{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:16px 18px;border-color:#FCA5A5}
+.ilist a.it,.ilist div.it{display:flex;flex-direction:column;gap:4px;padding:12px 16px;border-top:1px solid #EEF0F3;color:#0B1220}
+.ilist .it:first-child{border-top:0}
+.sect{display:flex;flex-direction:column;gap:10px;min-width:0}
+.sect > h3{margin:0;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472}
+.bigh{display:flex;flex-direction:column;gap:4px;padding-top:8px}
+.bigh h2{margin:0;font-size:20px;font-weight:700;letter-spacing:-.015em}
+.mini{transform-origin:top left}
+.dim{opacity:.55}
+.frows > div:first-child{border-top:0!important;padding-top:0!important}
+.only-narrow{display:none}
+@media (max-width:1100px){.no-narrow{display:none!important}.only-narrow{display:flex!important;flex-direction:column}}
+@media (max-width:767px){
+  .ipage,.igrid{grid-template-columns:1fr!important}
+  .ichips{flex-wrap:nowrap!important;overflow-x:auto;padding-bottom:4px;max-width:100%}
+  .ichips .fchip{flex:none}
+  .isearch{width:100%!important}
+  .prow{display:grid!important;grid-template-columns:minmax(0,1fr) auto;column-gap:10px;row-gap:6px;align-items:start}
+  .prow .pl{grid-column:1;grid-row:1}
+  .prow .st,.prow > input{grid-column:2;grid-row:1;align-self:start;min-width:0}
+  .prow .pp{grid-column:1/-1;grid-row:2;justify-content:flex-start;max-width:none}
+  .sc-host .note > div:last-child{flex:1 1 0%!important;min-width:0}
+  .dhead .dact{width:100%}
+}
+
+/* phase 7b: pages, products and stores */
+.vis{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:#374151;white-space:nowrap}
+.stk{display:inline-flex;flex-direction:column;align-items:flex-start;gap:3px}
+.dlc{display:inline-flex;align-items:center;gap:6px;min-height:24px;padding:2px 9px;border-radius:999px;border:1px solid;font-size:12px;font-weight:600;line-height:1.3;box-sizing:border-box}
+.syncr{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:#0B1220}
+.cov{position:relative;display:inline-block;flex:none;border-radius:4px;overflow:hidden;box-shadow:0 1px 2px rgba(11,18,32,.18);box-sizing:border-box}
+.merch{display:inline-flex;align-items:center;justify-content:center;border-radius:8px;background:#F3F4F6;border:1px solid #E3E6EB;box-sizing:border-box;flex:none}
+.pname{display:flex;gap:12px;align-items:center;min-width:0}
+.pname .t{display:flex;flex-direction:column;gap:2px;min-width:0}
+.pname a{color:#0B1220;font-weight:600}
+.addr{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;color:#5B6472}
+.bpg{display:flex;align-items:center;gap:12px;padding:11px 18px;border-top:1px solid #EEF0F3;min-width:0}
+.bpg .nm{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.bpg .st{flex:none;display:flex;align-items:center;gap:8px;font-size:12.5px;color:#4B5563;font-weight:500}
+.bigrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(440px,100%),1fr));column-gap:0}
+.bigrid > div{border-right:1px solid #EEF0F3}
+.tplc{display:flex;flex-direction:column;gap:8px;padding:10px;border:1px solid #E3E6EB;border-radius:10px;background:#fff;font:inherit;text-align:left;cursor:pointer;min-width:0}
+.tplc.on{border-color:#0F766E;box-shadow:0 0 0 1px #0F766E;background:#F0FDFA}
+.tplc .th{height:112px;border-radius:7px;background:#F5F3FF;border:1px solid #EDE9FE;position:relative;overflow:hidden}
+.wf{position:absolute;border-radius:3px;background:#DDD6FE}
+.wf.i{background:#4338CA}.wf.w{background:#fff;border:1px solid #DDD6FE;box-sizing:border-box}.wf.g{background:#C9CED6}
+.ckl{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-top:1px solid #EEF0F3;font-size:13px}
+.ckl:first-child{border-top:0}
+.ckl > svg{margin-top:2px;flex:none}
+.ckl .tx{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+.oline{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-top:1px solid #EEF0F3}
+.oline:first-child{border-top:0}
+.oline .lab{width:112px;flex:none;color:#5B6472;font-size:12.5px;font-weight:500;padding-top:1px}
+.oline .val{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;font-size:13px}
+.mini-b{border:1px solid #E3E6EB;border-radius:10px;overflow:hidden;background:#fff}
+.tok7{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;background:#EEF0F3;border-radius:5px;padding:1px 6px;color:#374151;white-space:nowrap}
+.narrow-only{display:none}
+@media (max-width:1100px){.wide-only{display:none!important}.narrow-only{display:flex!important;flex-direction:column}}
+@media (max-width:767px){.bigrid > div{border-right:0}.oline{flex-direction:column;gap:4px}.oline .lab{width:auto}.sc-host .note > div:last-child{flex:1 1 0%!important;min-width:0}}
+
+/* phase 7b: stores */
+.dhead7{padding:18px 20px;display:flex;gap:14px 20px;align-items:flex-start;flex-wrap:wrap}
+.dhead7 .dl{display:flex;gap:16px;align-items:flex-start;flex:1 1 460px;min-width:0}
+.dhead7 .dt{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:6px}
+.dhead7 .dact{display:flex;gap:8px;flex-wrap:wrap;align-items:center;flex:0 1 auto;max-width:100%}
+.wd{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr));gap:0}
+.wd > div{padding:14px 18px;border-left:1px solid #EEF0F3;display:flex;flex-direction:column;gap:10px;min-width:0}
+.wd > div:first-child{border-left:0}
+.wd h3{margin:0;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472}
+.wd ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:9px}
+.wd li{display:flex;gap:9px;align-items:flex-start;font-size:13px;line-height:1.45}
+.wd li > svg{flex:none;margin-top:2px}
+.wd li b{font-weight:600}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.sbox{border:1px solid #E3E6EB;border-radius:8px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;background:#FBFBFC;min-width:0}
+.sbox h4{margin:0;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#4B5563}
+.sbox ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:5px;font-size:13px}
+.sbox li{display:flex;gap:7px;align-items:flex-start}
+.sbox li svg{flex:none;margin-top:2px}
+.prog{display:flex;flex-direction:column;gap:6px}
+.prog .row1{display:flex;justify-content:space-between;gap:10px;font-size:13px}
+.flowc{background-color:#F9FAFB;background-image:radial-gradient(#D4D8DF 1px,transparent 1px);background-size:16px 16px;border-radius:10px;padding:22px 16px;display:flex;flex-direction:column;align-items:center;gap:0}
+.fnode{width:280px;max-width:100%;background:#fff;border:1px solid #D4D8DF;border-radius:10px;box-shadow:0 1px 3px rgba(11,18,32,.08);padding:9px 12px;display:flex;flex-direction:column;gap:4px;box-sizing:border-box}
+.fnode .hd{display:flex;align-items:center;gap:7px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+.fnode .t{font-weight:600;font-size:13px;line-height:1.3}
+.fnode .st{display:flex;gap:8px;flex-wrap:wrap;font-size:11.5px;color:#4B5563}
+.fnode.sel{border-color:#1D4ED8;box-shadow:0 0 0 3px #DBEAFE}
+.fwire{width:2px;height:22px;background:#9AA3B2}
+.lockf{display:flex;gap:8px;align-items:flex-start;padding:9px 11px;border-radius:8px;background:#F3F4F6;border:1px solid #E3E6EB;font-size:12.5px}
+.pp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(150px,100%),1fr));gap:10px}
+.ppc{display:flex;flex-direction:column;gap:6px;padding:10px;border:1px solid #E3E6EB;border-radius:10px;background:#fff;font:inherit;text-align:left;cursor:pointer;min-width:0}
+.ppc.on{border-color:#0F766E;box-shadow:0 0 0 1px #0F766E;background:#F0FDFA}
+.ppc .nm{font-weight:600;font-size:12.5px;line-height:1.3}
+.ppc .pr{display:flex;justify-content:space-between;gap:6px;align-items:center;font-size:12px}
+.egrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.eprod{display:flex;flex-direction:column;gap:6px;font-family:'IBM Plex Sans',system-ui,sans-serif;position:relative}
+.eprod .nm{font-size:13px;font-weight:600;color:#0B1220;line-height:1.3}
+.eprod .pr{font-size:13px;color:#374151}
+.eprod .cta{align-self:flex-start;padding:6px 10px;border-radius:5px;background:#4338CA;color:#fff;font-size:12px;font-weight:600}
+.eprod.eflag{outline:2px solid #DC2626;outline-offset:6px;border-radius:8px}
+.citems{display:flex;flex-direction:column;border:1px solid #E3E6EB;border-radius:8px;overflow:hidden;font-family:'IBM Plex Sans',system-ui,sans-serif}
+.citems .ci{display:flex;gap:12px;align-items:center;padding:10px 12px;border-top:1px solid #EEF0F3}
+.citems .ci:first-child{border-top:0}
+.citems .ci .tx{display:flex;flex-direction:column;flex:1;min-width:0;font-size:13.5px;color:#0B1220}
+.citems .ci .tx span{font-size:12px;color:#5B6472}
+.citems .tot{display:flex;justify-content:space-between;padding:10px 12px;background:#F9FAFB;font-weight:700;font-size:13.5px;border-top:1px solid #E3E6EB}
+@media (max-width:767px){.two{grid-template-columns:1fr}.wd > div{border-left:0;border-top:1px solid #EEF0F3}.wd > div:first-child{border-top:0}}
+
+/* responsive shell */
+@media (max-width:1100px){
+  .side{flex:0 0 72px!important;max-width:72px;padding:14px 8px!important;gap:4px!important}
+  .side .nl,.side .brand-t,.side .ws{display:none}
+  .side .nav a{justify-content:center;padding:0!important;height:44px}
+  .side .nav svg{width:20px;height:20px}
+  .side > a[aria-label="ReputeCast home"]{justify-content:center;padding:6px 0!important}
+  .side .sidefoot{align-items:center}
+  .side .sidefoot > *{display:none}
+  .side .sidefoot > a.btn{display:inline-flex;width:44px;height:44px;padding:0!important;justify-content:center!important;font-size:0;gap:0}
+  .side .sidefoot > a.btn svg{width:18px;height:18px}
+  .top{padding:12px 16px!important}
+  .content{padding:16px!important}
+}
+@media (max-width:767px){
+  .app{flex-direction:column}
+  .side{flex:none!important;max-width:none!important;width:auto!important;position:fixed;left:0;right:0;bottom:0;z-index:50;flex-direction:row!important;align-items:center;padding:6px 6px!important;border-right:0!important;border-top:1px solid #E3E6EB;background:#fff!important;box-sizing:border-box;gap:0!important}
+  .side > a[aria-label="ReputeCast home"],.side .ws,.side .sidefoot{display:none!important}
+  .side .nav{flex-direction:row!important;flex:1;justify-content:space-around;margin-top:0!important;gap:0!important}
+  .side .nav a{height:44px;width:44px;flex:none;padding:0!important;justify-content:center;border-radius:10px}
+  .side .nl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;display:block}
+  .side .nav a.on{background:#E3F1EE;color:#0F766E}
+  .mainc{padding-bottom:72px}
+  .top{padding:12px 12px!important;gap:8px!important}
+  .top h1{font-size:16px!important}
+  .top .in{width:100%!important}
+  .tabs{flex-wrap:nowrap!important;overflow-x:auto;max-width:100%;margin-left:0!important;padding-bottom:2px}
+  .tabs a{flex:none}
+  .content{padding:12px!important;gap:12px!important}
+  .cpanel{max-width:none!important;flex:1 1 100%!important}
+}
+@media (min-width:768px) and (max-width:1100px){
+  .cpanel{max-width:none!important}
+}
+
+/* responsive phone fixes */
+@media (max-width:767px){
+  .app{flex-wrap:nowrap!important}
+  .mainc{width:100%;max-width:100%}
+  .content > *{min-width:0;max-width:100%}
+  .content .in,.content select,.content input,.content textarea{max-width:100%;min-width:0}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+  .sc-host [style*="flex: 1 1"]{min-width:0}
+  .sc-host select.in,.sc-host input.in{width:0;min-width:100%}
+  .sc-host .mono{overflow-wrap:anywhere}
+  .sc-host .sk{max-width:100%}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px;max-width:100%}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host .tabs .badge{white-space:nowrap}
+  .sc-host .side .btn{white-space:nowrap}
+  .sc-host [style*="grid-template-columns: repeat("]{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))!important}
+  .sc-host [style*="minmax(260px"],.sc-host [style*="minmax(280px"],.sc-host [style*="minmax(300px"],.sc-host [style*="minmax(320px"],.sc-host [style*="minmax(340px"],.sc-host [style*="minmax(360px"],.sc-host [style*="minmax(380px"],.sc-host [style*="minmax(420px"]{grid-template-columns:1fr!important}
+  .sc-host [style*="radial-gradient"]{overflow:auto}
+  .sc-host [style*="display: grid"] > *{min-width:0}
+  .sc-host header > div{max-width:100%;min-width:0}
+  .sc-host pre,.sc-host .lines{max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]) > div[style*="flex: 1"]{min-width:120px}
+}
+
+/* accessibility */
+:focus-visible{outline:2px solid #0F766E;outline-offset:2px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-9999px;top:8px;z-index:100;background:#fff;color:#0B1220;padding:8px 12px;border-radius:8px;border:1px solid #0F766E;font-weight:600;text-decoration:none}
+.skip:focus{left:8px}
+p a:not(.btn),span a:not(.btn):not([style*="color"]),td a:not(.btn):not([style*="color"]),li a:not(.btn),label a,.k a,.lead a{text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+.content > * a:not(.btn):not(p a):not(span a):not(td a):not(li a):not(label a):not(.k a),.top a:not(.btn),nav a:not(.btn),footer a:not(.btn){min-height:24px;display:inline-flex;align-items:center}
+input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F766E}
+.in,select.in,textarea.in,input.in{border-color:#8B94A3}
+@media (max-width:767px){
+  .sc-host{overflow-wrap:anywhere}
+  .sc-host table,.sc-host td,.sc-host th{overflow-wrap:normal}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+}
+
+/* nav: phones show four sections plus More */
+.side .nav a.more{display:none}
+@media (max-width:767px){.side .nav a.xm{display:none!important}.side .nav a.more{display:flex}.side .nav a.more.on{background:#E3F1EE;color:#0F766E}}
+/* shell: the icon rail keeps only the import button (the footer's inline display:flex beat the rail rule) */
+@media (max-width:1100px){.side .sidefoot > :not(.btn){display:none!important}}
+/* shell: avatar initials sit in the middle */
+.av{display:inline-flex;align-items:center;justify-content:center;flex:none}
+.ubtn .av{border-radius:50%;font-weight:700}
+.ws .av{font-weight:700}
+/* switches: a disabled switch looks disabled */
+.tg:disabled,.tgx:disabled{opacity:.45;cursor:not-allowed}
+
+/* expansion: responsive card grids collapse to one column on phones (overrides the 140px rule above) */
+@media (max-width:767px){
+  .sc-host [style*="minmax(min("]{grid-template-columns:1fr!important}
+  .sc-host .kv{grid-template-columns:1fr;gap:2px 0}
+  .sc-host .kv dd{margin-bottom:8px}
+  .sc-host .ev .tm{display:none}
+  .sc-host .cbx pre{font-size:11.5px}
+  .sc-host .mlist{display:none!important}
+  .sc-host .only-phone{display:flex!important;flex-direction:column}
+  .sc-host .no-phone{display:none!important}
+}
+</style>
+</helmet>
+<div class="app" style="display:flex;flex-wrap:wrap;align-items:stretch;min-height:100vh;position:relative">
+  <a href="#main" class="skip">Skip to content</a>
+  <aside class="side" style="flex:1 1 232px;background:#FBFBFC;border-right:1px solid #E3E6EB;display:flex;flex-direction:column;padding:16px 12px;gap:6px;box-sizing:border-box">
+    <a href="Main.dc.html" style="display:flex;align-items:center;gap:10px;padding:6px 8px;color:#0B1220" aria-label="ReputeCast home"><svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg><span class="brand-t" style="font-weight:700;font-size:15px;letter-spacing:-.01em">ReputeCast</span></a>
+    <button class="ws" type="button" aria-haspopup="menu" aria-label="Switch workspace. Current: Acme Newsletter, your role Owner"><span class="av" style="width:24px;height:24px;font-size:10px;background:#0F766E;color:#fff;border-radius:6px" aria-hidden="true">AN</span><span class="wsn"><b>Acme Newsletter</b><span>Owner</span></span><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button>
+    <nav class="nav" style="display:flex;flex-direction:column;gap:2px;margin-top:4px" aria-label="Main">
+      <a href="Main.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z"></path></svg><span class="nl">Overview</span></a>
+      <a href="Campaigns.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M14 2 2 7l5 2 2 5zM7 9l7-7" stroke-linejoin="round"></path></svg><span class="nl">Campaigns</span></a>
+      <a href="AutomationsList.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="4" cy="3" r="2"></circle><circle cx="4" cy="13" r="2"></circle><circle cx="12" cy="8" r="2"></circle><path d="M4 5v6M6 8h4"></path></svg><span class="nl">Automations</span></a>
+      <a href="Transactional.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="1.5"></rect><path d="m2 4.5 6 4.5 6-4.5"></path></svg><span class="nl">Transactional</span></a>
+      <a href="Contacts.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="6" cy="5" r="2.5"></circle><path d="M1.5 14a4.5 4.5 0 0 1 9 0M11 3a2.5 2.5 0 0 1 0 5M14.5 14a4 4 0 0 0-3-3.8"></path></svg><span class="nl">Audience</span></a>
+      <a href="GrowOverview.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 12.5 6 8.5l3 3 5-5.5"></path><path d="M10.5 5.5H14V9"></path></svg><span class="nl">Grow</span></a>
+      <a href="EarnOverview.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M10 5.9H7.1a1.3 1.3 0 0 0 0 2.6h1.8a1.3 1.3 0 0 1 0 2.6H6M8 4.4v1.5M8 11.1v1.5"></path></svg><span class="nl">Earn</span></a>
+      <a href="FormBuilder.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="2"></rect><path d="M5 6h6M5 9h6M5 12h3"></path></svg><span class="nl">Forms &amp; pages</span></a>
+      <a href="Deliverability.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 1.5 13.5 3.5v4.5c0 3-2.3 5.3-5.5 6.5C4.8 13.3 2.5 11 2.5 8V3.5z" stroke-linejoin="round"></path><path d="m5.5 8 1.8 1.8L10.8 6"></path></svg><span class="nl">Deliverability</span></a>
+      <a href="Providers.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="5" rx="1.5"></rect><rect x="2" y="9" width="12" height="5" rx="1.5"></rect><path d="M5 4.5h.01M5 11.5h.01" stroke-width="2" stroke-linecap="round"></path></svg><span class="nl">Sending providers</span></a>
+      <a href="WorkspaceSettings.dc.html" class="on xm" aria-current="page"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 4h7M13 4h1M2 8h2M8 8h6M2 12h7M13 12h1"></path><circle cx="11" cy="4" r="1.8"></circle><circle cx="6" cy="8" r="1.8"></circle><circle cx="11" cy="12" r="1.8"></circle></svg><span class="nl">Settings</span></a>
+      <a href="ShellMore.dc.html" class="more on" aria-label="More: Automations, Transactional, Grow, Earn, Forms & pages, Sending providers, Settings"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="3.5" cy="8" r="1.2"></circle><circle cx="8" cy="8" r="1.2"></circle><circle cx="12.5" cy="8" r="1.2"></circle></svg><span class="nl">More</span></a>
+    </nav>
+    <div class="sidefoot" style="margin-top:auto;display:flex;flex-direction:column;gap:8px">
+      <a href="MigrationSource.dc.html" class="btn" style="justify-content:flex-start"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 11V3M4.5 6.5 8 3l3.5 3.5M2 13h12"></path></svg>Import contacts</a>
+      <a href="SettingsIntegrations.dc.html" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid #E3E6EB;border-radius:8px;background:#fff;color:#0B1220"><span class="dot" style="color:#15803D"></span><div style="display:flex;flex-direction:column;line-height:1.25"><span style="font-size:12px;font-weight:600">HostRepute connected</span><span class="k" style="font-size:11px">Acme Inc · synced 4 min ago</span></div></a>
+      <div style="display:flex;align-items:center;gap:8px;padding:4px 8px"><span class="av" style="width:26px;height:26px;font-size:11px;background:#DBEAFE;color:#1E40AF" aria-hidden="true">LN</span><div style="display:flex;flex-direction:column;line-height:1.25"><span style="font-size:12px;font-weight:600">Linh Nguyen</span><span class="k" style="font-size:11px">Owner</span></div></div>
+    </div>
+  </aside>
+  <div class="mainc" style="flex:999 1 560px;min-width:0;display:flex;flex-direction:column">
+    <header class="top" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 28px;background:#fff;border-bottom:1px solid #E3E6EB">
+      <nav aria-label="Breadcrumb" style="display:flex;align-items:center;gap:8px;font-size:13px;flex-wrap:wrap"><a href="WorkspaceSettings.dc.html" style="color:#5B6472">Settings</a><span class="k">/</span><a href="IntegrationsCatalog.dc.html" style="color:#5B6472">Integrations</a><span class="k">/</span><span style="font-weight:600">Shopify · Acme Merch</span></nav><div style="margin-left:auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><div class="tools"><a href="Notifications.dc.html" class="ibtn" aria-label="Notifications, 3 unread"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 11V7a4 4 0 0 1 8 0v4l1.5 1.5h-11zM6.5 14a1.5 1.5 0 0 0 3 0"></path></svg><span class="cnt" aria-hidden="true">3</span></a><button class="ubtn" type="button" aria-haspopup="menu" aria-label="Account menu for Linh Nguyen"><span class="av" style="width:26px;height:26px;font-size:11px;background:#DBEAFE;color:#1E40AF" aria-hidden="true">LN</span><span class="unm">Linh</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button></div></div>
+    </header>
+    <h1 class="vh">Shopify</h1>
+    <main class="content" id="main" style="padding:24px 28px;display:flex;flex-direction:column;gap:20px">
+<section class="card dhead7" aria-label="Acme Merch"><div class="dl"><span class="itile lg" aria-hidden="true">Sh</span><div class="dt"><div class="row" style="gap:10px"><h2 class="ttl">Acme Merch</h2><span class="badge ok"><span class="dot"></span>Connected · last event 2 min ago</span></div><span style="font-size:13px;color:#4B5563">Shopify · <span class="mono" style="font-size:12.5px">shop.acme.io</span> (acme-merch.myshopify.com) · USD · custom app “ReputeCast”, API version 2026-10 · connected by Marcus Chen on 6 Oct 2026</span><p style="margin:0;color:#374151;font-size:13.5px;max-width:760px">Orders, products and customers who agreed to marketing, from your Shopify store. Store triggers, product blocks and revenue from email.</p><div class="caps"><span class="cap">Orders</span><span class="cap">Products</span><span class="cap">Customers with consent</span><span class="cap">Abandoned checkouts</span><span class="cap">Consent write-back</span><span class="cap">Attribution</span></div></div></div><div class="dact"><a href="https://shop.acme.io" class="btn" target="_blank" rel="noopener">Open store <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h4v4M13 3 7 9M11 9.5V13H3V5h3.5"></path></svg></a><button type="button" class="btn"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 8a5 5 0 1 1-1.5-3.6M13 2.5V5h-2.5"></path></svg>Sync now</button><button type="button" class="ibtn" aria-haspopup="menu" aria-label="More actions for Acme Merch: Change what syncs, Reconnect, Disconnect"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="3.5" cy="8" r=".9"></circle><circle cx="8" cy="8" r=".9"></circle><circle cx="12.5" cy="8" r=".9"></circle></svg></button></div></section><div class="stats"><div class="card stat "><span class="k">Orders · 30 days</span><span class="v">412</span><span class="s">$21,836 in the store</span></div><div class="card stat "><span class="k">From email</span><span class="v">96 · $5,184</span><span class="s">23.7% of the store's revenue</span></div><div class="card stat "><span class="k">On the list “Acme Merch”</span><span class="v">2,318</span><span class="s">customers who accepted marketing</span></div><div class="card stat "><span class="k">Abandoned cart</span><span class="v">8 · $472</span><span class="s">recovered orders since 7 Oct</span></div></div><section class="card" style=""><div class="sec"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><h2 class="h2">What Acme Merch does in ReputeCast</h2><span class="k">Used by: Abandoned cart (automation, live) · the October Product Update grid · revenue in reports</span></div></div><div class="wd"><div><h3>Triggers</h3><ul><li><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#0F766E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 1.5 3.5 9H8l-1 5.5L12.5 7H8z"></path></svg><span><b>Order placed</b> · filters by product, collection, total and first order only</span></li><li><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#0F766E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 1.5 3.5 9H8l-1 5.5L12.5 7H8z"></path></svg><span><b>First order</b></span></li><li><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#0F766E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 1.5 3.5 9H8l-1 5.5L12.5 7H8z"></path></svg><span><b>Abandoned checkout</b> · after 1 to 24 hours · only contacts who accepted marketing</span></li></ul></div><div><h3>Blocks in emails</h3><ul><li><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#0F766E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5.5h10l-.8 8.5H3.8z"></path><path d="M5.8 5.5V4.6a2.2 2.2 0 0 1 4.4 0v.9"></path></svg><span><b>Product card</b> from the catalog</span></li><li><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#0F766E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5.5h10l-.8 8.5H3.8z"></path><path d="M5.8 5.5V4.6a2.2 2.2 0 0 1 4.4 0v.9"></path></svg><span><b>Product grid</b> · chosen products, or the newest from a collection</span></li><li><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#0F766E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5.5h10l-.8 8.5H3.8z"></path><path d="M5.8 5.5V4.6a2.2 2.2 0 0 1 4.4 0v.9"></path></svg><span><b>Checkout items</b> · in emails of store-triggered flows</span></li></ul></div><div><h3>Data it syncs</h3><ul><li><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#0F766E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg><span><b>Products</b> · title, address, images, price, compare-at price, availability, collections</span></li><li><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#0F766E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg><span><b>Customers who accepted marketing</b> · email, name, country, the consent and its date</span></li><li><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#0F766E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg><span><b>Orders</b> · items, totals, discount codes, refunds, landing page and UTM</span></li><li><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#0F766E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg><span><b>Abandoned checkouts</b> · items, total and the store's recovery link</span></li></ul></div></div></section><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(460px,100%),1fr));gap:16px;align-items:start;"><section class="card" style=""><div class="sec"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><h2 class="h2">Sync</h2><span class="k">Webhooks, plus a nightly check</span></div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="btn sm"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 8a5 5 0 1 1-1.5-3.6M13 2.5V5h-2.5"></path></svg>Sync now</button></div></div><div class="pad" style="display:flex;flex-direction:column;gap:14px"><dl class="kv" style=""><dt>Products</dt><dd><b>38</b> in 4 collections: Apparel, Desk, Stickers, New arrivals</dd><dt>Accepted marketing</dt><dd><b>2,318</b> joined “Acme Merch” · 1,947 were already contacts, 371 are new</dd><dt>Not added</dt><dd><b>3,922</b> customers didn't accept marketing</dd><dt>Orders imported</dt><dd><b>7,880</b> from the last 12 months</dd><dt>First import</dt><dd>finished 6 Oct, 16:42 · 38 minutes</dd><dt>Webhooks</dt><dd>11 of 11 registered · last event 2 min ago</dd><dt>Reconciliation</dt><dd>nightly · today 03:00 · 0 orders missed</dd></dl><span class="syncr"><span class="dot" style="color:#15803D"></span>Connected · last event 2 min ago</span></div></section><section class="card" style=""><div class="sec"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><h2 class="h2">Customers and consent</h2><span class="k">Only customers who accepted marketing join a list</span></div></div><div class="pad" style="display:flex;flex-direction:column;gap:14px"><label class="lbl">Customers who accepted marketing join<select class="in" style="" aria-label="List for customers who accepted marketing"><option>Acme Merch · new list · 2,318</option><option>Weekly Digest</option><option>Product Updates</option></select></label><div class="note w" role="note"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#B45309" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M8 4.8v3.6M8 10.9v.1"></path></svg><div style="flex:1 1 320px;min-width:0">They agreed to marketing from Acme Merch. Add them only to lists that consent covers.</div></div><div class="srow7" style="display:flex;justify-content:space-between;gap:14px;align-items:flex-start"><span style="display:flex;flex-direction:column;gap:2px"><b style="font-weight:600">Tell Shopify when someone unsubscribes here</b><span class="k">Uses the optional write access to customers, which was granted</span></span><input type="checkbox" class="tg" checked aria-label="Tell Shopify when someone unsubscribes here"></div><span class="k" style="color:#374151">The consent record reads “Shopify: accepted marketing at checkout”, with its date and opt-in level. Customers who didn't accept marketing never join a list: an existing contact keeps the consent they already have, and anyone else counts in the store's totals without their email.</span><div class="two"><div class="sbox"><h4>Stored</h4><ul><li><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#15803D" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg><span>Email, name, country</span></li><li><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#15803D" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg><span>Consent, its date and opt-in level</span></li><li><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#15803D" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg><span>Orders, items and totals</span></li><li><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#15803D" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg><span>Landing page and UTM</span></li></ul></div><div class="sbox"><h4>Never stored</h4><ul><li><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#B91C1C" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"></path></svg><span>Addresses</span></li><li><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#B91C1C" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"></path></svg><span>Phone numbers</span></li><li><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#B91C1C" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"></path></svg><span>Payment details</span></li><li><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#B91C1C" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"></path></svg><span>Order notes</span></li></ul></div></div></div></section></div><section class="card" style=""><div class="sec"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><h2 class="h2">Attribution</h2><span class="k">Orders credited to the email whose link the buyer clicked last</span></div></div><div class="pad" style="display:flex;flex-direction:column;gap:16px"><div class="fieldrow" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr));gap:14px"><label class="lbl">Window<select class="in" style="" aria-label="Attribution window"><option>1 day after a click</option><option>3 days after a click</option><option selected>5 days after a click</option><option>7 days after a click</option><option>14 days after a click</option><option>30 days after a click</option></select><span class="k" style="font-weight:500">Set by Marcus Chen</span></label><label class="lbl">Matching<span style="font-size:13px;font-weight:500;color:#374151;line-height:1.45">The click token <span class="mono">rc</span> in the order's landing page, otherwise the order's email if it belongs to a contact who clicked in the window. One order, one email.</span></label></div><div style="display:flex;justify-content:space-between;gap:14px;align-items:flex-start"><span style="display:flex;flex-direction:column;gap:4px;min-width:0"><b style="font-weight:600">Tag links to shop.acme.io</b><span class="k">UTM parameters and the click token, on every link to the store</span><span class="mono k" style="overflow-wrap:anywhere">?utm_source=acme-newsletter&amp;utm_medium=email&amp;utm_campaign=october-product-update&amp;rc=…</span></span><input type="checkbox" class="tg" checked aria-label="Tag links to the store"></div><div style="display:flex;flex-direction:column;gap:8px"><span style="font-weight:600">Last 30 days · 412 orders · $21,836</span><div style="display:flex;flex-direction:column;gap:10px"><div style="display:flex;height:10px;border-radius:5px;overflow:hidden;gap:2px" role="img" aria-label="Credited to email 5,184, Other orders 16,652"><span style="flex:5184;background:#0F766E"></span><span style="flex:16652;background:#C9CED6"></span></div><div style="display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:#4B5563"><span style="display:inline-flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:3px;background:#0F766E"></span>Credited to email · $5,184</span><span style="display:inline-flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:3px;background:#C9CED6"></span>Other orders · $16,652</span></div></div><span class="k">89 orders matched by click token and 7 by email. Past orders were matched to past clicks during the first import.</span></div></div><div class="no-phone"><div style="overflow-x:auto"><table class="tbl " aria-label="Revenue by email"><thead><tr><th scope="col">Attributed to</th><th scope="col" class="r">Orders</th><th scope="col" class="r">Revenue</th><th scope="col"></th></tr></thead><tbody><tr><td>October Product Update</td><td class="r"><span class="num">31</span></td><td class="r"><span class="num">$1,612</span></td><td><div class="bar" style="width:160px"><i style="width:100.0%;background:#0F766E"></i></div></td></tr><tr><td>Weekly Digest #141</td><td class="r"><span class="num">18</span></td><td class="r"><span class="num">$902</span></td><td><div class="bar" style="width:160px"><i style="width:58.1%;background:#0F766E"></i></div></td></tr><tr><td>Welcome series</td><td class="r"><span class="num">11</span></td><td class="r"><span class="num">$598</span></td><td><div class="bar" style="width:160px"><i style="width:35.5%;background:#0F766E"></i></div></td></tr><tr><td>Abandoned cart (automation)</td><td class="r"><span class="num">8</span></td><td class="r"><span class="num">$472</span></td><td><div class="bar" style="width:160px"><i style="width:25.8%;background:#0F766E"></i></div></td></tr><tr><td>Weekly Digest #142</td><td class="r"><span class="num">6</span></td><td class="r"><span class="num">$318</span></td><td><div class="bar" style="width:160px"><i style="width:19.4%;background:#0F766E"></i></div></td></tr><tr><td>9 other campaigns</td><td class="r"><span class="num">22</span></td><td class="r"><span class="num">$1,282</span></td><td><div class="bar" style="width:160px"><i style="width:71.0%;background:#0F766E"></i></div></td></tr><tr style="font-weight:700"><td><b>Total</b></td><td class="r"><b class="num">96</b></td><td class="r"><b class="num">$5,184</b></td><td><span class="k">23.7% of $21,836</span></td></tr></tbody></table></div></div><div class="only-phone"><div style="display:flex;justify-content:space-between;gap:10px;padding:10px 16px;border-top:1px solid #EEF0F3;font-size:13px"><span>October Product Update</span><span class="num"><b>31</b> · $1,612</span></div><div style="display:flex;justify-content:space-between;gap:10px;padding:10px 16px;border-top:1px solid #EEF0F3;font-size:13px"><span>Weekly Digest #141</span><span class="num"><b>18</b> · $902</span></div><div style="display:flex;justify-content:space-between;gap:10px;padding:10px 16px;border-top:1px solid #EEF0F3;font-size:13px"><span>Welcome series</span><span class="num"><b>11</b> · $598</span></div><div style="display:flex;justify-content:space-between;gap:10px;padding:10px 16px;border-top:1px solid #EEF0F3;font-size:13px"><span>Abandoned cart (automation)</span><span class="num"><b>8</b> · $472</span></div><div style="display:flex;justify-content:space-between;gap:10px;padding:10px 16px;border-top:1px solid #EEF0F3;font-size:13px"><span>Weekly Digest #142</span><span class="num"><b>6</b> · $318</span></div><div style="display:flex;justify-content:space-between;gap:10px;padding:10px 16px;border-top:1px solid #EEF0F3;font-size:13px"><span>9 other campaigns</span><span class="num"><b>22</b> · $1,282</span></div></div></section><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(460px,100%),1fr));gap:16px;align-items:start;"><section class="card" style=""><div class="sec"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><h2 class="h2">Webhooks · 11</h2><span class="k">Signed by Shopify, checked on arrival</span></div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="btn sm">Register all again</button></div></div><div class="no-phone"><div style="overflow-x:auto"><table class="tbl " aria-label="Webhooks"><thead><tr><th scope="col">Topic</th><th scope="col">Status</th><th scope="col">Last event</th><th scope="col"></th></tr></thead><tbody><tr><td><span class="mono" style="font-size:12.5px">orders/create</span></td><td><span class="badge ok">Registered</span></td><td class="nw"><span class="k">2 min ago</span></td><td class="r"></td></tr><tr><td><span class="mono" style="font-size:12.5px">orders/paid</span></td><td><span class="badge ok">Registered</span></td><td class="nw"><span class="k">2 min ago</span></td><td class="r"></td></tr><tr><td><span class="mono" style="font-size:12.5px">orders/updated</span></td><td><span class="badge ok">Registered</span></td><td class="nw"><span class="k">2 min ago</span></td><td class="r"></td></tr><tr><td><span class="mono" style="font-size:12.5px">refunds/create</span></td><td><span class="badge ok">Registered</span></td><td class="nw"><span class="k">14 Oct 16:40</span></td><td class="r"></td></tr><tr><td><span class="mono" style="font-size:12.5px">customers/create</span></td><td><span class="badge ok">Registered</span></td><td class="nw"><span class="k">18 min ago</span></td><td class="r"></td></tr><tr><td><span class="mono" style="font-size:12.5px">customers/update</span></td><td><span class="badge ok">Registered</span></td><td class="nw"><span class="k">6 min ago</span></td><td class="r"></td></tr><tr><td><span class="mono" style="font-size:12.5px">checkouts/create</span></td><td><span class="badge ok">Registered</span></td><td class="nw"><span class="k">9 min ago</span></td><td class="r"></td></tr><tr><td><span class="mono" style="font-size:12.5px">checkouts/update</span></td><td><span class="badge ok">Registered</span></td><td class="nw"><span class="k">9 min ago</span></td><td class="r"></td></tr><tr><td><span class="mono" style="font-size:12.5px">products/create</span></td><td><span class="badge ok">Registered</span></td><td class="nw"><span class="k">12 Oct 11:02</span></td><td class="r"></td></tr><tr><td><span class="mono" style="font-size:12.5px">products/update</span></td><td><span class="badge ok">Registered</span></td><td class="nw"><span class="k">14 Oct 09:30</span></td><td class="r"></td></tr><tr><td><span class="mono" style="font-size:12.5px">products/delete</span></td><td><span class="badge ok">Registered</span></td><td class="nw"><span class="k">13 Oct 17:45</span></td><td class="r"></td></tr></tbody></table></div></div><div class="only-phone"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 16px;border-top:1px solid #EEF0F3"><span class="mono" style="font-size:12.5px">orders/create</span><span class="badge ok">Registered</span></div><div style="display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 16px;border-top:1px solid #EEF0F3"><span class="mono" style="font-size:12.5px">orders/paid</span><span class="badge ok">Registered</span></div><div style="display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 16px;border-top:1px solid #EEF0F3"><span class="mono" style="font-size:12.5px">orders/updated</span><span class="badge ok">Registered</span></div><div style="display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 16px;border-top:1px solid #EEF0F3"><span class="mono" style="font-size:12.5px">refunds/create</span><span class="badge ok">Registered</span></div><div style="display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 16px;border-top:1px solid #EEF0F3"><span class="mono" style="font-size:12.5px">customers/create</span><span class="badge ok">Registered</span></div><div style="display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 16px;border-top:1px solid #EEF0F3"><span class="mono" style="font-size:12.5px">customers/update</span><span class="badge ok">Registered</span></div><div style="display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 16px;border-top:1px solid #EEF0F3"><span class="mono" style="font-size:12.5px">checkouts/create</span><span class="badge ok">Registered</span></div><div style="display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 16px;border-top:1px solid #EEF0F3"><span class="mono" style="font-size:12.5px">checkouts/update</span><span class="badge ok">Registered</span></div><div style="display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 16px;border-top:1px solid #EEF0F3"><span class="mono" style="font-size:12.5px">products/create</span><span class="badge ok">Registered</span></div><div style="display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 16px;border-top:1px solid #EEF0F3"><span class="mono" style="font-size:12.5px">products/update</span><span class="badge ok">Registered</span></div><div style="display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 16px;border-top:1px solid #EEF0F3"><span class="mono" style="font-size:12.5px">products/delete</span><span class="badge ok">Registered</span></div></div></section><section class="card" style=""><div class="sec"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><h2 class="h2">Activity</h2><span class="k">Store events and errors · kept 30 days · not the audit log</span></div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><a href="#" class="lnk">Full log</a></div></div><div class="pad" style="padding-top:2px;padding-bottom:6px"><div class="ev"><span class="ic" style="background:#EEF0F3"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#4B5563" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="3.5" cy="8" r=".9"></circle><circle cx="8" cy="8" r=".9"></circle><circle cx="12.5" cy="8" r=".9"></circle></svg></span><div class="tx"><span style="font-weight:600">Order #4421 · $64.00</span><span class="k">A customer who didn't accept marketing and isn't a contact: counted in the totals and attribution, without the email</span></div><span class="tm">09:58</span></div><div class="ev"><span class="ic" style="background:#DCFCE7"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#166534" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg></span><div class="tx"><span style="font-weight:600">Order #4417 · $76.00 · Grace Liu</span><span class="k">Recovered checkout · credited to Abandoned cart, email 1</span></div><span class="tm">08:40</span></div><div class="ev"><span class="ic" style="background:#DCFCE7"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#166534" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg></span><div class="tx"><span style="font-weight:600">Nightly reconciliation</span><span class="k">0 orders missed · 38 products checked</span></div><span class="tm">03:00</span></div><div class="ev"><span class="ic" style="background:#DBEAFE"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#1E40AF" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"></path></svg></span><div class="tx"><span style="font-weight:600">Checkout abandoned · Grace Liu · $76.00</span><span class="k">Accepted marketing in Acme Merch · entered Abandoned cart after 1 hour</span></div><span class="tm">14 Oct</span></div><div class="ev"><span class="ic" style="background:#DCFCE7"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#166534" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg></span><div class="tx"><span style="font-weight:600">Webhook checkouts/update registered again</span><span class="k">by Marcus Chen · polled every 15 minutes while it was missing · no checkout missed</span></div><span class="tm">13 Oct</span></div><div class="ev"><span class="ic" style="background:#FEF3C7"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#92400E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M8 4.8V8l2.2 1.6"></path></svg></span><div class="tx"><span style="font-weight:600">Webhook checkouts/update missing</span><span class="k">deleted in Shopify at 14:20 · polling every 15 minutes</span></div><span class="tm">13 Oct</span></div><div class="ev"><span class="ic" style="background:#EEF0F3"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#4B5563" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="3.5" cy="8" r=".9"></circle><circle cx="8" cy="8" r=".9"></circle><circle cx="12.5" cy="8" r=".9"></circle></svg></span><div class="tx"><span style="font-weight:600">Order #4409 · $58.00 · Sam Rivera</span><span class="k">Didn't accept marketing · not added to Acme Merch · shows on his profile · credited to October Product Update</span></div><span class="tm">13 Oct</span></div></div></section></div><section class="card dz" aria-label="Disconnect Acme Merch"><div style="display:flex;flex-direction:column;gap:2px;flex:1 1 420px;min-width:0"><h2 class="h2">Disconnect Acme Merch</h2><span class="k" style="color:#4B5563">Removes ReputeCast's webhooks from the store. Synced products and orders stay unless you choose to delete them. Contacts the store added stay, with their consent. Abandoned cart pauses and says why.</span></div><a href="CommerceStates.dc.html" class="btn danger">Disconnect Acme Merch…</a></section>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2733}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

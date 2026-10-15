@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Composer · Weekly Digest #143, Visibility and versions</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F4F6;color:#0B1220;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:13px;line-height:1.45}
+a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
+.mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:32px;padding:0 12px;border-radius:7px;border:1px solid #D4D8DF;background:#FFFFFF;color:#0B1220;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;white-space:nowrap;box-sizing:border-box}
+.btn:hover{background:#F3F4F6;color:#0B1220}
+.btn.pri{background:#0F766E;border-color:#0F766E;color:#FFFFFF}.btn.pri:hover{background:#115E59;color:#FFFFFF}
+.btn.ic{width:32px;padding:0}
+.badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;flex:none}
+.ok{background:#DCFCE7;color:#166534}.warn{background:#FEF3C7;color:#92400E}.bad{background:#FEE2E2;color:#991B1B}.info{background:#DBEAFE;color:#1E40AF}.mut{background:#EEF0F3;color:#4B5563}.pur{background:#EDE9FE;color:#5B21B6}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;flex:none}
+.k{font-size:12px;color:#5B6472;font-weight:500}
+.in{height:32px;padding:0 9px;border:1px solid #D4D8DF;border-radius:7px;background:#fff;font:inherit;font-size:12.5px;color:#0B1220;box-sizing:border-box;min-width:0}
+.ptab{display:flex;border-bottom:1px solid #E3E6EB}
+.ptab button{flex:1;height:38px;border:0;background:none;font:inherit;font-size:12.5px;font-weight:600;color:#5B6472;cursor:pointer;border-bottom:2px solid transparent}
+.ptab button.on{color:#0B1220;border-bottom-color:#0F766E}
+.grp{padding:10px 12px 4px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#5B6472}
+.blk{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 6px;border:1px solid #E3E6EB;border-radius:8px;background:#fff;font-size:11.5px;font-weight:500;color:#374151;cursor:grab;text-align:center}
+.blk svg{width:22px;height:22px;stroke:#374151;fill:none;stroke-width:1.5}
+.blk.rc{border-color:#99F6E4;background:#F0FDFA}
+.seg{display:inline-flex;border:1px solid #D4D8DF;border-radius:7px;overflow:hidden}
+.seg button{height:30px;padding:0 10px;border:0;background:#fff;font:inherit;font-size:12px;font-weight:600;color:#5B6472;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.seg button.on{background:#0B1220;color:#fff}
+.email{width:600px;background:#fff;box-shadow:0 1px 3px rgba(11,18,32,.12);font-family:Georgia,'Times New Roman',serif;color:#1F2937;flex:none}
+.sec{position:relative;padding:16px 24px}
+.sec:hover{outline:1px dashed #93C5FD;outline-offset:-1px}
+.ph{display:flex;align-items:center;justify-content:center;background:#E9ECF0;color:#5B6472;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12px;font-weight:500;border:1px dashed #C9CED6}
+.tb{position:absolute;top:-30px;right:-2px;display:flex;background:#1D4ED8;border-radius:6px 6px 0 0;padding:2px}
+.tb button{width:26px;height:26px;border:0;background:none;color:#fff;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.tb svg{width:14px;height:14px;stroke:#fff;fill:none;stroke-width:1.8}
+.lab{position:absolute;top:-30px;left:-2px;background:#1D4ED8;color:#fff;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:11px;font-weight:600;padding:0 8px;height:26px;display:inline-flex;align-items:center;border-radius:6px 6px 0 0;margin-top:2px}
+.prop{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border-bottom:1px solid #EEF0F3}
+.prop .t{font-size:12px;font-weight:600}
+.row4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.row2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.sw{width:22px;height:22px;border-radius:5px;border:1px solid #D4D8DF;flex:none}
+.bc{display:flex;align-items:center;gap:6px;font-size:12px;color:#5B6472}
+.bc b{color:#0B1220;font-weight:600}
+
+/* responsive shell */
+@media (max-width:1100px){
+  .side{flex:0 0 72px!important;max-width:72px;padding:14px 8px!important;gap:4px!important}
+  .side .nl,.side .brand-t,.side .ws{display:none}
+  .side .nav a{justify-content:center;padding:0!important;height:44px}
+  .side .nav svg{width:20px;height:20px}
+  .side > a[aria-label="ReputeCast home"]{justify-content:center;padding:6px 0!important}
+  .side .sidefoot{align-items:center}
+  .side .sidefoot > *{display:none}
+  .side .sidefoot > a.btn{display:inline-flex;width:44px;height:44px;padding:0!important;justify-content:center!important;font-size:0;gap:0}
+  .side .sidefoot > a.btn svg{width:18px;height:18px}
+  .top{padding:12px 16px!important}
+  .content{padding:16px!important}
+}
+@media (max-width:767px){
+  .app{flex-direction:column}
+  .side{flex:none!important;max-width:none!important;width:auto!important;position:fixed;left:0;right:0;bottom:0;z-index:50;flex-direction:row!important;align-items:center;padding:6px 6px!important;border-right:0!important;border-top:1px solid #E3E6EB;background:#fff!important;box-sizing:border-box;gap:0!important}
+  .side > a[aria-label="ReputeCast home"],.side .ws,.side .sidefoot{display:none!important}
+  .side .nav{flex-direction:row!important;flex:1;justify-content:space-around;margin-top:0!important;gap:0!important}
+  .side .nav a{height:44px;width:44px;flex:none;padding:0!important;justify-content:center;border-radius:10px}
+  .side .nl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;display:block}
+  .side .nav a.on{background:#E3F1EE;color:#0F766E}
+  .mainc{padding-bottom:72px}
+  .top{padding:12px 12px!important;gap:8px!important}
+  .top h1{font-size:16px!important}
+  .top .in{width:100%!important}
+  .tabs{flex-wrap:nowrap!important;overflow-x:auto;max-width:100%;margin-left:0!important;padding-bottom:2px}
+  .tabs a{flex:none}
+  .content{padding:12px!important;gap:12px!important}
+  .cpanel{max-width:none!important;flex:1 1 100%!important}
+}
+@media (min-width:768px) and (max-width:1100px){
+  .cpanel{max-width:none!important}
+}
+
+/* responsive phone fixes */
+@media (max-width:767px){
+  .app{flex-wrap:nowrap!important}
+  .mainc{width:100%;max-width:100%}
+  .content > *{min-width:0;max-width:100%}
+  .content .in,.content select,.content input,.content textarea{max-width:100%;min-width:0}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+  .sc-host [style*="flex: 1 1"]{min-width:0}
+  .sc-host select.in,.sc-host input.in{width:0;min-width:100%}
+  .sc-host .mono{overflow-wrap:anywhere}
+  .sc-host .sk{max-width:100%}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px;max-width:100%}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host .tabs .badge{white-space:nowrap}
+  .sc-host .side .btn{white-space:nowrap}
+  .sc-host [style*="grid-template-columns: repeat("]{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))!important}
+  .sc-host [style*="minmax(260px"],.sc-host [style*="minmax(280px"],.sc-host [style*="minmax(300px"],.sc-host [style*="minmax(320px"],.sc-host [style*="minmax(340px"],.sc-host [style*="minmax(360px"],.sc-host [style*="minmax(380px"],.sc-host [style*="minmax(420px"]{grid-template-columns:1fr!important}
+  .sc-host [style*="radial-gradient"]{overflow:auto}
+  .sc-host [style*="display: grid"] > *{min-width:0}
+  .sc-host header > div{max-width:100%;min-width:0}
+  .sc-host pre,.sc-host .lines{max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]) > div[style*="flex: 1"]{min-width:120px}
+}
+
+/* accessibility */
+:focus-visible{outline:2px solid #0F766E;outline-offset:2px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-9999px;top:8px;z-index:100;background:#fff;color:#0B1220;padding:8px 12px;border-radius:8px;border:1px solid #0F766E;font-weight:600;text-decoration:none}
+.skip:focus{left:8px}
+p a:not(.btn),span a:not(.btn):not([style*="color"]),td a:not(.btn):not([style*="color"]),li a:not(.btn),label a,.k a,.lead a{text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+.content > * a:not(.btn):not(p a):not(span a):not(td a):not(li a):not(label a):not(.k a),.top a:not(.btn),nav a:not(.btn),footer a:not(.btn){min-height:24px;display:inline-flex;align-items:center}
+input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F766E}
+.in,select.in,textarea.in,input.in{border-color:#8B94A3}
+@media (max-width:767px){
+  .sc-host{overflow-wrap:anywhere}
+  .sc-host table,.sc-host td,.sc-host th{overflow-wrap:normal}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+}
+
+/* expansion components (phases 1-8) */
+.num,.tbl td.r{font-variant-numeric:tabular-nums}
+.tbl th.r,.tbl td.r{text-align:right}
+.tbl tr.sel td{background:#F0FDFA}
+.tbl tr.xp td{background:#FBFBFC}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.stat{padding:14px 16px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.stat .v{font-size:22px;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums;line-height:1.25;margin-top:2px}
+.stat .s{font-size:12px;color:#5B6472;font-weight:500}
+.stat.hot{border-color:#FCA5A5;background:#FFF5F5}
+.strip{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;background:#0B1220;color:#fff;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.sk{background:#E9ECF0;border-radius:6px;display:inline-block}
+.bar{height:6px;border-radius:3px;background:#EEF0F3;overflow:hidden}.bar i{display:block;height:100%;border-radius:3px}
+.ptab{display:flex;border-bottom:1px solid #E3E6EB}
+.ptab button{flex:1;height:38px;border:0;background:none;font:inherit;font-size:12.5px;font-weight:600;color:#5B6472;cursor:pointer;border-bottom:2px solid transparent;padding:0 6px;white-space:nowrap}
+.ptab button.on{color:#0B1220;border-bottom-color:#0F766E}
+.seg{display:inline-flex;border:1px solid #D4D8DF;border-radius:8px;overflow:hidden;flex:none}
+.seg button{height:30px;padding:0 11px;border:0;background:#fff;font:inherit;font-size:12px;font-weight:600;color:#4B5563;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.seg button + button{border-left:1px solid #E3E6EB}
+.seg button.on{background:#0B1220;color:#fff}
+.cbx{border-radius:10px;overflow:hidden;border:1px solid #1F2937;background:#0B1220;min-width:0}
+.cbh{display:flex;align-items:center;gap:2px;padding:6px 8px;border-bottom:1px solid #1F2937;background:#111827;flex-wrap:wrap}
+.cbh button{height:28px;padding:0 10px;border:0;border-radius:6px;background:none;color:#B4BAC4;font:inherit;font-size:12px;font-weight:600;cursor:pointer}
+.cbh button.on{background:#273244;color:#fff}
+.cbh .cp{margin-left:auto;display:inline-flex;align-items:center;gap:6px;color:#E5E7EB;border:1px solid #374151}
+.cbx pre{margin:0;padding:12px 14px;font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace;font-size:12.5px;line-height:1.6;color:#E5E7EB;white-space:pre-wrap;overflow-wrap:anywhere}
+.cbx .c1{color:#93C5FD}.cbx .c2{color:#86EFAC}.cbx .c3{color:#FCD34D}.cbx .c4{color:#9CA3AF}.cbx .c5{color:#F9A8D4}
+.cbx .cm{color:#9CA3AF}
+.ev{display:flex;gap:14px;align-items:flex-start;padding:12px 0;border-top:1px solid #EEF0F3}
+.ev:first-child{border-top:0}
+.ev .ic{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.ev .tx{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.ev .tm{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;color:#5B6472;flex:none;padding-top:5px}
+.spin{width:14px;height:14px;border-radius:50%;border:2px solid #C9CED6;border-top-color:#0F766E;flex:none;display:inline-block}
+.mask{display:inline-flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;color:#4B5563;white-space:nowrap}
+.mask svg{flex:none}
+.tok{display:inline-flex;align-items:center;gap:4px;padding:0 6px;border-radius:5px;background:#EDE9FE;color:#5B21B6;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:.86em;font-weight:500;line-height:1.55;white-space:nowrap;vertical-align:baseline}
+.tok.s{background:#FEF3C7;color:#92400E}
+.tok.e{background:#FEE2E2;color:#991B1B;text-decoration:underline wavy #DC2626;text-underline-offset:3px}
+.mk{display:inline-flex;align-items:center;height:22px;padding:0 7px;border-radius:6px;background:#EEF0F3;color:#374151;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;white-space:nowrap}
+.toast{display:flex;gap:12px;align-items:center;padding:10px 12px 10px 14px;border-radius:10px;background:#0B1220;color:#fff;font-size:13.5px;box-shadow:0 12px 30px rgba(11,18,32,.25);max-width:520px;box-sizing:border-box}
+.toast .t{flex:1;min-width:0}
+.toast .k{color:#C3C2B7}
+.toast .btn{min-height:28px;padding:0 10px;font-size:12px;background:transparent;border-color:#4B5563;color:#fff}
+.toast .x{width:28px;height:28px;border:0;background:transparent;color:#9CA3AF;border-radius:6px;font-size:16px;cursor:pointer}
+.ti{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.scrim{position:absolute;inset:0;background:rgba(11,18,32,.32);z-index:55}
+.drw{position:absolute;top:0;right:0;bottom:0;width:600px;max-width:100%;background:#fff;border-left:1px solid #E3E6EB;box-shadow:-18px 0 40px rgba(11,18,32,.18);z-index:60;display:flex;flex-direction:column;box-sizing:border-box;overflow:hidden}
+.drw .dwh{display:flex;align-items:flex-start;gap:12px;padding:18px 22px 14px;border-bottom:1px solid #EEF0F3}
+.drw .dwb{padding:18px 22px;display:flex;flex-direction:column;gap:18px;overflow:auto}
+.drw h3{margin:0;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472}
+.empty{padding:44px 28px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;border-style:dashed}
+.empty .tt{font-size:18px;font-weight:700;letter-spacing:-.01em}
+.empty .ds{color:#4B5563;max-width:560px}
+.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:14px 18px;border-bottom:1px solid #EEF0F3}
+.fchips{display:flex;gap:6px;flex-wrap:wrap;padding:12px 18px;border-bottom:1px solid #EEF0F3}
+.fchip{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:999px;border:1px solid #D4D8DF;background:#fff;font:inherit;font-size:12.5px;font-weight:600;color:#374151;cursor:pointer;white-space:nowrap}
+.fchip b{font-weight:600;color:#5B6472;font-variant-numeric:tabular-nums}
+.fchip.on{background:#0B1220;border-color:#0B1220;color:#fff}.fchip.on b{color:#C9CED6}
+.live{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:#166534}
+.live .dot{box-shadow:0 0 0 4px rgba(22,101,52,.15)}
+.foot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid #EEF0F3}
+.spark{display:block}
+.lnk{display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:13px}
+.ttl{margin:0;font-size:22px;font-weight:700;letter-spacing:-.02em;line-height:1.2}
+.lead{margin:0;color:#4B5563;font-size:14px;max-width:760px}
+.state-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(460px,100%),1fr));gap:16px;align-items:start}
+.flowr{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px}
+.flowr .arw{color:#9AA3B2}
+.pill{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:8px;border:1px solid #E3E6EB;background:#F9FAFB;font-size:12.5px;font-weight:600;white-space:nowrap}
+.vline{display:flex;gap:10px;align-items:baseline;padding:8px 0;border-top:1px solid #EEF0F3;font-size:13px}
+.vline:first-child{border-top:0}
+.hl{background:#FEF2F2;box-shadow:inset 3px 0 0 #DC2626}
+.lines{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;line-height:1.7;background:#0B1220;color:#E5E7EB;border-radius:8px;overflow:hidden}
+.lines div{display:flex;gap:12px;padding:0 12px}
+.lines .ln{color:#9CA3AF;width:22px;text-align:right;flex:none;user-select:none}
+.lines .er{background:rgba(220,38,38,.22)}
+.callout{position:absolute;z-index:5}
+.only-phone{display:none}
+@media (max-width:1100px){.drw{width:520px}}
+@media (max-width:767px){.drw{width:100%;border-left:0}.stats{grid-template-columns:repeat(2,minmax(0,1fr))!important}.ttl{font-size:19px}}
+
+.av{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex:none}
+.row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.row > *{min-width:0}
+.card{background:#FFFFFF;border:1px solid #E3E6EB;border-radius:10px}
+.h2{margin:0;font-size:15px;font-weight:600}
+.lbl{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:#4B5563}
+.note{display:flex;gap:8px 10px;align-items:flex-start;flex-wrap:wrap;padding:10px 12px;border-radius:8px;font-size:12.5px;line-height:1.45}
+.note > :last-child{flex:1 1 220px;min-width:0}
+.note.i{background:#EFF6FF;border:1px solid #BFDBFE;color:#1E3A8A}
+.note.w{background:#FFFBEB;border:1px solid #FCD34D;color:#78350F}
+.note.b{background:#FFF5F5;border:1px solid #FCA5A5;color:#7F1D1D}
+.note.g{background:#F0FDF4;border:1px solid #BBF7D0;color:#14532D}
+.note.n{background:#F3F4F6;border:1px solid #E3E6EB;color:#374151}
+.btn.sm{min-height:28px;padding:0 10px;font-size:12px}
+.btn:disabled,.btn[aria-disabled="true"]{opacity:.55;cursor:not-allowed}
+.btn.danger{color:#991B1B;border-color:#FCA5A5}
+.kv{display:grid;grid-template-columns:max-content 1fr;gap:6px 14px;font-size:12.5px;margin:0}
+.kv dt{color:#5B6472;font-weight:500;margin:0}.kv dd{margin:0;min-width:0}
+.chip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px;border-radius:999px;border:1px solid #D4D8DF;background:#fff;font-size:12px;font-weight:500;white-space:nowrap}
+.code{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace;font-size:12px;background:#0B1220;color:#E5E7EB;border-radius:8px;padding:10px 12px;white-space:pre-wrap;overflow-wrap:anywhere;margin:0}
+.diff{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;border:1px solid #E3E6EB;border-radius:8px;overflow:hidden}
+.diff div{padding:6px 12px;white-space:pre-wrap;overflow-wrap:anywhere}
+.diff .del{background:#FEF2F2;color:#991B1B}.diff .add{background:#F0FDF4;color:#166534}.diff .ctx{color:#4B5563}
+input[type=checkbox].tg{appearance:none;-webkit-appearance:none;width:36px;height:22px;border-radius:999px;background:#6B7280;position:relative;cursor:pointer;flex:none;margin:0;border:0}
+input[type=checkbox].tg::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff}
+input[type=checkbox].tg:checked{background:#0F766E}input[type=checkbox].tg:checked::after{left:16px}
+.ovl{position:absolute;inset:0;background:rgba(11,18,32,.45);display:flex;align-items:flex-start;justify-content:center;padding:64px 16px;box-sizing:border-box;z-index:60}
+.dlg{width:100%;max-width:640px;display:flex;flex-direction:column;background:#fff;border-radius:12px;box-shadow:0 24px 60px rgba(11,18,32,.3);font-size:13.5px}
+.dh{padding:18px 22px 0;display:flex;flex-direction:column;gap:6px}
+.db{padding:16px 22px;display:flex;flex-direction:column;gap:14px}
+.df{padding:14px 22px 18px;display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;border-top:1px solid #EEF0F3;align-items:center}
+.vrow{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border:1px solid #E3E6EB;border-radius:8px;background:#fff}
+.vrow.on{border-color:#0F766E;box-shadow:0 0 0 1px #0F766E}
+.vname{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;font-weight:600;color:#0B1220}
+.pbody{display:flex;flex-direction:column;gap:10px;padding:12px}
+.chk{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-top:1px solid #EEF0F3;font-size:12.5px}
+.chk:first-child{border-top:0}
+.idchip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 9px;border-radius:7px;background:#F3F4F6;border:1px solid #E3E6EB;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;color:#374151;white-space:nowrap}
+.radio{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid #E3E6EB;border-radius:8px;cursor:pointer}
+.radio.on{border-color:#0F766E;background:#F0FDFA}
+.radio input{margin-top:2px}
+
+/* phase 3a composer additions (phase 2's composer: four inspector tabs in a 360 px panel) */
+.ptab button{padding:0 8px}
+.cright{flex:1 1 360px;max-width:360px}
+.tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+.tbl th{text-align:left;font-weight:600;color:#5B6472;padding:9px 12px;border-bottom:1px solid #E3E6EB;font-size:11px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+.tbl td{padding:9px 12px;border-bottom:1px solid #EEF0F3;vertical-align:middle}
+.tbl tr:last-child td{border-bottom:0}
+.tbl th.r,.tbl td.r{text-align:right;font-variant-numeric:tabular-nums}
+.tbl tr.sel td{background:#F0FDFA}
+.tbl tr.wrn td{background:#FFFBEB}
+.menu{position:absolute;z-index:40;background:#fff;border:1px solid #D4D8DF;border-radius:10px;box-shadow:0 12px 32px rgba(11,18,32,.16);padding:6px;min-width:260px;display:flex;flex-direction:column;gap:2px;box-sizing:border-box}
+.menu a,.menu button{display:flex;align-items:center;gap:10px;min-height:34px;padding:0 10px;border-radius:8px;color:#0B1220;font:inherit;font-size:12.5px;font-weight:500;background:none;border:0;text-align:left;cursor:pointer;width:100%;box-sizing:border-box;text-decoration:none}
+.menu .mh{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472;padding:8px 10px 4px}
+.menu hr{border:0;border-top:1px solid #EEF0F3;margin:4px 0;width:100%}
+.lay{display:flex;align-items:center;gap:8px;height:30px;padding:0 10px;font-size:12.5px;border-radius:6px}
+.lay:hover{background:#F3F4F6}.lay.on{background:#DBEAFE;color:#1E40AF;font-weight:600}
+.lay svg{width:14px;height:14px;stroke:#5B6472;fill:none;stroke-width:1.6;flex:none}
+.lay .vi{margin-left:auto;display:inline-flex}
+.lay .vi svg{stroke:#1D4ED8}
+.lay .vi.b svg{stroke:#B91C1C}
+.cbl{display:flex;gap:8px;align-items:center;font-size:12.5px;cursor:pointer;min-height:24px}
+.cbl input{flex:none;margin:0}
+.radio{background:#fff}
+.radio input{flex:none}
+.fil{position:absolute;top:-11px;left:12px;display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:999px;border:1px solid #99F6E4;background:#F0FDFA;color:#0F766E;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:11px;font-weight:600;white-space:nowrap;z-index:2}
+.fitem{position:relative;padding:18px 0 4px}
+.ebtn2{display:inline-block;padding:9px 14px;border-radius:6px;background:#0F766E;color:#fff;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:13px;font-weight:600;text-decoration:none}
+.emeta{font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12px;color:#5B6472;margin:0 0 4px}
+.vtag{gap:5px;font-family:'IBM Plex Sans',system-ui,sans-serif}
+.wtagl{display:flex;margin:0 0 10px}
+.hidl{display:flex;align-items:center;gap:8px;margin:0 24px;padding:6px 10px;border:1px dashed #93C5FD;border-radius:6px;background:#EFF6FF;color:#1E3A8A;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12px;font-weight:500}
+.p3th{display:inline-flex;align-items:center;justify-content:center;flex:none;border-radius:6px;background:#E9ECF0;border:1px solid #D4D8DF;box-sizing:border-box}
+.frow{display:flex;gap:12px;align-items:center;border-bottom:1px solid #EEF0F3}
+.subp{display:flex;align-items:center;gap:8px;min-width:0;padding:0 10px;height:28px;border:1px solid #E3E6EB;border-radius:7px;background:#fff;font-size:12px;white-space:nowrap;overflow:hidden}
+.subp b{font-weight:600;color:#5B6472;flex:none}
+.subp span.t{overflow:hidden;text-overflow:ellipsis;min-width:0}
+.badge .dot.pulse{box-shadow:0 0 0 3px rgba(30,64,175,.18)}
+.vbtn{display:inline-flex;align-items:center;gap:6px;min-height:28px;padding:0 10px;border-radius:7px;border:1px solid #D4D8DF;background:#fff;font:inherit;font-size:12px;font-weight:600;color:#0B1220;cursor:pointer;white-space:nowrap}
+.vbtn[aria-pressed="true"]{background:#0B1220;border-color:#0B1220;color:#fff}
+.dock{background:#fff;border-top:1px solid #D4D8DF;box-shadow:0 -8px 24px rgba(11,18,32,.08)}
+@media (min-width:768px) and (max-width:1100px){.cright{max-width:none}}
+@media (max-width:767px){.cright{max-width:none!important;flex:1 1 100%!important}}
+</style>
+</helmet>
+<div style="display:flex;flex-direction:column;background:#F3F4F6;position:relative">
+<div style="min-height:0;display:flex;flex-direction:column"><a href="#main" class="skip">Skip to content</a><header style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 16px;background:#fff;border-bottom:1px solid #E3E6EB"><a href="Campaigns.dc.html" class="btn ic" aria-label="Back to campaigns"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m10 3-5 5 5 5"></path></svg></a><div style="display:flex;flex-direction:column;gap:0;min-width:0"><label class="k" for="cname" style="font-size:11px">Campaign</label><input id="cname" value="Weekly Digest #143" style="border:0;padding:0;min-height:28px;font:inherit;font-size:15px;font-weight:700;color:#0B1220;background:none;min-width:200px;width:220px"></div><span class="badge mut">Draft · autosaved 10:28 · v11</span><button class="btn" type="button" aria-haspopup="listbox" aria-expanded="false" aria-label="Language version: English, source. Change language"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M1.8 8h12.4M8 1.8c1.8 1.7 2.7 3.8 2.7 6.2S9.8 12.5 8 14.2C6.2 12.5 5.3 10.4 5.3 8S6.2 3.5 8 1.8z"></path></svg><span>English</span><span class="badge info" style="height:20px;font-size:11px">Source</span><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button><div style="display:flex;gap:8px;flex-wrap:wrap;margin-left:4px"><button class="btn" aria-label="Audience: Weekly Digest, 31,604 recipients"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="6" cy="5" r="2.5"></circle><path d="M1.5 14a4.5 4.5 0 0 1 9 0M11 3a2.5 2.5 0 0 1 0 5M14.5 14a4 4 0 0 0-3-3.8"></path></svg>Weekly Digest · 31,604</button><button class="btn">From: Acme Newsletter &lt;digest@news.acme.io&gt;</button><a href="ProvidersRouting.dc.html" class="btn"><span class="dot" style="color:#4a3aa7"></span>SES 90% <span class="dot" style="color:#e87ba4"></span>Postal 10%</a></div><div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;align-items:center"><a href="ComposerPreview.dc.html" class="btn">Preview</a><button class="btn" type="button">Send test</button><a href="VisibilityStates.dc.html" class="btn pri">Review &amp; send</a></div></header><div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;padding:10px 16px;background:#fff;border-bottom:1px solid #E3E6EB"><label style="display:flex;flex-direction:column;gap:2px;flex:2 1 300px;min-width:0"><span class="k" style="font-size:11px">Subject · English</span><input class="in" value="This week: on-call numbers and safer migrations"></label><label style="display:flex;flex-direction:column;gap:2px;flex:2 1 300px;min-width:0"><span class="k" style="font-size:11px">Preheader · English</span><input class="in" value="A year of pages in charts, how we test every migration, and what we should write next."></label><div style="flex:3 1 340px;display:flex;flex-direction:column;gap:2px;min-width:0"><span class="k" style="font-size:11px">Inbox preview · Gmail · as Sam Rivera</span><div style="display:flex;gap:10px;align-items:center;height:32px;padding:0 10px;border:1px solid #E3E6EB;border-radius:7px;background:#F9FAFB;font-size:12.5px;white-space:nowrap;overflow:hidden"><span style="font-weight:700;width:112px;overflow:hidden;text-overflow:ellipsis;flex:none">Acme Newsletter</span><span style="overflow:hidden;text-overflow:ellipsis;min-width:0"><b style="font-weight:600">This week: on-call numbers and safer migrations</b><span style="color:#5B6472"> - A year of pages in charts, how we test every migration, and what we should write next.</span></span><span class="k" style="margin-left:auto;flex:none">9:00 AM</span></div></div></div><div style="display:flex;flex-wrap:wrap;flex:1;align-items:stretch"><aside class="cpanel" aria-label="Blocks and layers" style="flex:1 1 272px;max-width:272px;background:#fff;border-right:1px solid #E3E6EB;display:flex;flex-direction:column"><div class="ptab" role="tablist"><button role="tab" aria-selected="false">Blocks</button><button class="on" role="tab" aria-selected="true">Layers</button><button role="tab" aria-selected="false">Templates</button></div><div style="padding:8px;display:flex;flex-direction:column;gap:1px" role="tree" aria-label="Layer tree"><div class="lay" style="padding-left:10px"><svg aria-hidden="true" viewBox="0 0 16 16"><path d="m6 4 4 4-4 4"></path></svg><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">mjml</span></div><div class="lay" style="padding-left:26px"><svg aria-hidden="true" viewBox="0 0 16 16"><path d="m6 4 4 4-4 4"></path></svg><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">mj-head</span></div><div class="lay" style="padding-left:26px"><svg aria-hidden="true" viewBox="0 0 16 16"><path d="m4 6 4 4 4-4"></path></svg><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">mj-body</span></div><div class="lay" style="padding-left:42px"><svg aria-hidden="true" viewBox="0 0 16 16"><path d="m6 4 4 4-4 4"></path></svg><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">mj-section · header</span></div><div class="lay" style="padding-left:42px"><svg aria-hidden="true" viewBox="0 0 16 16"><path d="m6 4 4 4-4 4"></path></svg><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">mj-section · We've missed you</span><span class="vi" role="img" aria-label="Conditional: At risk tier"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 2l12 12M6.6 6.6a2 2 0 0 0 2.8 2.8M4.2 4.3C2.9 5.2 2 6.5 1.5 8c1.1 2.9 3.6 4.5 6.5 4.5 1.3 0 2.5-.3 3.6-.9M8 3.5c2.9 0 5.4 1.6 6.5 4.5-.3.9-.8 1.7-1.4 2.4"></path></svg></span></div><div class="lay" style="padding-left:42px"><svg aria-hidden="true" viewBox="0 0 16 16"><path d="m6 4 4 4-4 4"></path></svg><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">mj-section · intro</span></div><div class="lay" style="padding-left:42px"><svg aria-hidden="true" viewBox="0 0 16 16"><path d="m6 4 4 4-4 4"></path></svg><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">mj-section · 2 columns</span></div><div class="lay on" style="padding-left:42px" aria-selected="true"><svg aria-hidden="true" viewBox="0 0 16 16"><path d="m4 6 4 4 4-4"></path></svg><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">mj-section · Beta corner</span><span class="vi" role="img" aria-label="Conditional: Beta Program list"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 2l12 12M6.6 6.6a2 2 0 0 0 2.8 2.8M4.2 4.3C2.9 5.2 2 6.5 1.5 8c1.1 2.9 3.6 4.5 6.5 4.5 1.3 0 2.5-.3 3.6-.9M8 3.5c2.9 0 5.4 1.6 6.5 4.5-.3.9-.8 1.7-1.4 2.4"></path></svg></span></div><div class="lay" style="padding-left:58px"><svg aria-hidden="true" viewBox="0 0 16 16"><path d="m4 6 4 4 4-4"></path></svg><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">mj-column</span></div><div class="lay" style="padding-left:74px"><svg aria-hidden="true" viewBox="0 0 16 16"><path d="M3 5h10M3 8h10M3 11h6"></path></svg><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">mj-text · label</span></div><div class="lay" style="padding-left:74px"><svg aria-hidden="true" viewBox="0 0 16 16"><path d="M3 5h10M3 8h10M3 11h6"></path></svg><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">mj-text</span></div><div class="lay" style="padding-left:74px"><svg aria-hidden="true" viewBox="0 0 16 16"><rect x="2" y="5" width="12" height="6" rx="3"></rect></svg><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">mj-button</span></div><div class="lay" style="padding-left:42px"><svg aria-hidden="true" viewBox="0 0 16 16"><path d="m6 4 4 4-4 4"></path></svg><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">mj-section · Start a free trial</span><span class="vi" role="img" aria-label="Conditional: plan is empty"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 2l12 12M6.6 6.6a2 2 0 0 0 2.8 2.8M4.2 4.3C2.9 5.2 2 6.5 1.5 8c1.1 2.9 3.6 4.5 6.5 4.5 1.3 0 2.5-.3 3.6-.9M8 3.5c2.9 0 5.4 1.6 6.5 4.5-.3.9-.8 1.7-1.4 2.4"></path></svg></span></div><div class="lay" style="padding-left:42px"><svg aria-hidden="true" viewBox="0 0 16 16"><path d="m6 4 4 4-4 4"></path></svg><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">mj-section · footer</span></div></div><div style="margin:6px 10px 12px;padding:10px 12px;border-radius:8px;background:#F9FAFB;border:1px solid #E3E6EB;font-size:12px;color:#4B5563;line-height:1.45;display:flex;gap:8px;align-items:flex-start"><svg style="flex:none;margin-top:1px" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#1D4ED8" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 2l12 12M6.6 6.6a2 2 0 0 0 2.8 2.8M4.2 4.3C2.9 5.2 2 6.5 1.5 8c1.1 2.9 3.6 4.5 6.5 4.5 1.3 0 2.5-.3 3.6-.9M8 3.5c2.9 0 5.4 1.6 6.5 4.5-.3.9-.8 1.7-1.4 2.4"></path></svg><span>3 conditional blocks. The eye-off icon marks a block that only some contacts see.</span></div></aside><section role="main" id="main" style="flex:999 1 520px;min-width:0;display:flex;flex-direction:column;background:#E9ECF0"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 14px;background:#fff;border-bottom:1px solid #E3E6EB"><div class="seg" role="group" aria-label="Device"><button type="button" class="on" aria-pressed="true">Desktop · 600</button><button type="button" aria-pressed="false">Mobile · 375</button></div><div class="seg" role="group" aria-label="View"><button type="button" class="on" aria-pressed="true">Visual</button><button type="button" aria-pressed="false">MJML</button><button type="button" aria-pressed="false">HTML</button></div><div style="display:flex;gap:4px"><button class="btn ic" aria-label="Undo"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4 2 8l4 4M2 8h8a4 4 0 0 1 0 8"></path></svg></button><button class="btn ic" aria-label="Redo" disabled style="opacity:.5"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m10 4 4 4-4 4M14 8H6a4 4 0 0 0 0 8"></path></svg></button></div><div class="seg" role="group" aria-label="Conditional blocks"><button type="button" class="on" aria-pressed="true">Show all blocks</button><button type="button" aria-pressed="false">Show as a contact sees it</button></div><label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:#4B5563"><span style="white-space:nowrap">Preview as</span><select class="in" style="height:30px;max-width:230px"><option selected>Sam Rivera · English</option><option>Priya Natarajan · Beta Program</option><option>Lucía Fernández · Spanish</option></select></label><span class="k" style="margin-left:auto">Zoom 100% · ⌘S save</span></div><div style="flex:1;overflow:auto;padding:28px 24px 40px;display:flex;justify-content:center;align-items:flex-start"><div class="email" style="width:600px;max-width:100%"><div class="sec" style="display:flex;justify-content:space-between;align-items:center;padding:20px 24px;border-bottom:1px solid #EEF0F3"><div class="ph" style="width:96px;height:28px">Logo · 96×28</div><div style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12px;color:#5B6472">Blog · Docs · Changelog</div></div><div class="sec" style="padding:16px 24px 4px"><div class="wtagl"><span class="badge info vtag" style="position:static"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 2l12 12M6.6 6.6a2 2 0 0 0 2.8 2.8M4.2 4.3C2.9 5.2 2 6.5 1.5 8c1.1 2.9 3.6 4.5 6.5 4.5 1.3 0 2.5-.3 3.6-.9M8 3.5c2.9 0 5.4 1.6 6.5 4.5-.3.9-.8 1.7-1.4 2.4"></path></svg>At risk tier</span></div><div style="padding:14px 16px;border-radius:6px;background:#F3F4F6;font-size:14px;line-height:1.55;color:#374151"><b style="color:#0B1220">We've missed you.</b> Here's the short version of the month, in two minutes. Too much email? <a href="PublicPreferences.dc.html">Choose how often you hear from us</a>.</div></div><div class="sec" style="padding:16px 24px 8px"><h1 style="margin:0 0 10px;font-size:26px;line-height:1.2;font-weight:700;color:#0B1220">This week: on-call numbers and safer migrations</h1><p style="margin:0;font-size:15px;line-height:1.55">Hi <span class="tok">{{_lq0}}</span>, this week: a year of on-call in numbers, how our database team tests every migration before production, and a one-click poll on what we should write next.</p></div><div class="sec" style="padding:16px 24px"><div style="display:flex;gap:16px"><div style="flex:1;min-width:0"><div class="ph" style="height:110px;margin-bottom:10px">oncall-heatmap.png · 268×110</div><h2 style="margin:0 0 6px;font-size:17px;line-height:1.3;color:#0B1220">A year of on-call in numbers</h2><p style="margin:0 0 10px;font-size:14px;line-height:1.5;color:#374151">1,412 pages, three noisy alerts and the Monday spike we finally fixed.</p><a href="https://blog.acme.io" class="ebtn2">Read the post</a></div><div style="flex:1;min-width:0"><div class="ph" style="height:110px;margin-bottom:10px">migration-pipeline.png · 268×110</div><h2 style="margin:0 0 6px;font-size:17px;line-height:1.3;color:#0B1220">How we test database migrations</h2><p style="margin:0 0 10px;font-size:14px;line-height:1.5;color:#374151">Every migration meets a copy of production before it ships.</p><a href="https://blog.acme.io" class="ebtn2">Read the post</a></div></div></div><div class="sec" style="padding:14px 24px 18px;outline:2px solid #1D4ED8;outline-offset:-2px;margin-top:30px"><span class="lab">mj-section · Beta corner</span><div class="tb" role="toolbar" aria-label="Component tools"><button aria-label="Select parent"><svg aria-hidden="true" viewBox="0 0 16 16"><path d="m4 10 4-4 4 4"></path></svg></button><button aria-label="Move"><svg aria-hidden="true" viewBox="0 0 16 16"><path d="M8 2v12M2 8h12M5 5 8 2l3 3M5 11l3 3 3-3"></path></svg></button><button aria-label="Duplicate"><svg aria-hidden="true" viewBox="0 0 16 16"><rect x="5" y="5" width="9" height="9" rx="1.5"></rect><path d="M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5"></path></svg></button><button aria-label="Delete"><svg aria-hidden="true" viewBox="0 0 16 16"><path d="M3 4h10M6 4V2.5h4V4M5 4l.6 9h4.8L11 4"></path></svg></button></div><div class="wtagl"><span class="badge info vtag" style="position:static"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 2l12 12M6.6 6.6a2 2 0 0 0 2.8 2.8M4.2 4.3C2.9 5.2 2 6.5 1.5 8c1.1 2.9 3.6 4.5 6.5 4.5 1.3 0 2.5-.3 3.6-.9M8 3.5c2.9 0 5.4 1.6 6.5 4.5-.3.9-.8 1.7-1.4 2.4"></path></svg>Beta Program list</span></div><div style="border-left:3px solid #0F766E;padding:2px 0 2px 14px"><p style="margin:0 0 4px;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#0F766E">Beta corner</p><h2 style="margin:0 0 6px;font-size:17px;line-height:1.3;color:#0B1220">Flag rules by region are in beta</h2><p style="margin:0 0 10px;font-size:14px;line-height:1.5;color:#374151">Target a rollout by country or data region. Try it before general release, and tell us what's confusing.</p><a href="https://docs.acme.io/beta/regions" class="ebtn2">Try region rules</a></div></div><div class="sec" style="padding:10px 24px 18px"><div class="wtagl"><span class="badge info vtag" style="position:static"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 2l12 12M6.6 6.6a2 2 0 0 0 2.8 2.8M4.2 4.3C2.9 5.2 2 6.5 1.5 8c1.1 2.9 3.6 4.5 6.5 4.5 1.3 0 2.5-.3 3.6-.9M8 3.5c2.9 0 5.4 1.6 6.5 4.5-.3.9-.8 1.7-1.4 2.4"></path></svg>plan is empty</span></div><div style="padding:16px 18px;border-radius:6px;background:#F0FDFA;border:1px solid #99F6E4;text-align:center"><p style="margin:0 0 10px;font-size:15px;line-height:1.5;color:#0B1220">Run your own flags on Acme Cloud, free for 14 days.</p><a href="https://acme.io/trial" class="ebtn2">Start a free trial</a></div></div><div class="sec" style="padding:18px 24px;background:#F3F4F6;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12px;color:#5B6472;text-align:center;line-height:1.6">Acme Inc · 500 Market St, Suite 1200 · San Francisco, CA 94105<br><a href="PublicUnsubscribe.dc.html">Unsubscribe</a> · <a href="PublicPreferences.dc.html">Email preferences</a> · <a href="PublicArchive.dc.html">View in browser</a></div></div></div><div class="dock" id="versions"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 16px;border-bottom:1px solid #EEF0F3"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#1D4ED8" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 2l12 12M6.6 6.6a2 2 0 0 0 2.8 2.8M4.2 4.3C2.9 5.2 2 6.5 1.5 8c1.1 2.9 3.6 4.5 6.5 4.5 1.3 0 2.5-.3 3.6-.9M8 3.5c2.9 0 5.4 1.6 6.5 4.5-.3.9-.8 1.7-1.4 2.4"></path></svg><div style="display:flex;flex-direction:column;gap:1px;min-width:0;flex:1 1 300px"><span style="font-weight:700">3 conditional blocks · 6 versions</span><span class="k">The combinations that occur in this audience, with the live count · counted 10:27</span></div><button class="btn ic" type="button" aria-label="Close versions" style="width:30px;min-height:30px;padding:0;flex:none"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"></path></svg></button></div><div style="overflow-x:auto"><table class="tbl" aria-label="Versions of Weekly Digest #143"><thead><tr><th scope="col">Version</th><th scope="col">Shows</th><th scope="col" class="r">Recipients</th><th scope="col" class="r">Size</th><th scope="col"><span class="vh">Action</span></th></tr></thead><tbody><tr><td><b style="font-weight:600">Version 1</b></td><td>none of the three</td><td class="r">9,812</td><td class="r">61 KB</td><td class="r"><button class="btn sm" type="button">Preview this version</button></td></tr><tr><td><b style="font-weight:600">Version 2</b></td><td>free trial</td><td class="r">16,940</td><td class="r">66 KB</td><td class="r"><button class="btn sm" type="button">Preview this version</button></td></tr><tr><td><b style="font-weight:600">Version 3</b></td><td>missed you</td><td class="r">1,166</td><td class="r">63 KB</td><td class="r"><button class="btn sm" type="button">Preview this version</button></td></tr><tr><td><b style="font-weight:600">Version 4</b></td><td>missed you, free trial</td><td class="r">2,284</td><td class="r">68 KB</td><td class="r"><button class="btn sm" type="button">Preview this version</button></td></tr><tr class="sel"><td><b style="font-weight:600">Version 5</b></td><td>Beta corner</td><td class="r">812</td><td class="r">97 KB</td><td class="r"><button class="btn sm" type="button">Preview this version</button></td></tr><tr class="wrn"><td><b style="font-weight:600">Version 6</b></td><td>Beta corner, free trial</td><td class="r">590</td><td class="r"><span style="display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end"><b style="color:#92400E;font-weight:600">104 KB</b><span class="badge warn" style="height:20px;font-size:11px">Gmail clips it</span></span></td><td class="r"><button class="btn sm" type="button">Preview this version</button></td></tr></tbody></table></div><div class="foot" style="padding:10px 16px"><span class="k">2 of the 8 possible combinations don't occur: At risk contacts on Beta Program. Rows 5 and 6 show Beta corner.</span><span class="k">At risk 3,450 · Beta Program 1,402 · 31,604 in all</span></div></div></section><aside class="cpanel cright" aria-label="Properties and checks" style="background:#fff;border-left:1px solid #E3E6EB;display:flex;flex-direction:column"><div class="ptab" role="tablist"><button role="tab" aria-selected="false">Style</button><button role="tab" class="on" aria-selected="true">Settings</button><button role="tab" aria-selected="false">Deliverability</button><button role="tab" aria-selected="false">Accessibility</button></div><div style="padding:10px 12px;border-bottom:1px solid #EEF0F3;display:flex;flex-direction:column;gap:2px"><span style="font-weight:600">mj-section · Beta corner</span><span class="k">1 column · conditional</span></div><div class="prop"><span class="t" style="display:flex;align-items:center;gap:6px"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#1D4ED8" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 2l12 12M6.6 6.6a2 2 0 0 0 2.8 2.8M4.2 4.3C2.9 5.2 2 6.5 1.5 8c1.1 2.9 3.6 4.5 6.5 4.5 1.3 0 2.5-.3 3.6-.9M8 3.5c2.9 0 5.4 1.6 6.5 4.5-.3.9-.8 1.7-1.4 2.4"></path></svg>Visibility</span><fieldset style="border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:6px"><legend class="vh">Who sees this block</legend><label class="radio" style="padding:7px 10px;align-items:center"><input type="radio" name="vis" style="margin:0"><span style="font-size:12.5px;font-weight:500">Show to everyone</span></label><label class="radio on" style="padding:7px 10px;align-items:center"><input type="radio" name="vis" checked style="margin:0"><span style="font-size:12.5px;font-weight:600">Only contacts who match</span></label><label class="radio" style="padding:7px 10px;align-items:center"><input type="radio" name="vis" style="margin:0"><span style="font-size:12.5px;font-weight:500">Everyone except contacts who match</span></label></fieldset><div style="display:flex;flex-direction:column;gap:8px"><div style="display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;color:#374151">Match<select class="in" aria-label="Match" style="height:30px;width:auto"><option selected>ALL</option><option>ANY</option></select>of these</div><div style="display:flex;flex-direction:column;gap:6px;padding:10px;border:1px solid #E3E6EB;border-radius:8px;background:#F9FAFB"><div style="display:flex;gap:6px;align-items:center"><select class="in" aria-label="Condition" style="flex:1;min-width:0"><option>List membership</option></select><button class="btn ic" type="button" aria-label="Remove condition" style="width:30px;min-height:30px;padding:0;flex:none"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"></path></svg></button></div><div style="display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:6px"><select class="in" aria-label="Operator"><option>includes</option></select><select class="in" aria-label="Value"><option>Beta Program</option></select></div></div><button class="btn sm" type="button" style="align-self:flex-start" aria-haspopup="menu"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3v10M3 8h10"></path></svg>Add condition</button></div><div style="display:flex;flex-direction:column;gap:6px"><div style="font-size:13px"><b class="num" style="font-weight:700">1,402</b> of 31,604 recipients see this block</div><div class="bar"><i style="width:4.4%;background:#0F766E"></i></div><span class="k">Counted 10:27 with the live count, in under a second</span></div></div><div class="prop"><span class="t">On devices</span><label class="cbl"><input type="checkbox">Hide on mobile</label><label class="cbl"><input type="checkbox">Hide on desktop</label><span class="k">The mj-class rule the MJML plugin adds. It's separate from who sees the block.</span></div><div class="prop"><span class="t">Name in layers</span><input class="in" value="Beta corner" aria-label="Name in layers"></div><div style="padding:10px 12px;display:flex;flex-direction:column;gap:6px;margin-top:auto;border-top:1px solid #EEF0F3"><span class="k">Versions with this block</span><span class="badge info" style="align-self:flex-start">Versions 5 and 6 · 1,402 recipients</span><span class="badge warn" style="align-self:flex-start;height:auto;min-height:22px;white-space:normal;padding-top:2px;padding-bottom:2px">Version 6 is 104 KB: Gmail clips it for 590</span></div></aside></div><footer style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:8px 16px;background:#fff;border-top:1px solid #E3E6EB"><div class="bc"><span>mjml</span><span>›</span><span>mj-body</span><span>›</span><b>mj-section · Beta corner</b></div><span class="k" style="margin-left:auto">61 to 104 KB across the versions · 9 images, all with alt text · 16 links</span><button class="vbtn" type="button" aria-controls="versions" aria-expanded="true" aria-pressed="true"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 2l12 12M6.6 6.6a2 2 0 0 0 2.8 2.8M4.2 4.3C2.9 5.2 2 6.5 1.5 8c1.1 2.9 3.6 4.5 6.5 4.5 1.3 0 2.5-.3 3.6-.9M8 3.5c2.9 0 5.4 1.6 6.5 4.5-.3.9-.8 1.7-1.4 2.4"></path></svg>3 conditional blocks · 6 versions</button><span class="badge warn"><span class="dot"></span>1 warning</span><a href="ComposerStates.dc.html" class="k">Version history · 11 versions</a></footer></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1955}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { _lq0: "{{ first_name | default: \"there\" }}" };
+  }
+}
+</script>
+</body>
+</html>

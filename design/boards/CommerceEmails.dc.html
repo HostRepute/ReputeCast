@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Store data in emails and automations</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F4F6;color:#0B1220;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;line-height:1.45}
+a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
+.mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace}
+.card{background:#FFFFFF;border:1px solid #E3E6EB;border-radius:10px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:36px;padding:0 14px;border-radius:8px;border:1px solid #D4D8DF;background:#FFFFFF;color:#0B1220;font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;box-sizing:border-box}
+.btn:hover{background:#F3F4F6;color:#0B1220}
+.btn.pri{background:#0F766E;border-color:#0F766E;color:#FFFFFF}.btn.pri:hover{background:#115E59;color:#FFFFFF}
+.btn.sm{min-height:30px;padding:0 10px;font-size:12px}
+.badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;flex:none}
+.ok{background:#DCFCE7;color:#166534}.warn{background:#FEF3C7;color:#92400E}.bad{background:#FEE2E2;color:#991B1B}.info{background:#DBEAFE;color:#1E40AF}.mut{background:#EEF0F3;color:#4B5563}.pur{background:#EDE9FE;color:#5B21B6}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;flex:none}
+.nav a{display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;border-radius:8px;color:#4B5563;font-weight:500}
+.nav a:hover{background:#EEF0F3;color:#0B1220}.nav a.on{background:#E3F1EE;color:#0F766E}
+.nav svg{width:16px;height:16px;flex:none}
+.tabs{display:flex;gap:4px;flex-wrap:wrap}
+.tabs a{display:inline-flex;align-items:center;height:34px;padding:0 12px;border-radius:8px;color:#4B5563;font-weight:500;font-size:13px}
+.tabs a:hover{background:#EEF0F3;color:#0B1220}.tabs a.on{background:#0B1220;color:#fff}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{text-align:left;font-weight:600;color:#5B6472;padding:10px 12px;border-bottom:1px solid #E3E6EB;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+.tbl td{padding:11px 12px;border-bottom:1px solid #EEF0F3;vertical-align:middle;white-space:nowrap}
+.tbl tr:last-child td{border-bottom:0}
+.k{font-size:12px;color:#5B6472;font-weight:500}
+.h2{margin:0;font-size:15px;font-weight:600}
+.in{height:36px;padding:0 10px;border:1px solid #D4D8DF;border-radius:8px;background:#fff;font:inherit;font-size:13px;color:#0B1220;box-sizing:border-box;min-width:0}
+.lbl{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:#4B5563}
+
+
+/* shell additions: workspace switcher, notification bell, user menu */
+.ws{display:flex;align-items:center;gap:8px;margin:2px 0 4px;padding:7px 10px;border:1px solid #E3E6EB;border-radius:8px;background:#fff;color:#0B1220;font:inherit;text-align:left;cursor:pointer;width:100%;box-sizing:border-box}
+.ws:hover{background:#F3F4F6}
+.ws .wsn{display:flex;flex-direction:column;line-height:1.25;min-width:0;flex:1}
+.ws .wsn b{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ws .wsn span{font-size:11px;color:#5B6472;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tools{display:flex;align-items:center;gap:8px;margin-left:8px}
+.ibtn{position:relative;display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:1px solid #D4D8DF;background:#fff;color:#0B1220;cursor:pointer;padding:0;flex:none}
+.ibtn:hover{background:#F3F4F6}
+.ibtn .cnt{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#B91C1C;color:#fff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box}
+.ubtn{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 10px 0 4px;border-radius:8px;border:1px solid #D4D8DF;background:#fff;color:#0B1220;font:inherit;font-size:13px;font-weight:600;cursor:pointer;flex:none}
+.ubtn:hover{background:#F3F4F6}
+.menu{position:absolute;z-index:40;background:#fff;border:1px solid #D4D8DF;border-radius:10px;box-shadow:0 12px 32px rgba(11,18,32,.16);padding:6px;min-width:260px;display:flex;flex-direction:column;gap:2px;box-sizing:border-box}
+.menu a,.menu button{display:flex;align-items:center;gap:10px;min-height:36px;padding:0 10px;border-radius:8px;color:#0B1220;font:inherit;font-size:13px;font-weight:500;background:none;border:0;text-align:left;cursor:pointer;width:100%;box-sizing:border-box;text-decoration:none}
+.menu a:hover,.menu button:hover{background:#F3F4F6;color:#0B1220}
+.menu hr{border:0;border-top:1px solid #EEF0F3;margin:4px 0;width:100%}
+.menu .mh{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472;padding:8px 10px 4px}
+@media (max-width:767px){.tools{margin-left:0}.menu{min-width:0;max-width:calc(100vw - 24px)}}
+
+
+/* add-on components */
+.av{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex:none}
+.tbl td.c,.tbl th.c{text-align:center}
+.tbl td{white-space:normal;vertical-align:middle}
+.tbl td.nw,.tbl td .badge{white-space:nowrap}
+.tbl td .btn{white-space:nowrap}
+.flag{display:inline-flex;align-items:center;gap:4px;color:#B45309;font-weight:700;font-size:11px;white-space:nowrap}
+input[type=checkbox].tg{appearance:none;-webkit-appearance:none;width:40px;height:24px;border-radius:999px;background:#6B7280;position:relative;cursor:pointer;flex:none;margin:0;border:0}
+input[type=checkbox].tg::after{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff}
+input[type=checkbox].tg:checked{background:#0F766E}input[type=checkbox].tg:checked::after{left:18px}
+.row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.col{display:flex;flex-direction:column;gap:10px}
+.sec{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid #EEF0F3;flex-wrap:wrap;gap:8px}
+.pad{padding:16px 18px}
+.note{display:flex;gap:8px 10px;align-items:flex-start;flex-wrap:wrap;padding:12px 14px;border-radius:8px;font-size:13px;line-height:1.45}
+.note > :last-child{flex:1 1 320px;min-width:0}
+.note > .badge{margin-top:1px}
+.note.i{background:#EFF6FF;border:1px solid #BFDBFE;color:#1E3A8A}
+.note.w{background:#FFFBEB;border:1px solid #FCD34D;color:#78350F}
+.note.b{background:#FFF5F5;border:1px solid #FCA5A5;color:#7F1D1D}
+.note.g{background:#F0FDF4;border:1px solid #BBF7D0;color:#14532D}
+.note.n{background:#F3F4F6;border:1px solid #E3E6EB;color:#374151}
+.btn:disabled,.btn[aria-disabled="true"]{opacity:.55;cursor:not-allowed}
+.btn.danger{color:#991B1B;border-color:#FCA5A5}.btn.danger:hover{background:#FEF2F2;color:#991B1B}
+.btn.danger.pri{background:#B91C1C;border-color:#B91C1C;color:#fff}.btn.danger.pri:hover{background:#991B1B;color:#fff}
+.kv{display:grid;grid-template-columns:max-content 1fr;gap:7px 18px;font-size:13px;margin:0}
+.kv dt{color:#5B6472;font-weight:500;margin:0}.kv dd{margin:0;min-width:0}
+.chip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;border:1px solid #D4D8DF;background:#fff;font-size:12.5px;font-weight:500;white-space:nowrap}
+.code{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace;font-size:12.5px;background:#0B1220;color:#E5E7EB;border-radius:8px;padding:12px 14px;white-space:pre-wrap;overflow-wrap:anywhere;margin:0}
+.diff{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;border:1px solid #E3E6EB;border-radius:8px;overflow:hidden}
+.diff div{padding:6px 12px;white-space:pre-wrap;overflow-wrap:anywhere}
+.diff .del{background:#FEF2F2;color:#991B1B}.diff .add{background:#F0FDF4;color:#166534}.diff .ctx{color:#4B5563}
+.ovl{position:absolute;inset:0;background:rgba(11,18,32,.45);display:flex;align-items:flex-start;justify-content:center;padding:72px 16px;box-sizing:border-box;z-index:60}
+.dlg{width:100%;max-width:640px;display:flex;flex-direction:column;background:#fff;border-radius:12px;box-shadow:0 24px 60px rgba(11,18,32,.3)}
+.dh{padding:18px 22px 0;display:flex;flex-direction:column;gap:6px}
+.db{padding:16px 22px;display:flex;flex-direction:column;gap:12px}
+.df{padding:14px 22px 18px;display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;border-top:1px solid #EEF0F3;align-items:center}
+.steps{display:flex;flex-direction:column;gap:2px}
+.row > *{min-width:0}
+
+/* expansion components (phases 1-8) */
+.num,.tbl td.r{font-variant-numeric:tabular-nums}
+.tbl th.r,.tbl td.r{text-align:right}
+.tbl tr.sel td{background:#F0FDFA}
+.tbl tr.xp td{background:#FBFBFC}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.stat{padding:14px 16px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.stat .v{font-size:22px;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums;line-height:1.25;margin-top:2px}
+.stat .s{font-size:12px;color:#5B6472;font-weight:500}
+.stat.hot{border-color:#FCA5A5;background:#FFF5F5}
+.strip{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;background:#0B1220;color:#fff;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.sk{background:#E9ECF0;border-radius:6px;display:inline-block}
+.bar{height:6px;border-radius:3px;background:#EEF0F3;overflow:hidden}.bar i{display:block;height:100%;border-radius:3px}
+.ptab{display:flex;border-bottom:1px solid #E3E6EB}
+.ptab button{flex:1;height:38px;border:0;background:none;font:inherit;font-size:12.5px;font-weight:600;color:#5B6472;cursor:pointer;border-bottom:2px solid transparent;padding:0 6px;white-space:nowrap}
+.ptab button.on{color:#0B1220;border-bottom-color:#0F766E}
+.seg{display:inline-flex;border:1px solid #D4D8DF;border-radius:8px;overflow:hidden;flex:none}
+.seg button{height:30px;padding:0 11px;border:0;background:#fff;font:inherit;font-size:12px;font-weight:600;color:#4B5563;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.seg button + button{border-left:1px solid #E3E6EB}
+.seg button.on{background:#0B1220;color:#fff}
+.cbx{border-radius:10px;overflow:hidden;border:1px solid #1F2937;background:#0B1220;min-width:0}
+.cbh{display:flex;align-items:center;gap:2px;padding:6px 8px;border-bottom:1px solid #1F2937;background:#111827;flex-wrap:wrap}
+.cbh button{height:28px;padding:0 10px;border:0;border-radius:6px;background:none;color:#B4BAC4;font:inherit;font-size:12px;font-weight:600;cursor:pointer}
+.cbh button.on{background:#273244;color:#fff}
+.cbh .cp{margin-left:auto;display:inline-flex;align-items:center;gap:6px;color:#E5E7EB;border:1px solid #374151}
+.cbx pre{margin:0;padding:12px 14px;font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace;font-size:12.5px;line-height:1.6;color:#E5E7EB;white-space:pre-wrap;overflow-wrap:anywhere}
+.cbx .c1{color:#93C5FD}.cbx .c2{color:#86EFAC}.cbx .c3{color:#FCD34D}.cbx .c4{color:#9CA3AF}.cbx .c5{color:#F9A8D4}
+.cbx .cm{color:#9CA3AF}
+.ev{display:flex;gap:14px;align-items:flex-start;padding:12px 0;border-top:1px solid #EEF0F3}
+.ev:first-child{border-top:0}
+.ev .ic{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.ev .tx{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.ev .tm{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;color:#5B6472;flex:none;padding-top:5px}
+.spin{width:14px;height:14px;border-radius:50%;border:2px solid #C9CED6;border-top-color:#0F766E;flex:none;display:inline-block}
+.mask{display:inline-flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;color:#4B5563;white-space:nowrap}
+.mask svg{flex:none}
+.tok{display:inline-flex;align-items:center;gap:4px;padding:0 6px;border-radius:5px;background:#EDE9FE;color:#5B21B6;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:.86em;font-weight:500;line-height:1.55;white-space:nowrap;vertical-align:baseline}
+.tok.s{background:#FEF3C7;color:#92400E}
+.tok.e{background:#FEE2E2;color:#991B1B;text-decoration:underline wavy #DC2626;text-underline-offset:3px}
+.mk{display:inline-flex;align-items:center;height:22px;padding:0 7px;border-radius:6px;background:#EEF0F3;color:#374151;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;white-space:nowrap}
+.toast{display:flex;gap:12px;align-items:center;padding:10px 12px 10px 14px;border-radius:10px;background:#0B1220;color:#fff;font-size:13.5px;box-shadow:0 12px 30px rgba(11,18,32,.25);max-width:520px;box-sizing:border-box}
+.toast .t{flex:1;min-width:0}
+.toast .k{color:#C3C2B7}
+.toast .btn{min-height:28px;padding:0 10px;font-size:12px;background:transparent;border-color:#4B5563;color:#fff}
+.toast .x{width:28px;height:28px;border:0;background:transparent;color:#9CA3AF;border-radius:6px;font-size:16px;cursor:pointer}
+.ti{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.scrim{position:absolute;inset:0;background:rgba(11,18,32,.32);z-index:55}
+.drw{position:absolute;top:0;right:0;bottom:0;width:600px;max-width:100%;background:#fff;border-left:1px solid #E3E6EB;box-shadow:-18px 0 40px rgba(11,18,32,.18);z-index:60;display:flex;flex-direction:column;box-sizing:border-box;overflow:hidden}
+.drw .dwh{display:flex;align-items:flex-start;gap:12px;padding:18px 22px 14px;border-bottom:1px solid #EEF0F3}
+.drw .dwb{padding:18px 22px;display:flex;flex-direction:column;gap:18px;overflow:auto}
+.drw h3{margin:0;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472}
+.empty{padding:44px 28px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;border-style:dashed}
+.empty .tt{font-size:18px;font-weight:700;letter-spacing:-.01em}
+.empty .ds{color:#4B5563;max-width:560px}
+.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:14px 18px;border-bottom:1px solid #EEF0F3}
+.fchips{display:flex;gap:6px;flex-wrap:wrap;padding:12px 18px;border-bottom:1px solid #EEF0F3}
+.fchip{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:999px;border:1px solid #D4D8DF;background:#fff;font:inherit;font-size:12.5px;font-weight:600;color:#374151;cursor:pointer;white-space:nowrap}
+.fchip b{font-weight:600;color:#5B6472;font-variant-numeric:tabular-nums}
+.fchip.on{background:#0B1220;border-color:#0B1220;color:#fff}.fchip.on b{color:#C9CED6}
+.live{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:#166534}
+.live .dot{box-shadow:0 0 0 4px rgba(22,101,52,.15)}
+.foot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid #EEF0F3}
+.spark{display:block}
+.lnk{display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:13px}
+.ttl{margin:0;font-size:22px;font-weight:700;letter-spacing:-.02em;line-height:1.2}
+.lead{margin:0;color:#4B5563;font-size:14px;max-width:760px}
+.state-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(460px,100%),1fr));gap:16px;align-items:start}
+.flowr{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px}
+.flowr .arw{color:#9AA3B2}
+.pill{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:8px;border:1px solid #E3E6EB;background:#F9FAFB;font-size:12.5px;font-weight:600;white-space:nowrap}
+.vline{display:flex;gap:10px;align-items:baseline;padding:8px 0;border-top:1px solid #EEF0F3;font-size:13px}
+.vline:first-child{border-top:0}
+.hl{background:#FEF2F2;box-shadow:inset 3px 0 0 #DC2626}
+.lines{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;line-height:1.7;background:#0B1220;color:#E5E7EB;border-radius:8px;overflow:hidden}
+.lines div{display:flex;gap:12px;padding:0 12px}
+.lines .ln{color:#9CA3AF;width:22px;text-align:right;flex:none;user-select:none}
+.lines .er{background:rgba(220,38,38,.22)}
+.callout{position:absolute;z-index:5}
+.only-phone{display:none}
+@media (max-width:1100px){.drw{width:520px}}
+@media (max-width:767px){.drw{width:100%;border-left:0}.stats{grid-template-columns:repeat(2,minmax(0,1fr))!important}.ttl{font-size:19px}}
+
+/* phase 2a · integrations hub */
+.cap{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 7px;border-radius:5px;font-size:11px;font-weight:600;border:1px solid #E3E6EB;background:#F9FAFB;color:#374151;white-space:nowrap}
+.itile{width:40px;height:40px;border-radius:10px;background:#F3F4F6;border:1px solid #E3E6EB;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#374151;flex:none;box-sizing:border-box;letter-spacing:-.01em}
+.itile.lg{width:52px;height:52px;border-radius:12px;font-size:17px}
+.itile.sm{width:30px;height:30px;border-radius:8px;font-size:11px}
+.icard{display:flex;flex-direction:column;gap:12px;padding:16px 16px 14px;min-width:0;box-sizing:border-box}
+.icard .ih{display:flex;gap:12px;align-items:flex-start}
+.icard .nm{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1}
+.icard h3{margin:0;font-size:15px;font-weight:600;line-height:1.3}
+.icard .ds{margin:0;color:#374151;font-size:13px;line-height:1.45}
+.caps{display:flex;gap:5px;flex-wrap:wrap}
+.icard .why{display:flex;gap:7px;align-items:flex-start;font-size:12.5px;line-height:1.4;color:#92400E;font-weight:500}
+.icard .why svg{margin-top:1px}
+.icard .ft{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:8px 10px;padding-top:12px;border-top:1px solid #EEF0F3;flex-wrap:wrap}
+.icard .ft .k{flex:1 1 160px;min-width:0}
+.icard.inv{background:#F0FDFA;border-color:#99F6E4}
+.icard.inv .ft{border-top-color:#CCFBF1}
+.ipage{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(340px,100%),1fr));gap:28px 16px;align-items:start}
+.igrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(340px,100%),1fr));gap:16px;align-items:stretch}
+.igrp{display:flex;flex-direction:column;gap:12px;min-width:0;align-self:stretch}
+.igrp.full{grid-column:1/-1}
+.igrp > .icard{flex:1}
+.gh{display:flex;align-items:flex-end;justify-content:space-between;gap:6px 14px;flex-wrap:wrap}
+.gh .gt{display:flex;flex-direction:column;gap:2px;min-width:0}
+.gh h2{margin:0;font-size:16px;font-weight:700;letter-spacing:-.01em}
+.ichips{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.isearch{display:flex;align-items:center;gap:8px;height:36px;padding:0 10px;border:1px solid #8B94A3;border-radius:8px;background:#fff;box-sizing:border-box;width:300px;max-width:100%}
+.isearch input{border:0;outline:0;font:inherit;font-size:13px;flex:1;min-width:0;background:none;color:#0B1220}
+.banner{display:flex;gap:10px;align-items:center;padding:10px 12px 10px 14px;border-radius:10px;font-size:13.5px;line-height:1.45;border:1px solid #FCD34D;background:#FFFBEB;color:#78350F;flex-wrap:wrap}
+.banner .bi{display:flex;gap:10px;align-items:flex-start;flex:1 1 360px;min-width:0}
+.banner .bi svg{margin-top:2px;flex:none}
+.banner .bt{flex:1;min-width:0}
+.banner.b{border-color:#FCA5A5;background:#FFF5F5;color:#7F1D1D}
+.banner .btn{background:#fff}
+.mby{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px 0 3px;border-radius:999px;background:#EEF0F3;color:#374151;font-size:12px;font-weight:600;white-space:nowrap;text-decoration:none;flex:none}
+.mby:hover{background:#E3E6EB;color:#0B1220}
+.mby .mt{width:16px;height:16px;border-radius:5px;background:#fff;border:1px solid #D4D8DF;display:inline-flex;align-items:center;justify-content:center;font-size:8.5px;font-weight:700;color:#374151;box-sizing:border-box;letter-spacing:-.02em}
+.prl{display:flex;flex-direction:column}
+.phd{font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#4B5563;padding:12px 0 6px;display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.phd .k{text-transform:none;letter-spacing:0}
+.prow{display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px solid #EEF0F3}
+.prow .pl{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:2px}
+.prow .pn{font-weight:600;font-size:13.5px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.prow .pd{font-size:12px;color:#5B6472;font-weight:500;line-height:1.4}
+.prow .pp{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:4px 6px;flex:0 1 auto;max-width:48%}
+.prow .pw{font-size:12px;line-height:1.4;color:#991B1B;font-weight:500}
+.prow.lk{background:#F9FAFB;margin:0 -12px;padding:9px 12px;border-radius:8px;border-top-color:transparent}
+.prow.lk + .prow{border-top-color:transparent}
+.prow .st{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:2px;min-width:92px;text-align:right}
+.chk3{display:flex;gap:6px 14px;flex-wrap:wrap;align-items:center;font-size:12.5px;color:#374151}
+.chk3 span{display:inline-flex;gap:5px;align-items:center;white-space:nowrap}
+.stp{display:flex;gap:6px 8px;flex-wrap:wrap;list-style:none;margin:0;padding:0;align-items:center}
+.stp li{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:#5B6472;white-space:nowrap}
+.stp .n{width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;border:1.5px solid #C9CED6;box-sizing:border-box;background:#fff;color:#4B5563}
+.stp li.cur{color:#0F766E}.stp li.cur .n{background:#0F766E;border-color:#0F766E;color:#fff}
+.stp li.done{color:#166534}.stp li.done .n{background:#DCFCE7;border-color:#86EFAC}
+.stp li.off .n{border-style:dashed}
+.stp .sep{color:#6B7280;font-weight:500}
+.inl{display:flex;gap:8px;align-items:center;flex-wrap:nowrap}
+.inl .in{flex:1;min-width:0}
+.ol{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px;counter-reset:s}
+.ol li{display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.45;counter-increment:s}
+.ol li::before{content:counter(s);width:20px;height:20px;border-radius:50%;background:#EEF0F3;color:#374151;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex:none;margin-top:0}
+.bl{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-top:1px solid #EEF0F3;font-size:13px;line-height:1.45}
+.bl:first-child{border-top:0;padding-top:2px}
+.bl > .badge{min-width:74px;justify-content:center;margin-top:1px}
+.dz{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:16px 18px;border-color:#FCA5A5}
+.ilist a.it,.ilist div.it{display:flex;flex-direction:column;gap:4px;padding:12px 16px;border-top:1px solid #EEF0F3;color:#0B1220}
+.ilist .it:first-child{border-top:0}
+.sect{display:flex;flex-direction:column;gap:10px;min-width:0}
+.sect > h3{margin:0;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472}
+.bigh{display:flex;flex-direction:column;gap:4px;padding-top:8px}
+.bigh h2{margin:0;font-size:20px;font-weight:700;letter-spacing:-.015em}
+.mini{transform-origin:top left}
+.dim{opacity:.55}
+.frows > div:first-child{border-top:0!important;padding-top:0!important}
+.only-narrow{display:none}
+@media (max-width:1100px){.no-narrow{display:none!important}.only-narrow{display:flex!important;flex-direction:column}}
+@media (max-width:767px){
+  .ipage,.igrid{grid-template-columns:1fr!important}
+  .ichips{flex-wrap:nowrap!important;overflow-x:auto;padding-bottom:4px;max-width:100%}
+  .ichips .fchip{flex:none}
+  .isearch{width:100%!important}
+  .prow{display:grid!important;grid-template-columns:minmax(0,1fr) auto;column-gap:10px;row-gap:6px;align-items:start}
+  .prow .pl{grid-column:1;grid-row:1}
+  .prow .st,.prow > input{grid-column:2;grid-row:1;align-self:start;min-width:0}
+  .prow .pp{grid-column:1/-1;grid-row:2;justify-content:flex-start;max-width:none}
+  .sc-host .note > div:last-child{flex:1 1 0%!important;min-width:0}
+  .dhead .dact{width:100%}
+}
+
+/* phase 7b: pages, products and stores */
+.vis{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:#374151;white-space:nowrap}
+.stk{display:inline-flex;flex-direction:column;align-items:flex-start;gap:3px}
+.dlc{display:inline-flex;align-items:center;gap:6px;min-height:24px;padding:2px 9px;border-radius:999px;border:1px solid;font-size:12px;font-weight:600;line-height:1.3;box-sizing:border-box}
+.syncr{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:#0B1220}
+.cov{position:relative;display:inline-block;flex:none;border-radius:4px;overflow:hidden;box-shadow:0 1px 2px rgba(11,18,32,.18);box-sizing:border-box}
+.merch{display:inline-flex;align-items:center;justify-content:center;border-radius:8px;background:#F3F4F6;border:1px solid #E3E6EB;box-sizing:border-box;flex:none}
+.pname{display:flex;gap:12px;align-items:center;min-width:0}
+.pname .t{display:flex;flex-direction:column;gap:2px;min-width:0}
+.pname a{color:#0B1220;font-weight:600}
+.addr{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;color:#5B6472}
+.bpg{display:flex;align-items:center;gap:12px;padding:11px 18px;border-top:1px solid #EEF0F3;min-width:0}
+.bpg .nm{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.bpg .st{flex:none;display:flex;align-items:center;gap:8px;font-size:12.5px;color:#4B5563;font-weight:500}
+.bigrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(440px,100%),1fr));column-gap:0}
+.bigrid > div{border-right:1px solid #EEF0F3}
+.tplc{display:flex;flex-direction:column;gap:8px;padding:10px;border:1px solid #E3E6EB;border-radius:10px;background:#fff;font:inherit;text-align:left;cursor:pointer;min-width:0}
+.tplc.on{border-color:#0F766E;box-shadow:0 0 0 1px #0F766E;background:#F0FDFA}
+.tplc .th{height:112px;border-radius:7px;background:#F5F3FF;border:1px solid #EDE9FE;position:relative;overflow:hidden}
+.wf{position:absolute;border-radius:3px;background:#DDD6FE}
+.wf.i{background:#4338CA}.wf.w{background:#fff;border:1px solid #DDD6FE;box-sizing:border-box}.wf.g{background:#C9CED6}
+.ckl{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-top:1px solid #EEF0F3;font-size:13px}
+.ckl:first-child{border-top:0}
+.ckl > svg{margin-top:2px;flex:none}
+.ckl .tx{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+.oline{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-top:1px solid #EEF0F3}
+.oline:first-child{border-top:0}
+.oline .lab{width:112px;flex:none;color:#5B6472;font-size:12.5px;font-weight:500;padding-top:1px}
+.oline .val{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;font-size:13px}
+.mini-b{border:1px solid #E3E6EB;border-radius:10px;overflow:hidden;background:#fff}
+.tok7{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;background:#EEF0F3;border-radius:5px;padding:1px 6px;color:#374151;white-space:nowrap}
+.narrow-only{display:none}
+@media (max-width:1100px){.wide-only{display:none!important}.narrow-only{display:flex!important;flex-direction:column}}
+@media (max-width:767px){.bigrid > div{border-right:0}.oline{flex-direction:column;gap:4px}.oline .lab{width:auto}.sc-host .note > div:last-child{flex:1 1 0%!important;min-width:0}}
+
+/* phase 7b: stores */
+.dhead7{padding:18px 20px;display:flex;gap:14px 20px;align-items:flex-start;flex-wrap:wrap}
+.dhead7 .dl{display:flex;gap:16px;align-items:flex-start;flex:1 1 460px;min-width:0}
+.dhead7 .dt{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:6px}
+.dhead7 .dact{display:flex;gap:8px;flex-wrap:wrap;align-items:center;flex:0 1 auto;max-width:100%}
+.wd{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr));gap:0}
+.wd > div{padding:14px 18px;border-left:1px solid #EEF0F3;display:flex;flex-direction:column;gap:10px;min-width:0}
+.wd > div:first-child{border-left:0}
+.wd h3{margin:0;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472}
+.wd ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:9px}
+.wd li{display:flex;gap:9px;align-items:flex-start;font-size:13px;line-height:1.45}
+.wd li > svg{flex:none;margin-top:2px}
+.wd li b{font-weight:600}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.sbox{border:1px solid #E3E6EB;border-radius:8px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;background:#FBFBFC;min-width:0}
+.sbox h4{margin:0;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#4B5563}
+.sbox ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:5px;font-size:13px}
+.sbox li{display:flex;gap:7px;align-items:flex-start}
+.sbox li svg{flex:none;margin-top:2px}
+.prog{display:flex;flex-direction:column;gap:6px}
+.prog .row1{display:flex;justify-content:space-between;gap:10px;font-size:13px}
+.flowc{background-color:#F9FAFB;background-image:radial-gradient(#D4D8DF 1px,transparent 1px);background-size:16px 16px;border-radius:10px;padding:22px 16px;display:flex;flex-direction:column;align-items:center;gap:0}
+.fnode{width:280px;max-width:100%;background:#fff;border:1px solid #D4D8DF;border-radius:10px;box-shadow:0 1px 3px rgba(11,18,32,.08);padding:9px 12px;display:flex;flex-direction:column;gap:4px;box-sizing:border-box}
+.fnode .hd{display:flex;align-items:center;gap:7px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+.fnode .t{font-weight:600;font-size:13px;line-height:1.3}
+.fnode .st{display:flex;gap:8px;flex-wrap:wrap;font-size:11.5px;color:#4B5563}
+.fnode.sel{border-color:#1D4ED8;box-shadow:0 0 0 3px #DBEAFE}
+.fwire{width:2px;height:22px;background:#9AA3B2}
+.lockf{display:flex;gap:8px;align-items:flex-start;padding:9px 11px;border-radius:8px;background:#F3F4F6;border:1px solid #E3E6EB;font-size:12.5px}
+.pp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(150px,100%),1fr));gap:10px}
+.ppc{display:flex;flex-direction:column;gap:6px;padding:10px;border:1px solid #E3E6EB;border-radius:10px;background:#fff;font:inherit;text-align:left;cursor:pointer;min-width:0}
+.ppc.on{border-color:#0F766E;box-shadow:0 0 0 1px #0F766E;background:#F0FDFA}
+.ppc .nm{font-weight:600;font-size:12.5px;line-height:1.3}
+.ppc .pr{display:flex;justify-content:space-between;gap:6px;align-items:center;font-size:12px}
+.egrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.eprod{display:flex;flex-direction:column;gap:6px;font-family:'IBM Plex Sans',system-ui,sans-serif;position:relative}
+.eprod .nm{font-size:13px;font-weight:600;color:#0B1220;line-height:1.3}
+.eprod .pr{font-size:13px;color:#374151}
+.eprod .cta{align-self:flex-start;padding:6px 10px;border-radius:5px;background:#4338CA;color:#fff;font-size:12px;font-weight:600}
+.eprod.eflag{outline:2px solid #DC2626;outline-offset:6px;border-radius:8px}
+.citems{display:flex;flex-direction:column;border:1px solid #E3E6EB;border-radius:8px;overflow:hidden;font-family:'IBM Plex Sans',system-ui,sans-serif}
+.citems .ci{display:flex;gap:12px;align-items:center;padding:10px 12px;border-top:1px solid #EEF0F3}
+.citems .ci:first-child{border-top:0}
+.citems .ci .tx{display:flex;flex-direction:column;flex:1;min-width:0;font-size:13.5px;color:#0B1220}
+.citems .ci .tx span{font-size:12px;color:#5B6472}
+.citems .tot{display:flex;justify-content:space-between;padding:10px 12px;background:#F9FAFB;font-weight:700;font-size:13.5px;border-top:1px solid #E3E6EB}
+@media (max-width:767px){.two{grid-template-columns:1fr}.wd > div{border-left:0;border-top:1px solid #EEF0F3}.wd > div:first-child{border-top:0}}
+
+/* responsive shell */
+@media (max-width:1100px){
+  .side{flex:0 0 72px!important;max-width:72px;padding:14px 8px!important;gap:4px!important}
+  .side .nl,.side .brand-t,.side .ws{display:none}
+  .side .nav a{justify-content:center;padding:0!important;height:44px}
+  .side .nav svg{width:20px;height:20px}
+  .side > a[aria-label="ReputeCast home"]{justify-content:center;padding:6px 0!important}
+  .side .sidefoot{align-items:center}
+  .side .sidefoot > *{display:none}
+  .side .sidefoot > a.btn{display:inline-flex;width:44px;height:44px;padding:0!important;justify-content:center!important;font-size:0;gap:0}
+  .side .sidefoot > a.btn svg{width:18px;height:18px}
+  .top{padding:12px 16px!important}
+  .content{padding:16px!important}
+}
+@media (max-width:767px){
+  .app{flex-direction:column}
+  .side{flex:none!important;max-width:none!important;width:auto!important;position:fixed;left:0;right:0;bottom:0;z-index:50;flex-direction:row!important;align-items:center;padding:6px 6px!important;border-right:0!important;border-top:1px solid #E3E6EB;background:#fff!important;box-sizing:border-box;gap:0!important}
+  .side > a[aria-label="ReputeCast home"],.side .ws,.side .sidefoot{display:none!important}
+  .side .nav{flex-direction:row!important;flex:1;justify-content:space-around;margin-top:0!important;gap:0!important}
+  .side .nav a{height:44px;width:44px;flex:none;padding:0!important;justify-content:center;border-radius:10px}
+  .side .nl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;display:block}
+  .side .nav a.on{background:#E3F1EE;color:#0F766E}
+  .mainc{padding-bottom:72px}
+  .top{padding:12px 12px!important;gap:8px!important}
+  .top h1{font-size:16px!important}
+  .top .in{width:100%!important}
+  .tabs{flex-wrap:nowrap!important;overflow-x:auto;max-width:100%;margin-left:0!important;padding-bottom:2px}
+  .tabs a{flex:none}
+  .content{padding:12px!important;gap:12px!important}
+  .cpanel{max-width:none!important;flex:1 1 100%!important}
+}
+@media (min-width:768px) and (max-width:1100px){
+  .cpanel{max-width:none!important}
+}
+
+/* responsive phone fixes */
+@media (max-width:767px){
+  .app{flex-wrap:nowrap!important}
+  .mainc{width:100%;max-width:100%}
+  .content > *{min-width:0;max-width:100%}
+  .content .in,.content select,.content input,.content textarea{max-width:100%;min-width:0}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+  .sc-host [style*="flex: 1 1"]{min-width:0}
+  .sc-host select.in,.sc-host input.in{width:0;min-width:100%}
+  .sc-host .mono{overflow-wrap:anywhere}
+  .sc-host .sk{max-width:100%}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px;max-width:100%}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host .tabs .badge{white-space:nowrap}
+  .sc-host .side .btn{white-space:nowrap}
+  .sc-host [style*="grid-template-columns: repeat("]{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))!important}
+  .sc-host [style*="minmax(260px"],.sc-host [style*="minmax(280px"],.sc-host [style*="minmax(300px"],.sc-host [style*="minmax(320px"],.sc-host [style*="minmax(340px"],.sc-host [style*="minmax(360px"],.sc-host [style*="minmax(380px"],.sc-host [style*="minmax(420px"]{grid-template-columns:1fr!important}
+  .sc-host [style*="radial-gradient"]{overflow:auto}
+  .sc-host [style*="display: grid"] > *{min-width:0}
+  .sc-host header > div{max-width:100%;min-width:0}
+  .sc-host pre,.sc-host .lines{max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]) > div[style*="flex: 1"]{min-width:120px}
+}
+
+/* accessibility */
+:focus-visible{outline:2px solid #0F766E;outline-offset:2px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-9999px;top:8px;z-index:100;background:#fff;color:#0B1220;padding:8px 12px;border-radius:8px;border:1px solid #0F766E;font-weight:600;text-decoration:none}
+.skip:focus{left:8px}
+p a:not(.btn),span a:not(.btn):not([style*="color"]),td a:not(.btn):not([style*="color"]),li a:not(.btn),label a,.k a,.lead a{text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+.content > * a:not(.btn):not(p a):not(span a):not(td a):not(li a):not(label a):not(.k a),.top a:not(.btn),nav a:not(.btn),footer a:not(.btn){min-height:24px;display:inline-flex;align-items:center}
+input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F766E}
+.in,select.in,textarea.in,input.in{border-color:#8B94A3}
+@media (max-width:767px){
+  .sc-host{overflow-wrap:anywhere}
+  .sc-host table,.sc-host td,.sc-host th{overflow-wrap:normal}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+}
+
+/* nav: phones show four sections plus More */
+.side .nav a.more{display:none}
+@media (max-width:767px){.side .nav a.xm{display:none!important}.side .nav a.more{display:flex}.side .nav a.more.on{background:#E3F1EE;color:#0F766E}}
+/* shell: the icon rail keeps only the import button (the footer's inline display:flex beat the rail rule) */
+@media (max-width:1100px){.side .sidefoot > :not(.btn){display:none!important}}
+/* shell: avatar initials sit in the middle */
+.av{display:inline-flex;align-items:center;justify-content:center;flex:none}
+.ubtn .av{border-radius:50%;font-weight:700}
+.ws .av{font-weight:700}
+/* switches: a disabled switch looks disabled */
+.tg:disabled,.tgx:disabled{opacity:.45;cursor:not-allowed}
+
+/* expansion: responsive card grids collapse to one column on phones (overrides the 140px rule above) */
+@media (max-width:767px){
+  .sc-host [style*="minmax(min("]{grid-template-columns:1fr!important}
+  .sc-host .kv{grid-template-columns:1fr;gap:2px 0}
+  .sc-host .kv dd{margin-bottom:8px}
+  .sc-host .ev .tm{display:none}
+  .sc-host .cbx pre{font-size:11.5px}
+  .sc-host .mlist{display:none!important}
+  .sc-host .only-phone{display:flex!important;flex-direction:column}
+  .sc-host .no-phone{display:none!important}
+}
+</style>
+</helmet>
+<div class="app" style="display:flex;flex-wrap:wrap;align-items:stretch;min-height:100vh;position:relative">
+  <a href="#main" class="skip">Skip to content</a>
+  <aside class="side" style="flex:1 1 232px;background:#FBFBFC;border-right:1px solid #E3E6EB;display:flex;flex-direction:column;padding:16px 12px;gap:6px;box-sizing:border-box">
+    <a href="Main.dc.html" style="display:flex;align-items:center;gap:10px;padding:6px 8px;color:#0B1220" aria-label="ReputeCast home"><svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg><span class="brand-t" style="font-weight:700;font-size:15px;letter-spacing:-.01em">ReputeCast</span></a>
+    <button class="ws" type="button" aria-haspopup="menu" aria-label="Switch workspace. Current: Acme Newsletter, your role Owner"><span class="av" style="width:24px;height:24px;font-size:10px;background:#0F766E;color:#fff;border-radius:6px" aria-hidden="true">AN</span><span class="wsn"><b>Acme Newsletter</b><span>Owner</span></span><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button>
+    <nav class="nav" style="display:flex;flex-direction:column;gap:2px;margin-top:4px" aria-label="Main">
+      <a href="Main.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z"></path></svg><span class="nl">Overview</span></a>
+      <a href="Campaigns.dc.html" class="on" aria-current="page"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M14 2 2 7l5 2 2 5zM7 9l7-7" stroke-linejoin="round"></path></svg><span class="nl">Campaigns</span></a>
+      <a href="AutomationsList.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="4" cy="3" r="2"></circle><circle cx="4" cy="13" r="2"></circle><circle cx="12" cy="8" r="2"></circle><path d="M4 5v6M6 8h4"></path></svg><span class="nl">Automations</span></a>
+      <a href="Transactional.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="1.5"></rect><path d="m2 4.5 6 4.5 6-4.5"></path></svg><span class="nl">Transactional</span></a>
+      <a href="Contacts.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="6" cy="5" r="2.5"></circle><path d="M1.5 14a4.5 4.5 0 0 1 9 0M11 3a2.5 2.5 0 0 1 0 5M14.5 14a4 4 0 0 0-3-3.8"></path></svg><span class="nl">Audience</span></a>
+      <a href="GrowOverview.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 12.5 6 8.5l3 3 5-5.5"></path><path d="M10.5 5.5H14V9"></path></svg><span class="nl">Grow</span></a>
+      <a href="EarnOverview.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M10 5.9H7.1a1.3 1.3 0 0 0 0 2.6h1.8a1.3 1.3 0 0 1 0 2.6H6M8 4.4v1.5M8 11.1v1.5"></path></svg><span class="nl">Earn</span></a>
+      <a href="FormBuilder.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="2"></rect><path d="M5 6h6M5 9h6M5 12h3"></path></svg><span class="nl">Forms &amp; pages</span></a>
+      <a href="Deliverability.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 1.5 13.5 3.5v4.5c0 3-2.3 5.3-5.5 6.5C4.8 13.3 2.5 11 2.5 8V3.5z" stroke-linejoin="round"></path><path d="m5.5 8 1.8 1.8L10.8 6"></path></svg><span class="nl">Deliverability</span></a>
+      <a href="Providers.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="5" rx="1.5"></rect><rect x="2" y="9" width="12" height="5" rx="1.5"></rect><path d="M5 4.5h.01M5 11.5h.01" stroke-width="2" stroke-linecap="round"></path></svg><span class="nl">Sending providers</span></a>
+      <a href="WorkspaceSettings.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 4h7M13 4h1M2 8h2M8 8h6M2 12h7M13 12h1"></path><circle cx="11" cy="4" r="1.8"></circle><circle cx="6" cy="8" r="1.8"></circle><circle cx="11" cy="12" r="1.8"></circle></svg><span class="nl">Settings</span></a>
+      <a href="ShellMore.dc.html" class="more" aria-label="More: Automations, Transactional, Grow, Earn, Forms & pages, Sending providers, Settings"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="3.5" cy="8" r="1.2"></circle><circle cx="8" cy="8" r="1.2"></circle><circle cx="12.5" cy="8" r="1.2"></circle></svg><span class="nl">More</span></a>
+    </nav>
+    <div class="sidefoot" style="margin-top:auto;display:flex;flex-direction:column;gap:8px">
+      <a href="MigrationSource.dc.html" class="btn" style="justify-content:flex-start"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 11V3M4.5 6.5 8 3l3.5 3.5M2 13h12"></path></svg>Import contacts</a>
+      <a href="SettingsIntegrations.dc.html" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid #E3E6EB;border-radius:8px;background:#fff;color:#0B1220"><span class="dot" style="color:#15803D"></span><div style="display:flex;flex-direction:column;line-height:1.25"><span style="font-size:12px;font-weight:600">HostRepute connected</span><span class="k" style="font-size:11px">Acme Inc · synced 4 min ago</span></div></a>
+      <div style="display:flex;align-items:center;gap:8px;padding:4px 8px"><span class="av" style="width:26px;height:26px;font-size:11px;background:#DBEAFE;color:#1E40AF" aria-hidden="true">LN</span><div style="display:flex;flex-direction:column;line-height:1.25"><span style="font-size:12px;font-weight:600">Linh Nguyen</span><span class="k" style="font-size:11px">Owner</span></div></div>
+    </div>
+  </aside>
+  <div class="mainc" style="flex:999 1 560px;min-width:0;display:flex;flex-direction:column">
+    <header class="top" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 28px;background:#fff;border-bottom:1px solid #E3E6EB">
+      <h1 style="margin:0;font-size:18px;font-weight:600;letter-spacing:-.01em">Store data in emails and automations</h1><div style="margin-left:auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><div class="tools"><a href="Notifications.dc.html" class="ibtn" aria-label="Notifications, 3 unread"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 11V7a4 4 0 0 1 8 0v4l1.5 1.5h-11zM6.5 14a1.5 1.5 0 0 0 3 0"></path></svg><span class="cnt" aria-hidden="true">3</span></a><button class="ubtn" type="button" aria-haspopup="menu" aria-label="Account menu for Linh Nguyen"><span class="av" style="width:26px;height:26px;font-size:11px;background:#DBEAFE;color:#1E40AF" aria-hidden="true">LN</span><span class="unm">Linh</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button></div></div>
+    </header>
+    <main class="content" id="main" style="padding:24px 28px;display:flex;flex-direction:column;gap:20px">
+<section style="display:flex;flex-direction:column;gap:14px" aria-label="Product picker in the composer · and the product grid's settings"><div class="strip"><span class="dot" style="color:#6B7280"></span>Product picker in the composer · and the product grid's settings</div><div class="state-grid"><section class="card dlg" role="dialog" aria-labelledby="pk-title" style="box-shadow:0 12px 32px rgba(11,18,32,.12);max-width:720px"><div class="dh"><span class="k">Composer · product grid</span><h2 id="pk-title" style="margin:0;font-size:18px;font-weight:700;letter-spacing:-.01em">Insert products</h2></div><div class="db"><div class="row" style="justify-content:space-between;gap:10px"><div class="seg" role="group" aria-label="Source"><button class="on" aria-pressed="true">Acme Merch · 38</button><button aria-pressed="false">Digital products · 2</button></div><label style="flex:1 1 220px;display:flex;align-items:center;gap:8px;height:34px;padding:0 10px;border:1px solid #8B94A3;border-radius:8px;background:#fff;max-width:300px"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#5B6472" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7" cy="7" r="4.5"></circle><path d="m10.5 10.5 3 3"></path></svg><input aria-label="Search Acme Merch" placeholder="Search Acme Merch" style="border:0;outline:0;font:inherit;font-size:13px;flex:1;min-width:0;background:none"></label></div><div class="ichips" role="group" aria-label="Collection"><button type="button" class="fchip" aria-pressed="false">All <b>38</b></button><button type="button" class="fchip" aria-pressed="false">Apparel <b>14</b></button><button type="button" class="fchip" aria-pressed="false">Desk <b>9</b></button><button type="button" class="fchip" aria-pressed="false">Stickers <b>8</b></button><button type="button" class="fchip on" aria-pressed="true">New arrivals <b>7</b></button></div><div class="pp-grid"><button type="button" class="ppc on" aria-pressed="true"><span class="merch" style="width:calc(100%);height:calc(84px)" role="img" aria-label="Acme Logo Hoodie"><svg width="46" height="46" viewBox="0 0 64 64" fill="none" stroke="#4B5563" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M22 14 14 18 8 34l8 3 2-8v27h28V29l2 8 8-3-6-16-8-4c-1 5-4.5 8-10 8s-9-3-10-8z" stroke-linejoin="round"></path><path d="M26 47h12"></path></svg></span><span class="nm">Acme Logo Hoodie</span><span class="pr"><b>$58</b><span class="badge ok" style="height:20px;font-size:11px">In stock</span></span></button><button type="button" class="ppc on" aria-pressed="true"><span class="merch" style="width:calc(100%);height:calc(84px)" role="img" aria-label="Ship It mug"><svg width="46" height="46" viewBox="0 0 64 64" fill="none" stroke="#4B5563" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M14 18h28v26a6 6 0 0 1-6 6H20a6 6 0 0 1-6-6z" stroke-linejoin="round"></path><path d="M42 24h4a6 6 0 0 1 0 12h-4"></path><path d="M22 12c0-2 2-2 2-4M30 12c0-2 2-2 2-4"></path></svg></span><span class="nm">Ship It mug</span><span class="pr"><b>$18</b><span class="badge ok" style="height:20px;font-size:11px">In stock</span></span></button><button type="button" class="ppc on" aria-pressed="true"><span class="merch" style="width:calc(100%);height:calc(84px)" role="img" aria-label="Feature Flag sticker pack"><svg width="46" height="46" viewBox="0 0 64 64" fill="none" stroke="#4B5563" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><rect x="10" y="14" width="22" height="22" rx="5"></rect><circle cx="42" cy="38" r="12"></circle><path d="M16 25l4 4 7-8"></path></svg></span><span class="nm">Feature Flag sticker pack</span><span class="pr"><b>$9</b><span class="badge ok" style="height:20px;font-size:11px">In stock</span></span></button><button type="button" class="ppc" aria-pressed="false"><span class="merch" style="width:calc(100%);height:calc(84px)" role="img" aria-label="Boring Infrastructure tee"><svg width="46" height="46" viewBox="0 0 64 64" fill="none" stroke="#4B5563" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M22 14 12 19l-4 10 8 3 1-5v25h30V27l1 5 8-3-4-10-10-5c-1 4-4.5 6-10 6s-9-2-10-6z" stroke-linejoin="round"></path></svg></span><span class="nm">Boring Infrastructure tee</span><span class="pr"><b>$28</b><span class="badge ok" style="height:20px;font-size:11px">In stock</span></span></button><button type="button" class="ppc" aria-pressed="false"><span class="merch" style="width:calc(100%);height:calc(84px)" role="img" aria-label="Deploy Friday cap"><svg width="46" height="46" viewBox="0 0 64 64" fill="none" stroke="#4B5563" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 40c0-12 9-22 20-22s20 10 20 22z" stroke-linejoin="round"></path><path d="M12 40h40l6 4H8z" stroke-linejoin="round"></path><path d="M32 18v-3"></path></svg></span><span class="nm">Deploy Friday cap</span><span class="pr"><b>$24</b><span class="badge mut" style="height:20px;font-size:11px">Sold out</span></span></button><button type="button" class="ppc" aria-pressed="false"><span class="merch" style="width:calc(100%);height:calc(84px)" role="img" aria-label="Postgres desk mat"><svg width="46" height="46" viewBox="0 0 64 64" fill="none" stroke="#4B5563" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><rect x="8" y="20" width="48" height="26" rx="5"></rect><path d="M16 30h14M16 36h22"></path></svg></span><span class="nm">Postgres desk mat</span><span class="pr"><b>$32</b><span class="badge warn" style="height:20px;font-size:11px">4 left</span></span></button></div><span class="k">Prices and availability are read when each email is sent. A sold-out product is hidden or labelled, as the block says.</span></div><div class="df"><span class="k" style="margin-right:auto">3 selected</span><button class="btn">Cancel</button><button class="btn pri">Insert 3 products</button></div></section><section class="card" style=""><div class="sec"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><h2 class="h2">Product grid</h2><span class="k">October Product Update · in the composer's Style tab</span></div></div><div class="pad" style="display:flex;flex-direction:column;gap:14px"><div style="display:flex;flex-direction:column;gap:6px"><span class="lbl">Products</span><div><div class="seg" role="group" aria-label="Products"><button aria-pressed="false">Chosen products</button><button class="on" aria-pressed="true">Newest from a collection</button></div></div></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(150px,100%),1fr));gap:12px"><label class="lbl">Collection<select class="in" style="" aria-label="Collection"><option>New arrivals · 7</option><option>Apparel · 14</option><option>Desk · 9</option><option>Stickers · 8</option></select></label><label class="lbl">How many<select class="in" style="" aria-label="How many"><option>2</option><option selected>3</option><option>4</option><option>6</option></select></label></div><div style="display:flex;flex-direction:column;gap:6px"><span class="lbl">Sold-out products</span><div><div class="seg" role="group" aria-label="Sold-out products"><button class="on" aria-pressed="true">Hide them</button><button aria-pressed="false">Label “Sold out”</button></div></div></div><div style="display:flex;justify-content:space-between;gap:12px;align-items:center"><span style="display:flex;flex-direction:column;gap:2px"><b style="font-weight:600;font-size:13px">Show the compare-at price</b><span class="k">When a product is on sale</span></span><input type="checkbox" class="tg" aria-label="Show the compare-at price"></div><div style="display:flex;justify-content:space-between;gap:12px;align-items:center"><span style="display:flex;flex-direction:column;gap:2px"><b style="font-weight:600;font-size:13px">Button text</b></span><input class="in" type="text" value="Shop now" placeholder="" style="width:140px" aria-label="Button text"></div><span class="k" style="color:#374151">Links get <span class="mono">utm_source=acme-newsletter</span>, the campaign's slug and the click token, so orders can be credited to this email.</span></div></section></div></section><section style="display:flex;flex-direction:column;gap:14px" aria-label="Product grids in emails"><div class="strip"><span class="dot" style="color:#B91C1C"></span>The October Product Update grid on the canvas · and a product removed from the store</div><div class="state-grid"><section class="card" style=""><div class="sec"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><h2 class="h2">October Product Update · the grid on the canvas</h2><span class="k">Sent 9 Oct to 14,110 people · 31 store orders credited, $1,612</span></div></div><div class="pad"><div style="padding:18px;border-radius:10px;background:#E9ECF0;display:flex;justify-content:center"><div style="width:600px;max-width:100%;background:#fff;box-shadow:0 1px 3px rgba(11,18,32,.12);border-radius:4px;overflow:hidden;font-family:Georgia,'Times New Roman',serif;color:#1F2937;flex:none" role="img" aria-label="Product grid in the email"><div style="padding:16px 28px;border-bottom:1px solid #EEF0F3;display:flex;align-items:center;gap:10px"><span style="width:26px;height:26px;border-radius:7px;background:#0B1220;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-family:'IBM Plex Sans',system-ui,sans-serif;font-weight:800;font-size:12px">A</span><span style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-weight:700;font-size:14px;color:#0B1220">The Acme newsletter</span></div><div style="padding:22px 28px 4px;display:flex;flex-direction:column;gap:10px"><p style="margin:0;font-size:15px;line-height:1.6">Hi Sam, feature flags are generally available, and the v1 API retires on 30 November. One more thing before you go:</p></div><div style="position:relative;outline:2px solid #1D4ED8;outline-offset:-2px"><span style="position:absolute;top:0;left:0;display:inline-flex;align-items:center;height:24px;padding:0 8px;border-radius:0 0 6px 0;background:#1D4ED8;color:#fff;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:11px;font-weight:600">Product grid · New arrivals · 3</span><div style="padding:38px 28px 22px;display:flex;flex-direction:column;gap:14px"><h2 style="margin:0;font-size:20px;color:#0B1220">New in the Acme Merch shop</h2><div class="egrid" style="margin-top:0"><div class="eprod"><span class="merch" style="width:calc(100%);height:calc(120px)" role="img" aria-label="Acme Logo Hoodie"><svg width="66" height="66" viewBox="0 0 64 64" fill="none" stroke="#4B5563" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M22 14 14 18 8 34l8 3 2-8v27h28V29l2 8 8-3-6-16-8-4c-1 5-4.5 8-10 8s-9-3-10-8z" stroke-linejoin="round"></path><path d="M26 47h12"></path></svg></span><span class="nm">Acme Logo Hoodie</span><span class="pr">$58</span><span class="cta">Shop now</span></div><div class="eprod"><span class="merch" style="width:calc(100%);height:calc(120px)" role="img" aria-label="Ship It mug"><svg width="66" height="66" viewBox="0 0 64 64" fill="none" stroke="#4B5563" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M14 18h28v26a6 6 0 0 1-6 6H20a6 6 0 0 1-6-6z" stroke-linejoin="round"></path><path d="M42 24h4a6 6 0 0 1 0 12h-4"></path><path d="M22 12c0-2 2-2 2-4M30 12c0-2 2-2 2-4"></path></svg></span><span class="nm">Ship It mug</span><span class="pr">$18</span><span class="cta">Shop now</span></div><div class="eprod"><span class="merch" style="width:calc(100%);height:calc(120px)" role="img" aria-label="Feature Flag sticker pack"><svg width="66" height="66" viewBox="0 0 64 64" fill="none" stroke="#4B5563" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><rect x="10" y="14" width="22" height="22" rx="5"></rect><circle cx="42" cy="38" r="12"></circle><path d="M16 25l4 4 7-8"></path></svg></span><span class="nm">Feature Flag sticker pack</span><span class="pr">$9</span><span class="cta">Shop now</span></div></div></div></div><div style="height:10px"></div></div></div></div></section><section class="card" style=""><div class="sec"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><h2 class="h2">Weekly Digest #143 · a product removed from the store</h2><span class="k">Draft · the composer's checks and Send Readiness flag it</span></div></div><div class="pad" style="display:flex;flex-direction:column;gap:14px"><div style="padding:18px;border-radius:10px;background:#E9ECF0;display:flex;justify-content:center"><div style="width:600px;max-width:100%;background:#fff;box-shadow:0 1px 3px rgba(11,18,32,.12);border-radius:4px;overflow:hidden;font-family:Georgia,'Times New Roman',serif;color:#1F2937;flex:none" role="img" aria-label="Product grid in the email"><div style="padding:16px 28px;border-bottom:1px solid #EEF0F3;display:flex;align-items:center;gap:10px"><span style="width:26px;height:26px;border-radius:7px;background:#0B1220;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-family:'IBM Plex Sans',system-ui,sans-serif;font-weight:800;font-size:12px">A</span><span style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-weight:700;font-size:14px;color:#0B1220">The Acme newsletter</span></div><div style="padding:22px 28px 4px;display:flex;flex-direction:column;gap:10px"><p style="margin:0;font-size:15px;line-height:1.6">Hi Sam, this week: what 10,000 feature flags taught us, and three new things in the Acme Merch shop.</p></div><div style="padding:22px 28px;display:flex;flex-direction:column;gap:14px"><h2 style="margin:0;font-size:20px;color:#0B1220">New in the Acme Merch shop</h2><div class="egrid" style="margin-top:30px"><div class="eprod"><span class="merch" style="width:calc(100%);height:calc(120px)" role="img" aria-label="Acme Logo Hoodie"><svg width="66" height="66" viewBox="0 0 64 64" fill="none" stroke="#4B5563" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M22 14 14 18 8 34l8 3 2-8v27h28V29l2 8 8-3-6-16-8-4c-1 5-4.5 8-10 8s-9-3-10-8z" stroke-linejoin="round"></path><path d="M26 47h12"></path></svg></span><span class="nm">Acme Logo Hoodie</span><span class="pr">$58</span><span class="cta">Shop now</span></div><div class="eprod"><span class="merch" style="width:calc(100%);height:calc(120px)" role="img" aria-label="Ship It mug"><svg width="66" height="66" viewBox="0 0 64 64" fill="none" stroke="#4B5563" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M14 18h28v26a6 6 0 0 1-6 6H20a6 6 0 0 1-6-6z" stroke-linejoin="round"></path><path d="M42 24h4a6 6 0 0 1 0 12h-4"></path><path d="M22 12c0-2 2-2 2-4M30 12c0-2 2-2 2-4"></path></svg></span><span class="nm">Ship It mug</span><span class="pr">$18</span><span class="cta">Shop now</span></div><div class="eprod eflag"><span style="position:absolute;top:-30px;left:-8px;display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 8px;border-radius:6px;background:#B91C1C;color:#fff;font-size:11px;font-weight:600;white-space:nowrap">No longer in the store</span><span class="merch" style="width:calc(100%);height:calc(120px)" role="img" aria-label="Feature Flag sticker pack"><svg width="66" height="66" viewBox="0 0 64 64" fill="none" stroke="#4B5563" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><rect x="10" y="14" width="22" height="22" rx="5"></rect><circle cx="42" cy="38" r="12"></circle><path d="M16 25l4 4 7-8"></path></svg></span><span class="nm">Feature Flag sticker pack</span><span class="pr">$9</span><span class="cta">Shop now</span></div></div></div><div style="height:10px"></div></div></div><div class="note b" role="alert"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#B91C1C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M8 4.8v3.6M8 10.9v.1"></path></svg><div style="display:flex;flex-direction:column;gap:4px;min-width:0;flex:1 1 320px"><span style="font-weight:700">Deleted in Shopify on 13 Oct, 17:45</span><div>Feature Flag sticker pack is no longer in Acme Merch. Remove it or pick another product.<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button class="btn sm pri">Pick another product</button><button class="btn sm">Remove it</button></div></div></div></div></div></section></div></section><section style="display:flex;flex-direction:column;gap:14px" aria-label="The abandoned-cart starter · its numbers, and the trigger's locked filter"><div class="strip"><span class="dot" style="color:#15803D"></span>The abandoned-cart starter · its numbers, and the trigger's locked filter</div><div class="state-grid"><section class="card" style=""><div class="sec"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><h2 class="h2">Abandoned cart · flow</h2><span class="k">Live since 7 Oct · 44 entered, 8 orders, $472</span></div></div><div class="pad"><div class="flowc" role="img" aria-label="Abandoned cart automation: trigger, email 1, wait 23 hours, goal, email 2, exit"><div class="fnode sel" style="border-color:#0F766E"><div class="hd" style="color:#0F766E"><span class="dot"></span>Trigger · abandoned checkout</div><div class="t">Acme Merch · after 1 hour</div><div class="st"><span><b>44</b> entered</span><span>34 not emailed: didn't accept marketing</span></div></div><span class="fwire" aria-hidden="true"></span><div class="fnode " style=""><div class="hd" style="color:#5B21B6"><span class="dot"></span>Send email</div><div class="t">You left something behind</div><div class="st"><span><b>44</b> sent</span><span>Checkout items</span></div></div><span class="fwire" aria-hidden="true"></span><div class="fnode " style=""><div class="hd" style="color:#6B7280"><span class="dot"></span>Delay</div><div class="t">Wait 23 hours</div></div><span class="fwire" aria-hidden="true"></span><div class="fnode " style="border-color:#0B1220"><div class="hd" style="color:#0B1220"><span class="dot"></span>Goal · exits the flow</div><div class="t">Placed an order</div><div class="st"><span><b>8</b> orders</span><span><b>$472</b></span><span>18.2% of 44</span></div></div><span class="fwire" aria-hidden="true"></span><div class="fnode " style=""><div class="hd" style="color:#5B21B6"><span class="dot"></span>Send email</div><div class="t">Still deciding?</div><div class="st"><span><b>30</b> sent</span><span>Product grid</span></div></div><span class="fwire" aria-hidden="true"></span><div class="fnode " style=""><div class="hd" style="color:#0B1220"><span class="dot"></span>Exit</div><div class="t">Leave the flow</div></div></div></div></section><section class="card" style=""><div class="sec"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><h2 class="h2">Trigger · Abandoned checkout</h2><span class="k">Abandoned cart · starter automation · live since 7 Oct</span></div></div><div class="pad" style="display:flex;flex-direction:column;gap:14px"><label class="lbl">Store<select class="in" style="" aria-label="Store"><option>Acme Merch · shop.acme.io</option></select></label><label class="lbl">After<div class="row" style="flex-wrap:nowrap;gap:8px"><input class="in" type="text" value="1" placeholder="" style="width:64px" aria-label="Hours"><span class="k">hours without an order · 1 to 24</span></div></label><div style="display:flex;flex-direction:column;gap:8px"><span class="lbl">Who enters</span><div class="lockf"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#4B5563" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M8 7.2v3.8M8 5v.1"></path></svg><span style="display:flex;flex-direction:column;gap:2px"><b style="font-weight:600">Accepted marketing in Acme Merch</b><span class="k">Required, and it can't be removed: customers who didn't accept marketing never enter.</span></span></div><button class="btn sm" style="align-self:flex-start"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3v10M3 8h10"></path></svg>Add a filter</button></div><div style="display:flex;justify-content:space-between;gap:12px;align-items:center"><span style="display:flex;flex-direction:column;gap:2px"><b style="font-weight:600;font-size:13px">Placing the order exits the flow</b><span class="k">The goal “Placed an order”</span></span><input type="checkbox" class="tg" checked aria-label="Placing the order exits the flow"></div><span class="k" style="color:#374151">Since 7 Oct: 104 checkouts abandoned, 78 with an email, 44 entered. Skip rule: the contact got an abandoned-cart email in the last 7 days.</span></div></section></div></section><section style="display:flex;flex-direction:column;gap:14px" aria-label="Checkout items, revenue and a contact"><div class="strip"><span class="dot" style="color:#1D4ED8"></span>Grace Liu's first email · and the October Product Update report's Revenue section</div><div class="state-grid"><section class="card" style=""><div class="sec"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><h2 class="h2">Grace Liu's first email · with her checkout items</h2><span class="k">Checkout items only appear in emails of flows started by a store trigger</span></div></div><div class="pad" style="display:flex;flex-direction:column;gap:12px"><span class="k" style="color:#374151">Abandoned cart · email 1 · sent 14 Oct, 21:12 to grace.liu@example.com. She ordered on 15 Oct at 08:40 (#4417), credited to this email.</span><div style="padding:18px;border-radius:10px;background:#E9ECF0;display:flex;justify-content:center"><div style="width:560px;max-width:100%;background:#fff;box-shadow:0 1px 3px rgba(11,18,32,.12);border-radius:4px;overflow:hidden;font-family:Georgia,'Times New Roman',serif;color:#1F2937;flex:none" role="img" aria-label="Abandoned cart email with checkout items"><div style="padding:16px 28px;border-bottom:1px solid #EEF0F3;display:flex;align-items:center;gap:10px"><span style="width:26px;height:26px;border-radius:7px;background:#0B1220;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-family:'IBM Plex Sans',system-ui,sans-serif;font-weight:800;font-size:12px">A</span><span style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-weight:700;font-size:14px;color:#0B1220">Acme Merch</span></div><div style="padding:24px 28px 8px;display:flex;flex-direction:column;gap:14px"><h1 style="margin:0;font-size:23px;line-height:1.25;color:#0B1220">You left something behind</h1><p style="margin:0;font-size:15px;line-height:1.6">Hi Grace, your cart at Acme Merch is saved. Here's what's in it:</p><div class="citems"><div class="ci"><span class="merch" style="width:calc(48px);height:calc(48px)" role="img" aria-label="Acme Logo Hoodie"><svg width="26" height="26" viewBox="0 0 64 64" fill="none" stroke="#4B5563" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M22 14 14 18 8 34l8 3 2-8v27h28V29l2 8 8-3-6-16-8-4c-1 5-4.5 8-10 8s-9-3-10-8z" stroke-linejoin="round"></path><path d="M26 47h12"></path></svg></span><span class="tx"><b style="font-weight:600">Acme Logo Hoodie</b><span>Size M · 1</span></span><b>$58.00</b></div><div class="ci"><span class="merch" style="width:calc(48px);height:calc(48px)" role="img" aria-label="Ship It mug"><svg width="26" height="26" viewBox="0 0 64 64" fill="none" stroke="#4B5563" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M14 18h28v26a6 6 0 0 1-6 6H20a6 6 0 0 1-6-6z" stroke-linejoin="round"></path><path d="M42 24h4a6 6 0 0 1 0 12h-4"></path><path d="M22 12c0-2 2-2 2-4M30 12c0-2 2-2 2-4"></path></svg></span><span class="tx"><b style="font-weight:600">Ship It mug</b><span>1</span></span><b>$18.00</b></div><div class="tot"><span>Total</span><span>$76.00</span></div></div><div><a href="#" style="display:inline-block;padding:11px 18px;border-radius:6px;background:#4338CA;color:#fff;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;font-weight:600;text-decoration:none">Return to checkout</a></div></div><div style="margin-top:16px;padding:14px 28px;background:#F3F4F6;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12px;color:#5B6472;line-height:1.6">You get this because you agreed to emails from Acme Merch at checkout. <a href="PublicUnsubscribe.dc.html">Unsubscribe</a> · <a href="PublicPreferences.dc.html">Email preferences</a></div></div></div></div></section><div style="display:flex;flex-direction:column;gap:16px;min-width:0;"><section class="card" style=""><div class="sec"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><h2 class="h2">Revenue · October Product Update</h2><span class="k">The campaign report's Revenue section, with the store row</span></div></div><div style="overflow-x:auto"><table class="tbl " aria-label="Revenue by source"><thead><tr><th scope="col">Source</th><th scope="col" class="r">Count</th><th scope="col" class="r">Revenue</th><th scope="col">How it's credited</th></tr></thead><tbody><tr><td><b style="font-weight:600">Paid subscriptions</b></td><td class="r num nw"><span class="k">None</span></td><td class="r num nw"><span class="k">–</span></td><td><span class="k" style="color:#374151">Upgrades and trials from this email</span></td></tr><tr><td><b style="font-weight:600">Conversions from your app</b></td><td class="r num nw">23</td><td class="r num nw">$667</td><td><span class="k" style="color:#374151">“Upgraded to Team plan” · 19 by click token, 4 by email</span></td></tr><tr class="sel"><td><b style="font-weight:600">Acme Merch</b></td><td class="r num nw">31 orders</td><td class="r num nw">$1,612</td><td><span class="k" style="color:#374151">Shopify · 5 days after a click · 27 by click token, 4 by email</span></td></tr><tr><td><b style="font-weight:600">Digital products</b></td><td class="r num nw"><span class="k">None</span></td><td class="r num nw"><span class="k">–</span></td><td><span class="k" style="color:#374151">Field Guide and Launch Kit sales credited to this email</span></td></tr><tr><td><b>Total credited</b></td><td class="r"></td><td class="r"><b class="num">$2,279</b></td><td><span class="k">Each order or conversion is credited to one email</span></td></tr></tbody></table></div><div class="foot"><span class="k">Store orders and product sales join the Revenue section from phase 6.</span><a href="IntegrationsShopify.dc.html" class="lnk">Acme Merch attribution</a></div></section><section class="card" style=""><div class="sec"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><h2 class="h2">Sam Rivera · purchases and store orders on his profile</h2><span class="k">Contact profile · the Purchases and Store orders cards, and the consent history</span></div></div><div class="pad" style="display:flex;flex-direction:column;gap:16px"><div style="display:flex;gap:12px;align-items:center"><span class="av" style="width:36px;height:36px;font-size:13px;background:#DBEAFE;color:#1E40AF" aria-hidden="true">SR</span><span style="display:flex;flex-direction:column"><b style="font-weight:600">Sam Rivera</b><span class="k">sam.rivera@outlook.com · Weekly Digest, Product Updates · free member</span></span></div><div class="two"><div class="sbox" style="background:#fff"><h4>Purchases · 1</h4><div style="display:flex;gap:10px;align-items:flex-start"><span class="cov" style="width:calc(36px);height:calc(48px);background:#0B1220" role="img" aria-label="Cover of The Deliverability Field Guide"><span style="position:absolute;left:0;right:0;top:58%;height:14%;background:#4338CA"></span><span style="position:absolute;left:0;right:0;top:72%;height:6%;background:#3730A3"></span></span><span style="display:flex;flex-direction:column;gap:4px;min-width:0"><b style="font-weight:600;font-size:13px">The Deliverability Field Guide</b><span class="k">3 Oct · $29.00 · order 1107</span><span class="dlc" style="background:#FFFBEB;border-color:#FCD34D;color:#78350F"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#B45309" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2.5v8M4.5 7 8 10.5 11.5 7M2.5 13.5h11"></path></svg>Link expired 10 Oct</span><button class="btn sm" style="align-self:flex-start">Send a new link</button></span></div></div><div class="sbox" style="background:#fff"><h4>Store orders · Acme Merch · 1</h4><div style="display:flex;gap:10px;align-items:flex-start"><span class="merch" style="width:calc(36px);height:calc(36px)" role="img" aria-label="Acme Logo Hoodie"><svg width="20" height="20" viewBox="0 0 64 64" fill="none" stroke="#4B5563" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M22 14 14 18 8 34l8 3 2-8v27h28V29l2 8 8-3-6-16-8-4c-1 5-4.5 8-10 8s-9-3-10-8z" stroke-linejoin="round"></path><path d="M26 47h12"></path></svg></span><span style="display:flex;flex-direction:column;gap:4px;min-width:0"><b style="font-weight:600;font-size:13px">#4409 · Acme Logo Hoodie</b><span class="k">13 Oct · $58.00 · credited to October Product Update</span><span style="display:flex;gap:6px;align-items:flex-start;font-size:12px;color:#374151;font-weight:500"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#4B5563" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M8 7.2v3.8M8 5v.1"></path></svg><span>Not added to Acme Merch: didn't accept marketing in Shopify</span></span></span></div></div></div><div style="display:flex;flex-direction:column;gap:0"><span class="lbl" style="margin-bottom:4px">Consent history</span><div class="ev"><span class="ic" style="background:#EEF0F3"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#4B5563" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="3.5" cy="8" r=".9"></circle><circle cx="8" cy="8" r=".9"></circle><circle cx="12.5" cy="8" r=".9"></circle></svg></span><div class="tx"><span style="font-weight:600">Not added to Acme Merch</span><span class="k">13 Oct · didn't accept marketing at checkout in Shopify · his Weekly Digest consent is unchanged</span></div><span class="tm">13 Oct</span></div><div class="ev"><span class="ic" style="background:#DCFCE7"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#166534" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg></span><div class="tx"><span style="font-weight:600">Weekly Digest · confirmed</span><span class="k">19 Sep · double opt-in, after the Brevo import</span></div><span class="tm">19 Sep</span></div></div></div></section></div></div></section>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":3448}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

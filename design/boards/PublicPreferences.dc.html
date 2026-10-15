@@ -51,7 +51,7 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
       <label class="row"><input type="checkbox"><span><span style="font-weight:600">Beta Program</span><br><span style="font-size:13px;color:#5B6472">Early access invitations and feedback requests. Rare.</span></span></label>
     </section>
 
-    <section style="display:flex;flex-direction:column;gap:8px">
+    <section style="display:flex;flex-direction:column;gap:8px"> <span style="font-size:13px;font-weight:600">Notifications from Acme Cloud</span> <label class="row"><input type="checkbox" checked><span><span style="font-weight:600">Reminders</span><br><span style="font-size:13px;color:#5B6472">Trial and renewal reminders.</span></span></label> <label class="row"><input type="checkbox" checked><span><span style="font-weight:600">Product updates</span><br><span style="font-size:13px;color:#5B6472">Your weekly usage summary.</span></span></label> <span style="font-size:13px;color:#5B6472">Account and billing emails, like password resets and invoices, always arrive.</span> </section> <section style="display:flex;flex-direction:column;gap:8px">
       <span style="font-size:13px;font-weight:600">How often</span>
       <div class="seg" role="radiogroup" aria-label="Frequency">
         <label class="on"><input type="radio" name="f" checked>Every issue</label>
@@ -70,6 +70,12 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
       <span style="font-size:13px;color:#5B6472">Paused contacts get nothing from these lists until the date passes, then resume automatically.</span>
     </section>
 
+    <section data-p2b="email-language" style="display:flex;flex-direction:column;gap:8px">
+      <span style="font-size:13px;font-weight:600" id="el-label">Email language</span>
+      <div class="seg" role="radiogroup" aria-labelledby="el-label"><label class="on" lang="en"><input type="radio" name="el" checked>English</label><label lang="es"><input type="radio" name="el">Español</label><label lang="de"><input type="radio" name="el">Deutsch</label><label lang="vi"><input type="radio" name="el">Tiếng Việt</label></div>
+      <span style="font-size:13px;color:#5B6472">Emails from Acme come in this language when they have a version in it, and in English otherwise.</span>
+    </section>
+
     <section style="display:flex;flex-direction:column;gap:8px">
       <label style="display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:600">First name<input type="text" value="Sam"></label>
     </section>
@@ -78,9 +84,10 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;font-size:13px;color:#5B6472"><span>Changes apply to the next send.</span><a href="PublicUnsubscribe.dc.html" style="color:#5B6472;text-decoration:underline">Unsubscribe from everything</a></div>
   </main>
   <div style="display:flex;gap:16px;align-items:center;margin-top:18px;font-size:12.5px;color:#5B6472;flex-wrap:wrap;justify-content:center"><a href="https://acme.io/privacy" style="color:#5B6472">Privacy</a><span>·</span><a href="Landing.dc.html" style="color:#5B6472">Sent with ReputeCast</a></div>
+  <nav aria-label="Language" data-p2b="langmenu" style="display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:10px;font-size:12.5px;color:#5B6472"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M1.8 8h12.4M8 1.8c1.8 1.7 2.7 3.8 2.7 6.2S9.8 12.5 8 14.2C6.2 12.5 5.3 10.4 5.3 8S6.2 3.5 8 1.8z"></path></svg><a href="PublicPreferences.dc.html" lang="en" hreflang="en" aria-current="true" style="color:#1F2937;font-weight:700">English</a><span aria-hidden="true">·</span><a href="PublicPreferences.dc.html" lang="es" hreflang="es" style="color:#5B6472">Español</a><span aria-hidden="true">·</span><a href="PublicPreferences.dc.html" lang="de" hreflang="de" style="color:#5B6472">Deutsch</a></nav>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":720,"height":974}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":720,"height":1366}}'>
 class Component extends DCLogic {
   renderVals() {
     return {};

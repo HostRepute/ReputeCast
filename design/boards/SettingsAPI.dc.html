@@ -134,6 +134,27 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
   .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
   .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
 }
+/* p2a: integrations hub edits */
+.mby{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px 0 3px;border-radius:999px;background:#EEF0F3;color:#374151;font-size:12px;font-weight:600;white-space:nowrap;text-decoration:none;flex:none}
+.mby:hover{background:#E3E6EB;color:#0B1220}
+.mby .mt{min-width:16px;padding:0 2px;height:16px;border-radius:5px;background:#fff;border:1px solid #D4D8DF;display:inline-flex;align-items:center;justify-content:center;font-size:8.5px;font-weight:700;color:#374151;box-sizing:border-box;letter-spacing:-.02em}
+.p2a-op{display:none}
+@media (max-width:1100px){.p2a-np{display:none!important}.p2a-op{display:flex!important;flex-direction:column}}
+
+/* lead: card header and padding classes used by the moved-keys card */
+.sec{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid #EEF0F3;flex-wrap:wrap;gap:8px}.pad{padding:16px 18px}.row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+
+/* nav: phones show four sections plus More */
+.side .nav a.more{display:none}
+@media (max-width:767px){.side .nav a.xm{display:none!important}.side .nav a.more{display:flex}.side .nav a.more.on{background:#E3F1EE;color:#0F766E}}
+/* shell: the icon rail keeps only the import button (the footer's inline display:flex beat the rail rule) */
+@media (max-width:1100px){.side .sidefoot > :not(.btn){display:none!important}}
+/* shell: avatar initials sit in the middle */
+.av{display:inline-flex;align-items:center;justify-content:center;flex:none}
+.ubtn .av{border-radius:50%;font-weight:700}
+.ws .av{font-weight:700}
+/* switches: a disabled switch looks disabled */
+.tg:disabled,.tgx:disabled{opacity:.45;cursor:not-allowed}
 </style>
 </helmet>
 <div class="app" style="display:flex;flex-wrap:wrap;align-items:stretch;min-height:100vh">
@@ -147,12 +168,16 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
     <nav class="nav" style="display:flex;flex-direction:column;gap:2px;margin-top:8px" aria-label="Main">
       <a href="Main.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z"></path></svg><span class="nl">Overview</span></a>
       <a href="Campaigns.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M14 2 2 7l5 2 2 5zM7 9l7-7" stroke-linejoin="round"></path></svg><span class="nl">Campaigns</span></a>
-      <a href="AutomationsList.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="4" cy="3" r="2"></circle><circle cx="4" cy="13" r="2"></circle><circle cx="12" cy="8" r="2"></circle><path d="M4 5v6M6 8h4"></path></svg><span class="nl">Automations</span></a>
+      <a href="AutomationsList.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="4" cy="3" r="2"></circle><circle cx="4" cy="13" r="2"></circle><circle cx="12" cy="8" r="2"></circle><path d="M4 5v6M6 8h4"></path></svg><span class="nl">Automations</span></a>
+      <a href="Transactional.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="1.5"></rect><path d="m2 4.5 6 4.5 6-4.5"></path></svg><span class="nl">Transactional</span></a>
       <a href="Contacts.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="6" cy="5" r="2.5"></circle><path d="M1.5 14a4.5 4.5 0 0 1 9 0M11 3a2.5 2.5 0 0 1 0 5M14.5 14a4 4 0 0 0-3-3.8"></path></svg><span class="nl">Audience</span></a>
-      <a href="FormBuilder.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="2"></rect><path d="M5 6h6M5 9h6M5 12h3"></path></svg><span class="nl">Forms &amp; pages</span></a>
+      <a href="GrowOverview.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 12.5 6 8.5l3 3 5-5.5"></path><path d="M10.5 5.5H14V9"></path></svg><span class="nl">Grow</span></a>
+      <a href="EarnOverview.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M10 5.9H7.1a1.3 1.3 0 0 0 0 2.6h1.8a1.3 1.3 0 0 1 0 2.6H6M8 4.4v1.5M8 11.1v1.5"></path></svg><span class="nl">Earn</span></a>
+      <a href="FormBuilder.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="2"></rect><path d="M5 6h6M5 9h6M5 12h3"></path></svg><span class="nl">Forms &amp; pages</span></a>
       <a href="Deliverability.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 1.5 13.5 3.5v4.5c0 3-2.3 5.3-5.5 6.5C4.8 13.3 2.5 11 2.5 8V3.5z" stroke-linejoin="round"></path><path d="m5.5 8 1.8 1.8L10.8 6"></path></svg><span class="nl">Deliverability</span></a>
-      <a href="Providers.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="5" rx="1.5"></rect><rect x="2" y="9" width="12" height="5" rx="1.5"></rect><path d="M5 4.5h.01M5 11.5h.01" stroke-width="2" stroke-linecap="round"></path></svg><span class="nl">Sending providers</span></a>
-      <a href="WorkspaceSettings.dc.html" class="on"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 4h7M13 4h1M2 8h2M8 8h6M2 12h7M13 12h1"></path><circle cx="11" cy="4" r="1.8"></circle><circle cx="6" cy="8" r="1.8"></circle><circle cx="11" cy="12" r="1.8"></circle></svg><span class="nl">Settings</span></a>
+      <a href="Providers.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="5" rx="1.5"></rect><rect x="2" y="9" width="12" height="5" rx="1.5"></rect><path d="M5 4.5h.01M5 11.5h.01" stroke-width="2" stroke-linecap="round"></path></svg><span class="nl">Sending providers</span></a>
+      <a href="WorkspaceSettings.dc.html" class="on xm" aria-current="page"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 4h7M13 4h1M2 8h2M8 8h6M2 12h7M13 12h1"></path><circle cx="11" cy="4" r="1.8"></circle><circle cx="6" cy="8" r="1.8"></circle><circle cx="11" cy="12" r="1.8"></circle></svg><span class="nl">Settings</span></a>
+      <a href="ShellMore.dc.html" class="more on" aria-label="More: Automations, Transactional, Grow, Earn, Forms & pages, Sending providers, Settings"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="3.5" cy="8" r="1.2"></circle><circle cx="8" cy="8" r="1.2"></circle><circle cx="12.5" cy="8" r="1.2"></circle></svg><span class="nl">More</span></a>
     </nav>
   </aside>
 
@@ -160,25 +185,26 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
     <header class="top" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 28px;background:#fff;border-bottom:1px solid #E3E6EB">
       <h1 style="margin:0;font-size:18px;font-weight:600;letter-spacing:-.01em">Settings</h1>
       <div style="margin-left:auto;display:flex;gap:10px"><a href="https://github.com/hostrepute/reputecast/blob/main/docs/api/README.md" class="btn">API reference</a><a href="SettingsKeys.dc.html" class="btn">API keys &amp; MCP</a><div class="tools"><a href="Notifications.dc.html" class="ibtn" aria-label="Notifications, 3 unread"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 11V7a4 4 0 0 1 8 0v4l1.5 1.5h-11zM6.5 14a1.5 1.5 0 0 0 3 0"></path></svg><span class="cnt" aria-hidden="true">3</span></a><button class="ubtn" type="button" aria-haspopup="menu" aria-label="Account menu for Linh Nguyen"><span class="av" style="width:26px;height:26px;font-size:11px;background:#DBEAFE;color:#1E40AF" aria-hidden="true">LN</span><span class="unm">Linh</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button></div></div>
-          <nav class="tabs" aria-label="Sections" style="flex-basis:100%;min-width:0;margin-left:0"><a href="WorkspaceSettings.dc.html">General</a><a href="SettingsSenders.dc.html">Senders</a><a href="SettingsProviders.dc.html">Providers</a><a href="SettingsTeam.dc.html">Team</a><a href="Roles.dc.html">Roles</a><a href="ApprovalPolicy.dc.html">Approvals</a><a href="SettingsKeys.dc.html">Keys &amp; MCP</a><a href="SettingsAPI.dc.html" class="on" aria-current="page">Webhooks</a><a href="SettingsIntegrations.dc.html">Integrations</a><a href="SettingsAudit.dc.html">Audit log</a></nav>
+          <nav class="tabs" aria-label="Sections" style="flex-basis:100%;min-width:0;margin-left:0"><a href="WorkspaceSettings.dc.html">General</a><a href="SettingsSenders.dc.html">Senders</a><a href="SettingsProviders.dc.html">Providers</a><a href="SettingsTeam.dc.html">Team</a><a href="Roles.dc.html">Roles</a><a href="ApprovalPolicy.dc.html">Approvals</a><a href="SettingsKeys.dc.html">Keys &amp; MCP</a><a href="SettingsAPI.dc.html" class="on" aria-current="page">Webhooks</a><a href="IntegrationsCatalog.dc.html">Integrations</a><a href="SettingsAudit.dc.html">Audit log</a></nav>
     </header>
 
     <main class="content" id="main" style="padding:24px 28px;display:flex;flex-direction:column;gap:20px">
       <section class="card" style=""><div class="sec"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><h2 class="h2">API keys and MCP agents moved</h2><span class="k">Now under the Keys &amp; MCP tab</span></div></div><div class="pad row" style="justify-content:space-between"><span class="k">3 API keys · 2 MCP agents · permissions use the same keys as roles and never exceed their creator's. Secrets are shown once.</span><a href="SettingsKeys.dc.html" class="btn sm">Open API keys &amp; MCP</a></div></section>
 
       <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start">
-        <section class="card" style="flex:1.2 1 520px;min-width:0">
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid #EEF0F3;flex-wrap:wrap;gap:8px"><div style="display:flex;flex-direction:column"><h2 class="h2">Outgoing webhooks · 3</h2><span class="k">ReputeCast calls your endpoints with normalized events, signed with HMAC-SHA256.</span></div><button class="btn sm pri">Add endpoint</button></div>
+        <section class="card" style="flex:1 1 100%;min-width:0">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid #EEF0F3;flex-wrap:wrap;gap:8px"><div style="display:flex;flex-direction:column"><h2 class="h2">Outgoing webhooks · 4</h2><span class="k">ReputeCast calls your endpoints with normalized events, signed with HMAC-SHA256.</span></div><button class="btn sm pri">Add endpoint</button></div>
           <div style="overflow-x:auto">
             <table class="tbl">
               <thead><tr><th scope="col">Endpoint</th><th scope="col">Events</th><th scope="col">Success · 24 h</th><th scope="col">Status</th><th scope="col"></th></tr></thead>
               <tbody>
-                <tr><td><span class="mono">https://api.acme.io/hooks/reputecast</span><div class="k">Product backend · secret rotated 1 Oct</div></td><td><span style="display:inline-flex;flex-wrap:wrap;gap:4px 6px;vertical-align:middle"><span class="badge mut">contact.subscribed</span><span class="badge mut">contact.unsubscribed</span><span class="badge mut">email.bounced</span></span></td><td class="n">99.8% · 2,114</td><td><span class="badge ok">Healthy</span></td><td><button class="btn sm">Edit</button></td></tr>
+                <tr><td><span class="mono">https://api.acme.io/hooks/reputecast</span><div class="k">Product backend · secret rotated 1 Oct</div></td><td><span style="display:inline-flex;flex-wrap:wrap;gap:4px 6px;vertical-align:middle"><span class="badge mut">contact.subscribed</span><span class="badge mut">contact.unsubscribed</span><span class="badge mut">email.bounced</span><span class="badge info">message.bounced</span><span class="badge info">message.failed</span><span class="badge mut">subscription.started</span><span class="badge mut">subscription.payment_failed</span><span class="badge mut">subscription.ended</span><span class="badge info">referral.counted</span><span class="badge info">referral.milestone_reached</span><span class="badge info">referral.reward_sent</span><span class="badge info">post.published</span><span class="badge info">post.unpublished</span><span class="badge info">order.paid</span><span class="badge info">order.refunded</span><span class="badge info">order.disputed</span><span class="badge info">sms.failed</span><span class="badge info">sms.opted_out</span><span class="badge info">push.clicked</span></span></td><td class="n">99.8% · 2,114</td><td><span class="badge ok">Healthy</span></td><td><button class="btn sm">Edit</button></td></tr>
                 <tr><td><span class="mono">https://hooks.slack.com/services/T0…/B0…</span><div class="k">Slack #email-ops</div></td><td><span style="display:inline-flex;flex-wrap:wrap;gap:4px 6px;vertical-align:middle"><span class="badge mut">campaign.paused</span><span class="badge mut">provider.down</span><span class="badge mut">campaign.completed</span></span></td><td class="n">100% · 6</td><td><span class="badge ok">Healthy</span></td><td><button class="btn sm">Edit</button></td></tr>
                 <tr style="background:#FFF5F5"><td><span class="mono">https://warehouse.acme.io/ingest/events</span><div class="k">Data warehouse · all events</div></td><td><span class="badge mut">email.*</span></td><td class="n" style="color:#991B1B">61% · 18,402</td><td><span class="badge bad">Failing · 502 since 08:50</span></td><td><button class="btn sm">Edit</button></td></tr>
+                <tr><td><span class="mono">https://n8n.acme.io/webhook/7c1e…/reputecast</span><div class="k">n8n workflow Unsubscribes → Acme Cloud CRM</div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:5px"><a class="mby" href="IntegrationsStates.dc.html" style="color:#374151"><span class="mt" aria-hidden="true">n8n</span>Managed by n8n</a><span class="k" id="n8n-ro">To change it, change the workflow in n8n, or disconnect n8n.</span></div></td><td><span style="display:inline-flex;flex-wrap:wrap;gap:4px 6px;vertical-align:middle"><span class="badge mut">contact.unsubscribed</span></span></td><td class="n">100% · 14</td><td><span class="badge ok">Healthy</span></td><td><button class="btn sm" aria-describedby="n8n-ro">View</button></td></tr>
               </tbody>
             </table>
-          </div>
+          </div><div style="padding:10px 18px;border-top:1px solid #EEF0F3;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px;color:#5B6472;font-weight:500">New in the event picker, in a Forms group: <span class="badge info">form.submitted</span> fires when a signup is confirmed, at once for single opt-in, with the form and the answers.</div>
         </section>
 
         <section class="card" style="flex:1 1 380px;min-width:0;padding:16px 18px;display:flex;flex-direction:column;gap:10px">
@@ -201,6 +227,7 @@ if (!timingSafeEqual(sig, header)) throw 401;</pre>
               <tr><td class="mono">09:45:12</td><td><span class="badge mut">email.delivered</span></td><td class="mono">api.acme.io/hooks/reputecast</td><td><span class="badge ok">200 · 84 ms</span></td><td>1</td><td class="k">–</td><td><button class="btn sm">Payload</button></td></tr>
               <tr style="background:#FFF5F5"><td class="mono">09:45:11</td><td><span class="badge mut">email.delivered</span></td><td class="mono">warehouse.acme.io/ingest/events</td><td><span class="badge bad">502 · Bad Gateway</span></td><td>4 of 8</td><td>09:53 · backoff 8 min</td><td><button class="btn sm">Retry now</button></td></tr>
               <tr><td class="mono">09:44:58</td><td><span class="badge mut">email.bounced · hard</span></td><td class="mono">api.acme.io/hooks/reputecast</td><td><span class="badge ok">200 · 91 ms</span></td><td>1</td><td class="k">–</td><td><button class="btn sm">Payload</button></td></tr>
+              <tr><td class="mono">09:31:07</td><td><span class="badge mut">contact.unsubscribed</span></td><td class="mono">n8n.acme.io/webhook/7c1e…</td><td><span class="badge ok">200 · 140 ms</span></td><td>1</td><td class="k">–</td><td><button class="btn sm">Payload</button></td></tr>
               <tr><td class="mono">09:21:14</td><td><span class="badge mut">campaign.paused</span></td><td class="mono">hooks.slack.com</td><td><span class="badge ok">200 · 212 ms</span></td><td>1</td><td class="k">–</td><td><button class="btn sm">Payload</button></td></tr>
               <tr style="background:#FFF5F5"><td class="mono">08:50:03</td><td><span class="badge mut">email.opened</span></td><td class="mono">warehouse.acme.io/ingest/events</td><td><span class="badge bad">502 · Bad Gateway</span></td><td>8 of 8</td><td><span class="badge bad">Gave up · in dead-letter queue</span></td><td><button class="btn sm">Replay</button></td></tr>
             </tbody>
@@ -212,7 +239,7 @@ if (!timingSafeEqual(sig, header)) throw 401;</pre>
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1019}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1731}}'>
 class Component extends DCLogic {
   renderVals() {
     return {};

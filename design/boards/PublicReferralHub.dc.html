@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your referrals · Acme Weekly Digest</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F5F3FF;color:#1F2937;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:15px;line-height:1.5}
+a{color:#4338CA;text-decoration:none}a:hover{color:#3730A3}
+select{height:44px;padding:0 12px;border:1px solid #C9CED6;border-radius:9px;font:inherit;font-size:14px;width:100%;box-sizing:border-box;background:#fff}
+
+/* accessibility */
+:focus-visible{outline:2px solid #0F766E;outline-offset:2px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-9999px;top:8px;z-index:100;background:#fff;color:#0B1220;padding:8px 12px;border-radius:8px;border:1px solid #0F766E;font-weight:600;text-decoration:none}
+.skip:focus{left:8px}
+p a:not(.btn),span a:not(.btn):not([style*="color"]),td a:not(.btn):not([style*="color"]),li a:not(.btn),label a,.k a,.lead a{text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+.content > * a:not(.btn):not(p a):not(span a):not(td a):not(li a):not(label a):not(.k a),.top a:not(.btn),nav a:not(.btn),footer a:not(.btn){min-height:24px;display:inline-flex;align-items:center}
+input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F766E}
+.in,select.in,textarea.in,input.in{border-color:#8B94A3}
+@media (max-width:767px){
+  .sc-host{overflow-wrap:anywhere}
+  .sc-host table,.sc-host td,.sc-host th{overflow-wrap:normal}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+}
+
+/* expansion components (phases 1-8) */
+.num,.tbl td.r{font-variant-numeric:tabular-nums}
+.tbl th.r,.tbl td.r{text-align:right}
+.tbl tr.sel td{background:#F0FDFA}
+.tbl tr.xp td{background:#FBFBFC}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.stat{padding:14px 16px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.stat .v{font-size:22px;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums;line-height:1.25;margin-top:2px}
+.stat .s{font-size:12px;color:#5B6472;font-weight:500}
+.stat.hot{border-color:#FCA5A5;background:#FFF5F5}
+.strip{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;background:#0B1220;color:#fff;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.sk{background:#E9ECF0;border-radius:6px;display:inline-block}
+.bar{height:6px;border-radius:3px;background:#EEF0F3;overflow:hidden}.bar i{display:block;height:100%;border-radius:3px}
+.ptab{display:flex;border-bottom:1px solid #E3E6EB}
+.ptab button{flex:1;height:38px;border:0;background:none;font:inherit;font-size:12.5px;font-weight:600;color:#5B6472;cursor:pointer;border-bottom:2px solid transparent;padding:0 6px;white-space:nowrap}
+.ptab button.on{color:#0B1220;border-bottom-color:#0F766E}
+.seg{display:inline-flex;border:1px solid #D4D8DF;border-radius:8px;overflow:hidden;flex:none}
+.seg button{height:30px;padding:0 11px;border:0;background:#fff;font:inherit;font-size:12px;font-weight:600;color:#4B5563;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.seg button + button{border-left:1px solid #E3E6EB}
+.seg button.on{background:#0B1220;color:#fff}
+.cbx{border-radius:10px;overflow:hidden;border:1px solid #1F2937;background:#0B1220;min-width:0}
+.cbh{display:flex;align-items:center;gap:2px;padding:6px 8px;border-bottom:1px solid #1F2937;background:#111827;flex-wrap:wrap}
+.cbh button{height:28px;padding:0 10px;border:0;border-radius:6px;background:none;color:#B4BAC4;font:inherit;font-size:12px;font-weight:600;cursor:pointer}
+.cbh button.on{background:#273244;color:#fff}
+.cbh .cp{margin-left:auto;display:inline-flex;align-items:center;gap:6px;color:#E5E7EB;border:1px solid #374151}
+.cbx pre{margin:0;padding:12px 14px;font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace;font-size:12.5px;line-height:1.6;color:#E5E7EB;white-space:pre-wrap;overflow-wrap:anywhere}
+.cbx .c1{color:#93C5FD}.cbx .c2{color:#86EFAC}.cbx .c3{color:#FCD34D}.cbx .c4{color:#9CA3AF}.cbx .c5{color:#F9A8D4}
+.cbx .cm{color:#9CA3AF}
+.ev{display:flex;gap:14px;align-items:flex-start;padding:12px 0;border-top:1px solid #EEF0F3}
+.ev:first-child{border-top:0}
+.ev .ic{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.ev .tx{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.ev .tm{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;color:#5B6472;flex:none;padding-top:5px}
+.spin{width:14px;height:14px;border-radius:50%;border:2px solid #C9CED6;border-top-color:#0F766E;flex:none;display:inline-block}
+.mask{display:inline-flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;color:#4B5563;white-space:nowrap}
+.mask svg{flex:none}
+.tok{display:inline-flex;align-items:center;gap:4px;padding:0 6px;border-radius:5px;background:#EDE9FE;color:#5B21B6;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:.86em;font-weight:500;line-height:1.55;white-space:nowrap;vertical-align:baseline}
+.tok.s{background:#FEF3C7;color:#92400E}
+.tok.e{background:#FEE2E2;color:#991B1B;text-decoration:underline wavy #DC2626;text-underline-offset:3px}
+.mk{display:inline-flex;align-items:center;height:22px;padding:0 7px;border-radius:6px;background:#EEF0F3;color:#374151;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;white-space:nowrap}
+.toast{display:flex;gap:12px;align-items:center;padding:10px 12px 10px 14px;border-radius:10px;background:#0B1220;color:#fff;font-size:13.5px;box-shadow:0 12px 30px rgba(11,18,32,.25);max-width:520px;box-sizing:border-box}
+.toast .t{flex:1;min-width:0}
+.toast .k{color:#C3C2B7}
+.toast .btn{min-height:28px;padding:0 10px;font-size:12px;background:transparent;border-color:#4B5563;color:#fff}
+.toast .x{width:28px;height:28px;border:0;background:transparent;color:#9CA3AF;border-radius:6px;font-size:16px;cursor:pointer}
+.ti{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.scrim{position:absolute;inset:0;background:rgba(11,18,32,.32);z-index:55}
+.drw{position:absolute;top:0;right:0;bottom:0;width:600px;max-width:100%;background:#fff;border-left:1px solid #E3E6EB;box-shadow:-18px 0 40px rgba(11,18,32,.18);z-index:60;display:flex;flex-direction:column;box-sizing:border-box;overflow:hidden}
+.drw .dwh{display:flex;align-items:flex-start;gap:12px;padding:18px 22px 14px;border-bottom:1px solid #EEF0F3}
+.drw .dwb{padding:18px 22px;display:flex;flex-direction:column;gap:18px;overflow:auto}
+.drw h3{margin:0;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472}
+.empty{padding:44px 28px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;border-style:dashed}
+.empty .tt{font-size:18px;font-weight:700;letter-spacing:-.01em}
+.empty .ds{color:#4B5563;max-width:560px}
+.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:14px 18px;border-bottom:1px solid #EEF0F3}
+.fchips{display:flex;gap:6px;flex-wrap:wrap;padding:12px 18px;border-bottom:1px solid #EEF0F3}
+.fchip{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:999px;border:1px solid #D4D8DF;background:#fff;font:inherit;font-size:12.5px;font-weight:600;color:#374151;cursor:pointer;white-space:nowrap}
+.fchip b{font-weight:600;color:#5B6472;font-variant-numeric:tabular-nums}
+.fchip.on{background:#0B1220;border-color:#0B1220;color:#fff}.fchip.on b{color:#C9CED6}
+.live{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:#166534}
+.live .dot{box-shadow:0 0 0 4px rgba(22,101,52,.15)}
+.foot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid #EEF0F3}
+.spark{display:block}
+.lnk{display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:13px}
+.ttl{margin:0;font-size:22px;font-weight:700;letter-spacing:-.02em;line-height:1.2}
+.lead{margin:0;color:#4B5563;font-size:14px;max-width:760px}
+.state-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(460px,100%),1fr));gap:16px;align-items:start}
+.flowr{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px}
+.flowr .arw{color:#9AA3B2}
+.pill{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:8px;border:1px solid #E3E6EB;background:#F9FAFB;font-size:12.5px;font-weight:600;white-space:nowrap}
+.vline{display:flex;gap:10px;align-items:baseline;padding:8px 0;border-top:1px solid #EEF0F3;font-size:13px}
+.vline:first-child{border-top:0}
+.hl{background:#FEF2F2;box-shadow:inset 3px 0 0 #DC2626}
+.lines{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;line-height:1.7;background:#0B1220;color:#E5E7EB;border-radius:8px;overflow:hidden}
+.lines div{display:flex;gap:12px;padding:0 12px}
+.lines .ln{color:#9CA3AF;width:22px;text-align:right;flex:none;user-select:none}
+.lines .er{background:rgba(220,38,38,.22)}
+.callout{position:absolute;z-index:5}
+.only-phone{display:none}
+@media (max-width:1100px){.drw{width:520px}}
+@media (max-width:767px){.drw{width:100%;border-left:0}.stats{grid-template-columns:repeat(2,minmax(0,1fr))!important}.ttl{font-size:19px}}
+
+.pcard{width:100%;background:#fff;border:1px solid #E3E6EB;border-radius:16px;padding:32px;box-sizing:border-box;display:flex;flex-direction:column;gap:18px}
+.pbtn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:9px;background:#4338CA;color:#fff;font-weight:700;font-size:14px;border:0;cursor:pointer;text-decoration:none;font-family:inherit}
+.pbtn:hover{background:#3730A3;color:#fff}
+.pbtn2{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:9px;border:1px solid #C9CED6;background:#fff;color:#1F2937;font-weight:700;font-size:14px;cursor:pointer;text-decoration:none;font-family:inherit}
+.pin{height:44px;padding:0 14px;border:1px solid #8B94A3;border-radius:9px;font:inherit;font-size:14px;box-sizing:border-box;background:#fff;min-width:0;width:100%}
+.pmut{color:#5B6472}
+.tag{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;background:#EEF0F3;color:#4B5563}
+.brand{display:flex;align-items:center;gap:12px}
+.brand .m{width:40px;height:40px;border-radius:10px;background:#0B1220;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:16px}
+@media (max-width:767px){.pcard{padding:22px}.sc-host [style*="minmax(min("]{grid-template-columns:1fr!important}}
+
+/* p5b · public grow pages: the publisher's accent everywhere, never ReputeCast's teal */
+:focus-visible{outline-color:#4338CA}
+.skip{border-color:#4338CA}
+input[type=checkbox],input[type=radio]{accent-color:#4338CA}
+.badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;flex:none}
+.ok{background:#DCFCE7;color:#166534}.warn{background:#FEF3C7;color:#92400E}.bad{background:#FEE2E2;color:#991B1B}.info{background:#DBEAFE;color:#1E40AF}.mut{background:#EEF0F3;color:#4B5563}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;flex:none}
+.pk{font-size:13px;color:#5B6472}
+.pcard h2.ph2{margin:0;font-size:17px;font-weight:700;letter-spacing:-.01em;line-height:1.3}
+.pbtn.sm,.pbtn2.sm{height:40px;padding:0 14px;font-size:13.5px}
+.pbtn2:hover{background:#F9FAFB;color:#1F2937}
+.pin.ro{background:#F9FAFB}
+input[type=checkbox].ptg{appearance:none;-webkit-appearance:none;width:40px;height:24px;border-radius:999px;background:#6B7280;position:relative;cursor:pointer;flex:none;margin:0;border:0}
+input[type=checkbox].ptg::after{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff}
+input[type=checkbox].ptg:checked{background:#4338CA}input[type=checkbox].ptg:checked::after{left:18px}
+.plist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.plist > li{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-top:1px solid #EEF0F3}
+.plist > li:first-child{border-top:0;padding-top:0}
+.plist > li:last-child{padding-bottom:0}
+.ptile{width:40px;height:40px;border-radius:10px;background:#F5F3FF;color:#4338CA;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.ptile.mut{background:#F3F4F6;color:#5B6472}
+.shr-b{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.steps3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0;padding:0;list-style:none}
+.steps3 li{display:flex;flex-direction:column;gap:6px;padding:12px;border-radius:10px;background:#F5F3FF;font-size:13.5px;color:#1F2937}
+.steps3 li b{width:24px;height:24px;border-radius:50%;background:#4338CA;color:#fff;font-size:12px;display:inline-flex;align-items:center;justify-content:center}
+.swrow{display:flex;gap:14px;align-items:flex-start;justify-content:space-between;padding:12px 0;border-top:1px solid #EEF0F3;cursor:pointer}
+.swrow:first-of-type{border-top:0;padding-top:0}
+.swrow .tx{display:flex;flex-direction:column;gap:2px;min-width:0}
+.pseg{display:inline-flex;border:1px solid #C9CED6;border-radius:9px;overflow:hidden;background:#fff}
+.pseg button{height:36px;padding:0 14px;border:0;background:none;font:inherit;font-size:13.5px;font-weight:600;color:#374151;cursor:pointer}
+.pseg button + button{border-left:1px solid #E3E6EB}
+.pseg button.on{background:#4338CA;color:#fff}
+.lb{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.lb li{display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:12px;align-items:center;min-height:44px;padding:0 12px;border-top:1px solid #EEF0F3}
+.lb li:first-child{border-top:0}
+.lb .rk{font-weight:700;color:#5B6472;font-variant-numeric:tabular-nums}
+.lb .ct{font-weight:700;font-variant-numeric:tabular-nums}
+.lb li.me{border:1px solid #DDD6FE;background:#F5F3FF;border-radius:10px;padding:10px 12px;margin-top:6px}
+.stk{display:flex;flex-direction:column;gap:14px}
+.rcact{min-width:0}
+.pin{font-weight:400}
+/* public boards are 720 px wide: keep the desktop card padding there, switch to the phone layout at 480 px */
+@media (max-width:767px){.pcard{padding:32px}}
+@media (max-width:480px){
+  .rcact{margin-left:0!important}
+  .pcard{padding:22px}
+  .shr-b{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .steps3{grid-template-columns:1fr}
+  .steps3 li{flex-direction:row;align-items:center;gap:10px}
+}
+</style>
+</helmet>
+<div style="min-height:100vh;background:#F5F3FF;position:relative">
+<div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:40px 16px 32px;box-sizing:border-box"><main id="main" style="width:100%;max-width:560px;display:flex;flex-direction:column;gap:16px"><header style="display:flex;flex-direction:column;gap:14px;padding:0 4px 4px"><div class="brand"><span class="m">A</span><span style="font-weight:700;font-size:18px">Acme</span></div><div style="display:flex;flex-direction:column;gap:4px"><h1 style="margin:0;font-size:28px;font-weight:700;letter-spacing:-.02em;line-height:1.15">Your referrals</h1><span style="color:#5B6472;font-size:14px">for sam.rivera@outlook.com · <a href="PublicSubscribe.dc.html">not you?</a></span></div></header><section class="pcard" aria-label="Share your link"><div style="display:flex;flex-direction:column;gap:4px"><h2 class="ph2">Invite friends to the Weekly Digest</h2><p style="margin:0;color:#4B5563;font-size:14.5px">When a friend subscribes with your link and confirms their email, it counts toward your rewards.</p></div><div style="display:flex;flex-direction:column;gap:10px"><label for="reflink" style="font-size:13px;font-weight:600">Your link</label><div style="display:flex;gap:8px;flex-wrap:nowrap"><input id="reflink" class="pin ro" readonly value="news.acme.io/join/K7Q2MX" style="flex:1;font-weight:500;color:#1F2937;padding:0 12px"><button type="button" class="pbtn" style="flex:none;padding:0 14px"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="1.5"></rect><path d="M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5"></path></svg>Copy</button></div><div class="shr-b" role="group" aria-label="Share your link"><a href="#share-email" class="pbtn2 sm" style="padding:0 10px"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#4B5563" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="1.5"></rect><path d="m2 4.5 6 4.5 6-4.5"></path></svg>Email</a><a href="#share-x" class="pbtn2 sm" style="padding:0 10px"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#4B5563" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h4v4M13 3 7 9M11 9.5V13H3V5h3.5"></path></svg>X</a><a href="#share-linkedin" class="pbtn2 sm" style="padding:0 10px"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#4B5563" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h4v4M13 3 7 9M11 9.5V13H3V5h3.5"></path></svg>LinkedIn</a><a href="#share-whatsapp" class="pbtn2 sm" style="padding:0 10px"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#4B5563" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h4v4M13 3 7 9M11 9.5V13H3V5h3.5"></path></svg>WhatsApp</a></div></div><span class="pk">61 visits to your link so far · 4 signups</span></section><section class="pcard" aria-label="Your progress"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:6px 12px;flex-wrap:wrap"><h2 class="ph2">Your progress</h2><a href="PublicGrowStates.dc.html" style="font-size:13.5px;font-weight:600;display:inline-flex;align-items:center;gap:6px"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#4338CA" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 2.5h6V6a3 3 0 0 1-6 0z"></path><path d="M5 4H2.6A2.4 2.4 0 0 0 5 7M11 4h2.4A2.4 2.4 0 0 1 11 7"></path><path d="M8 9v2.5M5.5 14h5M6.5 11.5h3V14h-3z"></path></svg>15th on the leaderboard</a></div><div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:12.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#4338CA">Next reward</span><span style="font-size:21px;font-weight:700;line-height:1.25;letter-spacing:-.01em">1 more referral for the Acme Field Guide</span><span style="font-size:14.5px;color:#374151">Referral 3 brings it on 19 Oct, if your friend stays subscribed.</span></div><div role="img" aria-label="2 counted referrals, 1 more counting soon. Milestones: 1 Sticker pack (reached), 3 Field Guide, 10 Insider for 3&nbsp;months." style="display:flex;flex-direction:column;gap:12px;padding-top:34px"><div style="position:relative;margin:0 10px"><div style="position:relative;height:8px;border-radius:4px;background:#EEF0F3"><span style="position:absolute;left:0;top:0;bottom:0;width:66.667%;border-radius:4px;background:#C4B5FD"></span><span style="position:absolute;left:0;top:0;bottom:0;width:50.000%;border-radius:4px;background:#4338CA"></span><span style="position:absolute;top:50%;left:33.333%;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:50%;background:#4338CA;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 0 0 3px #fff"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg></span><span style="position:absolute;top:50%;left:66.667%;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:50%;background:#fff;border:3px solid #4338CA;box-sizing:border-box;box-shadow:0 0 0 3px #fff"></span><span style="position:absolute;top:50%;left:100.000%;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:50%;background:#fff;border:3px solid #C9CED6;box-sizing:border-box;box-shadow:0 0 0 3px #fff"></span><span style="position:absolute;bottom:18px;left:50.000%;transform:translateX(-50%);display:inline-flex;flex-direction:column;align-items:center;gap:0"><span style="display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;background:#4338CA;color:#fff;font-size:12px;font-weight:700;white-space:nowrap">You · 2</span><span style="width:2px;height:7px;background:#4338CA"></span></span></div></div><div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px"><span style="display:flex;flex-direction:column;align-items:flex-end;text-align:right;gap:1px;min-width:0"><span style="font-size:12px;color:#5B6472;font-weight:600">1 referral</span><span style="font-size:13px;line-height:1.3;color:#4338CA;font-weight:700"><svg style="vertical-align:-1px;margin-right:4px" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#4338CA" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg>Sticker pack</span></span><span style="display:flex;flex-direction:column;align-items:flex-end;text-align:right;gap:1px;min-width:0"><span style="font-size:12px;color:#5B6472;font-weight:600">3 referrals</span><span style="font-size:13px;line-height:1.3;color:#1F2937;font-weight:700">Field Guide</span></span><span style="display:flex;flex-direction:column;align-items:flex-end;text-align:right;gap:1px;min-width:0"><span style="font-size:12px;color:#5B6472;font-weight:600">10 referrals</span><span style="font-size:13px;line-height:1.3;color:#5B6472;font-weight:500">Insider for 3&nbsp;months</span></span></div></div><div style="display:flex;gap:8px 18px;flex-wrap:wrap;font-size:13.5px;color:#374151"><span style="display:inline-flex;align-items:center;gap:7px;white-space:nowrap"><span style="width:10px;height:10px;border-radius:50%;background:#4338CA;flex:none"></span>2 counted</span><span style="display:inline-flex;align-items:center;gap:7px;white-space:nowrap"><span style="width:10px;height:10px;border-radius:50%;background:#C4B5FD;flex:none"></span>1 counts on 19 Oct</span><span style="display:inline-flex;align-items:center;gap:7px;white-space:nowrap"><span style="width:10px;height:10px;border-radius:50%;border:2px solid #9AA3B2;background:#fff;box-sizing:border-box;flex:none"></span>1 waiting for confirmation</span></div></section><section class="pcard" aria-label="Your rewards"><h2 class="ph2">Your rewards</h2><ul class="plist"><li style="align-items:center"><span class="ptile"><svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="#4338CA" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.5 8.5A5.5 5.5 0 1 1 7.5 2.5h3a3 3 0 0 1 3 3z"></path><path d="M13.5 8.5h-3a2 2 0 0 0-2 2v3"></path></svg></span><span style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0"><span style="font-weight:600;color:#1F2937">Sticker pack</span><span class="pk">Sent 3 Oct · PDF, 2.4&nbsp;MB · a fresh link each time</span></span><span style="flex:none;display:inline-flex"><a href="#download" class="pbtn sm" style="color:#fff;text-decoration:none;">Download</a></span></li><li style="align-items:center"><span class="ptile mut"><svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="#5B6472" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 2.5h7.5a2 2 0 0 1 2 2V14H5a2 2 0 0 1-2-2z"></path><path d="M3 12a2 2 0 0 1 2-2h7.5"></path></svg></span><span style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0"><span style="font-weight:600;color:#1F2937">The Acme Field Guide</span><span class="pk">At 3 referrals · PDF, 18&nbsp;MB</span></span><span style="flex:none;display:inline-flex"><span style="font-size:13.5px;font-weight:700;color:#4338CA;white-space:nowrap">1 more referral</span></span></li><li style="align-items:center"><span class="ptile mut"><svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="#5B6472" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 2.2 1.75 3.6 3.95.5-2.9 2.75.75 3.9L8 11.1l-3.55 1.85.75-3.9L2.3 6.3l3.95-.5z"></path></svg></span><span style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0"><span style="font-weight:600;color:#1F2937">Insider for 3 months</span><span class="pk">At 10 referrals. You already have Insider, so you can give this one to a friend.</span></span><span style="flex:none;display:inline-flex"><span style="font-size:13.5px;font-weight:700;color:#4B5563;white-space:nowrap">8 more</span></span></li></ul><span class="pk">Rewards you've earned stay yours, even if a friend unsubscribes later.</span></section><section class="pcard" aria-label="Your referrals"><div style="display:flex;flex-direction:column;gap:2px"><h2 class="ph2">Your referrals · 4</h2><span class="pk">Numbers and dates only. Your friends' names and addresses stay private.</span></div><ol class="plist"><li><span aria-hidden="true" style="width:32px;height:32px;border-radius:50%;background:#F5F3FF;color:#4338CA;font-weight:700;font-size:13px;display:inline-flex;align-items:center;justify-content:center;flex:none">1</span><span style="display:flex;flex-direction:column;gap:3px;flex:1;min-width:0"><span style="display:flex;gap:6px 10px;align-items:center;flex-wrap:wrap"><span style="font-weight:600">Referral 1</span><span class="badge ok">Counted</span></span><span class="pk">Confirmed 26 Sep · counted 3 Oct</span></span></li><li><span aria-hidden="true" style="width:32px;height:32px;border-radius:50%;background:#F5F3FF;color:#4338CA;font-weight:700;font-size:13px;display:inline-flex;align-items:center;justify-content:center;flex:none">2</span><span style="display:flex;flex-direction:column;gap:3px;flex:1;min-width:0"><span style="display:flex;gap:6px 10px;align-items:center;flex-wrap:wrap"><span style="font-weight:600">Referral 2</span><span class="badge ok">Counted</span></span><span class="pk">Confirmed 2 Oct · counted 9 Oct</span></span></li><li><span aria-hidden="true" style="width:32px;height:32px;border-radius:50%;background:#F5F3FF;color:#4338CA;font-weight:700;font-size:13px;display:inline-flex;align-items:center;justify-content:center;flex:none">3</span><span style="display:flex;flex-direction:column;gap:3px;flex:1;min-width:0"><span style="display:flex;gap:6px 10px;align-items:center;flex-wrap:wrap"><span style="font-weight:600">Referral 3</span><span class="badge info">Counts on 19 Oct</span></span><span class="pk">Confirmed 12 Oct · counts on 19 Oct</span></span></li><li><span aria-hidden="true" style="width:32px;height:32px;border-radius:50%;background:#F5F3FF;color:#4338CA;font-weight:700;font-size:13px;display:inline-flex;align-items:center;justify-content:center;flex:none">4</span><span style="display:flex;flex-direction:column;gap:3px;flex:1;min-width:0"><span style="display:flex;gap:6px 10px;align-items:center;flex-wrap:wrap"><span style="font-weight:600">Referral 4</span><span class="badge mut">Waiting for confirmation</span></span><span class="pk">Signed up 14 Oct · hasn't confirmed yet</span></span></li></ol></section><section class="pcard" aria-label="How referrals count"><h2 class="ph2">How referrals count</h2><ol class="steps3"><li><b>1</b><span>A friend subscribes with your link</span></li><li><b>2</b><span>They confirm their email</span></li><li><b>3</b><span>7 days later, it counts</span></li></ol><p style="margin:0;font-size:14.5px;color:#374151;line-height:1.55">A referral counts when your friend confirms their email and is still subscribed 7 days later. Signups from your own address, from your network, or from throwaway addresses don't count.</p></section><section class="pcard" aria-label="Your privacy"><h2 class="ph2">Your privacy</h2><div><label class="swrow"><span class="tx"><span style="font-weight:600">Show my first name on my invite&nbsp;page</span><span class="pk">Friends see “Sam invited you” instead of “A reader invited you”.</span></span><input type="checkbox" class="ptg" role="switch" aria-label="Show my first name on my invite&nbsp;page"></label><label class="swrow"><span class="tx"><span style="font-weight:600">Show me on the leaderboard as Sam&nbsp;R.</span><span class="pk">Otherwise you show as “A reader”.</span></span><input type="checkbox" class="ptg" role="switch" aria-label="Show me on the leaderboard as Sam&nbsp;R."></label></div><div style="display:flex;flex-wrap:nowrap;gap:10px;align-items:flex-start;padding:12px 14px;border:1px solid #DDD6FE;border-radius:12px;background:#F5F3FF;font-size:14px;color:#374151"><span style="flex:none;margin-top:2px;display:inline-flex"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="#4338CA" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M8 7.2v3.8M8 5v.1"></path></svg></span><span style="min-width:0">Your friends' addresses are never shown to you, and yours is never shown to them.</span></div></section></main><footer style="display:flex;gap:16px;align-items:center;margin-top:18px;font-size:12.5px;color:#5B6472;flex-wrap:wrap;justify-content:center"><a href="https://acme.io/privacy" style="color:#5B6472">Privacy</a><span aria-hidden="true">·</span><a href="PublicPreferences.dc.html" style="color:#5B6472">Email preferences</a><span aria-hidden="true">·</span><a href="Landing.dc.html" style="color:#5B6472">Sent with ReputeCast</a></footer></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":720,"height":2314}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

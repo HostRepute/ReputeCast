@@ -1,0 +1,636 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Composer · publish to web</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F4F6;color:#0B1220;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:13px;line-height:1.45}
+a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
+.mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:32px;padding:0 12px;border-radius:7px;border:1px solid #D4D8DF;background:#FFFFFF;color:#0B1220;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;white-space:nowrap;box-sizing:border-box}
+.btn:hover{background:#F3F4F6;color:#0B1220}
+.btn.pri{background:#0F766E;border-color:#0F766E;color:#FFFFFF}.btn.pri:hover{background:#115E59;color:#FFFFFF}
+.btn.ic{width:32px;padding:0}
+.badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;flex:none}
+.ok{background:#DCFCE7;color:#166534}.warn{background:#FEF3C7;color:#92400E}.bad{background:#FEE2E2;color:#991B1B}.info{background:#DBEAFE;color:#1E40AF}.mut{background:#EEF0F3;color:#4B5563}.pur{background:#EDE9FE;color:#5B21B6}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;flex:none}
+.k{font-size:12px;color:#5B6472;font-weight:500}
+.in{height:32px;padding:0 9px;border:1px solid #D4D8DF;border-radius:7px;background:#fff;font:inherit;font-size:12.5px;color:#0B1220;box-sizing:border-box;min-width:0}
+.ptab{display:flex;border-bottom:1px solid #E3E6EB}
+.ptab button{flex:1;height:38px;border:0;background:none;font:inherit;font-size:12.5px;font-weight:600;color:#5B6472;cursor:pointer;border-bottom:2px solid transparent}
+.ptab button.on{color:#0B1220;border-bottom-color:#0F766E}
+.grp{padding:10px 12px 4px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#5B6472}
+.blk{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 6px;border:1px solid #E3E6EB;border-radius:8px;background:#fff;font-size:11.5px;font-weight:500;color:#374151;cursor:grab;text-align:center}
+.blk svg{width:22px;height:22px;stroke:#374151;fill:none;stroke-width:1.5}
+.blk.rc{border-color:#99F6E4;background:#F0FDFA}
+.seg{display:inline-flex;border:1px solid #D4D8DF;border-radius:7px;overflow:hidden}
+.seg button{height:30px;padding:0 10px;border:0;background:#fff;font:inherit;font-size:12px;font-weight:600;color:#5B6472;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.seg button.on{background:#0B1220;color:#fff}
+.email{width:600px;background:#fff;box-shadow:0 1px 3px rgba(11,18,32,.12);font-family:Georgia,'Times New Roman',serif;color:#1F2937;flex:none}
+.sec{position:relative;padding:16px 24px}
+.sec:hover{outline:1px dashed #93C5FD;outline-offset:-1px}
+.ph{display:flex;align-items:center;justify-content:center;background:#E9ECF0;color:#5B6472;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12px;font-weight:500;border:1px dashed #C9CED6}
+.tb{position:absolute;top:-30px;right:-2px;display:flex;background:#1D4ED8;border-radius:6px 6px 0 0;padding:2px}
+.tb button{width:26px;height:26px;border:0;background:none;color:#fff;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.tb svg{width:14px;height:14px;stroke:#fff;fill:none;stroke-width:1.8}
+.lab{position:absolute;top:-30px;left:-2px;background:#1D4ED8;color:#fff;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:11px;font-weight:600;padding:0 8px;height:26px;display:inline-flex;align-items:center;border-radius:6px 6px 0 0;margin-top:2px}
+.prop{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border-bottom:1px solid #EEF0F3}
+.prop .t{font-size:12px;font-weight:600}
+.row4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.row2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.sw{width:22px;height:22px;border-radius:5px;border:1px solid #D4D8DF;flex:none}
+.bc{display:flex;align-items:center;gap:6px;font-size:12px;color:#5B6472}
+.bc b{color:#0B1220;font-weight:600}
+
+/* responsive shell */
+@media (max-width:1100px){
+  .side{flex:0 0 72px!important;max-width:72px;padding:14px 8px!important;gap:4px!important}
+  .side .nl,.side .brand-t,.side .ws{display:none}
+  .side .nav a{justify-content:center;padding:0!important;height:44px}
+  .side .nav svg{width:20px;height:20px}
+  .side > a[aria-label="ReputeCast home"]{justify-content:center;padding:6px 0!important}
+  .side .sidefoot{align-items:center}
+  .side .sidefoot > *{display:none}
+  .side .sidefoot > a.btn{display:inline-flex;width:44px;height:44px;padding:0!important;justify-content:center!important;font-size:0;gap:0}
+  .side .sidefoot > a.btn svg{width:18px;height:18px}
+  .top{padding:12px 16px!important}
+  .content{padding:16px!important}
+}
+@media (max-width:767px){
+  .app{flex-direction:column}
+  .side{flex:none!important;max-width:none!important;width:auto!important;position:fixed;left:0;right:0;bottom:0;z-index:50;flex-direction:row!important;align-items:center;padding:6px 6px!important;border-right:0!important;border-top:1px solid #E3E6EB;background:#fff!important;box-sizing:border-box;gap:0!important}
+  .side > a[aria-label="ReputeCast home"],.side .ws,.side .sidefoot{display:none!important}
+  .side .nav{flex-direction:row!important;flex:1;justify-content:space-around;margin-top:0!important;gap:0!important}
+  .side .nav a{height:44px;width:44px;flex:none;padding:0!important;justify-content:center;border-radius:10px}
+  .side .nl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;display:block}
+  .side .nav a.on{background:#E3F1EE;color:#0F766E}
+  .mainc{padding-bottom:72px}
+  .top{padding:12px 12px!important;gap:8px!important}
+  .top h1{font-size:16px!important}
+  .top .in{width:100%!important}
+  .tabs{flex-wrap:nowrap!important;overflow-x:auto;max-width:100%;margin-left:0!important;padding-bottom:2px}
+  .tabs a{flex:none}
+  .content{padding:12px!important;gap:12px!important}
+  .cpanel{max-width:none!important;flex:1 1 100%!important}
+}
+@media (min-width:768px) and (max-width:1100px){
+  .cpanel{max-width:none!important}
+}
+
+/* responsive phone fixes */
+@media (max-width:767px){
+  .app{flex-wrap:nowrap!important}
+  .mainc{width:100%;max-width:100%}
+  .content > *{min-width:0;max-width:100%}
+  .content .in,.content select,.content input,.content textarea{max-width:100%;min-width:0}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+  .sc-host [style*="flex: 1 1"]{min-width:0}
+  .sc-host select.in,.sc-host input.in{width:0;min-width:100%}
+  .sc-host .mono{overflow-wrap:anywhere}
+  .sc-host .sk{max-width:100%}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px;max-width:100%}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host .tabs .badge{white-space:nowrap}
+  .sc-host .side .btn{white-space:nowrap}
+  .sc-host [style*="grid-template-columns: repeat("]{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))!important}
+  .sc-host [style*="minmax(260px"],.sc-host [style*="minmax(280px"],.sc-host [style*="minmax(300px"],.sc-host [style*="minmax(320px"],.sc-host [style*="minmax(340px"],.sc-host [style*="minmax(360px"],.sc-host [style*="minmax(380px"],.sc-host [style*="minmax(420px"]{grid-template-columns:1fr!important}
+  .sc-host [style*="radial-gradient"]{overflow:auto}
+  .sc-host [style*="display: grid"] > *{min-width:0}
+  .sc-host header > div{max-width:100%;min-width:0}
+  .sc-host pre,.sc-host .lines{max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]) > div[style*="flex: 1"]{min-width:120px}
+}
+
+/* accessibility */
+:focus-visible{outline:2px solid #0F766E;outline-offset:2px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-9999px;top:8px;z-index:100;background:#fff;color:#0B1220;padding:8px 12px;border-radius:8px;border:1px solid #0F766E;font-weight:600;text-decoration:none}
+.skip:focus{left:8px}
+p a:not(.btn),span a:not(.btn):not([style*="color"]),td a:not(.btn):not([style*="color"]),li a:not(.btn),label a,.k a,.lead a{text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+.content > * a:not(.btn):not(p a):not(span a):not(td a):not(li a):not(label a):not(.k a),.top a:not(.btn),nav a:not(.btn),footer a:not(.btn){min-height:24px;display:inline-flex;align-items:center}
+input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F766E}
+.in,select.in,textarea.in,input.in{border-color:#8B94A3}
+@media (max-width:767px){
+  .sc-host{overflow-wrap:anywhere}
+  .sc-host table,.sc-host td,.sc-host th{overflow-wrap:normal}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+}
+
+/* expansion components (phases 1-8) */
+.num,.tbl td.r{font-variant-numeric:tabular-nums}
+.tbl th.r,.tbl td.r{text-align:right}
+.tbl tr.sel td{background:#F0FDFA}
+.tbl tr.xp td{background:#FBFBFC}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.stat{padding:14px 16px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.stat .v{font-size:22px;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums;line-height:1.25;margin-top:2px}
+.stat .s{font-size:12px;color:#5B6472;font-weight:500}
+.stat.hot{border-color:#FCA5A5;background:#FFF5F5}
+.strip{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;background:#0B1220;color:#fff;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.sk{background:#E9ECF0;border-radius:6px;display:inline-block}
+.bar{height:6px;border-radius:3px;background:#EEF0F3;overflow:hidden}.bar i{display:block;height:100%;border-radius:3px}
+.ptab{display:flex;border-bottom:1px solid #E3E6EB}
+.ptab button{flex:1;height:38px;border:0;background:none;font:inherit;font-size:12.5px;font-weight:600;color:#5B6472;cursor:pointer;border-bottom:2px solid transparent;padding:0 6px;white-space:nowrap}
+.ptab button.on{color:#0B1220;border-bottom-color:#0F766E}
+.seg{display:inline-flex;border:1px solid #D4D8DF;border-radius:8px;overflow:hidden;flex:none}
+.seg button{height:30px;padding:0 11px;border:0;background:#fff;font:inherit;font-size:12px;font-weight:600;color:#4B5563;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.seg button + button{border-left:1px solid #E3E6EB}
+.seg button.on{background:#0B1220;color:#fff}
+.cbx{border-radius:10px;overflow:hidden;border:1px solid #1F2937;background:#0B1220;min-width:0}
+.cbh{display:flex;align-items:center;gap:2px;padding:6px 8px;border-bottom:1px solid #1F2937;background:#111827;flex-wrap:wrap}
+.cbh button{height:28px;padding:0 10px;border:0;border-radius:6px;background:none;color:#B4BAC4;font:inherit;font-size:12px;font-weight:600;cursor:pointer}
+.cbh button.on{background:#273244;color:#fff}
+.cbh .cp{margin-left:auto;display:inline-flex;align-items:center;gap:6px;color:#E5E7EB;border:1px solid #374151}
+.cbx pre{margin:0;padding:12px 14px;font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace;font-size:12.5px;line-height:1.6;color:#E5E7EB;white-space:pre-wrap;overflow-wrap:anywhere}
+.cbx .c1{color:#93C5FD}.cbx .c2{color:#86EFAC}.cbx .c3{color:#FCD34D}.cbx .c4{color:#9CA3AF}.cbx .c5{color:#F9A8D4}
+.cbx .cm{color:#9CA3AF}
+.ev{display:flex;gap:14px;align-items:flex-start;padding:12px 0;border-top:1px solid #EEF0F3}
+.ev:first-child{border-top:0}
+.ev .ic{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.ev .tx{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.ev .tm{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;color:#5B6472;flex:none;padding-top:5px}
+.spin{width:14px;height:14px;border-radius:50%;border:2px solid #C9CED6;border-top-color:#0F766E;flex:none;display:inline-block}
+.mask{display:inline-flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;color:#4B5563;white-space:nowrap}
+.mask svg{flex:none}
+.tok{display:inline-flex;align-items:center;gap:4px;padding:0 6px;border-radius:5px;background:#EDE9FE;color:#5B21B6;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:.86em;font-weight:500;line-height:1.55;white-space:nowrap;vertical-align:baseline}
+.tok.s{background:#FEF3C7;color:#92400E}
+.tok.e{background:#FEE2E2;color:#991B1B;text-decoration:underline wavy #DC2626;text-underline-offset:3px}
+.mk{display:inline-flex;align-items:center;height:22px;padding:0 7px;border-radius:6px;background:#EEF0F3;color:#374151;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;white-space:nowrap}
+.toast{display:flex;gap:12px;align-items:center;padding:10px 12px 10px 14px;border-radius:10px;background:#0B1220;color:#fff;font-size:13.5px;box-shadow:0 12px 30px rgba(11,18,32,.25);max-width:520px;box-sizing:border-box}
+.toast .t{flex:1;min-width:0}
+.toast .k{color:#C3C2B7}
+.toast .btn{min-height:28px;padding:0 10px;font-size:12px;background:transparent;border-color:#4B5563;color:#fff}
+.toast .x{width:28px;height:28px;border:0;background:transparent;color:#9CA3AF;border-radius:6px;font-size:16px;cursor:pointer}
+.ti{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.scrim{position:absolute;inset:0;background:rgba(11,18,32,.32);z-index:55}
+.drw{position:absolute;top:0;right:0;bottom:0;width:600px;max-width:100%;background:#fff;border-left:1px solid #E3E6EB;box-shadow:-18px 0 40px rgba(11,18,32,.18);z-index:60;display:flex;flex-direction:column;box-sizing:border-box;overflow:hidden}
+.drw .dwh{display:flex;align-items:flex-start;gap:12px;padding:18px 22px 14px;border-bottom:1px solid #EEF0F3}
+.drw .dwb{padding:18px 22px;display:flex;flex-direction:column;gap:18px;overflow:auto}
+.drw h3{margin:0;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472}
+.empty{padding:44px 28px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;border-style:dashed}
+.empty .tt{font-size:18px;font-weight:700;letter-spacing:-.01em}
+.empty .ds{color:#4B5563;max-width:560px}
+.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:14px 18px;border-bottom:1px solid #EEF0F3}
+.fchips{display:flex;gap:6px;flex-wrap:wrap;padding:12px 18px;border-bottom:1px solid #EEF0F3}
+.fchip{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:999px;border:1px solid #D4D8DF;background:#fff;font:inherit;font-size:12.5px;font-weight:600;color:#374151;cursor:pointer;white-space:nowrap}
+.fchip b{font-weight:600;color:#5B6472;font-variant-numeric:tabular-nums}
+.fchip.on{background:#0B1220;border-color:#0B1220;color:#fff}.fchip.on b{color:#C9CED6}
+.live{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:#166534}
+.live .dot{box-shadow:0 0 0 4px rgba(22,101,52,.15)}
+.foot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid #EEF0F3}
+.spark{display:block}
+.lnk{display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:13px}
+.ttl{margin:0;font-size:22px;font-weight:700;letter-spacing:-.02em;line-height:1.2}
+.lead{margin:0;color:#4B5563;font-size:14px;max-width:760px}
+.state-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(460px,100%),1fr));gap:16px;align-items:start}
+.flowr{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px}
+.flowr .arw{color:#9AA3B2}
+.pill{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:8px;border:1px solid #E3E6EB;background:#F9FAFB;font-size:12.5px;font-weight:600;white-space:nowrap}
+.vline{display:flex;gap:10px;align-items:baseline;padding:8px 0;border-top:1px solid #EEF0F3;font-size:13px}
+.vline:first-child{border-top:0}
+.hl{background:#FEF2F2;box-shadow:inset 3px 0 0 #DC2626}
+.lines{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;line-height:1.7;background:#0B1220;color:#E5E7EB;border-radius:8px;overflow:hidden}
+.lines div{display:flex;gap:12px;padding:0 12px}
+.lines .ln{color:#9CA3AF;width:22px;text-align:right;flex:none;user-select:none}
+.lines .er{background:rgba(220,38,38,.22)}
+.callout{position:absolute;z-index:5}
+.only-phone{display:none}
+@media (max-width:1100px){.drw{width:520px}}
+@media (max-width:767px){.drw{width:100%;border-left:0}.stats{grid-template-columns:repeat(2,minmax(0,1fr))!important}.ttl{font-size:19px}}
+
+.av{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex:none}
+.row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.row > *{min-width:0}
+.card{background:#FFFFFF;border:1px solid #E3E6EB;border-radius:10px}
+.h2{margin:0;font-size:15px;font-weight:600}
+.lbl{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:#4B5563}
+.note{display:flex;gap:8px 10px;align-items:flex-start;flex-wrap:wrap;padding:10px 12px;border-radius:8px;font-size:12.5px;line-height:1.45}
+.note > :last-child{flex:1 1 220px;min-width:0}
+.note.i{background:#EFF6FF;border:1px solid #BFDBFE;color:#1E3A8A}
+.note.w{background:#FFFBEB;border:1px solid #FCD34D;color:#78350F}
+.note.b{background:#FFF5F5;border:1px solid #FCA5A5;color:#7F1D1D}
+.note.g{background:#F0FDF4;border:1px solid #BBF7D0;color:#14532D}
+.note.n{background:#F3F4F6;border:1px solid #E3E6EB;color:#374151}
+.btn.sm{min-height:28px;padding:0 10px;font-size:12px}
+.btn:disabled,.btn[aria-disabled="true"]{opacity:.55;cursor:not-allowed}
+.btn.danger{color:#991B1B;border-color:#FCA5A5}
+.kv{display:grid;grid-template-columns:max-content 1fr;gap:6px 14px;font-size:12.5px;margin:0}
+.kv dt{color:#5B6472;font-weight:500;margin:0}.kv dd{margin:0;min-width:0}
+.chip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px;border-radius:999px;border:1px solid #D4D8DF;background:#fff;font-size:12px;font-weight:500;white-space:nowrap}
+.code{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace;font-size:12px;background:#0B1220;color:#E5E7EB;border-radius:8px;padding:10px 12px;white-space:pre-wrap;overflow-wrap:anywhere;margin:0}
+.diff{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;border:1px solid #E3E6EB;border-radius:8px;overflow:hidden}
+.diff div{padding:6px 12px;white-space:pre-wrap;overflow-wrap:anywhere}
+.diff .del{background:#FEF2F2;color:#991B1B}.diff .add{background:#F0FDF4;color:#166534}.diff .ctx{color:#4B5563}
+input[type=checkbox].tg{appearance:none;-webkit-appearance:none;width:36px;height:22px;border-radius:999px;background:#6B7280;position:relative;cursor:pointer;flex:none;margin:0;border:0}
+input[type=checkbox].tg::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff}
+input[type=checkbox].tg:checked{background:#0F766E}input[type=checkbox].tg:checked::after{left:16px}
+.ovl{position:absolute;inset:0;background:rgba(11,18,32,.45);display:flex;align-items:flex-start;justify-content:center;padding:64px 16px;box-sizing:border-box;z-index:60}
+.dlg{width:100%;max-width:640px;display:flex;flex-direction:column;background:#fff;border-radius:12px;box-shadow:0 24px 60px rgba(11,18,32,.3);font-size:13.5px}
+.dh{padding:18px 22px 0;display:flex;flex-direction:column;gap:6px}
+.db{padding:16px 22px;display:flex;flex-direction:column;gap:14px}
+.df{padding:14px 22px 18px;display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;border-top:1px solid #EEF0F3;align-items:center}
+.vrow{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border:1px solid #E3E6EB;border-radius:8px;background:#fff}
+.vrow.on{border-color:#0F766E;box-shadow:0 0 0 1px #0F766E}
+.vname{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;font-weight:600;color:#0B1220}
+.pbody{display:flex;flex-direction:column;gap:10px;padding:12px}
+.chk{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-top:1px solid #EEF0F3;font-size:12.5px}
+.chk:first-child{border-top:0}
+.idchip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 9px;border-radius:7px;background:#F3F4F6;border:1px solid #E3E6EB;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;color:#374151;white-space:nowrap}
+.radio{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid #E3E6EB;border-radius:8px;cursor:pointer}
+.radio.on{border-color:#0F766E;background:#F0FDFA}
+.radio input{margin-top:2px}
+
+/* phase 7a: the publication website (publisher branding: indigo #4338CA, lavender #F5F3FF). Container queries keep one markup for every width. */
+.st{container-type:inline-size;background:#fff;color:#1F2937;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:16px;line-height:1.55;text-align:left}
+.st *{box-sizing:border-box}
+.st a{color:#4338CA;text-decoration:none}
+.st a:hover{color:#3730A3}
+.st p{margin:0}
+.st-w{max-width:1200px;margin:0 auto;padding-left:48px;padding-right:48px}
+.st-col{max-width:680px;margin:0 auto}
+.st-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 16px;border-radius:9px;background:#4338CA;color:#fff!important;font:inherit;font-weight:700;font-size:14px;border:0;cursor:pointer;white-space:nowrap;text-decoration:none!important;flex:none}
+.st-btn:hover{background:#3730A3}
+.st-btn.lg{height:46px;padding:0 20px;font-size:15px}
+.st-btn.sm{height:34px;padding:0 12px;font-size:13px}
+.st-btn.full{width:100%}
+.st-btn2{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 16px;border-radius:9px;border:1px solid #C9CED6;background:#fff;color:#1F2937!important;font:inherit;font-weight:700;font-size:14px;cursor:pointer;white-space:nowrap;text-decoration:none!important;flex:none}
+.st-btn2.sm{height:34px;padding:0 12px;font-size:13px}
+.st-btn2.lg{height:46px;padding:0 20px;font-size:15px}
+.st-in{height:44px;padding:0 14px;border:1px solid #8B94A3;border-radius:9px;font:inherit;font-size:15px;background:#fff;color:#0B1220;min-width:0;width:100%}
+.st-in.lg{height:48px}
+.st-lnk{font-weight:600;text-decoration:underline!important;text-underline-offset:3px;text-decoration-thickness:1px}
+.st-mut{color:#5B6472}
+.st-sm{font-size:13.5px}
+.st-k{font-size:13px;color:#5B6472}
+.st-cov{display:block;width:100%;height:auto}
+/* header */
+.st-hd{background:#fff;border-bottom:1px solid #E3E6EB;position:relative;z-index:2}
+.st-hdi{display:flex;align-items:center;gap:24px;min-height:72px;flex-wrap:nowrap}
+.st-brand{display:inline-flex;align-items:center;gap:10px;color:#0B1220!important;font-weight:700;font-size:17px;letter-spacing:-.01em;flex:none;white-space:nowrap}
+.st-mark{width:36px;height:36px;border-radius:9px;background:#0B1220;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;flex:none}
+.st-brand .short{display:none}
+.st-nav{display:flex;gap:2px;flex:1;min-width:0}
+.st-nav a{height:38px;padding:0 12px;border-radius:8px;display:inline-flex;align-items:center;color:#374151;font-weight:500;font-size:14.5px;white-space:nowrap;flex:none}
+.st-nav a:hover{background:#F5F3FF;color:#3730A3}
+.st-nav a.on{color:#3730A3;background:#F5F3FF;font-weight:600}
+.st-act{display:flex;align-items:center;gap:10px;margin-left:auto;flex:none}
+.st-menu{display:none;width:40px;height:40px;border-radius:9px;border:1px solid #C9CED6;background:#fff;color:#1F2937;align-items:center;justify-content:center;cursor:pointer;padding:0;flex:none}
+.st-me{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 10px 0 4px;border-radius:999px;border:1px solid #C9CED6;background:#fff;color:#1F2937!important;font:inherit;font-size:14px;font-weight:600;cursor:pointer;flex:none}
+.st-av{width:32px;height:32px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex:none}
+/* bands and sections */
+.st-band{background:#F5F3FF}
+.st-sec{padding-top:56px;padding-bottom:56px}
+.st-h2{margin:0;font-size:26px;line-height:1.2;letter-spacing:-.02em;font-weight:700;color:#0B1220}
+.st-h3{margin:0;font-size:19px;line-height:1.3;letter-spacing:-.01em;font-weight:700;color:#0B1220}
+.st-head{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:24px}
+.st-hero{padding-top:64px;padding-bottom:60px;text-align:center}
+.st-hero h1,.st-hero .st-ht{margin:0;font-size:52px;line-height:1.06;letter-spacing:-.03em;font-weight:700;color:#0B1220}
+.st-hero .tl{margin:16px auto 0;font-size:20px;line-height:1.5;color:#4B5563;max-width:620px}
+.st-sub{display:flex;gap:10px;max-width:520px;margin:28px auto 0}
+.st-sub .st-in{flex:1}
+.st .st-subnote{margin-top:14px;font-size:13.5px;color:#5B6472}
+/* labels */
+.st-lb{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 9px;border-radius:999px;font-size:12.5px;font-weight:600;white-space:nowrap;flex:none}
+.st-lb.ins{background:#EDE9FE;color:#3730A3}
+.st-lb.mem{background:#EEF0F3;color:#374151}
+.st-tag{display:inline-flex;align-items:center;font-size:13px;font-weight:600;color:#4338CA!important;white-space:nowrap}
+.st-meta{display:flex;align-items:center;gap:8px 10px;flex-wrap:wrap;font-size:13.5px;color:#5B6472}
+.st-meta .sep{color:#5B6472}
+.st-meta .ds{display:none}
+.st-sc .tx{display:flex;flex-direction:column;gap:8px;min-width:0}
+/* post cards */
+.st-feat{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:32px}
+.st-fc{display:flex;flex-direction:column;gap:14px;color:#1F2937!important;min-width:0}
+.st-fc h3{margin:0;font-size:25px;line-height:1.2;letter-spacing:-.02em;color:#0B1220}
+.st-fc .ex{font-size:16.5px;line-height:1.6;color:#4B5563}
+.st-list{display:flex;flex-direction:column}
+.st-row{display:flex;gap:28px;align-items:flex-start;padding:24px 0;border-top:1px solid #E3E6EB;color:#1F2937!important}
+.st-row:first-child{border-top:0;padding-top:4px}
+.st-row .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px}
+.st-row h3{margin:0;font-size:21px;line-height:1.3;letter-spacing:-.015em;color:#0B1220}
+.st-row .ex{font-size:15.5px;line-height:1.6;color:#4B5563}
+.st-row .th{width:200px;flex:none}
+.st-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:28px}
+.st-sc{display:flex;flex-direction:column;gap:10px;color:#1F2937!important;min-width:0}
+.st-sc h3{margin:0;font-size:18px;line-height:1.3;letter-spacing:-.01em;color:#0B1220}
+/* article */
+.st-art{padding:56px 0 8px}
+.st-kick{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:18px}
+.st-title{margin:0;font-size:46px;line-height:1.1;letter-spacing:-.03em;font-weight:700;color:#0B1220}
+.st .st-dek{margin:18px 0 0;font-size:21px;line-height:1.5;color:#4B5563}
+.st-by{display:flex;align-items:center;gap:12px;margin-top:26px;font-size:14.5px;color:#5B6472;flex-wrap:wrap}
+.st-by b{color:#0B1220;font-weight:600}
+.st-hero-img{max-width:1000px;margin:40px auto 0;padding:0 48px}
+.st-body{font-size:19px;line-height:1.75;color:#1F2937;margin-top:40px}
+.st-body p{margin:0 0 26px}
+.st-body h2{font-size:27px;line-height:1.25;letter-spacing:-.02em;margin:46px 0 14px;color:#0B1220}
+.st-body ol{margin:0 0 26px;padding-left:26px}
+.st-body li{margin-bottom:8px}
+.st-body code{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:.86em;background:#F5F3FF;border-radius:5px;padding:1px 6px;color:#3730A3}
+.st-pre{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:14.5px;line-height:1.65;background:#0B1220;color:#E5E7EB;border-radius:12px;padding:18px 20px;margin:0 0 26px;white-space:pre-wrap;overflow-wrap:anywhere}
+/* notes on the page */
+.st-note{display:flex;gap:12px;align-items:flex-start;padding:14px 18px;border-radius:12px;border:1px solid #DDD6FE;background:#F5F3FF;font-size:15px;line-height:1.55;color:#1F2937}
+.st-note > svg{flex:none;margin-top:3px}
+.st-note .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.st-note .acts{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:8px}
+/* paywall card */
+.st-pw{border:1px solid #DDD6FE;background:#F5F3FF;border-radius:16px;padding:32px;display:flex;flex-direction:column;gap:20px;margin:6px 0 8px}
+.st-pw .hd{display:flex;flex-direction:column;gap:8px}
+.st-pw h2{margin:0;font-size:26px;line-height:1.2;letter-spacing:-.02em;color:#0B1220}
+.st-pw .lead{font-size:16.5px;line-height:1.55;color:#374151}
+.st-tiers{display:flex;flex-direction:column;gap:12px}
+.st-tier{display:flex;align-items:center;gap:16px;padding:16px 18px;background:#fff;border:1px solid #DDD6FE;border-radius:12px;flex-wrap:wrap}
+.st-tier.hi{border-color:#4338CA;box-shadow:0 0 0 1px #4338CA}
+.st-tier .tn{flex:1 1 260px;min-width:0;display:flex;flex-direction:column;gap:3px}
+.st-tier .nm{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-weight:700;font-size:16.5px;color:#0B1220}
+.st-tier .pr{font-size:15px;color:#1F2937}
+.st-tier .pr b{font-weight:700}
+.st-free{display:flex;flex-direction:column;gap:12px;padding-top:20px;border-top:1px solid #DDD6FE}
+.st-free .frm{display:flex;gap:10px}
+.st-free .frm .st-in{flex:1}
+.st-chk{display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.45;color:#374151}
+.st-chk input{margin-top:3px;accent-color:#4338CA;flex:none;width:16px;height:16px}
+.st-chks{display:flex;flex-direction:column;gap:8px}
+.st-pwf{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:14.5px;color:#374151}
+/* tiers band */
+.st-tc{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;align-items:stretch}
+.st-tcard{background:#fff;border:1px solid #E3E6EB;border-radius:16px;padding:26px;display:flex;flex-direction:column;gap:14px;position:relative}
+.st-tcard.hi{border-color:#4338CA;box-shadow:0 0 0 1px #4338CA}
+.st-tcard .pop{position:absolute;top:-12px;left:24px;height:24px;padding:0 10px;border-radius:999px;background:#4338CA;color:#fff;font-size:12px;font-weight:700;display:inline-flex;align-items:center}
+.st-tcard .nm{font-weight:700;font-size:18px;color:#0B1220}
+.st-tcard .pr{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
+.st-tcard .pr b{font-size:34px;letter-spacing:-.02em;color:#0B1220;line-height:1}
+.st-tcard ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:9px;font-size:15px;line-height:1.45;flex:1}
+.st-tcard li{display:flex;gap:9px;align-items:flex-start}
+.st-tcard li svg{flex:none;margin-top:3px}
+.st-seg{display:inline-flex;border:1px solid #C9CED6;border-radius:999px;padding:3px;background:#fff}
+.st-seg button{height:32px;padding:0 14px;border:0;border-radius:999px;background:none;font:inherit;font-size:13.5px;font-weight:600;color:#374151;cursor:pointer}
+.st-seg button.on{background:#0B1220;color:#fff}
+/* subscribe band and about */
+.st-subband{display:flex;gap:40px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.st-subband .tx{flex:1 1 380px;min-width:0;display:flex;flex-direction:column;gap:8px}
+.st-subband form{flex:1 1 420px;display:flex;flex-direction:column;gap:10px;max-width:520px}
+.st-subband .frm{display:flex;gap:10px}
+.st-subband .frm .st-in{flex:1}
+.st-about{display:flex;gap:28px;align-items:flex-start}
+.st-about .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:12px;font-size:17px;line-height:1.65;color:#374151}
+/* footer */
+.st-ft{border-top:1px solid #E3E6EB;background:#fff;padding:36px 0 40px}
+.st-fti{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;align-items:flex-start}
+.st-ftl{display:flex;gap:6px 20px;flex-wrap:wrap;font-size:14px}
+.st-ftl a{color:#4B5563!important}
+.st-rc{display:inline-flex;align-items:center;gap:6px}
+/* account */
+.st-acct{display:grid;grid-template-columns:220px minmax(0,1fr);gap:48px;align-items:start}
+.st-side{display:flex;flex-direction:column;gap:2px;position:sticky;top:24px}
+.st-side a{display:flex;align-items:center;gap:10px;height:40px;padding:0 12px;border-radius:9px;color:#374151!important;font-weight:500;font-size:14.5px}
+.st-side a.on{background:#F5F3FF;color:#3730A3!important;font-weight:600}
+.st-card{background:#fff;border:1px solid #E3E6EB;border-radius:16px;padding:26px 28px;display:flex;flex-direction:column;gap:18px}
+.st-card h2{margin:0;font-size:20px;line-height:1.3;letter-spacing:-.01em;color:#0B1220}
+.st-card .ch{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.st-line{display:flex;align-items:center;gap:14px;padding:14px 0;border-top:1px solid #EEF0F3;flex-wrap:wrap}
+.st-line:first-child{border-top:0;padding-top:0}
+.st-line .tx{flex:1 1 260px;min-width:0;display:flex;flex-direction:column;gap:3px}
+.st-line .tx b{font-weight:600;color:#0B1220}
+.st-line .pg{display:flex;gap:14px;align-items:flex-start;flex:1 1 320px;min-width:0}
+input[type=checkbox].st-sw{appearance:none;-webkit-appearance:none;width:44px;height:26px;border-radius:999px;background:#8B94A3;position:relative;cursor:pointer;flex:none;margin:0;border:0}
+input[type=checkbox].st-sw::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff}
+input[type=checkbox].st-sw:checked{background:#4338CA}input[type=checkbox].st-sw:checked::after{left:21px}
+.st-pill{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 14px;border:1px solid #C9CED6;border-radius:9px;background:#fff;font-size:14px;font-weight:500;color:#1F2937;cursor:pointer}
+.st-pill.on{border-color:#4338CA;background:#F5F3FF;font-weight:600}
+.st-pill input{accent-color:#4338CA;margin:0}
+.st-pills{display:flex;gap:8px;flex-wrap:wrap}
+.st-code{display:flex;gap:8px}
+.st-code input{width:48px;height:56px;border:1px solid #8B94A3;border-radius:10px;text-align:center;font:inherit;font-size:24px;font-weight:600;color:#0B1220;background:#fff;padding:0;min-width:0;font-variant-numeric:tabular-nums}
+.st-code input.bad{border-color:#DC2626;background:#FFF5F5}
+.st-err{display:flex;gap:8px;align-items:flex-start;font-size:14.5px;color:#991B1B;font-weight:500}
+.st-err svg{flex:none;margin-top:3px}
+.st-toast{display:flex;gap:12px;align-items:center;padding:12px 14px 12px 16px;border-radius:12px;background:#0B1220;color:#fff;font-size:14.5px;box-shadow:0 12px 30px rgba(11,18,32,.25);max-width:460px}
+.st-toast .t{flex:1;min-width:0}
+.st-toast .x{width:30px;height:30px;border:0;background:transparent;color:#C9CED6;border-radius:6px;font-size:18px;cursor:pointer;flex:none}
+.st-center{min-height:520px;display:flex;align-items:flex-start;justify-content:center;padding:64px 24px}
+.st-auth{width:100%;max-width:460px;background:#fff;border:1px solid #E3E6EB;border-radius:16px;padding:32px;display:flex;flex-direction:column;gap:18px}
+.st-auth h1,.st-auth .st-ht{margin:0;font-size:28px;line-height:1.15;letter-spacing:-.02em;color:#0B1220}
+.st-lbl{display:flex;flex-direction:column;gap:6px;font-size:14px;font-weight:600;color:#1F2937}
+.st-pager{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding-top:20px;border-top:1px solid #E3E6EB;font-size:14px;color:#5B6472}
+.st-search{display:flex;align-items:center;gap:10px;height:48px;padding:0 14px;border:1px solid #8B94A3;border-radius:10px;background:#fff}
+.st-search input{border:0;outline:0;font:inherit;font-size:16px;flex:1;min-width:0;background:none;color:#0B1220}
+.st-chipr{display:flex;gap:8px;flex-wrap:wrap}
+.st-chip{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 13px;border-radius:999px;border:1px solid #C9CED6;background:#fff;font-size:13.5px;font-weight:600;color:#374151!important}
+.st-chip.on{background:#0B1220;border-color:#0B1220;color:#fff!important}
+mark.st-hl{background:#EDE9FE;color:#3730A3;border-radius:3px;padding:0 2px}
+/* narrow (tablet, small windows): the navigation moves to its own scrolling row */
+@container (max-width:1079px){
+  .st-w{padding-left:32px;padding-right:32px}
+  .st-hdi{flex-wrap:wrap;min-height:0;padding-top:14px;row-gap:6px}
+  .st-nav{order:3;flex:1 1 100%;overflow-x:auto;margin:0 -12px;padding-bottom:6px}
+  .st-hero h1,.st-hero .st-ht{font-size:44px}
+  .st-cards{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .st-cards > :nth-child(3){display:none}
+  .st-tc{grid-template-columns:1fr;max-width:560px;margin:0 auto}
+  .st-acct{grid-template-columns:1fr;gap:24px}
+  .st-side{position:static;flex-direction:row;flex-wrap:wrap;gap:4px}
+  .st-side a{flex:none}
+  .st-hero-img{padding:0 32px}
+}
+@container (max-width:759px){
+  .st-feat{grid-template-columns:1fr;gap:36px}
+  .st-row .th{width:132px}
+  .st-title{font-size:38px}
+}
+/* phones */
+@container (max-width:599px){
+  .st-w{padding-left:18px;padding-right:18px}
+  .st-hdi{flex-wrap:nowrap;min-height:60px;padding-top:0;gap:10px}
+  .st-nav{display:none}
+  .st-menu{display:inline-flex}
+  .st-brand .full{display:none}.st-brand .short{display:inline}
+  .st-mark{width:32px;height:32px;font-size:14px}
+  .st-act{gap:8px}
+  .st-act .st-signin{padding:0 10px}
+  .st-act .st-btn,.st-act .st-btn2{height:38px;padding:0 12px;font-size:13.5px}
+  .st-me{padding:0 4px;height:38px}.st-me .nm{display:none}
+  .st-hero{padding-top:40px;padding-bottom:36px}
+  .st-hero h1,.st-hero .st-ht{font-size:34px}
+  .st-hero .tl{font-size:17px}
+  .st-sub,.st-subband .frm,.st-free .frm{flex-direction:column}
+  .st-sub .st-in,.st-subband .frm .st-in,.st-free .frm .st-in{flex:none}
+  .st-free .st-btn2{width:100%;height:46px}
+  .st-sub .st-btn,.st-subband .st-btn,.st-free .st-btn{width:100%;height:46px}
+  .st-sec{padding-top:36px;padding-bottom:36px}
+  .st-h2{font-size:22px}
+  .st-fc h3{font-size:21px}
+  .st-row{gap:14px;padding:20px 0}
+  .st-row .th{width:88px}
+  .st-row h3{font-size:18px}
+  .st-row .ex{display:none}
+  .st-cards{grid-template-columns:1fr;gap:20px}
+  .st-cards > :nth-child(3){display:flex}
+  .st-sc{flex-direction:row;gap:14px;align-items:flex-start}
+  .st-sc .cv{width:112px;flex:none}
+  .st-sc h3{font-size:16.5px}
+  .st-meta .dl{display:none}.st-meta .ds{display:inline}
+  .st-art{padding:32px 0 4px}
+  .st-title{font-size:31px}
+  .st .st-dek{font-size:17.5px}
+  .st-hero-img{padding:0;margin-top:26px}
+  .st-hero-img .st-cov{border-radius:0!important}
+  .st-body{font-size:17.5px;margin-top:28px}
+  .st-body h2{font-size:23px}
+  .st-pw{padding:22px 18px;border-radius:14px}
+  .st-pw h2{font-size:22px}
+  .st-tier{gap:12px;padding:14px}
+  .st-tier .st-btn,.st-tier .st-btn2{width:100%}
+  .st-tcard{padding:22px}
+  .st-card{padding:20px 18px;border-radius:14px}
+  .st-auth{padding:24px 20px}
+  .st-center{padding:32px 16px;min-height:0}
+  .st-code input{width:44px;height:52px;font-size:22px}
+  .st-about{flex-direction:column;gap:14px}
+  .st-side{display:none}
+}
+
+/* phase 7a: website (app side) */
+.vis{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:#374151;white-space:nowrap}
+.stk{display:inline-flex;flex-direction:column;align-items:flex-start;gap:3px}
+.ptbl .stk .k{max-width:230px}
+.wvbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.wvp{display:flex;gap:6px;flex-wrap:wrap}
+.wvp a.fchip{color:#374151;text-decoration:none}
+.wvp a.fchip.on{color:#fff}
+.wvr{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ptitle{display:flex;flex-direction:column;gap:3px;min-width:300px;max-width:400px}
+.ptitle a{color:#0B1220;font-weight:600;line-height:1.35}
+.ptitle .ex{font-size:12.5px;color:#5B6472;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.src{display:flex;flex-direction:column;gap:2px;min-width:0}
+.src .k{white-space:nowrap}
+.tagc{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:6px;background:#F3F4F6;border:1px solid #E3E6EB;font-size:12px;font-weight:500;color:#374151;white-space:nowrap}
+.tags{display:flex;gap:4px;flex-wrap:wrap}
+.ibtn.sm{width:30px;height:30px}
+.rowmenu{position:absolute;right:0;top:calc(100% + 4px);z-index:30}
+.thumbs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.thumb{display:flex;flex-direction:column;gap:8px;padding:10px;border:1px solid #E3E6EB;border-radius:10px;background:#fff;font:inherit;font-size:12.5px;font-weight:600;color:#0B1220;text-align:left;cursor:pointer;min-width:0}
+.thumb.on{border-color:#0F766E;box-shadow:0 0 0 1px #0F766E;background:#F0FDFA}
+.thumb:disabled{cursor:not-allowed}.thumb:disabled:not(.on){opacity:.55}
+.seg button:disabled{opacity:.45;cursor:not-allowed}
+input[type=checkbox].tg:disabled{opacity:.5;cursor:not-allowed}
+.thumb .tv{height:84px;border-radius:7px;background:#F5F3FF;border:1px solid #EDE9FE;position:relative;overflow:hidden}
+.wf{position:absolute;border-radius:2px;background:#DDD6FE}
+.wf.i{background:#4338CA}.wf.w{background:#fff;border:1px solid #DDD6FE}.wf.g{background:#C9CED6}
+.drag{display:flex;align-items:center;gap:10px;padding:9px 10px;border:1px solid #E3E6EB;border-radius:8px;background:#fff;min-width:0}
+.drag .gr{color:#9AA3B2;cursor:grab;flex:none;display:inline-flex}
+.drag .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.drag .tx b{font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dlist{display:flex;flex-direction:column;gap:6px}
+.setr{display:flex;gap:16px;align-items:flex-start;justify-content:space-between;padding:14px 18px;border-top:1px solid #EEF0F3;flex-wrap:wrap}
+.setr .tx{display:flex;flex-direction:column;gap:3px;flex:1 1 300px;min-width:0}
+.setr .tx b{font-weight:600}
+.setr .ct{flex:none;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.numin{width:64px;text-align:center;font-variant-numeric:tabular-nums}
+.preview-pane{background:#E9ECF0;border-radius:0 0 10px 10px;padding:18px;display:flex;gap:16px;align-items:flex-start;overflow:hidden;position:relative}
+.bframe{background:#fff;border:1px solid #D4D8DF;border-radius:10px;overflow:hidden;box-shadow:0 8px 24px rgba(11,18,32,.10);min-width:0}
+.bbar{display:flex;align-items:center;gap:8px;height:34px;padding:0 10px;background:#F3F4F6;border-bottom:1px solid #E3E6EB}
+.bbar .u{flex:1;min-width:0;height:22px;border-radius:6px;background:#fff;border:1px solid #E3E6EB;display:flex;align-items:center;gap:6px;padding:0 8px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11.5px;color:#4B5563;white-space:nowrap;overflow:hidden}
+.pframe{background:#fff;border:6px solid #0B1220;border-radius:26px;overflow:hidden;box-shadow:0 12px 28px rgba(11,18,32,.18);flex:none}
+.zoom{overflow:hidden}
+.wchip{gap:8px}
+.wchip .wcs{display:inline-flex;align-items:center;gap:6px;color:#4B5563;font-weight:500;border-left:1px solid #E3E6EB;padding-left:8px}
+.chkl{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-top:1px solid #EEF0F3;font-size:13px}
+.chkl:first-child{border-top:0}
+.chkl > svg{margin-top:2px;flex:none}
+.chkl .tx{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+.prog{display:flex;flex-direction:column;gap:6px}
+.dz{border:1px solid #FCA5A5;border-radius:10px}
+@media (max-width:1100px){.hide-md{display:none!important}.side .sidefoot > a:not(.btn),.side .sidefoot > div{display:none!important}}
+@media (max-width:767px){.thumbs{grid-template-columns:repeat(3,minmax(0,1fr))!important}.tags{max-width:none}}
+
+/* phase 7a: the composer in post mode, the Web tab and the free preview marker */
+.ced{display:flex;flex-direction:column;background:#F3F4F6}
+.ced .cbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 16px;background:#fff;border-bottom:1px solid #E3E6EB}
+.ced .ttl-in{border:0;padding:0;min-height:28px;font:inherit;font-size:15px;font-weight:700;color:#0B1220;background:none;min-width:340px;width:100%}
+.ced .body{display:flex;flex-wrap:wrap;align-items:stretch}
+.ced .cleft{flex:1 1 248px;max-width:248px;background:#fff;border-right:1px solid #E3E6EB;display:flex;flex-direction:column}
+.ced .cmid{flex:999 1 520px;min-width:0;display:flex;flex-direction:column;background:#E9ECF0}
+.ced .cright{flex:1 1 340px;max-width:340px;background:#fff;border-left:1px solid #E3E6EB;display:flex;flex-direction:column}
+.ced .ctool{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 14px;background:#fff;border-bottom:1px solid #E3E6EB}
+.ced .canvas{flex:1;padding:28px 24px 0;display:flex;justify-content:center;align-items:flex-start;overflow:hidden;position:relative}
+.ced .cfoot{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:8px 16px;background:#fff;border-top:1px solid #E3E6EB}
+.ced .grab{display:none;align-self:center;width:40px;height:4px;border-radius:2px;background:#D4D8DF;margin:8px 0 2px}
+.page{width:760px;max-width:100%;background:#fff;box-shadow:0 1px 3px rgba(11,18,32,.12);padding:40px 40px 8px;box-sizing:border-box;border-radius:4px 4px 0 0}
+.page .st{background:transparent}
+.page .st-body{margin-top:30px}
+.page .st-hero-img{padding:0;margin-top:28px}
+.wsec{display:flex;flex-direction:column;gap:8px;padding:12px 14px;border-bottom:1px solid #EEF0F3}
+.wsec > .t{font-size:12px;font-weight:600;color:#0B1220;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.wsec .lbl{font-size:12px}
+.slug{display:flex;align-items:center;border:1px solid #8B94A3;border-radius:7px;overflow:hidden;background:#fff;height:32px}
+.slug .pre{padding:0 8px;height:100%;display:inline-flex;align-items:center;background:#F3F4F6;border-right:1px solid #E3E6EB;font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5B6472;white-space:nowrap}
+.slug input{border:0;outline:0;font-family:'IBM Plex Mono',monospace;font-size:12px;flex:1;min-width:0;padding:0 8px;background:none;color:#0B1220}
+.slug.bad{border-color:#DC2626;background:#FFF5F5}.slug.bad .pre{background:#FEE2E2;border-color:#FCA5A5}
+.tchip{display:inline-flex;align-items:center;gap:2px;height:24px;padding:0 2px 0 8px;border-radius:6px;background:#F3F4F6;border:1px solid #E3E6EB;font-size:12px;font-weight:500}
+.tchip button{width:20px;height:20px;border:0;background:none;color:#5B6472;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0}
+.rad{display:flex;gap:8px;align-items:flex-start;font-size:12.5px;line-height:1.4}
+.rad input{margin-top:1px;flex:none}
+.rad .k{display:block}
+.fold{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 14px;border:0;border-bottom:1px solid #EEF0F3;font:inherit;font-size:12.5px;font-weight:600;color:#0B1220;background:#fff;width:100%;text-align:left;cursor:pointer}
+.fpm{position:relative;display:flex;align-items:center;justify-content:center;margin:2px 0 30px;height:30px}
+.fpm::before{content:"";position:absolute;left:0;right:0;top:50%;border-top:2px dashed #5B21B6}
+.fpm span{position:relative;display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 12px;border-radius:999px;background:#EDE9FE;color:#5B21B6;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12px;font-weight:700;border:1px solid #DDD6FE;white-space:nowrap}
+.eo{position:relative;outline:1px dashed #9AA3B2;outline-offset:-1px}
+.eo .eol{position:absolute;top:6px;right:6px;display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 8px;border-radius:6px;background:#374151;color:#fff;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:11px;font-weight:600;z-index:2}
+.eo > .eob{opacity:.5}
+.blk.wb{border-color:#DDD6FE;background:#F5F3FF}
+.blk.wb svg{stroke:#5B21B6}
+.pvw{display:flex;flex-direction:column;border:1px solid #D4D8DF;border-radius:10px;overflow:hidden;background:#fff;min-width:0}
+.pvw .pvh{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 10px;border-bottom:1px solid #E3E6EB;background:#fff}
+.pvw .pvb{background:#E9ECF0;padding:14px;overflow:hidden}
+.pvz{zoom:.6;width:680px;margin:0 auto;background:#fff;border-radius:6px}
+.sboard{padding:28px;display:flex;flex-direction:column;gap:22px;box-sizing:border-box}
+.sbh{display:flex;flex-direction:column;gap:6px;max-width:980px}
+.sbh h2{margin:0;font-size:20px;font-weight:700;letter-spacing:-.02em}
+.sbh p{margin:0;color:#4B5563;font-size:13.5px;line-height:1.5}
+.mhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px;background:#fff;border:1px solid #E3E6EB;border-radius:10px}
+.col{display:flex;flex-direction:column;gap:10px}
+.pvcap{min-height:40px}
+.pvgrid > figure{display:flex;flex-direction:column}
+.pvgrid .pvw{flex:1}
+.pvgrid .pvb{flex:1}
+@media (max-width:1100px){.ced .cleft{display:none}.ced .ttl-in{min-width:0}}
+@media (max-width:767px){
+  .ced .ttl-in{min-width:0}
+  .ced .cright,.ced .cmid{max-width:none;flex:1 1 100%}
+  .ced .canvas{max-height:600px;padding:12px 10px 0}
+  .ced.sheet .canvas::after{content:"";position:absolute;inset:0;background:rgba(11,18,32,.32)}
+  .ced.sheet .cright{margin-top:-210px;position:relative;z-index:5;border-radius:18px 18px 0 0;box-shadow:0 -12px 40px rgba(11,18,32,.22);border-left:0!important;overflow:hidden}
+  .ced.sheet .grab{display:block}
+  .ced .cfoot{display:none}
+  .page{padding:18px 16px 4px}
+  .pvz{zoom:.5}
+  .sboard{padding:16px 12px}
+  .desk-only{display:none!important}
+}
+</style>
+</helmet>
+<div style="min-height:100vh;display:flex;flex-direction:column;background:#F3F4F6;position:relative">
+<div class="ced sheet" role="region" aria-label="Composer, post mode"><a href="#main" class="skip">Skip to content</a><header class="cbar"><a href="WebsitePosts.dc.html" class="btn ic" aria-label="Back to posts"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m10 3-5 5 5 5"></path></svg></a><div style="display:flex;flex-direction:column;gap:0;min-width:0;flex:0 1 420px"><nav aria-label="Breadcrumb" style="font-size:11px;font-weight:500;display:flex;gap:4px;align-items:center;color:#5B6472"><a href="WebsitePosts.dc.html" style="color:#5B6472">Website</a><span aria-hidden="true">›</span><a href="WebsitePosts.dc.html" style="color:#5B6472">Posts</a></nav><label class="vh" for="ptl">Post title</label><input id="ptl" class="ttl-in" value="Inside our Postgres migration: the runbook"></div><span class="badge mut">Draft · autosaved 07:52</span><button class="btn" type="button" aria-label="Visibility: Paid · all tiers. Opens the Web tab"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#5B21B6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 1.8 1.9 3.9 4.3.6-3.1 3 .7 4.3L8 11.6l-3.8 2 .7-4.3-3.1-3 4.3-.6z" stroke-linejoin="round"></path></svg>Paid · all tiers</button><div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;align-items:center"><a href="PublicPost.dc.html" class="btn">Preview</a><button class="btn pri" type="button">Publish</button></div></header><div class="body"><aside class="cleft" aria-label="Blocks"><div class="ptab" role="tablist"><button class="on" role="tab" aria-selected="true">Blocks</button><button role="tab" aria-selected="false">Layers</button><button role="tab" aria-selected="false">Templates</button></div><div style="padding:8px 12px"><input aria-label="Search blocks" class="in" placeholder="Search blocks" style="width:100%"></div><div class="grp">Layout</div><div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:0 12px 8px"><div class="blk" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"></rect></svg>1 column</div><div class="blk" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="8" height="14" rx="2"></rect><rect x="13" y="5" width="8" height="14" rx="2"></rect></svg>2 columns</div><div class="blk" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="2" y="5" width="6" height="14" rx="1.5"></rect><rect x="9" y="5" width="6" height="14" rx="1.5"></rect><rect x="16" y="5" width="6" height="14" rx="1.5"></rect></svg>3 columns</div></div><div class="grp">Content</div><div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:0 12px 8px"><div class="blk" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"></path></svg>Text</div><div class="blk" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="m3 16 5-5 4 4 3-3 6 6"></path><circle cx="16" cy="9" r="1.5"></circle></svg>Image</div><div class="blk" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="8" rx="4"></rect></svg>Button</div><div class="blk" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 12h18"></path></svg>Divider</div><div class="blk" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 6v12M20 6v12M8 12h8"></path></svg>Spacer</div><div class="blk" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m8 7-4 5 4 5M16 7l4 5-4 5"></path></svg>Code</div></div><div class="grp">ReputeCast blocks</div><div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:0 12px 8px"><div class="blk rc" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M6 8h12M6 12h8M6 16h6"></path></svg>Article card</div><div class="blk rc" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18"></path></svg>Saved sections · 4</div><div class="blk wb" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 12h3M9 12h3M15 12h3M21 12h0"></path><path d="M8 5h8M8 19h8" opacity=".5"></path></svg>Free preview ends here</div></div><div style="margin:6px 12px 12px;padding:10px 12px;border-radius:8px;background:#F9FAFB;border:1px solid #E3E6EB;font-size:12px;color:#4B5563;line-height:1.45">Post mode: the canvas is the web version, in the site's 680 px column. Email-only blocks, like the footer and unsubscribe link, aren't offered.</div></aside><section class="cmid" role="main" id="main" aria-label="Canvas"><div class="ctool"><div class="seg" role="group" aria-label="Device"><button class="on" aria-pressed="true">Desktop · 680</button><button aria-pressed="false">Phone · 375</button></div><div class="seg" role="group" aria-label="Mode"><button class="on" aria-pressed="true">Edit</button><button aria-pressed="false">Preview on web</button></div><div style="display:flex;gap:4px"><button class="btn ic" aria-label="Undo"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4 2 8l4 4M2 8h8a4 4 0 0 1 0 8"></path></svg></button><button class="btn ic" aria-label="Redo" disabled style="opacity:.5"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m10 4 4 4-4 4M14 8H6a4 4 0 0 0 0 8"></path></svg></button></div><span class="k" style="margin-left:auto">Web version · the site's theme · ⌘S save</span></div><div class="canvas"><div class="page"><div class="st"><header class="st-col"><div class="st-kick"><a href="PublicSiteStates.dc.html" class="st-tag">Engineering</a><span class="st-lb ins"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 1.8 1.9 3.9 4.3.6-3.1 3 .7 4.3L8 11.6l-3.8 2 .7-4.3-3.1-3 4.3-.6z" stroke-linejoin="round"></path></svg>Insider</span></div><h1 class="st-title">Inside our Postgres migration: the runbook</h1><p class="st-dek">How we moved 2.1 TB from Postgres 14 to 17 with a 41-second write pause: sizing, seeding, nine days of replication and the cutover.</p><div class="st-by"><span class="st-av" style="width:40px;height:40px;background:#DCFCE7;color:#166534;font-size:14px" aria-hidden="true">SR</span><span><b>Sofia Rossi</b><br><span>Monday 13 October 2026 · 11 min read</span></span></div></header><div class="st-hero-img"><svg class="st-cov" viewBox="0 0 960 440" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Two database cylinders joined by a dashed arrow, the old one outlined, the new one filled in indigo" style="border-radius:12px;background:#EDE9FE"><rect x="-200" y="-200" width="1360" height="840" fill="#EDE9FE"></rect><g stroke="#4338CA" stroke-width="7" fill="#fff"><path d="M190 150v150a95 26 0 0 0 190 0V150"></path><ellipse cx="285" cy="150" rx="95" ry="26"></ellipse><path d="M190 200a95 26 0 0 0 190 0M190 250a95 26 0 0 0 190 0" fill="none"></path></g><g stroke="#3730A3" stroke-width="7" fill="#4338CA"><path d="M580 150v150a95 26 0 0 0 190 0V150"></path><ellipse cx="675" cy="150" rx="95" ry="26" fill="#3730A3"></ellipse></g><path d="M580 200a95 26 0 0 0 190 0M580 250a95 26 0 0 0 190 0" fill="none" stroke="#DDD6FE" stroke-width="6"></path><path d="M410 225h130" stroke="#4338CA" stroke-width="7" stroke-dasharray="14 12" stroke-linecap="round"></path><path d="m528 205 22 20-22 20" fill="none" stroke="#4338CA" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"></path><text x="285" y="372" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="26" font-weight="600" fill="#3730A3">pg 14</text><text x="675" y="372" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="26" font-weight="600" fill="#3730A3">pg 17</text></svg></div><div class="st-body"><p>On 28 September we moved Acme's main database from a self-managed Postgres 14 cluster to Postgres 17, with logical replication and a 41-second pause for writes at the cutover. Nobody outside the on-call channel noticed, which was the point.</p><p>This is the runbook we followed, step by step: how we sized the new cluster, seeded it without hammering production, kept 2.1 TB of tables in sync for nine days, and rehearsed the cutover until it bored us.</p><p>We're sharing it because every migration guide we found stopped at “then switch over”. The switching over is where the risk lives, so that's where most of this post goes.</p><div class="fpm" role="separator" aria-label="Free preview ends here"><span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 1.8 1.9 3.9 4.3.6-3.1 3 .7 4.3L8 11.6l-3.8 2 .7-4.3-3.1-3 4.3-.6z" stroke-linejoin="round"></path></svg>Free preview ends here · 3 blocks</span></div><h2>1. Size the target for the week after, not the day of</h2><p>A freshly seeded replica has cold caches and no bloat, so it flatters every benchmark. We sized the new primary for the load we expected a week after the cutover, with vacuum running and caches warm: 64 vCPUs and 512 GB of memory, one size up from the old one.</p><h2>2. Seed from a snapshot, then let replication catch up</h2><p>Copying 2.1 TB through a publication would have held a replication slot open for most of a day. Instead we restored last night's snapshot, created the subscription with <code>copy_data = false</code>, and let it replay only what changed since.</p></div></div></div></div></section><aside class="cright" aria-label="Inspector"><span class="grab" aria-hidden="true"></span><div class="ptab" role="tablist"><button role="tab" aria-selected="false">Style</button><button role="tab" aria-selected="false">Settings</button><button role="tab" class="on" aria-selected="true">Web</button></div><div class="wtab"><div class="wsec"><div class="t"><span>Address</span></div><div class="slug"><span class="pre">news.acme.io/posts/</span><input aria-label="Address" value="postgres-migration-runbook"></div><span class="mono" style="font-size:11.5px;color:#374151;overflow-wrap:anywhere">news.acme.io/posts/postgres-migration-runbook</span><span class="k">Lowercase letters, digits and hyphens. If you change it later, the old address redirects.</span></div><div class="wsec"><div class="t"><span>Title and excerpt</span></div><label class="lbl">Title<input class="in" type="text" value="Inside our Postgres migration: the runbook" placeholder="" style="" aria-label="Post title on the web"></label><label class="lbl">Excerpt<textarea class="in" style="height:72px;padding:6px 8px;resize:vertical;font-size:12.5px">How we moved 2.1 TB from Postgres 14 to 17 with a 41-second write pause: sizing, seeding, nine days of replication and the cutover.</textarea><span class="k" style="font-weight:500">131 of 200 characters</span></label></div><div class="wsec"><div class="t"><span>Cover</span></div><div class="row" style="gap:10px;flex-wrap:nowrap;align-items:flex-start"><span style="width:88px;flex:none;border-radius:6px;overflow:hidden;border:1px solid #E3E6EB"><svg class="st-cov" viewBox="40 0 880 440" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Two database cylinders joined by a dashed arrow, the old one outlined, the new one filled in indigo" style="border-radius:0px;background:#EDE9FE"><rect x="-200" y="-200" width="1360" height="840" fill="#EDE9FE"></rect><g stroke="#4338CA" stroke-width="7" fill="#fff"><path d="M190 150v150a95 26 0 0 0 190 0V150"></path><ellipse cx="285" cy="150" rx="95" ry="26"></ellipse><path d="M190 200a95 26 0 0 0 190 0M190 250a95 26 0 0 0 190 0" fill="none"></path></g><g stroke="#3730A3" stroke-width="7" fill="#4338CA"><path d="M580 150v150a95 26 0 0 0 190 0V150"></path><ellipse cx="675" cy="150" rx="95" ry="26" fill="#3730A3"></ellipse></g><path d="M580 200a95 26 0 0 0 190 0M580 250a95 26 0 0 0 190 0" fill="none" stroke="#DDD6FE" stroke-width="6"></path><path d="M410 225h130" stroke="#4338CA" stroke-width="7" stroke-dasharray="14 12" stroke-linecap="round"></path><path d="m528 205 22 20-22 20" fill="none" stroke="#4338CA" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"></path><text x="285" y="372" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="26" font-weight="600" fill="#3730A3">pg 14</text><text x="675" y="372" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="26" font-weight="600" fill="#3730A3">pg 17</text></svg></span><label class="lbl" style="flex:1;min-width:0">Alt text<textarea class="in" style="height:76px;padding:6px 8px;resize:vertical;font-size:12px">Two database cylinders joined by a dashed arrow, the old one outlined, the new one filled in indigo</textarea></label></div></div><div class="wsec"><div class="t"><span>Tags and byline</span></div><div class="row" style="gap:6px"><span class="tchip">Engineering<button type="button" aria-label="Remove tag Engineering"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"></path></svg></button></span><span class="tchip">Insider<button type="button" aria-label="Remove tag Insider"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"></path></svg></button></span><button class="btn sm" type="button" style="min-height:24px;padding:0 8px"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3v10M3 8h10"></path></svg>Add</button></div><label class="lbl">Byline<select class="in" style="" aria-label="Byline"><option selected>Sofia Rossi</option><option>Marcus Chen</option><option>Linh Nguyen</option><option>The Acme team</option><option>Written name…</option></select></label></div><div class="wsec"><div class="t"><span>Visibility</span></div><div><div class="seg" role="group" aria-label="Visibility"><button type="button" aria-pressed="false"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M1.8 8h12.4M8 1.8c1.8 1.7 2.7 3.8 2.7 6.2S9.8 12.5 8 14.2C6.2 12.5 5.3 10.4 5.3 8S6.2 3.5 8 1.8z"></path></svg>Public</button><button type="button" aria-pressed="false"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="5.5" r="2.8"></circle><path d="M2.5 14a5.5 5.5 0 0 1 11 0"></path></svg>Members</button><button type="button" class="on" aria-pressed="true"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 1.8 1.9 3.9 4.3.6-3.1 3 .7 4.3L8 11.6l-3.8 2 .7-4.3-3.1-3 4.3-.6z" stroke-linejoin="round"></path></svg>Paid</button></div></div><div class="col" style="gap:6px;margin-top:4px"><label class="rad"><input type="radio" name="tiers" checked><span><b style="font-weight:600">Every paid tier</b><span class="k">Weekly Digest Insider and Founding member</span></span></label><label class="rad"><input type="radio" name="tiers"><span><b style="font-weight:600">Chosen tiers</b></span></label></div></div><div class="wsec"><div class="t"><span>Free preview</span></div><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><span class="col" style="gap:1px;font-size:12.5px"><b style="font-weight:600">Ends after block 3</b><span class="k">the third paragraph</span></span><span class="row" style="gap:6px;flex-wrap:nowrap"><button class="btn sm" type="button">Move</button><button class="btn sm" type="button">Remove</button></span></div><label class="rad"><input type="checkbox"><span>Never free <span class="k">Leave it out of the meter, like a members' AMA</span></span></label></div><div class="wsec"><div class="t"><span>When</span></div><label class="rad"><input type="radio" name="when" checked><span><b style="font-weight:600">Now</b></span></label><label class="rad"><input type="radio" name="when"><span><b style="font-weight:600">At a time</b><span class="k">in America/New_York</span></span></label></div><div class="wsec"><div class="t"><span>Feature on home</span><input type="checkbox" class="tg" checked aria-label="Feature on home"></div></div><button class="fold" type="button" aria-expanded="false"><span>SEO and social<span class="k" style="display:block;font-weight:500">SEO title, description, social image, canonical URL · from the post</span></span><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#5B6472" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 4 4 4-4 4"></path></svg></button><div class="wsec"><div class="t"><span>Web checks · 4 passed</span></div><div style="display:flex;flex-direction:column"><div class="chkl"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#15803D" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg><div class="tx"><span style="font-weight:600">The address is free</span><span class="k" style="color:#4B5563">/posts/postgres-migration-runbook</span></div></div><div class="chkl"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#15803D" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg><div class="tx"><span style="font-weight:600">The cover has alt text</span></div></div><div class="chkl"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#15803D" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg><div class="tx"><span style="font-weight:600">No tokens to fill</span><span class="k" style="color:#4B5563">Nothing shows a fallback</span></div></div><div class="chkl"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#15803D" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg><div class="tx"><span style="font-weight:600">Nothing is hidden on the web</span></div></div></div></div></div></aside></div><footer class="cfoot"><div class="bc"><span>post</span><span>›</span><b>section · text</b></div><span class="k" style="margin-left:auto">2,480 words · 11 min read · 1 image, with alt text</span><span class="badge ok"><span class="dot"></span>No warnings</span><a href="ComposerPublishToWeb.dc.html" class="k">Version history · 9 versions</a></footer></div><div class="desk-only"><div style="padding:22px 28px 14px"><div class="strip"><span class="dot" style="color:#1D4ED8"></span>Campaign mode · Weekly Digest #142 publishes with the send · the Web chip opens the Web tab</div></div><div class="ced sheet" role="region" aria-label="Composer, campaign Weekly Digest #142"><header class="cbar"><a href="Campaigns.dc.html" class="btn ic" aria-label="Back to campaigns"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m10 3-5 5 5 5"></path></svg></a><div style="display:flex;flex-direction:column;min-width:0"><span class="k" style="font-size:11px">Campaign</span><span style="font-size:15px;font-weight:700">Weekly Digest #142</span></div><span class="badge mut">Draft · autosaved 09:38 · v14</span><div style="display:flex;gap:8px;flex-wrap:wrap;margin-left:4px"><button class="btn" type="button"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="5" r="2.5"></circle><path d="M1.5 14a4.5 4.5 0 0 1 9 0M11 3a2.5 2.5 0 0 1 0 5M14.5 14a4 4 0 0 0-3-3.8"></path></svg>Weekly Digest · 31,604</button><button class="btn" type="button">From: Acme Newsletter &lt;digest@news.acme.io&gt;</button><button class="btn wchip" aria-expanded="true" style="border-color:#0F766E;box-shadow:0 0 0 1px #0F766E" type="button" aria-haspopup="true" aria-label="Web: Publishes with the send. Opens the Web tab"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M1.8 8h12.4M8 1.8c1.8 1.7 2.7 3.8 2.7 6.2S9.8 12.5 8 14.2C6.2 12.5 5.3 10.4 5.3 8S6.2 3.5 8 1.8z"></path></svg><span>Web</span><span class="wcs"><span class="dot" style="color:#1D4ED8"></span>Publishes with the send</span></button></div><div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap"><a href="ComposerPreview.dc.html" class="btn">Preview</a><button class="btn" type="button">Send test</button><a href="SendReadiness.dc.html" class="btn pri">Review &amp; send</a></div></header><div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;padding:10px 16px;background:#fff;border-bottom:1px solid #E3E6EB"><label style="display:flex;flex-direction:column;gap:2px;flex:2 1 320px"><span class="k" style="font-size:11px">Subject · Variant A</span><input class="in" value="Three launches, one deprecation, and the roadmap for Q4"></label><label style="display:flex;flex-direction:column;gap:2px;flex:2 1 320px"><span class="k" style="font-size:11px">Preheader</span><input class="in" value="Feature flags are GA, audit log exports, and what we're retiring in November."></label></div><div class="body"><aside class="cleft" aria-label="Blocks"><div class="ptab" role="tablist"><button class="on" role="tab" aria-selected="true">Blocks</button><button role="tab" aria-selected="false">Layers</button><button role="tab" aria-selected="false">Templates</button></div><div style="padding:8px 12px"><input aria-label="Search blocks" class="in" placeholder="Search blocks" style="width:100%"></div><div class="grp">Layout</div><div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:0 12px 8px"><div class="blk" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"></rect></svg>1 column</div><div class="blk" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="8" height="14" rx="2"></rect><rect x="13" y="5" width="8" height="14" rx="2"></rect></svg>2 columns</div><div class="blk" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="2" y="5" width="6" height="14" rx="1.5"></rect><rect x="9" y="5" width="6" height="14" rx="1.5"></rect><rect x="16" y="5" width="6" height="14" rx="1.5"></rect></svg>3 columns</div></div><div class="grp">Content</div><div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:0 12px 8px"><div class="blk" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"></path></svg>Text</div><div class="blk" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="m3 16 5-5 4 4 3-3 6 6"></path><circle cx="16" cy="9" r="1.5"></circle></svg>Image</div><div class="blk" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="8" rx="4"></rect></svg>Button</div><div class="blk" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 12h18"></path></svg>Divider</div><div class="blk" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 6v12M20 6v12M8 12h8"></path></svg>Spacer</div><div class="blk" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m8 7-4 5 4 5M16 7l4 5-4 5"></path></svg>Code</div></div><div class="grp">ReputeCast blocks</div><div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:0 12px 8px"><div class="blk rc" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M6 8h12M6 12h8M6 16h6"></path></svg>Article card</div><div class="blk rc" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18"></path></svg>Saved sections · 4</div><div class="blk wb" draggable="true"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 12h3M9 12h3M15 12h3M21 12h0"></path><path d="M8 5h8M8 19h8" opacity=".5"></path></svg>Free preview ends here</div></div><div style="margin:6px 12px 12px;padding:10px 12px;border-radius:8px;background:#F9FAFB;border:1px solid #E3E6EB;font-size:12px;color:#4B5563;line-height:1.45">Blocks set to Email only in their Visibility section are left out of the web version.</div></aside><section class="cmid" aria-label="Canvas"><div class="ctool"><div class="seg" role="group" aria-label="Device"><button class="on" aria-pressed="true">Desktop · 600</button><button aria-pressed="false">Mobile · 375</button></div><div class="seg" role="group" aria-label="Version"><button class="on" aria-pressed="true">Email</button><button aria-pressed="false"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M1.8 8h12.4M8 1.8c1.8 1.7 2.7 3.8 2.7 6.2S9.8 12.5 8 14.2C6.2 12.5 5.3 10.4 5.3 8S6.2 3.5 8 1.8z"></path></svg>Web</button></div><span class="k" style="margin-left:auto">3 blocks are email only · they're left out of the post</span></div><div class="canvas" style="padding-bottom:28px"><div class="email" style="border-radius:4px;overflow:hidden"><div class="eo" style=""><span class="eol"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 2l12 12M6.6 6.6a2 2 0 0 0 2.8 2.8M4.2 4.3C2.9 5.2 2 6.5 1.5 8c1.1 2.9 3.6 4.5 6.5 4.5 1.3 0 2.5-.3 3.6-.9M8 3.5c2.9 0 5.4 1.6 6.5 4.5-.3.9-.8 1.7-1.4 2.4"></path></svg>Email only</span><div class="eob"><div style="padding:8px 24px;text-align:center;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:11.5px;color:#5B6472">Trouble reading? <a href="PublicPost.dc.html">View in your browser</a></div></div></div><div class="sec" style="display:flex;justify-content:space-between;align-items:center;padding:18px 24px;border-bottom:1px solid #EEF0F3"><div class="ph" style="width:96px;height:28px">Logo · 96×28</div><div style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12px;color:#5B6472">Blog · Docs · Changelog</div></div><div class="sec" style="padding:20px 24px 8px"><div class="ph" style="height:150px;margin-bottom:16px">Hero image · 552×150 · alt "Rows of switches, most of them on"</div><h2 style="margin:0 0 10px;font-size:25px;line-height:1.2;font-weight:700;color:#0B1220">Three launches, one deprecation, and the roadmap for Q4</h2><p style="margin:0;font-size:15px;line-height:1.55">Hi <span class="tok">{{_lq0}}</span>, here's what shipped this week at Acme, what we're retiring in November, and where the next quarter is headed.</p></div><div class="sec" style="padding:16px 24px"><div style="display:flex;gap:16px"><div style="flex:1"><h2 style="margin:0 0 6px;font-size:17px;line-height:1.3;color:#0B1220">Feature flags are generally available</h2><p style="margin:0;font-size:14px;line-height:1.5;color:#374151">Target rollouts by plan, region or percentage, with an audit trail for every change.</p></div><div style="flex:1"><h2 style="margin:0 0 6px;font-size:17px;line-height:1.3;color:#0B1220">Audit log exports</h2><p style="margin:0;font-size:14px;line-height:1.5;color:#374151">Stream every workspace event to S3 or your SIEM, with 13 months of history.</p></div></div></div><div class="eo" style="margin:4px 0"><span class="eol"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 2l12 12M6.6 6.6a2 2 0 0 0 2.8 2.8M4.2 4.3C2.9 5.2 2 6.5 1.5 8c1.1 2.9 3.6 4.5 6.5 4.5 1.3 0 2.5-.3 3.6-.9M8 3.5c2.9 0 5.4 1.6 6.5 4.5-.3.9-.8 1.7-1.4 2.4"></path></svg>Email only · Beta Program readers</span><div class="eob"><div style="margin:4px 24px;padding:14px 16px;border-radius:8px;background:#F3F4F6"><h2 style="margin:0 0 4px;font-size:15px;color:#0B1220">For Beta Program readers</h2><p style="margin:0;font-size:14px;line-height:1.5;color:#374151">Flag dependencies are in preview. Reply to this email and we'll turn them on for your workspace.</p></div></div></div><div class="sec" style="padding:12px 24px 16px"><h2 style="margin:0 0 6px;font-size:17px;color:#0B1220">Retiring the v1 API on 30 November</h2><p style="margin:0;font-size:14px;line-height:1.5;color:#374151">If you still call api.acme.io/v1, the migration guide covers every endpoint. Most teams finish in an afternoon.</p></div><div class="sec" style="padding:4px 24px 18px"><h2 style="margin:0 0 8px;font-size:17px;color:#0B1220">Links of the week</h2><ul style="margin:0;padding-left:18px;font-size:14px;line-height:1.6;color:#374151"><li>What 10,000 flags taught us about naming things, from our own codebase</li><li>A reader's guide to progressive rollouts, by the Fly.io team</li><li>Why we still love boring Postgres, a talk from PGConf EU</li></ul></div><div class="eo" style=""><span class="eol"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 2l12 12M6.6 6.6a2 2 0 0 0 2.8 2.8M4.2 4.3C2.9 5.2 2 6.5 1.5 8c1.1 2.9 3.6 4.5 6.5 4.5 1.3 0 2.5-.3 3.6-.9M8 3.5c2.9 0 5.4 1.6 6.5 4.5-.3.9-.8 1.7-1.4 2.4"></path></svg>Email only</span><div class="eob"><div style="padding:16px 24px;background:#F3F4F6;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12px;color:#5B6472;text-align:center;line-height:1.6">Acme Inc · 500 Market St, Suite 1200 · San Francisco, CA 94105<br>Unsubscribe · Email preferences · View in browser</div></div></div></div></div></section><aside class="cright" aria-label="Inspector"><span class="grab" aria-hidden="true"></span><div class="ptab" role="tablist"><button role="tab" aria-selected="false">Style</button><button role="tab" aria-selected="false">Settings</button><button role="tab" class="on" aria-selected="true">Web</button></div><div class="wtab"><div class="wsec"><div class="t"><span>Publish to news.acme.io</span><input type="checkbox" class="tg" checked aria-label="Publish to news.acme.io"></div><span class="k">The post goes live with the send and keeps a link to this campaign.</span></div><div class="wsec"><div class="t"><span>Address</span></div><div class="slug"><span class="pre">news.acme.io/posts/</span><input aria-label="Address" value="feature-flags-at-scale"></div><span class="mono" style="font-size:11.5px;color:#374151;overflow-wrap:anywhere">news.acme.io/posts/feature-flags-at-scale</span></div><div class="wsec"><div class="t"><span>Title and excerpt</span></div><label class="lbl">Title<input class="in" type="text" value="Feature flags at scale: what 10,000 flags taught us" placeholder="" style="" aria-label="Post title"><span class="k" style="font-weight:500">Edited · the subject by default. <a href="ComposerPublishToWeb.dc.html">Use the subject</a></span></label><label class="lbl">Excerpt<textarea class="in" style="height:72px;padding:6px 8px;resize:vertical;font-size:12.5px">Feature flags are generally available. Here's what 10,000 flags in our own codebase taught us about naming, cleanup and rollouts.</textarea><span class="k" style="font-weight:500">Edited · the preheader by default</span></label></div><button class="fold" type="button" aria-expanded="false"><span>Cover<span class="k" style="display:block;font-weight:500">The hero image · alt text “Rows of switches, most of them on”</span></span><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#5B6472" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 4 4 4-4 4"></path></svg></button><button class="fold" type="button" aria-expanded="false"><span>Tags and byline<span class="k" style="display:block;font-weight:500">Weekly Digest, Engineering · The Acme team</span></span><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#5B6472" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 4 4 4-4 4"></path></svg></button><div class="wsec"><div class="t"><span>Visibility</span></div><div><div class="seg" role="group" aria-label="Visibility"><button type="button" class="on" aria-pressed="true"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M1.8 8h12.4M8 1.8c1.8 1.7 2.7 3.8 2.7 6.2S9.8 12.5 8 14.2C6.2 12.5 5.3 10.4 5.3 8S6.2 3.5 8 1.8z"></path></svg>Public</button><button type="button" aria-pressed="false"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="5.5" r="2.8"></circle><path d="M2.5 14a5.5 5.5 0 0 1 11 0"></path></svg>Members</button><button type="button" aria-pressed="false"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 1.8 1.9 3.9 4.3.6-3.1 3 .7 4.3L8 11.6l-3.8 2 .7-4.3-3.1-3 4.3-.6z" stroke-linejoin="round"></path></svg>Paid</button></div></div><span class="k">Follows the audience: the Weekly Digest is free.</span></div><div class="wsec"><div class="t"><span>Free preview</span></div><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><span class="k">Only for Members and Paid posts</span><button class="btn sm" type="button" disabled>Add a marker</button></div></div><div class="wsec"><div class="t"><span>When</span></div><label class="rad"><input type="radio" name="cwhen" checked><span><b style="font-weight:600">With the send</b><span class="k">Tue 14 Oct, 09:00, when the campaign goes out</span></span></label><label class="rad"><input type="radio" name="cwhen"><span><b style="font-weight:600">At a time</b><span class="k">before or after the send</span></span></label><label class="rad" style="opacity:.6"><input type="radio" name="cwhen" disabled><span><b style="font-weight:600">Now</b><span class="k">for campaigns already sent</span></span></label></div><div class="wsec"><div class="t"><span>Feature on home</span><input type="checkbox" class="tg" aria-label="Feature on home"></div></div><button class="fold" type="button" aria-expanded="false"><span>SEO and social<span class="k" style="display:block;font-weight:500">From the post · canonical URL news.acme.io</span></span><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#5B6472" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 4 4 4-4 4"></path></svg></button><div class="wsec"><div class="t"><span>Web checks · 2 passed, 2 notes</span></div><div style="display:flex;flex-direction:column"><div class="chkl"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#15803D" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg><div class="tx"><span style="font-weight:600">The address is free</span><span class="k" style="color:#4B5563">/posts/feature-flags-at-scale</span></div></div><div class="chkl"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#15803D" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg><div class="tx"><span style="font-weight:600">The cover has alt text</span></div></div><div class="chkl"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#B45309" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M8 4.8v3.6M8 10.9v.1"></path></svg><div class="tx"><span style="font-weight:600">1 token shows its fallback</span><span class="k" style="color:#4B5563">{{_lq1}} reads “Hi there”</span></div></div><div class="chkl"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#1D4ED8" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M8 7.2v3.8M8 5v.1"></path></svg><div class="tx"><span style="font-weight:600">3 blocks are hidden on the web</span><span class="k" style="color:#4B5563">View in browser, the Beta Program block, Footer + unsubscribe</span><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px"><button class="btn sm" type="button">Show on the canvas</button></div></div></div></div></div></div></aside></div><footer class="cfoot"><div class="bc"><span>mjml</span><span>›</span><span>mj-body</span><span>›</span><b>mj-section</b></div><span class="k" style="margin-left:auto">64 KB of 102 KB · 7 images, all with alt text · 14 links</span><span class="badge ok"><span class="dot"></span>No warnings</span><a href="ComposerStates.dc.html" class="k">Version history · 14 versions</a></footer></div><div class="sboard"><div class="sbh"><h2>Publishing to the web · states</h2><p>Above: the web-only runbook in post mode, with the Web tab open and the marker after the third paragraph, and Weekly Digest #142 set to publish with the send. Below: Preview on web as each reader, then a taken address, a Content Writer requesting approval, and a published post.</p></div><section style="display:flex;flex-direction:column;gap:14px" aria-label="Preview on web · the runbook as a visitor, a free member and a paid member"><div class="strip"><span class="dot" style="color:#4338CA"></span>Preview on web · the runbook as a visitor, a free member and a paid member</div><div class="pvgrid"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(380px,100%),1fr));gap:20px;align-items:stretch;"><figure style="margin:0;display:flex;flex-direction:column;gap:8px;min-width:0"><figcaption class="col pvcap" style="gap:2px"><b style="font-size:13.5px">As a visitor</b><span class="k">The preview, then the tiers, the free row and Sign in.</span></figcaption><div class="pvw"><div class="pvh"><span style="font-weight:600;font-size:12px">Preview on web</span><div class="seg" role="group" aria-label="Preview as"><button type="button" class="on" aria-pressed="true">Visitor</button><button type="button" aria-pressed="false">Free member</button><button type="button" aria-pressed="false">Paid member</button></div></div><div class="pvb"><div class="pvz"><div class="st" style="padding:24px 28px 8px"><header class="st-col"><div class="st-kick"><a href="PublicSiteStates.dc.html" class="st-tag">Engineering</a><span class="st-lb ins"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 1.8 1.9 3.9 4.3.6-3.1 3 .7 4.3L8 11.6l-3.8 2 .7-4.3-3.1-3 4.3-.6z" stroke-linejoin="round"></path></svg>Insider</span></div><h2 class="st-ht st-title">Inside our Postgres migration: the runbook</h2><p class="st-dek">How we moved 2.1 TB from Postgres 14 to 17 with a 41-second write pause: sizing, seeding, nine days of replication and the cutover.</p><div class="st-by"><span class="st-av" style="width:40px;height:40px;background:#DCFCE7;color:#166534;font-size:14px" aria-hidden="true">SR</span><span><b>Sofia Rossi</b><br><span>Monday 13 October 2026 · 11 min read</span></span></div></header><div class="st-body" style="margin-top:22px"><p>We're sharing it because every migration guide we found stopped at “then switch over”. The switching over is where the risk lives, so that's where most of this post goes.</p></div><section class="st-pw" aria-labelledby="pw-h-pvvisitor"><div class="hd"><h2 id="pw-h-pvvisitor">This post is for Insider members</h2><p class="lead">Deep dives, runbooks and the monthly AMA, from the people who build Acme.</p></div><div class="st-tiers" role="list"><div class="st-tier hi" role="listitem"><div class="tn"><span class="nm">Weekly Digest Insider</span><span class="pr"><b>$8</b> a month or <b>$80</b> a year · 14 days free</span></div><a href="PublicUpgrade.dc.html" class="st-btn">Upgrade</a></div><div class="st-tier" role="listitem"><div class="tn"><span class="nm">Founding member</span><span class="pr"><b>$200</b> a year · includes everything in Insider</span></div><a href="PublicUpgrade.dc.html" class="st-btn2">Upgrade</a></div></div><div class="st-free"><span style="font-weight:600;color:#0B1220">Not ready? Sign up free and read 1 paid post a month.</span><div class="frm"><label class="vh" for="pvv-email-pvvisitor">Email address</label><input id="pvv-email-pvvisitor" class="st-in" type="email" placeholder="you@company.com"><a href="PublicSiteStates.dc.html" class="st-btn2">Sign up free</a></div><div class="st-chks"><label class="st-chk"><input type="checkbox" checked><span>Also send me the Weekly Digest every Tuesday. Unsubscribe any time.</span></label><label class="st-chk"><input type="checkbox"><span>Send me Product Updates when something ships.</span></label></div><span class="st-k">We'll email you a link to confirm. It signs you in and brings you back here.</span></div><div class="st-pwf"><span>Already a member? <a href="PublicSiteStates.dc.html" class="st-lnk">Sign in</a></span><span class="st-k">Payments go to Acme through Stripe.</span></div></section></div></div></div></div></figure><figure style="margin:0;display:flex;flex-direction:column;gap:8px;min-width:0"><figcaption class="col pvcap" style="gap:2px"><b style="font-size:13.5px">As a free member</b><span class="k">This month's free paid post is used: the tiers, no free row.</span></figcaption><div class="pvw"><div class="pvh"><span style="font-weight:600;font-size:12px">Preview on web</span><div class="seg" role="group" aria-label="Preview as"><button type="button" aria-pressed="false">Visitor</button><button type="button" class="on" aria-pressed="true">Free member</button><button type="button" aria-pressed="false">Paid member</button></div></div><div class="pvb"><div class="pvz"><div class="st" style="padding:24px 28px 8px"><header class="st-col"><div class="st-kick"><a href="PublicSiteStates.dc.html" class="st-tag">Engineering</a><span class="st-lb ins"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 1.8 1.9 3.9 4.3.6-3.1 3 .7 4.3L8 11.6l-3.8 2 .7-4.3-3.1-3 4.3-.6z" stroke-linejoin="round"></path></svg>Insider</span></div><h2 class="st-ht st-title">Inside our Postgres migration: the runbook</h2><p class="st-dek">How we moved 2.1 TB from Postgres 14 to 17 with a 41-second write pause: sizing, seeding, nine days of replication and the cutover.</p><div class="st-by"><span class="st-av" style="width:40px;height:40px;background:#DCFCE7;color:#166534;font-size:14px" aria-hidden="true">SR</span><span><b>Sofia Rossi</b><br><span>Monday 13 October 2026 · 11 min read</span></span></div></header><div class="st-body" style="margin-top:22px"><p>We're sharing it because every migration guide we found stopped at “then switch over”. The switching over is where the risk lives, so that's where most of this post goes.</p></div><section class="st-pw" aria-labelledby="pw-h2-pvfree"><div class="hd"><h2 id="pw-h2-pvfree">This post is for Insider members</h2><p class="lead">You've read your free paid post for October. Upgrade to read them all, or come back on 1 November.</p></div><div class="st-tiers" role="list"><div class="st-tier hi" role="listitem"><div class="tn"><span class="nm">Weekly Digest Insider</span><span class="pr"><b>$8</b> a month or <b>$80</b> a year · 14 days free</span></div><a href="PublicUpgrade.dc.html" class="st-btn">Upgrade</a></div><div class="st-tier" role="listitem"><div class="tn"><span class="nm">Founding member</span><span class="pr"><b>$200</b> a year · includes everything in Insider</span></div><a href="PublicUpgrade.dc.html" class="st-btn2">Upgrade</a></div></div><div class="st-pwf"><span class="st-k">A free member who has read this month's free paid post</span><a href="PublicAccount.dc.html" class="st-lnk">Your account</a></div></section></div></div></div></div></figure><figure style="margin:0;display:flex;flex-direction:column;gap:8px;min-width:0"><figcaption class="col pvcap" style="gap:2px"><b style="font-size:13.5px">As a paid member</b><span class="k">The whole post, past the marker. No paywall, no note.</span></figcaption><div class="pvw"><div class="pvh"><span style="font-weight:600;font-size:12px">Preview on web</span><div class="seg" role="group" aria-label="Preview as"><button type="button" aria-pressed="false">Visitor</button><button type="button" aria-pressed="false">Free member</button><button type="button" class="on" aria-pressed="true">Paid member</button></div></div><div class="pvb"><div class="pvz"><div class="st" style="padding:24px 28px 8px"><header class="st-col"><div class="st-kick"><a href="PublicSiteStates.dc.html" class="st-tag">Engineering</a><span class="st-lb ins"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 1.8 1.9 3.9 4.3.6-3.1 3 .7 4.3L8 11.6l-3.8 2 .7-4.3-3.1-3 4.3-.6z" stroke-linejoin="round"></path></svg>Insider</span><span class="st-k">Included in your Insider membership</span></div><h2 class="st-ht st-title">Inside our Postgres migration: the runbook</h2><p class="st-dek">How we moved 2.1 TB from Postgres 14 to 17 with a 41-second write pause: sizing, seeding, nine days of replication and the cutover.</p><div class="st-by"><span class="st-av" style="width:40px;height:40px;background:#DCFCE7;color:#166534;font-size:14px" aria-hidden="true">SR</span><span><b>Sofia Rossi</b><br><span>Monday 13 October 2026 · 11 min read</span></span></div></header><div class="st-body" style="margin-top:22px"><p>We're sharing it because every migration guide we found stopped at “then switch over”. The switching over is where the risk lives, so that's where most of this post goes.</p><h2>1. Size the target for the week after, not the day of</h2><p>A freshly seeded replica has cold caches and no bloat, so it flatters every benchmark. We sized the new primary for the load we expected a week after the cutover, with vacuum running and caches warm: 64 vCPUs and 512 GB of memory, one size up from the old one.</p><h2>2. Seed from a snapshot, then let replication catch up</h2><p>Copying 2.1 TB through a publication would have held a replication slot open for most of a day. Instead we restored last night's snapshot, created the subscription with <code>copy_data = false</code>, and let it replay only what changed since.</p></div></div></div></div></div></figure></div></div></section><section style="display:flex;flex-direction:column;gap:14px" aria-label="An address that's taken, and a Content Writer requesting approval"><div class="strip"><span class="dot" style="color:#B45309"></span>An address that's taken, and a Content Writer requesting approval</div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(360px,100%),1fr));gap:16px;align-items:start;grid-template-columns:minmax(0,360px) minmax(0,1fr)"><section class="card" style="overflow:hidden;max-width:360px;width:100%;justify-self:start"><div class="ptab" role="tablist"><button role="tab" aria-selected="false">Style</button><button role="tab" aria-selected="false">Settings</button><button class="on" role="tab" aria-selected="true">Web</button></div><div class="wsec"><div class="t"><span>Publish to news.acme.io</span><input type="checkbox" class="tg" checked aria-label="Publish to news.acme.io"></div></div><div class="wsec"><div class="t"><span>Address</span></div><div class="slug bad"><span class="pre">news.acme.io/posts/</span><input aria-label="Address" value="feature-flags" aria-invalid="true" aria-describedby="slug-e2"></div><div id="slug-e2" class="col" style="gap:6px"><span style="font-size:12.5px;color:#991B1B;font-weight:600">/posts/feature-flags is used by a post from 2025. Use feature-flags-at-scale?</span><div class="row" style="gap:6px"><button class="btn sm" type="button">Use feature-flags-at-scale</button><a href="WebsitePosts.dc.html" class="btn sm">Open the 2025 post</a></div></div></div><div class="wsec"><div class="t"><span>Web checks · 1 to fix</span></div><div style="display:flex;flex-direction:column"><div class="chkl"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#B91C1C" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M8 4.8v3.6M8 10.9v.1"></path></svg><div class="tx"><span style="font-weight:600">The address is taken</span><span class="k" style="color:#4B5563">/posts/feature-flags · Review &amp; send lists this check and the campaign can't be sent with it</span></div></div><div class="chkl"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#15803D" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg><div class="tx"><span style="font-weight:600">The cover has alt text</span></div></div><div class="chkl"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#B45309" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M8 4.8v3.6M8 10.9v.1"></path></svg><div class="tx"><span style="font-weight:600">1 token shows its fallback</span><span class="k" style="color:#4B5563">{{_lq2}} reads “Hi there”</span></div></div></div></div></section><div style="display:flex;flex-direction:column;gap:12px;min-width:0;"><div class="mhead" style="background:#FFFBEB;border-color:#FCD34D;align-items:flex-start;flex-wrap:nowrap"><span class="av" style="width:26px;height:26px;font-size:11px;background:#FEF3C7;color:#92400E" aria-hidden="true">DP</span><span style="font-size:13px;line-height:1.5"><b>Daniel Park · Content Writer.</b> You can write and edit posts. Publishing needs <span class="mono">website:publish</span>, so the rule “The author lacks the send permission” applies. Marcus Chen or Linh Nguyen can approve.</span></div><div class="mhead"><div class="col" style="gap:0;min-width:0"><span class="k" style="font-size:11px">Website › Posts</span><b style="font-size:15px">Q4 roadmap deep dive</b></div><span class="badge mut">Draft · autosaved 16:02</span><button class="btn" type="button"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="5.5" r="2.8"></circle><path d="M2.5 14a5.5 5.5 0 0 1 11 0"></path></svg>Members</button><div style="margin-left:auto;display:flex;gap:8px"><button class="btn" type="button">Preview</button><button class="btn pri" type="button">Request approval</button></div></div><section class="card dlg" role="dialog" aria-labelledby="ra-h" style="box-shadow:0 12px 32px rgba(11,18,32,.12);max-width:720px"><div class="dh"><span class="k">Q4 roadmap deep dive · web-only post</span><h2 id="ra-h" style="margin:0;font-size:18px;font-weight:700;letter-spacing:-.01em">Request approval to publish</h2></div><div class="db"><dl class="kv" style=""><dt>Rule</dt><dd>“The author lacks the send permission” · covers <span class="mono">website:publish</span></dd><dt>Approvers</dt><dd>Marcus Chen or Linh Nguyen · they hold <span class="mono">campaigns:approve</span></dd><dt>Covers</dt><dd>The content, the address /posts/q4-roadmap-deep-dive, Members visibility and the publish time: when approved</dd></dl><label class="lbl">Note for the approver<textarea class="in" style="height:64px;padding:8px 10px;resize:vertical">Ready for Thursday. The cut list is final; Marcus checked the API dates.</textarea></label><span class="k">Any change after approval needs a new one. Requests and decisions are audited.</span></div><div class="df"><button class="btn" type="button">Cancel</button><button class="btn pri" type="button">Request approval</button></div></section></div></div></section><section style="display:flex;flex-direction:column;gap:14px" aria-label="Published · a toast with View post and Undo"><div class="strip"><span class="dot" style="color:#15803D"></span>Published · a toast with View post and Undo</div><div style="display:flex;flex-direction:column;gap:12px;min-width:0;"><div class="mhead"><div class="col" style="gap:0;min-width:0"><span class="k" style="font-size:11px">Website › Posts</span><b style="font-size:15px">Inside our Postgres migration: the runbook</b></div><span class="badge ok"><span class="dot"></span>Published · 13 Oct, 08:00</span><button class="btn" type="button"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#5B21B6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 1.8 1.9 3.9 4.3.6-3.1 3 .7 4.3L8 11.6l-3.8 2 .7-4.3-3.1-3 4.3-.6z" stroke-linejoin="round"></path></svg>Paid · all tiers</button><div style="margin-left:auto;display:flex;gap:8px"><a href="PublicPost.dc.html" class="btn">View post</a><button class="btn" type="button">Unpublish…</button></div></div><div class="col" style="gap:8px"><div class="toast" role="status"><span class="ti" style="background:#166534"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg></span><span class="t">The runbook is live on news.acme.io <span class="k">· 08:00</span></span><a href="PublicPost.dc.html" class="btn">View post</a><button class="btn" type="button">Undo</button><button class="x" aria-label="Dismiss">×</button></div><span class="k">Undo unpublishes it for 10 seconds; after that, use Unpublish. Publishing is audited.</span></div></div></section></div></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":5299}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { _lq0: "{{ first_name | default: \"there\" }}", _lq1: "Hi {{ first_name | default: \"there\" }}", _lq2: "Hi {{ first_name | default: \"there\" }}" };
+  }
+}
+</script>
+</body>
+</html>

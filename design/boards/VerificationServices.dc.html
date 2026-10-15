@@ -1,0 +1,441 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Settings · Integrations · Verification services</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F4F6;color:#0B1220;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;line-height:1.45}
+a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
+.mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace}
+.card{background:#FFFFFF;border:1px solid #E3E6EB;border-radius:10px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:36px;padding:0 14px;border-radius:8px;border:1px solid #D4D8DF;background:#FFFFFF;color:#0B1220;font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;box-sizing:border-box}
+.btn:hover{background:#F3F4F6;color:#0B1220}
+.btn.pri{background:#0F766E;border-color:#0F766E;color:#FFFFFF}.btn.pri:hover{background:#115E59;color:#FFFFFF}
+.btn.sm{min-height:30px;padding:0 10px;font-size:12px}
+.badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;flex:none}
+.ok{background:#DCFCE7;color:#166534}.warn{background:#FEF3C7;color:#92400E}.bad{background:#FEE2E2;color:#991B1B}.info{background:#DBEAFE;color:#1E40AF}.mut{background:#EEF0F3;color:#4B5563}.pur{background:#EDE9FE;color:#5B21B6}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;flex:none}
+.nav a{display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;border-radius:8px;color:#4B5563;font-weight:500}
+.nav a:hover{background:#EEF0F3;color:#0B1220}.nav a.on{background:#E3F1EE;color:#0F766E}
+.nav svg{width:16px;height:16px;flex:none}
+.tabs{display:flex;gap:4px;flex-wrap:wrap}
+.tabs a{display:inline-flex;align-items:center;height:34px;padding:0 12px;border-radius:8px;color:#4B5563;font-weight:500;font-size:13px}
+.tabs a:hover{background:#EEF0F3;color:#0B1220}.tabs a.on{background:#0B1220;color:#fff}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{text-align:left;font-weight:600;color:#5B6472;padding:10px 12px;border-bottom:1px solid #E3E6EB;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+.tbl td{padding:11px 12px;border-bottom:1px solid #EEF0F3;vertical-align:middle;white-space:nowrap}
+.tbl tr:last-child td{border-bottom:0}
+.k{font-size:12px;color:#5B6472;font-weight:500}
+.h2{margin:0;font-size:15px;font-weight:600}
+.in{height:36px;padding:0 10px;border:1px solid #D4D8DF;border-radius:8px;background:#fff;font:inherit;font-size:13px;color:#0B1220;box-sizing:border-box;min-width:0}
+.lbl{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:#4B5563}
+
+
+/* shell additions: workspace switcher, notification bell, user menu */
+.ws{display:flex;align-items:center;gap:8px;margin:2px 0 4px;padding:7px 10px;border:1px solid #E3E6EB;border-radius:8px;background:#fff;color:#0B1220;font:inherit;text-align:left;cursor:pointer;width:100%;box-sizing:border-box}
+.ws:hover{background:#F3F4F6}
+.ws .wsn{display:flex;flex-direction:column;line-height:1.25;min-width:0;flex:1}
+.ws .wsn b{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ws .wsn span{font-size:11px;color:#5B6472;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tools{display:flex;align-items:center;gap:8px;margin-left:8px}
+.ibtn{position:relative;display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:1px solid #D4D8DF;background:#fff;color:#0B1220;cursor:pointer;padding:0;flex:none}
+.ibtn:hover{background:#F3F4F6}
+.ibtn .cnt{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#B91C1C;color:#fff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box}
+.ubtn{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 10px 0 4px;border-radius:8px;border:1px solid #D4D8DF;background:#fff;color:#0B1220;font:inherit;font-size:13px;font-weight:600;cursor:pointer;flex:none}
+.ubtn:hover{background:#F3F4F6}
+.menu{position:absolute;z-index:40;background:#fff;border:1px solid #D4D8DF;border-radius:10px;box-shadow:0 12px 32px rgba(11,18,32,.16);padding:6px;min-width:260px;display:flex;flex-direction:column;gap:2px;box-sizing:border-box}
+.menu a,.menu button{display:flex;align-items:center;gap:10px;min-height:36px;padding:0 10px;border-radius:8px;color:#0B1220;font:inherit;font-size:13px;font-weight:500;background:none;border:0;text-align:left;cursor:pointer;width:100%;box-sizing:border-box;text-decoration:none}
+.menu a:hover,.menu button:hover{background:#F3F4F6;color:#0B1220}
+.menu hr{border:0;border-top:1px solid #EEF0F3;margin:4px 0;width:100%}
+.menu .mh{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472;padding:8px 10px 4px}
+@media (max-width:767px){.tools{margin-left:0}.menu{min-width:0;max-width:calc(100vw - 24px)}}
+
+
+/* add-on components */
+.av{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex:none}
+.tbl td.c,.tbl th.c{text-align:center}
+.tbl td{white-space:normal;vertical-align:middle}
+.tbl td.nw,.tbl td .badge{white-space:nowrap}
+.tbl td .btn{white-space:nowrap}
+.flag{display:inline-flex;align-items:center;gap:4px;color:#B45309;font-weight:700;font-size:11px;white-space:nowrap}
+input[type=checkbox].tg{appearance:none;-webkit-appearance:none;width:40px;height:24px;border-radius:999px;background:#6B7280;position:relative;cursor:pointer;flex:none;margin:0;border:0}
+input[type=checkbox].tg::after{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff}
+input[type=checkbox].tg:checked{background:#0F766E}input[type=checkbox].tg:checked::after{left:18px}
+.row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.col{display:flex;flex-direction:column;gap:10px}
+.sec{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid #EEF0F3;flex-wrap:wrap;gap:8px}
+.pad{padding:16px 18px}
+.note{display:flex;gap:8px 10px;align-items:flex-start;flex-wrap:wrap;padding:12px 14px;border-radius:8px;font-size:13px;line-height:1.45}
+.note > :last-child{flex:1 1 320px;min-width:0}
+.note > .badge{margin-top:1px}
+.note.i{background:#EFF6FF;border:1px solid #BFDBFE;color:#1E3A8A}
+.note.w{background:#FFFBEB;border:1px solid #FCD34D;color:#78350F}
+.note.b{background:#FFF5F5;border:1px solid #FCA5A5;color:#7F1D1D}
+.note.g{background:#F0FDF4;border:1px solid #BBF7D0;color:#14532D}
+.note.n{background:#F3F4F6;border:1px solid #E3E6EB;color:#374151}
+.btn:disabled,.btn[aria-disabled="true"]{opacity:.55;cursor:not-allowed}
+.btn.danger{color:#991B1B;border-color:#FCA5A5}.btn.danger:hover{background:#FEF2F2;color:#991B1B}
+.btn.danger.pri{background:#B91C1C;border-color:#B91C1C;color:#fff}.btn.danger.pri:hover{background:#991B1B;color:#fff}
+.kv{display:grid;grid-template-columns:max-content 1fr;gap:7px 18px;font-size:13px;margin:0}
+.kv dt{color:#5B6472;font-weight:500;margin:0}.kv dd{margin:0;min-width:0}
+.chip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;border:1px solid #D4D8DF;background:#fff;font-size:12.5px;font-weight:500;white-space:nowrap}
+.code{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace;font-size:12.5px;background:#0B1220;color:#E5E7EB;border-radius:8px;padding:12px 14px;white-space:pre-wrap;overflow-wrap:anywhere;margin:0}
+.diff{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;border:1px solid #E3E6EB;border-radius:8px;overflow:hidden}
+.diff div{padding:6px 12px;white-space:pre-wrap;overflow-wrap:anywhere}
+.diff .del{background:#FEF2F2;color:#991B1B}.diff .add{background:#F0FDF4;color:#166534}.diff .ctx{color:#4B5563}
+.ovl{position:absolute;inset:0;background:rgba(11,18,32,.45);display:flex;align-items:flex-start;justify-content:center;padding:72px 16px;box-sizing:border-box;z-index:60}
+.dlg{width:100%;max-width:640px;display:flex;flex-direction:column;background:#fff;border-radius:12px;box-shadow:0 24px 60px rgba(11,18,32,.3)}
+.dh{padding:18px 22px 0;display:flex;flex-direction:column;gap:6px}
+.db{padding:16px 22px;display:flex;flex-direction:column;gap:12px}
+.df{padding:14px 22px 18px;display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;border-top:1px solid #EEF0F3;align-items:center}
+.steps{display:flex;flex-direction:column;gap:2px}
+.row > *{min-width:0}
+
+/* expansion components (phases 1-8) */
+.num,.tbl td.r{font-variant-numeric:tabular-nums}
+.tbl th.r,.tbl td.r{text-align:right}
+.tbl tr.sel td{background:#F0FDFA}
+.tbl tr.xp td{background:#FBFBFC}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.stat{padding:14px 16px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.stat .v{font-size:22px;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums;line-height:1.25;margin-top:2px}
+.stat .s{font-size:12px;color:#5B6472;font-weight:500}
+.stat.hot{border-color:#FCA5A5;background:#FFF5F5}
+.strip{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;background:#0B1220;color:#fff;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.sk{background:#E9ECF0;border-radius:6px;display:inline-block}
+.bar{height:6px;border-radius:3px;background:#EEF0F3;overflow:hidden}.bar i{display:block;height:100%;border-radius:3px}
+.ptab{display:flex;border-bottom:1px solid #E3E6EB}
+.ptab button{flex:1;height:38px;border:0;background:none;font:inherit;font-size:12.5px;font-weight:600;color:#5B6472;cursor:pointer;border-bottom:2px solid transparent;padding:0 6px;white-space:nowrap}
+.ptab button.on{color:#0B1220;border-bottom-color:#0F766E}
+.seg{display:inline-flex;border:1px solid #D4D8DF;border-radius:8px;overflow:hidden;flex:none}
+.seg button{height:30px;padding:0 11px;border:0;background:#fff;font:inherit;font-size:12px;font-weight:600;color:#4B5563;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.seg button + button{border-left:1px solid #E3E6EB}
+.seg button.on{background:#0B1220;color:#fff}
+.cbx{border-radius:10px;overflow:hidden;border:1px solid #1F2937;background:#0B1220;min-width:0}
+.cbh{display:flex;align-items:center;gap:2px;padding:6px 8px;border-bottom:1px solid #1F2937;background:#111827;flex-wrap:wrap}
+.cbh button{height:28px;padding:0 10px;border:0;border-radius:6px;background:none;color:#B4BAC4;font:inherit;font-size:12px;font-weight:600;cursor:pointer}
+.cbh button.on{background:#273244;color:#fff}
+.cbh .cp{margin-left:auto;display:inline-flex;align-items:center;gap:6px;color:#E5E7EB;border:1px solid #374151}
+.cbx pre{margin:0;padding:12px 14px;font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace;font-size:12.5px;line-height:1.6;color:#E5E7EB;white-space:pre-wrap;overflow-wrap:anywhere}
+.cbx .c1{color:#93C5FD}.cbx .c2{color:#86EFAC}.cbx .c3{color:#FCD34D}.cbx .c4{color:#9CA3AF}.cbx .c5{color:#F9A8D4}
+.cbx .cm{color:#9CA3AF}
+.ev{display:flex;gap:14px;align-items:flex-start;padding:12px 0;border-top:1px solid #EEF0F3}
+.ev:first-child{border-top:0}
+.ev .ic{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.ev .tx{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.ev .tm{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;color:#5B6472;flex:none;padding-top:5px}
+.spin{width:14px;height:14px;border-radius:50%;border:2px solid #C9CED6;border-top-color:#0F766E;flex:none;display:inline-block}
+.mask{display:inline-flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;color:#4B5563;white-space:nowrap}
+.mask svg{flex:none}
+.tok{display:inline-flex;align-items:center;gap:4px;padding:0 6px;border-radius:5px;background:#EDE9FE;color:#5B21B6;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:.86em;font-weight:500;line-height:1.55;white-space:nowrap;vertical-align:baseline}
+.tok.s{background:#FEF3C7;color:#92400E}
+.tok.e{background:#FEE2E2;color:#991B1B;text-decoration:underline wavy #DC2626;text-underline-offset:3px}
+.mk{display:inline-flex;align-items:center;height:22px;padding:0 7px;border-radius:6px;background:#EEF0F3;color:#374151;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;white-space:nowrap}
+.toast{display:flex;gap:12px;align-items:center;padding:10px 12px 10px 14px;border-radius:10px;background:#0B1220;color:#fff;font-size:13.5px;box-shadow:0 12px 30px rgba(11,18,32,.25);max-width:520px;box-sizing:border-box}
+.toast .t{flex:1;min-width:0}
+.toast .k{color:#C3C2B7}
+.toast .btn{min-height:28px;padding:0 10px;font-size:12px;background:transparent;border-color:#4B5563;color:#fff}
+.toast .x{width:28px;height:28px;border:0;background:transparent;color:#9CA3AF;border-radius:6px;font-size:16px;cursor:pointer}
+.ti{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.scrim{position:absolute;inset:0;background:rgba(11,18,32,.32);z-index:55}
+.drw{position:absolute;top:0;right:0;bottom:0;width:600px;max-width:100%;background:#fff;border-left:1px solid #E3E6EB;box-shadow:-18px 0 40px rgba(11,18,32,.18);z-index:60;display:flex;flex-direction:column;box-sizing:border-box;overflow:hidden}
+.drw .dwh{display:flex;align-items:flex-start;gap:12px;padding:18px 22px 14px;border-bottom:1px solid #EEF0F3}
+.drw .dwb{padding:18px 22px;display:flex;flex-direction:column;gap:18px;overflow:auto}
+.drw h3{margin:0;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472}
+.empty{padding:44px 28px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;border-style:dashed}
+.empty .tt{font-size:18px;font-weight:700;letter-spacing:-.01em}
+.empty .ds{color:#4B5563;max-width:560px}
+.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:14px 18px;border-bottom:1px solid #EEF0F3}
+.fchips{display:flex;gap:6px;flex-wrap:wrap;padding:12px 18px;border-bottom:1px solid #EEF0F3}
+.fchip{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:999px;border:1px solid #D4D8DF;background:#fff;font:inherit;font-size:12.5px;font-weight:600;color:#374151;cursor:pointer;white-space:nowrap}
+.fchip b{font-weight:600;color:#5B6472;font-variant-numeric:tabular-nums}
+.fchip.on{background:#0B1220;border-color:#0B1220;color:#fff}.fchip.on b{color:#C9CED6}
+.live{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:#166534}
+.live .dot{box-shadow:0 0 0 4px rgba(22,101,52,.15)}
+.foot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid #EEF0F3}
+.spark{display:block}
+.lnk{display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:13px}
+.ttl{margin:0;font-size:22px;font-weight:700;letter-spacing:-.02em;line-height:1.2}
+.lead{margin:0;color:#4B5563;font-size:14px;max-width:760px}
+.state-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(460px,100%),1fr));gap:16px;align-items:start}
+.flowr{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px}
+.flowr .arw{color:#9AA3B2}
+.pill{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:8px;border:1px solid #E3E6EB;background:#F9FAFB;font-size:12.5px;font-weight:600;white-space:nowrap}
+.vline{display:flex;gap:10px;align-items:baseline;padding:8px 0;border-top:1px solid #EEF0F3;font-size:13px}
+.vline:first-child{border-top:0}
+.hl{background:#FEF2F2;box-shadow:inset 3px 0 0 #DC2626}
+.lines{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;line-height:1.7;background:#0B1220;color:#E5E7EB;border-radius:8px;overflow:hidden}
+.lines div{display:flex;gap:12px;padding:0 12px}
+.lines .ln{color:#9CA3AF;width:22px;text-align:right;flex:none;user-select:none}
+.lines .er{background:rgba(220,38,38,.22)}
+.callout{position:absolute;z-index:5}
+.only-phone{display:none}
+@media (max-width:1100px){.drw{width:520px}}
+@media (max-width:767px){.drw{width:100%;border-left:0}.stats{grid-template-columns:repeat(2,minmax(0,1fr))!important}.ttl{font-size:19px}}
+
+/* phase 4a · scoring and verification */
+.t1{background:#104281;color:#fff}.t2{background:#256abf;color:#fff}.t3{background:#5598e7;color:#0B1220}.t4{background:#86b6ef;color:#0B1220}
+.sw{width:10px;height:10px;border-radius:3px;display:inline-block;flex:none}
+.band{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;font-weight:600}
+.scv{display:inline-flex;align-items:center;gap:10px;white-space:nowrap}
+.scv b{font-weight:700;font-variant-numeric:tabular-nums;min-width:22px;text-align:right}
+.btile{padding:14px 18px;display:flex;flex-direction:column;gap:2px;min-width:0;box-sizing:border-box}
+.btile .v{font-size:22px;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums;line-height:1.25;margin-top:2px}
+.btile .hd{display:flex;align-items:center;gap:8px}
+.v-tab,.v-phone{display:none}
+@media (max-width:1100px){.v-desk{display:none!important}.v-tab{display:block}}
+@media (max-width:767px){.v-tab{display:none!important}.v-phone{display:block}}
+.pts{display:inline-flex;align-items:center;justify-content:center;min-width:42px;height:24px;padding:0 7px;border-radius:6px;background:#F3F4F6;border:1px solid #E3E6EB;font-weight:700;font-size:12.5px;font-variant-numeric:tabular-nums;box-sizing:border-box;color:#0B1220}
+.smeter{display:flex;flex-direction:column;gap:5px;min-width:0;position:relative}
+.smeter .trk{position:relative;height:8px;display:flex;gap:2px}
+.smeter .trk i{display:block;height:100%}
+.smeter .trk i:first-child{border-radius:4px 0 0 4px}.smeter .trk i:last-of-type{border-radius:0 4px 4px 0}
+.smeter .mkr{position:absolute;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:#0B1220;box-shadow:0 0 0 2px #fff;box-sizing:border-box}
+.smeter .tks{position:relative;height:15px;font-size:11px;color:#5B6472;font-variant-numeric:tabular-nums;line-height:15px}
+.smeter .tks span{position:absolute;top:0;transform:translateX(-50%);white-space:nowrap;overflow-wrap:normal}
+.smeter .tks span.s0{transform:none}.smeter .tks span.s100{transform:translateX(-100%)}
+.sbig{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.sbig .n{font-size:30px;font-weight:700;letter-spacing:-.02em;line-height:1.1;font-variant-numeric:tabular-nums}
+.sbig .b{font-size:16px;font-weight:600;display:inline-flex;align-items:center;gap:7px}
+.brk{display:flex;flex-direction:column}
+.brk .r{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;padding:9px 0;border-top:1px solid #EEF0F3;font-size:13px}
+.brk .r:first-child{border-top:0}
+.brk .r .l{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.brk .r.tot{border-top:1px solid #D4D8DF;font-weight:700}
+.cap-hit{display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:999px;background:#EEF0F3;color:#374151;font-size:11px;font-weight:600;white-space:nowrap}
+.chart-card .cfoot{display:flex;gap:12px 18px;align-items:flex-end;flex-wrap:wrap;padding:14px 18px;border-top:1px solid #EEF0F3}
+.thr{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:#4B5563}
+.thr{width:96px}
+.thr .in{width:100%}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:#4B5563;align-items:center}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.movechip{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:8px;border:1px solid #E3E6EB;background:#fff;font-size:12.5px;font-weight:600;white-space:nowrap}
+.arrowr{color:#5B6472;font-weight:500}
+.panel{background:#fff;border:1px solid #E3E6EB;border-radius:10px;box-shadow:-12px 0 32px rgba(11,18,32,.10);display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.panel .ph{display:flex;align-items:flex-start;gap:12px;padding:16px 18px 12px;border-bottom:1px solid #EEF0F3}
+.panel .pb{padding:16px 18px;display:flex;flex-direction:column;gap:16px}
+.panel .pf{padding:12px 18px 16px;display:flex;gap:8px;justify-content:flex-end;border-top:1px solid #EEF0F3;flex-wrap:wrap;align-items:center}
+.panel h3{margin:0;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472}
+.opt{display:flex;gap:10px;align-items:flex-start;padding:9px 11px;border:1px solid #E3E6EB;border-radius:8px;font-size:13px;cursor:pointer;background:#fff}
+.opt.on{border-color:#0F766E;background:#F0FDFA;box-shadow:inset 0 0 0 1px #0F766E}
+.opt input{margin-top:2px;flex:none}
+.opt .t{display:flex;flex-direction:column;gap:1px;min-width:0}
+.ferr{font-size:12px;color:#991B1B;font-weight:600;display:flex;gap:6px;align-items:flex-start}
+.in.bad{border-color:#B91C1C!important;box-shadow:0 0 0 1px #B91C1C}
+input[type=checkbox].tg:disabled{opacity:.5;cursor:not-allowed}
+.dk{display:grid;grid-template-columns:max-content max-content 1fr;gap:10px 10px;align-items:center;font-size:13px}
+.savebar{display:flex;align-items:center;gap:12px;padding:12px 18px;flex-wrap:wrap;box-shadow:0 8px 24px rgba(11,18,32,.12)}
+.mrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tray{border:1px solid #E3E6EB;border-radius:10px;background:#fff;padding:12px 14px;display:flex;flex-direction:column;gap:10px;font-size:13px;box-shadow:0 12px 30px rgba(11,18,32,.12)}
+.bar i{background:#0F766E}
+.rbar{display:flex;height:12px;gap:2px;border-radius:6px;overflow:hidden}
+.rbar span{display:block;height:100%}
+.rleg{display:flex;gap:8px 18px;flex-wrap:wrap;font-size:13px}
+.rleg span{display:inline-flex;align-items:center;gap:7px}
+.rleg b{font-variant-numeric:tabular-nums}
+.tagm{display:inline-flex;align-items:center;height:22px;padding:0 7px;border-radius:6px;background:#EEF0F3;color:#374151;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;white-space:nowrap}
+.onote{display:flex;flex-direction:column;gap:8px}
+.onote .ol2{display:grid;grid-template-columns:max-content 1fr;gap:4px 14px;font-size:13px;margin:0}
+.onote .ol2 dt{font-weight:700;margin:0}.onote .ol2 dd{margin:0}
+.costl{display:flex;flex-direction:column;gap:3px;padding:12px 14px;border:1px solid #E3E6EB;border-radius:8px;background:#FBFBFC}
+.costl .big{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums}
+.res-map{display:flex;flex-direction:column}
+.res-map .rr{display:flex;gap:12px;align-items:flex-start;padding:9px 0;border-top:1px solid #EEF0F3;font-size:13px}
+.res-map .rr:first-child{border-top:0;padding-top:2px}
+.res-map .rr > .badge{min-width:70px;justify-content:center;margin-top:1px}
+.statusl{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.mini{font-size:12px}
+.skel-row{display:flex;gap:14px;align-items:center;padding:10px 0;border-top:1px solid #EEF0F3}
+.flow{display:flex;flex-direction:column;align-items:center;gap:0}
+.fnode{width:100%;max-width:300px;box-sizing:border-box;background:#fff;border:1px solid #D4D8DF;border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:3px;font-size:13px}
+.fnode .kind{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;display:flex;align-items:center;gap:6px}
+.fnode.sel{border-color:#0F766E;box-shadow:0 0 0 1px #0F766E}
+.fconn{width:2px;height:18px;background:#C9CED6}
+.pal{display:flex;flex-direction:column;gap:6px}
+.pal .it{display:flex;align-items:center;gap:8px;height:34px;padding:0 10px;border:1px solid #E3E6EB;border-radius:8px;background:#fff;font-size:13px;font-weight:500}
+.pal .it.new{border-color:#0F766E;background:#F0FDFA}
+.cond{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px;border:1px solid #E3E6EB;border-radius:8px;background:#fff}
+.cond .in{height:34px}
+.grp{border:1px solid #E3E6EB;border-radius:10px;background:#F9FAFB;padding:12px;display:flex;flex-direction:column;gap:8px}
+.pick{position:absolute;z-index:30;background:#fff;border:1px solid #D4D8DF;border-radius:10px;box-shadow:0 12px 32px rgba(11,18,32,.16);padding:6px;min-width:250px;display:flex;flex-direction:column;gap:1px;box-sizing:border-box}
+.pick .mh{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472;padding:8px 10px 4px}
+.pick .pi{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:32px;padding:0 10px;border-radius:7px;font-size:13px;font-weight:500;color:#0B1220}
+.pick .pi.on{background:#F0FDFA;color:#0F766E;font-weight:600}
+.newb{display:inline-flex;align-items:center;height:18px;padding:0 6px;border-radius:999px;background:#DBEAFE;color:#1E40AF;font-size:10.5px;font-weight:700}
+/* integrations catalog card, as phase 2 draws it */
+.cap{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 7px;border-radius:5px;font-size:11px;font-weight:600;border:1px solid #E3E6EB;background:#F9FAFB;color:#374151;white-space:nowrap}
+.caps{display:flex;gap:5px;flex-wrap:wrap}
+.itile{width:40px;height:40px;border-radius:10px;background:#F3F4F6;border:1px solid #E3E6EB;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#374151;flex:none;box-sizing:border-box;letter-spacing:-.01em}
+.itile.lg{width:52px;height:52px;border-radius:12px;font-size:17px}
+.itile.sm{width:30px;height:30px;border-radius:8px;font-size:11px}
+.icard{display:flex;flex-direction:column;gap:12px;padding:16px 16px 14px;min-width:0;box-sizing:border-box}
+.icard .ih{display:flex;gap:12px;align-items:flex-start}
+.icard .nm{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1}
+.icard h3{margin:0;font-size:15px;font-weight:600;line-height:1.3}
+.icard .ds{margin:0;color:#374151;font-size:13px;line-height:1.45}
+.icard .ft{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:8px 10px;padding-top:12px;border-top:1px solid #EEF0F3;flex-wrap:wrap}
+.icard .ft .k{flex:1 1 160px;min-width:0}
+.icard.sel{border-color:#0F766E;box-shadow:0 0 0 1px #0F766E}
+.igrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(330px,100%),1fr));gap:16px;align-items:stretch}
+.dz{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:16px 18px;border-color:#FCA5A5}
+@media (max-width:1100px){.side .sidefoot > *:not(.btn){display:none!important}}
+@media (max-width:767px){
+  .igrid{grid-template-columns:1fr!important}
+  .sc-host .panel{box-shadow:none}
+  .sc-host .smeter .tks span{white-space:nowrap}
+}
+
+/* responsive shell */
+@media (max-width:1100px){
+  .side{flex:0 0 72px!important;max-width:72px;padding:14px 8px!important;gap:4px!important}
+  .side .nl,.side .brand-t,.side .ws{display:none}
+  .side .nav a{justify-content:center;padding:0!important;height:44px}
+  .side .nav svg{width:20px;height:20px}
+  .side > a[aria-label="ReputeCast home"]{justify-content:center;padding:6px 0!important}
+  .side .sidefoot{align-items:center}
+  .side .sidefoot > *{display:none}
+  .side .sidefoot > a.btn{display:inline-flex;width:44px;height:44px;padding:0!important;justify-content:center!important;font-size:0;gap:0}
+  .side .sidefoot > a.btn svg{width:18px;height:18px}
+  .top{padding:12px 16px!important}
+  .content{padding:16px!important}
+}
+@media (max-width:767px){
+  .app{flex-direction:column}
+  .side{flex:none!important;max-width:none!important;width:auto!important;position:fixed;left:0;right:0;bottom:0;z-index:50;flex-direction:row!important;align-items:center;padding:6px 6px!important;border-right:0!important;border-top:1px solid #E3E6EB;background:#fff!important;box-sizing:border-box;gap:0!important}
+  .side > a[aria-label="ReputeCast home"],.side .ws,.side .sidefoot{display:none!important}
+  .side .nav{flex-direction:row!important;flex:1;justify-content:space-around;margin-top:0!important;gap:0!important}
+  .side .nav a{height:44px;width:44px;flex:none;padding:0!important;justify-content:center;border-radius:10px}
+  .side .nl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;display:block}
+  .side .nav a.on{background:#E3F1EE;color:#0F766E}
+  .mainc{padding-bottom:72px}
+  .top{padding:12px 12px!important;gap:8px!important}
+  .top h1{font-size:16px!important}
+  .top .in{width:100%!important}
+  .tabs{flex-wrap:nowrap!important;overflow-x:auto;max-width:100%;margin-left:0!important;padding-bottom:2px}
+  .tabs a{flex:none}
+  .content{padding:12px!important;gap:12px!important}
+  .cpanel{max-width:none!important;flex:1 1 100%!important}
+}
+@media (min-width:768px) and (max-width:1100px){
+  .cpanel{max-width:none!important}
+}
+
+/* responsive phone fixes */
+@media (max-width:767px){
+  .app{flex-wrap:nowrap!important}
+  .mainc{width:100%;max-width:100%}
+  .content > *{min-width:0;max-width:100%}
+  .content .in,.content select,.content input,.content textarea{max-width:100%;min-width:0}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+  .sc-host [style*="flex: 1 1"]{min-width:0}
+  .sc-host select.in,.sc-host input.in{width:0;min-width:100%}
+  .sc-host .mono{overflow-wrap:anywhere}
+  .sc-host .sk{max-width:100%}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px;max-width:100%}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host .tabs .badge{white-space:nowrap}
+  .sc-host .side .btn{white-space:nowrap}
+  .sc-host [style*="grid-template-columns: repeat("]{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))!important}
+  .sc-host [style*="minmax(260px"],.sc-host [style*="minmax(280px"],.sc-host [style*="minmax(300px"],.sc-host [style*="minmax(320px"],.sc-host [style*="minmax(340px"],.sc-host [style*="minmax(360px"],.sc-host [style*="minmax(380px"],.sc-host [style*="minmax(420px"]{grid-template-columns:1fr!important}
+  .sc-host [style*="radial-gradient"]{overflow:auto}
+  .sc-host [style*="display: grid"] > *{min-width:0}
+  .sc-host header > div{max-width:100%;min-width:0}
+  .sc-host pre,.sc-host .lines{max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]) > div[style*="flex: 1"]{min-width:120px}
+}
+
+/* accessibility */
+:focus-visible{outline:2px solid #0F766E;outline-offset:2px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-9999px;top:8px;z-index:100;background:#fff;color:#0B1220;padding:8px 12px;border-radius:8px;border:1px solid #0F766E;font-weight:600;text-decoration:none}
+.skip:focus{left:8px}
+p a:not(.btn),span a:not(.btn):not([style*="color"]),td a:not(.btn):not([style*="color"]),li a:not(.btn),label a,.k a,.lead a{text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+.content > * a:not(.btn):not(p a):not(span a):not(td a):not(li a):not(label a):not(.k a),.top a:not(.btn),nav a:not(.btn),footer a:not(.btn){min-height:24px;display:inline-flex;align-items:center}
+input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F766E}
+.in,select.in,textarea.in,input.in{border-color:#8B94A3}
+@media (max-width:767px){
+  .sc-host{overflow-wrap:anywhere}
+  .sc-host table,.sc-host td,.sc-host th{overflow-wrap:normal}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+}
+
+/* nav: phones show four sections plus More */
+.side .nav a.more{display:none}
+@media (max-width:767px){.side .nav a.xm{display:none!important}.side .nav a.more{display:flex}.side .nav a.more.on{background:#E3F1EE;color:#0F766E}}
+/* shell: the icon rail keeps only the import button (the footer's inline display:flex beat the rail rule) */
+@media (max-width:1100px){.side .sidefoot > :not(.btn){display:none!important}}
+/* shell: avatar initials sit in the middle */
+.av{display:inline-flex;align-items:center;justify-content:center;flex:none}
+.ubtn .av{border-radius:50%;font-weight:700}
+.ws .av{font-weight:700}
+/* switches: a disabled switch looks disabled */
+.tg:disabled,.tgx:disabled{opacity:.45;cursor:not-allowed}
+
+/* expansion: responsive card grids collapse to one column on phones (overrides the 140px rule above) */
+@media (max-width:767px){
+  .sc-host [style*="minmax(min("]{grid-template-columns:1fr!important}
+  .sc-host .kv{grid-template-columns:1fr;gap:2px 0}
+  .sc-host .kv dd{margin-bottom:8px}
+  .sc-host .ev .tm{display:none}
+  .sc-host .cbx pre{font-size:11.5px}
+  .sc-host .mlist{display:none!important}
+  .sc-host .only-phone{display:flex!important;flex-direction:column}
+  .sc-host .no-phone{display:none!important}
+}
+</style>
+</helmet>
+<div class="app" style="display:flex;flex-wrap:wrap;align-items:stretch;min-height:100vh;position:relative">
+  <a href="#main" class="skip">Skip to content</a>
+  <aside class="side" style="flex:1 1 232px;background:#FBFBFC;border-right:1px solid #E3E6EB;display:flex;flex-direction:column;padding:16px 12px;gap:6px;box-sizing:border-box">
+    <a href="Main.dc.html" style="display:flex;align-items:center;gap:10px;padding:6px 8px;color:#0B1220" aria-label="ReputeCast home"><svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg><span class="brand-t" style="font-weight:700;font-size:15px;letter-spacing:-.01em">ReputeCast</span></a>
+    <button class="ws" type="button" aria-haspopup="menu" aria-label="Switch workspace. Current: Acme Newsletter, your role Owner"><span class="av" style="width:24px;height:24px;font-size:10px;background:#0F766E;color:#fff;border-radius:6px" aria-hidden="true">AN</span><span class="wsn"><b>Acme Newsletter</b><span>Owner</span></span><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button>
+    <nav class="nav" style="display:flex;flex-direction:column;gap:2px;margin-top:4px" aria-label="Main">
+      <a href="Main.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z"></path></svg><span class="nl">Overview</span></a>
+      <a href="Campaigns.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M14 2 2 7l5 2 2 5zM7 9l7-7" stroke-linejoin="round"></path></svg><span class="nl">Campaigns</span></a>
+      <a href="AutomationsList.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="4" cy="3" r="2"></circle><circle cx="4" cy="13" r="2"></circle><circle cx="12" cy="8" r="2"></circle><path d="M4 5v6M6 8h4"></path></svg><span class="nl">Automations</span></a>
+      <a href="Transactional.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="1.5"></rect><path d="m2 4.5 6 4.5 6-4.5"></path></svg><span class="nl">Transactional</span></a>
+      <a href="Contacts.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="6" cy="5" r="2.5"></circle><path d="M1.5 14a4.5 4.5 0 0 1 9 0M11 3a2.5 2.5 0 0 1 0 5M14.5 14a4 4 0 0 0-3-3.8"></path></svg><span class="nl">Audience</span></a>
+      <a href="GrowOverview.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 12.5 6 8.5l3 3 5-5.5"></path><path d="M10.5 5.5H14V9"></path></svg><span class="nl">Grow</span></a>
+      <a href="EarnOverview.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M10 5.9H7.1a1.3 1.3 0 0 0 0 2.6h1.8a1.3 1.3 0 0 1 0 2.6H6M8 4.4v1.5M8 11.1v1.5"></path></svg><span class="nl">Earn</span></a>
+      <a href="FormBuilder.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="2"></rect><path d="M5 6h6M5 9h6M5 12h3"></path></svg><span class="nl">Forms &amp; pages</span></a>
+      <a href="Deliverability.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 1.5 13.5 3.5v4.5c0 3-2.3 5.3-5.5 6.5C4.8 13.3 2.5 11 2.5 8V3.5z" stroke-linejoin="round"></path><path d="m5.5 8 1.8 1.8L10.8 6"></path></svg><span class="nl">Deliverability</span></a>
+      <a href="Providers.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="5" rx="1.5"></rect><rect x="2" y="9" width="12" height="5" rx="1.5"></rect><path d="M5 4.5h.01M5 11.5h.01" stroke-width="2" stroke-linecap="round"></path></svg><span class="nl">Sending providers</span></a>
+      <a href="WorkspaceSettings.dc.html" class="on xm" aria-current="page"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 4h7M13 4h1M2 8h2M8 8h6M2 12h7M13 12h1"></path><circle cx="11" cy="4" r="1.8"></circle><circle cx="6" cy="8" r="1.8"></circle><circle cx="11" cy="12" r="1.8"></circle></svg><span class="nl">Settings</span></a>
+      <a href="ShellMore.dc.html" class="more on" aria-label="More: Automations, Transactional, Grow, Earn, Forms & pages, Sending providers, Settings"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="3.5" cy="8" r="1.2"></circle><circle cx="8" cy="8" r="1.2"></circle><circle cx="12.5" cy="8" r="1.2"></circle></svg><span class="nl">More</span></a>
+    </nav>
+    <div class="sidefoot" style="margin-top:auto;display:flex;flex-direction:column;gap:8px">
+      <a href="MigrationSource.dc.html" class="btn" style="justify-content:flex-start"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 11V3M4.5 6.5 8 3l3.5 3.5M2 13h12"></path></svg>Import contacts</a>
+      <a href="SettingsIntegrations.dc.html" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid #E3E6EB;border-radius:8px;background:#fff;color:#0B1220"><span class="dot" style="color:#15803D"></span><div style="display:flex;flex-direction:column;line-height:1.25"><span style="font-size:12px;font-weight:600">HostRepute connected</span><span class="k" style="font-size:11px">Acme Inc · synced 4 min ago</span></div></a>
+      <div style="display:flex;align-items:center;gap:8px;padding:4px 8px"><span class="av" style="width:26px;height:26px;font-size:11px;background:#DBEAFE;color:#1E40AF" aria-hidden="true">LN</span><div style="display:flex;flex-direction:column;line-height:1.25"><span style="font-size:12px;font-weight:600">Linh Nguyen</span><span class="k" style="font-size:11px">Owner</span></div></div>
+    </div>
+  </aside>
+  <div class="mainc" style="flex:999 1 560px;min-width:0;display:flex;flex-direction:column">
+    <header class="top" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 28px;background:#fff;border-bottom:1px solid #E3E6EB">
+      <nav aria-label="Breadcrumb" style="display:flex;align-items:center;gap:8px;font-size:13px;flex-wrap:wrap"><a href="WorkspaceSettings.dc.html" style="color:#5B6472">Settings</a><span class="k">/</span><a href="IntegrationsCatalog.dc.html" style="color:#5B6472">Integrations</a><span class="k">/</span><span style="font-weight:600">Verification services</span></nav><div style="margin-left:auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><div class="tools"><a href="Notifications.dc.html" class="ibtn" aria-label="Notifications, 3 unread"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 11V7a4 4 0 0 1 8 0v4l1.5 1.5h-11zM6.5 14a1.5 1.5 0 0 0 3 0"></path></svg><span class="cnt" aria-hidden="true">3</span></a><button class="ubtn" type="button" aria-haspopup="menu" aria-label="Account menu for Linh Nguyen"><span class="av" style="width:26px;height:26px;font-size:11px;background:#DBEAFE;color:#1E40AF" aria-hidden="true">LN</span><span class="unm">Linh</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button></div></div>
+    </header>
+    <h1 class="vh">Verification services</h1>
+    <main class="content" id="main" style="padding:24px 28px;display:flex;flex-direction:column;gap:20px">
+<div class="row" style="justify-content:space-between;align-items:flex-end;gap:12px 20px"><div style="display:flex;flex-direction:column;gap:4px;min-width:0;flex:1 1 520px"><h2 class="ttl">Verification services</h2><p class="lead">Check whether addresses can receive mail, with your own account at one of these services. Each service bills its checks to your balance there. ReputeCast shows the cost before every use and takes nothing.</p></div><div class="card" style="padding:10px 14px;display:flex;flex-direction:column;gap:6px;flex:0 1 auto"><span class="k">Defaults</span><div class="row" style="gap:6px"><span class="pill">Bulk checks and imports · ZeroBounce</span><span class="pill">Signup forms · Kickbox</span></div></div></div><div class="igrid"><article class="card icard sel" aria-label="ZeroBounce" aria-current="true"><div><div class="ih"><span class="itile" aria-hidden="true">ZB</span><div class="nm"><h3>ZeroBounce</h3><span class="k">Default for bulk and imports</span></div><span class="badge ok"><span class="dot"></span>Connected</span></div></div><p class="ds">Checks addresses in bulk and as people sign up. ZeroBounce bills your own account per check.</p><div class="caps"><span class="cap">Bulk lists</span><span class="cap">Real-time checks</span><span class="cap">Catch-all detection</span><span class="cap">Credit balance</span><span class="cap">Data region</span></div><div class="ft"><span class="k">36,656 credits · $0.008 a check</span><a href="VerificationServices.dc.html" class="btn sm">Manage</a></div></article><article class="card icard" aria-label="Kickbox"><div><div class="ih"><span class="itile" aria-hidden="true">K</span><div class="nm"><h3>Kickbox</h3><span class="k">Default for signup forms</span></div><span class="badge ok"><span class="dot"></span>Connected</span></div></div><p class="ds">Checks addresses in bulk and as people sign up. Kickbox bills your own account per check.</p><div class="caps"><span class="cap">Bulk lists</span><span class="cap">Real-time checks</span><span class="cap">Catch-all detection</span><span class="cap">Credit balance</span></div><div class="ft"><span class="k">9,214 credits · $0.010 a check</span><a href="VerificationServices.dc.html" class="btn sm">Manage</a></div></article><article class="card icard" aria-label="NeverBounce"><div><div class="ih"><span class="itile" aria-hidden="true">NB</span><div class="nm"><h3>NeverBounce</h3><span class="k">Your own account</span></div><span class="badge mut">Not connected</span></div></div><p class="ds">Checks addresses in bulk and as people sign up. NeverBounce bills your own account per check.</p><div class="caps"><span class="cap">Bulk lists</span><span class="cap">Real-time checks</span><span class="cap">Catch-all detection</span><span class="cap">Credit balance</span></div><div class="ft"><span class="k">Pay per check · cost shown first</span><a href="VerificationStates.dc.html" class="btn sm pri">Connect</a></div></article><article class="card icard" aria-label="Bouncer"><div><div class="ih"><span class="itile" aria-hidden="true">B</span><div class="nm"><h3>Bouncer</h3><span class="k">Your own account</span></div><span class="badge mut">Not connected</span></div></div><p class="ds">Checks addresses in bulk and as people sign up. Bouncer bills your own account per check.</p><div class="caps"><span class="cap">Bulk lists</span><span class="cap">Real-time checks</span><span class="cap">Catch-all detection</span><span class="cap">Credit balance</span></div><div class="ft"><span class="k">Pay per check · cost shown first</span><a href="VerificationStates.dc.html" class="btn sm pri">Connect</a></div></article><article class="card icard" aria-label="Emailable"><div><div class="ih"><span class="itile" aria-hidden="true">E</span><div class="nm"><h3>Emailable</h3><span class="k">Your own account</span></div><span class="badge mut">Not connected</span></div></div><p class="ds">Checks addresses in bulk and as people sign up. Emailable bills your own account per check.</p><div class="caps"><span class="cap">Bulk lists</span><span class="cap">Real-time checks</span><span class="cap">Catch-all detection</span><span class="cap">Credit balance</span></div><div class="ft"><span class="k">Pay per check · cost shown first</span><a href="VerificationStates.dc.html" class="btn sm pri">Connect</a></div></article></div><div style="display:flex;align-items:center;gap:12px;margin-top:6px"><span style="font-weight:700;font-size:16px">ZeroBounce</span><span class="k">selected above</span><span style="flex:1;height:1px;background:#E3E6EB"></span></div><div style="display:flex;flex-direction:column;gap:16px;min-width:0;"><section class="card"><div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;padding:18px 20px"><span class="itile lg" aria-hidden="true">ZB</span><div style="display:flex;flex-direction:column;gap:4px;min-width:0;flex:1 1 300px"><div class="row" style="gap:10px"><h2 style="margin:0;font-size:19px;font-weight:700;letter-spacing:-.01em">ZeroBounce</h2><span class="badge ok"><span class="dot"></span>Connected</span></div><span class="k" style="color:#4B5563">Connected by Marcus Chen on Thu 2 Oct 2026 · United States · default for bulk checks and imports</span></div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="btn sm"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 8a5 5 0 1 1-1.5-3.6M13 2.5V5h-2.5"></path></svg>Test connection</button><a href="https://www.zerobounce.net" class="btn sm" target="_blank" rel="noopener">Open ZeroBounce <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h4v4M13 3 7 9M11 9.5V13H3V5h3.5"></path></svg></a></div></div></section><div class="stats"><div class="card stat "><span class="k">Balance</span><span class="v">36,656</span><span class="s">credits · read today at 10:12</span></div><div class="card stat "><span class="k">Checks · 30 days</span><span class="v">15,459</span><span class="s">2 bulk uses</span></div><div class="card stat "><span class="k">Spent · 30 days</span><span class="v">$123.67</span><span class="s">at $0.008 a check</span></div><div class="card stat "><span class="k">Last used</span><span class="v">09:12</span><span class="s">today · Linh Nguyen</span></div></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(460px,100%),1fr));gap:16px;align-items:start;"><section class="card" style=""><div class="sec"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><h2 class="h2">Settings</h2></div></div><div><div style="display:flex;gap:16px;align-items:flex-start;justify-content:space-between;padding:14px 18px;border-top:1px solid #EEF0F3;flex-wrap:wrap"><div style="display:flex;flex-direction:column;gap:3px;flex:1 1 260px;min-width:0"><span style="font-weight:600">Price per check</span><span class="k" style="color:#4B5563">From Acme's ZeroBounce plan, entered by Marcus Chen. Every estimate uses it.</span></div><div style="flex:none;display:flex;align-items:center;gap:8px;flex-wrap:wrap;max-width:100%"><div class="row" style="gap:6px;flex-wrap:nowrap"><span class="k" style="font-size:13px">$</span><span style="display:inline-block;width:96px;flex:none"><input class="in num" value="0.008" style="width:96px" aria-label="Price per check in US dollars"></span><span class="k" style="white-space:nowrap">a check</span></div></div></div><div style="display:flex;gap:16px;align-items:flex-start;justify-content:space-between;padding:14px 18px;border-top:1px solid #EEF0F3;flex-wrap:wrap"><div style="display:flex;flex-direction:column;gap:3px;flex:1 1 260px;min-width:0"><span style="font-weight:600">Default for</span><span class="k" style="color:#4B5563">Imports and bulk checks offer ZeroBounce first. One service can be the default for both.</span></div><div style="flex:none;display:flex;align-items:center;gap:8px;flex-wrap:wrap;max-width:100%"><div class="col" style="gap:8px"><label style="display:flex;gap:9px;align-items:flex-start;font-size:13px"><input type="checkbox" checked style="margin-top:2px"><span style="display:flex;flex-direction:column;gap:1px"><span>Bulk checks and imports</span></span></label><label style="display:flex;gap:9px;align-items:flex-start;font-size:13px"><input type="checkbox" style="margin-top:2px"><span style="display:flex;flex-direction:column;gap:1px"><span>Signup forms</span><span class="k">Kickbox is the default for forms</span></span></label></div></div></div><div style="display:flex;gap:16px;align-items:flex-start;justify-content:space-between;padding:14px 18px;border-top:1px solid #EEF0F3;flex-wrap:wrap"><div style="display:flex;flex-direction:column;gap:3px;flex:1 1 260px;min-width:0"><span style="font-weight:600">API key</span><span class="k" style="color:#4B5563">Encrypted at rest and never shown again. Replacing it is audited.</span></div><div style="flex:none;display:flex;align-items:center;gap:8px;flex-wrap:wrap;max-width:100%"><div class="row" style="gap:8px"><span class="mask"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#5B6472" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 2l12 12M6.6 6.6a2 2 0 0 0 2.8 2.8M4.2 4.3C2.9 5.2 2 6.5 1.5 8c1.1 2.9 3.6 4.5 6.5 4.5 1.3 0 2.5-.3 3.6-.9M8 3.5c2.9 0 5.4 1.6 6.5 4.5-.3.9-.8 1.7-1.4 2.4"></path></svg>••••••<span class="badge mut" style="height:20px;font-size:11px">Write-only</span></span><button class="btn sm">Replace key</button></div></div></div><div style="display:flex;gap:16px;align-items:flex-start;justify-content:space-between;padding:14px 18px;border-top:1px solid #EEF0F3;flex-wrap:wrap"><div style="display:flex;flex-direction:column;gap:3px;flex:1 1 260px;min-width:0"><span style="font-weight:600">Connection</span><span class="k" style="color:#4B5563">Checks the key by reading the credit balance.</span></div><div style="flex:none;display:flex;align-items:center;gap:8px;flex-wrap:wrap;max-width:100%"><div class="row" style="gap:8px"><button class="btn sm"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 8a5 5 0 1 1-1.5-3.6M13 2.5V5h-2.5"></path></svg>Test connection</button><span class="k">Passed today at 10:12 · reads the balance, sends no address</span></div></div></div></div><div class="foot"><span class="k">Changes to the price and the defaults are audited.</span><button class="btn sm pri">Save</button></div></section><div style="display:flex;flex-direction:column;gap:16px;min-width:0;"><section class="card" style=""><div class="sec"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><h2 class="h2">Health</h2></div></div><div class="pad"><dl class="kv" style=""><dt>Status</dt><dd><span class="badge ok"><span class="dot"></span>Connected</span></dd><dt>Balance</dt><dd>36,656 credits · read today at 10:12, at each use and every hour</dd><dt>Last used</dt><dd>Today at 09:12 by Linh Nguyen · import preview</dd><dt>Last error</dt><dd>None in the last 30 days</dd><dt>Data region</dt><dd>United States, as ZeroBounce reports for this account</dd></dl></div></section><section class="card" style=""><div class="sec"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><h2 class="h2">What ZeroBounce receives</h2><span class="k">The same notice opens every verification, with the cost</span></div></div><div class="pad"><div class="note i" role="note"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#1D4ED8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M8 7.2v3.8M8 5v.1"></path></svg><div style="display:flex;flex-direction:column;gap:4px;min-width:0;flex:1 1 320px"><span style="font-weight:700">Before every use, a notice names ZeroBounce (United States) and the number of addresses.</span><div><div class="onote"><dl class="ol2"><dt>Sent</dt><dd>Only the addresses, one per check</dd><dt>Never sent</dt><dd>Names, fields, lists, tags or activity</dd></dl><span>What ZeroBounce keeps, and for how long, depends on your ZeroBounce account.</span></div></div></div></div></div></section></div></div><section class="card" style=""><div class="sec"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><h2 class="h2">How ZeroBounce's answers map</h2><span class="k">Four results everywhere in ReputeCast, whatever the service calls them</span></div></div><div class="no-phone"><div style="overflow-x:auto"><table class="tbl " aria-label="Result mapping"><thead><tr><th scope="col">ZeroBounce answers</th><th scope="col">Becomes</th><th scope="col">What happens</th></tr></thead><tbody><tr><td><span class="mono" style="font-size:12.5px;white-space:normal">valid</span></td><td class="nw"><span class="badge ok">Valid</span></td><td><span style="white-space:normal">Nothing changes but the result</span></td></tr><tr><td><span class="mono" style="font-size:12.5px;white-space:normal">invalid / mailbox_not_found, no_dns_entries, failed_syntax_check</span></td><td class="nw"><span class="badge bad">Invalid</span></td><td><span style="white-space:normal">On the suppression list for all mail · reason “Invalid address” · source ZeroBounce</span></td></tr><tr><td><span class="mono" style="font-size:12.5px;white-space:normal">spamtrap</span></td><td class="nw"><span class="badge bad">Invalid</span></td><td><span style="white-space:normal">On the suppression list for all mail · reason “Spam trap” · source ZeroBounce</span></td></tr><tr><td><span class="mono" style="font-size:12.5px;white-space:normal">catch-all</span></td><td class="nw"><span class="badge warn">Risky · catch-all</span></td><td><span style="white-space:normal">Tagged <span class="tagm">verify:catch-all</span></span></td></tr><tr><td><span class="mono" style="font-size:12.5px;white-space:normal">do_not_mail / role_based</span></td><td class="nw"><span class="badge warn">Risky · role</span></td><td><span style="white-space:normal">Tagged <span class="tagm">verify:role</span></span></td></tr><tr><td><span class="mono" style="font-size:12.5px;white-space:normal">do_not_mail / disposable</span></td><td class="nw"><span class="badge warn">Risky · disposable</span></td><td><span style="white-space:normal">Tagged <span class="tagm">verify:disposable</span></span></td></tr><tr><td><span class="mono" style="font-size:12.5px;white-space:normal">abuse</span></td><td class="nw"><span class="badge warn">Risky · abuse</span></td><td><span style="white-space:normal">Tagged <span class="tagm">verify:abuse</span>, ZeroBounce's own reason</span></td></tr><tr><td><span class="mono" style="font-size:12.5px;white-space:normal">unknown</span></td><td class="nw"><span class="badge mut">Unknown</span></td><td><span style="white-space:normal">Tagged <span class="tagm">verify:unknown</span> · can be checked again after 72 hours</span></td></tr></tbody></table></div></div><div class="only-phone"><div style="display:flex;flex-direction:column;gap:5px;padding:12px 16px;border-top:1px solid #EEF0F3"><div class="row" style="gap:8px"><span class="badge ok">Valid</span><span class="mono k">valid</span></div><span class="k" style="color:#374151">Nothing changes but the result</span></div><div style="display:flex;flex-direction:column;gap:5px;padding:12px 16px;border-top:1px solid #EEF0F3"><div class="row" style="gap:8px"><span class="badge bad">Invalid</span><span class="mono k">invalid / mailbox_not_found, no_dns_entries, failed_syntax_check</span></div><span class="k" style="color:#374151">On the suppression list for all mail · reason “Invalid address” · source ZeroBounce</span></div><div style="display:flex;flex-direction:column;gap:5px;padding:12px 16px;border-top:1px solid #EEF0F3"><div class="row" style="gap:8px"><span class="badge bad">Invalid</span><span class="mono k">spamtrap</span></div><span class="k" style="color:#374151">On the suppression list for all mail · reason “Spam trap” · source ZeroBounce</span></div><div style="display:flex;flex-direction:column;gap:5px;padding:12px 16px;border-top:1px solid #EEF0F3"><div class="row" style="gap:8px"><span class="badge warn">Risky · catch-all</span><span class="mono k">catch-all</span></div><span class="k" style="color:#374151">Tagged <span class="tagm">verify:catch-all</span></span></div><div style="display:flex;flex-direction:column;gap:5px;padding:12px 16px;border-top:1px solid #EEF0F3"><div class="row" style="gap:8px"><span class="badge warn">Risky · role</span><span class="mono k">do_not_mail / role_based</span></div><span class="k" style="color:#374151">Tagged <span class="tagm">verify:role</span></span></div><div style="display:flex;flex-direction:column;gap:5px;padding:12px 16px;border-top:1px solid #EEF0F3"><div class="row" style="gap:8px"><span class="badge warn">Risky · disposable</span><span class="mono k">do_not_mail / disposable</span></div><span class="k" style="color:#374151">Tagged <span class="tagm">verify:disposable</span></span></div><div style="display:flex;flex-direction:column;gap:5px;padding:12px 16px;border-top:1px solid #EEF0F3"><div class="row" style="gap:8px"><span class="badge warn">Risky · abuse</span><span class="mono k">abuse</span></div><span class="k" style="color:#374151">Tagged <span class="tagm">verify:abuse</span>, ZeroBounce's own reason</span></div><div style="display:flex;flex-direction:column;gap:5px;padding:12px 16px;border-top:1px solid #EEF0F3"><div class="row" style="gap:8px"><span class="badge mut">Unknown</span><span class="mono k">unknown</span></div><span class="k" style="color:#374151">Tagged <span class="tagm">verify:unknown</span> · can be checked again after 72 hours</span></div></div><div class="foot"><span class="k">The service's own answer is kept beside the result, as bounce codes are: “Invalid · ZeroBounce: invalid / mailbox_not_found”.</span></div></section><section class="card" style=""><div class="sec"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><h2 class="h2">Uses · 2 in the last 30 days</h2></div></div><div class="no-phone"><div style="overflow-x:auto"><table class="tbl " aria-label="Verification uses"><thead><tr><th scope="col">When</th><th scope="col">Who</th><th scope="col">What</th><th scope="col" class="r">Addresses</th><th scope="col" class="r">Cost</th><th scope="col">Results</th><th scope="col"></th></tr></thead><tbody><tr><td class="nw">Wed 15 Oct 09:12</td><td><span style="display:inline-flex;align-items:center;gap:8px;white-space:nowrap"><span class="av" style="width:22px;height:22px;font-size:11px;background:#DBEAFE;color:#1E40AF" aria-hidden="true">LN</span><span>Linh Nguyen</span></span></td><td><span style="white-space:normal">Import preview: Mailchimp “Acme Customers”, new addresses</span></td><td class="r num">11,844</td><td class="r num">$94.75</td><td><span class="k" style="white-space:normal;color:#374151">Valid 10,912 · Invalid 403 · Risky 417 · Unknown 112</span></td><td class="r"><a href="SettingsAudit.dc.html" class="btn sm">Audit entry</a></td></tr><tr><td class="nw">Tue 14 Oct 15:02</td><td><span style="display:inline-flex;align-items:center;gap:8px;white-space:nowrap"><span class="av" style="width:22px;height:22px;font-size:11px;background:#FCE7F3;color:#9D174D" aria-hidden="true">MC</span><span>Marcus Chen</span></span></td><td><span style="white-space:normal">Tier: Sunset</span></td><td class="r num">3,615</td><td class="r num">$28.92</td><td><span class="k" style="white-space:normal;color:#374151">Valid 2,904 · Invalid 287, suppressed · Risky 318 · Unknown 106</span></td><td class="r"><a href="VerificationRun.dc.html" class="btn sm">Job</a></td></tr></tbody></table></div></div><div class="only-phone"><div style="display:flex;flex-direction:column;gap:4px;padding:12px 16px;border-top:1px solid #EEF0F3"><div class="row" style="justify-content:space-between;gap:8px"><span style="font-weight:600">Import preview: Mailchimp “Acme Customers”, new addresses</span><span class="num" style="font-weight:600">$94.75</span></div><span class="k" style="color:#374151">Wed 15 Oct 09:12 · ZeroBounce · 11,844 addresses</span><span class="k">Valid 10,912 · Invalid 403 · Risky 417 · Unknown 112</span></div><div style="display:flex;flex-direction:column;gap:4px;padding:12px 16px;border-top:1px solid #EEF0F3"><div class="row" style="justify-content:space-between;gap:8px"><span style="font-weight:600">Tier: Sunset</span><span class="num" style="font-weight:600">$28.92</span></div><span class="k" style="color:#374151">Tue 14 Oct 15:02 · ZeroBounce · 3,615 addresses</span><span class="k">Valid 2,904 · Invalid 287, suppressed · Risky 318 · Unknown 106</span></div></div><div class="foot"><span class="k">Every use is in the audit log: who, what, how many addresses and the estimated cost, then the results.</span><a href="SettingsAudit.dc.html" class="lnk">Audit log</a></div></section><section class="card dz"><div style="display:flex;flex-direction:column;gap:3px;min-width:0;flex:1 1 360px"><span style="font-weight:600">Disconnect ZeroBounce</span><span class="k" style="color:#4B5563">Imports and bulk checks stop offering ZeroBounce, and the key is deleted. Results already on contacts stay.</span></div><button class="btn danger">Disconnect ZeroBounce</button></section></div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2386}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Earn · offer editor · FALL26</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F4F6;color:#0B1220;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;line-height:1.45}
+a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
+.mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace}
+.card{background:#FFFFFF;border:1px solid #E3E6EB;border-radius:10px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:36px;padding:0 14px;border-radius:8px;border:1px solid #D4D8DF;background:#FFFFFF;color:#0B1220;font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;box-sizing:border-box}
+.btn:hover{background:#F3F4F6;color:#0B1220}
+.btn.pri{background:#0F766E;border-color:#0F766E;color:#FFFFFF}.btn.pri:hover{background:#115E59;color:#FFFFFF}
+.btn.sm{min-height:30px;padding:0 10px;font-size:12px}
+.badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;flex:none}
+.ok{background:#DCFCE7;color:#166534}.warn{background:#FEF3C7;color:#92400E}.bad{background:#FEE2E2;color:#991B1B}.info{background:#DBEAFE;color:#1E40AF}.mut{background:#EEF0F3;color:#4B5563}.pur{background:#EDE9FE;color:#5B21B6}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;flex:none}
+.nav a{display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;border-radius:8px;color:#4B5563;font-weight:500}
+.nav a:hover{background:#EEF0F3;color:#0B1220}.nav a.on{background:#E3F1EE;color:#0F766E}
+.nav svg{width:16px;height:16px;flex:none}
+.tabs{display:flex;gap:4px;flex-wrap:wrap}
+.tabs a{display:inline-flex;align-items:center;height:34px;padding:0 12px;border-radius:8px;color:#4B5563;font-weight:500;font-size:13px}
+.tabs a:hover{background:#EEF0F3;color:#0B1220}.tabs a.on{background:#0B1220;color:#fff}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{text-align:left;font-weight:600;color:#5B6472;padding:10px 12px;border-bottom:1px solid #E3E6EB;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+.tbl td{padding:11px 12px;border-bottom:1px solid #EEF0F3;vertical-align:middle;white-space:nowrap}
+.tbl tr:last-child td{border-bottom:0}
+.k{font-size:12px;color:#5B6472;font-weight:500}
+.h2{margin:0;font-size:15px;font-weight:600}
+.in{height:36px;padding:0 10px;border:1px solid #D4D8DF;border-radius:8px;background:#fff;font:inherit;font-size:13px;color:#0B1220;box-sizing:border-box;min-width:0}
+.lbl{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:#4B5563}
+
+
+/* shell additions: workspace switcher, notification bell, user menu */
+.ws{display:flex;align-items:center;gap:8px;margin:2px 0 4px;padding:7px 10px;border:1px solid #E3E6EB;border-radius:8px;background:#fff;color:#0B1220;font:inherit;text-align:left;cursor:pointer;width:100%;box-sizing:border-box}
+.ws:hover{background:#F3F4F6}
+.ws .wsn{display:flex;flex-direction:column;line-height:1.25;min-width:0;flex:1}
+.ws .wsn b{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ws .wsn span{font-size:11px;color:#5B6472;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tools{display:flex;align-items:center;gap:8px;margin-left:8px}
+.ibtn{position:relative;display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:1px solid #D4D8DF;background:#fff;color:#0B1220;cursor:pointer;padding:0;flex:none}
+.ibtn:hover{background:#F3F4F6}
+.ibtn .cnt{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#B91C1C;color:#fff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box}
+.ubtn{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 10px 0 4px;border-radius:8px;border:1px solid #D4D8DF;background:#fff;color:#0B1220;font:inherit;font-size:13px;font-weight:600;cursor:pointer;flex:none}
+.ubtn:hover{background:#F3F4F6}
+.menu{position:absolute;z-index:40;background:#fff;border:1px solid #D4D8DF;border-radius:10px;box-shadow:0 12px 32px rgba(11,18,32,.16);padding:6px;min-width:260px;display:flex;flex-direction:column;gap:2px;box-sizing:border-box}
+.menu a,.menu button{display:flex;align-items:center;gap:10px;min-height:36px;padding:0 10px;border-radius:8px;color:#0B1220;font:inherit;font-size:13px;font-weight:500;background:none;border:0;text-align:left;cursor:pointer;width:100%;box-sizing:border-box;text-decoration:none}
+.menu a:hover,.menu button:hover{background:#F3F4F6;color:#0B1220}
+.menu hr{border:0;border-top:1px solid #EEF0F3;margin:4px 0;width:100%}
+.menu .mh{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472;padding:8px 10px 4px}
+@media (max-width:767px){.tools{margin-left:0}.menu{min-width:0;max-width:calc(100vw - 24px)}}
+
+
+/* add-on components */
+.av{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex:none}
+.tbl td.c,.tbl th.c{text-align:center}
+.tbl td{white-space:normal;vertical-align:middle}
+.tbl td.nw,.tbl td .badge{white-space:nowrap}
+.tbl td .btn{white-space:nowrap}
+.flag{display:inline-flex;align-items:center;gap:4px;color:#B45309;font-weight:700;font-size:11px;white-space:nowrap}
+input[type=checkbox].tg{appearance:none;-webkit-appearance:none;width:40px;height:24px;border-radius:999px;background:#6B7280;position:relative;cursor:pointer;flex:none;margin:0;border:0}
+input[type=checkbox].tg::after{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff}
+input[type=checkbox].tg:checked{background:#0F766E}input[type=checkbox].tg:checked::after{left:18px}
+.row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.col{display:flex;flex-direction:column;gap:10px}
+.sec{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid #EEF0F3;flex-wrap:wrap;gap:8px}
+.pad{padding:16px 18px}
+.note{display:flex;gap:8px 10px;align-items:flex-start;flex-wrap:wrap;padding:12px 14px;border-radius:8px;font-size:13px;line-height:1.45}
+.note > :last-child{flex:1 1 320px;min-width:0}
+.note > .badge{margin-top:1px}
+.note.i{background:#EFF6FF;border:1px solid #BFDBFE;color:#1E3A8A}
+.note.w{background:#FFFBEB;border:1px solid #FCD34D;color:#78350F}
+.note.b{background:#FFF5F5;border:1px solid #FCA5A5;color:#7F1D1D}
+.note.g{background:#F0FDF4;border:1px solid #BBF7D0;color:#14532D}
+.note.n{background:#F3F4F6;border:1px solid #E3E6EB;color:#374151}
+.btn:disabled,.btn[aria-disabled="true"]{opacity:.55;cursor:not-allowed}
+.btn.danger{color:#991B1B;border-color:#FCA5A5}.btn.danger:hover{background:#FEF2F2;color:#991B1B}
+.btn.danger.pri{background:#B91C1C;border-color:#B91C1C;color:#fff}.btn.danger.pri:hover{background:#991B1B;color:#fff}
+.kv{display:grid;grid-template-columns:max-content 1fr;gap:7px 18px;font-size:13px;margin:0}
+.kv dt{color:#5B6472;font-weight:500;margin:0}.kv dd{margin:0;min-width:0}
+.chip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;border:1px solid #D4D8DF;background:#fff;font-size:12.5px;font-weight:500;white-space:nowrap}
+.code{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace;font-size:12.5px;background:#0B1220;color:#E5E7EB;border-radius:8px;padding:12px 14px;white-space:pre-wrap;overflow-wrap:anywhere;margin:0}
+.diff{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;border:1px solid #E3E6EB;border-radius:8px;overflow:hidden}
+.diff div{padding:6px 12px;white-space:pre-wrap;overflow-wrap:anywhere}
+.diff .del{background:#FEF2F2;color:#991B1B}.diff .add{background:#F0FDF4;color:#166534}.diff .ctx{color:#4B5563}
+.ovl{position:absolute;inset:0;background:rgba(11,18,32,.45);display:flex;align-items:flex-start;justify-content:center;padding:72px 16px;box-sizing:border-box;z-index:60}
+.dlg{width:100%;max-width:640px;display:flex;flex-direction:column;background:#fff;border-radius:12px;box-shadow:0 24px 60px rgba(11,18,32,.3)}
+.dh{padding:18px 22px 0;display:flex;flex-direction:column;gap:6px}
+.db{padding:16px 22px;display:flex;flex-direction:column;gap:12px}
+.df{padding:14px 22px 18px;display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;border-top:1px solid #EEF0F3;align-items:center}
+.steps{display:flex;flex-direction:column;gap:2px}
+.row > *{min-width:0}
+
+/* expansion components (phases 1-8) */
+.num,.tbl td.r{font-variant-numeric:tabular-nums}
+.tbl th.r,.tbl td.r{text-align:right}
+.tbl tr.sel td{background:#F0FDFA}
+.tbl tr.xp td{background:#FBFBFC}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.stat{padding:14px 16px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.stat .v{font-size:22px;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums;line-height:1.25;margin-top:2px}
+.stat .s{font-size:12px;color:#5B6472;font-weight:500}
+.stat.hot{border-color:#FCA5A5;background:#FFF5F5}
+.strip{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;background:#0B1220;color:#fff;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.sk{background:#E9ECF0;border-radius:6px;display:inline-block}
+.bar{height:6px;border-radius:3px;background:#EEF0F3;overflow:hidden}.bar i{display:block;height:100%;border-radius:3px}
+.ptab{display:flex;border-bottom:1px solid #E3E6EB}
+.ptab button{flex:1;height:38px;border:0;background:none;font:inherit;font-size:12.5px;font-weight:600;color:#5B6472;cursor:pointer;border-bottom:2px solid transparent;padding:0 6px;white-space:nowrap}
+.ptab button.on{color:#0B1220;border-bottom-color:#0F766E}
+.seg{display:inline-flex;border:1px solid #D4D8DF;border-radius:8px;overflow:hidden;flex:none}
+.seg button{height:30px;padding:0 11px;border:0;background:#fff;font:inherit;font-size:12px;font-weight:600;color:#4B5563;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.seg button + button{border-left:1px solid #E3E6EB}
+.seg button.on{background:#0B1220;color:#fff}
+.cbx{border-radius:10px;overflow:hidden;border:1px solid #1F2937;background:#0B1220;min-width:0}
+.cbh{display:flex;align-items:center;gap:2px;padding:6px 8px;border-bottom:1px solid #1F2937;background:#111827;flex-wrap:wrap}
+.cbh button{height:28px;padding:0 10px;border:0;border-radius:6px;background:none;color:#B4BAC4;font:inherit;font-size:12px;font-weight:600;cursor:pointer}
+.cbh button.on{background:#273244;color:#fff}
+.cbh .cp{margin-left:auto;display:inline-flex;align-items:center;gap:6px;color:#E5E7EB;border:1px solid #374151}
+.cbx pre{margin:0;padding:12px 14px;font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace;font-size:12.5px;line-height:1.6;color:#E5E7EB;white-space:pre-wrap;overflow-wrap:anywhere}
+.cbx .c1{color:#93C5FD}.cbx .c2{color:#86EFAC}.cbx .c3{color:#FCD34D}.cbx .c4{color:#9CA3AF}.cbx .c5{color:#F9A8D4}
+.cbx .cm{color:#9CA3AF}
+.ev{display:flex;gap:14px;align-items:flex-start;padding:12px 0;border-top:1px solid #EEF0F3}
+.ev:first-child{border-top:0}
+.ev .ic{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.ev .tx{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.ev .tm{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;color:#5B6472;flex:none;padding-top:5px}
+.spin{width:14px;height:14px;border-radius:50%;border:2px solid #C9CED6;border-top-color:#0F766E;flex:none;display:inline-block}
+.mask{display:inline-flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;color:#4B5563;white-space:nowrap}
+.mask svg{flex:none}
+.tok{display:inline-flex;align-items:center;gap:4px;padding:0 6px;border-radius:5px;background:#EDE9FE;color:#5B21B6;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:.86em;font-weight:500;line-height:1.55;white-space:nowrap;vertical-align:baseline}
+.tok.s{background:#FEF3C7;color:#92400E}
+.tok.e{background:#FEE2E2;color:#991B1B;text-decoration:underline wavy #DC2626;text-underline-offset:3px}
+.mk{display:inline-flex;align-items:center;height:22px;padding:0 7px;border-radius:6px;background:#EEF0F3;color:#374151;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;white-space:nowrap}
+.toast{display:flex;gap:12px;align-items:center;padding:10px 12px 10px 14px;border-radius:10px;background:#0B1220;color:#fff;font-size:13.5px;box-shadow:0 12px 30px rgba(11,18,32,.25);max-width:520px;box-sizing:border-box}
+.toast .t{flex:1;min-width:0}
+.toast .k{color:#C3C2B7}
+.toast .btn{min-height:28px;padding:0 10px;font-size:12px;background:transparent;border-color:#4B5563;color:#fff}
+.toast .x{width:28px;height:28px;border:0;background:transparent;color:#9CA3AF;border-radius:6px;font-size:16px;cursor:pointer}
+.ti{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.scrim{position:absolute;inset:0;background:rgba(11,18,32,.32);z-index:55}
+.drw{position:absolute;top:0;right:0;bottom:0;width:600px;max-width:100%;background:#fff;border-left:1px solid #E3E6EB;box-shadow:-18px 0 40px rgba(11,18,32,.18);z-index:60;display:flex;flex-direction:column;box-sizing:border-box;overflow:hidden}
+.drw .dwh{display:flex;align-items:flex-start;gap:12px;padding:18px 22px 14px;border-bottom:1px solid #EEF0F3}
+.drw .dwb{padding:18px 22px;display:flex;flex-direction:column;gap:18px;overflow:auto}
+.drw h3{margin:0;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472}
+.empty{padding:44px 28px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;border-style:dashed}
+.empty .tt{font-size:18px;font-weight:700;letter-spacing:-.01em}
+.empty .ds{color:#4B5563;max-width:560px}
+.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:14px 18px;border-bottom:1px solid #EEF0F3}
+.fchips{display:flex;gap:6px;flex-wrap:wrap;padding:12px 18px;border-bottom:1px solid #EEF0F3}
+.fchip{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:999px;border:1px solid #D4D8DF;background:#fff;font:inherit;font-size:12.5px;font-weight:600;color:#374151;cursor:pointer;white-space:nowrap}
+.fchip b{font-weight:600;color:#5B6472;font-variant-numeric:tabular-nums}
+.fchip.on{background:#0B1220;border-color:#0B1220;color:#fff}.fchip.on b{color:#C9CED6}
+.live{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:#166534}
+.live .dot{box-shadow:0 0 0 4px rgba(22,101,52,.15)}
+.foot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid #EEF0F3}
+.spark{display:block}
+.lnk{display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:13px}
+.ttl{margin:0;font-size:22px;font-weight:700;letter-spacing:-.02em;line-height:1.2}
+.lead{margin:0;color:#4B5563;font-size:14px;max-width:760px}
+.state-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(460px,100%),1fr));gap:16px;align-items:start}
+.flowr{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px}
+.flowr .arw{color:#9AA3B2}
+.pill{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:8px;border:1px solid #E3E6EB;background:#F9FAFB;font-size:12.5px;font-weight:600;white-space:nowrap}
+.vline{display:flex;gap:10px;align-items:baseline;padding:8px 0;border-top:1px solid #EEF0F3;font-size:13px}
+.vline:first-child{border-top:0}
+.hl{background:#FEF2F2;box-shadow:inset 3px 0 0 #DC2626}
+.lines{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;line-height:1.7;background:#0B1220;color:#E5E7EB;border-radius:8px;overflow:hidden}
+.lines div{display:flex;gap:12px;padding:0 12px}
+.lines .ln{color:#9CA3AF;width:22px;text-align:right;flex:none;user-select:none}
+.lines .er{background:rgba(220,38,38,.22)}
+.callout{position:absolute;z-index:5}
+.only-phone{display:none}
+@media (max-width:1100px){.drw{width:520px}}
+@media (max-width:767px){.drw{width:100%;border-left:0}.stats{grid-template-columns:repeat(2,minmax(0,1fr))!important}.ttl{font-size:19px}}
+
+/* earn (phase 6a) */
+.mv{font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.mv.up{color:#166534}.mv.dn{color:#991B1B}
+.tipb{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;margin:-3px 0;padding:0;border:0;border-radius:50%;background:none;color:#5B6472;cursor:help;flex:none}
+.tipb:hover{background:#EEF0F3;color:#0B1220}
+.tipbox{background:#0B1220;color:#fff;font-size:12px;line-height:1.45;padding:8px 11px;border-radius:7px;max-width:340px;box-shadow:0 12px 30px rgba(11,18,32,.25)}
+.need{display:flex;gap:12px;align-items:flex-start;padding:12px 18px;border-top:1px solid #EEF0F3}
+.need:first-child{border-top:0}
+.need .ic{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.need .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px;font-size:13.5px}
+.lrow{display:flex;flex-direction:column;align-items:stretch;gap:5px;padding:12px 16px;border-top:1px solid #EEF0F3;color:#0B1220}
+.lrow:hover{background:#FBFBFC;color:#0B1220}
+a.lrow{display:flex!important;align-items:stretch!important;text-decoration:none}
+.lrow .lt{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.srow{display:flex;gap:16px;align-items:flex-start;justify-content:space-between;padding:14px 18px;border-top:1px solid #EEF0F3;flex-wrap:wrap}
+.srow > .d{display:flex;flex-direction:column;gap:3px;flex:1 1 360px;min-width:0}
+.srow > .c{flex:none;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.radio{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid #E3E6EB;border-radius:8px;cursor:pointer;background:#fff}
+.radio.on{border-color:#0F766E;background:#F0FDFA}
+.radio input{margin-top:2px;flex:none}
+.cstep{display:flex;gap:14px;align-items:flex-start;padding:14px 18px;border-top:1px solid #EEF0F3}
+.cstep .n{width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex:none;border:2px solid #D4D8DF;color:#5B6472;background:#fff;box-sizing:border-box}
+.cstep.cur .n{background:#0F766E;border-color:#0F766E;color:#fff}
+.cstep.done .n{background:#DCFCE7;border-color:#86EFAC;color:#166534}
+.cstep .tx{flex:1 1 260px;min-width:0;display:flex;flex-direction:column;gap:3px}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(250px,100%),1fr));gap:2px 24px}
+.perm{display:flex;gap:8px;align-items:flex-start;padding:7px 0;border-top:1px solid #EEF0F3;font-size:13px}
+.legend{display:flex;gap:8px 16px;flex-wrap:wrap;font-size:12px;color:#4B5563;align-items:center}
+.legend > span{display:inline-flex;align-items:center;gap:6px}
+.mnum{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:#0B1220;color:#fff;font-size:11px;font-weight:700;flex:none}
+.tline{display:flex;flex-direction:column;gap:2px;min-width:0}
+.tline b{font-weight:600}
+.tline > .badge{align-self:flex-start}
+@media (max-width:1100px){.sc-host .md-hide{display:none!important}}
+@media (max-width:767px){.sc-host .need{padding:12px 14px}.sc-host .srow > .c{flex:1 1 100%}}
+/* phones: the tab strip shows its end, as it scrolls to the current tab (as on phase 6b's Earn boards) */
+@media (max-width:767px){.sc-host .tabs.endscroll{justify-content:flex-end;-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 32px);mask-image:linear-gradient(90deg,transparent 0,#000 32px)}}
+
+.osec{display:flex;flex-direction:column;gap:8px;padding:14px 16px;border-bottom:1px solid #EEF0F3}
+.osec > .k:first-child{font-weight:600;color:#5B6472}
+.orow{display:flex;align-items:center;gap:8px;font-size:13px}
+.gripb{width:24px;height:28px;display:inline-flex;align-items:center;justify-content:center;border:0;background:none;color:#8B94A3;cursor:grab;padding:0;flex:none}
+.pv{flex:1;display:flex;align-items:flex-start;justify-content:center;padding:28px 24px}
+.pvpage{width:100%;max-width:720px;background:#F5F3FF;border:1px solid #DDD6FE;border-radius:12px;padding:32px 28px;box-sizing:border-box;display:flex;flex-direction:column;gap:18px;font-family:'IBM Plex Sans',system-ui,sans-serif}
+@media (max-width:767px){.pv{padding:14px 10px}.pvpage{padding:20px 14px}}
+
+/* responsive shell */
+@media (max-width:1100px){
+  .side{flex:0 0 72px!important;max-width:72px;padding:14px 8px!important;gap:4px!important}
+  .side .nl,.side .brand-t,.side .ws{display:none}
+  .side .nav a{justify-content:center;padding:0!important;height:44px}
+  .side .nav svg{width:20px;height:20px}
+  .side > a[aria-label="ReputeCast home"]{justify-content:center;padding:6px 0!important}
+  .side .sidefoot{align-items:center}
+  .side .sidefoot > *{display:none}
+  .side .sidefoot > a.btn{display:inline-flex;width:44px;height:44px;padding:0!important;justify-content:center!important;font-size:0;gap:0}
+  .side .sidefoot > a.btn svg{width:18px;height:18px}
+  .top{padding:12px 16px!important}
+  .content{padding:16px!important}
+}
+@media (max-width:767px){
+  .app{flex-direction:column}
+  .side{flex:none!important;max-width:none!important;width:auto!important;position:fixed;left:0;right:0;bottom:0;z-index:50;flex-direction:row!important;align-items:center;padding:6px 6px!important;border-right:0!important;border-top:1px solid #E3E6EB;background:#fff!important;box-sizing:border-box;gap:0!important}
+  .side > a[aria-label="ReputeCast home"],.side .ws,.side .sidefoot{display:none!important}
+  .side .nav{flex-direction:row!important;flex:1;justify-content:space-around;margin-top:0!important;gap:0!important}
+  .side .nav a{height:44px;width:44px;flex:none;padding:0!important;justify-content:center;border-radius:10px}
+  .side .nl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;display:block}
+  .side .nav a.on{background:#E3F1EE;color:#0F766E}
+  .mainc{padding-bottom:72px}
+  .top{padding:12px 12px!important;gap:8px!important}
+  .top h1{font-size:16px!important}
+  .top .in{width:100%!important}
+  .tabs{flex-wrap:nowrap!important;overflow-x:auto;max-width:100%;margin-left:0!important;padding-bottom:2px}
+  .tabs a{flex:none}
+  .content{padding:12px!important;gap:12px!important}
+  .cpanel{max-width:none!important;flex:1 1 100%!important}
+}
+@media (min-width:768px) and (max-width:1100px){
+  .cpanel{max-width:none!important}
+}
+
+/* responsive phone fixes */
+@media (max-width:767px){
+  .app{flex-wrap:nowrap!important}
+  .mainc{width:100%;max-width:100%}
+  .content > *{min-width:0;max-width:100%}
+  .content .in,.content select,.content input,.content textarea{max-width:100%;min-width:0}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+  .sc-host [style*="flex: 1 1"]{min-width:0}
+  .sc-host select.in,.sc-host input.in{width:0;min-width:100%}
+  .sc-host .mono{overflow-wrap:anywhere}
+  .sc-host .sk{max-width:100%}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px;max-width:100%}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host .tabs .badge{white-space:nowrap}
+  .sc-host .side .btn{white-space:nowrap}
+  .sc-host [style*="grid-template-columns: repeat("]{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))!important}
+  .sc-host [style*="minmax(260px"],.sc-host [style*="minmax(280px"],.sc-host [style*="minmax(300px"],.sc-host [style*="minmax(320px"],.sc-host [style*="minmax(340px"],.sc-host [style*="minmax(360px"],.sc-host [style*="minmax(380px"],.sc-host [style*="minmax(420px"]{grid-template-columns:1fr!important}
+  .sc-host [style*="radial-gradient"]{overflow:auto}
+  .sc-host [style*="display: grid"] > *{min-width:0}
+  .sc-host header > div{max-width:100%;min-width:0}
+  .sc-host pre,.sc-host .lines{max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]) > div[style*="flex: 1"]{min-width:120px}
+}
+
+/* accessibility */
+:focus-visible{outline:2px solid #0F766E;outline-offset:2px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-9999px;top:8px;z-index:100;background:#fff;color:#0B1220;padding:8px 12px;border-radius:8px;border:1px solid #0F766E;font-weight:600;text-decoration:none}
+.skip:focus{left:8px}
+p a:not(.btn),span a:not(.btn):not([style*="color"]),td a:not(.btn):not([style*="color"]),li a:not(.btn),label a,.k a,.lead a{text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+.content > * a:not(.btn):not(p a):not(span a):not(td a):not(li a):not(label a):not(.k a),.top a:not(.btn),nav a:not(.btn),footer a:not(.btn){min-height:24px;display:inline-flex;align-items:center}
+input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F766E}
+.in,select.in,textarea.in,input.in{border-color:#8B94A3}
+@media (max-width:767px){
+  .sc-host{overflow-wrap:anywhere}
+  .sc-host table,.sc-host td,.sc-host th{overflow-wrap:normal}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+}
+
+/* nav: phones show four sections plus More */
+.side .nav a.more{display:none}
+@media (max-width:767px){.side .nav a.xm{display:none!important}.side .nav a.more{display:flex}.side .nav a.more.on{background:#E3F1EE;color:#0F766E}}
+/* shell: the icon rail keeps only the import button (the footer's inline display:flex beat the rail rule) */
+@media (max-width:1100px){.side .sidefoot > :not(.btn){display:none!important}}
+/* shell: avatar initials sit in the middle */
+.av{display:inline-flex;align-items:center;justify-content:center;flex:none}
+.ubtn .av{border-radius:50%;font-weight:700}
+.ws .av{font-weight:700}
+/* switches: a disabled switch looks disabled */
+.tg:disabled,.tgx:disabled{opacity:.45;cursor:not-allowed}
+
+/* expansion: responsive card grids collapse to one column on phones (overrides the 140px rule above) */
+@media (max-width:767px){
+  .sc-host [style*="minmax(min("]{grid-template-columns:1fr!important}
+  .sc-host .kv{grid-template-columns:1fr;gap:2px 0}
+  .sc-host .kv dd{margin-bottom:8px}
+  .sc-host .ev .tm{display:none}
+  .sc-host .cbx pre{font-size:11.5px}
+  .sc-host .mlist{display:none!important}
+  .sc-host .only-phone{display:flex!important;flex-direction:column}
+  .sc-host .no-phone{display:none!important}
+}
+</style>
+</helmet>
+<div class="app" style="display:flex;flex-wrap:wrap;align-items:stretch;min-height:100vh;position:relative">
+  <a href="#main" class="skip">Skip to content</a>
+  <aside class="side" style="flex:1 1 232px;background:#FBFBFC;border-right:1px solid #E3E6EB;display:flex;flex-direction:column;padding:16px 12px;gap:6px;box-sizing:border-box">
+    <a href="Main.dc.html" style="display:flex;align-items:center;gap:10px;padding:6px 8px;color:#0B1220" aria-label="ReputeCast home"><svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg><span class="brand-t" style="font-weight:700;font-size:15px;letter-spacing:-.01em">ReputeCast</span></a>
+    <button class="ws" type="button" aria-haspopup="menu" aria-label="Switch workspace. Current: Acme Newsletter, your role Owner"><span class="av" style="width:24px;height:24px;font-size:10px;background:#0F766E;color:#fff;border-radius:6px" aria-hidden="true">AN</span><span class="wsn"><b>Acme Newsletter</b><span>Owner</span></span><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button>
+    <nav class="nav" style="display:flex;flex-direction:column;gap:2px;margin-top:4px" aria-label="Main">
+      <a href="Main.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z"></path></svg><span class="nl">Overview</span></a>
+      <a href="Campaigns.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M14 2 2 7l5 2 2 5zM7 9l7-7" stroke-linejoin="round"></path></svg><span class="nl">Campaigns</span></a>
+      <a href="AutomationsList.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="4" cy="3" r="2"></circle><circle cx="4" cy="13" r="2"></circle><circle cx="12" cy="8" r="2"></circle><path d="M4 5v6M6 8h4"></path></svg><span class="nl">Automations</span></a>
+      <a href="Transactional.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="1.5"></rect><path d="m2 4.5 6 4.5 6-4.5"></path></svg><span class="nl">Transactional</span></a>
+      <a href="Contacts.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="6" cy="5" r="2.5"></circle><path d="M1.5 14a4.5 4.5 0 0 1 9 0M11 3a2.5 2.5 0 0 1 0 5M14.5 14a4 4 0 0 0-3-3.8"></path></svg><span class="nl">Audience</span></a>
+      <a href="GrowOverview.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 12.5 6 8.5l3 3 5-5.5"></path><path d="M10.5 5.5H14V9"></path></svg><span class="nl">Grow</span></a>
+      <a href="EarnOverview.dc.html" class="on xm" aria-current="page"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M10 5.9H7.1a1.3 1.3 0 0 0 0 2.6h1.8a1.3 1.3 0 0 1 0 2.6H6M8 4.4v1.5M8 11.1v1.5"></path></svg><span class="nl">Earn</span></a>
+      <a href="FormBuilder.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="2"></rect><path d="M5 6h6M5 9h6M5 12h3"></path></svg><span class="nl">Forms &amp; pages</span></a>
+      <a href="Deliverability.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 1.5 13.5 3.5v4.5c0 3-2.3 5.3-5.5 6.5C4.8 13.3 2.5 11 2.5 8V3.5z" stroke-linejoin="round"></path><path d="m5.5 8 1.8 1.8L10.8 6"></path></svg><span class="nl">Deliverability</span></a>
+      <a href="Providers.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="5" rx="1.5"></rect><rect x="2" y="9" width="12" height="5" rx="1.5"></rect><path d="M5 4.5h.01M5 11.5h.01" stroke-width="2" stroke-linecap="round"></path></svg><span class="nl">Sending providers</span></a>
+      <a href="WorkspaceSettings.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 4h7M13 4h1M2 8h2M8 8h6M2 12h7M13 12h1"></path><circle cx="11" cy="4" r="1.8"></circle><circle cx="6" cy="8" r="1.8"></circle><circle cx="11" cy="12" r="1.8"></circle></svg><span class="nl">Settings</span></a>
+      <a href="ShellMore.dc.html" class="more on" aria-label="More: Automations, Transactional, Grow, Earn, Forms & pages, Sending providers, Settings"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="3.5" cy="8" r="1.2"></circle><circle cx="8" cy="8" r="1.2"></circle><circle cx="12.5" cy="8" r="1.2"></circle></svg><span class="nl">More</span></a>
+    </nav>
+    <div class="sidefoot" style="margin-top:auto;display:flex;flex-direction:column;gap:8px">
+      <a href="MigrationSource.dc.html" class="btn" style="justify-content:flex-start"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 11V3M4.5 6.5 8 3l3.5 3.5M2 13h12"></path></svg>Import contacts</a>
+      <a href="SettingsIntegrations.dc.html" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid #E3E6EB;border-radius:8px;background:#fff;color:#0B1220"><span class="dot" style="color:#15803D"></span><div style="display:flex;flex-direction:column;line-height:1.25"><span style="font-size:12px;font-weight:600">HostRepute connected</span><span class="k" style="font-size:11px">Acme Inc · synced 4 min ago</span></div></a>
+      <div style="display:flex;align-items:center;gap:8px;padding:4px 8px"><span class="av" style="width:26px;height:26px;font-size:11px;background:#DBEAFE;color:#1E40AF" aria-hidden="true">LN</span><div style="display:flex;flex-direction:column;line-height:1.25"><span style="font-size:12px;font-weight:600">Linh Nguyen</span><span class="k" style="font-size:11px">Owner</span></div></div>
+    </div>
+  </aside>
+  <div class="mainc" style="flex:999 1 560px;min-width:0;display:flex;flex-direction:column">
+    <header class="top" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 28px;background:#fff;border-bottom:1px solid #E3E6EB">
+      <nav aria-label="Breadcrumb" style="display:flex;align-items:center;gap:8px;font-size:13px;flex-wrap:wrap"><a href="EarnOverview.dc.html" style="color:#5B6472">Earn</a><span class="k">/</span><a href="EarnPlans.dc.html" style="color:#5B6472">Plans &amp; offers</a><span class="k">/</span><span style="font-weight:600">FALL26</span></nav><a href="EarnSettings.dc.html" class="chip" style="color:#0B1220" aria-label="Payment provider: Stripe, Acme Media, live"><span class="dot" style="color:#15803D"></span>Stripe · Acme Media<span class="badge ok" style="height:20px;font-size:11px">Live</span></a><div style="margin-left:auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="btn danger">End offer</button><button class="btn pri">Save offer</button><div class="tools"><a href="Notifications.dc.html" class="ibtn" aria-label="Notifications, 3 unread"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 11V7a4 4 0 0 1 8 0v4l1.5 1.5h-11zM6.5 14a1.5 1.5 0 0 0 3 0"></path></svg><span class="cnt" aria-hidden="true">3</span></a><button class="ubtn" type="button" aria-haspopup="menu" aria-label="Account menu for Linh Nguyen"><span class="av" style="width:26px;height:26px;font-size:11px;background:#DBEAFE;color:#1E40AF" aria-hidden="true">LN</span><span class="unm">Linh</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button></div></div>
+    </header>
+    <h1 class="vh">Edit offer · FALL26</h1>
+    <main class="content" id="main" style="padding:24px 28px;display:flex;flex-direction:column;gap:20px">
+<div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start"><div style="flex:999 1 560px;min-width:0;display:flex;flex-direction:column;gap:16px"><section class="card" style=""><div class="sec"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><h2 class="h2">Offer</h2></div></div><div class="pad" style="display:flex;flex-direction:column;gap:12px"><label class="lbl">Name<input class="in" type="text" value="FALL26" placeholder="" style="" aria-label="Offer name"></label><div style="display:flex;flex-direction:column;gap:6px"><span class="lbl">Kind</span><div><div class="seg" role="group" aria-label="Kind"><button type="button" class="on" aria-pressed="true">Signup</button><button type="button" aria-pressed="false">Retention</button><button type="button" aria-pressed="false">Referral reward</button></div></div><span class="k">Signup offers are for new paid members, by code or link. Retention offers show only on the cancel page; referral rewards are single-use codes from Grow.</span></div></div></section><section class="card" style=""><div class="sec"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><h2 class="h2">Discount</h2></div></div><div class="pad" style="display:flex;flex-direction:column;gap:12px"><div class="row" style="gap:10px"><div><div class="seg" role="group" aria-label="Discount type"><button type="button" class="on" aria-pressed="true">Percentage</button><button type="button" aria-pressed="false">Fixed amount</button></div></div><div class="row" style="flex-wrap:nowrap;gap:6px"><input class="in num" value="20" aria-label="Percent off" style="width:80px"><span class="k" style="font-size:13px">% off</span></div></div><label class="lbl">Duration<select class="in" style="" aria-label="Duration"><option>Once: the first payment, so the first year on a yearly price</option><option>For a number of months</option><option>Forever</option></select></label><span style="font-size:13px"><span class="k">Readers see: </span><b>20% off the first year: $64 instead of $80</b></span></div></section><section class="card" style=""><div class="sec"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><h2 class="h2">Who it's for</h2></div></div><div class="pad" style="display:flex;flex-direction:column;gap:8px"><label style="display:flex;gap:10px;align-items:center;font-size:13px"><input type="checkbox">Weekly Digest Insider · monthly</label><label style="display:flex;gap:10px;align-items:center;font-size:13px"><input type="checkbox" checked>Weekly Digest Insider · yearly</label><label style="display:flex;gap:10px;align-items:center;font-size:13px"><input type="checkbox">Founding member · yearly</label><div class="srow" style="padding:12px 0 0;margin-top:6px"><div class="d"><span style="font-weight:600">New paid members only</span><span class="k" style="color:#4B5563">People who have never paid for a tier.</span></div><div class="c"><input type="checkbox" class="tg" checked aria-label="New paid members only"></div></div></div></section><section class="card" style=""><div class="sec"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><h2 class="h2">How readers get it</h2></div></div><div class="pad" style="display:flex;flex-direction:column;gap:10px"><label style="display:flex;gap:10px;align-items:center;font-size:13px;flex-wrap:wrap"><input type="checkbox" checked><b style="font-weight:600">Code</b><input class="in" type="text" value="FALL26" placeholder="" style="width:130px;font-family:IBM Plex Mono,monospace" aria-label="Promotion code"><span class="k">readers can type it in Checkout</span></label><label style="display:flex;gap:10px;align-items:center;font-size:13px;flex-wrap:wrap"><input type="checkbox" checked><b style="font-weight:600">Link</b><span class="mono" style="overflow-wrap:anywhere">news.acme.io/upgrade?offer=FALL26</span><button class="btn sm" type="button"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="1.5"></rect><path d="M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5"></path></svg>Copy</button></label></div></section><section class="card" style=""><div class="sec"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><h2 class="h2">Limits</h2></div></div><div class="pad" style="display:flex;flex-direction:column;gap:10px"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(200px,100%),1fr));gap:12px;align-items:start;"><label class="lbl">Redemption limit<input class="in" type="text" value="100" placeholder="" style="" aria-label="Redemption limit"><span class="k" style="font-weight:500">Optional</span></label><label class="lbl">Ends<input class="in" type="text" value="31 Oct 2026" placeholder="" style="" aria-label="End date"><span class="k" style="font-weight:500">Optional · 23:59 New York time</span></label></div><span class="k">The offer ends at its date or its limit, whichever comes first. The upgrade page then says “This offer has ended” and shows the normal prices.</span></div></section><section class="card" style=""><div class="sec"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><h2 class="h2">In Stripe</h2></div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><a href="#" class="btn sm" target="_blank" rel="noopener">Open in Stripe<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h4v4M13 3 7 9M11 9.5V13H3V5h3.5"></path></svg></a></div></div><div class="pad" style="display:flex;flex-direction:column;gap:10px"><dl class="kv" style=""><dt>Coupon</dt><dd>20% off, once <span class="mono k">FALL26-20</span></dd><dt>Promotion code</dt><dd>FALL26 <span class="mono k">promo_1Q9bX2rT</span></dd></dl><span class="k">Changing the discount creates a new coupon; codes already used keep theirs.</span></div></section></div><div style="flex:1 1 360px;min-width:0;display:flex;flex-direction:column;gap:16px"><section class="card" style=""><div class="sec"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><h2 class="h2">How it reads on the upgrade page</h2><span class="k">With the offer link, Yearly selected</span></div></div><div style="padding:18px;background:#F5F3FF;display:flex;flex-direction:column;gap:14px;border-radius:0 0 10px 10px"><span style="font-size:12px;font-weight:600;color:#5B21B6">news.acme.io/upgrade?offer=FALL26 · yearly</span><div style="display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;border:1px solid #DDD6FE;background:#fff;font-size:14px;color:#1F2937"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#4338CA" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 8.6V2.5h6.1l6 6-6.1 6.1zM5.2 5.2h.01" stroke-linecap="round"></path></svg><span><b>FALL26:</b> $64 for your first year, then $80 a year.</span></div><article style="position:relative;display:flex;flex-direction:column;gap:12px;padding:22px 17px 17px;border-radius:14px;background:#fff;border:2px solid #4338CA;min-width:0;box-sizing:border-box" aria-label="Weekly Digest Insider"><span style="position:absolute;top:-12px;left:18px;display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:999px;background:#4338CA;color:#fff;font-size:12px;font-weight:700">FALL26 applied</span><h3 style="margin:0;font-weight:700;font-size:16px;color:#0B1220;text-transform:none;letter-spacing:normal">Weekly Digest Insider</h3><div style="display:flex;flex-direction:column;gap:2px"><span style="display:flex;align-items:baseline;gap:4px;flex-wrap:wrap"><span style="font-size:28px;font-weight:700;letter-spacing:-.02em;color:#0B1220;font-variant-numeric:tabular-nums">$64</span><span style="color:#4B5563;font-size:14px">for your first year</span></span><span style="color:#5B6472;font-size:13px">then $80 a year</span></div><ul style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:7px"><li style="display:flex;gap:8px;align-items:flex-start;font-size:13.5px;line-height:1.4;color:#1F2937"><span style="flex:none;margin-top:1px"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#4338CA" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg></span><span>A members-only deep dive every Tuesday</span></li><li style="display:flex;gap:8px;align-items:flex-start;font-size:13.5px;line-height:1.4;color:#1F2937"><span style="flex:none;margin-top:1px"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#4338CA" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg></span><span>The full archive of deep dives</span></li><li style="display:flex;gap:8px;align-items:flex-start;font-size:13.5px;line-height:1.4;color:#1F2937"><span style="flex:none;margin-top:1px"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#4338CA" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg></span><span>Quarterly roadmap calls with the Acme team</span></li><li style="display:flex;gap:8px;align-items:flex-start;font-size:13.5px;line-height:1.4;color:#1F2937"><span style="flex:none;margin-top:1px"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#4338CA" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg></span><span>Reply to any issue and an editor answers</span></li></ul><div style="margin-top:auto;display:flex;flex-direction:column;gap:8px;padding-top:4px"><a href="PublicEarnStates.dc.html" style="display:flex;align-items:center;justify-content:center;height:42px;padding:0 16px;border-radius:9px;font-weight:700;font-size:14px;text-decoration:none;font-family:inherit;box-sizing:border-box;text-align:center;background:#4338CA;color:#fff;border:0">Get Insider for $64</a><span class="fine" style="font-size:12.5px;color:#5B6472;line-height:1.45">Charged $64 today, then $80 a year from 15 Oct 2027. Cancel any time.</span></div></article></div></section><section class="card" style=""><div class="sec"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><h2 class="h2">Results · since 1 Oct</h2></div></div><div class="pad" style="display:flex;flex-direction:column;gap:14px"><div style="display:flex;gap:12px 28px;flex-wrap:wrap"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-size:22px;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums;line-height:1.2">45</span><span class="k">redemptions</span></div><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-size:22px;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums;line-height:1.2">45</span><span class="k">new paid members</span></div><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-size:22px;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums;line-height:1.2">$240</span><span class="k">MRR from the offer</span></div></div><div style="display:flex;flex-direction:column;gap:4px"><div class="row" style="justify-content:space-between;font-size:13px"><span>Used</span><b class="num">45 of 100</b></div><div class="bar"><i style="width:45%;background:#0F766E"></i></div></div><span class="k">Started by Marcus Chen on 1 Oct · ends 31 Oct · MRR after the discount: 45 × $64 ÷ 12</span></div></section></div></div><section style="display:flex;flex-direction:column;gap:14px" aria-label="Stay for half price · eligibility, and the cancel page with the offer"><div class="strip"><span class="dot" style="color:#6B7280"></span>Stay for half price · eligibility, and the cancel page with the offer</div><div class="state-grid"><section class="card" style=""><div class="sec"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><h2 class="h2">Stay for half price · eligibility</h2></div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><a href="EarnOfferEditor.dc.html" class="btn sm">Edit</a></div></div><div class="pad" style="display:flex;flex-direction:column;gap:12px"><dl class="kv" style=""><dt>Kind</dt><dd>Retention · shown on the cancel page only</dd><dt>Discount</dt><dd>50% off for 3 months: $4/month</dd><dt>Tiers and periods</dt><dd>Weekly Digest Insider · monthly</dd><dt>Paid for at least</dt><dd><div class="row" style="flex-wrap:nowrap;gap:6px"><input class="in num" value="2" aria-label="Months paid at least" style="width:64px"><span class="k">months</span></div></dd></dl><div class="row" style="gap:10px;flex-wrap:nowrap;align-items:flex-start"><span style="width:16px;display:inline-flex;justify-content:center;flex:none;margin-top:2px"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#15803D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg></span><span>No retention offer in the last 12 months</span></div><div class="row" style="gap:10px;flex-wrap:nowrap;align-items:flex-start"><span style="width:16px;display:inline-flex;justify-content:center;flex:none;margin-top:2px"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#15803D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg></span><span>Not past due</span></div><div class="row" style="gap:10px;flex-wrap:nowrap;align-items:flex-start"><span style="width:16px;display:inline-flex;justify-content:center;flex:none;margin-top:2px"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#15803D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg></span><span>One offer at most, on the same page as the cancel button, in a button of the same size</span></div><div class="row" style="gap:20px;font-size:13px"><span><b class="num">34</b> shown</span><span><b class="num">12</b> accepted · 35%</span><span class="k">Cancel reasons are summed on the overview</span></div></div></section><section class="card" style=""><div class="sec"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><h2 class="h2">The cancel page with the offer</h2><span class="k">Two buttons of the same size. No countdown, no guilt copy.</span></div></div><div style="padding:18px;background:#F5F3FF;display:flex;flex-direction:column;gap:14px;border-radius:0 0 10px 10px"><span style="font-size:12px;font-weight:600;color:#5B21B6">news.acme.io/cancel · Olga Bennett's personal link</span><div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:22px;font-weight:700;letter-spacing:-.02em;color:#1F2937">Cancel your Insider membership?</span><span style="font-size:14px;color:#4B5563">You'll keep Insider until 2 Nov, the end of the month you've paid for. After that you'll still get the free Weekly Digest.</span></div><div style="padding:14px 16px;border-radius:12px;background:#fff;border:1px solid #DDD6FE;font-size:14px;color:#1F2937">Stay for $4 a month for the next 3 months. Then it's $8 a month again, and you can cancel any time.</div><div style="display:flex;gap:10px;flex-wrap:wrap"><a href="#" style="flex:1 1 0;display:flex;align-items:center;justify-content:center;height:44px;padding:0 14px;border-radius:9px;font-weight:700;font-size:14px;box-sizing:border-box;text-align:center;background:#4338CA;color:#fff">Keep Insider for $4/month</a><a href="#" style="flex:1 1 0;display:flex;align-items:center;justify-content:center;height:44px;padding:0 14px;border-radius:9px;font-weight:700;font-size:14px;box-sizing:border-box;text-align:center;background:#fff;color:#1F2937;border:1px solid #C9CED6">Continue to cancel</a></div></div></section></div></section><section style="display:flex;flex-direction:column;gap:14px" aria-label="Referral reward · single-use codes created by Grow"><div class="strip"><span class="dot" style="color:#6B7280"></span>Referral reward · single-use codes created by Grow</div><div class="state-grid"><section class="card" style=""><div class="sec"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><h2 class="h2">Referral reward · 3 months of Insider free</h2><span class="k">2 issued, 0 redeemed</span></div></div><div class="pad" style="padding-bottom:6px"><div class="note n" role="note"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#4B5563" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M8 7.2v3.8M8 5v.1"></path></svg><div style="flex:1 1 320px;min-width:0">Grow creates a single-use code each time a referrer reaches 10 referrals. Codes apply to Insider monthly only; changing this offer needs <span class="mono">earn:edit</span>.</div></div></div><div style="overflow-x:auto"><table class="tbl " aria-label="Referral reward codes"><thead><tr><th scope="col">Code</th><th scope="col">Issued to</th><th scope="col">Issued</th><th scope="col">Valid until</th><th scope="col">Status</th></tr></thead><tbody><tr><td class="nw"><span class="mono">INS-OH7K2Q</span></td><td>Omar Haddad</td><td class="nw">9 Oct</td><td class="nw">8 Dec</td><td><span class="badge mut">Not redeemed</span></td></tr><tr><td class="nw"><span class="mono">INS-KW4M9X</span></td><td>Kenji Watanabe</td><td class="nw">13 Oct</td><td class="nw">12 Dec</td><td><span class="badge mut">Not redeemed</span></td></tr></tbody></table></div><div class="foot"><span class="k">100% off Insider monthly for 3 months · single-use · valid 60 days</span><a href="ReferralMilestones.dc.html" class="lnk">Grow's 10-referral milestone</a></div></section></div></section><section style="display:flex;flex-direction:column;gap:14px" aria-label="The coupon was deleted in Stripe, and ending an offer early"><div class="strip"><span class="dot" style="color:#B91C1C"></span>The coupon was deleted in Stripe, and ending an offer early</div><div class="state-grid"><div style="display:flex;flex-direction:column;gap:16px;min-width:0;"><div class="note b" role="alert"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#B91C1C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M8 4.8v3.6M8 10.9v.1"></path></svg><div style="display:flex;flex-direction:column;gap:4px;min-width:0;flex:1 1 320px"><span style="font-weight:700">FALL26's coupon was deleted in Stripe</span><div>This offer's coupon no longer exists in Stripe, so readers can't use FALL26. The link shows the normal prices meanwhile.<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm pri">Create it again</button><button class="btn sm">End the offer</button></div></div></div></div><section class="card" style=""><div class="sec"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><h2 class="h2">Offers</h2><span class="k">As Plans &amp; offers shows it meanwhile</span></div></div><div class="lrow" style="cursor:default"><span class="lt"><b style="font-weight:600">FALL26</b><span class="badge bad">Coupon missing in Stripe</span></span><span class="k" style="color:#374151">Signup · 20% off the first year: $64 instead of $80</span><span class="k">45 of 100 used · the link shows the normal prices</span></div></section></div><section class="card dlg" role="dialog" aria-labelledby="eo-title" style="box-shadow:0 12px 32px rgba(11,18,32,.12);max-width:720px"><div class="dh"><span class="k">Signup offer · recorded in the audit log</span><h2 id="eo-title" style="margin:0;font-size:18px;font-weight:700;letter-spacing:-.01em">End FALL26 now?</h2></div><div class="db"><span style="color:#374151">Readers with the link see “This offer has ended” and the normal prices. The 45 paid members who used it keep $64 for their first year.</span><dl class="kv" style=""><dt>Ends</dt><dd>Now, instead of 31 Oct</dd><dt>Code</dt><dd>FALL26 stops working in Checkout</dd><dt>Stripe</dt><dd>The promotion code is turned off; the coupon stays for those who used it</dd></dl></div><div class="df"><button class="btn">Keep it running</button><button class="btn danger pri">End offer now</button></div></section></div></section><section style="display:flex;flex-direction:column;gap:14px" aria-label="Read-only · Sofia Rossi"><div class="strip"><span class="dot" style="color:#6B7280"></span>Read-only · Sofia Rossi</div><div class="note n" role="note"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#4B5563" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M8 7.2v3.8M8 5v.1"></path></svg><div style="display:flex;flex-direction:column;gap:4px;min-width:0;flex:1 1 320px"><span style="font-weight:700">Read-only · Sofia Rossi, Editor</span><div>Changing plans and offers needs <span class="mono">earn:edit</span>. Ask Marcus Chen or Linh Nguyen.</div></div></div><div class="state-grid"><section class="card" style=""><div class="sec"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><h2 class="h2">Offer · FALL26</h2></div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><span class="badge mut">Read-only</span></div></div><div class="pad"><dl class="kv" style=""><dt>Kind</dt><dd>Signup</dd><dt>Discount</dt><dd>20% off the first year: $64 instead of $80</dd><dt>For</dt><dd>Insider yearly · new paid members only</dd><dt>How</dt><dd>Code FALL26 and the link news.acme.io/upgrade?offer=FALL26</dd><dt>Limits</dt><dd>100 · ends 31 Oct 2026</dd></dl></div></section><section class="card" style=""><div class="sec"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><h2 class="h2">Results · since 1 Oct</h2></div></div><div class="pad" style="display:flex;flex-direction:column;gap:14px"><div style="display:flex;gap:12px 28px;flex-wrap:wrap"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-size:22px;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums;line-height:1.2">45</span><span class="k">redemptions</span></div><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-size:22px;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums;line-height:1.2">45</span><span class="k">new paid members</span></div><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-size:22px;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums;line-height:1.2">$240</span><span class="k">MRR from the offer</span></div></div><div style="display:flex;flex-direction:column;gap:4px"><div class="row" style="justify-content:space-between;font-size:13px"><span>Used</span><b class="num">45 of 100</b></div><div class="bar"><i style="width:45%;background:#0F766E"></i></div></div><span class="k">Started by Marcus Chen on 1 Oct · ends 31 Oct · MRR after the discount: 45 × $64 ÷ 12</span></div></section></div></section>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2973}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

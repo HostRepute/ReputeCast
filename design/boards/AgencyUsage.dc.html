@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agency · usage</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F4F6;color:#0B1220;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;line-height:1.45}
+a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
+.mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace}
+.card{background:#FFFFFF;border:1px solid #E3E6EB;border-radius:10px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:36px;padding:0 14px;border-radius:8px;border:1px solid #D4D8DF;background:#FFFFFF;color:#0B1220;font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;box-sizing:border-box}
+.btn:hover{background:#F3F4F6;color:#0B1220}
+.btn.pri{background:#0F766E;border-color:#0F766E;color:#FFFFFF}.btn.pri:hover{background:#115E59;color:#FFFFFF}
+.btn.sm{min-height:30px;padding:0 10px;font-size:12px}
+.badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;flex:none}
+.ok{background:#DCFCE7;color:#166534}.warn{background:#FEF3C7;color:#92400E}.bad{background:#FEE2E2;color:#991B1B}.info{background:#DBEAFE;color:#1E40AF}.mut{background:#EEF0F3;color:#4B5563}.pur{background:#EDE9FE;color:#5B21B6}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;flex:none}
+.nav a{display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;border-radius:8px;color:#4B5563;font-weight:500}
+.nav a:hover{background:#EEF0F3;color:#0B1220}.nav a.on{background:#E3F1EE;color:#0F766E}
+.nav svg{width:16px;height:16px;flex:none}
+.tabs{display:flex;gap:4px;flex-wrap:wrap}
+.tabs a{display:inline-flex;align-items:center;height:34px;padding:0 12px;border-radius:8px;color:#4B5563;font-weight:500;font-size:13px}
+.tabs a:hover{background:#EEF0F3;color:#0B1220}.tabs a.on{background:#0B1220;color:#fff}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{text-align:left;font-weight:600;color:#5B6472;padding:10px 12px;border-bottom:1px solid #E3E6EB;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+.tbl td{padding:11px 12px;border-bottom:1px solid #EEF0F3;vertical-align:middle;white-space:nowrap}
+.tbl tr:last-child td{border-bottom:0}
+.k{font-size:12px;color:#5B6472;font-weight:500}
+.h2{margin:0;font-size:15px;font-weight:600}
+.in{height:36px;padding:0 10px;border:1px solid #D4D8DF;border-radius:8px;background:#fff;font:inherit;font-size:13px;color:#0B1220;box-sizing:border-box;min-width:0}
+.lbl{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:#4B5563}
+
+
+/* shell additions: workspace switcher, notification bell, user menu */
+.ws{display:flex;align-items:center;gap:8px;margin:2px 0 4px;padding:7px 10px;border:1px solid #E3E6EB;border-radius:8px;background:#fff;color:#0B1220;font:inherit;text-align:left;cursor:pointer;width:100%;box-sizing:border-box}
+.ws:hover{background:#F3F4F6}
+.ws .wsn{display:flex;flex-direction:column;line-height:1.25;min-width:0;flex:1}
+.ws .wsn b{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ws .wsn span{font-size:11px;color:#5B6472;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tools{display:flex;align-items:center;gap:8px;margin-left:8px}
+.ibtn{position:relative;display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:1px solid #D4D8DF;background:#fff;color:#0B1220;cursor:pointer;padding:0;flex:none}
+.ibtn:hover{background:#F3F4F6}
+.ibtn .cnt{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#B91C1C;color:#fff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box}
+.ubtn{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 10px 0 4px;border-radius:8px;border:1px solid #D4D8DF;background:#fff;color:#0B1220;font:inherit;font-size:13px;font-weight:600;cursor:pointer;flex:none}
+.ubtn:hover{background:#F3F4F6}
+.menu{position:absolute;z-index:40;background:#fff;border:1px solid #D4D8DF;border-radius:10px;box-shadow:0 12px 32px rgba(11,18,32,.16);padding:6px;min-width:260px;display:flex;flex-direction:column;gap:2px;box-sizing:border-box}
+.menu a,.menu button{display:flex;align-items:center;gap:10px;min-height:36px;padding:0 10px;border-radius:8px;color:#0B1220;font:inherit;font-size:13px;font-weight:500;background:none;border:0;text-align:left;cursor:pointer;width:100%;box-sizing:border-box;text-decoration:none}
+.menu a:hover,.menu button:hover{background:#F3F4F6;color:#0B1220}
+.menu hr{border:0;border-top:1px solid #EEF0F3;margin:4px 0;width:100%}
+.menu .mh{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472;padding:8px 10px 4px}
+@media (max-width:767px){.tools{margin-left:0}.menu{min-width:0;max-width:calc(100vw - 24px)}}
+
+
+/* add-on components */
+.av{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex:none}
+.tbl td.c,.tbl th.c{text-align:center}
+.tbl td{white-space:normal;vertical-align:middle}
+.tbl td.nw,.tbl td .badge{white-space:nowrap}
+.tbl td .btn{white-space:nowrap}
+.flag{display:inline-flex;align-items:center;gap:4px;color:#B45309;font-weight:700;font-size:11px;white-space:nowrap}
+input[type=checkbox].tg{appearance:none;-webkit-appearance:none;width:40px;height:24px;border-radius:999px;background:#6B7280;position:relative;cursor:pointer;flex:none;margin:0;border:0}
+input[type=checkbox].tg::after{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff}
+input[type=checkbox].tg:checked{background:#0F766E}input[type=checkbox].tg:checked::after{left:18px}
+.row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.col{display:flex;flex-direction:column;gap:10px}
+.sec{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid #EEF0F3;flex-wrap:wrap;gap:8px}
+.pad{padding:16px 18px}
+.note{display:flex;gap:8px 10px;align-items:flex-start;flex-wrap:wrap;padding:12px 14px;border-radius:8px;font-size:13px;line-height:1.45}
+.note > :last-child{flex:1 1 320px;min-width:0}
+.note > .badge{margin-top:1px}
+.note.i{background:#EFF6FF;border:1px solid #BFDBFE;color:#1E3A8A}
+.note.w{background:#FFFBEB;border:1px solid #FCD34D;color:#78350F}
+.note.b{background:#FFF5F5;border:1px solid #FCA5A5;color:#7F1D1D}
+.note.g{background:#F0FDF4;border:1px solid #BBF7D0;color:#14532D}
+.note.n{background:#F3F4F6;border:1px solid #E3E6EB;color:#374151}
+.btn:disabled,.btn[aria-disabled="true"]{opacity:.55;cursor:not-allowed}
+.btn.danger{color:#991B1B;border-color:#FCA5A5}.btn.danger:hover{background:#FEF2F2;color:#991B1B}
+.btn.danger.pri{background:#B91C1C;border-color:#B91C1C;color:#fff}.btn.danger.pri:hover{background:#991B1B;color:#fff}
+.kv{display:grid;grid-template-columns:max-content 1fr;gap:7px 18px;font-size:13px;margin:0}
+.kv dt{color:#5B6472;font-weight:500;margin:0}.kv dd{margin:0;min-width:0}
+.chip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;border:1px solid #D4D8DF;background:#fff;font-size:12.5px;font-weight:500;white-space:nowrap}
+.code{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace;font-size:12.5px;background:#0B1220;color:#E5E7EB;border-radius:8px;padding:12px 14px;white-space:pre-wrap;overflow-wrap:anywhere;margin:0}
+.diff{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;border:1px solid #E3E6EB;border-radius:8px;overflow:hidden}
+.diff div{padding:6px 12px;white-space:pre-wrap;overflow-wrap:anywhere}
+.diff .del{background:#FEF2F2;color:#991B1B}.diff .add{background:#F0FDF4;color:#166534}.diff .ctx{color:#4B5563}
+.ovl{position:absolute;inset:0;background:rgba(11,18,32,.45);display:flex;align-items:flex-start;justify-content:center;padding:72px 16px;box-sizing:border-box;z-index:60}
+.dlg{width:100%;max-width:640px;display:flex;flex-direction:column;background:#fff;border-radius:12px;box-shadow:0 24px 60px rgba(11,18,32,.3)}
+.dh{padding:18px 22px 0;display:flex;flex-direction:column;gap:6px}
+.db{padding:16px 22px;display:flex;flex-direction:column;gap:12px}
+.df{padding:14px 22px 18px;display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;border-top:1px solid #EEF0F3;align-items:center}
+.steps{display:flex;flex-direction:column;gap:2px}
+.row > *{min-width:0}
+
+/* expansion components (phases 1-8) */
+.num,.tbl td.r{font-variant-numeric:tabular-nums}
+.tbl th.r,.tbl td.r{text-align:right}
+.tbl tr.sel td{background:#F0FDFA}
+.tbl tr.xp td{background:#FBFBFC}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.stat{padding:14px 16px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.stat .v{font-size:22px;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums;line-height:1.25;margin-top:2px}
+.stat .s{font-size:12px;color:#5B6472;font-weight:500}
+.stat.hot{border-color:#FCA5A5;background:#FFF5F5}
+.strip{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;background:#0B1220;color:#fff;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.sk{background:#E9ECF0;border-radius:6px;display:inline-block}
+.bar{height:6px;border-radius:3px;background:#EEF0F3;overflow:hidden}.bar i{display:block;height:100%;border-radius:3px}
+.ptab{display:flex;border-bottom:1px solid #E3E6EB}
+.ptab button{flex:1;height:38px;border:0;background:none;font:inherit;font-size:12.5px;font-weight:600;color:#5B6472;cursor:pointer;border-bottom:2px solid transparent;padding:0 6px;white-space:nowrap}
+.ptab button.on{color:#0B1220;border-bottom-color:#0F766E}
+.seg{display:inline-flex;border:1px solid #D4D8DF;border-radius:8px;overflow:hidden;flex:none}
+.seg button{height:30px;padding:0 11px;border:0;background:#fff;font:inherit;font-size:12px;font-weight:600;color:#4B5563;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.seg button + button{border-left:1px solid #E3E6EB}
+.seg button.on{background:#0B1220;color:#fff}
+.cbx{border-radius:10px;overflow:hidden;border:1px solid #1F2937;background:#0B1220;min-width:0}
+.cbh{display:flex;align-items:center;gap:2px;padding:6px 8px;border-bottom:1px solid #1F2937;background:#111827;flex-wrap:wrap}
+.cbh button{height:28px;padding:0 10px;border:0;border-radius:6px;background:none;color:#B4BAC4;font:inherit;font-size:12px;font-weight:600;cursor:pointer}
+.cbh button.on{background:#273244;color:#fff}
+.cbh .cp{margin-left:auto;display:inline-flex;align-items:center;gap:6px;color:#E5E7EB;border:1px solid #374151}
+.cbx pre{margin:0;padding:12px 14px;font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace;font-size:12.5px;line-height:1.6;color:#E5E7EB;white-space:pre-wrap;overflow-wrap:anywhere}
+.cbx .c1{color:#93C5FD}.cbx .c2{color:#86EFAC}.cbx .c3{color:#FCD34D}.cbx .c4{color:#9CA3AF}.cbx .c5{color:#F9A8D4}
+.cbx .cm{color:#9CA3AF}
+.ev{display:flex;gap:14px;align-items:flex-start;padding:12px 0;border-top:1px solid #EEF0F3}
+.ev:first-child{border-top:0}
+.ev .ic{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.ev .tx{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.ev .tm{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;color:#5B6472;flex:none;padding-top:5px}
+.spin{width:14px;height:14px;border-radius:50%;border:2px solid #C9CED6;border-top-color:#0F766E;flex:none;display:inline-block}
+.mask{display:inline-flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;color:#4B5563;white-space:nowrap}
+.mask svg{flex:none}
+.tok{display:inline-flex;align-items:center;gap:4px;padding:0 6px;border-radius:5px;background:#EDE9FE;color:#5B21B6;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:.86em;font-weight:500;line-height:1.55;white-space:nowrap;vertical-align:baseline}
+.tok.s{background:#FEF3C7;color:#92400E}
+.tok.e{background:#FEE2E2;color:#991B1B;text-decoration:underline wavy #DC2626;text-underline-offset:3px}
+.mk{display:inline-flex;align-items:center;height:22px;padding:0 7px;border-radius:6px;background:#EEF0F3;color:#374151;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;white-space:nowrap}
+.toast{display:flex;gap:12px;align-items:center;padding:10px 12px 10px 14px;border-radius:10px;background:#0B1220;color:#fff;font-size:13.5px;box-shadow:0 12px 30px rgba(11,18,32,.25);max-width:520px;box-sizing:border-box}
+.toast .t{flex:1;min-width:0}
+.toast .k{color:#C3C2B7}
+.toast .btn{min-height:28px;padding:0 10px;font-size:12px;background:transparent;border-color:#4B5563;color:#fff}
+.toast .x{width:28px;height:28px;border:0;background:transparent;color:#9CA3AF;border-radius:6px;font-size:16px;cursor:pointer}
+.ti{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.scrim{position:absolute;inset:0;background:rgba(11,18,32,.32);z-index:55}
+.drw{position:absolute;top:0;right:0;bottom:0;width:600px;max-width:100%;background:#fff;border-left:1px solid #E3E6EB;box-shadow:-18px 0 40px rgba(11,18,32,.18);z-index:60;display:flex;flex-direction:column;box-sizing:border-box;overflow:hidden}
+.drw .dwh{display:flex;align-items:flex-start;gap:12px;padding:18px 22px 14px;border-bottom:1px solid #EEF0F3}
+.drw .dwb{padding:18px 22px;display:flex;flex-direction:column;gap:18px;overflow:auto}
+.drw h3{margin:0;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472}
+.empty{padding:44px 28px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;border-style:dashed}
+.empty .tt{font-size:18px;font-weight:700;letter-spacing:-.01em}
+.empty .ds{color:#4B5563;max-width:560px}
+.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:14px 18px;border-bottom:1px solid #EEF0F3}
+.fchips{display:flex;gap:6px;flex-wrap:wrap;padding:12px 18px;border-bottom:1px solid #EEF0F3}
+.fchip{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:999px;border:1px solid #D4D8DF;background:#fff;font:inherit;font-size:12.5px;font-weight:600;color:#374151;cursor:pointer;white-space:nowrap}
+.fchip b{font-weight:600;color:#5B6472;font-variant-numeric:tabular-nums}
+.fchip.on{background:#0B1220;border-color:#0B1220;color:#fff}.fchip.on b{color:#C9CED6}
+.live{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:#166534}
+.live .dot{box-shadow:0 0 0 4px rgba(22,101,52,.15)}
+.foot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid #EEF0F3}
+.spark{display:block}
+.lnk{display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:13px}
+.ttl{margin:0;font-size:22px;font-weight:700;letter-spacing:-.02em;line-height:1.2}
+.lead{margin:0;color:#4B5563;font-size:14px;max-width:760px}
+.state-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(460px,100%),1fr));gap:16px;align-items:start}
+.flowr{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px}
+.flowr .arw{color:#9AA3B2}
+.pill{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:8px;border:1px solid #E3E6EB;background:#F9FAFB;font-size:12.5px;font-weight:600;white-space:nowrap}
+.vline{display:flex;gap:10px;align-items:baseline;padding:8px 0;border-top:1px solid #EEF0F3;font-size:13px}
+.vline:first-child{border-top:0}
+.hl{background:#FEF2F2;box-shadow:inset 3px 0 0 #DC2626}
+.lines{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;line-height:1.7;background:#0B1220;color:#E5E7EB;border-radius:8px;overflow:hidden}
+.lines div{display:flex;gap:12px;padding:0 12px}
+.lines .ln{color:#9CA3AF;width:22px;text-align:right;flex:none;user-select:none}
+.lines .er{background:rgba(220,38,38,.22)}
+.callout{position:absolute;z-index:5}
+.only-phone{display:none}
+@media (max-width:1100px){.drw{width:520px}}
+@media (max-width:767px){.drw{width:100%;border-left:0}.stats{grid-template-columns:repeat(2,minmax(0,1fr))!important}.ttl{font-size:19px}}
+
+/* phase 8b: channel switch, agency shell, push and WhatsApp previews */
+.chsw{display:inline-flex;align-items:stretch;border:1px solid #D4D8DF;border-radius:8px;overflow:hidden;background:#fff;flex:none;max-width:100%}
+.chsw a{display:inline-flex;align-items:center;gap:6px;height:32px;min-height:32px!important;padding:0 11px;color:#4B5563;font-size:13px;font-weight:600;white-space:nowrap;text-decoration:none!important}
+.chsw a + a{border-left:1px solid #E3E6EB}
+.chsw a:hover{background:#F3F4F6;color:#0B1220}
+.chsw a.on{background:#E3F1EE;color:#0F766E}
+.chsw svg{flex:none}
+input[type=checkbox].tg:disabled{opacity:.55;cursor:not-allowed}
+.in:disabled{background:#F9FAFB;color:#5B6472;cursor:not-allowed}
+.c8h{display:flex;justify-content:space-between;align-items:flex-start;padding:14px 18px;border-bottom:1px solid #EEF0F3;gap:8px 14px;flex-wrap:wrap}
+.c8h > div:first-child{display:flex;flex-direction:column;gap:2px;flex:1 1 300px;min-width:0}
+.c8h > div + div{display:flex;gap:8px;flex-wrap:wrap;align-items:center;flex:none}
+.wst{display:inline-flex;align-items:center;justify-content:center;border-radius:6px;color:#fff;font-weight:700;flex:none;font-size:10px;width:24px;height:24px;letter-spacing:.02em}
+.hsc{display:inline-flex;align-items:center;gap:7px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.instc{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid #E3E6EB;border-radius:8px;background:#fff;color:#0B1220;box-sizing:border-box}
+.chk8{display:flex;gap:12px;align-items:flex-start;padding:11px 18px;border-top:1px solid #EEF0F3}
+.chk8:first-child{border-top:0}
+.chk8 > .badge{margin-top:1px;min-width:44px;justify-content:center}
+.chk8 .tx{display:flex;flex-direction:column;gap:2px;flex:1 1 auto;min-width:0}
+.chk8.w{background:#FFFBEB}
+.chk8.b{background:#FFF5F5}
+.grp8{padding:10px 18px;background:#F9FAFB;border-top:1px solid #EEF0F3;border-bottom:1px solid #EEF0F3;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-weight:600;font-size:13px}
+.grp8:first-child{border-top:0}
+.optc{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid #E3E6EB;border-radius:8px;background:#fff;font-size:13px;cursor:pointer}
+.optc.on{border-color:#0F766E;background:#F0FDFA;box-shadow:inset 0 0 0 1px #0F766E}
+.optc input{margin-top:2px;flex:none}
+.cnt8{font-size:11.5px;font-weight:600;color:#5B6472;font-variant-numeric:tabular-nums;white-space:nowrap}
+.cnt8.w{color:#92400E}
+.fl8{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:#4B5563}
+.fl8 .hd{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+textarea.in{height:auto;min-height:64px;padding:8px 10px;line-height:1.45;resize:vertical;font:inherit;font-size:13px}
+.mrow{display:flex;gap:10px;align-items:center;padding:10px 0;border-top:1px solid #EEF0F3;flex-wrap:wrap}
+.mrow:first-child{border-top:0}
+.funnel{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(92px,100%),1fr));gap:0;border:1px solid #E3E6EB;border-radius:10px;overflow:hidden;background:#fff}
+.funnel > div{padding:12px 14px;border-left:1px solid #EEF0F3;display:flex;flex-direction:column;gap:2px;min-width:0}
+.funnel > div:first-child{border-left:0}
+.funnel .v{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums}
+@media (min-width:1101px){.tbl td.nx8{min-width:160px}}
+@media (max-width:1100px){.tbl.cl8 th{white-space:normal}.tbl.cl8 td,.tbl.cl8 th{padding-left:10px;padding-right:10px}}
+.sendstrip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+.sendstrip > a:first-child{border-left:0!important}
+@media (max-width:1100px){.sendstrip{grid-template-columns:repeat(2,minmax(0,1fr))}.sendstrip > a:nth-child(odd){border-left:0!important}.sendstrip > a:nth-child(n+3){border-top:1px solid #EEF0F3}}
+@media (max-width:767px){.sendstrip{grid-template-columns:1fr}.sendstrip > a{border-left:0!important;border-top:1px solid #EEF0F3}.sendstrip > a:first-child{border-top:0}}
+/* the icon rail hides the footer cards and the user chip (their inline display would otherwise win) */
+@media (max-width:1100px){.side .sidefoot > *:not(a.btn){display:none!important}}
+/* notification previews: drawn as the operating system shows them (system font), no status bars */
+.pvf{margin:0;display:flex;flex-direction:column;gap:10px;min-width:0;align-items:flex-start}
+.pvf > figcaption{display:flex;flex-direction:column;gap:2px;width:100%}
+.pvf .cut{font-size:12px;color:#374151;line-height:1.45}
+.pv{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:#0B1220;box-sizing:border-box;width:340px;max-width:100%;text-align:left}
+.pv b{font-weight:600}
+.pv .m{color:#374151}
+.pv .s{color:#5B6472}
+.pvwin{background:#F9FAFB;border:1px solid #D4D8DF;border-radius:10px;box-shadow:0 12px 32px rgba(11,18,32,.16);overflow:hidden;font-size:13px;line-height:1.4}
+.pvwin .h{display:flex;align-items:center;gap:8px;padding:9px 12px;font-size:12px;color:#4B5563}
+.pvwin .h .x{margin-left:auto;display:inline-flex;gap:14px;color:#5B6472;letter-spacing:.1em}
+.pvwin .b{display:flex;gap:12px;align-items:flex-start;padding:12px 14px 4px}
+.pvwin .bt{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 14px 14px}
+.pvwin .bt span{display:flex;align-items:center;justify-content:center;height:32px;border-radius:6px;background:#fff;border:1px solid #D4D8DF;font-size:13px;color:#0B1220}
+.pvmac{display:flex;gap:10px;align-items:flex-start;padding:11px 12px;background:#F3F4F6;border:1px solid #D4D8DF;border-radius:16px;box-shadow:0 12px 32px rgba(11,18,32,.16);font-size:13px;line-height:1.35;position:relative}
+.pvmac .bd{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1}
+.pvmac .r1{display:flex;justify-content:space-between;gap:8px}
+.pvmac .tm{font-size:12px;color:#5B6472;flex:none}
+.pvand{background:#fff;border:1px solid #E3E6EB;border-radius:16px;box-shadow:0 1px 3px rgba(11,18,32,.12);padding:12px 14px 6px;font-size:13.5px;line-height:1.4}
+.pvand .h{display:flex;align-items:center;gap:6px;font-size:12px;color:#4B5563}
+.pvand .bd{display:flex;gap:12px;align-items:flex-start;margin-top:6px}
+.pvand .im{margin-top:10px;border-radius:10px;overflow:hidden}
+.pvand .ac{display:flex;gap:22px;padding:12px 2px 8px;font-size:13px;font-weight:600;color:#0F766E}
+.pvios{display:flex;gap:10px;align-items:flex-start;padding:12px 13px;background:#F9FAFB;border:1px solid #D4D8DF;border-radius:16px;box-shadow:0 12px 32px rgba(11,18,32,.16);font-size:14px;line-height:1.35}
+.pvios .bd{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.pvios .r1{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.pvios .tm{font-size:12px;color:#5B6472;flex:none}
+.pvstage{background:#E9ECF0;border-radius:10px;padding:18px;display:flex;justify-content:center;align-items:flex-start;min-width:0}
+/* WhatsApp chat preview (neutral, no brand colours) */
+.wa{background:#EEF0F3;border:1px solid #E3E6EB;border-radius:10px;overflow:hidden;width:100%;max-width:380px;box-sizing:border-box}
+.wa .hd{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#fff;border-bottom:1px solid #E3E6EB}
+.wa .bd{padding:14px 12px 16px;display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.wa .bub{background:#fff;border-radius:10px;border-top-left-radius:0;padding:9px 11px 7px;font-size:13.5px;line-height:1.45;max-width:88%;box-shadow:0 1px 1px rgba(11,18,32,.08);box-sizing:border-box}
+.wa .bub .tm{display:block;text-align:right;font-size:11px;color:#5B6472;margin-top:2px}
+.wa .qr{display:flex;align-items:center;justify-content:center;gap:6px;width:88%;height:36px;border-radius:10px;background:#fff;font-size:13px;font-weight:600;color:#0F766E;box-shadow:0 1px 1px rgba(11,18,32,.08);box-sizing:border-box}
+.wa .me{align-self:flex-end;background:#DCFCE7;border-top-left-radius:10px;border-top-right-radius:0}
+/* responsive helpers for wide tables on tablets */
+.smd{display:none}
+@media (max-width:1100px){.hmd{display:none!important}.smd{display:block}}
+@media (max-width:767px){.pvstage{padding:12px}.sc-host .funnel{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+
+/* responsive shell */
+@media (max-width:1100px){
+  .side{flex:0 0 72px!important;max-width:72px;padding:14px 8px!important;gap:4px!important}
+  .side .nl,.side .brand-t,.side .ws{display:none}
+  .side .nav a{justify-content:center;padding:0!important;height:44px}
+  .side .nav svg{width:20px;height:20px}
+  .side > a[aria-label="ReputeCast home"]{justify-content:center;padding:6px 0!important}
+  .side .sidefoot{align-items:center}
+  .side .sidefoot > *{display:none}
+  .side .sidefoot > a.btn{display:inline-flex;width:44px;height:44px;padding:0!important;justify-content:center!important;font-size:0;gap:0}
+  .side .sidefoot > a.btn svg{width:18px;height:18px}
+  .top{padding:12px 16px!important}
+  .content{padding:16px!important}
+}
+@media (max-width:767px){
+  .app{flex-direction:column}
+  .side{flex:none!important;max-width:none!important;width:auto!important;position:fixed;left:0;right:0;bottom:0;z-index:50;flex-direction:row!important;align-items:center;padding:6px 6px!important;border-right:0!important;border-top:1px solid #E3E6EB;background:#fff!important;box-sizing:border-box;gap:0!important}
+  .side > a[aria-label="ReputeCast home"],.side .ws,.side .sidefoot{display:none!important}
+  .side .nav{flex-direction:row!important;flex:1;justify-content:space-around;margin-top:0!important;gap:0!important}
+  .side .nav a{height:44px;width:44px;flex:none;padding:0!important;justify-content:center;border-radius:10px}
+  .side .nl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;display:block}
+  .side .nav a.on{background:#E3F1EE;color:#0F766E}
+  .mainc{padding-bottom:72px}
+  .top{padding:12px 12px!important;gap:8px!important}
+  .top h1{font-size:16px!important}
+  .top .in{width:100%!important}
+  .tabs{flex-wrap:nowrap!important;overflow-x:auto;max-width:100%;margin-left:0!important;padding-bottom:2px}
+  .tabs a{flex:none}
+  .content{padding:12px!important;gap:12px!important}
+  .cpanel{max-width:none!important;flex:1 1 100%!important}
+}
+@media (min-width:768px) and (max-width:1100px){
+  .cpanel{max-width:none!important}
+}
+
+/* responsive phone fixes */
+@media (max-width:767px){
+  .app{flex-wrap:nowrap!important}
+  .mainc{width:100%;max-width:100%}
+  .content > *{min-width:0;max-width:100%}
+  .content .in,.content select,.content input,.content textarea{max-width:100%;min-width:0}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+  .sc-host [style*="flex: 1 1"]{min-width:0}
+  .sc-host select.in,.sc-host input.in{width:0;min-width:100%}
+  .sc-host .mono{overflow-wrap:anywhere}
+  .sc-host .sk{max-width:100%}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px;max-width:100%}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host .tabs .badge{white-space:nowrap}
+  .sc-host .side .btn{white-space:nowrap}
+  .sc-host [style*="grid-template-columns: repeat("]{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))!important}
+  .sc-host [style*="minmax(260px"],.sc-host [style*="minmax(280px"],.sc-host [style*="minmax(300px"],.sc-host [style*="minmax(320px"],.sc-host [style*="minmax(340px"],.sc-host [style*="minmax(360px"],.sc-host [style*="minmax(380px"],.sc-host [style*="minmax(420px"]{grid-template-columns:1fr!important}
+  .sc-host [style*="radial-gradient"]{overflow:auto}
+  .sc-host [style*="display: grid"] > *{min-width:0}
+  .sc-host header > div{max-width:100%;min-width:0}
+  .sc-host pre,.sc-host .lines{max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]) > div[style*="flex: 1"]{min-width:120px}
+}
+
+/* accessibility */
+:focus-visible{outline:2px solid #0F766E;outline-offset:2px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-9999px;top:8px;z-index:100;background:#fff;color:#0B1220;padding:8px 12px;border-radius:8px;border:1px solid #0F766E;font-weight:600;text-decoration:none}
+.skip:focus{left:8px}
+p a:not(.btn),span a:not(.btn):not([style*="color"]),td a:not(.btn):not([style*="color"]),li a:not(.btn),label a,.k a,.lead a{text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+.content > * a:not(.btn):not(p a):not(span a):not(td a):not(li a):not(label a):not(.k a),.top a:not(.btn),nav a:not(.btn),footer a:not(.btn){min-height:24px;display:inline-flex;align-items:center}
+input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F766E}
+.in,select.in,textarea.in,input.in{border-color:#8B94A3}
+@media (max-width:767px){
+  .sc-host{overflow-wrap:anywhere}
+  .sc-host table,.sc-host td,.sc-host th{overflow-wrap:normal}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+}
+
+/* nav: phones show four sections plus More */
+.side .nav a.more{display:none}
+@media (max-width:767px){.side .nav a.xm{display:none!important}.side .nav a.more{display:flex}.side .nav a.more.on{background:#E3F1EE;color:#0F766E}}
+/* shell: the icon rail keeps only the import button (the footer's inline display:flex beat the rail rule) */
+@media (max-width:1100px){.side .sidefoot > :not(.btn){display:none!important}}
+/* shell: avatar initials sit in the middle */
+.av{display:inline-flex;align-items:center;justify-content:center;flex:none}
+.ubtn .av{border-radius:50%;font-weight:700}
+.ws .av{font-weight:700}
+/* switches: a disabled switch looks disabled */
+.tg:disabled,.tgx:disabled{opacity:.45;cursor:not-allowed}
+
+/* expansion: responsive card grids collapse to one column on phones (overrides the 140px rule above) */
+@media (max-width:767px){
+  .sc-host [style*="minmax(min("]{grid-template-columns:1fr!important}
+  .sc-host .kv{grid-template-columns:1fr;gap:2px 0}
+  .sc-host .kv dd{margin-bottom:8px}
+  .sc-host .ev .tm{display:none}
+  .sc-host .cbx pre{font-size:11.5px}
+  .sc-host .mlist{display:none!important}
+  .sc-host .only-phone{display:flex!important;flex-direction:column}
+  .sc-host .no-phone{display:none!important}
+}
+</style>
+</helmet>
+<div class="app" style="display:flex;flex-wrap:wrap;align-items:stretch;min-height:100vh;position:relative">
+  <a href="#main" class="skip">Skip to content</a>
+  <aside class="side" style="flex:1 1 232px;background:#FBFBFC;border-right:1px solid #E3E6EB;display:flex;flex-direction:column;padding:16px 12px;gap:6px;box-sizing:border-box">
+    <a href="AgencyOverview.dc.html" style="display:flex;align-items:center;gap:10px;padding:6px 8px;color:#0B1220" aria-label="ReputeCast home"><svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg><span class="brand-t" style="font-weight:700;font-size:15px;letter-spacing:-.01em">ReputeCast</span></a>
+    <button class="ws" type="button" aria-haspopup="menu" aria-label="Switch workspace. Current: Northwind Studio, agency area"><span class="wst" style="width:24px;height:24px;border-radius:6px;background:#0B1220;font-size:10px" aria-hidden="true">NS</span><span class="wsn"><b>Northwind Studio</b><span>Agency</span></span><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button>
+    <nav class="nav" style="display:flex;flex-direction:column;gap:2px;margin-top:4px" aria-label="Agency">
+      <a href="AgencyOverview.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z"></path></svg><span class="nl">Overview</span></a>
+      <a href="AgencyStates.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="6" cy="5" r="2.5"></circle><path d="M1.5 14a4.5 4.5 0 0 1 9 0M11 3a2.5 2.5 0 0 1 0 5M14.5 14a4 4 0 0 0-3-3.8"></path></svg><span class="nl">Staff</span></a>
+      <a href="AgencyLibrary.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 1.8 1.8 5 8 8.2 14.2 5z"></path><path d="m1.8 8 6.2 3.2L14.2 8"></path><path d="m1.8 11 6.2 3.2 6.2-3.2"></path></svg><span class="nl">Library</span></a>
+      <a href="AgencyUsage.dc.html" class="on" aria-current="page"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 14h12"></path><path d="M4.2 11.5V8.2M8 11.5V3.8M11.8 11.5V6.2"></path></svg><span class="nl">Usage</span></a>
+    </nav>
+    <div class="sidefoot" style="margin-top:auto;display:flex;flex-direction:column;gap:8px">
+      <a href="InstanceSettings.dc.html" class="instc"><span class="dot" style="color:#15803D"></span><div style="display:flex;flex-direction:column;line-height:1.25;min-width:0"><span style="font-size:12px;font-weight:600">app.northwind.studio</span><span class="k" style="font-size:11px">7 clients · 1 agency workspace</span></div></a>
+      <div style="display:flex;align-items:center;gap:8px;padding:4px 8px"><span class="av" style="width:26px;height:26px;font-size:11px;background:#DCFCE7;color:#166534" aria-hidden="true">TH</span><div style="display:flex;flex-direction:column;line-height:1.25"><span style="font-size:12px;font-weight:600">Tomás Herrera</span><span class="k" style="font-size:11px">Agency manager</span></div></div>
+    </div>
+  </aside>
+  <div class="mainc" style="flex:999 1 560px;min-width:0;display:flex;flex-direction:column">
+    <header class="top" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 28px;background:#fff;border-bottom:1px solid #E3E6EB">
+      <h1 style="margin:0;font-size:18px;font-weight:600;letter-spacing:-.01em">Usage</h1><span class="k">Provider cost and what to rebill, per client</span><div style="margin-left:auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><select class="in" style="width:200px" aria-label="Month"><option>September 2026</option><option>October 2026 · to date</option><option>August 2026</option><option>July 2026</option></select><button class="btn"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2.5v8M4.5 7 8 10.5 11.5 7M2 13.5h12"></path></svg>Export CSV</button><div class="tools"><a href="Notifications.dc.html" class="ibtn" aria-label="Notifications, 2 unread"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 11V7a4 4 0 0 1 8 0v4l1.5 1.5h-11zM6.5 14a1.5 1.5 0 0 0 3 0"></path></svg><span class="cnt" aria-hidden="true">2</span></a><button class="ubtn" type="button" aria-haspopup="menu" aria-label="Account menu for Tomás Herrera"><span class="av" style="width:26px;height:26px;font-size:11px;background:#DCFCE7;color:#166534" aria-hidden="true">TH</span><span class="unm">Tomás</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button></div></div>
+    </header>
+    <main class="content" id="main" style="padding:24px 28px;display:flex;flex-direction:column;gap:20px">
+<div class="stats"><div class="card stat "><span class="k">Emails</span><span class="v">3,641,748</span><span class="s">every stream, 7 workspaces</span></div><div class="card stat "><span class="k">SMS segments</span><span class="v">42,622</span><span class="s">Fabrikam Outdoors and Alpine Ski House</span></div><div class="card stat "><span class="k">Push notifications</span><span class="v">14,920</span><span class="s">Tailspin Toys and Litware Books</span></div><div class="card stat "><span class="k">Provider cost</span><span class="v">$865.05</span><span class="s">from each provider's pricing</span></div><div class="card stat "><span class="k">To rebill</span><span class="v">$1,891.59</span><span class="s">6 clients · the agency workspace isn't billed</span></div></div><section class="card"><div class="c8h"><div><h2 class="h2">September 2026 · per client</h2><span class="k">A row opens its detail. Fabrikam Outdoors is open.</span></div></div><div style="overflow-x:auto"><table class="tbl " aria-label="Usage per client, September 2026"><thead><tr><th scope="col">Client</th><th scope="col" class="r">Emails</th><th scope="col" class="r">SMS segments</th><th scope="col" class="r">Push</th><th scope="col" class="r">Provider cost</th><th scope="col">Rebill rate</th><th scope="col" class="r">To rebill</th><th scope="col"></th></tr></thead><tbody><tr><td><div style="display:flex;gap:10px;align-items:center"><span class="wst" style="width:26px;height:26px;border-radius:7px;background:#92400E;font-size:10px" aria-hidden="true">CC</span><a href="#" style="color:#0B1220;font-weight:600">Contoso Coffee</a></div></td><td class="r num">846,210</td><td class="r k">–</td><td class="r k">–</td><td class="r"><span style="display:flex;flex-direction:column;gap:2px;align-items:flex-end"><span class="num" style="font-weight:600">$84.62</span><span class="k">Amazon SES</span></span></td><td><span style="white-space:normal">Cost + 20%, plus $150 a month</span></td><td class="r"><span class="num" style="font-weight:700">$251.54</span></td><td class="r"><button class="btn sm">Edit rate</button></td></tr><tr class="sel"><td><div style="display:flex;gap:10px;align-items:center"><span class="wst" style="width:26px;height:26px;border-radius:7px;background:#166534;font-size:10px" aria-hidden="true">FO</span><a href="#" style="color:#0B1220;font-weight:600">Fabrikam Outdoors</a></div></td><td class="r num">2,214,880</td><td class="r num">38,412</td><td class="r k">–</td><td class="r"><span style="display:flex;flex-direction:column;gap:2px;align-items:flex-end"><span class="num" style="font-weight:600">$633.59</span><span class="k">SES $221.49 · Twilio $412.10</span></span></td><td><span style="white-space:normal">Cost + 15%, plus $300 a month</span></td><td class="r"><span class="num" style="font-weight:700">$1,028.63</span></td><td class="r"><button class="btn sm">Edit rate</button></td></tr><tr class="sel"><td colspan="8" style="padding:4px 12px 16px"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:20px;padding:14px 16px;border:1px solid #E3E6EB;border-radius:10px;background:#fff"><div style="display:flex;flex-direction:column;gap:8px;min-width:0"><span class="k" style="font-weight:600;color:#374151">Emails by stream</span><div style="display:flex;justify-content:space-between;gap:10px;font-size:13px"><span>Broadcasts</span><span class="num" style="font-weight:600">1,612,400</span></div><div style="display:flex;justify-content:space-between;gap:10px;font-size:13px"><span>Automations</span><span class="num" style="font-weight:600">498,230</span></div><div style="display:flex;justify-content:space-between;gap:10px;font-size:13px"><span>Transactional</span><span class="num" style="font-weight:600">96,410</span></div><div style="display:flex;justify-content:space-between;gap:10px;font-size:13px"><span>System</span><span class="num" style="font-weight:600">7,840</span></div></div><div style="display:flex;flex-direction:column;gap:8px;min-width:0"><span class="k" style="font-weight:600;color:#374151">SMS segments by country</span><div style="display:flex;justify-content:space-between;gap:10px;font-size:13px"><span>United States</span><span class="num" style="font-weight:600">36,190</span></div><div style="display:flex;justify-content:space-between;gap:10px;font-size:13px"><span>Canada</span><span class="num" style="font-weight:600">2,222</span></div><span class="k">Push isn't set up in Fabrikam Outdoors.</span></div><div style="display:flex;flex-direction:column;gap:8px;min-width:0"><span class="k" style="font-weight:600;color:#374151">Cost by provider</span><div style="display:flex;justify-content:space-between;gap:10px;font-size:13px"><span>Amazon SES · $0.10 per 1,000</span><span class="num" style="font-weight:600">$221.49</span></div><div style="display:flex;justify-content:space-between;gap:10px;font-size:13px"><span>Twilio · 38,412 segments</span><span class="num" style="font-weight:600">$412.10</span></div><span class="k">From each provider's pricing on 30 Sep.</span></div><div style="display:flex;flex-direction:column;gap:8px;min-width:0"><span class="k" style="font-weight:600;color:#374151">Rate: cost + 15%, plus $300 a month</span><div style="display:flex;justify-content:space-between;gap:10px;font-size:13px"><span>Provider cost</span><span class="num" style="font-weight:600">$633.59</span></div><div style="display:flex;justify-content:space-between;gap:10px;font-size:13px"><span>15% on cost</span><span class="num" style="font-weight:600">$95.04</span></div><div style="display:flex;justify-content:space-between;gap:10px;font-size:13px"><span>Monthly fee</span><span class="num" style="font-weight:600">$300.00</span></div><div style="border-top:1px solid #EEF0F3;padding-top:6px"><div style="display:flex;justify-content:space-between;gap:10px;font-size:13px"><span><b>To rebill</b></span><span class="num" style="font-weight:600">$1,028.63</span></div></div></div></div></td></tr><tr><td><div style="display:flex;gap:10px;align-items:center"><span class="wst" style="width:26px;height:26px;border-radius:7px;background:#1D4ED8;font-size:10px" aria-hidden="true">TT</span><a href="#" style="color:#0B1220;font-weight:600">Tailspin Toys</a></div></td><td class="r num">402,118</td><td class="r k">–</td><td class="r num">12,040</td><td class="r"><span style="display:flex;flex-direction:column;gap:2px;align-items:flex-end"><span class="num" style="font-weight:600">$40.21</span><span class="k">Amazon SES</span></span></td><td><span style="white-space:normal">$0.25 per 1,000 emails, plus $100 a month</span></td><td class="r"><span class="num" style="font-weight:700">$200.53</span></td><td class="r"><button class="btn sm">Edit rate</button></td></tr><tr><td><div style="display:flex;gap:10px;align-items:center"><span class="wst" style="width:26px;height:26px;border-radius:7px;background:#0F766E;font-size:10px" aria-hidden="true">AS</span><a href="#" style="color:#0B1220;font-weight:600">Alpine Ski House</a></div></td><td class="r num">96,440</td><td class="r num">4,210</td><td class="r k">–</td><td class="r"><span style="display:flex;flex-direction:column;gap:2px;align-items:flex-end"><span class="num" style="font-weight:600">$55.95</span><span class="k">SES $9.64 · Twilio $46.31</span></span></td><td><span style="white-space:normal">Cost + 20%, plus $100 a month</span></td><td class="r"><span class="num" style="font-weight:700">$167.14</span></td><td class="r"><button class="btn sm">Edit rate</button></td></tr><tr><td><div style="display:flex;gap:10px;align-items:center"><span class="wst" style="width:26px;height:26px;border-radius:7px;background:#9D174D;font-size:10px" aria-hidden="true">CW</span><a href="#" style="color:#0B1220;font-weight:600">Coho Winery</a></div></td><td class="r num">41,320</td><td class="r k">–</td><td class="r k">–</td><td class="r"><span style="display:flex;flex-direction:column;gap:2px;align-items:flex-end"><span class="num" style="font-weight:600">$15.00</span><span class="k">Postmark plan</span></span></td><td><span style="white-space:normal">$120 a month, flat</span></td><td class="r"><span class="num" style="font-weight:700">$120.00</span></td><td class="r"><button class="btn sm">Edit rate</button></td></tr><tr><td><div style="display:flex;gap:10px;align-items:center"><span class="wst" style="width:26px;height:26px;border-radius:7px;background:#5B21B6;font-size:10px" aria-hidden="true">LB</span><a href="#" style="color:#0B1220;font-weight:600">Litware Books</a></div></td><td class="r num">33,960</td><td class="r k">–</td><td class="r num">2,880</td><td class="r"><span style="display:flex;flex-direction:column;gap:2px;align-items:flex-end"><span class="num" style="font-weight:600">$35.00</span><span class="k" style="text-align:right">Mailgun plan, entered in Litware Books</span></span></td><td><span style="white-space:normal">Cost + 25%, plus $80 a month</span></td><td class="r"><span class="num" style="font-weight:700">$123.75</span></td><td class="r"><button class="btn sm">Edit rate</button></td></tr><tr><td><div style="display:flex;gap:10px;align-items:center"><span class="wst" style="width:26px;height:26px;border-radius:7px;background:#0B1220;font-size:10px" aria-hidden="true">NS</span><a href="#" style="color:#0B1220;font-weight:600">Northwind Studio (agency)</a></div></td><td class="r num">6,820</td><td class="r k">–</td><td class="r k">–</td><td class="r"><span style="display:flex;flex-direction:column;gap:2px;align-items:flex-end"><span class="num" style="font-weight:600">$0.68</span><span class="k">Amazon SES</span></span></td><td><span class="badge mut">Not billed</span></td><td class="r"><span class="k">–</span></td><td class="r"><button class="btn sm">Edit rate</button></td></tr><tr style="background:#F9FAFB"><td><span style="font-weight:700">Total · 7 workspaces</span></td><td class="r"><b class="num">3,641,748</b></td><td class="r"><b class="num">42,622</b></td><td class="r"><b class="num">14,920</b></td><td class="r"><b class="num">$865.05</b></td><td></td><td class="r"><b class="num">$1,891.59</b></td><td></td></tr></tbody></table></div><div class="foot"><span class="k">Costs come from each provider's pricing or the price set in the workspace. ReputeCast doesn't send invoices.</span><span class="k">Export: one row per client and channel</span></div></section><div style="display:flex;flex-direction:column;gap:4px;margin-top:12px"><h2 class="ttl">Rates and states</h2><span class="lead">Editing a client's rate, the month so far, a provider without pricing and read-only.</span></div><section style="display:flex;flex-direction:column;gap:14px" aria-label="Edit rate · Fabrikam Outdoors"><div class="strip"><span class="dot" style="color:#6B7280"></span>Edit rate · Fabrikam Outdoors</div><div class="state-grid"><section class="card dlg" role="dialog" aria-labelledby="rate-t" style="box-shadow:0 12px 32px rgba(11,18,32,.12);max-width:640px"><div class="dh"><span class="k">Combine any of these</span><h2 id="rate-t" style="margin:0;font-size:18px;font-weight:700;letter-spacing:-.01em">Edit rate · Fabrikam Outdoors</h2></div><div class="db"><div style="display:flex;gap:12px;align-items:center;padding:10px 12px;border:1px solid #0F766E;border-radius:8px;background:#F0FDFA;flex-wrap:wrap"><label style="display:flex;gap:10px;align-items:center;flex:1 1 220px;font-weight:600;font-size:13px"><input type="checkbox" checked>Cost plus a percentage</label><span style="display:inline-flex;align-items:center;gap:6px"><input class="in" type="text" value="15" placeholder="" style="width:90px;text-align:right" aria-label="Percentage on cost"><span class="k">%</span></span><span class="k" style="flex-basis:100%;padding-left:26px">On each provider's cost: SES and Twilio.</span></div><div style="display:flex;gap:12px;align-items:center;padding:10px 12px;border:1px solid #E3E6EB;border-radius:8px;background:#fff;flex-wrap:wrap"><label style="display:flex;gap:10px;align-items:center;flex:1 1 220px;font-weight:600;font-size:13px"><input type="checkbox">Per 1,000 emails</label><span style="display:inline-flex;align-items:center;gap:6px"><span class="k">$</span><input class="in" type="text" value="" placeholder="" style="width:90px;text-align:right" aria-label="Price per 1,000 emails"></span><span class="k" style="flex-basis:100%;padding-left:26px">Counted across every stream.</span></div><div style="display:flex;gap:12px;align-items:center;padding:10px 12px;border:1px solid #E3E6EB;border-radius:8px;background:#fff;flex-wrap:wrap"><label style="display:flex;gap:10px;align-items:center;flex:1 1 220px;font-weight:600;font-size:13px"><input type="checkbox">Per SMS segment</label><span style="display:inline-flex;align-items:center;gap:6px"><span class="k">$</span><input class="in" type="text" value="" placeholder="" style="width:90px;text-align:right" aria-label="Price per SMS segment"></span><span class="k" style="flex-basis:100%;padding-left:26px">Counted per segment delivered or failed.</span></div><div style="display:flex;gap:12px;align-items:center;padding:10px 12px;border:1px solid #0F766E;border-radius:8px;background:#F0FDFA;flex-wrap:wrap"><label style="display:flex;gap:10px;align-items:center;flex:1 1 220px;font-weight:600;font-size:13px"><input type="checkbox" checked>Monthly fee</label><span style="display:inline-flex;align-items:center;gap:6px"><span class="k">$</span><input class="in" type="text" value="300.00" placeholder="" style="width:90px;text-align:right" aria-label="Monthly fee"></span><span class="k" style="flex-basis:100%;padding-left:26px">Added once a month.</span></div><div style="display:flex;gap:12px;align-items:center;padding:10px 12px;border:1px solid #E3E6EB;border-radius:8px;background:#fff;flex-wrap:wrap"><label style="display:flex;gap:10px;align-items:center;flex:1 1 220px;font-weight:600;font-size:13px"><input type="checkbox">Flat monthly amount</label><span style="display:inline-flex;align-items:center;gap:6px"><span class="k">$</span><input class="in" type="text" value="" placeholder="" style="width:90px;text-align:right" aria-label="Flat monthly amount"></span><span class="k" style="flex-basis:100%;padding-left:26px">Replaces everything above.</span></div><div style="padding:12px 14px;border-radius:8px;background:#F9FAFB;border:1px solid #E3E6EB;font-size:13px">September at this rate: <span class="num">$633.59 + $95.04 + $300.00 =</span> <b class="num">$1,028.63</b></div></div><div class="df"><span class="k" style="margin-right:auto">Applies from 1 Oct 2026 · recorded in the audit log</span><button class="btn">Cancel</button><button class="btn pri">Save rate</button></div></section><section class="card"><div class="c8h"><div><h2 class="h2">Client details · Fabrikam Outdoors</h2><span class="k">What the agency keeps about a client. Client people never see it.</span></div></div><div class="pad" style="display:flex;flex-direction:column;gap:16px"><dl class="kv" style=""><dt>Account manager</dt><dd><span style="display:inline-flex;align-items:center;gap:8px;white-space:nowrap"><span class="av" style="width:22px;height:22px;font-size:11px;background:#FCE7F3;color:#9D174D" aria-hidden="true">ML</span><span>Mei Lin</span></span></dd><dt>Rebill rate</dt><dd>Cost + 15%, plus $300 a month · since 1 Jun 2026</dd><dt>Client since</dt><dd>12 Feb 2025 · set up from Retail starter (Shopify)</dd><dt>Providers</dt><dd>Amazon SES us-east-1 · Twilio</dd><dt>Client people</dt><dd><span style="display:flex;flex-direction:column;gap:4px"><span>Rick Alvarez · <span class="badge info" style="height:20px;font-size:11px">Client approver</span></span><span>Hana Sato · <span class="badge mut" style="height:20px;font-size:11px">Client viewer</span></span></span></dd></dl><div style="display:flex;flex-direction:column"><span class="k" style="font-weight:600;color:#374151;margin-bottom:2px">Billed, last months</span><div class="mrow" style="flex-wrap:nowrap;gap:10px"><span class="k" style="width:86px;flex:none">Sep 2026</span><span style="flex:1;min-width:0">Cost + 15%, plus $300</span><span class="num" style="font-weight:600">$1,028.63</span></div><div class="mrow" style="flex-wrap:nowrap;gap:10px"><span class="k" style="width:86px;flex:none">Aug 2026</span><span style="flex:1;min-width:0">Cost + 15%, plus $300</span><span class="num" style="font-weight:600">$941.20</span></div><div class="mrow" style="flex-wrap:nowrap;gap:10px"><span class="k" style="width:86px;flex:none">Jul 2026</span><span style="flex:1;min-width:0">Cost + 15%, plus $300</span><span class="num" style="font-weight:600">$887.06</span></div><div class="mrow" style="flex-wrap:nowrap;gap:10px"><span class="k" style="width:86px;flex:none">Jun 2026</span><span style="flex:1;min-width:0">Cost + 15%, plus $300</span><span class="num" style="font-weight:600">$812.44</span></div><div class="mrow" style="flex-wrap:nowrap;gap:10px"><span class="k" style="width:86px;flex:none">May 2026</span><span style="flex:1;min-width:0">Cost + 10%, plus $250</span><span class="num" style="font-weight:600">$702.18</span></div></div></div></section></div></section><section style="display:flex;flex-direction:column;gap:14px" aria-label="The current month to date · partial"><div class="strip"><span class="dot" style="color:#B45309"></span>The current month to date · partial</div><section class="card"><div class="c8h"><div><h2 class="h2" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">October 2026 · to date <span class="badge warn">Partial</span></h2><span class="k">1–15 Oct · updated 10:00 · monthly fees and plans count in full</span></div></div><div style="overflow-x:auto"><table class="tbl " aria-label="Usage per client, October 2026 to date"><thead><tr><th scope="col">Client</th><th scope="col" class="r">Emails</th><th scope="col" class="r">SMS segments</th><th scope="col" class="r">Push</th><th scope="col" class="r">Provider cost</th><th scope="col">Rebill rate</th><th scope="col" class="r">To rebill so far</th></tr></thead><tbody><tr><td><div style="display:flex;gap:10px;align-items:center"><span class="wst" style="width:26px;height:26px;border-radius:7px;background:#92400E;font-size:10px" aria-hidden="true">CC</span><span style="font-weight:600">Contoso Coffee</span></div></td><td class="r num">412,880</td><td class="r k">–</td><td class="r k">–</td><td class="r"><span style="display:flex;flex-direction:column;gap:2px;align-items:flex-end"><span class="num" style="font-weight:600">$41.29</span><span class="k" style="text-align:right">Amazon SES</span></span></td><td><span style="white-space:normal">Cost + 20%, plus $150 a month</span></td><td class="r"><span class="num" style="font-weight:700">$199.55</span></td></tr><tr><td><div style="display:flex;gap:10px;align-items:center"><span class="wst" style="width:26px;height:26px;border-radius:7px;background:#166534;font-size:10px" aria-hidden="true">FO</span><span style="font-weight:600">Fabrikam Outdoors</span></div></td><td class="r num">1,180,420</td><td class="r num">21,640</td><td class="r k">–</td><td class="r"><span style="display:flex;flex-direction:column;gap:2px;align-items:flex-end"><span class="num" style="font-weight:600">$350.22</span><span class="k" style="text-align:right">SES $118.04 · Twilio $232.18</span></span></td><td><span style="white-space:normal">Cost + 15%, plus $300 a month</span></td><td class="r"><span class="num" style="font-weight:700">$702.75</span></td></tr><tr><td><div style="display:flex;gap:10px;align-items:center"><span class="wst" style="width:26px;height:26px;border-radius:7px;background:#1D4ED8;font-size:10px" aria-hidden="true">TT</span><span style="font-weight:600">Tailspin Toys</span></div></td><td class="r num">188,050</td><td class="r k">–</td><td class="r num">6,210</td><td class="r"><span style="display:flex;flex-direction:column;gap:2px;align-items:flex-end"><span class="num" style="font-weight:600">$18.81</span><span class="k" style="text-align:right">Amazon SES</span></span></td><td><span style="white-space:normal">$0.25 per 1,000 emails, plus $100 a month</span></td><td class="r"><span class="num" style="font-weight:700">$147.01</span></td></tr><tr><td><div style="display:flex;gap:10px;align-items:center"><span class="wst" style="width:26px;height:26px;border-radius:7px;background:#0F766E;font-size:10px" aria-hidden="true">AS</span><span style="font-weight:600">Alpine Ski House</span></div></td><td class="r num">51,200</td><td class="r num">3,980</td><td class="r k">–</td><td class="r"><span style="display:flex;flex-direction:column;gap:2px;align-items:flex-end"><span class="num" style="font-weight:600">$48.90</span><span class="k" style="text-align:right">SES $5.12 · Twilio $43.78</span></span></td><td><span style="white-space:normal">Cost + 20%, plus $100 a month</span></td><td class="r"><span class="num" style="font-weight:700">$158.68</span></td></tr><tr><td><div style="display:flex;gap:10px;align-items:center"><span class="wst" style="width:26px;height:26px;border-radius:7px;background:#9D174D;font-size:10px" aria-hidden="true">CW</span><span style="font-weight:600">Coho Winery</span></div></td><td class="r num">18,960</td><td class="r k">–</td><td class="r k">–</td><td class="r"><span style="display:flex;flex-direction:column;gap:2px;align-items:flex-end"><span class="num" style="font-weight:600">$15.00</span><span class="k" style="text-align:right">Postmark plan</span></span></td><td><span style="white-space:normal">$120 a month, flat</span></td><td class="r"><span class="num" style="font-weight:700">$120.00</span></td></tr><tr><td><div style="display:flex;gap:10px;align-items:center"><span class="wst" style="width:26px;height:26px;border-radius:7px;background:#5B21B6;font-size:10px" aria-hidden="true">LB</span><span style="font-weight:600">Litware Books</span></div></td><td class="r num">15,420</td><td class="r k">–</td><td class="r num">1,340</td><td class="r"><span style="display:flex;flex-direction:column;gap:2px;align-items:flex-end"><span class="num" style="font-weight:600">$35.00</span><span class="k" style="text-align:right">Mailgun plan, entered in Litware Books</span></span></td><td><span style="white-space:normal">Cost + 25%, plus $80 a month</span></td><td class="r"><span class="num" style="font-weight:700">$123.75</span></td></tr><tr><td><div style="display:flex;gap:10px;align-items:center"><span class="wst" style="width:26px;height:26px;border-radius:7px;background:#4B5563;font-size:10px" aria-hidden="true">WW</span><span style="font-weight:600">Wide World Importers</span></div></td><td class="r num">0</td><td class="r k">–</td><td class="r k">–</td><td class="r"><span style="display:flex;flex-direction:column;gap:2px;align-items:flex-end"><span class="num" style="font-weight:600">$0.00</span><span class="k" style="text-align:right">No provider yet</span></span></td><td><span class="badge mut">Not billed</span> <button class="btn sm" style="margin-left:6px">Set a rate</button></td><td class="r"><span class="k">–</span></td></tr><tr><td><div style="display:flex;gap:10px;align-items:center"><span class="wst" style="width:26px;height:26px;border-radius:7px;background:#0B1220;font-size:10px" aria-hidden="true">NS</span><span style="font-weight:600">Northwind Studio (agency)</span></div></td><td class="r num">3,390</td><td class="r k">–</td><td class="r k">–</td><td class="r"><span style="display:flex;flex-direction:column;gap:2px;align-items:flex-end"><span class="num" style="font-weight:600">$0.34</span><span class="k" style="text-align:right">Amazon SES</span></span></td><td><span class="badge mut">Not billed</span></td><td class="r"><span class="k">–</span></td></tr><tr style="background:#F9FAFB"><td><span style="font-weight:700">So far · 8 workspaces</span></td><td class="r"><b class="num">1,870,320</b></td><td class="r"><b class="num">25,620</b></td><td class="r"><b class="num">7,550</b></td><td class="r"><b class="num">$509.56</b></td><td></td><td class="r"><b class="num">$1,451.74</b></td></tr></tbody></table></div></section></section><section style="display:flex;flex-direction:column;gap:14px" aria-label="A provider without pricing"><div class="strip"><span class="dot" style="color:#1D4ED8"></span>A provider without pricing</div><div class="state-grid"><div class="note i" role="note"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#1D4ED8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M8 7.2v3.8M8 5v.1"></path></svg><div style="display:flex;flex-direction:column;gap:4px;min-width:0;flex:1 1 320px"><span style="font-weight:700">Litware Books · Mailgun</span><div>Mailgun's cost is the $35.00 monthly plan entered in Litware Books. Mailgun doesn't publish per-message prices through its API, so Litware's workspace keeps the plan price, and usage counts it once a month.<div style="margin-top:8px"><a href="SettingsProviders.dc.html" class="btn sm">Open Litware Books › Providers</a></div></div></div></div></div></section><section style="display:flex;flex-direction:column;gap:14px" aria-label="Read-only · staff without agency:usage"><div class="strip"><span class="dot" style="color:#6B7280"></span>Read-only · staff without agency:usage</div><div class="note n" role="note"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#4B5563" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M8 7.2v3.8M8 5v.1"></path></svg><div style="display:flex;flex-direction:column;gap:4px;min-width:0;flex:1 1 320px"><span style="font-weight:700">Read-only · without agency:usage</span><div>You can see what each client sent. Costs, rates and exports need <span class="mono">agency:usage</span>. Ask Tomás Herrera or Nadia Okafor.</div></div></div><section class="card"><div class="c8h"><div><h2 class="h2">September 2026</h2><span class="k">Volumes only</span></div></div><div style="overflow-x:auto"><table class="tbl " aria-label="Usage per client, September 2026"><thead><tr><th scope="col">Client</th><th scope="col" class="r">Emails</th><th scope="col" class="r">SMS segments</th><th scope="col" class="r">Push</th></tr></thead><tbody><tr><td><div style="display:flex;gap:10px;align-items:center"><span class="wst" style="width:26px;height:26px;border-radius:7px;background:#92400E;font-size:10px" aria-hidden="true">CC</span><a href="#" style="color:#0B1220;font-weight:600">Contoso Coffee</a></div></td><td class="r num">846,210</td><td class="r k">–</td><td class="r k">–</td></tr><tr><td><div style="display:flex;gap:10px;align-items:center"><span class="wst" style="width:26px;height:26px;border-radius:7px;background:#166534;font-size:10px" aria-hidden="true">FO</span><a href="#" style="color:#0B1220;font-weight:600">Fabrikam Outdoors</a></div></td><td class="r num">2,214,880</td><td class="r num">38,412</td><td class="r k">–</td></tr><tr><td><div style="display:flex;gap:10px;align-items:center"><span class="wst" style="width:26px;height:26px;border-radius:7px;background:#1D4ED8;font-size:10px" aria-hidden="true">TT</span><a href="#" style="color:#0B1220;font-weight:600">Tailspin Toys</a></div></td><td class="r num">402,118</td><td class="r k">–</td><td class="r num">12,040</td></tr><tr><td><div style="display:flex;gap:10px;align-items:center"><span class="wst" style="width:26px;height:26px;border-radius:7px;background:#0F766E;font-size:10px" aria-hidden="true">AS</span><a href="#" style="color:#0B1220;font-weight:600">Alpine Ski House</a></div></td><td class="r num">96,440</td><td class="r num">4,210</td><td class="r k">–</td></tr><tr><td><div style="display:flex;gap:10px;align-items:center"><span class="wst" style="width:26px;height:26px;border-radius:7px;background:#9D174D;font-size:10px" aria-hidden="true">CW</span><a href="#" style="color:#0B1220;font-weight:600">Coho Winery</a></div></td><td class="r num">41,320</td><td class="r k">–</td><td class="r k">–</td></tr><tr><td><div style="display:flex;gap:10px;align-items:center"><span class="wst" style="width:26px;height:26px;border-radius:7px;background:#5B21B6;font-size:10px" aria-hidden="true">LB</span><a href="#" style="color:#0B1220;font-weight:600">Litware Books</a></div></td><td class="r num">33,960</td><td class="r k">–</td><td class="r num">2,880</td></tr><tr><td><div style="display:flex;gap:10px;align-items:center"><span class="wst" style="width:26px;height:26px;border-radius:7px;background:#0B1220;font-size:10px" aria-hidden="true">NS</span><a href="#" style="color:#0B1220;font-weight:600">Northwind Studio (agency)</a></div></td><td class="r num">6,820</td><td class="r k">–</td><td class="r k">–</td></tr><tr style="background:#F9FAFB"><td><span style="font-weight:700">Total · 7 workspaces</span></td><td class="r"><b class="num">3,641,748</b></td><td class="r"><b class="num">42,622</b></td><td class="r"><b class="num">14,920</b></td></tr></tbody></table></div></section></section>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":3478}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

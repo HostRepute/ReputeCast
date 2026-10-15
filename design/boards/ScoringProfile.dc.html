@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Contact profile · Sam Rivera · score and address check</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F4F6;color:#0B1220;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;line-height:1.45}
+a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
+.mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace}
+.card{background:#FFFFFF;border:1px solid #E3E6EB;border-radius:10px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:36px;padding:0 14px;border-radius:8px;border:1px solid #D4D8DF;background:#FFFFFF;color:#0B1220;font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;box-sizing:border-box}
+.btn:hover{background:#F3F4F6;color:#0B1220}
+.btn.pri{background:#0F766E;border-color:#0F766E;color:#FFFFFF}.btn.pri:hover{background:#115E59;color:#FFFFFF}
+.btn.sm{min-height:30px;padding:0 10px;font-size:12px}
+.badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;flex:none}
+.ok{background:#DCFCE7;color:#166534}.warn{background:#FEF3C7;color:#92400E}.bad{background:#FEE2E2;color:#991B1B}.info{background:#DBEAFE;color:#1E40AF}.mut{background:#EEF0F3;color:#4B5563}.pur{background:#EDE9FE;color:#5B21B6}
+.t1{background:#104281;color:#fff}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;flex:none}
+.nav a{display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;border-radius:8px;color:#4B5563;font-weight:500}
+.nav a:hover{background:#EEF0F3;color:#0B1220}.nav a.on{background:#E3F1EE;color:#0F766E}
+.nav svg{width:16px;height:16px;flex:none}
+.k{font-size:12px;color:#5B6472;font-weight:500}
+.n{font-weight:600;font-variant-numeric:tabular-nums}
+.h2{margin:0;font-size:15px;font-weight:600}
+.kv{display:flex;justify-content:space-between;gap:12px;font-size:13px;padding:7px 0;border-bottom:1px solid #EEF0F3}
+.kv:last-child{border-bottom:0}
+.ev{display:flex;gap:12px;align-items:flex-start;padding:11px 18px;border-top:1px solid #EEF0F3;font-size:13px}
+.ic{width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.tag{display:inline-flex;align-items:center;height:24px;padding:0 8px;border-radius:6px;background:#F3F4F6;border:1px solid #E3E6EB;font-size:12px;font-weight:500}
+
+
+/* shell additions: workspace switcher, notification bell, user menu */
+.ws{display:flex;align-items:center;gap:8px;margin:2px 0 4px;padding:7px 10px;border:1px solid #E3E6EB;border-radius:8px;background:#fff;color:#0B1220;font:inherit;text-align:left;cursor:pointer;width:100%;box-sizing:border-box}
+.ws:hover{background:#F3F4F6}
+.ws .wsn{display:flex;flex-direction:column;line-height:1.25;min-width:0;flex:1}
+.ws .wsn b{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ws .wsn span{font-size:11px;color:#5B6472;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tools{display:flex;align-items:center;gap:8px;margin-left:8px}
+.ibtn{position:relative;display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:1px solid #D4D8DF;background:#fff;color:#0B1220;cursor:pointer;padding:0;flex:none}
+.ibtn:hover{background:#F3F4F6}
+.ibtn .cnt{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#B91C1C;color:#fff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box}
+.ubtn{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 10px 0 4px;border-radius:8px;border:1px solid #D4D8DF;background:#fff;color:#0B1220;font:inherit;font-size:13px;font-weight:600;cursor:pointer;flex:none}
+.ubtn:hover{background:#F3F4F6}
+.menu{position:absolute;z-index:40;background:#fff;border:1px solid #D4D8DF;border-radius:10px;box-shadow:0 12px 32px rgba(11,18,32,.16);padding:6px;min-width:260px;display:flex;flex-direction:column;gap:2px;box-sizing:border-box}
+.menu a,.menu button{display:flex;align-items:center;gap:10px;min-height:36px;padding:0 10px;border-radius:8px;color:#0B1220;font:inherit;font-size:13px;font-weight:500;background:none;border:0;text-align:left;cursor:pointer;width:100%;box-sizing:border-box;text-decoration:none}
+.menu a:hover,.menu button:hover{background:#F3F4F6;color:#0B1220}
+.menu hr{border:0;border-top:1px solid #EEF0F3;margin:4px 0;width:100%}
+.menu .mh{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472;padding:8px 10px 4px}
+@media (max-width:767px){.tools{margin-left:0}.menu{min-width:0;max-width:calc(100vw - 24px)}}
+
+/* responsive shell */
+@media (max-width:1100px){
+  .side{flex:0 0 72px!important;max-width:72px;padding:14px 8px!important;gap:4px!important}
+  .side .nl,.side .brand-t,.side .ws{display:none}
+  .side .nav a{justify-content:center;padding:0!important;height:44px}
+  .side .nav svg{width:20px;height:20px}
+  .side > a[aria-label="ReputeCast home"]{justify-content:center;padding:6px 0!important}
+  .side .sidefoot{align-items:center}
+  .side .sidefoot > *{display:none}
+  .side .sidefoot > a.btn{display:inline-flex;width:44px;height:44px;padding:0!important;justify-content:center!important;font-size:0;gap:0}
+  .side .sidefoot > a.btn svg{width:18px;height:18px}
+  .top{padding:12px 16px!important}
+  .content{padding:16px!important}
+}
+@media (max-width:767px){
+  .app{flex-direction:column}
+  .side{flex:none!important;max-width:none!important;width:auto!important;position:fixed;left:0;right:0;bottom:0;z-index:50;flex-direction:row!important;align-items:center;padding:6px 6px!important;border-right:0!important;border-top:1px solid #E3E6EB;background:#fff!important;box-sizing:border-box;gap:0!important}
+  .side > a[aria-label="ReputeCast home"],.side .ws,.side .sidefoot{display:none!important}
+  .side .nav{flex-direction:row!important;flex:1;justify-content:space-around;margin-top:0!important;gap:0!important}
+  .side .nav a{height:44px;width:44px;flex:none;padding:0!important;justify-content:center;border-radius:10px}
+  .side .nl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;display:block}
+  .side .nav a.on{background:#E3F1EE;color:#0F766E}
+  .mainc{padding-bottom:72px}
+  .top{padding:12px 12px!important;gap:8px!important}
+  .top h1{font-size:16px!important}
+  .top .in{width:100%!important}
+  .tabs{flex-wrap:nowrap!important;overflow-x:auto;max-width:100%;margin-left:0!important;padding-bottom:2px}
+  .tabs a{flex:none}
+  .content{padding:12px!important;gap:12px!important}
+  .cpanel{max-width:none!important;flex:1 1 100%!important}
+}
+@media (min-width:768px) and (max-width:1100px){
+  .cpanel{max-width:none!important}
+}
+
+/* responsive phone fixes */
+@media (max-width:767px){
+  .app{flex-wrap:nowrap!important}
+  .mainc{width:100%;max-width:100%}
+  .content > *{min-width:0;max-width:100%}
+  .content .in,.content select,.content input,.content textarea{max-width:100%;min-width:0}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+  .sc-host [style*="flex: 1 1"]{min-width:0}
+  .sc-host select.in,.sc-host input.in{width:0;min-width:100%}
+  .sc-host .mono{overflow-wrap:anywhere}
+  .sc-host .sk{max-width:100%}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px;max-width:100%}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host .tabs .badge{white-space:nowrap}
+  .sc-host .side .btn{white-space:nowrap}
+  .sc-host [style*="grid-template-columns: repeat("]{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))!important}
+  .sc-host [style*="minmax(260px"],.sc-host [style*="minmax(280px"],.sc-host [style*="minmax(300px"],.sc-host [style*="minmax(320px"],.sc-host [style*="minmax(340px"],.sc-host [style*="minmax(360px"],.sc-host [style*="minmax(380px"],.sc-host [style*="minmax(420px"]{grid-template-columns:1fr!important}
+  .sc-host [style*="radial-gradient"]{overflow:auto}
+  .sc-host [style*="display: grid"] > *{min-width:0}
+  .sc-host header > div{max-width:100%;min-width:0}
+  .sc-host pre,.sc-host .lines{max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]) > div[style*="flex: 1"]{min-width:120px}
+}
+
+/* accessibility */
+:focus-visible{outline:2px solid #0F766E;outline-offset:2px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-9999px;top:8px;z-index:100;background:#fff;color:#0B1220;padding:8px 12px;border-radius:8px;border:1px solid #0F766E;font-weight:600;text-decoration:none}
+.skip:focus{left:8px}
+p a:not(.btn),span a:not(.btn):not([style*="color"]),td a:not(.btn):not([style*="color"]),li a:not(.btn),label a,.k a,.lead a{text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+.content > * a:not(.btn):not(p a):not(span a):not(td a):not(li a):not(label a):not(.k a),.top a:not(.btn),nav a:not(.btn),footer a:not(.btn){min-height:24px;display:inline-flex;align-items:center}
+input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F766E}
+.in,select.in,textarea.in,input.in{border-color:#8B94A3}
+@media (max-width:767px){
+  .sc-host{overflow-wrap:anywhere}
+  .sc-host table,.sc-host td,.sc-host th{overflow-wrap:normal}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+}
+
+/* nav: phones show four sections plus More */
+.side .nav a.more{display:none}
+@media (max-width:767px){.side .nav a.xm{display:none!important}.side .nav a.more{display:flex}.side .nav a.more.on{background:#E3F1EE;color:#0F766E}}
+/* shell: the icon rail keeps only the import button (the footer's inline display:flex beat the rail rule) */
+@media (max-width:1100px){.side .sidefoot > :not(.btn){display:none!important}}
+/* shell: avatar initials sit in the middle */
+.av{display:inline-flex;align-items:center;justify-content:center;flex:none}
+.ubtn .av{border-radius:50%;font-weight:700}
+.ws .av{font-weight:700}
+/* switches: a disabled switch looks disabled */
+.tg:disabled,.tgx:disabled{opacity:.45;cursor:not-allowed}
+
+/* phase 4a · scoring and verification */
+.t1{background:#104281;color:#fff}.t2{background:#256abf;color:#fff}.t3{background:#5598e7;color:#0B1220}.t4{background:#86b6ef;color:#0B1220}
+.sw{width:10px;height:10px;border-radius:3px;display:inline-block;flex:none}
+.band{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;font-weight:600}
+.scv{display:inline-flex;align-items:center;gap:10px;white-space:nowrap}
+.scv b{font-weight:700;font-variant-numeric:tabular-nums;min-width:22px;text-align:right}
+.btile{padding:14px 18px;display:flex;flex-direction:column;gap:2px;min-width:0;box-sizing:border-box}
+.btile .v{font-size:22px;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums;line-height:1.25;margin-top:2px}
+.btile .hd{display:flex;align-items:center;gap:8px}
+.v-tab,.v-phone{display:none}
+@media (max-width:1100px){.v-desk{display:none!important}.v-tab{display:block}}
+@media (max-width:767px){.v-tab{display:none!important}.v-phone{display:block}}
+.pts{display:inline-flex;align-items:center;justify-content:center;min-width:42px;height:24px;padding:0 7px;border-radius:6px;background:#F3F4F6;border:1px solid #E3E6EB;font-weight:700;font-size:12.5px;font-variant-numeric:tabular-nums;box-sizing:border-box;color:#0B1220}
+.smeter{display:flex;flex-direction:column;gap:5px;min-width:0;position:relative}
+.smeter .trk{position:relative;height:8px;display:flex;gap:2px}
+.smeter .trk i{display:block;height:100%}
+.smeter .trk i:first-child{border-radius:4px 0 0 4px}.smeter .trk i:last-of-type{border-radius:0 4px 4px 0}
+.smeter .mkr{position:absolute;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:#0B1220;box-shadow:0 0 0 2px #fff;box-sizing:border-box}
+.smeter .tks{position:relative;height:15px;font-size:11px;color:#5B6472;font-variant-numeric:tabular-nums;line-height:15px}
+.smeter .tks span{position:absolute;top:0;transform:translateX(-50%);white-space:nowrap;overflow-wrap:normal}
+.smeter .tks span.s0{transform:none}.smeter .tks span.s100{transform:translateX(-100%)}
+.sbig{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.sbig .n{font-size:30px;font-weight:700;letter-spacing:-.02em;line-height:1.1;font-variant-numeric:tabular-nums}
+.sbig .b{font-size:16px;font-weight:600;display:inline-flex;align-items:center;gap:7px}
+.brk{display:flex;flex-direction:column}
+.brk .r{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;padding:9px 0;border-top:1px solid #EEF0F3;font-size:13px}
+.brk .r:first-child{border-top:0}
+.brk .r .l{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.brk .r.tot{border-top:1px solid #D4D8DF;font-weight:700}
+.cap-hit{display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:999px;background:#EEF0F3;color:#374151;font-size:11px;font-weight:600;white-space:nowrap}
+.chart-card .cfoot{display:flex;gap:12px 18px;align-items:flex-end;flex-wrap:wrap;padding:14px 18px;border-top:1px solid #EEF0F3}
+.thr{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:#4B5563}
+.thr{width:96px}
+.thr .in{width:100%}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:#4B5563;align-items:center}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.movechip{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:8px;border:1px solid #E3E6EB;background:#fff;font-size:12.5px;font-weight:600;white-space:nowrap}
+.arrowr{color:#5B6472;font-weight:500}
+.panel{background:#fff;border:1px solid #E3E6EB;border-radius:10px;box-shadow:-12px 0 32px rgba(11,18,32,.10);display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.panel .ph{display:flex;align-items:flex-start;gap:12px;padding:16px 18px 12px;border-bottom:1px solid #EEF0F3}
+.panel .pb{padding:16px 18px;display:flex;flex-direction:column;gap:16px}
+.panel .pf{padding:12px 18px 16px;display:flex;gap:8px;justify-content:flex-end;border-top:1px solid #EEF0F3;flex-wrap:wrap;align-items:center}
+.panel h3{margin:0;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472}
+.opt{display:flex;gap:10px;align-items:flex-start;padding:9px 11px;border:1px solid #E3E6EB;border-radius:8px;font-size:13px;cursor:pointer;background:#fff}
+.opt.on{border-color:#0F766E;background:#F0FDFA;box-shadow:inset 0 0 0 1px #0F766E}
+.opt input{margin-top:2px;flex:none}
+.opt .t{display:flex;flex-direction:column;gap:1px;min-width:0}
+.ferr{font-size:12px;color:#991B1B;font-weight:600;display:flex;gap:6px;align-items:flex-start}
+.in.bad{border-color:#B91C1C!important;box-shadow:0 0 0 1px #B91C1C}
+input[type=checkbox].tg:disabled{opacity:.5;cursor:not-allowed}
+.dk{display:grid;grid-template-columns:max-content max-content 1fr;gap:10px 10px;align-items:center;font-size:13px}
+.savebar{display:flex;align-items:center;gap:12px;padding:12px 18px;flex-wrap:wrap;box-shadow:0 8px 24px rgba(11,18,32,.12)}
+.mrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tray{border:1px solid #E3E6EB;border-radius:10px;background:#fff;padding:12px 14px;display:flex;flex-direction:column;gap:10px;font-size:13px;box-shadow:0 12px 30px rgba(11,18,32,.12)}
+.bar i{background:#0F766E}
+.rbar{display:flex;height:12px;gap:2px;border-radius:6px;overflow:hidden}
+.rbar span{display:block;height:100%}
+.rleg{display:flex;gap:8px 18px;flex-wrap:wrap;font-size:13px}
+.rleg span{display:inline-flex;align-items:center;gap:7px}
+.rleg b{font-variant-numeric:tabular-nums}
+.tagm{display:inline-flex;align-items:center;height:22px;padding:0 7px;border-radius:6px;background:#EEF0F3;color:#374151;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;white-space:nowrap}
+.onote{display:flex;flex-direction:column;gap:8px}
+.onote .ol2{display:grid;grid-template-columns:max-content 1fr;gap:4px 14px;font-size:13px;margin:0}
+.onote .ol2 dt{font-weight:700;margin:0}.onote .ol2 dd{margin:0}
+.costl{display:flex;flex-direction:column;gap:3px;padding:12px 14px;border:1px solid #E3E6EB;border-radius:8px;background:#FBFBFC}
+.costl .big{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums}
+.res-map{display:flex;flex-direction:column}
+.res-map .rr{display:flex;gap:12px;align-items:flex-start;padding:9px 0;border-top:1px solid #EEF0F3;font-size:13px}
+.res-map .rr:first-child{border-top:0;padding-top:2px}
+.res-map .rr > .badge{min-width:70px;justify-content:center;margin-top:1px}
+.statusl{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.mini{font-size:12px}
+.skel-row{display:flex;gap:14px;align-items:center;padding:10px 0;border-top:1px solid #EEF0F3}
+.flow{display:flex;flex-direction:column;align-items:center;gap:0}
+.fnode{width:100%;max-width:300px;box-sizing:border-box;background:#fff;border:1px solid #D4D8DF;border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:3px;font-size:13px}
+.fnode .kind{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;display:flex;align-items:center;gap:6px}
+.fnode.sel{border-color:#0F766E;box-shadow:0 0 0 1px #0F766E}
+.fconn{width:2px;height:18px;background:#C9CED6}
+.pal{display:flex;flex-direction:column;gap:6px}
+.pal .it{display:flex;align-items:center;gap:8px;height:34px;padding:0 10px;border:1px solid #E3E6EB;border-radius:8px;background:#fff;font-size:13px;font-weight:500}
+.pal .it.new{border-color:#0F766E;background:#F0FDFA}
+.cond{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px;border:1px solid #E3E6EB;border-radius:8px;background:#fff}
+.cond .in{height:34px}
+.grp{border:1px solid #E3E6EB;border-radius:10px;background:#F9FAFB;padding:12px;display:flex;flex-direction:column;gap:8px}
+.pick{position:absolute;z-index:30;background:#fff;border:1px solid #D4D8DF;border-radius:10px;box-shadow:0 12px 32px rgba(11,18,32,.16);padding:6px;min-width:250px;display:flex;flex-direction:column;gap:1px;box-sizing:border-box}
+.pick .mh{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472;padding:8px 10px 4px}
+.pick .pi{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:32px;padding:0 10px;border-radius:7px;font-size:13px;font-weight:500;color:#0B1220}
+.pick .pi.on{background:#F0FDFA;color:#0F766E;font-weight:600}
+.newb{display:inline-flex;align-items:center;height:18px;padding:0 6px;border-radius:999px;background:#DBEAFE;color:#1E40AF;font-size:10.5px;font-weight:700}
+/* integrations catalog card, as phase 2 draws it */
+.cap{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 7px;border-radius:5px;font-size:11px;font-weight:600;border:1px solid #E3E6EB;background:#F9FAFB;color:#374151;white-space:nowrap}
+.caps{display:flex;gap:5px;flex-wrap:wrap}
+.itile{width:40px;height:40px;border-radius:10px;background:#F3F4F6;border:1px solid #E3E6EB;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#374151;flex:none;box-sizing:border-box;letter-spacing:-.01em}
+.itile.lg{width:52px;height:52px;border-radius:12px;font-size:17px}
+.itile.sm{width:30px;height:30px;border-radius:8px;font-size:11px}
+.icard{display:flex;flex-direction:column;gap:12px;padding:16px 16px 14px;min-width:0;box-sizing:border-box}
+.icard .ih{display:flex;gap:12px;align-items:flex-start}
+.icard .nm{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1}
+.icard h3{margin:0;font-size:15px;font-weight:600;line-height:1.3}
+.icard .ds{margin:0;color:#374151;font-size:13px;line-height:1.45}
+.icard .ft{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:8px 10px;padding-top:12px;border-top:1px solid #EEF0F3;flex-wrap:wrap}
+.icard .ft .k{flex:1 1 160px;min-width:0}
+.icard.sel{border-color:#0F766E;box-shadow:0 0 0 1px #0F766E}
+.igrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(330px,100%),1fr));gap:16px;align-items:stretch}
+.dz{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:16px 18px;border-color:#FCA5A5}
+@media (max-width:1100px){.side .sidefoot > *:not(.btn){display:none!important}}
+@media (max-width:767px){
+  .igrid{grid-template-columns:1fr!important}
+  .sc-host .panel{box-shadow:none}
+  .sc-host .smeter .tks span{white-space:nowrap}
+}
+
+/* phase 4a additions for this board */
+.note{display:flex;gap:8px 10px;align-items:flex-start;flex-wrap:wrap;padding:12px 14px;border-radius:8px;font-size:13px;line-height:1.45}
+.note > :last-child{flex:1 1 320px;min-width:0}
+.note.i{background:#EFF6FF;border:1px solid #BFDBFE;color:#1E3A8A}
+.note.n{background:#F3F4F6;border:1px solid #E3E6EB;color:#374151}
+.only-phone{display:none}
+.addr{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px;font-size:13px}
+.lc{display:flex;flex-direction:column;gap:6px;min-width:0}
+.scg{display:grid;gap:20px 32px;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-areas:"now chart brk";align-items:start}
+.scg > .a{grid-area:now}.scg > .b{grid-area:chart}.scg > .c{grid-area:brk}
+@media (max-width:1100px){.scg{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-areas:"now brk" "chart chart"}}
+@media (max-width:767px){.scg{grid-template-columns:minmax(0,1fr);grid-template-areas:"now" "chart" "brk"}}
+@media (max-width:767px){.sc-host .no-phone{display:none!important}.sc-host .only-phone{display:flex!important;flex-direction:column}.sc-host [style*="minmax(min("]{grid-template-columns:1fr!important}}
+</style>
+</helmet>
+<h1 class="vh">Contact profile</h1>
+<div class="app" style="display:flex;flex-wrap:wrap;align-items:stretch;min-height:100vh">
+  <a href="#main" class="skip">Skip to content</a>
+  <aside class="side" style="flex:1 1 232px;background:#FBFBFC;border-right:1px solid #E3E6EB;display:flex;flex-direction:column;padding:16px 12px;gap:6px;box-sizing:border-box">
+    <a href="Main.dc.html" style="display:flex;align-items:center;gap:10px;padding:6px 8px;color:#0B1220" aria-label="ReputeCast home">
+      <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+      <span class="brand-t" style="font-weight:700;font-size:15px;letter-spacing:-.01em">ReputeCast</span>
+    </a>
+    <button class="ws" type="button" aria-haspopup="menu" aria-label="Switch workspace. Current: Acme Newsletter, your role Owner"><span class="av" style="width:24px;height:24px;font-size:10px;background:#0F766E;color:#fff;border-radius:6px" aria-hidden="true">AN</span><span class="wsn"><b>Acme Newsletter</b><span>Owner</span></span><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button>
+    <nav class="nav" style="display:flex;flex-direction:column;gap:2px;margin-top:8px" aria-label="Main">
+      <a href="Main.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z"></path></svg><span class="nl">Overview</span></a>
+      <a href="Campaigns.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M14 2 2 7l5 2 2 5zM7 9l7-7" stroke-linejoin="round"></path></svg><span class="nl">Campaigns</span></a>
+      <a href="AutomationsList.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="4" cy="3" r="2"></circle><circle cx="4" cy="13" r="2"></circle><circle cx="12" cy="8" r="2"></circle><path d="M4 5v6M6 8h4"></path></svg><span class="nl">Automations</span></a>
+      <a href="Transactional.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="1.5"></rect><path d="m2 4.5 6 4.5 6-4.5"></path></svg><span class="nl">Transactional</span></a>
+      <a href="Contacts.dc.html" class="on" aria-current="page"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="6" cy="5" r="2.5"></circle><path d="M1.5 14a4.5 4.5 0 0 1 9 0M11 3a2.5 2.5 0 0 1 0 5M14.5 14a4 4 0 0 0-3-3.8"></path></svg><span class="nl">Audience</span></a>
+      <a href="GrowOverview.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 12.5 6 8.5l3 3 5-5.5"></path><path d="M10.5 5.5H14V9"></path></svg><span class="nl">Grow</span></a>
+      <a href="EarnOverview.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M10 5.9H7.1a1.3 1.3 0 0 0 0 2.6h1.8a1.3 1.3 0 0 1 0 2.6H6M8 4.4v1.5M8 11.1v1.5"></path></svg><span class="nl">Earn</span></a>
+      <a href="FormBuilder.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="2"></rect><path d="M5 6h6M5 9h6M5 12h3"></path></svg><span class="nl">Forms &amp; pages</span></a>
+      <a href="Deliverability.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 1.5 13.5 3.5v4.5c0 3-2.3 5.3-5.5 6.5C4.8 13.3 2.5 11 2.5 8V3.5z" stroke-linejoin="round"></path><path d="m5.5 8 1.8 1.8L10.8 6"></path></svg><span class="nl">Deliverability</span></a>
+      <a href="Providers.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="5" rx="1.5"></rect><rect x="2" y="9" width="12" height="5" rx="1.5"></rect><path d="M5 4.5h.01M5 11.5h.01" stroke-width="2" stroke-linecap="round"></path></svg><span class="nl">Sending providers</span></a>
+      <a href="WorkspaceSettings.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 4h7M13 4h1M2 8h2M8 8h6M2 12h7M13 12h1"></path><circle cx="11" cy="4" r="1.8"></circle><circle cx="6" cy="8" r="1.8"></circle><circle cx="11" cy="12" r="1.8"></circle></svg><span class="nl">Settings</span></a>
+      <a href="ShellMore.dc.html" class="more" aria-label="More: Automations, Transactional, Grow, Earn, Forms & pages, Sending providers, Settings"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="3.5" cy="8" r="1.2"></circle><circle cx="8" cy="8" r="1.2"></circle><circle cx="12.5" cy="8" r="1.2"></circle></svg><span class="nl">More</span></a>
+    </nav>
+  </aside>
+
+  <div class="mainc" style="flex:999 1 560px;min-width:0;display:flex;flex-direction:column">
+    <header class="top" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 28px;background:#fff;border-bottom:1px solid #E3E6EB">
+      <nav aria-label="Breadcrumb" style="display:flex;align-items:center;gap:8px;font-size:13px"><a href="Contacts.dc.html" style="color:#5B6472">Audience</a><span class="k">/</span><a href="Contacts.dc.html" style="color:#5B6472">Contacts</a><span class="k">/</span><span style="font-weight:600">Sam Rivera</span></nav>
+      <div style="margin-left:auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <button class="btn">Resend opt-in</button>
+        <button class="btn">Export data (GDPR)</button>
+        <button class="btn" style="color:#991B1B;border-color:#FCA5A5">Suppress</button>
+      <div class="tools"><a href="Notifications.dc.html" class="ibtn" aria-label="Notifications, 3 unread"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 11V7a4 4 0 0 1 8 0v4l1.5 1.5h-11zM6.5 14a1.5 1.5 0 0 0 3 0"></path></svg><span class="cnt" aria-hidden="true">3</span></a><button class="ubtn" type="button" aria-haspopup="menu" aria-label="Account menu for Linh Nguyen"><span class="av" style="width:26px;height:26px;font-size:11px;background:#DBEAFE;color:#1E40AF" aria-hidden="true">LN</span><span class="unm">Linh</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button></div></div>
+    </header>
+
+    <main class="content" id="main" style="padding:24px 28px;display:flex;flex-direction:column;gap:20px">
+      <section class="card" style="padding:20px 22px;display:flex;gap:18px;align-items:center;flex-wrap:wrap">
+        <span style="width:52px;height:52px;border-radius:50%;background:#DBEAFE;color:#1E40AF;font-size:18px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">SR</span>
+        <div style="display:flex;flex-direction:column;gap:2px;flex:1 1 260px">
+          <span style="font-size:20px;font-weight:700;letter-spacing:-.01em">Sam Rivera</span>
+          <span class="mono" style="font-size:13px;color:#4B5563">sam.rivera@outlook.com</span>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px"><span class="badge t1">Active</span><span class="badge ok">Double opt-in</span><span class="badge mut"><span class="dot" style="color:#eb6834"></span>Outlook</span><span class="badge mut">Joined 18 Sep 2026 · Brevo import</span></div><div class="addr"><span class="k">Address check</span><span style="color:#374151">Never checked</span><button class="btn sm" aria-describedby="vf-cost">Verify now</button><span class="k" id="vf-cost">ZeroBounce · 1 credit · $0.008</span></div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px">
+          <div><div class="k">Emails · 90 d</div><div class="n" style="font-size:18px">14</div></div>
+          <div><div class="k">Human opens</div><div class="n" style="font-size:18px">11 · 79%</div></div>
+          <div><div class="k">Clicks</div><div class="n" style="font-size:18px">4</div></div>
+          <div><div class="k">Last open</div><div class="n" style="font-size:18px">Tue 7 Oct</div></div>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="score-h" style="padding:16px 18px;display:flex;flex-direction:column;gap:16px"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px 16px;flex-wrap:wrap"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><h2 class="h2" id="score-h">Score</h2><span class="k">From the scoring rules · human opens and real clicks only</span></div><a href="ScoringRules.dc.html" class="btn sm">Scoring rules</a></div><div class="scg"><div class="lc a" style="gap:12px"><div style="display:flex;gap:6px 16px;align-items:flex-end;flex-wrap:wrap"><div class="sbig"><span class="n">52</span><span class="b">·&nbsp;<span class="sw" style="background:#a43068;width:12px;height:12px" aria-hidden="true"></span>Hot</span></div><span class="k" style="padding-bottom:4px">Hot since Thu 9 Oct</span></div><div class="smeter" role="img" aria-label="Score 52 of 100, Hot. Warm from 20, Hot from 50."><div class="trk"><i style="flex:20;background:#ec8eb1"></i><i style="flex:30;background:#d9588e"></i><i style="flex:50;background:#a43068"></i><span class="mkr" style="left:52%"></span></div><div class="tks" aria-hidden="true"><span class="s0" style="left:0">0</span><span style="left:20%">20</span><span style="left:50%">50</span><span class="s100" style="left:100%">100</span></div></div><div style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid #E3E6EB;border-radius:8px;font-size:13px"><span class="pts">+5</span><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><span><b>Last change</b> on Thu 9 Oct</span><span class="k">Clicked “Read the docs” in October Product Update · 47 → 52, Warm to Hot</span></div></div><div style="display:flex;flex-direction:column;gap:6px;font-size:13px"><span style="font-size:12px;font-weight:600;color:#4B5563">Where it counts</span><div style="display:flex;flex-direction:column;gap:1px"><a href="SegmentBuilder.dc.html" style="align-self:flex-start">Hot on paid plans</a><span class="k">Segment · Sam is in it</span></div><div style="display:flex;flex-direction:column;gap:1px"><a href="AutomationFlow.dc.html" style="align-self:flex-start">Sales-ready handoff</a><span class="k">Automation · not entered: he crossed 50 on 9 Oct, before it went live on 14 Oct</span></div></div></div><div class="lc b"><span style="font-size:12px;font-weight:600;color:#4B5563">Last 90 days</span><div class="v-desk"><svg width="100%" viewBox="0 0 360 280" role="img" aria-label="Score over the last 90 days: none before he joined on 18 Sep, 12 on 19 Sep, Warm from 25 Sep, Hot from 9 Oct at 52, unchanged since." style="display:block;max-width:100%"><line x1="34" x2="306" y1="258.0" y2="258.0" stroke="#C9CED6" stroke-width="1"></line><text x="28" y="262.0" text-anchor="end" font-size="11" fill="#5B6472" font-family="IBM Plex Sans,system-ui,sans-serif">0</text><line x1="34" x2="306" y1="208.4" y2="208.4" stroke="#EEF0F3" stroke-width="1"></line><text x="28" y="212.4" text-anchor="end" font-size="11" fill="#5B6472" font-family="IBM Plex Sans,system-ui,sans-serif">20</text><line x1="34" x2="306" y1="134.0" y2="134.0" stroke="#EEF0F3" stroke-width="1"></line><text x="28" y="138.0" text-anchor="end" font-size="11" fill="#5B6472" font-family="IBM Plex Sans,system-ui,sans-serif">50</text><line x1="34" x2="306" y1="10.0" y2="10.0" stroke="#EEF0F3" stroke-width="1"></line><text x="28" y="14.0" text-anchor="end" font-size="11" fill="#5B6472" font-family="IBM Plex Sans,system-ui,sans-serif">100</text><rect x="312" y="199.4" width="7" height="7" rx="2" fill="#d9588e"></rect><text x="322" y="205.4" font-size="11" fill="#374151" font-weight="600" font-family="IBM Plex Sans,system-ui,sans-serif">Warm</text><rect x="312" y="125.0" width="7" height="7" rx="2" fill="#a43068"></rect><text x="322" y="131.0" font-size="11" fill="#374151" font-weight="600" font-family="IBM Plex Sans,system-ui,sans-serif">Hot</text><text x="127.7" y="183.6" text-anchor="middle" font-size="11" fill="#5B6472" font-family="IBM Plex Sans,system-ui,sans-serif">Not a contact yet</text><line x1="221.4" x2="221.4" y1="10" y2="258.0" stroke="#C9CED6" stroke-width="1"></line><path d="M224.4,258.0 H227.4 V228.2 H233.5 V223.3 H239.5 V218.3 H245.6 V201.0 H254.6 V196.0 H260.7 V178.6 H266.7 V173.7 H269.7 V168.7 H275.8 V163.8 H278.8 V158.8 H281.8 V141.4 H287.9 V129.0 H306.0 V129.0" fill="none" stroke="#0F766E" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></path><circle cx="306.0" cy="129.0" r="5" fill="#0F766E" stroke="#fff" stroke-width="2"></circle><text x="298.0" y="121.0" text-anchor="end" font-size="12" font-weight="700" fill="#0B1220" font-family="IBM Plex Sans,system-ui,sans-serif">52</text><text x="34.0" y="275" text-anchor="start" font-size="11" fill="#5B6472" font-family="IBM Plex Sans,system-ui,sans-serif">17 Jul</text><text x="221.4" y="275" text-anchor="middle" font-size="11" fill="#5B6472" font-family="IBM Plex Sans,system-ui,sans-serif">18 Sep · joined</text><text x="306.0" y="275" text-anchor="end" font-size="11" fill="#5B6472" font-family="IBM Plex Sans,system-ui,sans-serif">15 Oct</text></svg></div><div class="v-tab"><svg width="100%" viewBox="0 0 700 190" role="img" aria-label="Score over the last 90 days: none before he joined on 18 Sep, 12 on 19 Sep, Warm from 25 Sep, Hot from 9 Oct at 52, unchanged since." style="display:block;max-width:100%"><line x1="34" x2="646" y1="168.0" y2="168.0" stroke="#C9CED6" stroke-width="1"></line><text x="28" y="172.0" text-anchor="end" font-size="11" fill="#5B6472" font-family="IBM Plex Sans,system-ui,sans-serif">0</text><line x1="34" x2="646" y1="136.4" y2="136.4" stroke="#EEF0F3" stroke-width="1"></line><text x="28" y="140.4" text-anchor="end" font-size="11" fill="#5B6472" font-family="IBM Plex Sans,system-ui,sans-serif">20</text><line x1="34" x2="646" y1="89.0" y2="89.0" stroke="#EEF0F3" stroke-width="1"></line><text x="28" y="93.0" text-anchor="end" font-size="11" fill="#5B6472" font-family="IBM Plex Sans,system-ui,sans-serif">50</text><line x1="34" x2="646" y1="10.0" y2="10.0" stroke="#EEF0F3" stroke-width="1"></line><text x="28" y="14.0" text-anchor="end" font-size="11" fill="#5B6472" font-family="IBM Plex Sans,system-ui,sans-serif">100</text><rect x="652" y="127.4" width="7" height="7" rx="2" fill="#d9588e"></rect><text x="662" y="133.4" font-size="11" fill="#374151" font-weight="600" font-family="IBM Plex Sans,system-ui,sans-serif">Warm</text><rect x="652" y="80.0" width="7" height="7" rx="2" fill="#a43068"></rect><text x="662" y="86.0" font-size="11" fill="#374151" font-weight="600" font-family="IBM Plex Sans,system-ui,sans-serif">Hot</text><text x="244.8" y="120.6" text-anchor="middle" font-size="11" fill="#5B6472" font-family="IBM Plex Sans,system-ui,sans-serif">Not a contact yet</text><line x1="455.6" x2="455.6" y1="10" y2="168.0" stroke="#C9CED6" stroke-width="1"></line><path d="M462.4,168.0 H469.2 V149.0 H482.8 V145.9 H496.4 V142.7 H510.0 V131.7 H530.4 V128.5 H544.0 V117.4 H557.6 V114.3 H564.4 V111.1 H578.0 V108.0 H584.8 V104.8 H591.6 V93.7 H605.2 V85.8 H646.0 V85.8" fill="none" stroke="#0F766E" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></path><circle cx="646.0" cy="85.8" r="5" fill="#0F766E" stroke="#fff" stroke-width="2"></circle><text x="638.0" y="77.8" text-anchor="end" font-size="12" font-weight="700" fill="#0B1220" font-family="IBM Plex Sans,system-ui,sans-serif">52</text><text x="34.0" y="185" text-anchor="start" font-size="11" fill="#5B6472" font-family="IBM Plex Sans,system-ui,sans-serif">17 Jul</text><text x="455.6" y="185" text-anchor="middle" font-size="11" fill="#5B6472" font-family="IBM Plex Sans,system-ui,sans-serif">18 Sep · joined</text><text x="646.0" y="185" text-anchor="end" font-size="11" fill="#5B6472" font-family="IBM Plex Sans,system-ui,sans-serif">15 Oct</text></svg></div><div class="v-phone"><svg width="100%" viewBox="0 0 330 160" role="img" aria-label="Score over the last 90 days: none before 18 Sep, Warm from 25 Sep, Hot from 9 Oct at 52." style="display:block;max-width:100%"><line x1="34" x2="276" y1="138.0" y2="138.0" stroke="#C9CED6" stroke-width="1"></line><text x="28" y="142.0" text-anchor="end" font-size="11" fill="#5B6472" font-family="IBM Plex Sans,system-ui,sans-serif">0</text><line x1="34" x2="276" y1="112.4" y2="112.4" stroke="#EEF0F3" stroke-width="1"></line><text x="28" y="116.4" text-anchor="end" font-size="11" fill="#5B6472" font-family="IBM Plex Sans,system-ui,sans-serif">20</text><line x1="34" x2="276" y1="74.0" y2="74.0" stroke="#EEF0F3" stroke-width="1"></line><text x="28" y="78.0" text-anchor="end" font-size="11" fill="#5B6472" font-family="IBM Plex Sans,system-ui,sans-serif">50</text><line x1="34" x2="276" y1="10.0" y2="10.0" stroke="#EEF0F3" stroke-width="1"></line><text x="28" y="14.0" text-anchor="end" font-size="11" fill="#5B6472" font-family="IBM Plex Sans,system-ui,sans-serif">100</text><rect x="282" y="103.4" width="7" height="7" rx="2" fill="#d9588e"></rect><text x="292" y="109.4" font-size="11" fill="#374151" font-weight="600" font-family="IBM Plex Sans,system-ui,sans-serif">Warm</text><rect x="282" y="65.0" width="7" height="7" rx="2" fill="#a43068"></rect><text x="292" y="71.0" font-size="11" fill="#374151" font-weight="600" font-family="IBM Plex Sans,system-ui,sans-serif">Hot</text><text x="117.4" y="99.6" text-anchor="middle" font-size="11" fill="#5B6472" font-family="IBM Plex Sans,system-ui,sans-serif">Not a contact yet</text><line x1="200.7" x2="200.7" y1="10" y2="138.0" stroke="#C9CED6" stroke-width="1"></line><path d="M203.4,138.0 H206.1 V122.6 H211.5 V120.1 H216.8 V117.5 H222.2 V108.6 H230.3 V106.0 H235.7 V97.0 H241.0 V94.5 H243.7 V91.9 H249.1 V89.4 H251.8 V86.8 H254.5 V77.8 H259.9 V71.4 H276.0 V71.4" fill="none" stroke="#0F766E" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></path><circle cx="276.0" cy="71.4" r="5" fill="#0F766E" stroke="#fff" stroke-width="2"></circle><text x="268.0" y="63.4" text-anchor="end" font-size="12" font-weight="700" fill="#0B1220" font-family="IBM Plex Sans,system-ui,sans-serif">52</text><text x="34.0" y="155" text-anchor="start" font-size="11" fill="#5B6472" font-family="IBM Plex Sans,system-ui,sans-serif">17 Jul</text><text x="200.7" y="155" text-anchor="middle" font-size="11" fill="#5B6472" font-family="IBM Plex Sans,system-ui,sans-serif">18 Sep · joined</text><text x="276.0" y="155" text-anchor="end" font-size="11" fill="#5B6472" font-family="IBM Plex Sans,system-ui,sans-serif">15 Oct</text></svg></div></div><div class="lc c"><span style="font-size:12px;font-weight:600;color:#4B5563">Breakdown by rule</span><div class="brk"><div class="r"><div class="l"><span>Human open of any email</span><span class="k">11 opens since he joined on 18 Sep</span></div><span class="pts">+22</span></div><div class="r"><div class="l"><span>Click in any email</span><span class="k">4 clicks</span></div><span class="pts">+20</span></div><div class="r"><div class="l"><span>Field <span class="mono">plan</span> is team or business</span><span class="k">plan is team</span></div><span class="pts">+10</span></div><div class="r"><div class="l"><span>Soft bounce, not delivered after the retries</span><span class="k">Weekly Digest #139 on 23 Sep was delivered after a retry</span></div><span class="pts">0</span></div><div class="r"><div class="l"><span>Decay</span><span class="k">None · last human open Tue 7 Oct</span></div><span class="pts">0</span></div><div class="r tot"><span>Score</span><span style="display:inline-flex;gap:8px;align-items:center"><span class="band"><span class="sw" style="background:#a43068;width:10px;height:10px" aria-hidden="true"></span>Hot</span><span class="pts" style="background:#fff">52</span></span></div></div></div></div><div class="note" role="note" style="background:#F3F4F6;border:1px solid #E3E6EB;color:#374151"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#4B5563" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M8 7.2v3.8M8 5v.1"></path></svg><div><b>Active and Hot are different things.</b> Engagement tiers protect your sender reputation: they decide who gets Broadcasts and who enters the sunset policy. The score measures interest. A score never stops or starts mail by itself. <a href="ListHealth.dc.html">Tiers on List health</a></div></div></section>
+
+      <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start">
+        <div style="flex:1 1 380px;min-width:0;display:flex;flex-direction:column;gap:20px">
+          <section class="card" style="padding:16px 18px;display:flex;flex-direction:column">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><h2 class="h2">Fields</h2><button class="btn sm">Edit</button></div>
+            <div class="kv"><span class="k">First name</span><span>Sam</span></div>
+            <div class="kv"><span class="k">Last name</span><span>Rivera</span></div>
+            <div class="kv"><span class="k">Company</span><span>Northwind Labs</span></div>
+            <div class="kv"><span class="k">Country · timezone</span><span>United States · America/Chicago</span></div>
+            <div class="kv"><span class="k">plan <span class="mono">custom</span></span><span>team</span></div>
+            <div class="kv"><span class="k">mrr <span class="mono">custom · number</span></span><span class="n">$29</span></div>
+            <div class="kv"><span class="k">signup_source <span class="mono">custom</span></span><span>brevo-migration</span></div>
+            <div class="kv"><span class="k">Language</span><span>en</span></div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px"><span class="tag">customer</span><span class="tag">team-plan</span><span class="tag">feature-flags-beta</span><button class="btn sm" style="border-style:dashed">Add tag</button></div>
+          </section>
+
+          <section class="card" style="display:flex;flex-direction:column">
+            <div style="padding:14px 18px;display:flex;justify-content:space-between;align-items:center"><h2 class="h2">Consent per list</h2><span class="k">double opt-in on by default</span></div>
+            <div style="padding:0 18px 6px;display:flex;flex-direction:column">
+              <div class="kv" style="align-items:flex-start"><div style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:600">Weekly Digest</span><span class="k">Subscribed via Brevo import 18 Sep 2026 · re-permission confirmed 19 Sep 2026 10:14 from 203.0.113.9 · consent text v3</span></div><span class="badge ok">Confirmed</span></div>
+              <div class="kv" style="align-items:flex-start"><div style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:600">Product Updates</span><span class="k">Added in the preference center 3 Oct 2026 09:52 · frequency: every release</span></div><span class="badge ok">Confirmed</span></div>
+              <div class="kv" style="align-items:flex-start"><div style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:600">Beta Program</span><span class="k">Never subscribed</span></div><span class="badge mut">Not subscribed</span></div>
+            </div>
+            <div style="padding:10px 18px;border-top:1px solid #EEF0F3;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><span class="k">Frequency: weekly · paused: no · fewer-emails: no</span><a href="PublicPreferences.dc.html" class="btn sm">Open preference center as Sam</a></div>
+          </section>
+        </div>
+
+        <section class="card" style="flex:1.4 1 480px;min-width:0;display:flex;flex-direction:column">
+          <div style="padding:14px 18px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><h2 class="h2">Activity</h2><div style="display:flex;gap:6px"><span class="badge mut">All</span><span class="badge mut">Deliveries</span><span class="badge mut">Engagement</span><span class="badge mut">Consent</span></div></div> <div class="ev"><span class="ic" style="background:#DCFCE7"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#166534" stroke-width="2" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg></span><div style="display:flex;flex-direction:column;gap:2px;flex:1"><span><b>Delivered</b> <a href="TransactionalMessage.dc.html">Password reset</a> <span class="badge mut" style="height:20px">Transactional</span> via <span class="badge mut" style="height:20px">Postmark</span></span><span class="k">Today 10:42 · Acme Cloud · 1.3 s after the call · content visible with transactional:content</span></div></div><div class="ev"><span class="ic" style="background:#EEF0F3"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#4B5563" stroke-width="1.8" aria-hidden="true"><path d="M3 8h10"></path></svg></span><div style="display:flex;flex-direction:column;gap:2px;flex:1"><span><b>Notifications from Acme Cloud</b> Reminders on · Product updates on</span><span class="k">Optional categories the contact can turn off in the preference center · account and billing emails always arrive</span></div></div>
+          <div class="ev"><span class="ic" style="background:#DBEAFE"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#1E40AF" stroke-width="1.8" aria-hidden="true"><circle cx="8" cy="8" r="2.5"></circle><path d="M1.5 8s2.5-4.5 6.5-4.5S14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8z"></path></svg></span><div style="display:flex;flex-direction:column;gap:2px;flex:1"><span><b>Opened</b> Weekly Digest #141 · human open</span><span class="k">Tue 7 Oct 09:41 · Outlook on Windows · 38 min after delivery</span></div></div>
+          <div class="ev"><span class="ic" style="background:#DCFCE7"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#166534" stroke-width="2" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg></span><div style="display:flex;flex-direction:column;gap:2px;flex:1"><span><b>Delivered</b> Weekly Digest #141 via <span class="badge pur" style="height:20px">Amazon SES</span></span><span class="k">Tue 7 Oct 09:03 · 250 2.6.0 Queued mail for delivery · outlook-com.olc.protection.outlook.com</span></div></div>
+          <div class="ev"><span class="ic" style="background:#DBEAFE"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#1E40AF" stroke-width="1.8" aria-hidden="true"><path d="M3 2.5 13 7l-5 1-2.5 5z" stroke-linejoin="round"></path></svg></span><div style="display:flex;flex-direction:column;gap:2px;flex:1"><span><b>Clicked</b> "Read the docs" in October Product Update</span><span class="k">Thu 9 Oct 10:22 · docs.acme.io/flags</span></div></div>
+          <div class="ev"><span class="ic" style="background:#DCFCE7"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#166534" stroke-width="2" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg></span><div style="display:flex;flex-direction:column;gap:2px;flex:1"><span><b>Delivered</b> October Product Update · variant B via <span class="badge mut" style="height:20px"><span class="dot" style="color:#e87ba4"></span>Postal</span></span><span class="k">Thu 9 Oct 10:04 · 250 2.6.0 · Postal share of the 90/10 split, warm-up day 6</span></div></div>
+          <div class="ev"><span class="ic" style="background:#EDE9FE"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#5B21B6" stroke-width="1.8" aria-hidden="true"><circle cx="4" cy="3" r="2"></circle><circle cx="4" cy="13" r="2"></circle><circle cx="12" cy="8" r="2"></circle><path d="M4 5v6M6 8h4"></path></svg></span><div style="display:flex;flex-direction:column;gap:2px;flex:1"><span><b>Delivered</b> Welcome series · step 2 via <span class="badge mut" style="height:20px"><span class="dot" style="color:#008300"></span>Postmark</span><span style="display:inline-block;width:6px"></span><span class="badge warn" style="height:20px">failover</span></span><span class="k">Thu 2 Oct 09:03 · SES was down for 14 min; Automations route failed over automatically</span></div></div>
+          <div class="ev"><span class="ic" style="background:#FEF3C7"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#92400E" stroke-width="1.8" aria-hidden="true"><path d="M8 2v7M8 12v1"></path></svg></span><div style="display:flex;flex-direction:column;gap:2px;flex:1"><span><b>Soft bounce</b> Weekly Digest #139 via <span class="badge pur" style="height:20px">Amazon SES</span></span><span class="k">Tue 23 Sep 09:12 · 452 4.2.2 mailbox full · retried and delivered 09:58</span></div></div>
+          <div class="ev"><span class="ic" style="background:#DCFCE7"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#166534" stroke-width="2" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg></span><div style="display:flex;flex-direction:column;gap:2px;flex:1"><span><b>Confirmed subscription</b> Weekly Digest · re-permission email</span><span class="k">Fri 19 Sep 10:14 · confirmation sent via Postmark (System stream) · IP 203.0.113.9</span></div></div>
+          <div class="ev"><span class="ic" style="background:#EEF0F3"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#4B5563" stroke-width="1.8" aria-hidden="true"><path d="M8 11V3M4.5 6.5 8 3l3.5 3.5M2 13h12"></path></svg></span><div style="display:flex;flex-direction:column;gap:2px;flex:1"><span><b>Imported</b> from Brevo · list "Newsletter" · status subscribed</span><span class="k">Thu 18 Sep 16:40 · by Linh Nguyen · consent carried over as "pending" until re-permission</span></div></div>
+          <div style="padding:10px 18px;border-top:1px solid #EEF0F3;display:flex;justify-content:space-between;align-items:center"><span class="k">10 of 63 events</span><button class="btn sm">Load more</button></div>
+        </section>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1599}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

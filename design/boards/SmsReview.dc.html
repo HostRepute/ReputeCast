@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Review & send · SMS</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F4F6;color:#0B1220;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;line-height:1.45}
+a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
+.mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace}
+.card{background:#FFFFFF;border:1px solid #E3E6EB;border-radius:10px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:36px;padding:0 14px;border-radius:8px;border:1px solid #D4D8DF;background:#FFFFFF;color:#0B1220;font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;box-sizing:border-box}
+.btn:hover{background:#F3F4F6;color:#0B1220}
+.btn.pri{background:#0F766E;border-color:#0F766E;color:#FFFFFF}.btn.pri:hover{background:#115E59;color:#FFFFFF}
+.btn.sm{min-height:30px;padding:0 10px;font-size:12px}
+.badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;flex:none}
+.ok{background:#DCFCE7;color:#166534}.warn{background:#FEF3C7;color:#92400E}.bad{background:#FEE2E2;color:#991B1B}.info{background:#DBEAFE;color:#1E40AF}.mut{background:#EEF0F3;color:#4B5563}.pur{background:#EDE9FE;color:#5B21B6}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;flex:none}
+.nav a{display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;border-radius:8px;color:#4B5563;font-weight:500}
+.nav a:hover{background:#EEF0F3;color:#0B1220}.nav a.on{background:#E3F1EE;color:#0F766E}
+.nav svg{width:16px;height:16px;flex:none}
+.tabs{display:flex;gap:4px;flex-wrap:wrap}
+.tabs a{display:inline-flex;align-items:center;height:34px;padding:0 12px;border-radius:8px;color:#4B5563;font-weight:500;font-size:13px}
+.tabs a:hover{background:#EEF0F3;color:#0B1220}.tabs a.on{background:#0B1220;color:#fff}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{text-align:left;font-weight:600;color:#5B6472;padding:10px 12px;border-bottom:1px solid #E3E6EB;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+.tbl td{padding:11px 12px;border-bottom:1px solid #EEF0F3;vertical-align:middle;white-space:nowrap}
+.tbl tr:last-child td{border-bottom:0}
+.k{font-size:12px;color:#5B6472;font-weight:500}
+.h2{margin:0;font-size:15px;font-weight:600}
+.in{height:36px;padding:0 10px;border:1px solid #D4D8DF;border-radius:8px;background:#fff;font:inherit;font-size:13px;color:#0B1220;box-sizing:border-box;min-width:0}
+.lbl{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:#4B5563}
+
+
+/* shell additions: workspace switcher, notification bell, user menu */
+.ws{display:flex;align-items:center;gap:8px;margin:2px 0 4px;padding:7px 10px;border:1px solid #E3E6EB;border-radius:8px;background:#fff;color:#0B1220;font:inherit;text-align:left;cursor:pointer;width:100%;box-sizing:border-box}
+.ws:hover{background:#F3F4F6}
+.ws .wsn{display:flex;flex-direction:column;line-height:1.25;min-width:0;flex:1}
+.ws .wsn b{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ws .wsn span{font-size:11px;color:#5B6472;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tools{display:flex;align-items:center;gap:8px;margin-left:8px}
+.ibtn{position:relative;display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:1px solid #D4D8DF;background:#fff;color:#0B1220;cursor:pointer;padding:0;flex:none}
+.ibtn:hover{background:#F3F4F6}
+.ibtn .cnt{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#B91C1C;color:#fff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box}
+.ubtn{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 10px 0 4px;border-radius:8px;border:1px solid #D4D8DF;background:#fff;color:#0B1220;font:inherit;font-size:13px;font-weight:600;cursor:pointer;flex:none}
+.ubtn:hover{background:#F3F4F6}
+.menu{position:absolute;z-index:40;background:#fff;border:1px solid #D4D8DF;border-radius:10px;box-shadow:0 12px 32px rgba(11,18,32,.16);padding:6px;min-width:260px;display:flex;flex-direction:column;gap:2px;box-sizing:border-box}
+.menu a,.menu button{display:flex;align-items:center;gap:10px;min-height:36px;padding:0 10px;border-radius:8px;color:#0B1220;font:inherit;font-size:13px;font-weight:500;background:none;border:0;text-align:left;cursor:pointer;width:100%;box-sizing:border-box;text-decoration:none}
+.menu a:hover,.menu button:hover{background:#F3F4F6;color:#0B1220}
+.menu hr{border:0;border-top:1px solid #EEF0F3;margin:4px 0;width:100%}
+.menu .mh{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472;padding:8px 10px 4px}
+@media (max-width:767px){.tools{margin-left:0}.menu{min-width:0;max-width:calc(100vw - 24px)}}
+
+
+/* add-on components */
+.av{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex:none}
+.tbl td.c,.tbl th.c{text-align:center}
+.tbl td{white-space:normal;vertical-align:middle}
+.tbl td.nw,.tbl td .badge{white-space:nowrap}
+.tbl td .btn{white-space:nowrap}
+.flag{display:inline-flex;align-items:center;gap:4px;color:#B45309;font-weight:700;font-size:11px;white-space:nowrap}
+input[type=checkbox].tg{appearance:none;-webkit-appearance:none;width:40px;height:24px;border-radius:999px;background:#6B7280;position:relative;cursor:pointer;flex:none;margin:0;border:0}
+input[type=checkbox].tg::after{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff}
+input[type=checkbox].tg:checked{background:#0F766E}input[type=checkbox].tg:checked::after{left:18px}
+.row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.col{display:flex;flex-direction:column;gap:10px}
+.sec{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid #EEF0F3;flex-wrap:wrap;gap:8px}
+.pad{padding:16px 18px}
+.note{display:flex;gap:8px 10px;align-items:flex-start;flex-wrap:wrap;padding:12px 14px;border-radius:8px;font-size:13px;line-height:1.45}
+.note > :last-child{flex:1 1 320px;min-width:0}
+.note > .badge{margin-top:1px}
+.note.i{background:#EFF6FF;border:1px solid #BFDBFE;color:#1E3A8A}
+.note.w{background:#FFFBEB;border:1px solid #FCD34D;color:#78350F}
+.note.b{background:#FFF5F5;border:1px solid #FCA5A5;color:#7F1D1D}
+.note.g{background:#F0FDF4;border:1px solid #BBF7D0;color:#14532D}
+.note.n{background:#F3F4F6;border:1px solid #E3E6EB;color:#374151}
+.btn:disabled,.btn[aria-disabled="true"]{opacity:.55;cursor:not-allowed}
+.btn.danger{color:#991B1B;border-color:#FCA5A5}.btn.danger:hover{background:#FEF2F2;color:#991B1B}
+.btn.danger.pri{background:#B91C1C;border-color:#B91C1C;color:#fff}.btn.danger.pri:hover{background:#991B1B;color:#fff}
+.kv{display:grid;grid-template-columns:max-content 1fr;gap:7px 18px;font-size:13px;margin:0}
+.kv dt{color:#5B6472;font-weight:500;margin:0}.kv dd{margin:0;min-width:0}
+.chip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;border:1px solid #D4D8DF;background:#fff;font-size:12.5px;font-weight:500;white-space:nowrap}
+.code{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace;font-size:12.5px;background:#0B1220;color:#E5E7EB;border-radius:8px;padding:12px 14px;white-space:pre-wrap;overflow-wrap:anywhere;margin:0}
+.diff{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;border:1px solid #E3E6EB;border-radius:8px;overflow:hidden}
+.diff div{padding:6px 12px;white-space:pre-wrap;overflow-wrap:anywhere}
+.diff .del{background:#FEF2F2;color:#991B1B}.diff .add{background:#F0FDF4;color:#166534}.diff .ctx{color:#4B5563}
+.ovl{position:absolute;inset:0;background:rgba(11,18,32,.45);display:flex;align-items:flex-start;justify-content:center;padding:72px 16px;box-sizing:border-box;z-index:60}
+.dlg{width:100%;max-width:640px;display:flex;flex-direction:column;background:#fff;border-radius:12px;box-shadow:0 24px 60px rgba(11,18,32,.3)}
+.dh{padding:18px 22px 0;display:flex;flex-direction:column;gap:6px}
+.db{padding:16px 22px;display:flex;flex-direction:column;gap:12px}
+.df{padding:14px 22px 18px;display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;border-top:1px solid #EEF0F3;align-items:center}
+.steps{display:flex;flex-direction:column;gap:2px}
+.row > *{min-width:0}
+
+/* expansion components (phases 1-8) */
+.num,.tbl td.r{font-variant-numeric:tabular-nums}
+.tbl th.r,.tbl td.r{text-align:right}
+.tbl tr.sel td{background:#F0FDFA}
+.tbl tr.xp td{background:#FBFBFC}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.stat{padding:14px 16px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.stat .v{font-size:22px;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums;line-height:1.25;margin-top:2px}
+.stat .s{font-size:12px;color:#5B6472;font-weight:500}
+.stat.hot{border-color:#FCA5A5;background:#FFF5F5}
+.strip{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;background:#0B1220;color:#fff;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.sk{background:#E9ECF0;border-radius:6px;display:inline-block}
+.bar{height:6px;border-radius:3px;background:#EEF0F3;overflow:hidden}.bar i{display:block;height:100%;border-radius:3px}
+.ptab{display:flex;border-bottom:1px solid #E3E6EB}
+.ptab button{flex:1;height:38px;border:0;background:none;font:inherit;font-size:12.5px;font-weight:600;color:#5B6472;cursor:pointer;border-bottom:2px solid transparent;padding:0 6px;white-space:nowrap}
+.ptab button.on{color:#0B1220;border-bottom-color:#0F766E}
+.seg{display:inline-flex;border:1px solid #D4D8DF;border-radius:8px;overflow:hidden;flex:none}
+.seg button{height:30px;padding:0 11px;border:0;background:#fff;font:inherit;font-size:12px;font-weight:600;color:#4B5563;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.seg button + button{border-left:1px solid #E3E6EB}
+.seg button.on{background:#0B1220;color:#fff}
+.cbx{border-radius:10px;overflow:hidden;border:1px solid #1F2937;background:#0B1220;min-width:0}
+.cbh{display:flex;align-items:center;gap:2px;padding:6px 8px;border-bottom:1px solid #1F2937;background:#111827;flex-wrap:wrap}
+.cbh button{height:28px;padding:0 10px;border:0;border-radius:6px;background:none;color:#B4BAC4;font:inherit;font-size:12px;font-weight:600;cursor:pointer}
+.cbh button.on{background:#273244;color:#fff}
+.cbh .cp{margin-left:auto;display:inline-flex;align-items:center;gap:6px;color:#E5E7EB;border:1px solid #374151}
+.cbx pre{margin:0;padding:12px 14px;font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace;font-size:12.5px;line-height:1.6;color:#E5E7EB;white-space:pre-wrap;overflow-wrap:anywhere}
+.cbx .c1{color:#93C5FD}.cbx .c2{color:#86EFAC}.cbx .c3{color:#FCD34D}.cbx .c4{color:#9CA3AF}.cbx .c5{color:#F9A8D4}
+.cbx .cm{color:#9CA3AF}
+.ev{display:flex;gap:14px;align-items:flex-start;padding:12px 0;border-top:1px solid #EEF0F3}
+.ev:first-child{border-top:0}
+.ev .ic{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.ev .tx{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.ev .tm{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;color:#5B6472;flex:none;padding-top:5px}
+.spin{width:14px;height:14px;border-radius:50%;border:2px solid #C9CED6;border-top-color:#0F766E;flex:none;display:inline-block}
+.mask{display:inline-flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;color:#4B5563;white-space:nowrap}
+.mask svg{flex:none}
+.tok{display:inline-flex;align-items:center;gap:4px;padding:0 6px;border-radius:5px;background:#EDE9FE;color:#5B21B6;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:.86em;font-weight:500;line-height:1.55;white-space:nowrap;vertical-align:baseline}
+.tok.s{background:#FEF3C7;color:#92400E}
+.tok.e{background:#FEE2E2;color:#991B1B;text-decoration:underline wavy #DC2626;text-underline-offset:3px}
+.mk{display:inline-flex;align-items:center;height:22px;padding:0 7px;border-radius:6px;background:#EEF0F3;color:#374151;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;white-space:nowrap}
+.toast{display:flex;gap:12px;align-items:center;padding:10px 12px 10px 14px;border-radius:10px;background:#0B1220;color:#fff;font-size:13.5px;box-shadow:0 12px 30px rgba(11,18,32,.25);max-width:520px;box-sizing:border-box}
+.toast .t{flex:1;min-width:0}
+.toast .k{color:#C3C2B7}
+.toast .btn{min-height:28px;padding:0 10px;font-size:12px;background:transparent;border-color:#4B5563;color:#fff}
+.toast .x{width:28px;height:28px;border:0;background:transparent;color:#9CA3AF;border-radius:6px;font-size:16px;cursor:pointer}
+.ti{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.scrim{position:absolute;inset:0;background:rgba(11,18,32,.32);z-index:55}
+.drw{position:absolute;top:0;right:0;bottom:0;width:600px;max-width:100%;background:#fff;border-left:1px solid #E3E6EB;box-shadow:-18px 0 40px rgba(11,18,32,.18);z-index:60;display:flex;flex-direction:column;box-sizing:border-box;overflow:hidden}
+.drw .dwh{display:flex;align-items:flex-start;gap:12px;padding:18px 22px 14px;border-bottom:1px solid #EEF0F3}
+.drw .dwb{padding:18px 22px;display:flex;flex-direction:column;gap:18px;overflow:auto}
+.drw h3{margin:0;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472}
+.empty{padding:44px 28px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;border-style:dashed}
+.empty .tt{font-size:18px;font-weight:700;letter-spacing:-.01em}
+.empty .ds{color:#4B5563;max-width:560px}
+.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:14px 18px;border-bottom:1px solid #EEF0F3}
+.fchips{display:flex;gap:6px;flex-wrap:wrap;padding:12px 18px;border-bottom:1px solid #EEF0F3}
+.fchip{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:999px;border:1px solid #D4D8DF;background:#fff;font:inherit;font-size:12.5px;font-weight:600;color:#374151;cursor:pointer;white-space:nowrap}
+.fchip b{font-weight:600;color:#5B6472;font-variant-numeric:tabular-nums}
+.fchip.on{background:#0B1220;border-color:#0B1220;color:#fff}.fchip.on b{color:#C9CED6}
+.live{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:#166534}
+.live .dot{box-shadow:0 0 0 4px rgba(22,101,52,.15)}
+.foot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid #EEF0F3}
+.spark{display:block}
+.lnk{display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:13px}
+.ttl{margin:0;font-size:22px;font-weight:700;letter-spacing:-.02em;line-height:1.2}
+.lead{margin:0;color:#4B5563;font-size:14px;max-width:760px}
+.state-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(460px,100%),1fr));gap:16px;align-items:start}
+.flowr{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px}
+.flowr .arw{color:#9AA3B2}
+.pill{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:8px;border:1px solid #E3E6EB;background:#F9FAFB;font-size:12.5px;font-weight:600;white-space:nowrap}
+.vline{display:flex;gap:10px;align-items:baseline;padding:8px 0;border-top:1px solid #EEF0F3;font-size:13px}
+.vline:first-child{border-top:0}
+.hl{background:#FEF2F2;box-shadow:inset 3px 0 0 #DC2626}
+.lines{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;line-height:1.7;background:#0B1220;color:#E5E7EB;border-radius:8px;overflow:hidden}
+.lines div{display:flex;gap:12px;padding:0 12px}
+.lines .ln{color:#9CA3AF;width:22px;text-align:right;flex:none;user-select:none}
+.lines .er{background:rgba(220,38,38,.22)}
+.callout{position:absolute;z-index:5}
+.only-phone{display:none}
+@media (max-width:1100px){.drw{width:520px}}
+@media (max-width:767px){.drw{width:100%;border-left:0}.stats{grid-template-columns:repeat(2,minmax(0,1fr))!important}.ttl{font-size:19px}}
+
+/* phase 8a: SMS and channel steps */
+.n{font-weight:600;font-variant-numeric:tabular-nums}
+.chsw{display:inline-flex;align-items:stretch;border:1px solid #D4D8DF;border-radius:8px;overflow:hidden;background:#fff;flex:none;max-width:100%}
+.chsw a{display:inline-flex;align-items:center;gap:6px;height:32px;min-height:32px!important;padding:0 11px;color:#4B5563;font-size:13px;font-weight:600;white-space:nowrap;text-decoration:none!important}
+.chsw a + a{border-left:1px solid #E3E6EB}
+.chsw a:hover{background:#F3F4F6;color:#0B1220}
+.chsw a.on{background:#E3F1EE;color:#0F766E}
+.chsw svg{flex:none}
+.ccy{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px 0 3px;border-radius:999px;border:1px solid #E3E6EB;background:#fff;font-size:12.5px;font-weight:500;color:#0B1220;white-space:nowrap;vertical-align:middle;box-sizing:border-box}
+.ccy b{display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:18px;padding:0 4px;border-radius:999px;background:#EEF0F3;color:#374151;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11px;font-weight:600;box-sizing:border-box}
+.ccy.s{padding:0 2px}
+.ccs{display:inline-flex;gap:4px 6px;flex-wrap:wrap;vertical-align:middle}
+.cap{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 8px;border-radius:6px;font-size:11.5px;font-weight:600;border:1px solid #E3E6EB;background:#F9FAFB;color:#374151;white-space:nowrap}
+.cap.y{border-color:#BBF7D0;background:#F0FDF4;color:#166534}.cap.n{border-color:#E3E6EB;background:#fff;color:#6B7280;text-decoration:line-through}.cap.p{border-color:#FDE68A;background:#FFFBEB;color:#92400E}
+.mt{display:flex;flex-direction:column;gap:5px;min-width:0}
+.mt .l{display:flex;justify-content:space-between;gap:12px;align-items:baseline;font-size:12.5px}
+.dl{display:flex;flex-direction:column;gap:5px;font-size:13px}
+.dl > div{display:flex;justify-content:space-between;gap:14px;align-items:baseline}
+.dl > div > span:last-child{text-align:right;min-width:0}
+.sum{display:flex;justify-content:space-between;gap:10px;font-size:13px;align-items:baseline}
+label.rad{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid #E3E6EB;border-radius:8px;cursor:pointer;font-weight:400;color:#0B1220;font-size:13px}
+label.rad input{margin-top:3px;flex:none}
+label.rad.on{border-color:#0F766E;background:#F0FDFA}
+.chkg{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;background:#F9FAFB;border-top:1px solid #E3E6EB;flex-wrap:wrap}
+.chkg:first-child{border-top:0;border-radius:10px 10px 0 0}
+.chkr{display:flex;gap:10px 12px;align-items:flex-start;padding:11px 16px;border-top:1px solid #EEF0F3;flex-wrap:wrap}
+.chkr .rt{display:flex;flex-direction:column;gap:2px;flex:1 1 300px;min-width:0}
+.chkr .t{font-weight:500}
+.chkr .ac{display:flex;gap:8px;flex-wrap:wrap;flex:none}
+.chkr.w{background:#FFFBEB}.chkr.b{background:#FFF5F5}
+.chkr > .badge{margin-top:1px}
+.verdict{display:flex;align-items:center;gap:18px;padding:18px 22px;border-radius:12px;flex-wrap:wrap}
+.verdict .vt{font-size:20px;font-weight:700;letter-spacing:-.01em}
+.verdict.w{background:#FFFBEB;border:1px solid #FCD34D;color:#78350F}
+.verdict.b{background:#FEF2F2;border:1px solid #FCA5A5;color:#7F1D1D}
+.verdict.g{background:#F0FDF4;border:1px solid #BBF7D0;color:#14532D}
+.bm{display:flex;flex-direction:column;gap:6px;min-width:0}
+.bm-t{position:relative;height:8px;border-radius:4px;background:#EEF0F3;display:flex;margin:5px 0}
+.bm-t i{display:block;height:100%}
+.bm-t i:first-child{border-radius:4px 0 0 4px}
+.bm-t i.u{background:#0F766E}
+.bm-t i.s{background:repeating-linear-gradient(135deg,#0F766E 0 3px,#99F6E4 3px 6px)}
+.bm-t i.o{background:repeating-linear-gradient(135deg,#B91C1C 0 3px,#FCA5A5 3px 6px);border-radius:0 4px 4px 0}
+.bm-t .bmk{position:absolute;top:-5px;bottom:-5px;width:2px;margin-left:-1px;background:#0B1220;border-radius:1px}
+.bm-l{display:flex;gap:6px 14px;flex-wrap:wrap;font-size:12px;color:#4B5563}
+.bm-l > span{display:inline-flex;align-items:center;gap:6px}
+.bsw{width:10px;height:10px;border-radius:3px;flex:none;display:inline-block}
+.qh{display:flex;flex-direction:column;gap:6px;min-width:0}
+.qh-t{position:relative;height:24px;border-radius:6px;background:#EEF0F3;overflow:hidden}
+.qh-t .lim{position:absolute;top:0;bottom:0;background:#E3F1EE}
+.qh-t .win{position:absolute;top:0;bottom:0;background:#0F766E;color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;white-space:nowrap;font-variant-numeric:tabular-nums;overflow:hidden}
+.qh-t .win.x{background:#B91C1C}
+.qh-t .now{position:absolute;top:0;bottom:0;width:3px;margin-left:-1.5px;background:#0B1220}
+.qh-x{position:relative;height:15px;font-size:11px;color:#5B6472;font-variant-numeric:tabular-nums}
+.qh-x span{position:absolute;top:0;transform:translateX(-50%)}
+.qh-x span:first-child{transform:none}.qh-x span:last-child{transform:translateX(-100%)}
+.segc{display:flex;flex-direction:column;gap:6px;min-width:0}
+.segc-h{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:12.5px}
+.segc-b{display:flex;gap:3px;height:8px}
+.segc-b span{flex:1;border-radius:4px;background:#EEF0F3;overflow:hidden;display:block}
+.segc-b span i{display:block;height:100%;background:#0F766E}
+.segc-b.w span i{background:#B45309}
+.segc-x{display:flex;gap:3px;font-size:11px;color:#5B6472;font-variant-numeric:tabular-nums}
+.segc-x span{flex:1;min-width:0}
+.smsed{border:1px solid #8B94A3;border-radius:8px;background:#fff;padding:12px 14px;font-size:14px;line-height:1.85;color:#0B1220;min-height:118px;box-sizing:border-box;overflow-wrap:anywhere}
+.smsed .fx{padding:2px 7px;border-radius:5px;background:#EEF0F3;color:#4B5563;font-weight:500;white-space:nowrap}
+.smsed .lt{padding:2px 7px;border-radius:5px;background:#DBEAFE;color:#1E40AF;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;white-space:nowrap}
+.smsed .lt.e{background:#FEE2E2;color:#991B1B;text-decoration:underline wavy #DC2626;text-underline-offset:3px}
+.uc{background:#FEE2E2;color:#991B1B;border-radius:3px;padding:0 3px;font-weight:700;text-decoration:underline wavy #DC2626;text-underline-offset:4px}
+.ok-c{background:#DCFCE7;color:#166534;border-radius:3px;padding:0 3px;font-weight:700}
+.phn{width:300px;max-width:100%;background:#fff;border:1px solid #D4D8DF;border-radius:18px;box-shadow:0 1px 3px rgba(11,18,32,.12);overflow:hidden;display:flex;flex-direction:column;flex:none;box-sizing:border-box}
+.phn-h{display:flex;flex-direction:column;align-items:center;gap:3px;padding:16px 14px 12px;border-bottom:1px solid #EEF0F3;background:#FBFBFC;text-align:center}
+.phn-a{width:40px;height:40px;border-radius:50%;background:#E3E6EB;color:#4B5563;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;margin-bottom:2px}
+.phn-n{font-weight:600;font-size:14px;color:#0B1220}
+.phn-b{display:flex;flex-direction:column;gap:8px;padding:14px 12px 16px;flex:1}
+.phn-tm{align-self:center;font-size:11px;color:#5B6472;font-weight:500;margin-top:2px}
+.bub{align-self:flex-start;max-width:88%;padding:9px 12px;border-radius:16px 16px 16px 6px;background:#E9ECF0;color:#0B1220;font-size:13.5px;line-height:1.45;overflow-wrap:anywhere;box-sizing:border-box}
+.bub.me{align-self:flex-end;border-radius:16px 16px 6px 16px;background:#0F766E;color:#fff}
+.bub .fx{color:#4B5563}
+.bub .sl{color:#1D4ED8;text-decoration:underline;text-underline-offset:2px}
+.phn-f{display:flex;align-items:center;gap:8px;padding:10px 12px;border-top:1px solid #EEF0F3}
+.phn-in{flex:1;height:34px;border:1px solid #D4D8DF;border-radius:999px;padding:0 12px;display:flex;align-items:center;color:#5B6472;font-size:12.5px;box-sizing:border-box}
+.phn-no{flex:1;text-align:center;font-size:12px;color:#5B6472;padding:4px 0}
+.cons{width:100%;border-collapse:collapse;font-size:13px}
+.cons th{text-align:left;font-size:11.5px;font-weight:600;color:#5B6472;text-transform:uppercase;letter-spacing:.05em;padding:8px 10px;border-bottom:1px solid #E3E6EB;white-space:nowrap}
+.cons td{padding:10px;border-bottom:1px solid #EEF0F3;vertical-align:top}
+.cons tr:last-child td{border-bottom:0}
+.cons td .k{display:block;margin-top:3px;line-height:1.35}
+.cbox{border:1px solid #E3E6EB;border-radius:8px;background:#F9FAFB;padding:10px 12px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.cpy{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;padding:10px 12px;border:1px solid #E3E6EB;border-radius:8px;background:#fff}
+.cpy .tx{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1}
+.kwd{display:inline-flex;align-items:center;height:24px;padding:0 8px;border-radius:6px;border:1px solid #D4D8DF;background:#fff;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;font-weight:600;color:#0B1220;white-space:nowrap}
+.srow{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;padding:14px 18px;border-top:1px solid #EEF0F3;flex-wrap:wrap}
+.srow > .tx{display:flex;flex-direction:column;gap:3px;flex:1 1 320px;min-width:0}
+.srow > .ct{flex:0 1 auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+.hstep{display:flex;gap:10px;align-items:flex-start;font-size:13px}
+.hstep .hn{width:22px;height:22px;border-radius:50%;background:#0B1220;color:#fff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex:none;margin-top:1px}
+.nr{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid #EEF0F3;flex-wrap:wrap}
+.nr:first-child{border-top:0;padding-top:0}
+.tz{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid #EEF0F3;font-size:13px;flex-wrap:wrap}
+.tz:first-child{border-top:0}
+.tz .tn{flex:1 1 200px;min-width:0;display:flex;flex-direction:column;gap:1px}
+.tz .tb{flex:1 1 160px;min-width:120px}
+/* the rail on tablets shows only the import button (rc.py's foot items carry inline display) */
+@media (min-width:768px) and (max-width:1100px){.side .sidefoot > *:not(.btn){display:none!important}}
+.scroll-hint{display:none}
+.stk th:first-child,.stk td:first-child{position:sticky;left:0;background:#fff;z-index:1;box-shadow:1px 0 0 #EEF0F3}
+.stk tr.sel td:first-child{background:#F0FDFA}
+@media (max-width:1100px){.scroll-hint{display:flex}}
+@media (max-width:767px){
+  .sc-host .chsw{overflow-x:auto}
+  .sc-host .phn{width:100%}
+  .sc-host .verdict{padding:14px 16px;gap:12px}
+  .sc-host .verdict .vt{font-size:18px}
+}
+
+/* responsive shell */
+@media (max-width:1100px){
+  .side{flex:0 0 72px!important;max-width:72px;padding:14px 8px!important;gap:4px!important}
+  .side .nl,.side .brand-t,.side .ws{display:none}
+  .side .nav a{justify-content:center;padding:0!important;height:44px}
+  .side .nav svg{width:20px;height:20px}
+  .side > a[aria-label="ReputeCast home"]{justify-content:center;padding:6px 0!important}
+  .side .sidefoot{align-items:center}
+  .side .sidefoot > *{display:none}
+  .side .sidefoot > a.btn{display:inline-flex;width:44px;height:44px;padding:0!important;justify-content:center!important;font-size:0;gap:0}
+  .side .sidefoot > a.btn svg{width:18px;height:18px}
+  .top{padding:12px 16px!important}
+  .content{padding:16px!important}
+}
+@media (max-width:767px){
+  .app{flex-direction:column}
+  .side{flex:none!important;max-width:none!important;width:auto!important;position:fixed;left:0;right:0;bottom:0;z-index:50;flex-direction:row!important;align-items:center;padding:6px 6px!important;border-right:0!important;border-top:1px solid #E3E6EB;background:#fff!important;box-sizing:border-box;gap:0!important}
+  .side > a[aria-label="ReputeCast home"],.side .ws,.side .sidefoot{display:none!important}
+  .side .nav{flex-direction:row!important;flex:1;justify-content:space-around;margin-top:0!important;gap:0!important}
+  .side .nav a{height:44px;width:44px;flex:none;padding:0!important;justify-content:center;border-radius:10px}
+  .side .nl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;display:block}
+  .side .nav a.on{background:#E3F1EE;color:#0F766E}
+  .mainc{padding-bottom:72px}
+  .top{padding:12px 12px!important;gap:8px!important}
+  .top h1{font-size:16px!important}
+  .top .in{width:100%!important}
+  .tabs{flex-wrap:nowrap!important;overflow-x:auto;max-width:100%;margin-left:0!important;padding-bottom:2px}
+  .tabs a{flex:none}
+  .content{padding:12px!important;gap:12px!important}
+  .cpanel{max-width:none!important;flex:1 1 100%!important}
+}
+@media (min-width:768px) and (max-width:1100px){
+  .cpanel{max-width:none!important}
+}
+
+/* responsive phone fixes */
+@media (max-width:767px){
+  .app{flex-wrap:nowrap!important}
+  .mainc{width:100%;max-width:100%}
+  .content > *{min-width:0;max-width:100%}
+  .content .in,.content select,.content input,.content textarea{max-width:100%;min-width:0}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+  .sc-host [style*="flex: 1 1"]{min-width:0}
+  .sc-host select.in,.sc-host input.in{width:0;min-width:100%}
+  .sc-host .mono{overflow-wrap:anywhere}
+  .sc-host .sk{max-width:100%}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px;max-width:100%}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host .tabs .badge{white-space:nowrap}
+  .sc-host .side .btn{white-space:nowrap}
+  .sc-host [style*="grid-template-columns: repeat("]{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))!important}
+  .sc-host [style*="minmax(260px"],.sc-host [style*="minmax(280px"],.sc-host [style*="minmax(300px"],.sc-host [style*="minmax(320px"],.sc-host [style*="minmax(340px"],.sc-host [style*="minmax(360px"],.sc-host [style*="minmax(380px"],.sc-host [style*="minmax(420px"]{grid-template-columns:1fr!important}
+  .sc-host [style*="radial-gradient"]{overflow:auto}
+  .sc-host [style*="display: grid"] > *{min-width:0}
+  .sc-host header > div{max-width:100%;min-width:0}
+  .sc-host pre,.sc-host .lines{max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]) > div[style*="flex: 1"]{min-width:120px}
+}
+
+/* accessibility */
+:focus-visible{outline:2px solid #0F766E;outline-offset:2px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-9999px;top:8px;z-index:100;background:#fff;color:#0B1220;padding:8px 12px;border-radius:8px;border:1px solid #0F766E;font-weight:600;text-decoration:none}
+.skip:focus{left:8px}
+p a:not(.btn),span a:not(.btn):not([style*="color"]),td a:not(.btn):not([style*="color"]),li a:not(.btn),label a,.k a,.lead a{text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+.content > * a:not(.btn):not(p a):not(span a):not(td a):not(li a):not(label a):not(.k a),.top a:not(.btn),nav a:not(.btn),footer a:not(.btn){min-height:24px;display:inline-flex;align-items:center}
+input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F766E}
+.in,select.in,textarea.in,input.in{border-color:#8B94A3}
+@media (max-width:767px){
+  .sc-host{overflow-wrap:anywhere}
+  .sc-host table,.sc-host td,.sc-host th{overflow-wrap:normal}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+}
+
+/* nav: phones show four sections plus More */
+.side .nav a.more{display:none}
+@media (max-width:767px){.side .nav a.xm{display:none!important}.side .nav a.more{display:flex}.side .nav a.more.on{background:#E3F1EE;color:#0F766E}}
+/* shell: the icon rail keeps only the import button (the footer's inline display:flex beat the rail rule) */
+@media (max-width:1100px){.side .sidefoot > :not(.btn){display:none!important}}
+/* shell: avatar initials sit in the middle */
+.av{display:inline-flex;align-items:center;justify-content:center;flex:none}
+.ubtn .av{border-radius:50%;font-weight:700}
+.ws .av{font-weight:700}
+/* switches: a disabled switch looks disabled */
+.tg:disabled,.tgx:disabled{opacity:.45;cursor:not-allowed}
+
+/* expansion: responsive card grids collapse to one column on phones (overrides the 140px rule above) */
+@media (max-width:767px){
+  .sc-host [style*="minmax(min("]{grid-template-columns:1fr!important}
+  .sc-host .kv{grid-template-columns:1fr;gap:2px 0}
+  .sc-host .kv dd{margin-bottom:8px}
+  .sc-host .ev .tm{display:none}
+  .sc-host .cbx pre{font-size:11.5px}
+  .sc-host .mlist{display:none!important}
+  .sc-host .only-phone{display:flex!important;flex-direction:column}
+  .sc-host .no-phone{display:none!important}
+}
+</style>
+</helmet>
+<div class="app" style="display:flex;flex-wrap:wrap;align-items:stretch;min-height:100vh;position:relative">
+  <a href="#main" class="skip">Skip to content</a>
+  <aside class="side" style="flex:1 1 232px;background:#FBFBFC;border-right:1px solid #E3E6EB;display:flex;flex-direction:column;padding:16px 12px;gap:6px;box-sizing:border-box">
+    <a href="Main.dc.html" style="display:flex;align-items:center;gap:10px;padding:6px 8px;color:#0B1220" aria-label="ReputeCast home"><svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg><span class="brand-t" style="font-weight:700;font-size:15px;letter-spacing:-.01em">ReputeCast</span></a>
+    <button class="ws" type="button" aria-haspopup="menu" aria-label="Switch workspace. Current: Acme Newsletter, your role Editor"><span class="av" style="width:24px;height:24px;font-size:10px;background:#0F766E;color:#fff;border-radius:6px" aria-hidden="true">AN</span><span class="wsn"><b>Acme Newsletter</b><span>Editor</span></span><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button>
+    <nav class="nav" style="display:flex;flex-direction:column;gap:2px;margin-top:4px" aria-label="Main">
+      <a href="Main.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z"></path></svg><span class="nl">Overview</span></a>
+      <a href="Campaigns.dc.html" class="on" aria-current="page"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M14 2 2 7l5 2 2 5zM7 9l7-7" stroke-linejoin="round"></path></svg><span class="nl">Campaigns</span></a>
+      <a href="AutomationsList.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="4" cy="3" r="2"></circle><circle cx="4" cy="13" r="2"></circle><circle cx="12" cy="8" r="2"></circle><path d="M4 5v6M6 8h4"></path></svg><span class="nl">Automations</span></a>
+      <a href="Transactional.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="1.5"></rect><path d="m2 4.5 6 4.5 6-4.5"></path></svg><span class="nl">Transactional</span></a>
+      <a href="Contacts.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="6" cy="5" r="2.5"></circle><path d="M1.5 14a4.5 4.5 0 0 1 9 0M11 3a2.5 2.5 0 0 1 0 5M14.5 14a4 4 0 0 0-3-3.8"></path></svg><span class="nl">Audience</span></a>
+      <a href="GrowOverview.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 12.5 6 8.5l3 3 5-5.5"></path><path d="M10.5 5.5H14V9"></path></svg><span class="nl">Grow</span></a>
+      <a href="EarnOverview.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M10 5.9H7.1a1.3 1.3 0 0 0 0 2.6h1.8a1.3 1.3 0 0 1 0 2.6H6M8 4.4v1.5M8 11.1v1.5"></path></svg><span class="nl">Earn</span></a>
+      <a href="FormBuilder.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="2"></rect><path d="M5 6h6M5 9h6M5 12h3"></path></svg><span class="nl">Forms &amp; pages</span></a>
+      <a href="Deliverability.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 1.5 13.5 3.5v4.5c0 3-2.3 5.3-5.5 6.5C4.8 13.3 2.5 11 2.5 8V3.5z" stroke-linejoin="round"></path><path d="m5.5 8 1.8 1.8L10.8 6"></path></svg><span class="nl">Deliverability</span></a>
+      <a href="Providers.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="5" rx="1.5"></rect><rect x="2" y="9" width="12" height="5" rx="1.5"></rect><path d="M5 4.5h.01M5 11.5h.01" stroke-width="2" stroke-linecap="round"></path></svg><span class="nl">Sending providers</span></a>
+      <a href="WorkspaceSettings.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 4h7M13 4h1M2 8h2M8 8h6M2 12h7M13 12h1"></path><circle cx="11" cy="4" r="1.8"></circle><circle cx="6" cy="8" r="1.8"></circle><circle cx="11" cy="12" r="1.8"></circle></svg><span class="nl">Settings</span></a>
+      <a href="ShellMore.dc.html" class="more" aria-label="More: Automations, Transactional, Grow, Earn, Forms & pages, Sending providers, Settings"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="3.5" cy="8" r="1.2"></circle><circle cx="8" cy="8" r="1.2"></circle><circle cx="12.5" cy="8" r="1.2"></circle></svg><span class="nl">More</span></a>
+    </nav>
+    <div class="sidefoot" style="margin-top:auto;display:flex;flex-direction:column;gap:8px">
+      <a href="MigrationSource.dc.html" class="btn" style="justify-content:flex-start"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 11V3M4.5 6.5 8 3l3.5 3.5M2 13h12"></path></svg>Import contacts</a>
+      <a href="SettingsIntegrations.dc.html" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid #E3E6EB;border-radius:8px;background:#fff;color:#0B1220"><span class="dot" style="color:#15803D"></span><div style="display:flex;flex-direction:column;line-height:1.25"><span style="font-size:12px;font-weight:600">HostRepute connected</span><span class="k" style="font-size:11px">Acme Inc · synced 4 min ago</span></div></a>
+      <div style="display:flex;align-items:center;gap:8px;padding:4px 8px"><span class="av" style="width:26px;height:26px;font-size:11px;background:#DCFCE7;color:#166534" aria-hidden="true">SR</span><div style="display:flex;flex-direction:column;line-height:1.25"><span style="font-size:12px;font-weight:600">Sofia Rossi</span><span class="k" style="font-size:11px">Editor</span></div></div>
+    </div>
+  </aside>
+  <div class="mainc" style="flex:999 1 560px;min-width:0;display:flex;flex-direction:column">
+    <header class="top" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 28px;background:#fff;border-bottom:1px solid #E3E6EB">
+      <nav aria-label="Breadcrumb" style="display:flex;align-items:center;gap:8px;font-size:13px;flex-wrap:wrap"><a href="Campaigns.dc.html" style="color:#5B6472">Campaigns</a><span class="k">/</span><a href="SmsComposer.dc.html" style="color:#5B6472">Summit: 8 days to go</a><span class="k">/</span><span style="font-weight:600">Review &amp; send</span></nav><span class="badge mut" style="gap:5px;margin-left:4px"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 2.5h10A1.5 1.5 0 0 1 14.5 4v6a1.5 1.5 0 0 1-1.5 1.5H7.6L4.5 14v-2.5H3A1.5 1.5 0 0 1 1.5 10V4A1.5 1.5 0 0 1 3 2.5z"></path><path d="M5.2 7h.01M8 7h.01M10.8 7h.01" stroke-width="2.2"></path></svg>SMS</span><div style="margin-left:auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="badge mut">Draft · autosaved 09:41</span><a href="SmsComposer.dc.html" class="btn">Back to editor</a><button class="btn">Re-run checks</button><div class="tools"><a href="Notifications.dc.html" class="ibtn" aria-label="Notifications, 3 unread"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 11V7a4 4 0 0 1 8 0v4l1.5 1.5h-11zM6.5 14a1.5 1.5 0 0 0 3 0"></path></svg><span class="cnt" aria-hidden="true">3</span></a><button class="ubtn" type="button" aria-haspopup="menu" aria-label="Account menu for Sofia Rossi"><span class="av" style="width:26px;height:26px;font-size:11px;background:#DCFCE7;color:#166534" aria-hidden="true">SR</span><span class="unm">Sofia</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button></div></div>
+    </header>
+    <h1 class="vh">Review and send, ready with warnings</h1>
+    <main class="content" id="main" style="padding:24px 28px;display:flex;flex-direction:column;gap:20px">
+<section class="verdict w"><svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true" style="flex:none"><circle cx="20" cy="20" r="19" fill="#FDE68A"></circle><path d="M20 11v11M20 27v1" stroke="#92400E" stroke-width="3" stroke-linecap="round"></path></svg><div style="display:flex;flex-direction:column;gap:2px;flex:1 1 300px;min-width:0"><span class="vt">Ready with warnings</span><span>9 checks passed, 2 warnings, 0 blocks. Checks finished 09:44 and run again 15 minutes before the first time zone starts.</span></div><div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn">Review both warnings</button><a href="SmsReportStates.dc.html" class="btn pri" style="min-height:40px;padding:0 18px">Schedule texts to 854 recipients</a></div></section><div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start"><div style="flex:1 1 560px;min-width:0;display:flex;flex-direction:column;gap:16px"><section class="card" style="flex:none;min-width:0;display:flex;flex-direction:column;overflow:hidden" aria-label="Send Readiness for SMS"><div class="chkg"><h2 class="h2">Warnings · 2</h2></div><div class="chkr w"><span class="badge warn">Warn</span><div class="rt"><span class="t">Registration: 20 recipients in Ireland are skipped: ACME is pending there.</span><span class="k">Vonage shows the sender ID as pending since 9 Oct 2026. Skipped people get nothing from this campaign; waiting holds them until ACME is approved, for up to 7 days.</span></div><div class="ac"><div class="seg" role="group" aria-label="Recipients in Ireland"><button type="button" class="on" aria-pressed="true">Skip them</button><button type="button" aria-pressed="false">Wait for approval</button></div></div></div><div class="chkr w"><span class="badge warn">Warn</span><div class="rt"><span class="t">Time zones: 12 recipients have an assumed time zone, from their phone number.</span><span class="k">Their contact records have no time zone. 10 have a US area code that maps to one zone; 2 have Canadian numbers, so Canada's main zone is used.</span></div><div class="ac"><a href="Contacts.dc.html" class="btn sm">Review 12 contacts</a></div></div><div class="chkg"><h2 class="h2">Passed · 9</h2><span class="k">SMS checks</span></div><div class="chkr"><span class="badge ok">Pass</span><div class="rt"><span class="t">Consent: 874 people on Acme Summit 2026 have SMS consent</span><span class="k">359 people on the list have no SMS consent and get nothing. Email sign-ups never count as consent to texts.</span></div></div><div class="chkr"><span class="badge ok">Pass</span><div class="rt"><span class="t">Suppressions: 7 numbers left out</span><span class="k">5 landlines and 2 invalid numbers, suppressed when their opt-in confirmation failed. The SMS suppression list is shared by Twilio and Vonage.</span></div></div><div class="chkr"><span class="badge ok">Pass</span><div class="rt"><span class="t">Registration and routes: every other recipient has a registered sender</span><span class="k">+1 888 555 0142, verified 6 Oct, for the US and Canada · ACME, allowed without registration, for the UK, Germany and the Netherlands.</span></div></div><div class="chkr"><span class="badge ok">Pass</span><div class="rt"><span class="t">Quiet hours: 10:00 local time is inside 09:00–20:00 everywhere</span><span class="k">From 08:00 UTC in Germany and the Netherlands to 17:00 UTC on the US Pacific coast.</span></div></div><div class="chkr"><span class="badge ok">Pass</span><div class="rt"><span class="t">Opt-out text: “Reply STOP to opt out” ends the text</span></div></div><div class="chkr"><span class="badge ok">Pass</span><div class="rt"><span class="t">Sender named at the start: “Acme:”</span></div></div><div class="chkr"><span class="badge ok">Pass</span><div class="rt"><span class="t">Links: 1 link, shortened on go.acme.io</span><span class="k">No public shorteners. go.acme.io was verified on 3 Oct.</span></div></div><div class="chkr"><span class="badge ok">Pass</span><div class="rt"><span class="t">Length: 130 characters, 1 segment, GSM-7</span></div></div><div class="chkr"><span class="badge ok">Pass</span><div class="rt"><span class="t">Budget: $19.54 fits the $80.03 left in October</span><span class="k">$39.51 of $100 after this send, under the 80% alert.</span></div></div></section><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr));gap:16px;align-items:start;"><section class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:12px;min-width:0;"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><h2 class="h2">Schedule</h2></div></div><label class="rad"><input type="radio" name="when"><span style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0"><span style="font-weight:600">Now</span><span class="k">Anyone outside 09:00–20:00 is held until their window opens</span></span></label><label class="rad"><input type="radio" name="when"><span style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0"><span style="font-weight:600">At one time for everyone</span><span class="k">The same moment everywhere; quiet hours hold the rest</span></span></label><label class="rad on"><input type="radio" name="when" checked><span style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0"><span style="font-weight:600">At a time in each recipient's time zone</span><span class="k">14 Oct 2026 at 10:00 local time</span><span style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:8px"><input class="in" type="date" value="2026-10-14" aria-label="Date"><select class="in" aria-label="Local time"><option>09:00</option><option selected>10:00</option><option>12:00</option><option>17:00</option><option>19:30</option></select></span><span class="k" style="margin-top:6px">Only times inside 09:00–20:00 are offered.</span><div style="display:flex;flex-direction:column;gap:6px;margin-top:2px"><div class="sum"><span><span class="mono" style="font-size:12px">08:00 UTC</span> · Germany, Netherlands</span><span class="n">77</span></div><div class="sum"><span><span class="mono" style="font-size:12px">09:00 UTC</span> · United Kingdom</span><span class="n">118</span></div><div class="sum"><span><span class="mono" style="font-size:12px">13:00–17:00 UTC</span> · Canada and the US, east to west</span><span class="n">659</span></div></div></span></label></section><div style="display:flex;flex-direction:column;gap:16px;min-width:0;"><section class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:12px;min-width:0;"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><h2 class="h2">Auto-pause thresholds</h2></div></div><div><div class="nr"><span style="display:flex;flex-direction:column;gap:1px;min-width:0;flex:1 1 150px"><span style="font-size:13px;font-weight:500">Failed above</span></span><span style="display:inline-flex;align-items:center;gap:6px;flex:none"><input class="in" type="text" value="5" placeholder="" style="width:60px;text-align:right" aria-label="Failed above"><span class="k">%</span></span></div><div class="nr"><span style="display:flex;flex-direction:column;gap:1px;min-width:0;flex:1 1 150px"><span style="font-size:13px;font-weight:500">Filtered by carriers above</span></span><span style="display:inline-flex;align-items:center;gap:6px;flex:none"><input class="in" type="text" value="2" placeholder="" style="width:60px;text-align:right" aria-label="Filtered by carriers above"><span class="k">%</span></span></div><div class="nr"><span style="display:flex;flex-direction:column;gap:1px;min-width:0;flex:1 1 150px"><span style="font-size:13px;font-weight:500">Opt-outs above</span></span><span style="display:inline-flex;align-items:center;gap:6px;flex:none"><input class="in" type="text" value="3" placeholder="" style="width:60px;text-align:right" aria-label="Opt-outs above"><span class="k">%</span></span></div></div><span class="k">Each counts once 50 texts have been sent. Pausing holds the rest; nothing already sent is recalled.</span></section><section class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:12px;min-width:0;"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><h2 class="h2">Test send</h2></div></div><div class="row" style="flex-wrap:nowrap;gap:8px"><select class="in" style="flex:1;min-width:0" aria-label="Test numbers"><option>Both test numbers</option><option>Marcus Chen · +1 312 555 0161</option><option>Sofia Rossi · +44 7700 900456</option></select><button class="btn">Send test</button></div><div class="sum" style="align-items:center"><span style="display:flex;flex-direction:column"><span>Marcus Chen · <span class="mono" style="font-size:12px">+1 312 555 0161</span></span><span class="k">09:31 via Twilio</span></span><span class="badge ok">Delivered</span></div><div class="sum" style="align-items:center"><span style="display:flex;flex-direction:column"><span>Sofia Rossi · <span class="mono" style="font-size:12px">+44 7700 900456</span></span><span class="k">09:31 via Vonage as ACME</span></span><span class="badge ok">Delivered</span></div></section></div></div></div><aside style="flex:1 1 340px;max-width:420px;display:flex;flex-direction:column;gap:16px;min-width:0"><section class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:12px;min-width:0;"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><h2 class="h2">Audience</h2></div></div><div class="sum"><span>Acme Summit 2026</span><span class="n">1,240</span></div><div class="sum" style="color:#5B6472"><span>No SMS consent on this list</span><span class="n">−359</span></div><div class="sum" style="color:#5B6472"><span>SMS suppression list</span><span class="n">−7</span></div><div class="sum" style="border-top:1px solid #EEF0F3;padding-top:8px"><span>Can receive texts</span><span class="n">874</span></div><div class="sum" style="color:#5B6472"><span>Ireland, skipped for now</span><span class="n">−20</span></div><div class="sum" style="border-top:1px solid #E3E6EB;padding-top:10px;font-size:15px"><span style="font-weight:600">To send</span><span class="n" style="font-size:20px">854</span></div></section><section class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:12px;min-width:0;"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><h2 class="h2">Route breakdown</h2></div></div><div style="display:flex;flex-direction:column;gap:6px"><div class="sum"><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#2a78d6"></span>Twilio · <span class="mono">+1 888 555 0142</span></span><span class="n">659</span></div><div class="bar"><i style="width:77.2%;background:#2a78d6"></i></div><div class="sum"><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#eb6834"></span>Vonage · ACME</span><span class="n">195</span></div><div class="bar"><i style="width:22.8%;background:#eb6834"></i></div></div><div style="overflow-x:auto"><table class="tbl" style="font-size:13px"><thead><tr><th scope="col" style="padding:8px 0">Provider</th><th scope="col" class="r" style="padding:8px 0">Cost</th><th scope="col" class="r" style="padding:8px 0 8px 12px">Duration</th></tr></thead><tbody><tr><td style="padding:8px 0">Twilio · 3 /s</td><td class="r n" style="padding:8px 0">$7.25</td><td class="r" style="padding:8px 0 8px 12px">under 4 min</td></tr><tr><td style="padding:8px 0">Vonage · 30 /s</td><td class="r n" style="padding:8px 0">$12.29</td><td class="r" style="padding:8px 0 8px 12px">seconds</td></tr><tr><td style="padding:8px 0;font-weight:600;border-top:1px solid #E3E6EB">Total</td><td class="r n" style="padding:8px 0;border-top:1px solid #E3E6EB">$19.54</td><td class="r" style="padding:8px 0 8px 12px;border-top:1px solid #E3E6EB">by 17:04 UTC</td></tr></tbody></table></div><span class="k">Twilio's 659 texts take under 4 minutes in all, spread over the time zones; Vonage's 195 take seconds.</span></section><section class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:12px;min-width:0;"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><h2 class="h2">Cost</h2><span class="k">Price per segment from Twilio's and Vonage's pricing on 14 Oct 2026</span></div></div><div class="sum" style="align-items:center"><span style="display:inline-flex;align-items:center;gap:8px"><span class="ccy s" title="United States"><b>US</b></span><span class="k">611 × $0.0110</span></span><span class="n">$6.72</span></div><div class="sum" style="align-items:center"><span style="display:inline-flex;align-items:center;gap:8px"><span class="ccy s" title="Canada"><b>CA</b></span><span class="k">48 × $0.0110</span></span><span class="n">$0.53</span></div><div class="sum" style="align-items:center"><span style="display:inline-flex;align-items:center;gap:8px"><span class="ccy s" title="United Kingdom"><b>GB</b></span><span class="k">118 × $0.0450</span></span><span class="n">$5.31</span></div><div class="sum" style="align-items:center"><span style="display:inline-flex;align-items:center;gap:8px"><span class="ccy s" title="Germany"><b>DE</b></span><span class="k">52 × $0.0880</span></span><span class="n">$4.58</span></div><div class="sum" style="align-items:center"><span style="display:inline-flex;align-items:center;gap:8px"><span class="ccy s" title="Netherlands"><b>NL</b></span><span class="k">25 × $0.0960</span></span><span class="n">$2.40</span></div><div class="sum" style="align-items:center"><span style="display:inline-flex;align-items:center;gap:8px"><span class="ccy s" title="Ireland"><b>IE</b></span><span class="k" style="color:#92400E">20 skipped</span></span><span class="n">$0.00</span></div><div class="sum" style="border-top:1px solid #E3E6EB;padding-top:10px;font-size:15px"><span style="font-weight:600">854 texts · 1 segment each</span><span class="n" style="font-size:20px">$19.54</span></div><div class="bm"><div class="sum"><span class="k">October budget</span><span class="n">$19.97 <span class="k">→ $39.51 of $100.00</span></span></div><div class="bm-t" role="img" aria-label="October budget: $19.97 used of $100.00, this send $19.54; alert at 80%"><i class="u" style="width:19.97%"></i><i class="s" style="width:19.54%"></i><span class="bmk" style="left:80%"></span></div><div class="bm-l"><span><span class="bsw" style="background:#0F766E"></span>Spent $19.97</span><span><span class="bsw" style="background:repeating-linear-gradient(135deg,#0F766E 0 3px,#99F6E4 3px 6px)"></span>This send $19.54</span><span><span style="width:2px;height:12px;background:#0B1220;border-radius:1px;display:inline-block"></span>Alert at 80%</span></div></div></section><section class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:12px;min-width:0;"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><h2 class="h2">Approvals</h2></div></div><span style="font-size:13px;color:#374151">No approval needed. The audience is under 10,000, the cost is under the $50 rule for SMS and WhatsApp, and Sofia Rossi holds campaigns:send and sms:send.</span><a href="ApprovalPolicy.dc.html" class="lnk">Approval rules</a></section><a href="SmsReportStates.dc.html" class="btn pri" style="min-height:44px;font-size:14px">Schedule texts to 854 recipients</a><span class="k" style="text-align:center">Sends to more than 1,000 people, or costing more than $100, ask you to type the recipient count.</span></aside></div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1611}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

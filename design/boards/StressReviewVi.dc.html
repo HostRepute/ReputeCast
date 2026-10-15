@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kiểm tra và gửi, sẵn sàng, có cảnh báo</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F4F6;color:#0B1220;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;line-height:1.45}
+a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
+.mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace}
+.card{background:#FFFFFF;border:1px solid #E3E6EB;border-radius:10px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:36px;padding:0 14px;border-radius:8px;border:1px solid #D4D8DF;background:#FFFFFF;color:#0B1220;font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;box-sizing:border-box}
+.btn:hover{background:#F3F4F6;color:#0B1220}
+.btn.pri{background:#0F766E;border-color:#0F766E;color:#FFFFFF}.btn.pri:hover{background:#115E59;color:#FFFFFF}
+.btn.sm{min-height:30px;padding:0 10px;font-size:12px}
+.badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;flex:none}
+.ok{background:#DCFCE7;color:#166534}.warn{background:#FEF3C7;color:#92400E}.bad{background:#FEE2E2;color:#991B1B}.info{background:#DBEAFE;color:#1E40AF}.mut{background:#EEF0F3;color:#4B5563}.pur{background:#EDE9FE;color:#5B21B6}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;flex:none}
+.nav a{display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;border-radius:8px;color:#4B5563;font-weight:500}
+.nav a:hover{background:#EEF0F3;color:#0B1220}.nav a.on{background:#E3F1EE;color:#0F766E}
+.nav svg{width:16px;height:16px;flex:none}
+.k{font-size:12px;color:#5B6472;font-weight:500}
+.n{font-weight:600;font-variant-numeric:tabular-nums}
+.bar{height:6px;border-radius:3px;background:#EEF0F3;overflow:hidden}.bar i{display:block;height:100%;border-radius:3px}
+.in{height:36px;padding:0 10px;border:1px solid #D4D8DF;border-radius:8px;background:#fff;font:inherit;font-size:13px;color:#0B1220;box-sizing:border-box}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.h2{margin:0;font-size:15px;font-weight:600}
+.grp{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;background:#F9FAFB;border-top:1px solid #E3E6EB}
+.grp:first-of-type{border-top:0;border-radius:10px 10px 0 0}
+.row{display:flex;gap:8px 12px;align-items:flex-start;padding:11px 16px;border-top:1px solid #EEF0F3;flex-wrap:wrap}
+.row > .rt{flex:1 1 320px}
+.grp{flex-wrap:wrap;row-gap:2px}
+.rt{display:flex;flex-direction:column;gap:2px;flex:1 1 200px;min-width:0}
+.t{font-weight:500}
+.sum{display:flex;justify-content:space-between;gap:10px;font-size:13px}
+.lbl{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:#4B5563}
+label.rad{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid #E3E6EB;border-radius:8px;cursor:pointer}
+label.rad input{margin-top:3px}
+
+
+/* shell additions: workspace switcher, notification bell, user menu */
+.ws{display:flex;align-items:center;gap:8px;margin:2px 0 4px;padding:7px 10px;border:1px solid #E3E6EB;border-radius:8px;background:#fff;color:#0B1220;font:inherit;text-align:left;cursor:pointer;width:100%;box-sizing:border-box}
+.ws:hover{background:#F3F4F6}
+.ws .wsn{display:flex;flex-direction:column;line-height:1.25;min-width:0;flex:1}
+.ws .wsn b{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ws .wsn span{font-size:11px;color:#5B6472;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tools{display:flex;align-items:center;gap:8px;margin-left:8px}
+.ibtn{position:relative;display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:1px solid #D4D8DF;background:#fff;color:#0B1220;cursor:pointer;padding:0;flex:none}
+.ibtn:hover{background:#F3F4F6}
+.ibtn .cnt{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#B91C1C;color:#fff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box}
+.ubtn{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 10px 0 4px;border-radius:8px;border:1px solid #D4D8DF;background:#fff;color:#0B1220;font:inherit;font-size:13px;font-weight:600;cursor:pointer;flex:none}
+.ubtn:hover{background:#F3F4F6}
+.menu{position:absolute;z-index:40;background:#fff;border:1px solid #D4D8DF;border-radius:10px;box-shadow:0 12px 32px rgba(11,18,32,.16);padding:6px;min-width:260px;display:flex;flex-direction:column;gap:2px;box-sizing:border-box}
+.menu a,.menu button{display:flex;align-items:center;gap:10px;min-height:36px;padding:0 10px;border-radius:8px;color:#0B1220;font:inherit;font-size:13px;font-weight:500;background:none;border:0;text-align:left;cursor:pointer;width:100%;box-sizing:border-box;text-decoration:none}
+.menu a:hover,.menu button:hover{background:#F3F4F6;color:#0B1220}
+.menu hr{border:0;border-top:1px solid #EEF0F3;margin:4px 0;width:100%}
+.menu .mh{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472;padding:8px 10px 4px}
+@media (max-width:767px){.tools{margin-left:0}.menu{min-width:0;max-width:calc(100vw - 24px)}}
+
+/* responsive shell */
+@media (max-width:1100px){
+  .side{flex:0 0 72px!important;max-width:72px;padding:14px 8px!important;gap:4px!important}
+  .side .nl,.side .brand-t,.side .ws{display:none}
+  .side .nav a{justify-content:center;padding:0!important;height:44px}
+  .side .nav svg{width:20px;height:20px}
+  .side > a[aria-label="ReputeCast home"]{justify-content:center;padding:6px 0!important}
+  .side .sidefoot{align-items:center}
+  .side .sidefoot > *{display:none}
+  .side .sidefoot > a.btn{display:inline-flex;width:44px;height:44px;padding:0!important;justify-content:center!important;font-size:0;gap:0}
+  .side .sidefoot > a.btn svg{width:18px;height:18px}
+  .top{padding:12px 16px!important}
+  .content{padding:16px!important}
+}
+@media (max-width:767px){
+  .app{flex-direction:column}
+  .side{flex:none!important;max-width:none!important;width:auto!important;position:fixed;left:0;right:0;bottom:0;z-index:50;flex-direction:row!important;align-items:center;padding:6px 6px!important;border-right:0!important;border-top:1px solid #E3E6EB;background:#fff!important;box-sizing:border-box;gap:0!important}
+  .side > a[aria-label="ReputeCast home"],.side .ws,.side .sidefoot{display:none!important}
+  .side .nav{flex-direction:row!important;flex:1;justify-content:space-around;margin-top:0!important;gap:0!important}
+  .side .nav a{height:44px;width:44px;flex:none;padding:0!important;justify-content:center;border-radius:10px}
+  .side .nl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;display:block}
+  .side .nav a.on{background:#E3F1EE;color:#0F766E}
+  .mainc{padding-bottom:72px}
+  .top{padding:12px 12px!important;gap:8px!important}
+  .top h1{font-size:16px!important}
+  .top .in{width:100%!important}
+  .tabs{flex-wrap:nowrap!important;overflow-x:auto;max-width:100%;margin-left:0!important;padding-bottom:2px}
+  .tabs a{flex:none}
+  .content{padding:12px!important;gap:12px!important}
+  .cpanel{max-width:none!important;flex:1 1 100%!important}
+}
+@media (min-width:768px) and (max-width:1100px){
+  .cpanel{max-width:none!important}
+}
+.tscroll{overflow-x:auto;max-width:100%;contain:inline-size}
+.tscroll>table{min-width:100%}
+
+/* responsive phone fixes */
+@media (max-width:767px){
+  .app{flex-wrap:nowrap!important}
+  .mainc{width:100%;max-width:100%}
+  .content > *{min-width:0;max-width:100%}
+  .content .in,.content select,.content input,.content textarea{max-width:100%;min-width:0}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+  .sc-host [style*="flex: 1 1"]{min-width:0}
+  .sc-host select.in,.sc-host input.in{width:0;min-width:100%}
+  .sc-host .mono{overflow-wrap:anywhere}
+  .sc-host .sk{max-width:100%}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px;max-width:100%}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host .tabs .badge{white-space:nowrap}
+  .sc-host .side .btn{white-space:nowrap}
+  .sc-host [style*="grid-template-columns: repeat("]{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))!important}
+  .sc-host [style*="minmax(260px"],.sc-host [style*="minmax(280px"],.sc-host [style*="minmax(300px"],.sc-host [style*="minmax(320px"],.sc-host [style*="minmax(340px"],.sc-host [style*="minmax(360px"],.sc-host [style*="minmax(380px"],.sc-host [style*="minmax(420px"]{grid-template-columns:1fr!important}
+  .sc-host [style*="radial-gradient"]{overflow:auto}
+  .sc-host [style*="display: grid"] > *{min-width:0}
+  .sc-host header > div{max-width:100%;min-width:0}
+  .sc-host pre,.sc-host .lines{max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]) > div[style*="flex: 1"]{min-width:120px}
+}
+
+/* accessibility */
+:focus-visible{outline:2px solid #0F766E;outline-offset:2px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-9999px;top:8px;z-index:100;background:#fff;color:#0B1220;padding:8px 12px;border-radius:8px;border:1px solid #0F766E;font-weight:600;text-decoration:none}
+.skip:focus{left:8px}
+p a:not(.btn),span a:not(.btn):not([style*="color"]),td a:not(.btn):not([style*="color"]),li a:not(.btn),label a,.k a,.lead a{text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+.content > * a:not(.btn):not(p a):not(span a):not(td a):not(li a):not(label a):not(.k a),.top a:not(.btn),nav a:not(.btn),footer a:not(.btn){min-height:24px;display:inline-flex;align-items:center}
+input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F766E}
+.in,select.in,textarea.in,input.in{border-color:#8B94A3}
+@media (max-width:767px){
+  .sc-host{overflow-wrap:anywhere}
+  .sc-host table,.sc-host td,.sc-host th{overflow-wrap:normal}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+}
+
+/* stress test: text expansion rules (5.10, section 7) */
+.tabs{flex-wrap:nowrap!important;overflow-x:auto;max-width:100%;scrollbar-width:thin}
+.tabs a{flex:none;white-space:nowrap}
+.tbl th{white-space:normal!important;vertical-align:bottom;line-height:1.35}
+.tbl th > .h2l{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-width:64px}
+.trunc{display:block;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.clamp2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.btn,.badge,.tabs a{white-space:nowrap}
+.badge{flex:none}
+.nav a .nl{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.25;white-space:normal}
+.nav a{height:auto!important;min-height:36px;padding-top:6px!important;padding-bottom:6px!important}
+.annot{border:1px dashed #9AA3B2;border-radius:10px;background:#FBFBFC;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.annot h2{margin:0;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#4B5563}
+.annot ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:5px;font-size:13px;color:#374151}
+.annot .rl{font-weight:600;color:#0B1220}
+@media (max-width:1100px){.nav a{min-height:44px;padding:0!important}.side > a[href="Main.dc.html"]{justify-content:center;padding:6px 0!important}}
+/* the shell hid the logo on phones by its English aria-label; key it on the link so translations keep working */
+@media (max-width:767px){.side > a[href="Main.dc.html"]{display:none!important}}
+.btn{text-align:center}
+.crumbmid{display:inline-block!important;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle}
+.crumbs{flex-wrap:wrap;row-gap:2px}
+.crumbs > *{white-space:nowrap}
+@media (max-width:767px){.crumbmid{max-width:96px}}
+@media (max-width:767px){
+  .sc-host .badge{white-space:nowrap!important;height:22px!important;padding-top:0!important;padding-bottom:0!important}
+  .sc-host .tbl .btn,.sc-host .tabs a{white-space:nowrap!important}
+  .nav a{padding:0!important}
+}
+
+/* Vietnamese: stacked diacritics need room; body text keeps a line height of at least 1.4 */
+:lang(vi) .ws .wsn,:lang(vi) .ws .wsn b,:lang(vi) .ws .wsn span{line-height:1.45}
+:lang(vi) [style*="line-height: 1.25"],:lang(vi) [style*="line-height: 1.3"]{line-height:1.42!important}
+:lang(vi) .k{line-height:1.45}
+</style>
+</helmet>
+<h1 class="vh">Kiểm tra và gửi, sẵn sàng, có cảnh báo</h1>
+<div class="app" style="display:flex;flex-wrap:wrap;align-items:stretch;min-height:100vh">
+  <a href="#main" class="skip">Chuyển đến nội dung</a>
+  <aside class="side" style="flex:1 1 232px;background:#FBFBFC;border-right:1px solid #E3E6EB;display:flex;flex-direction:column;padding:16px 12px;gap:6px;box-sizing:border-box">
+    <a href="Main.dc.html" style="display:flex;align-items:center;gap:10px;padding:6px 8px;color:#0B1220" aria-label="Trang chủ ReputeCast">
+      <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+      <span class="brand-t" style="font-weight:700;font-size:15px;letter-spacing:-.01em">ReputeCast</span>
+    </a>
+    <button class="ws" type="button" aria-haspopup="menu" aria-label="Đổi không gian làm việc. Hiện tại: Acme Newsletter, vai trò của bạn: Chủ sở hữu"><span class="av" style="width:24px;height:24px;font-size:10px;background:#0F766E;color:#fff;border-radius:6px" aria-hidden="true">AN</span><span class="wsn"><b>Acme Newsletter</b><span>Chủ sở hữu</span></span><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button>
+    <nav class="nav" style="display:flex;flex-direction:column;gap:2px;margin-top:8px" aria-label="Điều hướng chính">
+      <a href="Main.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z"></path></svg><span class="nl">Tổng quan</span></a>
+      <a href="Campaigns.dc.html" class="on" aria-current="page"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M14 2 2 7l5 2 2 5zM7 9l7-7" stroke-linejoin="round"></path></svg><span class="nl">Chiến dịch</span></a>
+      <a href="AutomationsList.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="4" cy="3" r="2"></circle><circle cx="4" cy="13" r="2"></circle><circle cx="12" cy="8" r="2"></circle><path d="M4 5v6M6 8h4"></path></svg><span class="nl">Tự động hóa</span></a>
+      <a href="Transactional.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="1.5"></rect><path d="m2 4.5 6 4.5 6-4.5"></path></svg><span class="nl">Giao dịch</span></a>
+      <a href="Contacts.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="6" cy="5" r="2.5"></circle><path d="M1.5 14a4.5 4.5 0 0 1 9 0M11 3a2.5 2.5 0 0 1 0 5M14.5 14a4 4 0 0 0-3-3.8"></path></svg><span class="nl">Người đăng ký</span></a>
+      <a href="GrowOverview.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 12.5 6 8.5l3 3 5-5.5"></path><path d="M10.5 5.5H14V9"></path></svg><span class="nl">Tăng trưởng</span></a>
+      <a href="EarnOverview.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M10 5.9H7.1a1.3 1.3 0 0 0 0 2.6h1.8a1.3 1.3 0 0 1 0 2.6H6M8 4.4v1.5M8 11.1v1.5"></path></svg><span class="nl">Kiếm tiền</span></a>
+      <a href="FormBuilder.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="2"></rect><path d="M5 6h6M5 9h6M5 12h3"></path></svg><span class="nl">Biểu mẫu và trang</span></a>
+      <a href="Deliverability.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 1.5 13.5 3.5v4.5c0 3-2.3 5.3-5.5 6.5C4.8 13.3 2.5 11 2.5 8V3.5z" stroke-linejoin="round"></path><path d="m5.5 8 1.8 1.8L10.8 6"></path></svg><span class="nl">Khả năng vào hộp thư</span></a>
+      <a href="Providers.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="5" rx="1.5"></rect><rect x="2" y="9" width="12" height="5" rx="1.5"></rect><path d="M5 4.5h.01M5 11.5h.01" stroke-width="2" stroke-linecap="round"></path></svg><span class="nl">Nhà cung cấp gửi thư</span></a>
+      <a href="WorkspaceSettings.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 4h7M13 4h1M2 8h2M8 8h6M2 12h7M13 12h1"></path><circle cx="11" cy="4" r="1.8"></circle><circle cx="6" cy="8" r="1.8"></circle><circle cx="11" cy="12" r="1.8"></circle></svg><span class="nl">Cài đặt</span></a>
+      <a href="ShellMore.dc.html" class="more" aria-label="Thêm: Tự động hóa, Giao dịch, Tăng trưởng, Kiếm tiền, Biểu mẫu và trang, Nhà cung cấp gửi thư, Cài đặt"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="3.5" cy="8" r="1.2"></circle><circle cx="8" cy="8" r="1.2"></circle><circle cx="12.5" cy="8" r="1.2"></circle></svg><span class="nl">Thêm</span></a>
+    </nav>
+    <div class="sidefoot" style="margin-top:auto;display:flex;flex-direction:column;gap:8px">
+      <a href="SettingsIntegrations.dc.html" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid #E3E6EB;border-radius:8px;background:#fff;color:#0B1220">
+        <span class="dot" style="color:#15803D"></span>
+        <div style="display:flex;flex-direction:column;line-height:1.25"><span style="font-size:12px;font-weight:600">Đã kết nối HostRepute</span><span class="k" style="font-size:11px">84 danh sách chặn · đồng bộ 4 phút trước</span></div>
+      </a>
+    </div>
+  </aside>
+
+  <div class="mainc" style="flex:999 1 560px;min-width:0;display:flex;flex-direction:column">
+    <header class="top" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 28px;background:#fff;border-bottom:1px solid #E3E6EB">
+      <nav aria-label="Đường dẫn" style="display:flex;align-items:center;gap:8px;font-size:13px" class="crumbs">
+        <a href="Campaigns.dc.html" style="color:#5B6472">Chiến dịch</a><span class="k">/</span>
+        <a href="Composer.dc.html" class="crumbmid" title="Weekly Digest #142" style="color:#5B6472">Weekly Digest #142</a><span class="k">/</span>
+        <span style="font-weight:600">Kiểm tra và gửi</span>
+      </nav>
+      <div style="margin-left:auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <span class="badge mut">Bản nháp · tự lưu 2 phút trước</span>
+        <a href="Composer.dc.html" class="btn">Quay lại trình soạn thảo</a>
+        <button class="btn">Chạy lại kiểm tra</button>
+      <div class="tools"><a href="Notifications.dc.html" class="ibtn" aria-label="Thông báo, 3 chưa đọc"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 11V7a4 4 0 0 1 8 0v4l1.5 1.5h-11zM6.5 14a1.5 1.5 0 0 0 3 0"></path></svg><span class="cnt" aria-hidden="true">3</span></a><button class="ubtn" type="button" aria-haspopup="menu" aria-label="Menu tài khoản của Linh Nguyen"><span class="av" style="width:26px;height:26px;font-size:11px;background:#DBEAFE;color:#1E40AF" aria-hidden="true">LN</span><span class="unm">Linh</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button></div></div>
+    </header>
+
+    <main class="content" id="main" style="padding:24px 28px;display:flex;flex-direction:column;gap:20px">
+      <section style="display:flex;align-items:center;gap:18px;padding:18px 22px;border-radius:12px;background:#FFFBEB;border:1px solid #FCD34D;flex-wrap:wrap">
+        <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="19" fill="#FDE68A"></circle><path d="M20 11v11M20 27v1" stroke="#92400E" stroke-width="3" stroke-linecap="round"></path></svg>
+        <div style="display:flex;flex-direction:column;gap:2px;flex:1 1 300px">
+          <span style="font-size:20px;font-weight:700;letter-spacing:-.01em;color:#78350F">Sẵn sàng, có cảnh báo</span>
+          <span style="color:#78350F">27 mục đạt, 2 cảnh báo, 0 mục chặn. Kiểm tra xong lúc 09:40 và sẽ chạy lại 15 phút trước giờ gửi đã lên lịch.</span>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn">Sửa cả hai cảnh báo</button>
+          <a href="SendReadinessConfirm.dc.html" class="btn pri" style="min-height:40px;padding:0 18px">Lên lịch gửi cho 31.604 người nhận</a>
+        </div>
+      </section>
+
+      <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start">
+        <section class="card" style="flex:1 1 560px;min-width:0;display:flex;flex-direction:column" aria-label="Danh sách kiểm tra trước khi gửi">
+          <div class="grp"><h2 class="h2">Uy tín người gửi</h2><span class="k">qua HostRepute · 84 nguồn · đạt 3/4</span></div>
+          <div class="row"><span class="badge ok">Đạt</span><div class="rt"><span class="t">news.acme.io sạch trên 84/84 danh sách chặn tên miền</span><span class="k">Spamhaus DBL, SURBL, URIBL, Barracuda và 80 danh sách khác · kiểm tra lúc 09:40</span></div></div>
+          <div class="row" style="background:#FFFBEB"><span class="badge warn">Cảnh báo</span><div class="rt"><span class="t">IP Postal 203.0.113.25 nằm trong 1/84 danh sách chặn IP</span><span class="k">UCEPROTECT Level 3 chặn cả dải /16 của mạng lưu trữ. Ít nhà cung cấp hộp thư dùng danh sách này nên ảnh hưởng thấp. IP của SES là nhóm dùng chung và được kiểm tra ở cấp tên miền.</span></div><div style="display:flex;gap:8px;flex-wrap:wrap"><a href="Deliverability.dc.html" class="btn sm">Yêu cầu gỡ khỏi danh sách</a><button class="btn sm">Chỉ gửi qua SES</button></div></div>
+          <div class="row"><span class="badge ok">Đạt</span><div class="rt"><span class="t">Amazon SES: thư trả lại 0,6% và khiếu nại 0,04%, trong ngưỡng xem xét của SES (5% và 0,1%)</span><span class="k">Trạng thái tài khoản: Ổn định, không bị xử lý · 7 ngày gần nhất</span></div></div>
+          <div class="row"><span class="badge ok">Đạt</span><div class="rt"><span class="t">Postal: thư trả lại 0,9% và khiếu nại 0,05%, trong giới hạn khởi động (2% và 0,1%)</span><span class="k">Ngày 9/21 · giới hạn hôm nay 6.000 thư, lần gửi này dùng 3.160</span></div></div>
+
+          <div class="grp"><h2 class="h2">Xác thực</h2><span class="k">news.acme.io · bản ghi SES và Postal yêu cầu</span></div>
+          <div class="row"><span class="badge ok">Đạt</span><div class="rt"><span class="t">SPF cho phép cả hai nhà cung cấp gửi thư</span><span class="k mono">v=spf1 include:amazonses.com include:spf.mta.acme.io -all</span></div></div>
+          <div class="row"><span class="badge ok">Đạt</span><div class="rt"><span class="t">Ký DKIM trên cả hai nhà cung cấp, khóa 2048 bit</span><span class="k">SES: đã xác minh 3 CNAME Easy DKIM · Postal: đã xác minh selector postal-2026</span></div></div>
+          <div class="row"><span class="badge ok">Đạt</span><div class="rt"><span class="t">DMARC p=quarantine, 100% thư được căn chỉnh trong 7 ngày qua</span><span class="k mono">v=DMARC1; p=quarantine; rua=mailto:dmarc@reports.hostrepute.com; adkim=s</span></div></div>
+          <div class="row"><span class="badge ok">Đạt</span><div class="rt"><span class="t">Đã xác minh tên miền MAIL FROM tùy chỉnh</span><span class="k">bounce.news.acme.io (SES) · rp.news.acme.io (Postal)</span></div></div>
+          <div class="row"><span class="badge ok">Đạt</span><div class="rt"><span class="t">Không bắt buộc BIMI</span><span class="k">Tùy chọn. Không tìm thấy bản ghi; chỉ ảnh hưởng đến việc hiển thị logo trong Gmail, Yahoo và Apple Mail.</span></div><button class="btn sm">Thiết lập BIMI</button></div>
+
+          <div class="grp"><h2 class="h2">Nội dung</h2><span class="k">Weekly Digest #142 · biên dịch từ MJML lúc 09:39</span></div>
+          <div class="row"><span class="badge ok">Đạt</span><div class="rt"><span class="t">Không có dấu hiệu spam trong tiêu đề, đoạn xem trước hay nội dung</span><span class="k">Tiêu đề: "Three launches, one deprecation, and the roadmap for Q4" · không viết hoa toàn bộ, không có cụm từ thúc ép, không có liên kết rút gọn</span></div></div>
+          <div class="row"><span class="badge ok">Đạt</span><div class="rt"><span class="t">Tỷ lệ hình ảnh trên chữ 38%</span><span class="k">7 hình ảnh, 1.140 từ · nên dưới 60%</span></div></div>
+          <div class="row"><span class="badge ok">Đạt</span><div class="rt"><span class="t">Kích thước HTML 64 KB, dưới giới hạn cắt 102 KB của Gmail</span><span class="k">CSS nội tuyến 11 KB · liên kết theo dõi thêm khoảng 3 KB</span></div></div>
+          <div class="row"><span class="badge ok">Đạt</span><div class="rt"><span class="t">Cả 7 hình ảnh đều có văn bản thay thế</span></div></div>
+          <div class="row"><span class="badge ok">Đạt</span><div class="rt"><span class="t">Đã tạo phiên bản văn bản thuần</span><span class="k">multipart/alternative · 9 KB</span></div><a href="ComposerPreview.dc.html" class="btn sm">Xem trước</a></div>
+
+          <div class="grp"><h2 class="h2">Liên kết</h2><span class="k">14 liên kết · kiểm tra lúc 09:40</span></div>
+          <div class="row"><span class="badge ok">Đạt</span><div class="rt"><span class="t">Cả 14 liên kết đều phản hồi (HTTP 200)</span><span class="k">Chậm nhất: docs.acme.io/changelog với 840 ms</span></div></div>
+          <div class="row"><span class="badge ok">Đạt</span><div class="rt"><span class="t">Không có tên miền liên kết nào trong danh sách chặn URI</span><span class="k">SURBL, URIBL, Spamhaus DBL · acme.io, docs.acme.io, github.com, youtube.com</span></div></div>
+
+          <div class="grp"><h2 class="h2">Tuân thủ</h2><span class="k">Quy tắc gửi hàng loạt của Gmail và Yahoo</span></div>
+          <div class="row"><span class="badge ok">Đạt</span><div class="rt"><span class="t">Có header hủy đăng ký một lần nhấp</span><span class="k mono">List-Unsubscribe: &lt;https://news.acme.io/u/{token}&gt; · List-Unsubscribe-Post: List-Unsubscribe=One-Click</span></div></div>
+          <div class="row"><span class="badge ok">Đạt</span><div class="rt"><span class="t">Chân thư có liên kết hủy đăng ký và địa chỉ bưu chính</span><span class="k">Acme Inc · 500 Market St, Suite 1200 · San Francisco, CA 94105</span></div></div>
+          <div class="row"><span class="badge ok">Đạt</span><div class="rt"><span class="t">Đáp ứng yêu cầu gửi hàng loạt</span><span class="k">DMARC đã căn chỉnh · hủy đăng ký một lần nhấp · tỷ lệ khiếu nại 0,04%, dưới giới hạn 0,3% · xử lý hủy đăng ký trong 2 ngày</span></div></div>
+
+          <div class="grp"><h2 class="h2">Chất lượng người nhận</h2><span class="k">Weekly Digest · 31.988 liên hệ</span></div>
+          <div class="row" style="background:#FFFBEB"><span class="badge warn">Cảnh báo</span><div class="rt"><span class="t">Nhóm nhận có 412 liên hệ không tương tác (không mở thư trong 180 ngày)</span><span class="k">Gửi cho họ làm tăng nguy cơ dính bẫy spam và giảm tín hiệu tương tác với Gmail. Loại họ ra, nhóm nhận còn 31.192.</span></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm pri">Loại 412 liên hệ không tương tác</button><a href="SegmentBuilder.dc.html" class="btn sm">Xem danh sách</a></div></div>
+          <div class="row"><span class="badge ok">Đạt</span><div class="rt"><span class="t">Không có liên hệ nào bị trả thư trong 30 ngày qua</span><span class="k">Đã loại 331 liên hệ trong danh sách chặn gửi dùng chung</span></div></div>
+          <div class="row"><span class="badge ok">Đạt</span><div class="rt"><span class="t">Tự động loại 27 địa chỉ chức danh</span><span class="k">info@, support@, sales@, admin@ và tương tự</span></div></div>
+
+          <div class="grp"><h2 class="h2">Định tuyến</h2><span class="k">Luồng Gửi hàng loạt</span></div>
+          <div class="row"><span class="badge ok">Đạt</span><div class="rt"><span class="t">Mọi tuyến đều có nhà cung cấp ổn định</span><span class="k">Amazon SES (Ổn định) 90% · Postal (Đang khởi động, ngày 9) 10% · khi lỗi: tạm dừng và hỏi</span></div><a href="ProvidersRouting.dc.html" class="btn sm">Sửa tuyến</a></div>
+          <div class="row"><span class="badge ok">Đạt</span><div class="rt"><span class="t">Điều khoản của cả hai nhà cung cấp đều cho phép tiếp thị hàng loạt</span><span class="k">SES: có, với quyền truy cập production · Postal: tự lưu trữ, theo chính sách của bạn</span></div></div>
+          <div class="row"><span class="badge ok">Đạt</span><div class="rt"><span class="t">Theo dõi mở và nhấp phía nhà cung cấp đã tắt, nên không bị theo dõi trùng</span><span class="k">Configuration set rc-broadcasts của SES: không theo dõi · Postal: đã tắt ghi lại liên kết</span></div></div>
+        </section>
+
+        <aside style="flex:1 1 340px;max-width:420px;display:flex;flex-direction:column;gap:16px">
+          <section class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:12px">
+            <h2 class="h2">Người đăng ký</h2>
+            <div class="sum"><span>Danh sách Weekly Digest</span><span class="n">31.988</span></div>
+            <div class="sum" style="color:#5B6472"><span>Danh sách chặn gửi (dùng chung)</span><span class="n">−331</span></div>
+            <div class="sum" style="color:#5B6472"><span>Địa chỉ chức danh</span><span class="n">−27</span></div>
+            <div class="sum" style="color:#5B6472"><span>Trùng lặp</span><span class="n">−26</span></div>
+            <div class="sum" style="border-top:1px solid #E3E6EB;padding-top:10px;font-size:15px"><span style="font-weight:600">Người nhận cuối cùng</span><span class="n" style="font-size:20px">31.604</span></div>
+          </section>
+
+          <section class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:12px">
+            <h2 class="h2">Phân bổ tuyến</h2>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div class="sum"><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#4a3aa7"></span>Amazon SES · 90%</span><span class="n">28.444</span></div>
+              <div class="bar"><i style="width:90%;background:#4a3aa7"></i></div>
+              <div class="sum"><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#e87ba4"></span>Postal · 10%</span><span class="n">3.160</span></div>
+              <div class="bar"><i style="width:10%;background:#e87ba4"></i></div>
+            </div>
+            <div class="tscroll"><table class="tbl" style="width:100%;border-collapse:collapse;font-size:13px">
+              <thead><tr><th scope="col" style="text-align:left;padding:8px 0;border-bottom:1px solid #E3E6EB" class="k">Nhà cung cấp gửi thư</th><th scope="col" style="text-align:right;padding:8px 0;border-bottom:1px solid #E3E6EB" class="k">Chi phí</th><th scope="col" style="text-align:right;padding:8px 0;border-bottom:1px solid #E3E6EB" class="k">Thời gian</th></tr></thead>
+              <tbody>
+                <tr><td style="padding:8px 0">SES · 0,10 US$ mỗi 1.000 · 14/giây</td><td class="n" style="text-align:right">2,84 US$</td><td class="n" style="text-align:right">34 phút</td></tr>
+                <tr><td style="padding:8px 0">Postal · tự lưu trữ · tăng dần 2/giây</td><td class="n" style="text-align:right">0,00 US$</td><td class="n" style="text-align:right">26 phút</td></tr>
+                <tr><td style="padding:8px 0;border-top:1px solid #E3E6EB;font-weight:600">Tổng, các tuyến chạy song song</td><td class="n" style="text-align:right;border-top:1px solid #E3E6EB">2,84 US$</td><td class="n" style="text-align:right;border-top:1px solid #E3E6EB">34 phút</td></tr>
+              </tbody>
+            </table></div>
+            <span class="k">Xong khoảng 09:34 nếu bắt đầu lúc 09:00.</span>
+          </section>
+
+          <section class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:10px">
+            <h2 class="h2">Giới hạn tốc độ theo nhà cung cấp hộp thư</h2>
+            <div class="sum"><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#2a78d6"></span>Gmail · 14.538</span><span class="n">tốc độ tối đa</span></div>
+            <div class="sum"><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#eb6834"></span>Outlook · 6.637</span><span class="n">5/giây</span></div>
+            <div class="sum"><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#1baf7a"></span>Yahoo · 2.844</span><span class="n">4/giây</span></div>
+            <div class="sum"><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#eda100"></span>iCloud · 2.528</span><span class="n">3/giây</span></div>
+            <div class="sum"><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#8b94a3"></span>Khác · 5.057</span><span class="n">tốc độ tối đa</span></div>
+            <span class="k">Outlook, Yahoo và iCloud nhận luồng chậm ổn định hơn. Giới hạn tự điều chỉnh nếu thư bị hoãn tăng lên.</span>
+          </section>
+
+          <section class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:12px">
+            <h2 class="h2">Ngưỡng tự động tạm dừng</h2>
+            <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">
+              <label class="lbl">Tỷ lệ trả thư<input class="in" value="2,0 %"></label>
+              <label class="lbl">Tỷ lệ khiếu nại<input class="in" value="0,10 %"></label>
+              <label class="lbl">Khiếu nại, theo nhà cung cấp hộp thư<input class="in" value="0,10 %"></label>
+              <label class="lbl">Lỗi nhà cung cấp trong 3 phút<input class="in" value="5 %"></label>
+            </div>
+            <fieldset style="border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;min-width:0"><legend class="lbl" style="margin-bottom:6px;padding:0">Khi vượt ngưỡng</legend><label class="rad" style="border-color:#0F766E;background:#F0FDFA"><input type="radio" name="trip" checked><span>Chỉ tạm dừng tuyến hoặc nhà cung cấp hộp thư bị ảnh hưởng</span></label><label class="rad"><input type="radio" name="trip"><span>Tạm dừng toàn bộ chiến dịch</span></label></fieldset>
+          </section>
+
+          <section class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:10px">
+            <h2 class="h2">Thời điểm gửi</h2>
+            <label class="rad"><input type="radio" name="when"><span><span style="font-weight:600">Gửi ngay</span><br><span class="k">Bắt đầu trong vòng một phút sau khi xác nhận</span></span></label>
+            <label class="rad" style="border-color:#0F766E;background:#F0FDFA"><input type="radio" name="when" checked><span style="flex:1"><span style="font-weight:600">Lên lịch</span><br><span class="k">Thứ Ba, 14 tháng 10, 2026 · 09:00 · America/New_York</span>
+              <span style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:8px"><input class="in" type="date" value="2026-10-14" aria-label="Ngày"><input class="in" type="time" value="09:00" aria-label="Giờ"><select class="in" aria-label="Múi giờ" style="grid-column:1 / -1"><option>America/New_York (ET)</option><option>Europe/Berlin (CET)</option><option>UTC</option></select></span></span></label>
+            <label class="rad"><input type="radio" name="when"><span><span style="font-weight:600">Giờ tốt nhất cho từng người nhận</span><br><span class="k">Mỗi liên hệ nhận thư vào giờ họ thường mở, trong vòng 24 giờ kể từ 09:00</span></span></label>
+          </section>
+
+          <section class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:10px">
+            <h2 class="h2">Thư gửi thử</h2>
+            <div style="display:flex;gap:8px"><label class="vh" for="test-email">Địa chỉ gửi thử</label><input id="test-email" class="in" value="linh@acme.io" style="flex:1;min-width:0"><button class="btn">Gửi thử</button></div>
+            <div class="sum"><span class="k">linh@acme.io · 09:12 · qua SES</span><span class="badge ok">Đã đến Gmail</span></div>
+            <div class="sum"><span class="k">team-qa@acme.io · 09:12 · qua Postal</span><span class="badge ok">Đã đến Outlook</span></div>
+          </section>
+
+          <a href="SendReadinessConfirm.dc.html" class="btn pri" style="min-height:44px;font-size:14px">Lên lịch gửi cho 31.604 người nhận</a>
+          <span class="k" style="text-align:center">Bạn sẽ xác nhận người nhận và hai cảnh báo ở bước tiếp theo.</span>
+        </aside>
+      </div>
+    <section class="annot" lang="en" aria-label="Stress test notes"><h2>Stress test notes · Review &amp; send in Vietnamese</h2><ul><li><span class="rl">Cut-off text:</span> one, fixed. “Chỉ tạm dừng tuyến hoặc nhà cung cấp hộp thư bị ảnh hưởng” didn’t fit its select, and a select can’t wrap. The two choices are radio cards here. Proposed: a choice whose label can pass about 32 characters is a radio card, not a select (rule 1).</li><li><span class="rl">Buttons:</span> in check rows, “Yêu cầu gỡ khỏi danh sách” and “Chỉ gửi qua SES” move to their own row instead of squeezing the text beside them (rule 4).</li><li><span class="rl">Verdict:</span> “Lên lịch gửi cho 31.604 người nhận” fits beside “Sửa cả hai cảnh báo”; the counts wrap under the title.</li><li><span class="rl">Labels into numbers:</span> none. Long summary labels such as “Danh sách chặn gửi (dùng chung)” keep their number on the right.</li><li><span class="rl">Diacritics:</span> “Người nhận cuối cùng” and “Giới hạn tốc độ theo nhà cung cấp hộp thư” keep their marks at 15 px and 13 px (rule 7).</li><li><span class="rl">Formats:</span> 2,84 US$ · 0,10 US$ mỗi 1.000 · 14/giây · Thứ Ba, 14 tháng 10, 2026. DNS records, headers and domains aren’t translated.</li></ul><span class="k">A design note, not part of the screen. Rules are numbered as in section 7, Text expansion rules.</span></section>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2564}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

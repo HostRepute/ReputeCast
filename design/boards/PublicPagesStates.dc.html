@@ -1,0 +1,577 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Public pages · landing pages, shop, checkout and downloads</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F5F3FF;color:#1F2937;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:15px;line-height:1.5}
+a{color:#4338CA;text-decoration:none}a:hover{color:#3730A3}
+select{height:44px;padding:0 12px;border:1px solid #C9CED6;border-radius:9px;font:inherit;font-size:14px;width:100%;box-sizing:border-box;background:#fff}
+
+/* accessibility */
+:focus-visible{outline:2px solid #0F766E;outline-offset:2px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-9999px;top:8px;z-index:100;background:#fff;color:#0B1220;padding:8px 12px;border-radius:8px;border:1px solid #0F766E;font-weight:600;text-decoration:none}
+.skip:focus{left:8px}
+p a:not(.btn),span a:not(.btn):not([style*="color"]),td a:not(.btn):not([style*="color"]),li a:not(.btn),label a,.k a,.lead a{text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+.content > * a:not(.btn):not(p a):not(span a):not(td a):not(li a):not(label a):not(.k a),.top a:not(.btn),nav a:not(.btn),footer a:not(.btn){min-height:24px;display:inline-flex;align-items:center}
+input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F766E}
+.in,select.in,textarea.in,input.in{border-color:#8B94A3}
+@media (max-width:767px){
+  .sc-host{overflow-wrap:anywhere}
+  .sc-host table,.sc-host td,.sc-host th{overflow-wrap:normal}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+}
+
+/* expansion components (phases 1-8) */
+.num,.tbl td.r{font-variant-numeric:tabular-nums}
+.tbl th.r,.tbl td.r{text-align:right}
+.tbl tr.sel td{background:#F0FDFA}
+.tbl tr.xp td{background:#FBFBFC}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.stat{padding:14px 16px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.stat .v{font-size:22px;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums;line-height:1.25;margin-top:2px}
+.stat .s{font-size:12px;color:#5B6472;font-weight:500}
+.stat.hot{border-color:#FCA5A5;background:#FFF5F5}
+.strip{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;background:#0B1220;color:#fff;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.sk{background:#E9ECF0;border-radius:6px;display:inline-block}
+.bar{height:6px;border-radius:3px;background:#EEF0F3;overflow:hidden}.bar i{display:block;height:100%;border-radius:3px}
+.ptab{display:flex;border-bottom:1px solid #E3E6EB}
+.ptab button{flex:1;height:38px;border:0;background:none;font:inherit;font-size:12.5px;font-weight:600;color:#5B6472;cursor:pointer;border-bottom:2px solid transparent;padding:0 6px;white-space:nowrap}
+.ptab button.on{color:#0B1220;border-bottom-color:#0F766E}
+.seg{display:inline-flex;border:1px solid #D4D8DF;border-radius:8px;overflow:hidden;flex:none}
+.seg button{height:30px;padding:0 11px;border:0;background:#fff;font:inherit;font-size:12px;font-weight:600;color:#4B5563;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.seg button + button{border-left:1px solid #E3E6EB}
+.seg button.on{background:#0B1220;color:#fff}
+.cbx{border-radius:10px;overflow:hidden;border:1px solid #1F2937;background:#0B1220;min-width:0}
+.cbh{display:flex;align-items:center;gap:2px;padding:6px 8px;border-bottom:1px solid #1F2937;background:#111827;flex-wrap:wrap}
+.cbh button{height:28px;padding:0 10px;border:0;border-radius:6px;background:none;color:#B4BAC4;font:inherit;font-size:12px;font-weight:600;cursor:pointer}
+.cbh button.on{background:#273244;color:#fff}
+.cbh .cp{margin-left:auto;display:inline-flex;align-items:center;gap:6px;color:#E5E7EB;border:1px solid #374151}
+.cbx pre{margin:0;padding:12px 14px;font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace;font-size:12.5px;line-height:1.6;color:#E5E7EB;white-space:pre-wrap;overflow-wrap:anywhere}
+.cbx .c1{color:#93C5FD}.cbx .c2{color:#86EFAC}.cbx .c3{color:#FCD34D}.cbx .c4{color:#9CA3AF}.cbx .c5{color:#F9A8D4}
+.cbx .cm{color:#9CA3AF}
+.ev{display:flex;gap:14px;align-items:flex-start;padding:12px 0;border-top:1px solid #EEF0F3}
+.ev:first-child{border-top:0}
+.ev .ic{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.ev .tx{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.ev .tm{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;color:#5B6472;flex:none;padding-top:5px}
+.spin{width:14px;height:14px;border-radius:50%;border:2px solid #C9CED6;border-top-color:#0F766E;flex:none;display:inline-block}
+.mask{display:inline-flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;color:#4B5563;white-space:nowrap}
+.mask svg{flex:none}
+.tok{display:inline-flex;align-items:center;gap:4px;padding:0 6px;border-radius:5px;background:#EDE9FE;color:#5B21B6;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:.86em;font-weight:500;line-height:1.55;white-space:nowrap;vertical-align:baseline}
+.tok.s{background:#FEF3C7;color:#92400E}
+.tok.e{background:#FEE2E2;color:#991B1B;text-decoration:underline wavy #DC2626;text-underline-offset:3px}
+.mk{display:inline-flex;align-items:center;height:22px;padding:0 7px;border-radius:6px;background:#EEF0F3;color:#374151;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;white-space:nowrap}
+.toast{display:flex;gap:12px;align-items:center;padding:10px 12px 10px 14px;border-radius:10px;background:#0B1220;color:#fff;font-size:13.5px;box-shadow:0 12px 30px rgba(11,18,32,.25);max-width:520px;box-sizing:border-box}
+.toast .t{flex:1;min-width:0}
+.toast .k{color:#C3C2B7}
+.toast .btn{min-height:28px;padding:0 10px;font-size:12px;background:transparent;border-color:#4B5563;color:#fff}
+.toast .x{width:28px;height:28px;border:0;background:transparent;color:#9CA3AF;border-radius:6px;font-size:16px;cursor:pointer}
+.ti{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.scrim{position:absolute;inset:0;background:rgba(11,18,32,.32);z-index:55}
+.drw{position:absolute;top:0;right:0;bottom:0;width:600px;max-width:100%;background:#fff;border-left:1px solid #E3E6EB;box-shadow:-18px 0 40px rgba(11,18,32,.18);z-index:60;display:flex;flex-direction:column;box-sizing:border-box;overflow:hidden}
+.drw .dwh{display:flex;align-items:flex-start;gap:12px;padding:18px 22px 14px;border-bottom:1px solid #EEF0F3}
+.drw .dwb{padding:18px 22px;display:flex;flex-direction:column;gap:18px;overflow:auto}
+.drw h3{margin:0;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472}
+.empty{padding:44px 28px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;border-style:dashed}
+.empty .tt{font-size:18px;font-weight:700;letter-spacing:-.01em}
+.empty .ds{color:#4B5563;max-width:560px}
+.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:14px 18px;border-bottom:1px solid #EEF0F3}
+.fchips{display:flex;gap:6px;flex-wrap:wrap;padding:12px 18px;border-bottom:1px solid #EEF0F3}
+.fchip{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:999px;border:1px solid #D4D8DF;background:#fff;font:inherit;font-size:12.5px;font-weight:600;color:#374151;cursor:pointer;white-space:nowrap}
+.fchip b{font-weight:600;color:#5B6472;font-variant-numeric:tabular-nums}
+.fchip.on{background:#0B1220;border-color:#0B1220;color:#fff}.fchip.on b{color:#C9CED6}
+.live{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:#166534}
+.live .dot{box-shadow:0 0 0 4px rgba(22,101,52,.15)}
+.foot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid #EEF0F3}
+.spark{display:block}
+.lnk{display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:13px}
+.ttl{margin:0;font-size:22px;font-weight:700;letter-spacing:-.02em;line-height:1.2}
+.lead{margin:0;color:#4B5563;font-size:14px;max-width:760px}
+.state-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(460px,100%),1fr));gap:16px;align-items:start}
+.flowr{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px}
+.flowr .arw{color:#9AA3B2}
+.pill{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:8px;border:1px solid #E3E6EB;background:#F9FAFB;font-size:12.5px;font-weight:600;white-space:nowrap}
+.vline{display:flex;gap:10px;align-items:baseline;padding:8px 0;border-top:1px solid #EEF0F3;font-size:13px}
+.vline:first-child{border-top:0}
+.hl{background:#FEF2F2;box-shadow:inset 3px 0 0 #DC2626}
+.lines{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;line-height:1.7;background:#0B1220;color:#E5E7EB;border-radius:8px;overflow:hidden}
+.lines div{display:flex;gap:12px;padding:0 12px}
+.lines .ln{color:#9CA3AF;width:22px;text-align:right;flex:none;user-select:none}
+.lines .er{background:rgba(220,38,38,.22)}
+.callout{position:absolute;z-index:5}
+.only-phone{display:none}
+@media (max-width:1100px){.drw{width:520px}}
+@media (max-width:767px){.drw{width:100%;border-left:0}.stats{grid-template-columns:repeat(2,minmax(0,1fr))!important}.ttl{font-size:19px}}
+
+.pcard{width:100%;background:#fff;border:1px solid #E3E6EB;border-radius:16px;padding:32px;box-sizing:border-box;display:flex;flex-direction:column;gap:18px}
+.pbtn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:9px;background:#4338CA;color:#fff;font-weight:700;font-size:14px;border:0;cursor:pointer;text-decoration:none;font-family:inherit}
+.pbtn:hover{background:#3730A3;color:#fff}
+.pbtn2{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:9px;border:1px solid #C9CED6;background:#fff;color:#1F2937;font-weight:700;font-size:14px;cursor:pointer;text-decoration:none;font-family:inherit}
+.pin{height:44px;padding:0 14px;border:1px solid #8B94A3;border-radius:9px;font:inherit;font-size:14px;box-sizing:border-box;background:#fff;min-width:0;width:100%}
+.pmut{color:#5B6472}
+.tag{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;background:#EEF0F3;color:#4B5563}
+.brand{display:flex;align-items:center;gap:12px}
+.brand .m{width:40px;height:40px;border-radius:10px;background:#0B1220;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:16px}
+@media (max-width:767px){.pcard{padding:22px}.sc-host [style*="minmax(min("]{grid-template-columns:1fr!important}}
+
+/* phase 7a: the publication website (publisher branding: indigo #4338CA, lavender #F5F3FF). Container queries keep one markup for every width. */
+.st{container-type:inline-size;background:#fff;color:#1F2937;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:16px;line-height:1.55;text-align:left}
+.st *{box-sizing:border-box}
+.st a{color:#4338CA;text-decoration:none}
+.st a:hover{color:#3730A3}
+.st p{margin:0}
+.st-w{max-width:1200px;margin:0 auto;padding-left:48px;padding-right:48px}
+.st-col{max-width:680px;margin:0 auto}
+.st-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 16px;border-radius:9px;background:#4338CA;color:#fff!important;font:inherit;font-weight:700;font-size:14px;border:0;cursor:pointer;white-space:nowrap;text-decoration:none!important;flex:none}
+.st-btn:hover{background:#3730A3}
+.st-btn.lg{height:46px;padding:0 20px;font-size:15px}
+.st-btn.sm{height:34px;padding:0 12px;font-size:13px}
+.st-btn.full{width:100%}
+.st-btn2{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 16px;border-radius:9px;border:1px solid #C9CED6;background:#fff;color:#1F2937!important;font:inherit;font-weight:700;font-size:14px;cursor:pointer;white-space:nowrap;text-decoration:none!important;flex:none}
+.st-btn2.sm{height:34px;padding:0 12px;font-size:13px}
+.st-btn2.lg{height:46px;padding:0 20px;font-size:15px}
+.st-in{height:44px;padding:0 14px;border:1px solid #8B94A3;border-radius:9px;font:inherit;font-size:15px;background:#fff;color:#0B1220;min-width:0;width:100%}
+.st-in.lg{height:48px}
+.st-lnk{font-weight:600;text-decoration:underline!important;text-underline-offset:3px;text-decoration-thickness:1px}
+.st-mut{color:#5B6472}
+.st-sm{font-size:13.5px}
+.st-k{font-size:13px;color:#5B6472}
+.st-cov{display:block;width:100%;height:auto}
+/* header */
+.st-hd{background:#fff;border-bottom:1px solid #E3E6EB;position:relative;z-index:2}
+.st-hdi{display:flex;align-items:center;gap:24px;min-height:72px;flex-wrap:nowrap}
+.st-brand{display:inline-flex;align-items:center;gap:10px;color:#0B1220!important;font-weight:700;font-size:17px;letter-spacing:-.01em;flex:none;white-space:nowrap}
+.st-mark{width:36px;height:36px;border-radius:9px;background:#0B1220;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;flex:none}
+.st-brand .short{display:none}
+.st-nav{display:flex;gap:2px;flex:1;min-width:0}
+.st-nav a{height:38px;padding:0 12px;border-radius:8px;display:inline-flex;align-items:center;color:#374151;font-weight:500;font-size:14.5px;white-space:nowrap;flex:none}
+.st-nav a:hover{background:#F5F3FF;color:#3730A3}
+.st-nav a.on{color:#3730A3;background:#F5F3FF;font-weight:600}
+.st-act{display:flex;align-items:center;gap:10px;margin-left:auto;flex:none}
+.st-menu{display:none;width:40px;height:40px;border-radius:9px;border:1px solid #C9CED6;background:#fff;color:#1F2937;align-items:center;justify-content:center;cursor:pointer;padding:0;flex:none}
+.st-me{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 10px 0 4px;border-radius:999px;border:1px solid #C9CED6;background:#fff;color:#1F2937!important;font:inherit;font-size:14px;font-weight:600;cursor:pointer;flex:none}
+.st-av{width:32px;height:32px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex:none}
+/* bands and sections */
+.st-band{background:#F5F3FF}
+.st-sec{padding-top:56px;padding-bottom:56px}
+.st-h2{margin:0;font-size:26px;line-height:1.2;letter-spacing:-.02em;font-weight:700;color:#0B1220}
+.st-h3{margin:0;font-size:19px;line-height:1.3;letter-spacing:-.01em;font-weight:700;color:#0B1220}
+.st-head{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:24px}
+.st-hero{padding-top:64px;padding-bottom:60px;text-align:center}
+.st-hero h1,.st-hero .st-ht{margin:0;font-size:52px;line-height:1.06;letter-spacing:-.03em;font-weight:700;color:#0B1220}
+.st-hero .tl{margin:16px auto 0;font-size:20px;line-height:1.5;color:#4B5563;max-width:620px}
+.st-sub{display:flex;gap:10px;max-width:520px;margin:28px auto 0}
+.st-sub .st-in{flex:1}
+.st .st-subnote{margin-top:14px;font-size:13.5px;color:#5B6472}
+/* labels */
+.st-lb{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 9px;border-radius:999px;font-size:12.5px;font-weight:600;white-space:nowrap;flex:none}
+.st-lb.ins{background:#EDE9FE;color:#3730A3}
+.st-lb.mem{background:#EEF0F3;color:#374151}
+.st-tag{display:inline-flex;align-items:center;font-size:13px;font-weight:600;color:#4338CA!important;white-space:nowrap}
+.st-meta{display:flex;align-items:center;gap:8px 10px;flex-wrap:wrap;font-size:13.5px;color:#5B6472}
+.st-meta .sep{color:#5B6472}
+.st-meta .ds{display:none}
+.st-sc .tx{display:flex;flex-direction:column;gap:8px;min-width:0}
+/* post cards */
+.st-feat{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:32px}
+.st-fc{display:flex;flex-direction:column;gap:14px;color:#1F2937!important;min-width:0}
+.st-fc h3{margin:0;font-size:25px;line-height:1.2;letter-spacing:-.02em;color:#0B1220}
+.st-fc .ex{font-size:16.5px;line-height:1.6;color:#4B5563}
+.st-list{display:flex;flex-direction:column}
+.st-row{display:flex;gap:28px;align-items:flex-start;padding:24px 0;border-top:1px solid #E3E6EB;color:#1F2937!important}
+.st-row:first-child{border-top:0;padding-top:4px}
+.st-row .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px}
+.st-row h3{margin:0;font-size:21px;line-height:1.3;letter-spacing:-.015em;color:#0B1220}
+.st-row .ex{font-size:15.5px;line-height:1.6;color:#4B5563}
+.st-row .th{width:200px;flex:none}
+.st-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:28px}
+.st-sc{display:flex;flex-direction:column;gap:10px;color:#1F2937!important;min-width:0}
+.st-sc h3{margin:0;font-size:18px;line-height:1.3;letter-spacing:-.01em;color:#0B1220}
+/* article */
+.st-art{padding:56px 0 8px}
+.st-kick{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:18px}
+.st-title{margin:0;font-size:46px;line-height:1.1;letter-spacing:-.03em;font-weight:700;color:#0B1220}
+.st .st-dek{margin:18px 0 0;font-size:21px;line-height:1.5;color:#4B5563}
+.st-by{display:flex;align-items:center;gap:12px;margin-top:26px;font-size:14.5px;color:#5B6472;flex-wrap:wrap}
+.st-by b{color:#0B1220;font-weight:600}
+.st-hero-img{max-width:1000px;margin:40px auto 0;padding:0 48px}
+.st-body{font-size:19px;line-height:1.75;color:#1F2937;margin-top:40px}
+.st-body p{margin:0 0 26px}
+.st-body h2{font-size:27px;line-height:1.25;letter-spacing:-.02em;margin:46px 0 14px;color:#0B1220}
+.st-body ol{margin:0 0 26px;padding-left:26px}
+.st-body li{margin-bottom:8px}
+.st-body code{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:.86em;background:#F5F3FF;border-radius:5px;padding:1px 6px;color:#3730A3}
+.st-pre{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:14.5px;line-height:1.65;background:#0B1220;color:#E5E7EB;border-radius:12px;padding:18px 20px;margin:0 0 26px;white-space:pre-wrap;overflow-wrap:anywhere}
+/* notes on the page */
+.st-note{display:flex;gap:12px;align-items:flex-start;padding:14px 18px;border-radius:12px;border:1px solid #DDD6FE;background:#F5F3FF;font-size:15px;line-height:1.55;color:#1F2937}
+.st-note > svg{flex:none;margin-top:3px}
+.st-note .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.st-note .acts{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:8px}
+/* paywall card */
+.st-pw{border:1px solid #DDD6FE;background:#F5F3FF;border-radius:16px;padding:32px;display:flex;flex-direction:column;gap:20px;margin:6px 0 8px}
+.st-pw .hd{display:flex;flex-direction:column;gap:8px}
+.st-pw h2{margin:0;font-size:26px;line-height:1.2;letter-spacing:-.02em;color:#0B1220}
+.st-pw .lead{font-size:16.5px;line-height:1.55;color:#374151}
+.st-tiers{display:flex;flex-direction:column;gap:12px}
+.st-tier{display:flex;align-items:center;gap:16px;padding:16px 18px;background:#fff;border:1px solid #DDD6FE;border-radius:12px;flex-wrap:wrap}
+.st-tier.hi{border-color:#4338CA;box-shadow:0 0 0 1px #4338CA}
+.st-tier .tn{flex:1 1 260px;min-width:0;display:flex;flex-direction:column;gap:3px}
+.st-tier .nm{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-weight:700;font-size:16.5px;color:#0B1220}
+.st-tier .pr{font-size:15px;color:#1F2937}
+.st-tier .pr b{font-weight:700}
+.st-free{display:flex;flex-direction:column;gap:12px;padding-top:20px;border-top:1px solid #DDD6FE}
+.st-free .frm{display:flex;gap:10px}
+.st-free .frm .st-in{flex:1}
+.st-chk{display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.45;color:#374151}
+.st-chk input{margin-top:3px;accent-color:#4338CA;flex:none;width:16px;height:16px}
+.st-chks{display:flex;flex-direction:column;gap:8px}
+.st-pwf{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:14.5px;color:#374151}
+/* tiers band */
+.st-tc{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;align-items:stretch}
+.st-tcard{background:#fff;border:1px solid #E3E6EB;border-radius:16px;padding:26px;display:flex;flex-direction:column;gap:14px;position:relative}
+.st-tcard.hi{border-color:#4338CA;box-shadow:0 0 0 1px #4338CA}
+.st-tcard .pop{position:absolute;top:-12px;left:24px;height:24px;padding:0 10px;border-radius:999px;background:#4338CA;color:#fff;font-size:12px;font-weight:700;display:inline-flex;align-items:center}
+.st-tcard .nm{font-weight:700;font-size:18px;color:#0B1220}
+.st-tcard .pr{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
+.st-tcard .pr b{font-size:34px;letter-spacing:-.02em;color:#0B1220;line-height:1}
+.st-tcard ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:9px;font-size:15px;line-height:1.45;flex:1}
+.st-tcard li{display:flex;gap:9px;align-items:flex-start}
+.st-tcard li svg{flex:none;margin-top:3px}
+.st-seg{display:inline-flex;border:1px solid #C9CED6;border-radius:999px;padding:3px;background:#fff}
+.st-seg button{height:32px;padding:0 14px;border:0;border-radius:999px;background:none;font:inherit;font-size:13.5px;font-weight:600;color:#374151;cursor:pointer}
+.st-seg button.on{background:#0B1220;color:#fff}
+/* subscribe band and about */
+.st-subband{display:flex;gap:40px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.st-subband .tx{flex:1 1 380px;min-width:0;display:flex;flex-direction:column;gap:8px}
+.st-subband form{flex:1 1 420px;display:flex;flex-direction:column;gap:10px;max-width:520px}
+.st-subband .frm{display:flex;gap:10px}
+.st-subband .frm .st-in{flex:1}
+.st-about{display:flex;gap:28px;align-items:flex-start}
+.st-about .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:12px;font-size:17px;line-height:1.65;color:#374151}
+/* footer */
+.st-ft{border-top:1px solid #E3E6EB;background:#fff;padding:36px 0 40px}
+.st-fti{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;align-items:flex-start}
+.st-ftl{display:flex;gap:6px 20px;flex-wrap:wrap;font-size:14px}
+.st-ftl a{color:#4B5563!important}
+.st-rc{display:inline-flex;align-items:center;gap:6px}
+/* account */
+.st-acct{display:grid;grid-template-columns:220px minmax(0,1fr);gap:48px;align-items:start}
+.st-side{display:flex;flex-direction:column;gap:2px;position:sticky;top:24px}
+.st-side a{display:flex;align-items:center;gap:10px;height:40px;padding:0 12px;border-radius:9px;color:#374151!important;font-weight:500;font-size:14.5px}
+.st-side a.on{background:#F5F3FF;color:#3730A3!important;font-weight:600}
+.st-card{background:#fff;border:1px solid #E3E6EB;border-radius:16px;padding:26px 28px;display:flex;flex-direction:column;gap:18px}
+.st-card h2{margin:0;font-size:20px;line-height:1.3;letter-spacing:-.01em;color:#0B1220}
+.st-card .ch{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.st-line{display:flex;align-items:center;gap:14px;padding:14px 0;border-top:1px solid #EEF0F3;flex-wrap:wrap}
+.st-line:first-child{border-top:0;padding-top:0}
+.st-line .tx{flex:1 1 260px;min-width:0;display:flex;flex-direction:column;gap:3px}
+.st-line .tx b{font-weight:600;color:#0B1220}
+.st-line .pg{display:flex;gap:14px;align-items:flex-start;flex:1 1 320px;min-width:0}
+input[type=checkbox].st-sw{appearance:none;-webkit-appearance:none;width:44px;height:26px;border-radius:999px;background:#8B94A3;position:relative;cursor:pointer;flex:none;margin:0;border:0}
+input[type=checkbox].st-sw::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff}
+input[type=checkbox].st-sw:checked{background:#4338CA}input[type=checkbox].st-sw:checked::after{left:21px}
+.st-pill{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 14px;border:1px solid #C9CED6;border-radius:9px;background:#fff;font-size:14px;font-weight:500;color:#1F2937;cursor:pointer}
+.st-pill.on{border-color:#4338CA;background:#F5F3FF;font-weight:600}
+.st-pill input{accent-color:#4338CA;margin:0}
+.st-pills{display:flex;gap:8px;flex-wrap:wrap}
+.st-code{display:flex;gap:8px}
+.st-code input{width:48px;height:56px;border:1px solid #8B94A3;border-radius:10px;text-align:center;font:inherit;font-size:24px;font-weight:600;color:#0B1220;background:#fff;padding:0;min-width:0;font-variant-numeric:tabular-nums}
+.st-code input.bad{border-color:#DC2626;background:#FFF5F5}
+.st-err{display:flex;gap:8px;align-items:flex-start;font-size:14.5px;color:#991B1B;font-weight:500}
+.st-err svg{flex:none;margin-top:3px}
+.st-toast{display:flex;gap:12px;align-items:center;padding:12px 14px 12px 16px;border-radius:12px;background:#0B1220;color:#fff;font-size:14.5px;box-shadow:0 12px 30px rgba(11,18,32,.25);max-width:460px}
+.st-toast .t{flex:1;min-width:0}
+.st-toast .x{width:30px;height:30px;border:0;background:transparent;color:#C9CED6;border-radius:6px;font-size:18px;cursor:pointer;flex:none}
+.st-center{min-height:520px;display:flex;align-items:flex-start;justify-content:center;padding:64px 24px}
+.st-auth{width:100%;max-width:460px;background:#fff;border:1px solid #E3E6EB;border-radius:16px;padding:32px;display:flex;flex-direction:column;gap:18px}
+.st-auth h1,.st-auth .st-ht{margin:0;font-size:28px;line-height:1.15;letter-spacing:-.02em;color:#0B1220}
+.st-lbl{display:flex;flex-direction:column;gap:6px;font-size:14px;font-weight:600;color:#1F2937}
+.st-pager{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding-top:20px;border-top:1px solid #E3E6EB;font-size:14px;color:#5B6472}
+.st-search{display:flex;align-items:center;gap:10px;height:48px;padding:0 14px;border:1px solid #8B94A3;border-radius:10px;background:#fff}
+.st-search input{border:0;outline:0;font:inherit;font-size:16px;flex:1;min-width:0;background:none;color:#0B1220}
+.st-chipr{display:flex;gap:8px;flex-wrap:wrap}
+.st-chip{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 13px;border-radius:999px;border:1px solid #C9CED6;background:#fff;font-size:13.5px;font-weight:600;color:#374151!important}
+.st-chip.on{background:#0B1220;border-color:#0B1220;color:#fff!important}
+mark.st-hl{background:#EDE9FE;color:#3730A3;border-radius:3px;padding:0 2px}
+/* narrow (tablet, small windows): the navigation moves to its own scrolling row */
+@container (max-width:1079px){
+  .st-w{padding-left:32px;padding-right:32px}
+  .st-hdi{flex-wrap:wrap;min-height:0;padding-top:14px;row-gap:6px}
+  .st-nav{order:3;flex:1 1 100%;overflow-x:auto;margin:0 -12px;padding-bottom:6px}
+  .st-hero h1,.st-hero .st-ht{font-size:44px}
+  .st-cards{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .st-cards > :nth-child(3){display:none}
+  .st-tc{grid-template-columns:1fr;max-width:560px;margin:0 auto}
+  .st-acct{grid-template-columns:1fr;gap:24px}
+  .st-side{position:static;flex-direction:row;flex-wrap:wrap;gap:4px}
+  .st-side a{flex:none}
+  .st-hero-img{padding:0 32px}
+}
+@container (max-width:759px){
+  .st-feat{grid-template-columns:1fr;gap:36px}
+  .st-row .th{width:132px}
+  .st-title{font-size:38px}
+}
+/* phones */
+@container (max-width:599px){
+  .st-w{padding-left:18px;padding-right:18px}
+  .st-hdi{flex-wrap:nowrap;min-height:60px;padding-top:0;gap:10px}
+  .st-nav{display:none}
+  .st-menu{display:inline-flex}
+  .st-brand .full{display:none}.st-brand .short{display:inline}
+  .st-mark{width:32px;height:32px;font-size:14px}
+  .st-act{gap:8px}
+  .st-act .st-signin{padding:0 10px}
+  .st-act .st-btn,.st-act .st-btn2{height:38px;padding:0 12px;font-size:13.5px}
+  .st-me{padding:0 4px;height:38px}.st-me .nm{display:none}
+  .st-hero{padding-top:40px;padding-bottom:36px}
+  .st-hero h1,.st-hero .st-ht{font-size:34px}
+  .st-hero .tl{font-size:17px}
+  .st-sub,.st-subband .frm,.st-free .frm{flex-direction:column}
+  .st-sub .st-in,.st-subband .frm .st-in,.st-free .frm .st-in{flex:none}
+  .st-free .st-btn2{width:100%;height:46px}
+  .st-sub .st-btn,.st-subband .st-btn,.st-free .st-btn{width:100%;height:46px}
+  .st-sec{padding-top:36px;padding-bottom:36px}
+  .st-h2{font-size:22px}
+  .st-fc h3{font-size:21px}
+  .st-row{gap:14px;padding:20px 0}
+  .st-row .th{width:88px}
+  .st-row h3{font-size:18px}
+  .st-row .ex{display:none}
+  .st-cards{grid-template-columns:1fr;gap:20px}
+  .st-cards > :nth-child(3){display:flex}
+  .st-sc{flex-direction:row;gap:14px;align-items:flex-start}
+  .st-sc .cv{width:112px;flex:none}
+  .st-sc h3{font-size:16.5px}
+  .st-meta .dl{display:none}.st-meta .ds{display:inline}
+  .st-art{padding:32px 0 4px}
+  .st-title{font-size:31px}
+  .st .st-dek{font-size:17.5px}
+  .st-hero-img{padding:0;margin-top:26px}
+  .st-hero-img .st-cov{border-radius:0!important}
+  .st-body{font-size:17.5px;margin-top:28px}
+  .st-body h2{font-size:23px}
+  .st-pw{padding:22px 18px;border-radius:14px}
+  .st-pw h2{font-size:22px}
+  .st-tier{gap:12px;padding:14px}
+  .st-tier .st-btn,.st-tier .st-btn2{width:100%}
+  .st-tcard{padding:22px}
+  .st-card{padding:20px 18px;border-radius:14px}
+  .st-auth{padding:24px 20px}
+  .st-center{padding:32px 16px;min-height:0}
+  .st-code input{width:44px;height:52px;font-size:22px}
+  .st-about{flex-direction:column;gap:14px}
+  .st-side{display:none}
+}
+
+/* phase 7b: sales and landing pages on the website theme (phase 7a's .st) */
+.pgw{container-type:inline-size;container-name:pg;width:100%;min-width:0}
+.badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;flex:none}
+.ok{background:#DCFCE7;color:#166534}.warn{background:#FEF3C7;color:#92400E}.bad{background:#FEE2E2;color:#991B1B}.info{background:#DBEAFE;color:#1E40AF}.mut{background:#EEF0F3;color:#4B5563}.pur{background:#EDE9FE;color:#5B21B6}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;flex:none}
+.k{font-size:12px;color:#5B6472;font-weight:500}
+.mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace}
+.cov{position:relative;display:inline-block;flex:none;border-radius:4px;overflow:hidden;box-shadow:0 1px 2px rgba(11,18,32,.18)}
+.merch{display:inline-flex;align-items:center;justify-content:center;border-radius:8px;background:#F3F4F6;border:1px solid #E3E6EB;flex:none}
+.st .st-btn[aria-disabled="true"]{background:#C9CED6;color:#374151!important;cursor:not-allowed}
+.sp-in{max-width:1200px;margin:0 auto;padding-left:48px;padding-right:48px}
+.sp-in.nar{max-width:904px}
+.sp-sec{padding:72px 0}
+.lav{background:#F5F3FF}
+.sp-sec.w{border-top:1px solid #E3E6EB;border-bottom:1px solid #E3E6EB}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#4338CA}
+.sp-h2{margin:6px 0 0;text-wrap:balance;font-size:34px;font-weight:700;letter-spacing:-.025em;line-height:1.15;color:#0B1220}
+.st .sp-lead{margin:0;font-size:18px;line-height:1.55;color:#374151}
+.sec-head{display:flex;flex-direction:column;gap:10px;margin-bottom:32px;max-width:720px}
+.sp-hero{padding:56px 0 64px;background:#F5F3FF}
+.hero-grid{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,.92fr);gap:56px;align-items:center}
+.hero-copy{display:flex;flex-direction:column;gap:20px;min-width:0}
+.hero-copy h1{margin:0;text-wrap:balance;font-size:52px;font-weight:700;letter-spacing:-.03em;line-height:1.05;color:#0B1220}
+.hero-art{display:flex;justify-content:center;align-items:center;padding:40px 0;border-radius:16px;background:#EDE9FE;min-width:0}
+.ticks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;font-size:16px;color:#1F2937}
+.ticks li{display:flex;gap:10px;align-items:flex-start;line-height:1.45}
+.ticks li svg{flex:none;margin-top:3px}
+.buybox{display:flex;flex-direction:column;gap:14px;padding:22px;border-radius:16px;background:#fff;border:1px solid #E3E6EB;box-shadow:0 8px 24px rgba(67,56,202,.08);max-width:440px}
+.bb-price{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.bb-price .amt{font-size:34px;font-weight:700;letter-spacing:-.02em;line-height:1;color:#0B1220;font-variant-numeric:tabular-nums}
+.st .bb-note{margin:0;font-size:13px;line-height:1.5;color:#5B6472}
+.offer{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;background:#F5F3FF;border:1px solid #EDE9FE;cursor:pointer}
+.offer input{margin-top:2px;flex:none;accent-color:#4338CA}
+.offer .ot{font-weight:600;color:#1F2937;font-size:14px}
+.offer .os{display:block;font-size:13px;color:#5B6472;margin-top:1px}
+.chapters{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 28px}
+.chapters li{display:flex;gap:16px;align-items:flex-start;padding:18px 0;border-top:1px solid #EDE9FE}
+.chapters .n{font-size:15px;font-weight:700;color:#4338CA;font-variant-numeric:tabular-nums;width:28px;flex:none;padding-top:1px}
+.chapters .t{display:flex;flex-direction:column;gap:4px;min-width:0}
+.chapters b{font-size:17px;font-weight:700;color:#0B1220;line-height:1.35}
+.chapters span.d{font-size:15px;color:#4B5563;line-height:1.5}
+.bio{display:flex;gap:28px;align-items:flex-start}
+.bio .av7{width:88px;height:88px;border-radius:50%;background:#DDD6FE;color:#3730A3;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:28px;flex:none}
+.quotes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+.quote{display:flex;flex-direction:column;justify-content:space-between;gap:22px;padding:26px;border-radius:16px;background:#fff;border:1px solid #E3E6EB;margin:0}
+.quote blockquote{margin:0;font-size:17px;line-height:1.55;color:#1F2937}
+.quote figcaption{display:flex;gap:12px;align-items:center}
+.quote .qa{width:40px;height:40px;border-radius:50%;background:#EDE9FE;color:#3730A3;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex:none}
+.faq{display:flex;flex-direction:column;border-top:1px solid #DDD6FE}
+.faq details{border-bottom:1px solid #DDD6FE}
+.faq summary{list-style:none;display:flex;justify-content:space-between;align-items:center;gap:16px;padding:20px 2px;font-size:17px;font-weight:700;color:#0B1220;cursor:pointer}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary svg{flex:none}
+.faq details[open] summary svg{transform:rotate(180deg)}
+.st .faq details p{margin:0 0 20px;padding:0 2px;font-size:16px;line-height:1.6;color:#374151;max-width:680px}
+.finalcta{display:flex;gap:32px;align-items:center;padding:32px;border-radius:16px;background:#fff;border:1px solid #E3E6EB}
+.finalcta .fc-t{display:flex;flex-direction:column;gap:8px;flex:1;min-width:0}
+.finalcta .buybox{box-shadow:none;border:0;padding:0;max-width:340px;flex:none;width:340px}
+.buybar{display:none}
+.pnote{display:flex;gap:10px;align-items:flex-start;padding:12px 16px;border-radius:12px;font-size:14px;line-height:1.5}
+.pnote.n{background:#fff;border:1px solid #E3E6EB;color:#1F2937}
+.pnote.t{background:#EDE9FE;border:1px solid #DDD6FE;color:#3730A3}
+.pnote svg{flex:none;margin-top:2px}
+.urlbar{display:flex;align-items:center;gap:10px;height:34px;padding:0 12px;background:#F3F4F6;border-bottom:1px solid #E3E6EB}
+.urlbar span.u{display:inline-flex;align-items:center;height:22px;padding:0 10px;border-radius:999px;background:#fff;border:1px solid #E3E6EB;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;color:#374151;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.urlbar i{width:9px;height:9px;border-radius:50%;background:#D4D8DF;display:inline-block;flex:none}
+@container pg (max-width:1079px){
+  .sp-in{padding-left:32px;padding-right:32px}
+}
+@container pg (max-width:860px){
+  .sp-sec{padding:48px 0}
+  .sp-hero{padding:36px 0 44px}
+  .hero-grid{grid-template-columns:minmax(0,1fr) minmax(0,.8fr);gap:28px}
+  .hero-copy h1{font-size:40px}
+  .sp-h2{font-size:28px}
+  .quotes{grid-template-columns:1fr}
+  .finalcta{flex-direction:column;align-items:stretch}
+  .finalcta .buybox{width:auto;max-width:none}
+}
+@container pg (max-width:599px){
+  .sp-in{padding-left:18px;padding-right:18px}
+  .hero-grid{grid-template-columns:1fr;gap:24px}
+  .hero-art{order:-1;padding:24px 0}
+  .hero-art .cov{zoom:.62}
+  .hero-copy h1{font-size:34px}
+  .st .sp-lead{font-size:17px}
+  .sp-h2{font-size:26px}
+  .chapters{grid-template-columns:1fr;gap:0}
+  .bio{flex-direction:column;gap:16px}
+  .bio .av7{width:64px;height:64px;font-size:22px}
+  .buybox{max-width:none}
+  .quote{padding:20px}
+  .finalcta{padding:20px}
+}
+@media (max-width:767px){
+  .buybar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:40;gap:12px;align-items:center;padding:10px 16px 12px;background:#fff;border-top:1px solid #E3E6EB;box-shadow:0 -8px 24px rgba(11,18,32,.10)}
+  .buybar .bt{display:flex;flex-direction:column;min-width:0;flex:1}
+  .buybar .bt b{font-size:14px;color:#0B1220;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .has-buybar{padding-bottom:76px}
+}
+
+.lp-band{background:#F5F3FF;border-bottom:1px solid #EDE9FE}
+.lp-hero{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:32px;align-items:center;padding:44px 0 40px}
+.lp-hero h1{margin:0;font-size:40px;font-weight:700;letter-spacing:-.025em;line-height:1.1;color:#0B1220;text-wrap:balance}
+.lp-copy{display:flex;flex-direction:column;gap:16px;min-width:0}
+.lp-body{display:flex;flex-direction:column;gap:24px;padding:32px 0 44px}
+.fcard{display:flex;flex-direction:column;gap:14px;padding:24px;border-radius:16px;background:#fff;border:1px solid #E3E6EB}
+.fcard h2{margin:0;font-size:20px;font-weight:700;letter-spacing:-.01em;color:#0B1220}
+.fl{display:flex;flex-direction:column;gap:5px;font-size:13.5px;font-weight:600;color:#1F2937}
+.fl .op{font-weight:400;color:#5B6472}
+.cons{display:flex;gap:10px;align-items:flex-start;font-size:14px;color:#374151;line-height:1.45}
+.cons input{margin-top:2px;flex:none;accent-color:#4338CA}
+.st .fhint{font-size:13.5px;color:#5B6472;line-height:1.5;margin:0}
+.bens{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.ben{display:flex;flex-direction:column;gap:6px;padding:16px;border-radius:12px;background:#F5F3FF;border:1px solid #EDE9FE;font-size:14px;color:#374151;line-height:1.45}
+.ben b{color:#0B1220;font-size:15px}
+.cd{display:flex;gap:10px;flex-wrap:wrap}
+.cdu{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:76px;padding:12px 10px;border-radius:12px;background:#fff;border:1px solid #DDD6FE}
+.cdu b{font-size:34px;font-weight:700;line-height:1.05;letter-spacing:-.02em;color:#3730A3;font-variant-numeric:tabular-nums}
+.cdu span{font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#5B6472}
+.st .cd-s{margin:0;font-size:14px;color:#374151;font-weight:600}
+.evd{display:flex;flex-direction:column;gap:0;border-radius:16px;background:#fff;border:1px solid #E3E6EB;overflow:hidden}
+.evd-r{display:flex;gap:14px;align-items:flex-start;padding:16px 20px;border-top:1px solid #EEF0F3}
+.evd-r:first-child{border-top:0}
+.evd-r .ei{width:36px;height:36px;border-radius:10px;background:#EDE9FE;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.evd-r .et{display:flex;flex-direction:column;gap:2px;min-width:0}
+.evd-r .et b{font-size:16px;color:#0B1220}
+.evd-r .et span{font-size:14px;color:#4B5563}
+.agenda{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.agenda li{display:flex;gap:16px;padding:12px 0;border-top:1px solid #EDE9FE;font-size:15px;color:#1F2937}
+.agenda li:first-child{border-top:0}
+.agenda .m{width:56px;flex:none;font-weight:700;color:#4338CA;font-variant-numeric:tabular-nums}
+.calm{position:relative;display:inline-flex;flex-direction:column;align-items:flex-start}
+.calmenu{margin-top:8px;display:flex;flex-direction:column;min-width:240px;padding:6px;border-radius:12px;background:#fff;border:1px solid #D4D8DF;box-shadow:0 12px 32px rgba(11,18,32,.16)}
+.st .calmenu a{display:flex;align-items:center;gap:10px;min-height:40px;padding:0 10px;border-radius:8px;color:#1F2937;font-weight:600;font-size:14px}
+.st .calmenu a:hover{background:#F5F3FF;color:#3730A3}
+.shopg{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr));gap:20px}
+.shopc{display:flex;flex-direction:column;border-radius:16px;background:#fff;border:1px solid #E3E6EB;overflow:hidden}
+.shopc .art{display:flex;justify-content:center;align-items:center;padding:28px 0;background:#EDE9FE}
+.shopc .b{display:flex;flex-direction:column;gap:8px;padding:18px 20px 20px;flex:1}
+.shopc h2{margin:0;font-size:18px;font-weight:700;line-height:1.3}
+.st .shopc h2 a{color:#0B1220}
+.st .shopc p{margin:0;font-size:14px;line-height:1.5;color:#4B5563}
+.shopc .f{margin-top:auto;padding-top:10px;display:flex;flex-direction:column;align-items:stretch;gap:12px}
+.shopc .pr{font-weight:700;font-size:16px;color:#0B1220;font-variant-numeric:tabular-nums}
+.files{display:flex;flex-direction:column;border:1px solid #E3E6EB;border-radius:12px;overflow:hidden;background:#fff}
+.filer{display:flex;gap:12px;align-items:center;padding:14px 16px;border-top:1px solid #EEF0F3}
+.filer:first-child{border-top:0}
+.filer .fi{width:40px;height:40px;border-radius:10px;background:#EDE9FE;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.filer .ft{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.filer .ft b{font-size:14.5px;color:#0B1220;overflow-wrap:anywhere}
+.filer .ft span{font-size:13px;color:#5B6472}
+.dlc{display:inline-flex;align-items:center;gap:6px;min-height:24px;padding:2px 9px;border-radius:999px;border:1px solid;font-size:12px;font-weight:600;line-height:1.3}
+.okc{width:48px;height:48px;border-radius:50%;background:#DDD6FE;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.spin7{width:28px;height:28px;border-radius:50%;border:3px solid #DDD6FE;border-top-color:#4338CA;display:inline-block;flex:none}
+.pcard7{width:100%;background:#fff;border:1px solid #E3E6EB;border-radius:16px;padding:32px;display:flex;flex-direction:column;gap:18px}
+.pcard7 h1{margin:0;font-size:26px;font-weight:700;letter-spacing:-.02em;line-height:1.15;color:#0B1220}
+.st .ptxt{margin:0;font-size:15px;line-height:1.55;color:#374151}
+.lav-note{padding:14px 16px;border-radius:12px;background:#F5F3FF;border:1px solid #EDE9FE;font-size:14px;color:#3730A3;line-height:1.5}
+.crumb7{display:flex;gap:8px;align-items:center;font-size:13.5px;color:#5B6472}
+@container pg (max-width:599px){
+  .lp-hero{grid-template-columns:1fr;gap:20px;padding:28px 0 24px}
+  .lp-hero h1{font-size:30px}
+  .bens{grid-template-columns:1fr}
+  .cdu{min-width:64px}
+  .cdu b{font-size:28px}
+  .pcard7{padding:22px}
+}
+
+.board{padding:28px;display:flex;flex-direction:column;gap:28px;box-sizing:border-box}
+.fgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px 24px;align-items:start}
+.frm{display:flex;flex-direction:column;gap:12px;min-width:0}
+.fwin{border:1px solid #D4D8DF;border-radius:12px;overflow:hidden;background:#fff;box-shadow:0 1px 3px rgba(11,18,32,.06)}
+.fcap{margin:0;font-size:13px;color:#4B5563;line-height:1.5}
+.fcap b{color:#0B1220;font-weight:600}
+.phonefr{width:390px;height:844px;position:relative;overflow:hidden;border:1px solid #D4D8DF;border-radius:24px;background:#fff;box-shadow:0 1px 3px rgba(11,18,32,.06)}
+.phonefr .buybar{display:flex;position:absolute;left:0;right:0;bottom:0;z-index:4;gap:12px;align-items:center;padding:10px 16px 14px;background:#fff;border-top:1px solid #E3E6EB;box-shadow:0 -8px 24px rgba(11,18,32,.10)}
+.phonefr .buybar .bt{display:flex;flex-direction:column;min-width:0;flex:1}
+.phonefr .buybar .bt b{font-size:14px;color:#0B1220;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.secth{display:flex;flex-direction:column;gap:4px}
+.secth h2{margin:0;font-size:18px;font-weight:700;letter-spacing:-.01em;color:#0B1220}
+.compact .hero-grid{grid-template-columns:minmax(0,1fr) auto;gap:24px}
+.compact .hero-art{padding:20px}
+.compact .sp-hero{padding:28px 0 36px}
+</style>
+</helmet>
+<div style="min-height:100vh;background:#F3F4F6;position:relative">
+<div class="board"><div style="display:flex;flex-direction:column;gap:6px"><h1 class="ttl">Public pages · landing pages, the shop, checkout and downloads</h1><span class="lead">Every page uses the website's theme, from the branding in Forms &amp; pages. Focused landing pages hide the site header and navigation; the shop, checkout and download pages keep it.</span></div><div class="secth"><h2>Landing pages</h2><span class="k" style="font-size:13px">Lead magnet, webinar registration and launch, as readers see them, then what each one shows after the reader acts.</span></div><div class="fgrid"><section class="frm" aria-label="Lead magnet · DNS records checklist"><div class="strip"><span class="dot" style="color:#6B7280"></span>Lead magnet · DNS records checklist</div><div class="fwin"><div class="urlbar"><i></i><i></i><i></i><span class="u">news.acme.io/dns-checklist</span></div><div class="st pgw "><header class="st-hd"><div class="st-w st-hdi"><a href="PublicHome.dc.html" class="st-brand" aria-label="The Acme newsletter, home"><span class="st-mark" aria-hidden="true">A</span><span class="full">The Acme newsletter</span><span class="short">Acme</span></a></div></header><main><section class="lp-band"><div class="sp-in"><div class="lp-hero"><div class="lp-copy"><span class="eyebrow">Free checklist · PDF, 2 pages</span><h1>Every DNS record your newsletter needs, on two pages</h1><p class="sp-lead" style="font-size:17px">SPF, DKIM, DMARC, the return path and BIMI, in the order to add them. Check your domain in 15 minutes.</p></div><span class="cov" style="width:calc(150px);height:calc(200px);background:#fff;border:1px solid #DDD6FE" role="img" aria-label="Cover of the DNS records checklist"><span style="position:absolute;left:0;right:0;top:0;height:30%;background:#4338CA"></span><span style="position:absolute;left:12%;right:10%;top:8%;font-size:17px;font-weight:800;line-height:1.05;color:#fff">DNS records checklist</span><span style="position:absolute;left:12%;top:42%;display:flex;align-items:center;gap:5px"><span style="width:11px;height:11px;border:1.5px solid #4338CA;border-radius:2px;box-sizing:border-box"></span><span style="width:78px;height:2px;background:#C9CED6;border-radius:1px"></span></span><span style="position:absolute;left:12%;top:53%;display:flex;align-items:center;gap:5px"><span style="width:11px;height:11px;border:1.5px solid #4338CA;border-radius:2px;box-sizing:border-box"></span><span style="width:78px;height:2px;background:#C9CED6;border-radius:1px"></span></span><span style="position:absolute;left:12%;top:64%;display:flex;align-items:center;gap:5px"><span style="width:11px;height:11px;border:1.5px solid #4338CA;border-radius:2px;box-sizing:border-box"></span><span style="width:78px;height:2px;background:#C9CED6;border-radius:1px"></span></span><span style="position:absolute;left:12%;top:75%;display:flex;align-items:center;gap:5px"><span style="width:11px;height:11px;border:1.5px solid #4338CA;border-radius:2px;box-sizing:border-box"></span><span style="width:78px;height:2px;background:#C9CED6;border-radius:1px"></span></span><span style="position:absolute;left:12%;top:86%;display:flex;align-items:center;gap:5px"><span style="width:11px;height:11px;border:1.5px solid #4338CA;border-radius:2px;box-sizing:border-box"></span><span style="width:78px;height:2px;background:#C9CED6;border-radius:1px"></span></span></span></div></div></section><div class="sp-in"><div class="lp-body"><form class="fcard" aria-labelledby="lm-f"><h2 id="lm-f">Get the checklist</h2><label class="fl">Email<input class="st-in" type="email" placeholder="you@company.com"></label><label class="fl"><span>First name <span class="op">optional</span></span><input class="st-in" type="text" placeholder="Sam"></label><label class="cons"><input type="checkbox" required><span>Send me the DNS records checklist and the Weekly Digest. Unsubscribe any time.</span></label><button type="submit" class="st-btn lg full">Send me the checklist</button><p class="fhint">We'll email a confirmation link. The checklist is on the page that opens.</p></form><div class="bens"><div class="ben"><b>Every record, explained</b>What each one proves, and what it should look like.</div><div class="ben"><b>In the right order</b>SPF and DKIM before DMARC, so nothing bounces on the way.</div><div class="ben"><b>The one most people miss</b>A two-minute check of the return path.</div></div><figure class="quote"><blockquote>“Found two broken DKIM keys in the first ten minutes.”</blockquote><figcaption><span class="qa" aria-hidden="true">KW</span><span style="display:flex;flex-direction:column"><b style="color:#0B1220">Kenji Watanabe</b><span class="st-mut" style="font-size:13.5px">Editor, Tokyo Dev Weekly</span></span></figcaption></figure><div class="faq"><details><summary>Is it really free?<svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="#4338CA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></summary><p>Yes. You confirm your email and get the PDF and the Weekly Digest. Unsubscribe any time.</p></details><details><summary>Which providers does it cover?<svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="#4338CA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></summary><p>Any provider. The examples use Amazon SES, Postmark and Mailgun.</p></details></div></div></div></main></div></div><p class="fcap">Form “DNS checklist” · double opt-in · adds people to the Weekly Digest. The checklist is offered after the subscription is confirmed.</p></section><section class="frm" aria-label="Webinar · registration"><div class="strip"><span class="dot" style="color:#6B7280"></span>Webinar · registration</div><div class="fwin"><div class="urlbar"><i></i><i></i><i></i><span class="u">news.acme.io/dmarc-live</span></div><div class="st pgw "><header class="st-hd"><div class="st-w st-hdi"><a href="PublicHome.dc.html" class="st-brand" aria-label="The Acme newsletter, home"><span class="st-mark" aria-hidden="true">A</span><span class="full">The Acme newsletter</span><span class="short">Acme</span></a></div></header><main><section class="lp-band"><div class="sp-in"><div class="lp-copy" style="padding:44px 0 40px"><span class="eyebrow">Live session · 30 minutes</span><h1 style="margin:0;font-size:40px;font-weight:700;letter-spacing:-.025em;line-height:1.1;color:#0B1220;text-wrap:balance">Live: Fix your DMARC setup in 30 minutes</h1><p class="sp-lead" style="font-size:17px">Marcus Chen takes a real domain from p=none to p=quarantine, live, and answers your questions as he goes.</p></div></div></section><div class="sp-in"><div class="lp-body"><div class="evd"><div class="evd-r"><span class="ei"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="#4338CA" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="12" height="11" rx="1.6"></rect><path d="M2 6.5h12M5.2 1.6v2.8M10.8 1.6v2.8"></path></svg></span><span class="et"><b>29 October 2026</b><span>Online, on Zoom</span></span></div><div class="evd-r"><span class="ei"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="#4338CA" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M8 4.8V8l2.2 1.6"></path></svg></span><span class="et"><b>17:00–17:30 UTC</b><span>13:00–13:30 your time · New York</span></span></div><div class="evd-r"><span class="ei"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="#4338CA" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.8 9.2a2.6 2.6 0 0 0 3.7 0l2.2-2.2a2.6 2.6 0 0 0-3.7-3.7l-.9.9"></path><path d="M9.2 6.8a2.6 2.6 0 0 0-3.7 0L3.3 9a2.6 2.6 0 0 0 3.7 3.7l.9-.9"></path></svg></span><span class="et"><b>Joining link after you register</b><span>Sent by email, with reminders 1 day and 1 hour before</span></span></div></div><div style="display:flex;gap:14px;align-items:center"><span aria-hidden="true" style="width:48px;height:48px;border-radius:50%;background:#DDD6FE;color:#3730A3;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex:none">MC</span><span style="display:flex;flex-direction:column"><b style="color:#0B1220">Marcus Chen</b><span class="st-mut" style="font-size:14px">Runs email infrastructure at Acme · your host</span></span></div><div><h2 style="margin:0 0 6px;font-size:18px;color:#0B1220">Agenda</h2><ol class="agenda"><li><span class="m">5 min</span>Reading your DMARC reports</li><li><span class="m">15 min</span>From p=none to p=quarantine, live</li><li><span class="m">10 min</span>Your questions</li></ol></div><form class="fcard" aria-labelledby="wb-f"><h2 id="wb-f">Save your seat</h2><label class="fl">Email<input class="st-in" type="email" placeholder="you@company.com"></label><label class="fl"><span>First name <span class="op">optional</span></span><input class="st-in" type="text" placeholder="Sam"></label><label class="cons"><input type="checkbox" required><span>Send me the joining link and reminders for this session.</span></label><button type="submit" class="st-btn lg full">Register</button><p class="fhint">You join this session's list only. No newsletter unless you sign up for one.</p></form></div></div></main></div></div><p class="fcap">Times show in UTC and in the reader's own time zone. The form adds registrants to “DMARC live · 29 Oct” and writes the date field <b>dmarc_live_at</b>.</p></section><section class="frm" aria-label="Lead magnet · after the confirmation link"><div class="strip"><span class="dot" style="color:#15803D"></span>Lead magnet · after the confirmation link</div><div class="fwin"><div class="urlbar"><i></i><i></i><i></i><span class="u">news.acme.io/subscribe/confirmed</span></div><div class="st pgw "><header class="st-hd"><div class="st-w st-hdi"><a href="PublicHome.dc.html" class="st-brand" aria-label="The Acme newsletter, home"><span class="st-mark" aria-hidden="true">A</span><span class="full">The Acme newsletter</span><span class="short">Acme</span></a><nav class="st-nav" aria-label="Site"><a href="PublicHome.dc.html">Weekly Digest</a><a href="PublicHome.dc.html">Product Updates</a><a href="PublicSiteStates.dc.html">Engineering</a><a href="PublicSalesPage.dc.html">Field Guide</a><a href="PublicHome.dc.html">About</a></nav><div class="st-act"><a href="PublicSiteStates.dc.html" class="st-btn2 st-signin">Sign in</a><a href="PublicSubscribe.dc.html" class="st-btn">Subscribe</a><button class="st-menu" type="button" aria-label="Menu" aria-expanded="false"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"></path></svg></button></div></div></header><div class="lav" style="display:flex;justify-content:center;padding:40px 24px 48px"><div class="pcard7" style="max-width:520px"><div style="display:flex;gap:14px;align-items:center"><span class="okc"><svg width="24" height="24" viewBox="0 0 16 16" fill="none" stroke="#4338CA" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg></span><h1>You're in</h1></div><p class="ptxt">Your email is confirmed and you're on the Weekly Digest. Here's your checklist.</p><div class="files"><div class="filer"><span class="fi"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="#4338CA" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 1.5h5.5L12.5 4.5V14.5h-8.5z"></path><path d="M9.5 1.5v3h3"></path></svg></span><span class="ft"><b>DNS records checklist</b><span>PDF · 2 pages · 380 KB</span></span></div></div><a class="st-btn lg full" href="#"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2.5v8M4.5 7 8 10.5 11.5 7M2.5 13.5h11"></path></svg>Download the checklist (PDF, 380 KB)</a><p class="fhint" style="text-align:center">The download link on this page works for 7 days.</p><div class="lav-note">The next Weekly Digest arrives next week. Add digest@news.acme.io to your contacts so it lands in your inbox.</div><div style="display:flex;gap:10px;flex-wrap:wrap"><a class="st-btn2" href="PublicArchive.dc.html">Read past issues</a><a class="st-btn2" href="PublicPreferences.dc.html">Email preferences</a></div></div></div></div></div><p class="fcap">The confirmation page offers the form's download. Since 22 Sep: 1,148 signups, 1,032 confirmed (89.9%), 1,019 downloads.</p></section><section class="frm" aria-label="Webinar · registered, with Add to calendar"><div class="strip"><span class="dot" style="color:#15803D"></span>Webinar · registered, with Add to calendar</div><div class="fwin"><div class="urlbar"><i></i><i></i><i></i><span class="u">news.acme.io/dmarc-live/registered</span></div><div class="st pgw "><header class="st-hd"><div class="st-w st-hdi"><a href="PublicHome.dc.html" class="st-brand" aria-label="The Acme newsletter, home"><span class="st-mark" aria-hidden="true">A</span><span class="full">The Acme newsletter</span><span class="short">Acme</span></a></div></header><div class="lav" style="display:flex;justify-content:center;padding:40px 24px 48px"><div class="pcard7" style="max-width:540px"><div style="display:flex;gap:14px;align-items:center"><span class="okc"><svg width="24" height="24" viewBox="0 0 16 16" fill="none" stroke="#4338CA" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg></span><h1>You're registered</h1></div><p class="ptxt"><b style="color:#0B1220">Live: Fix your DMARC setup in 30 minutes</b><br>29 October 2026 · 13:00–13:30 your time (17:00 UTC)</p><p class="ptxt">We emailed the joining link to sam.rivera@outlook.com. Reminders come 1 day and 1 hour before.</p><div class="calm"><button type="button" class="st-btn2 lg" aria-haspopup="menu" aria-expanded="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#1F2937" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="12" height="11" rx="1.6"></rect><path d="M2 6.5h12M5.2 1.6v2.8M10.8 1.6v2.8"></path></svg>Add to calendar<svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="#1F2937" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button><div class="calmenu" role="menu" aria-label="Add to calendar"><a href="#" role="menuitem"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#4338CA" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="12" height="11" rx="1.6"></rect><path d="M2 6.5h12M5.2 1.6v2.8M10.8 1.6v2.8"></path></svg>Google Calendar</a><a href="#" role="menuitem"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#4338CA" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="12" height="11" rx="1.6"></rect><path d="M2 6.5h12M5.2 1.6v2.8M10.8 1.6v2.8"></path></svg>Outlook</a><a href="#" role="menuitem"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#4338CA" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2.5v8M4.5 7 8 10.5 11.5 7M2.5 13.5h11"></path></svg>Apple Calendar (.ics)</a></div></div><p class="fhint">The calendar entry has the joining link, so you won't need to find the email.</p></div></div></div></div><p class="fcap">Google, Outlook and Apple (.ics). The automation “DMARC live reminders” sends the joining link now, 1 day and 1 hour before.</p></section><section class="frm" aria-label="Launch · before the countdown ends"><div class="strip"><span class="dot" style="color:#6B7280"></span>Launch · before the countdown ends</div><div class="fwin"><div class="urlbar"><i></i><i></i><i></i><span class="u">news.acme.io/launch-kit</span></div><div class="st pgw "><header class="st-hd"><div class="st-w st-hdi"><a href="PublicHome.dc.html" class="st-brand" aria-label="The Acme newsletter, home"><span class="st-mark" aria-hidden="true">A</span><span class="full">The Acme newsletter</span><span class="short">Acme</span></a></div></header><main><section class="lp-band"><div class="sp-in"><div class="lp-hero"><div class="lp-copy"><span class="eyebrow">Opens 6 October, 09:00 New York time</span><h1>Newsletter Launch Kit</h1><p class="sp-lead" style="font-size:17px">Twelve templates and a checklist to get your first issues out the door. Pay what you want when it opens.</p><div style="display:flex;flex-direction:column;gap:10px"><div class="cd" role="timer" aria-label="Opens in 5 days, 3 hours"><span class="cdu"><b>05</b><span>days</span></span><span class="cdu"><b>03</b><span>hours</span></span><span class="cdu"><b>12</b><span>minutes</span></span></div><p class="cd-s">Opens in 5 days, 3 hours</p></div></div><span class="cov" style="width:calc(150px);height:calc(200px);background:#EDE9FE" role="img" aria-label="Cover of the Newsletter Launch Kit"><span style="position:absolute;left:10%;top:36%;width:34%;height:20%;border-radius:4px;background:#4338CA"></span><span style="position:absolute;left:56%;top:36%;width:34%;height:20%;border-radius:4px;background:#fff"></span><span style="position:absolute;left:10%;top:61%;width:34%;height:20%;border-radius:4px;background:#fff"></span><span style="position:absolute;left:56%;top:61%;width:34%;height:20%;border-radius:4px;background:#3730A3"></span><span style="position:absolute;left:10%;right:10%;top:8%;font-size:17px;font-weight:800;line-height:1.05;color:#3730A3;letter-spacing:-.01em">Newsletter Launch Kit</span><span style="position:absolute;left:10%;bottom:7%;font-size:10px;font-weight:600;color:#3730A3">12 templates · checklist</span></span></div></div></section><div class="sp-in"><div class="lp-body"><form class="fcard" aria-labelledby="wl-f"><h2 id="wl-f">Join the waitlist</h2><label class="fl">Email<input class="st-in" type="email" placeholder="you@company.com"></label><label class="cons"><input type="checkbox" required><span>Email me when the Newsletter Launch Kit opens.</span></label><button type="submit" class="st-btn lg full">Join the waitlist</button></form><div class="bens"><div class="ben"><b>12 MJML templates</b>Welcome, digest, launch and re-engagement emails, ready to edit.</div><div class="ben"><b>A launch checklist</b>30 steps from domain setup to your third issue.</div><div class="ben"><b>Works anywhere</b>In ReputeCast or any tool that reads MJML 4.</div></div></div></div></main></div></div><p class="fcap">Countdown to 6 Oct 2026, 09:00 America/New_York, in tabular figures, read out as “Opens in 5 days, 3 hours”. 1,406 people joined the waitlist.</p></section><section class="frm" aria-label="Launch · after: the Buy button replaces the waitlist"><div class="strip"><span class="dot" style="color:#15803D"></span>Launch · after: the Buy button replaces the waitlist</div><div class="fwin"><div class="urlbar"><i></i><i></i><i></i><span class="u">news.acme.io/launch-kit</span></div><div class="st pgw "><header class="st-hd"><div class="st-w st-hdi"><a href="PublicHome.dc.html" class="st-brand" aria-label="The Acme newsletter, home"><span class="st-mark" aria-hidden="true">A</span><span class="full">The Acme newsletter</span><span class="short">Acme</span></a></div></header><main><section class="lp-band"><div class="sp-in"><div class="lp-hero"><div class="lp-copy"><span class="eyebrow">Open now</span><h1>Newsletter Launch Kit</h1><p class="sp-lead" style="font-size:17px">Twelve templates and a checklist to get your first issues out the door. Pay what you want.</p><div class="buybox" id="buy"><div class="bb-price"><span class="amt" style="font-size:26px">Pay what you want</span></div><span style="font-size:15px;color:#374151;margin-top:-6px">From $5 · most people pay $15. You choose the amount on Stripe's page.</span><a class="st-btn lg full" href="PublicPagesStates.dc.html">Buy the Launch Kit</a><label class="offer"><input type="checkbox"><span><span class="ot">Also send me the Weekly Digest</span><span class="os">One email a week. Unsubscribe any time.</span></span></label><p class="bb-note">Checkout is on Stripe: you pay Acme Media, and tax is added where it applies. ZIP, 38 MB, downloaded right after.</p></div></div><span class="cov" style="width:calc(150px);height:calc(200px);background:#EDE9FE" role="img" aria-label="Cover of the Newsletter Launch Kit"><span style="position:absolute;left:10%;top:36%;width:34%;height:20%;border-radius:4px;background:#4338CA"></span><span style="position:absolute;left:56%;top:36%;width:34%;height:20%;border-radius:4px;background:#fff"></span><span style="position:absolute;left:10%;top:61%;width:34%;height:20%;border-radius:4px;background:#fff"></span><span style="position:absolute;left:56%;top:61%;width:34%;height:20%;border-radius:4px;background:#3730A3"></span><span style="position:absolute;left:10%;right:10%;top:8%;font-size:17px;font-weight:800;line-height:1.05;color:#3730A3;letter-spacing:-.01em">Newsletter Launch Kit</span><span style="position:absolute;left:10%;bottom:7%;font-size:10px;font-weight:600;color:#3730A3">12 templates · checklist</span></span></div></div></section><div class="sp-in"><div class="lp-body"><div class="bens"><div class="ben"><b>12 MJML templates</b>Welcome, digest, launch and re-engagement emails, ready to edit.</div><div class="ben"><b>A launch checklist</b>30 steps from domain setup to your third issue.</div><div class="ben"><b>Works anywhere</b>In ReputeCast or any tool that reads MJML 4.</div></div></div></div></main></div></div><p class="fcap">Pay what you want, from $5 with $15 suggested. The amount is chosen on Stripe's page. 81 sales from this page since 6 Oct.</p></section></div><div class="secth"><h2>Shop and buying</h2><span class="k" style="font-size:13px">The shop, the default product page, the Stripe handoff and what buyers see afterwards.</span></div><div class="fgrid"><section class="frm" aria-label="Shop"><div class="strip"><span class="dot" style="color:#6B7280"></span>Shop</div><div class="fwin"><div class="urlbar"><i></i><i></i><i></i><span class="u">news.acme.io/products</span></div><div class="st pgw "><header class="st-hd"><div class="st-w st-hdi"><a href="PublicHome.dc.html" class="st-brand" aria-label="The Acme newsletter, home"><span class="st-mark" aria-hidden="true">A</span><span class="full">The Acme newsletter</span><span class="short">Acme</span></a><nav class="st-nav" aria-label="Site"><a href="PublicHome.dc.html">Weekly Digest</a><a href="PublicHome.dc.html">Product Updates</a><a href="PublicSiteStates.dc.html">Engineering</a><a href="PublicSalesPage.dc.html">Field Guide</a><a href="PublicHome.dc.html">About</a></nav><div class="st-act"><a href="PublicSiteStates.dc.html" class="st-btn2 st-signin">Sign in</a><a href="PublicSubscribe.dc.html" class="st-btn">Subscribe</a><button class="st-menu" type="button" aria-label="Menu" aria-expanded="false"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"></path></svg></button></div></div></header><main class="lav"><div class="sp-in" style="padding-top:40px;padding-bottom:44px;display:flex;flex-direction:column;gap:24px"><div class="lp-copy"><h1 style="margin:0;font-size:34px;font-weight:700;letter-spacing:-.025em;color:#0B1220">Shop</h1><p class="sp-lead" style="font-size:17px">Guides and templates from the Acme team. You pay through Stripe, and the download arrives by email.</p></div><div class="shopg"><article class="shopc"><a class="art" href="PublicSalesPage.dc.html" aria-hidden="true" tabindex="-1"><span class="cov" style="width:calc(132px);height:calc(176px);background:#0B1220" role="img" aria-label="Cover of The Deliverability Field Guide"><span style="position:absolute;left:0;right:0;top:58%;height:14%;background:#4338CA"></span><span style="position:absolute;left:0;right:0;top:72%;height:6%;background:#3730A3"></span><span style="position:absolute;left:13px;right:13px;top:15px;display:flex;flex-direction:column;gap:4px"><span style="font-size:9px;letter-spacing:.12em;font-weight:700;color:#DDD6FE;text-transform:uppercase">Field guide</span><span style="font-size:14px;font-weight:700;line-height:1.08;color:#fff;letter-spacing:-.01em">The Deliverability Field Guide</span></span><span style="position:absolute;left:13px;bottom:9px;font-size:9px;font-weight:600;color:#DDD6FE">Sofia Rossi</span></span></a><div class="b"><h2><a href="PublicSalesPage.dc.html">The Deliverability Field Guide</a></h2><p>Eight chapters on getting into the inbox and staying there. PDF, 86 pages.</p><div class="f"><span class="pr">$29</span><a class="st-btn full" href="PublicSalesPage.dc.html">See the guide</a></div></div></article><article class="shopc"><a class="art" href="PublicPagesStates.dc.html" aria-hidden="true" tabindex="-1"><span class="cov" style="width:calc(132px);height:calc(176px);background:#EDE9FE" role="img" aria-label="Cover of the Newsletter Launch Kit"><span style="position:absolute;left:10%;top:36%;width:34%;height:20%;border-radius:3px;background:#4338CA"></span><span style="position:absolute;left:56%;top:36%;width:34%;height:20%;border-radius:3px;background:#fff"></span><span style="position:absolute;left:10%;top:61%;width:34%;height:20%;border-radius:3px;background:#fff"></span><span style="position:absolute;left:56%;top:61%;width:34%;height:20%;border-radius:3px;background:#3730A3"></span><span style="position:absolute;left:10%;right:10%;top:8%;font-size:15px;font-weight:800;line-height:1.05;color:#3730A3;letter-spacing:-.01em">Newsletter Launch Kit</span><span style="position:absolute;left:10%;bottom:7%;font-size:9px;font-weight:600;color:#3730A3">12 templates · checklist</span></span></a><div class="b"><h2><a href="PublicPagesStates.dc.html">Newsletter Launch Kit</a></h2><p>12 MJML templates and a launch checklist. ZIP, 38 MB.</p><div class="f"><span class="pr">Pay what you want · from $5</span><a class="st-btn full" href="PublicPagesStates.dc.html">See the kit</a></div></div></article></div></div></main><footer class="st-ft"><div class="st-w st-fti"><div style="display:flex;flex-direction:column;gap:8px;max-width:560px"><span class="st-brand" style="font-size:15px"><span class="st-mark" style="width:30px;height:30px;font-size:13px" aria-hidden="true">A</span>The Acme newsletter</span><span class="st-k">What shipped, what's next and the occasional deep dive. © 2026 Acme Inc.</span></div><nav class="st-ftl" aria-label="Footer"><a href="PublicArchive.dc.html">Archive</a><a href="PublicHome.dc.html" class="st-rc"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11a2 2 0 1 1 0 .01M3 7a6 6 0 0 1 6 6M3 3a10 10 0 0 1 10 10"></path></svg>RSS</a><a href="https://acme.io/privacy">Privacy</a><a href="PublicPreferences.dc.html">Email preferences</a><a href="Landing.dc.html" class="st-rc"><svg width="14" height="14" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>Sent with ReputeCast</a></nav></div></footer></div></div><p class="fcap">Every published product with “Show in the shop”. Each card opens the product's sales page, where the list offer sits next to the Buy button.</p></section><section class="frm" aria-label="Default product page · preview"><div class="strip"><span class="dot" style="color:#6B7280"></span>Default product page · preview</div><div class="fwin"><div class="urlbar"><i></i><i></i><i></i><span class="u">news.acme.io/products/warm-up-planner</span></div><div class="st pgw "><header class="st-hd"><div class="st-w st-hdi"><a href="PublicHome.dc.html" class="st-brand" aria-label="The Acme newsletter, home"><span class="st-mark" aria-hidden="true">A</span><span class="full">The Acme newsletter</span><span class="short">Acme</span></a><nav class="st-nav" aria-label="Site"><a href="PublicHome.dc.html">Weekly Digest</a><a href="PublicHome.dc.html">Product Updates</a><a href="PublicSiteStates.dc.html">Engineering</a><a href="PublicSalesPage.dc.html">Field Guide</a><a href="PublicHome.dc.html">About</a></nav><div class="st-act"><a href="PublicSiteStates.dc.html" class="st-btn2 st-signin">Sign in</a><a href="PublicSubscribe.dc.html" class="st-btn">Subscribe</a><button class="st-menu" type="button" aria-label="Menu" aria-expanded="false"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"></path></svg></button></div></div></header><main class="lav"><div class="sp-in" style="padding-top:28px;padding-bottom:44px;display:flex;flex-direction:column;gap:22px"><nav class="crumb7" aria-label="Breadcrumb"><a href="PublicPagesStates.dc.html">Shop</a><span aria-hidden="true">/</span><span>Warm-up planner</span></nav><div class="lp-hero" style="padding:0;grid-template-columns:auto minmax(0,1fr);align-items:start"><div style="padding:24px;border-radius:16px;background:#EDE9FE"><span class="cov" style="width:calc(150px);height:calc(200px);background:#fff;border:1px solid #DDD6FE" role="img" aria-label="Cover of the Warm-up planner"><span style="position:absolute;left:10%;right:10%;top:40%;bottom:8%;border:1px solid #DDD6FE;border-radius:3px"></span><span style="position:absolute;left:10%;right:10%;top:46%;height:1px;background:#DDD6FE"></span><span style="position:absolute;left:10%;right:10%;top:56%;height:1px;background:#DDD6FE"></span><span style="position:absolute;left:10%;right:10%;top:66%;height:1px;background:#DDD6FE"></span><span style="position:absolute;left:10%;right:10%;top:76%;height:1px;background:#DDD6FE"></span><span style="position:absolute;left:10%;right:10%;top:86%;height:1px;background:#DDD6FE"></span><span style="position:absolute;top:40%;bottom:8%;left:34%;width:1px;background:#DDD6FE"></span><span style="position:absolute;top:40%;bottom:8%;left:58%;width:1px;background:#DDD6FE"></span><span style="position:absolute;left:10%;right:10%;top:9%;font-size:17px;font-weight:800;line-height:1.05;color:#3730A3">Warm-up planner</span><span style="position:absolute;left:10%;top:28%;font-size:10px;font-weight:600;color:#5B6472">4 weeks · day by day</span></span></div><div class="lp-copy"><h1>Warm-up planner</h1><p class="sp-lead" style="font-size:17px">A four-week, day-by-day sending plan for a new domain or IP.</p><p class="ptxt">Enter your list size and providers, and the planner sets each day's volume, the numbers to check and when to slow down. Built from chapter 2 of The Deliverability Field Guide.</p><span class="st-mut" style="font-size:14px">XLSX, 210 KB · opens in Excel, Numbers or Google Sheets</span></div></div><div class="buybox" id="buy"><div class="bb-price"><span class="amt">$12</span><span class="st-mut" style="font-size:14px">one-time payment</span></div><a class="st-btn lg full" href="PublicPagesStates.dc.html">Buy for $12</a><p class="bb-note">Checkout is on Stripe: you pay Acme Media, and tax is added where it applies. The download opens right after, and we email you the link.</p></div></div></main><footer class="st-ft"><div class="st-w st-fti"><div style="display:flex;flex-direction:column;gap:8px;max-width:560px"><span class="st-brand" style="font-size:15px"><span class="st-mark" style="width:30px;height:30px;font-size:13px" aria-hidden="true">A</span>The Acme newsletter</span><span class="st-k">What shipped, what's next and the occasional deep dive. © 2026 Acme Inc.</span></div><nav class="st-ftl" aria-label="Footer"><a href="PublicArchive.dc.html">Archive</a><a href="PublicHome.dc.html" class="st-rc"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11a2 2 0 1 1 0 .01M3 7a6 6 0 0 1 6 6M3 3a10 10 0 0 1 10 10"></path></svg>RSS</a><a href="https://acme.io/privacy">Privacy</a><a href="PublicPreferences.dc.html">Email preferences</a><a href="Landing.dc.html" class="st-rc"><svg width="14" height="14" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>Sent with ReputeCast</a></nav></div></footer></div></div><p class="fcap">Used when a product has no sales page. The Warm-up planner is still a draft; this is how its page will look once it's published.</p></section><section class="frm" aria-label="Checkout cancelled · back on the sales page"><div class="strip"><span class="dot" style="color:#B45309"></span>Checkout cancelled · back on the sales page</div><div class="fwin"><div class="urlbar"><i></i><i></i><i></i><span class="u">news.acme.io/field-guide?checkout=cancelled</span></div><div class="st pgw "><header class="st-hd"><div class="st-w st-hdi"><a href="PublicHome.dc.html" class="st-brand" aria-label="The Acme newsletter, home"><span class="st-mark" aria-hidden="true">A</span><span class="full">The Acme newsletter</span><span class="short">Acme</span></a><nav class="st-nav" aria-label="Site"><a href="PublicHome.dc.html">Weekly Digest</a><a href="PublicHome.dc.html">Product Updates</a><a href="PublicSiteStates.dc.html">Engineering</a><a href="PublicSalesPage.dc.html" class="on" aria-current="page">Field Guide</a><a href="PublicHome.dc.html">About</a></nav><div class="st-act"><a href="PublicSiteStates.dc.html" class="st-btn2 st-signin">Sign in</a><a href="PublicSubscribe.dc.html" class="st-btn">Subscribe</a><button class="st-menu" type="button" aria-label="Menu" aria-expanded="false"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"></path></svg></button></div></div></header><div class="compact"><section class="sp-hero" aria-labelledby="sp-title"><div class="sp-in"><div class="pnote n" role="status" style="margin-bottom:24px"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="#4338CA" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M8 7.2v3.8M8 5v.1"></path></svg><span><b>Checkout cancelled. No payment was taken.</b> You can buy whenever you're ready.</span></div><div class="hero-grid"><div class="hero-copy"><span class="eyebrow">Field guide · PDF, 86 pages</span><h1 id="sp-title">The Deliverability Field Guide</h1><p class="sp-lead">Get your newsletter into the inbox and keep it there. Eight practical chapters on authentication, warm-up, list hygiene and what to do when a mailbox provider starts pushing back.</p><ul class="ticks"><li><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="#4338CA" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg><span>8 chapters and 86 pages, with a checklist after each</span></li><li><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="#4338CA" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg><span>Real DNS records, bounce codes and dashboards, explained</span></li><li><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="#4338CA" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg><span>Written by Sofia Rossi, who runs Acme's sending</span></li></ul><div class="buybox" id="buy"><div class="bb-price"><span class="amt">$29</span><span class="st-mut" style="font-size:14px">one-time payment</span></div><a class="st-btn lg full" href="PublicPagesStates.dc.html">Buy for $29</a><label class="offer"><input type="checkbox"><span><span class="ot">Also send me the Weekly Digest</span><span class="os">One email a week. Unsubscribe any time.</span></span></label><p class="bb-note">Checkout is on Stripe: you pay Acme Media, and tax is added where it applies. The download opens right after, and we email you the link.</p></div></div><div class="hero-art"><span class="cov" style="width:calc(150px);height:calc(200px);background:#0B1220" role="img" aria-label="Cover of The Deliverability Field Guide"><span style="position:absolute;left:0;right:0;top:58%;height:14%;background:#4338CA"></span><span style="position:absolute;left:0;right:0;top:72%;height:6%;background:#3730A3"></span><span style="position:absolute;left:15px;right:15px;top:16px;display:flex;flex-direction:column;gap:5px"><span style="font-size:10px;letter-spacing:.12em;font-weight:700;color:#DDD6FE;text-transform:uppercase">Field guide</span><span style="font-size:16px;font-weight:700;line-height:1.08;color:#fff;letter-spacing:-.01em">The Deliverability Field Guide</span></span><span style="position:absolute;left:15px;bottom:11px;font-size:10px;font-weight:600;color:#DDD6FE">Sofia Rossi</span></span></div></div></div></section></div></div></div><p class="fcap">Nothing was charged. The reader is back where they were, with the Buy button.</p></section><section class="frm" aria-label="Phone · the Buy bar stays at the bottom"><div class="strip"><span class="dot" style="color:#6B7280"></span>Phone · the Buy bar stays at the bottom</div><div style="display:flex;justify-content:center;padding:4px 0"><div class="phonefr" role="img" aria-label="The sales page on a phone, with the Buy bar at the bottom"><div class="st pgw "><header class="st-hd"><div class="st-w st-hdi"><a href="PublicHome.dc.html" class="st-brand" aria-label="The Acme newsletter, home"><span class="st-mark" aria-hidden="true">A</span><span class="full">The Acme newsletter</span><span class="short">Acme</span></a><nav class="st-nav" aria-label="Site"><a href="PublicHome.dc.html">Weekly Digest</a><a href="PublicHome.dc.html">Product Updates</a><a href="PublicSiteStates.dc.html">Engineering</a><a href="PublicSalesPage.dc.html" class="on" aria-current="page">Field Guide</a><a href="PublicHome.dc.html">About</a></nav><div class="st-act"><a href="PublicSiteStates.dc.html" class="st-btn2 st-signin">Sign in</a><a href="PublicSubscribe.dc.html" class="st-btn">Subscribe</a><button class="st-menu" type="button" aria-label="Menu" aria-expanded="false"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"></path></svg></button></div></div></header><section class="sp-hero" aria-labelledby="sp-title"><div class="sp-in"><div class="hero-grid"><div class="hero-copy"><span class="eyebrow">Field guide · PDF, 86 pages</span><h1 id="sp-title">The Deliverability Field Guide</h1><p class="sp-lead">Get your newsletter into the inbox and keep it there. Eight practical chapters on authentication, warm-up, list hygiene and what to do when a mailbox provider starts pushing back.</p><ul class="ticks"><li><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="#4338CA" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg><span>8 chapters and 86 pages, with a checklist after each</span></li><li><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="#4338CA" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg><span>Real DNS records, bounce codes and dashboards, explained</span></li><li><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="#4338CA" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg><span>Written by Sofia Rossi, who runs Acme's sending</span></li></ul><div class="buybox" id="buy"><div class="bb-price"><span class="amt">$29</span><span class="st-mut" style="font-size:14px">one-time payment</span></div><a class="st-btn lg full" href="PublicPagesStates.dc.html">Buy for $29</a><label class="offer"><input type="checkbox"><span><span class="ot">Also send me the Weekly Digest</span><span class="os">One email a week. Unsubscribe any time.</span></span></label><p class="bb-note">Checkout is on Stripe: you pay Acme Media, and tax is added where it applies. The download opens right after, and we email you the link.</p></div></div><div class="hero-art"><span class="cov" style="width:calc(300px);height:calc(400px);background:#0B1220" role="img" aria-label="Cover of The Deliverability Field Guide"><span style="position:absolute;left:0;right:0;top:58%;height:14%;background:#4338CA"></span><span style="position:absolute;left:0;right:0;top:72%;height:6%;background:#3730A3"></span><span style="position:absolute;left:30px;right:30px;top:33px;display:flex;flex-direction:column;gap:10px"><span style="font-size:20px;letter-spacing:.12em;font-weight:700;color:#DDD6FE;text-transform:uppercase">Acme · field guide</span><span style="font-size:32px;font-weight:700;line-height:1.08;color:#fff;letter-spacing:-.01em">The Deliverability Field Guide</span></span><span style="position:absolute;left:30px;bottom:21px;font-size:20px;font-weight:600;color:#DDD6FE">Sofia Rossi</span></span></div></div></div></section></div><div class="buybar"><span class="bt"><b>The Deliverability Field Guide</b><span class="st-mut" style="font-size:13px">$29 · PDF, 86 pages</span></span><a class="st-btn" href="#buy">Buy for $29</a></div></div></div><p class="fcap">On phones the Buy bar stays at the bottom of the screen. It scrolls to the buy box, so the list offer is always next to the Buy button.</p></section><section class="frm" aria-label="Taking you to Stripe"><div class="strip"><span class="dot" style="color:#6B7280"></span>Taking you to Stripe</div><div class="fwin"><div class="urlbar"><i></i><i></i><i></i><span class="u">news.acme.io/field-guide</span></div><div class="st pgw "><header class="st-hd"><div class="st-w st-hdi"><a href="PublicHome.dc.html" class="st-brand" aria-label="The Acme newsletter, home"><span class="st-mark" aria-hidden="true">A</span><span class="full">The Acme newsletter</span><span class="short">Acme</span></a><nav class="st-nav" aria-label="Site"><a href="PublicHome.dc.html">Weekly Digest</a><a href="PublicHome.dc.html">Product Updates</a><a href="PublicSiteStates.dc.html">Engineering</a><a href="PublicSalesPage.dc.html" class="on" aria-current="page">Field Guide</a><a href="PublicHome.dc.html">About</a></nav><div class="st-act"><a href="PublicSiteStates.dc.html" class="st-btn2 st-signin">Sign in</a><a href="PublicSubscribe.dc.html" class="st-btn">Subscribe</a><button class="st-menu" type="button" aria-label="Menu" aria-expanded="false"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"></path></svg></button></div></div></header><div class="lav" style="display:flex;justify-content:center;padding:48px 24px 56px"><div class="pcard7" style="max-width:480px"><div style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px"><span class="spin7" aria-hidden="true"></span><h1 role="status">Taking you to Stripe…</h1><p class="ptxt">You'll pay <b style="color:#0B1220">Acme Media</b> on checkout.stripe.com. Your card details go to Stripe, never to this site.</p><div class="files" style="width:100%;text-align:left"><div class="filer"><span class="fi"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="#4338CA" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 1.5h5.5L12.5 4.5V14.5h-8.5z"></path><path d="M9.5 1.5v3h3"></path></svg></span><span class="ft"><b>The Deliverability Field Guide</b><span>$29.00 · tax added where it applies</span></span></div></div><a class="st-btn2" href="#">Continue to Stripe</a><a href="PublicSalesPage.dc.html" class="st-lnk" style="font-size:14px">Cancel and go back</a></div></div></div></div></div><p class="fcap">Shown for a moment while the Checkout session is created. Without scripts, “Continue to Stripe” does the same.</p></section><section class="frm" aria-label="Thank-you page"><div class="strip"><span class="dot" style="color:#15803D"></span>Thank-you page</div><div class="fwin"><div class="urlbar"><i></i><i></i><i></i><span class="u">news.acme.io/field-guide/thanks</span></div><div class="st pgw "><header class="st-hd"><div class="st-w st-hdi"><a href="PublicHome.dc.html" class="st-brand" aria-label="The Acme newsletter, home"><span class="st-mark" aria-hidden="true">A</span><span class="full">The Acme newsletter</span><span class="short">Acme</span></a><nav class="st-nav" aria-label="Site"><a href="PublicHome.dc.html">Weekly Digest</a><a href="PublicHome.dc.html">Product Updates</a><a href="PublicSiteStates.dc.html">Engineering</a><a href="PublicSalesPage.dc.html">Field Guide</a><a href="PublicHome.dc.html">About</a></nav><div class="st-act"><a href="PublicSiteStates.dc.html" class="st-btn2 st-signin">Sign in</a><a href="PublicSubscribe.dc.html" class="st-btn">Subscribe</a><button class="st-menu" type="button" aria-label="Menu" aria-expanded="false"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"></path></svg></button></div></div></header><div class="lav" style="display:flex;justify-content:center;padding:40px 24px 48px"><div class="pcard7" style="max-width:560px"><div style="display:flex;gap:14px;align-items:center"><span class="okc"><svg width="24" height="24" viewBox="0 0 16 16" fill="none" stroke="#4338CA" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg></span><h1>Thanks, your download is ready</h1></div><div class="files"><div class="filer"><span class="fi"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="#4338CA" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 1.5h5.5L12.5 4.5V14.5h-8.5z"></path><path d="M9.5 1.5v3h3"></path></svg></span><span class="ft"><b>The Deliverability Field Guide</b><span>PDF · 86 pages · 4.2 MB</span></span></div></div><a class="st-btn lg full" href="#"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2.5v8M4.5 7 8 10.5 11.5 7M2.5 13.5h11"></path></svg>Download now</a><p class="ptxt">We also emailed the link to <b style="color:#0B1220">a•••@example.com</b>. It works until 22 Oct, for 5 downloads.</p><div class="lav-note">One more step for the Weekly Digest: confirm your subscription from the email we just sent.</div><p class="fhint">Stripe emails your receipt separately. Order 1311. Lost the link later? Sign in at news.acme.io/account.</p></div></div></div></div><p class="fcap">Order 1311, ana.ruiz@example.com, who ticked “Also send me the Weekly Digest”: the list's double opt-in still applies.</p></section><section class="frm" aria-label="Thank-you page · Stripe in test mode"><div class="strip"><span class="dot" style="color:#5B21B6"></span>Thank-you page · Stripe in test mode</div><div class="fwin"><div class="urlbar"><i></i><i></i><i></i><span class="u">news.acme.io/field-guide/thanks</span></div><div class="st pgw "><header class="st-hd"><div class="st-w st-hdi"><a href="PublicHome.dc.html" class="st-brand" aria-label="The Acme newsletter, home"><span class="st-mark" aria-hidden="true">A</span><span class="full">The Acme newsletter</span><span class="short">Acme</span></a><nav class="st-nav" aria-label="Site"><a href="PublicHome.dc.html">Weekly Digest</a><a href="PublicHome.dc.html">Product Updates</a><a href="PublicSiteStates.dc.html">Engineering</a><a href="PublicSalesPage.dc.html">Field Guide</a><a href="PublicHome.dc.html">About</a></nav><div class="st-act"><a href="PublicSiteStates.dc.html" class="st-btn2 st-signin">Sign in</a><a href="PublicSubscribe.dc.html" class="st-btn">Subscribe</a><button class="st-menu" type="button" aria-label="Menu" aria-expanded="false"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"></path></svg></button></div></div></header><div class="lav" style="display:flex;justify-content:center;padding:40px 24px 48px"><div class="pcard7" style="max-width:560px"><div class="pnote t" role="status"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="#5B21B6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M8 7.2v3.8M8 5v.1"></path></svg><span><b>Test purchase: no money was taken.</b> Stripe is in test mode for Acme Media. This order is marked Test and left out of every number.</span></div><div style="display:flex;gap:14px;align-items:center"><span class="okc"><svg width="24" height="24" viewBox="0 0 16 16" fill="none" stroke="#4338CA" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg></span><h1>Thanks, your download is ready</h1></div><div class="files"><div class="filer"><span class="fi"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="#4338CA" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 1.5h5.5L12.5 4.5V14.5h-8.5z"></path><path d="M9.5 1.5v3h3"></path></svg></span><span class="ft"><b>The Deliverability Field Guide</b><span>PDF · 86 pages · 4.2 MB</span></span></div></div><a class="st-btn lg full" href="#"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2.5v8M4.5 7 8 10.5 11.5 7M2.5 13.5h11"></path></svg>Download now</a><p class="ptxt">We also emailed the link to <b style="color:#0B1220">l•••@acme.io</b>. It works until 22 Oct, for 5 downloads.</p><p class="fhint">Stripe emails your receipt separately. Order 1312 · Test. Lost the link later? Sign in at news.acme.io/account.</p></div></div></div></div><p class="fcap">A test checkout with Stripe's test card. The order carries a Test badge in Earn › Products.</p></section><section class="frm" aria-label="Delivery email · product-delivery v1"><div class="strip"><span class="dot" style="color:#6B7280"></span>Delivery email · product-delivery v1</div><div class="fwin"><div class="urlbar"><i></i><i></i><i></i><span class="u">Inbox · ana.ruiz@example.com</span></div><div class="st pgw "><div style="display:flex;flex-direction:column;gap:4px;padding:14px 18px;background:#fff;border-bottom:1px solid #E3E6EB;font-size:13px;color:#374151"><span><b style="color:#0B1220">The Acme newsletter</b> &lt;no-reply@notify.acme.io&gt; · to ana.ruiz@example.com</span><span style="font-weight:700;color:#0B1220;font-size:14px">Your download: The Deliverability Field Guide</span><span class="k">product-delivery v1 · Purchases (Essential) · via Postmark · 15 Oct, 10:12</span></div><div style="padding:24px;display:flex;justify-content:center;background:#E9ECF0"><div style="width:560px;max-width:100%;background:#fff;box-shadow:0 1px 3px rgba(11,18,32,.12);border-radius:4px;overflow:hidden;font-family:Georgia,'Times New Roman',serif;color:#1F2937;flex:none" role="img" aria-label="The product-delivery email for order 1311"><div style="padding:20px 28px;border-bottom:1px solid #EEF0F3;display:flex;align-items:center;gap:10px"><span style="width:28px;height:28px;border-radius:7px;background:#0B1220;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-family:'IBM Plex Sans',system-ui,sans-serif;font-weight:800;font-size:13px">A</span><span style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-weight:700;font-size:15px;color:#0B1220">The Acme newsletter</span></div><div style="padding:26px 28px 8px;display:flex;flex-direction:column;gap:14px"><h1 style="margin:0;font-size:24px;line-height:1.25;color:#0B1220">Your download is ready</h1><p style="margin:0;font-size:15px;line-height:1.6">Hi Ana,</p><p style="margin:0;font-size:15px;line-height:1.6">Thanks for buying The Deliverability Field Guide.</p><div style="padding:6px 0 2px"><a href="#" style="display:inline-block;padding:11px 18px;border-radius:6px;background:#4338CA;color:#fff;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;font-weight:600;text-decoration:none">Download the PDF, 4.2 MB</a></div><p style="margin:0;font-size:15px;line-height:1.6">This link works until 22 Oct 2026, for 5 downloads.</p><p style="margin:0;font-size:15px;line-height:1.6">Need it again later? Sign in at news.acme.io/account.</p><p style="margin:0;font-size:14px;line-height:1.6;color:#4B5563">Order 1311 · $29.00. Stripe sends your receipt separately.</p></div><div style="margin-top:18px;padding:16px 28px;background:#F3F4F6;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12px;color:#5B6472;line-height:1.6">Acme Inc · 500 Market St, Suite 1200 · San Francisco, CA 94105<br>You get this email because you bought from news.acme.io. Purchase emails can't be turned off.</div></div></div></div></div><p class="fcap"><b>download_url</b> is a sensitive variable: it's never stored, so the message log shows ••••••.</p></section><section class="frm" aria-label="Download page"><div class="strip"><span class="dot" style="color:#15803D"></span>Download page</div><div class="fwin"><div class="urlbar"><i></i><i></i><i></i><span class="u">news.acme.io/d/7Kq2…</span></div><div class="st pgw "><header class="st-hd"><div class="st-w st-hdi"><a href="PublicHome.dc.html" class="st-brand" aria-label="The Acme newsletter, home"><span class="st-mark" aria-hidden="true">A</span><span class="full">The Acme newsletter</span><span class="short">Acme</span></a><nav class="st-nav" aria-label="Site"><a href="PublicHome.dc.html">Weekly Digest</a><a href="PublicHome.dc.html">Product Updates</a><a href="PublicSiteStates.dc.html">Engineering</a><a href="PublicSalesPage.dc.html">Field Guide</a><a href="PublicHome.dc.html">About</a></nav><div class="st-act"><a href="PublicSiteStates.dc.html" class="st-btn2 st-signin">Sign in</a><a href="PublicSubscribe.dc.html" class="st-btn">Subscribe</a><button class="st-menu" type="button" aria-label="Menu" aria-expanded="false"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"></path></svg></button></div></div></header><div class="lav" style="display:flex;justify-content:center;padding:40px 24px 48px"><div class="pcard7" style="max-width:560px"><span class="eyebrow">Your download</span><h1>The Deliverability Field Guide</h1><div><span class="dlc" style="background:#F0FDF4;border-color:#BBF7D0;color:#14532D"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#15803D" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2.5v8M4.5 7 8 10.5 11.5 7M2.5 13.5h11"></path></svg>Link works until 22 Oct · 4 of 5 downloads left</span></div><div class="files"><div class="filer"><span class="fi"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="#4338CA" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 1.5h5.5L12.5 4.5V14.5h-8.5z"></path><path d="M9.5 1.5v3h3"></path></svg></span><span class="ft"><b>deliverability-field-guide.pdf</b><span>PDF · 86 pages · 4.2 MB</span></span><a class="st-btn" href="#"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2.5v8M4.5 7 8 10.5 11.5 7M2.5 13.5h11"></path></svg>Download</a></div></div><p class="fhint">Bought on 15 Oct 2026 · order 1311. Need it after 22 Oct? Sign in at news.acme.io/account and choose “Send me a new link”.</p></div></div></div></div><p class="fcap">One link per order, for 7 days and 5 downloads. Downloads are counted on the server.</p></section><section class="frm" aria-label="Link expired"><div class="strip"><span class="dot" style="color:#B45309"></span>Link expired</div><div class="fwin"><div class="urlbar"><i></i><i></i><i></i><span class="u">news.acme.io/d/9Fh4…</span></div><div class="st pgw "><header class="st-hd"><div class="st-w st-hdi"><a href="PublicHome.dc.html" class="st-brand" aria-label="The Acme newsletter, home"><span class="st-mark" aria-hidden="true">A</span><span class="full">The Acme newsletter</span><span class="short">Acme</span></a><nav class="st-nav" aria-label="Site"><a href="PublicHome.dc.html">Weekly Digest</a><a href="PublicHome.dc.html">Product Updates</a><a href="PublicSiteStates.dc.html">Engineering</a><a href="PublicSalesPage.dc.html">Field Guide</a><a href="PublicHome.dc.html">About</a></nav><div class="st-act"><a href="PublicSiteStates.dc.html" class="st-btn2 st-signin">Sign in</a><a href="PublicSubscribe.dc.html" class="st-btn">Subscribe</a><button class="st-menu" type="button" aria-label="Menu" aria-expanded="false"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"></path></svg></button></div></div></header><div class="lav" style="display:flex;justify-content:center;padding:40px 24px 48px"><div class="pcard7" style="max-width:520px"><h1>This link has expired</h1><p class="ptxt">Download links work for 7 days. This one, for The Deliverability Field Guide, expired on 10 Oct.</p><a class="st-btn lg full" href="#">Send a new link to s•••@outlook.com</a><p class="fhint">A new link goes only to the address on the order.</p></div></div></div></div><p class="fcap">Sam Rivera's link from 3 Oct. The address is masked; the new link goes only to the address on the order.</p></section><section class="frm" aria-label="Downloads used up"><div class="strip"><span class="dot" style="color:#B45309"></span>Downloads used up</div><div class="fwin"><div class="urlbar"><i></i><i></i><i></i><span class="u">news.acme.io/d/3Pz8…</span></div><div class="st pgw "><header class="st-hd"><div class="st-w st-hdi"><a href="PublicHome.dc.html" class="st-brand" aria-label="The Acme newsletter, home"><span class="st-mark" aria-hidden="true">A</span><span class="full">The Acme newsletter</span><span class="short">Acme</span></a><nav class="st-nav" aria-label="Site"><a href="PublicHome.dc.html">Weekly Digest</a><a href="PublicHome.dc.html">Product Updates</a><a href="PublicSiteStates.dc.html">Engineering</a><a href="PublicSalesPage.dc.html">Field Guide</a><a href="PublicHome.dc.html">About</a></nav><div class="st-act"><a href="PublicSiteStates.dc.html" class="st-btn2 st-signin">Sign in</a><a href="PublicSubscribe.dc.html" class="st-btn">Subscribe</a><button class="st-menu" type="button" aria-label="Menu" aria-expanded="false"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"></path></svg></button></div></div></header><div class="lav" style="display:flex;justify-content:center;padding:40px 24px 48px"><div class="pcard7" style="max-width:520px"><h1>This link has reached its 5 downloads</h1><p class="ptxt">Each link for the Newsletter Launch Kit works for 5 downloads, and this one has used them all.</p><a class="st-btn lg full" href="#">Send a new link to k•••@example.net</a><p class="fhint">A new link goes only to the address on the order.</p></div></div></div></div><p class="fcap">Same page, same rule: a new link to the order's address.</p></section><section class="frm" aria-label="Access revoked after a refund"><div class="strip"><span class="dot" style="color:#B91C1C"></span>Access revoked after a refund</div><div class="fwin"><div class="urlbar"><i></i><i></i><i></i><span class="u">news.acme.io/d/5Wm1…</span></div><div class="st pgw "><header class="st-hd"><div class="st-w st-hdi"><a href="PublicHome.dc.html" class="st-brand" aria-label="The Acme newsletter, home"><span class="st-mark" aria-hidden="true">A</span><span class="full">The Acme newsletter</span><span class="short">Acme</span></a><nav class="st-nav" aria-label="Site"><a href="PublicHome.dc.html">Weekly Digest</a><a href="PublicHome.dc.html">Product Updates</a><a href="PublicSiteStates.dc.html">Engineering</a><a href="PublicSalesPage.dc.html">Field Guide</a><a href="PublicHome.dc.html">About</a></nav><div class="st-act"><a href="PublicSiteStates.dc.html" class="st-btn2 st-signin">Sign in</a><a href="PublicSubscribe.dc.html" class="st-btn">Subscribe</a><button class="st-menu" type="button" aria-label="Menu" aria-expanded="false"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"></path></svg></button></div></div></header><div class="lav" style="display:flex;justify-content:center;padding:40px 24px 48px"><div class="pcard7" style="max-width:520px"><h1>This download is no longer available</h1><p class="ptxt">This purchase was refunded, so the download is no longer available.</p><p class="fhint">Refunded on 15 Oct 2026. Questions? Write to support@acme.io.</p></div></div></div></div><p class="fcap">Order 1309, refunded in Stripe on 15 Oct. “Revoke access when a payment is refunded or disputed” is on.</p></section></div></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":8840}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

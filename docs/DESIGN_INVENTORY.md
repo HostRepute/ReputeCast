@@ -1,7 +1,7 @@
 # Design inventory
 
-The prototype (`design/boards`, exported from the ReputeCast canvas) has 21
-pages and 190 artboards: 126 desktop boards (1440 px; public pages 720 px)
+The prototype (`design/boards`, exported from the ReputeCast canvas) has 29
+pages and 430 artboards: 288 desktop boards (1440 px; public pages 720 px)
 plus Tablet (834 px) and Phone (390 px) boards that render the same markup at
 narrower widths. This inventory maps every board to the spec section it
 implements and the workstream that builds it (`docs/dev/WORKSTREAMS.md`).
@@ -184,6 +184,7 @@ implements and the workstream that builds it (`docs/dev/WORKSTREAMS.md`).
 | `DSCharts.dc.html` | Charts | — |
 | `DSComponents.dc.html` | Components | — |
 | `DSCoverage.dc.html` | UX coverage matrix · every screen × every state | — |
+| `DSExpansion.dc.html` | Expansion patterns, phases 1–8 (not built yet) | — |
 | `DSFoundations.dc.html` | Foundations · colour, type, spacing, motion | — |
 | `DSLayout.dc.html` | Layout and responsive | — |
 | `DSPatterns.dc.html` | Patterns and status language | — |
@@ -262,6 +263,253 @@ implements and the workstream that builds it (`docs/dev/WORKSTREAMS.md`).
 | `SettingsIntegrations.dc.html` | Integrations · HostRepute connected | — |
 | `SettingsKeys.dc.html` | API keys & MCP agents | phone, tablet |
 | `SettingsKeysStates.dc.html` | API keys · shown once, expired, escalation guard | — |
+
+## Expansion after 1.0 (phases 1–8)
+
+Plan: `docs/spec/reputecast-design-expansion-plan.md`. One canvas page per phase; the design-system patterns are on `DSExpansion.dc.html` (page "9 Design system").
+
+### P1 Transactional email
+
+Brief: `docs/spec/reputecast-design-addon-transactional.md`. Not built yet: each phase becomes milestones in `docs/ROADMAP.md` once its design is approved.
+
+| Board | Screen / states | Responsive boards |
+|---|---|---|
+| `Transactional.dc.html` | Transactional · templates, last 7 days | phone, tablet |
+| `TransactionalStates.dc.html` | Transactional · first run, alert, no route, outage, read-only, loading | — |
+| `TransactionalGuideSteps.dc.html` | First-send guide · steps 1 to 4: sender, route, template, key | — |
+| `TransactionalGuide.dc.html` | First-send guide · step 5, delivered | — |
+| `TransactionalGuideStates.dc.html` | First-send guide · waiting, rejected, done | — |
+| `TransactionalTemplate.dc.html` | Template editor · password-reset v3, Variables | — |
+| `TransactionalTemplateStates.dc.html` | Template editor · Liquid error, variables, test data, API, permissions | — |
+| `TransactionalPublish.dc.html` | Publish dialog · trial-ending v2, breaking change | — |
+| `TransactionalPublishStates.dc.html` | Publish · ready, approval, publishing, published, versions | — |
+| `TransactionalImport.dc.html` | Import templates · Postmark conversion report | — |
+| `TransactionalImportStates.dc.html` | Import templates · source, refused token, pick, done | — |
+| `TransactionalMessages.dc.html` | Transactional · message log (live) | phone, tablet |
+| `TransactionalMessage.dc.html` | Transactional · message detail (delivered) | phone |
+| `TransactionalMessageStates.dc.html` | Message detail · rejected, bounced, failed, failover, test, retention, permission | — |
+| `TransactionalSetup.dc.html` | Transactional · setup: API, keys, SMTP relay | — |
+| `TransactionalSetupStates.dc.html` | Setup · create key, shown once, relay off, unreachable, certificate, expired key | — |
+| `TransactionalSettings.dc.html` | Transactional · settings, categories, alerts | — |
+| `PublicUnsubscribeCategory.dc.html` | Public · unsubscribe from one Optional category | — |
+| `ShellMore.dc.html` | App shell · phone tab bar and the More sheet | — |
+
+### P2 Integrations, languages & accessibility
+
+Brief: `docs/spec/reputecast-design-addon-connect-reach.md`. Not built yet: each phase becomes milestones in `docs/ROADMAP.md` once its design is approved.
+
+| Board | Screen / states | Responsive boards |
+|---|---|---|
+| `IntegrationsCatalog.dc.html` | Integrations · catalog | phone, tablet |
+| `IntegrationsZapier.dc.html` | Integrations · Zapier, connected with activity | phone, tablet |
+| `IntegrationsConnect.dc.html` | Integrations · connect Make, escalation guard, unreachable, private address, no call yet, disconnect | — |
+| `IntegrationsWordPress.dc.html` | Integrations · WordPress sites, update available, not heard from, connect a site, post-draft rule | — |
+| `IntegrationsStates.dc.html` | Integrations · states of the catalog, the detail page and WordPress sites, plus the revoke and deactivate dialogs | — |
+| `SettingsLanguages.dc.html` | Settings · General · languages and accessibility | phone, tablet |
+| `ComposerLanguages.dc.html` | Composer · languages, German outdated | phone, tablet |
+| `ComposerCompare.dc.html` | Composer · compare English and German | — |
+| `LanguageStates.dc.html` | Languages · states of General, the composer, compare, and Add language | — |
+| `LanguageRegion.dc.html` | Account · language & region | phone |
+| `StressCampaignsVi.dc.html` | Stress test · Campaigns · Vietnamese | — |
+| `StressCampaignsPseudo.dc.html` | Stress test · Campaigns · pseudo-locale +40% | phone |
+| `StressReviewVi.dc.html` | Stress test · Review & send · Vietnamese | — |
+| `StressReviewPseudo.dc.html` | Stress test · Review & send · pseudo-locale +40% | phone |
+| `StressTeamVi.dc.html` | Stress test · Team · Vietnamese | — |
+| `StressTeamPseudo.dc.html` | Stress test · Team · pseudo-locale +40% | phone |
+| `ComposerAccessibility.dc.html` | Composer · accessibility panel, issues found | phone, tablet |
+| `ComposerContrast.dc.html` | Composer · color picker with contrast | — |
+| `SendReadinessAccessibility.dc.html` | Review & send · languages and accessibility (Weekly Digest #143) | phone |
+| `AccessibilityStates.dc.html` | Accessibility · states of the panel, the color picker and Review & send, and the gallery’s results | — |
+| `ReportLanguages.dc.html` | Report · results per language and the click map’s language picker (changes ReportStates) | — |
+| `FormBuilderLanguages.dc.html` | Forms & pages · the form builder in Spanish, with the language switcher and form language (changes FormBuilder and FormsStates) | — |
+| `AutomationLanguages.dc.html` | Automations · a Send email step’s languages and the v4 publish dialog (changes AutomationFlow and AutomationPublish) | — |
+
+### P3 Create
+
+Brief: `docs/spec/reputecast-design-addon-create.md`. Not built yet: each phase becomes milestones in `docs/ROADMAP.md` once its design is approved.
+
+| Board | Screen / states | Responsive boards |
+|---|---|---|
+| `DigestOverview.dc.html` | Digest · overview and issues | phone, tablet |
+| `DigestStates.dc.html` | Digest · waiting for approval, held, skipped, paused, draft mode, feed errors | — |
+| `DigestSetup.dc.html` | Digest · type picker and setup | tablet |
+| `DigestSetupStates.dc.html` | Digest setup · finding the feed, feed errors, WordPress, item-count schedule, turn on, draft mode, read-only, validation | — |
+| `DigestComposer.dc.html` | Composer · digest mode and Feed items block | — |
+| `ComposerVisibility.dc.html` | Composer · Visibility, versions and preview as | — |
+| `VisibilityStates.dc.html` | Visibility · broken condition, empty version, over size, Send Readiness group | — |
+| `ComposerPoll.dc.html` | Composer · Poll block | — |
+| `PublicPoll.dc.html` | Public · poll answer page and survey page (720) | phone |
+| `PollResults.dc.html` | Report · poll results | — |
+| `SurveyBuilder.dc.html` | Forms · survey builder and results | — |
+| `AISettings.dc.html` | Integrations · AI assistant | — |
+| `AIComposer.dc.html` | Composer · AI suggestions | phone, tablet |
+| `AISegmentReport.dc.html` | Segments and report · AI drafts and summaries | — |
+| `AIStates.dc.html` | AI · not configured, errors, refusal, cap, reputation questions | — |
+
+### P4 Audience insights & placement tests
+
+Brief: `docs/spec/reputecast-design-addon-audience-insights.md`. Not built yet: each phase becomes milestones in `docs/ROADMAP.md` once its design is approved.
+
+| Board | Screen / states | Responsive boards |
+|---|---|---|
+| `ScoringRules.dc.html` | Audience · Scoring | tablet |
+| `ScoringStates.dc.html` | Scoring · no rules, impact preview, save dialog, recalculating, read-only | — |
+| `ScoringProfile.dc.html` | Contact profile · score card and address check (changes Contact profile) | phone |
+| `ScoringUses.dc.html` | Score across the app · Contacts, segments, automation trigger, Visibility, MCP (changes those screens) | — |
+| `VerificationServices.dc.html` | Integrations · verification services | — |
+| `VerificationRun.dc.html` | Verify addresses · dialog, job and results | — |
+| `VerificationStates.dc.html` | Verification · out of credits, partial, service down, no permission, import preview, signup form | — |
+| `PlacementTests.dc.html` | Deliverability · placement tests | — |
+| `PlacementResult.dc.html` | Placement · test result and copy detail | phone, tablet |
+| `PlacementRun.dc.html` | Placement · run a test | — |
+| `PlacementSeeds.dc.html` | Placement · seed mailboxes | — |
+| `PlacementStates.dc.html` | Placement · waiting, everything in spam, sign-in failed, no seeds, no permission | — |
+| `PlacementSeedStates.dc.html` | Seed mailboxes · OAuth, app password, refused, expired, reconnect, remove, read-only | — |
+| `GrowthSources.dc.html` | Audience · growth sources | phone, tablet |
+| `GrowthStates.dc.html` | Growth · imports, no UTM yet, too little data, flagged source | — |
+
+### P5 Grow
+
+Brief: `docs/spec/reputecast-design-addon-grow.md`. Not built yet: each phase becomes milestones in `docs/ROADMAP.md` once its design is approved.
+
+| Board | Screen / states | Responsive boards |
+|---|---|---|
+| `GrowOverview.dc.html` | Grow · overview | phone, tablet |
+| `GrowStates.dc.html` | Grow · first run, recommendations only, read-only, loading, error | — |
+| `Referrals.dc.html` | Referrals · results | phone, tablet |
+| `ReferralSetup.dc.html` | Referrals · set up a program | — |
+| `ReferralMilestones.dc.html` | Referrals · milestones and reward editor | — |
+| `ReferralReferrers.dc.html` | Referrals · referrers and Sam Rivera's panel | — |
+| `ReferralReview.dc.html` | Referrals · review queue | phone |
+| `ReferralSettings.dc.html` | Referrals · settings | — |
+| `ReferralStates.dc.html` | Referrals · program off, codes low and out, webhook failing, to fulfill, Stripe not connected, link paused, read-only | — |
+| `Recommendations.dc.html` | Recommendations · you recommend and recommending you | phone, tablet |
+| `RecommendationStates.dc.html` | Recommendations · add, partner code, end, paused, limit, unreachable, empty | — |
+| `ComposerGrowBlocks.dc.html` | Composer · Referral block, milestone email, Recommendations block (adds the Grow blocks and the Referral tokens to the Composer, and two Content rows to Review & send) | — |
+| `PublicReferralHub.dc.html` | Public · referral hub | phone |
+| `PublicReferralInvite.dc.html` | Public · invite page | phone |
+| `PublicRecommendations.dc.html` | Public · recommendations page | phone |
+| `PublicGrowStates.dc.html` | Public · leaderboard, hub states, invite fallback, recommendation states, emails as received (adds the confirmation page’s recommendations and the preference center’s Invite friends card) | — |
+
+### P6 Earn
+
+Brief: `docs/spec/reputecast-design-addon-earn.md`. Not built yet: each phase becomes milestones in `docs/ROADMAP.md` once its design is approved.
+
+| Board | Screen / states | Responsive boards |
+|---|---|---|
+| `EarnOverview.dc.html` | Earn · overview | phone, tablet |
+| `EarnStates.dc.html` | Earn · launch checklist, test only, conversions only, too early, no access, read-only, loading, error, Overview card | — |
+| `EarnConnect.dc.html` | Earn · connect Stripe: provider, restricted key, check, webhook, settings, done | — |
+| `EarnConnectStates.dc.html` | Earn · connect Stripe: missing permission, secret key, rejected key, unreachable URL, first event, test and live, disconnect, no permission | — |
+| `EarnSettings.dc.html` | Earn · settings › Payments: Stripe live and test keys, webhook, checkout and tax, event log | — |
+| `EarnSettingsTabs.dc.html` | Earn · settings › Member emails, Access, Attribution (conversion API) and Pages | — |
+| `EarnSettingsStates.dc.html` | Earn · settings: webhook silent or missing, key rejected, unmapped price, unpublished email, no route, saved, error, read-only, conversions key | — |
+| `EarnPlans.dc.html` | Earn · plans & offers | phone, tablet |
+| `EarnPlansStates.dc.html` | Earn · plans & offers: no tiers, offer at its limit, offer ended, read-only, loading, error | — |
+| `EarnPlanEditors.dc.html` | Earn · tier editor: Weekly Digest Insider, and changing a price, archiving, creating in Stripe, Stripe error, yearly warning | — |
+| `EarnOfferEditor.dc.html` | Earn · offer editor: FALL26, Stay for half price, referral reward codes, deleted coupon, ending early, read-only | — |
+| `EarnUpgradeEditor.dc.html` | Earn · upgrade page editor: options and the page, preview as and test checkout; no public tier, unsaved changes | — |
+| `EarnMembers.dc.html` | Earn · paid members | phone, tablet |
+| `EarnMembersStates.dc.html` | Earn · paid members: past due, ended, test data, empty, no results, read-only, loading, error | — |
+| `EarnMemberPanel.dc.html` | Earn · member panel: Sam Rivera, Insider yearly with FALL26 | — |
+| `EarnMemberPanelStates.dc.html` | Earn · member panel: past due, refunded, two subscriptions, read-only, complimentary and cancel dialogs | — |
+| `EarnImport.dc.html` | Earn · import paid members: Substack, step 3, matched with Stripe | — |
+| `EarnImportStates.dc.html` | Earn · import paid members: source, upload, no Stripe, no email column, unknown price, conflict, importing, done | — |
+| `EarnInReport.dc.html` | Campaigns and the campaign report · Paid only badge and filter, sponsor chip, Revenue and Sponsor sections (changes Campaigns, Report, ReportStates) | — |
+| `EarnInAudience.dc.html` | Audience · paid status in contacts, the contact profile and segments (changes Contacts, ContactProfile, SegmentBuilder) | — |
+| `PublicPreferencesPaid.dc.html` | Public · preference center, unsubscribe page and archive for paid and free readers (changes PublicPreferences, PublicUnsubscribe, PublicArchive) | — |
+| `EarnGifts.dc.html` | Earn · gifts | — |
+| `EarnSponsors.dc.html` | Earn · sponsors | phone, tablet |
+| `EarnBooking.dc.html` | Earn · booking panel, payment and report sharing | — |
+| `ComposerEarnBlocks.dc.html` | Composer · Sponsor and Upgrade blocks, paid-only content and campaign | — |
+| `PublicUpgrade.dc.html` | Public · upgrade page | phone |
+| `PublicCancel.dc.html` | Public · cancel page | phone |
+| `PublicGift.dc.html` | Public · give a gift and redeem it | phone |
+| `PublicSponsorReport.dc.html` | Public · sponsor report | phone |
+| `PublicEarnStates.dc.html` | Public · checkout return, offers, already paid, cancel, gift and report states | — |
+
+### P7 Website, pages & commerce
+
+Brief: `docs/spec/reputecast-design-addon-publish-sell.md`. Not built yet: each phase becomes milestones in `docs/ROADMAP.md` once its design is approved.
+
+| Board | Screen / states | Responsive boards |
+|---|---|---|
+| `WebsitePosts.dc.html` | Website · posts | phone, tablet |
+| `ComposerPublishToWeb.dc.html` | Composer · publish to web, view as each reader | phone |
+| `WebsiteHomeNav.dc.html` | Website · home, navigation, tags and site settings | — |
+| `WebsiteAccess.dc.html` | Website · members, meter and paywall | — |
+| `WebsiteStates.dc.html` | Website · off and turning on, domain and certificate, approval, unpublished, loading, error, read-only | — |
+| `PublicHome.dc.html` | Public · website home | phone |
+| `PublicPost.dc.html` | Public · paid post at the paywall (visitor) | phone |
+| `PublicAccount.dc.html` | Public · member account (Sam Rivera) | phone |
+| `PublicSiteStates.dc.html` | Public · each reader, meter, sign-in, tag and archive, unpublished | — |
+| `PagesList.dc.html` | Pages · your pages and built-in pages | phone, tablet |
+| `PagesStates.dc.html` | Pages · template picker, a writer's draft, empty, read-only, loading, error | — |
+| `PageBuilder.dc.html` | Page builder · Field Guide sales page, product block selected | tablet |
+| `PageBuilderStates.dc.html` | Page builder · countdown, event details, blocking check, no Stripe, autosave, Page tab, publish | — |
+| `PublicSalesPage.dc.html` | Public · sales page (The Deliverability Field Guide) | phone |
+| `PublicPagesStates.dc.html` | Public · lead magnet, webinar, launch, shop, checkout and download | — |
+| `Products.dc.html` | Earn · products and orders, order 1311 open | phone, tablet |
+| `ProductsStates.dc.html` | Earn · products · refund, dispute, new link, test mode, no Stripe, empty, read-only, loading | — |
+| `ProductEditor.dc.html` | Product editor · The Deliverability Field Guide | — |
+| `ProductEditorStates.dc.html` | Product editor · writer, uploads, file check, blocked publish, minimum price, price change | — |
+| `IntegrationsShopify.dc.html` | Integrations · Shopify (Acme Merch) | phone, tablet |
+| `CommerceStates.dc.html` | Stores · connect Shopify and WooCommerce, import, webhook missing, disconnected, errors, read-only | — |
+| `CommerceEmails.dc.html` | Stores in emails · product picker, product grid, removed product, abandoned-cart starter, revenue, Sam Rivera's orders | — |
+
+### P8 SMS, push & agencies
+
+Brief: `docs/spec/reputecast-design-addon-channels-agencies.md`. Not built yet: each phase becomes milestones in `docs/ROADMAP.md` once its design is approved.
+
+| Board | Screen / states | Responsive boards |
+|---|---|---|
+| `SmsProviders.dc.html` | Sending providers · SMS providers and senders | phone, tablet |
+| `SmsRouting.dc.html` | Sending providers · SMS routing and rules | — |
+| `SmsStates.dc.html` | SMS · connect, registration, keywords, suppressions, budget, outage, states | — |
+| `SmsComposer.dc.html` | SMS composer · Summit: 8 days to go | phone, tablet |
+| `SmsComposerStates.dc.html` | SMS composer · UCS-2 fix, personalization, bit.ly, over 3 segments, UK preview, empty audience, read-only | — |
+| `SmsReview.dc.html` | Review & send · SMS | — |
+| `SmsReviewStates.dc.html` | Review & send · SMS blocked by budget or opt-out text, quiet hours, approval, typed confirmation, read-only | — |
+| `SmsReport.dc.html` | SMS report · Summit: 8 days to go | phone |
+| `SmsReportStates.dc.html` | SMS report · sending, auto-paused, provider outage, loading, error | — |
+| `AutomationChannels.dc.html` | Automations · SMS, push and WhatsApp steps | — |
+| `PublicSmsTerms.dc.html` | Public · text message terms | phone |
+| `PushSetup.dc.html` | Sending providers · web push setup | — |
+| `PushPrompt.dc.html` | Signup forms · push prompt designer | — |
+| `PushComposer.dc.html` | Push composer · previews | phone |
+| `PushStates.dc.html` | Push · review, report, keys, service worker, states | — |
+| `WhatsAppChannel.dc.html` | Sending providers · WhatsApp account, templates, campaign, states | — |
+| `AgencyOverview.dc.html` | Agency · overview | phone, tablet |
+| `AgencyLibrary.dc.html` | Agency · workspace templates and shared library | — |
+| `AgencyUsage.dc.html` | Agency · usage per client | — |
+| `AgencyClientApproval.dc.html` | Client approver · reviewing a send (Jane Morales) | phone |
+| `AgencyStates.dc.html` | Agency · staff, new client, client invited, client viewer, search, agency mode, states | — |
+
+### Existing boards changed by the expansion
+
+The expansion pages also change existing boards. These changes are live on the canvas and in `design/boards`.
+
+| Board | Change | Phase |
+|---|---|---|
+| Every app-shell board | Sidebar adds Transactional, Grow and Earn (phones show four sections plus More); the Settings tab "Integrations" opens the Integrations catalog | 1, 5, 6, 2 |
+| `WorkspaceSettings.dc.html` | Show or hide Transactional, Grow and Earn in the sidebar | 1 |
+| `Roles.dc.html`, `RoleEditor.dc.html` | Permission groups: Transactional, Integrations, AI, Audience scoring, Placement tests, Grow, Earn, Website and pages, Products and orders, SMS, Push, WhatsApp; `subscribers:verify` | 1–8 |
+| `Notifications.dc.html` | Every phase's preference rows, grouped by area in two columns; read items newest first | 1–8 |
+| `SettingsAudit.dc.html` | Each phase's audit entries and filter options; entries newest first | 1–8 |
+| `SettingsAPI.dc.html` | New webhook events on the first endpoint, n8n's managed endpoint, `form.submitted` | 1, 2, 5–8 |
+| `SettingsMCP.dc.html` | 52 tools; recent agent actions at full width | 1–8 |
+| `SettingsKeys.dc.html`, `SettingsKeysStates.dc.html` | Send-only transactional keys; keys managed by integrations | 1, 2 |
+| `SettingsIntegrations.dc.html` | Becomes HostRepute's page inside the Integrations hub | 2 |
+| `Composer.dc.html`, `Contacts.dc.html`, `ContactProfile.dc.html`, `InstanceSettings.dc.html`, `ShellUserMenu.dc.html`, public pages | Content languages, app language, language filter, footer language menu | 2 |
+| `Contacts.dc.html`, `SegmentBuilder.dc.html`, `ListHealth.dc.html`, `Suppressions.dc.html`, `AudienceStates.dc.html` | Audience tabs add Scoring and Growth | 4 |
+| `Deliverability.dc.html`, `DeliverabilityNoHostRepute.dc.html`, `DeliverabilityStates.dc.html` | Tabs: Health · Placement tests | 4 |
+| `PublicConfirm.dc.html` | Recommended newsletters after confirming | 5 |
+| `FormBuilder.dc.html`, `FormsStates.dc.html`, `PublicArchive.dc.html` | Forms & pages tabs (Signup forms · Website · Pages · Branding & domain); the archive gets the site header | 7 |
+| `Campaigns.dc.html`, `Suppressions.dc.html`, `Providers*.dc.html` | Channel chips and the SMS campaign row; SMS suppressions; Email · SMS · Push · WhatsApp switch on every provider tab | 8 |
+| `ShellSwitcher.dc.html` | Agency staff view of client workspaces | 8 |
+| Phase 1 (24 boards) | Transactional stream in routing, streams and suppressions; categories in preferences; keys, audit and API for transactional mail | 1 |
+
+Layout fixes made at the same time to boards already on the canvas: avatar initials centred; the tablet rail no longer shows the sidebar footer; tables that were cut off in their cards now fit (Contacts, ListHealth, SettingsSenders, SettingsMCP, AutomationsList, ProvidersEvents, ProvidersWarmup, ProvidersAdapters, InstanceUsers, LiveMonitor, ApprovalPolicy); the "API keys and MCP agents moved" card has its padding.
 
 ## Conflicts between the design and the spec
 

@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Contoso Coffee · approve Holiday blend pre-order</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F4F6;color:#0B1220;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;line-height:1.45}
+a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
+.mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace}
+.card{background:#FFFFFF;border:1px solid #E3E6EB;border-radius:10px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:36px;padding:0 14px;border-radius:8px;border:1px solid #D4D8DF;background:#FFFFFF;color:#0B1220;font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;box-sizing:border-box}
+.btn:hover{background:#F3F4F6;color:#0B1220}
+.btn.pri{background:#0F766E;border-color:#0F766E;color:#FFFFFF}.btn.pri:hover{background:#115E59;color:#FFFFFF}
+.btn.sm{min-height:30px;padding:0 10px;font-size:12px}
+.badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;flex:none}
+.ok{background:#DCFCE7;color:#166534}.warn{background:#FEF3C7;color:#92400E}.bad{background:#FEE2E2;color:#991B1B}.info{background:#DBEAFE;color:#1E40AF}.mut{background:#EEF0F3;color:#4B5563}.pur{background:#EDE9FE;color:#5B21B6}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;flex:none}
+.nav a{display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;border-radius:8px;color:#4B5563;font-weight:500}
+.nav a:hover{background:#EEF0F3;color:#0B1220}.nav a.on{background:#E3F1EE;color:#0F766E}
+.nav svg{width:16px;height:16px;flex:none}
+.tabs{display:flex;gap:4px;flex-wrap:wrap}
+.tabs a{display:inline-flex;align-items:center;height:34px;padding:0 12px;border-radius:8px;color:#4B5563;font-weight:500;font-size:13px}
+.tabs a:hover{background:#EEF0F3;color:#0B1220}.tabs a.on{background:#0B1220;color:#fff}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{text-align:left;font-weight:600;color:#5B6472;padding:10px 12px;border-bottom:1px solid #E3E6EB;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+.tbl td{padding:11px 12px;border-bottom:1px solid #EEF0F3;vertical-align:middle;white-space:nowrap}
+.tbl tr:last-child td{border-bottom:0}
+.k{font-size:12px;color:#5B6472;font-weight:500}
+.h2{margin:0;font-size:15px;font-weight:600}
+.in{height:36px;padding:0 10px;border:1px solid #D4D8DF;border-radius:8px;background:#fff;font:inherit;font-size:13px;color:#0B1220;box-sizing:border-box;min-width:0}
+.lbl{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:#4B5563}
+
+
+/* shell additions: workspace switcher, notification bell, user menu */
+.ws{display:flex;align-items:center;gap:8px;margin:2px 0 4px;padding:7px 10px;border:1px solid #E3E6EB;border-radius:8px;background:#fff;color:#0B1220;font:inherit;text-align:left;cursor:pointer;width:100%;box-sizing:border-box}
+.ws:hover{background:#F3F4F6}
+.ws .wsn{display:flex;flex-direction:column;line-height:1.25;min-width:0;flex:1}
+.ws .wsn b{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ws .wsn span{font-size:11px;color:#5B6472;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tools{display:flex;align-items:center;gap:8px;margin-left:8px}
+.ibtn{position:relative;display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:1px solid #D4D8DF;background:#fff;color:#0B1220;cursor:pointer;padding:0;flex:none}
+.ibtn:hover{background:#F3F4F6}
+.ibtn .cnt{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#B91C1C;color:#fff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box}
+.ubtn{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 10px 0 4px;border-radius:8px;border:1px solid #D4D8DF;background:#fff;color:#0B1220;font:inherit;font-size:13px;font-weight:600;cursor:pointer;flex:none}
+.ubtn:hover{background:#F3F4F6}
+.menu{position:absolute;z-index:40;background:#fff;border:1px solid #D4D8DF;border-radius:10px;box-shadow:0 12px 32px rgba(11,18,32,.16);padding:6px;min-width:260px;display:flex;flex-direction:column;gap:2px;box-sizing:border-box}
+.menu a,.menu button{display:flex;align-items:center;gap:10px;min-height:36px;padding:0 10px;border-radius:8px;color:#0B1220;font:inherit;font-size:13px;font-weight:500;background:none;border:0;text-align:left;cursor:pointer;width:100%;box-sizing:border-box;text-decoration:none}
+.menu a:hover,.menu button:hover{background:#F3F4F6;color:#0B1220}
+.menu hr{border:0;border-top:1px solid #EEF0F3;margin:4px 0;width:100%}
+.menu .mh{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472;padding:8px 10px 4px}
+@media (max-width:767px){.tools{margin-left:0}.menu{min-width:0;max-width:calc(100vw - 24px)}}
+
+
+/* add-on components */
+.av{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex:none}
+.tbl td.c,.tbl th.c{text-align:center}
+.tbl td{white-space:normal;vertical-align:middle}
+.tbl td.nw,.tbl td .badge{white-space:nowrap}
+.tbl td .btn{white-space:nowrap}
+.flag{display:inline-flex;align-items:center;gap:4px;color:#B45309;font-weight:700;font-size:11px;white-space:nowrap}
+input[type=checkbox].tg{appearance:none;-webkit-appearance:none;width:40px;height:24px;border-radius:999px;background:#6B7280;position:relative;cursor:pointer;flex:none;margin:0;border:0}
+input[type=checkbox].tg::after{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff}
+input[type=checkbox].tg:checked{background:#0F766E}input[type=checkbox].tg:checked::after{left:18px}
+.row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.col{display:flex;flex-direction:column;gap:10px}
+.sec{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid #EEF0F3;flex-wrap:wrap;gap:8px}
+.pad{padding:16px 18px}
+.note{display:flex;gap:8px 10px;align-items:flex-start;flex-wrap:wrap;padding:12px 14px;border-radius:8px;font-size:13px;line-height:1.45}
+.note > :last-child{flex:1 1 320px;min-width:0}
+.note > .badge{margin-top:1px}
+.note.i{background:#EFF6FF;border:1px solid #BFDBFE;color:#1E3A8A}
+.note.w{background:#FFFBEB;border:1px solid #FCD34D;color:#78350F}
+.note.b{background:#FFF5F5;border:1px solid #FCA5A5;color:#7F1D1D}
+.note.g{background:#F0FDF4;border:1px solid #BBF7D0;color:#14532D}
+.note.n{background:#F3F4F6;border:1px solid #E3E6EB;color:#374151}
+.btn:disabled,.btn[aria-disabled="true"]{opacity:.55;cursor:not-allowed}
+.btn.danger{color:#991B1B;border-color:#FCA5A5}.btn.danger:hover{background:#FEF2F2;color:#991B1B}
+.btn.danger.pri{background:#B91C1C;border-color:#B91C1C;color:#fff}.btn.danger.pri:hover{background:#991B1B;color:#fff}
+.kv{display:grid;grid-template-columns:max-content 1fr;gap:7px 18px;font-size:13px;margin:0}
+.kv dt{color:#5B6472;font-weight:500;margin:0}.kv dd{margin:0;min-width:0}
+.chip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;border:1px solid #D4D8DF;background:#fff;font-size:12.5px;font-weight:500;white-space:nowrap}
+.code{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace;font-size:12.5px;background:#0B1220;color:#E5E7EB;border-radius:8px;padding:12px 14px;white-space:pre-wrap;overflow-wrap:anywhere;margin:0}
+.diff{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;border:1px solid #E3E6EB;border-radius:8px;overflow:hidden}
+.diff div{padding:6px 12px;white-space:pre-wrap;overflow-wrap:anywhere}
+.diff .del{background:#FEF2F2;color:#991B1B}.diff .add{background:#F0FDF4;color:#166534}.diff .ctx{color:#4B5563}
+.ovl{position:absolute;inset:0;background:rgba(11,18,32,.45);display:flex;align-items:flex-start;justify-content:center;padding:72px 16px;box-sizing:border-box;z-index:60}
+.dlg{width:100%;max-width:640px;display:flex;flex-direction:column;background:#fff;border-radius:12px;box-shadow:0 24px 60px rgba(11,18,32,.3)}
+.dh{padding:18px 22px 0;display:flex;flex-direction:column;gap:6px}
+.db{padding:16px 22px;display:flex;flex-direction:column;gap:12px}
+.df{padding:14px 22px 18px;display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;border-top:1px solid #EEF0F3;align-items:center}
+.steps{display:flex;flex-direction:column;gap:2px}
+.row > *{min-width:0}
+
+/* expansion components (phases 1-8) */
+.num,.tbl td.r{font-variant-numeric:tabular-nums}
+.tbl th.r,.tbl td.r{text-align:right}
+.tbl tr.sel td{background:#F0FDFA}
+.tbl tr.xp td{background:#FBFBFC}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.stat{padding:14px 16px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.stat .v{font-size:22px;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums;line-height:1.25;margin-top:2px}
+.stat .s{font-size:12px;color:#5B6472;font-weight:500}
+.stat.hot{border-color:#FCA5A5;background:#FFF5F5}
+.strip{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;background:#0B1220;color:#fff;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.sk{background:#E9ECF0;border-radius:6px;display:inline-block}
+.bar{height:6px;border-radius:3px;background:#EEF0F3;overflow:hidden}.bar i{display:block;height:100%;border-radius:3px}
+.ptab{display:flex;border-bottom:1px solid #E3E6EB}
+.ptab button{flex:1;height:38px;border:0;background:none;font:inherit;font-size:12.5px;font-weight:600;color:#5B6472;cursor:pointer;border-bottom:2px solid transparent;padding:0 6px;white-space:nowrap}
+.ptab button.on{color:#0B1220;border-bottom-color:#0F766E}
+.seg{display:inline-flex;border:1px solid #D4D8DF;border-radius:8px;overflow:hidden;flex:none}
+.seg button{height:30px;padding:0 11px;border:0;background:#fff;font:inherit;font-size:12px;font-weight:600;color:#4B5563;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.seg button + button{border-left:1px solid #E3E6EB}
+.seg button.on{background:#0B1220;color:#fff}
+.cbx{border-radius:10px;overflow:hidden;border:1px solid #1F2937;background:#0B1220;min-width:0}
+.cbh{display:flex;align-items:center;gap:2px;padding:6px 8px;border-bottom:1px solid #1F2937;background:#111827;flex-wrap:wrap}
+.cbh button{height:28px;padding:0 10px;border:0;border-radius:6px;background:none;color:#B4BAC4;font:inherit;font-size:12px;font-weight:600;cursor:pointer}
+.cbh button.on{background:#273244;color:#fff}
+.cbh .cp{margin-left:auto;display:inline-flex;align-items:center;gap:6px;color:#E5E7EB;border:1px solid #374151}
+.cbx pre{margin:0;padding:12px 14px;font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace;font-size:12.5px;line-height:1.6;color:#E5E7EB;white-space:pre-wrap;overflow-wrap:anywhere}
+.cbx .c1{color:#93C5FD}.cbx .c2{color:#86EFAC}.cbx .c3{color:#FCD34D}.cbx .c4{color:#9CA3AF}.cbx .c5{color:#F9A8D4}
+.cbx .cm{color:#9CA3AF}
+.ev{display:flex;gap:14px;align-items:flex-start;padding:12px 0;border-top:1px solid #EEF0F3}
+.ev:first-child{border-top:0}
+.ev .ic{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.ev .tx{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.ev .tm{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;color:#5B6472;flex:none;padding-top:5px}
+.spin{width:14px;height:14px;border-radius:50%;border:2px solid #C9CED6;border-top-color:#0F766E;flex:none;display:inline-block}
+.mask{display:inline-flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;color:#4B5563;white-space:nowrap}
+.mask svg{flex:none}
+.tok{display:inline-flex;align-items:center;gap:4px;padding:0 6px;border-radius:5px;background:#EDE9FE;color:#5B21B6;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:.86em;font-weight:500;line-height:1.55;white-space:nowrap;vertical-align:baseline}
+.tok.s{background:#FEF3C7;color:#92400E}
+.tok.e{background:#FEE2E2;color:#991B1B;text-decoration:underline wavy #DC2626;text-underline-offset:3px}
+.mk{display:inline-flex;align-items:center;height:22px;padding:0 7px;border-radius:6px;background:#EEF0F3;color:#374151;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;white-space:nowrap}
+.toast{display:flex;gap:12px;align-items:center;padding:10px 12px 10px 14px;border-radius:10px;background:#0B1220;color:#fff;font-size:13.5px;box-shadow:0 12px 30px rgba(11,18,32,.25);max-width:520px;box-sizing:border-box}
+.toast .t{flex:1;min-width:0}
+.toast .k{color:#C3C2B7}
+.toast .btn{min-height:28px;padding:0 10px;font-size:12px;background:transparent;border-color:#4B5563;color:#fff}
+.toast .x{width:28px;height:28px;border:0;background:transparent;color:#9CA3AF;border-radius:6px;font-size:16px;cursor:pointer}
+.ti{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.scrim{position:absolute;inset:0;background:rgba(11,18,32,.32);z-index:55}
+.drw{position:absolute;top:0;right:0;bottom:0;width:600px;max-width:100%;background:#fff;border-left:1px solid #E3E6EB;box-shadow:-18px 0 40px rgba(11,18,32,.18);z-index:60;display:flex;flex-direction:column;box-sizing:border-box;overflow:hidden}
+.drw .dwh{display:flex;align-items:flex-start;gap:12px;padding:18px 22px 14px;border-bottom:1px solid #EEF0F3}
+.drw .dwb{padding:18px 22px;display:flex;flex-direction:column;gap:18px;overflow:auto}
+.drw h3{margin:0;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472}
+.empty{padding:44px 28px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;border-style:dashed}
+.empty .tt{font-size:18px;font-weight:700;letter-spacing:-.01em}
+.empty .ds{color:#4B5563;max-width:560px}
+.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:14px 18px;border-bottom:1px solid #EEF0F3}
+.fchips{display:flex;gap:6px;flex-wrap:wrap;padding:12px 18px;border-bottom:1px solid #EEF0F3}
+.fchip{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:999px;border:1px solid #D4D8DF;background:#fff;font:inherit;font-size:12.5px;font-weight:600;color:#374151;cursor:pointer;white-space:nowrap}
+.fchip b{font-weight:600;color:#5B6472;font-variant-numeric:tabular-nums}
+.fchip.on{background:#0B1220;border-color:#0B1220;color:#fff}.fchip.on b{color:#C9CED6}
+.live{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:#166534}
+.live .dot{box-shadow:0 0 0 4px rgba(22,101,52,.15)}
+.foot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid #EEF0F3}
+.spark{display:block}
+.lnk{display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:13px}
+.ttl{margin:0;font-size:22px;font-weight:700;letter-spacing:-.02em;line-height:1.2}
+.lead{margin:0;color:#4B5563;font-size:14px;max-width:760px}
+.state-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(460px,100%),1fr));gap:16px;align-items:start}
+.flowr{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px}
+.flowr .arw{color:#9AA3B2}
+.pill{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:8px;border:1px solid #E3E6EB;background:#F9FAFB;font-size:12.5px;font-weight:600;white-space:nowrap}
+.vline{display:flex;gap:10px;align-items:baseline;padding:8px 0;border-top:1px solid #EEF0F3;font-size:13px}
+.vline:first-child{border-top:0}
+.hl{background:#FEF2F2;box-shadow:inset 3px 0 0 #DC2626}
+.lines{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;line-height:1.7;background:#0B1220;color:#E5E7EB;border-radius:8px;overflow:hidden}
+.lines div{display:flex;gap:12px;padding:0 12px}
+.lines .ln{color:#9CA3AF;width:22px;text-align:right;flex:none;user-select:none}
+.lines .er{background:rgba(220,38,38,.22)}
+.callout{position:absolute;z-index:5}
+.only-phone{display:none}
+@media (max-width:1100px){.drw{width:520px}}
+@media (max-width:767px){.drw{width:100%;border-left:0}.stats{grid-template-columns:repeat(2,minmax(0,1fr))!important}.ttl{font-size:19px}}
+
+/* phase 8b: channel switch, agency shell, push and WhatsApp previews */
+.chsw{display:inline-flex;align-items:stretch;border:1px solid #D4D8DF;border-radius:8px;overflow:hidden;background:#fff;flex:none;max-width:100%}
+.chsw a{display:inline-flex;align-items:center;gap:6px;height:32px;min-height:32px!important;padding:0 11px;color:#4B5563;font-size:13px;font-weight:600;white-space:nowrap;text-decoration:none!important}
+.chsw a + a{border-left:1px solid #E3E6EB}
+.chsw a:hover{background:#F3F4F6;color:#0B1220}
+.chsw a.on{background:#E3F1EE;color:#0F766E}
+.chsw svg{flex:none}
+input[type=checkbox].tg:disabled{opacity:.55;cursor:not-allowed}
+.in:disabled{background:#F9FAFB;color:#5B6472;cursor:not-allowed}
+.c8h{display:flex;justify-content:space-between;align-items:flex-start;padding:14px 18px;border-bottom:1px solid #EEF0F3;gap:8px 14px;flex-wrap:wrap}
+.c8h > div:first-child{display:flex;flex-direction:column;gap:2px;flex:1 1 300px;min-width:0}
+.c8h > div + div{display:flex;gap:8px;flex-wrap:wrap;align-items:center;flex:none}
+.wst{display:inline-flex;align-items:center;justify-content:center;border-radius:6px;color:#fff;font-weight:700;flex:none;font-size:10px;width:24px;height:24px;letter-spacing:.02em}
+.hsc{display:inline-flex;align-items:center;gap:7px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.instc{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid #E3E6EB;border-radius:8px;background:#fff;color:#0B1220;box-sizing:border-box}
+.chk8{display:flex;gap:12px;align-items:flex-start;padding:11px 18px;border-top:1px solid #EEF0F3}
+.chk8:first-child{border-top:0}
+.chk8 > .badge{margin-top:1px;min-width:44px;justify-content:center}
+.chk8 .tx{display:flex;flex-direction:column;gap:2px;flex:1 1 auto;min-width:0}
+.chk8.w{background:#FFFBEB}
+.chk8.b{background:#FFF5F5}
+.grp8{padding:10px 18px;background:#F9FAFB;border-top:1px solid #EEF0F3;border-bottom:1px solid #EEF0F3;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-weight:600;font-size:13px}
+.grp8:first-child{border-top:0}
+.optc{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid #E3E6EB;border-radius:8px;background:#fff;font-size:13px;cursor:pointer}
+.optc.on{border-color:#0F766E;background:#F0FDFA;box-shadow:inset 0 0 0 1px #0F766E}
+.optc input{margin-top:2px;flex:none}
+.cnt8{font-size:11.5px;font-weight:600;color:#5B6472;font-variant-numeric:tabular-nums;white-space:nowrap}
+.cnt8.w{color:#92400E}
+.fl8{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:#4B5563}
+.fl8 .hd{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+textarea.in{height:auto;min-height:64px;padding:8px 10px;line-height:1.45;resize:vertical;font:inherit;font-size:13px}
+.mrow{display:flex;gap:10px;align-items:center;padding:10px 0;border-top:1px solid #EEF0F3;flex-wrap:wrap}
+.mrow:first-child{border-top:0}
+.funnel{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(92px,100%),1fr));gap:0;border:1px solid #E3E6EB;border-radius:10px;overflow:hidden;background:#fff}
+.funnel > div{padding:12px 14px;border-left:1px solid #EEF0F3;display:flex;flex-direction:column;gap:2px;min-width:0}
+.funnel > div:first-child{border-left:0}
+.funnel .v{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums}
+@media (min-width:1101px){.tbl td.nx8{min-width:160px}}
+@media (max-width:1100px){.tbl.cl8 th{white-space:normal}.tbl.cl8 td,.tbl.cl8 th{padding-left:10px;padding-right:10px}}
+.sendstrip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+.sendstrip > a:first-child{border-left:0!important}
+@media (max-width:1100px){.sendstrip{grid-template-columns:repeat(2,minmax(0,1fr))}.sendstrip > a:nth-child(odd){border-left:0!important}.sendstrip > a:nth-child(n+3){border-top:1px solid #EEF0F3}}
+@media (max-width:767px){.sendstrip{grid-template-columns:1fr}.sendstrip > a{border-left:0!important;border-top:1px solid #EEF0F3}.sendstrip > a:first-child{border-top:0}}
+/* the icon rail hides the footer cards and the user chip (their inline display would otherwise win) */
+@media (max-width:1100px){.side .sidefoot > *:not(a.btn){display:none!important}}
+/* notification previews: drawn as the operating system shows them (system font), no status bars */
+.pvf{margin:0;display:flex;flex-direction:column;gap:10px;min-width:0;align-items:flex-start}
+.pvf > figcaption{display:flex;flex-direction:column;gap:2px;width:100%}
+.pvf .cut{font-size:12px;color:#374151;line-height:1.45}
+.pv{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:#0B1220;box-sizing:border-box;width:340px;max-width:100%;text-align:left}
+.pv b{font-weight:600}
+.pv .m{color:#374151}
+.pv .s{color:#5B6472}
+.pvwin{background:#F9FAFB;border:1px solid #D4D8DF;border-radius:10px;box-shadow:0 12px 32px rgba(11,18,32,.16);overflow:hidden;font-size:13px;line-height:1.4}
+.pvwin .h{display:flex;align-items:center;gap:8px;padding:9px 12px;font-size:12px;color:#4B5563}
+.pvwin .h .x{margin-left:auto;display:inline-flex;gap:14px;color:#5B6472;letter-spacing:.1em}
+.pvwin .b{display:flex;gap:12px;align-items:flex-start;padding:12px 14px 4px}
+.pvwin .bt{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 14px 14px}
+.pvwin .bt span{display:flex;align-items:center;justify-content:center;height:32px;border-radius:6px;background:#fff;border:1px solid #D4D8DF;font-size:13px;color:#0B1220}
+.pvmac{display:flex;gap:10px;align-items:flex-start;padding:11px 12px;background:#F3F4F6;border:1px solid #D4D8DF;border-radius:16px;box-shadow:0 12px 32px rgba(11,18,32,.16);font-size:13px;line-height:1.35;position:relative}
+.pvmac .bd{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1}
+.pvmac .r1{display:flex;justify-content:space-between;gap:8px}
+.pvmac .tm{font-size:12px;color:#5B6472;flex:none}
+.pvand{background:#fff;border:1px solid #E3E6EB;border-radius:16px;box-shadow:0 1px 3px rgba(11,18,32,.12);padding:12px 14px 6px;font-size:13.5px;line-height:1.4}
+.pvand .h{display:flex;align-items:center;gap:6px;font-size:12px;color:#4B5563}
+.pvand .bd{display:flex;gap:12px;align-items:flex-start;margin-top:6px}
+.pvand .im{margin-top:10px;border-radius:10px;overflow:hidden}
+.pvand .ac{display:flex;gap:22px;padding:12px 2px 8px;font-size:13px;font-weight:600;color:#0F766E}
+.pvios{display:flex;gap:10px;align-items:flex-start;padding:12px 13px;background:#F9FAFB;border:1px solid #D4D8DF;border-radius:16px;box-shadow:0 12px 32px rgba(11,18,32,.16);font-size:14px;line-height:1.35}
+.pvios .bd{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.pvios .r1{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.pvios .tm{font-size:12px;color:#5B6472;flex:none}
+.pvstage{background:#E9ECF0;border-radius:10px;padding:18px;display:flex;justify-content:center;align-items:flex-start;min-width:0}
+/* WhatsApp chat preview (neutral, no brand colours) */
+.wa{background:#EEF0F3;border:1px solid #E3E6EB;border-radius:10px;overflow:hidden;width:100%;max-width:380px;box-sizing:border-box}
+.wa .hd{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#fff;border-bottom:1px solid #E3E6EB}
+.wa .bd{padding:14px 12px 16px;display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.wa .bub{background:#fff;border-radius:10px;border-top-left-radius:0;padding:9px 11px 7px;font-size:13.5px;line-height:1.45;max-width:88%;box-shadow:0 1px 1px rgba(11,18,32,.08);box-sizing:border-box}
+.wa .bub .tm{display:block;text-align:right;font-size:11px;color:#5B6472;margin-top:2px}
+.wa .qr{display:flex;align-items:center;justify-content:center;gap:6px;width:88%;height:36px;border-radius:10px;background:#fff;font-size:13px;font-weight:600;color:#0F766E;box-shadow:0 1px 1px rgba(11,18,32,.08);box-sizing:border-box}
+.wa .me{align-self:flex-end;background:#DCFCE7;border-top-left-radius:10px;border-top-right-radius:0}
+/* responsive helpers for wide tables on tablets */
+.smd{display:none}
+@media (max-width:1100px){.hmd{display:none!important}.smd{display:block}}
+@media (max-width:767px){.pvstage{padding:12px}.sc-host .funnel{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+.dec8{position:sticky;top:16px}@media (max-width:767px){.dec8{position:static}}
+/* responsive shell */
+@media (max-width:1100px){
+  .side{flex:0 0 72px!important;max-width:72px;padding:14px 8px!important;gap:4px!important}
+  .side .nl,.side .brand-t,.side .ws{display:none}
+  .side .nav a{justify-content:center;padding:0!important;height:44px}
+  .side .nav svg{width:20px;height:20px}
+  .side > a[aria-label="ReputeCast home"]{justify-content:center;padding:6px 0!important}
+  .side .sidefoot{align-items:center}
+  .side .sidefoot > *{display:none}
+  .side .sidefoot > a.btn{display:inline-flex;width:44px;height:44px;padding:0!important;justify-content:center!important;font-size:0;gap:0}
+  .side .sidefoot > a.btn svg{width:18px;height:18px}
+  .top{padding:12px 16px!important}
+  .content{padding:16px!important}
+}
+@media (max-width:767px){
+  .app{flex-direction:column}
+  .side{flex:none!important;max-width:none!important;width:auto!important;position:fixed;left:0;right:0;bottom:0;z-index:50;flex-direction:row!important;align-items:center;padding:6px 6px!important;border-right:0!important;border-top:1px solid #E3E6EB;background:#fff!important;box-sizing:border-box;gap:0!important}
+  .side > a[aria-label="ReputeCast home"],.side .ws,.side .sidefoot{display:none!important}
+  .side .nav{flex-direction:row!important;flex:1;justify-content:space-around;margin-top:0!important;gap:0!important}
+  .side .nav a{height:44px;width:44px;flex:none;padding:0!important;justify-content:center;border-radius:10px}
+  .side .nl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;display:block}
+  .side .nav a.on{background:#E3F1EE;color:#0F766E}
+  .mainc{padding-bottom:72px}
+  .top{padding:12px 12px!important;gap:8px!important}
+  .top h1{font-size:16px!important}
+  .top .in{width:100%!important}
+  .tabs{flex-wrap:nowrap!important;overflow-x:auto;max-width:100%;margin-left:0!important;padding-bottom:2px}
+  .tabs a{flex:none}
+  .content{padding:12px!important;gap:12px!important}
+  .cpanel{max-width:none!important;flex:1 1 100%!important}
+}
+@media (min-width:768px) and (max-width:1100px){
+  .cpanel{max-width:none!important}
+}
+
+/* responsive phone fixes */
+@media (max-width:767px){
+  .app{flex-wrap:nowrap!important}
+  .mainc{width:100%;max-width:100%}
+  .content > *{min-width:0;max-width:100%}
+  .content .in,.content select,.content input,.content textarea{max-width:100%;min-width:0}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+  .sc-host [style*="flex: 1 1"]{min-width:0}
+  .sc-host select.in,.sc-host input.in{width:0;min-width:100%}
+  .sc-host .mono{overflow-wrap:anywhere}
+  .sc-host .sk{max-width:100%}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px;max-width:100%}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host .tabs .badge{white-space:nowrap}
+  .sc-host .side .btn{white-space:nowrap}
+  .sc-host [style*="grid-template-columns: repeat("]{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))!important}
+  .sc-host [style*="minmax(260px"],.sc-host [style*="minmax(280px"],.sc-host [style*="minmax(300px"],.sc-host [style*="minmax(320px"],.sc-host [style*="minmax(340px"],.sc-host [style*="minmax(360px"],.sc-host [style*="minmax(380px"],.sc-host [style*="minmax(420px"]{grid-template-columns:1fr!important}
+  .sc-host [style*="radial-gradient"]{overflow:auto}
+  .sc-host [style*="display: grid"] > *{min-width:0}
+  .sc-host header > div{max-width:100%;min-width:0}
+  .sc-host pre,.sc-host .lines{max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]) > div[style*="flex: 1"]{min-width:120px}
+}
+
+/* accessibility */
+:focus-visible{outline:2px solid #0F766E;outline-offset:2px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-9999px;top:8px;z-index:100;background:#fff;color:#0B1220;padding:8px 12px;border-radius:8px;border:1px solid #0F766E;font-weight:600;text-decoration:none}
+.skip:focus{left:8px}
+p a:not(.btn),span a:not(.btn):not([style*="color"]),td a:not(.btn):not([style*="color"]),li a:not(.btn),label a,.k a,.lead a{text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+.content > * a:not(.btn):not(p a):not(span a):not(td a):not(li a):not(label a):not(.k a),.top a:not(.btn),nav a:not(.btn),footer a:not(.btn){min-height:24px;display:inline-flex;align-items:center}
+input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F766E}
+.in,select.in,textarea.in,input.in{border-color:#8B94A3}
+@media (max-width:767px){
+  .sc-host{overflow-wrap:anywhere}
+  .sc-host table,.sc-host td,.sc-host th{overflow-wrap:normal}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+}
+
+/* nav: phones show four sections plus More */
+.side .nav a.more{display:none}
+@media (max-width:767px){.side .nav a.xm{display:none!important}.side .nav a.more{display:flex}.side .nav a.more.on{background:#E3F1EE;color:#0F766E}}
+/* shell: the icon rail keeps only the import button (the footer's inline display:flex beat the rail rule) */
+@media (max-width:1100px){.side .sidefoot > :not(.btn){display:none!important}}
+/* shell: avatar initials sit in the middle */
+.av{display:inline-flex;align-items:center;justify-content:center;flex:none}
+.ubtn .av{border-radius:50%;font-weight:700}
+.ws .av{font-weight:700}
+/* switches: a disabled switch looks disabled */
+.tg:disabled,.tgx:disabled{opacity:.45;cursor:not-allowed}
+
+/* expansion: responsive card grids collapse to one column on phones (overrides the 140px rule above) */
+@media (max-width:767px){
+  .sc-host [style*="minmax(min("]{grid-template-columns:1fr!important}
+  .sc-host .kv{grid-template-columns:1fr;gap:2px 0}
+  .sc-host .kv dd{margin-bottom:8px}
+  .sc-host .ev .tm{display:none}
+  .sc-host .cbx pre{font-size:11.5px}
+  .sc-host .mlist{display:none!important}
+  .sc-host .only-phone{display:flex!important;flex-direction:column}
+  .sc-host .no-phone{display:none!important}
+}
+</style>
+</helmet>
+<div class="app" style="display:flex;flex-wrap:wrap;align-items:stretch;min-height:100vh;position:relative">
+  <a href="#main" class="skip">Skip to content</a>
+  <aside class="side" style="flex:1 1 232px;background:#FBFBFC;border-right:1px solid #E3E6EB;display:flex;flex-direction:column;padding:16px 12px;gap:6px;box-sizing:border-box">
+    <a href="Main.dc.html" style="display:flex;align-items:center;gap:10px;padding:6px 8px;color:#0B1220" aria-label="ReputeCast home"><svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg><span class="brand-t" style="font-weight:700;font-size:15px;letter-spacing:-.01em">ReputeCast</span></a>
+    <button class="ws" type="button" aria-haspopup="menu" aria-label="Switch workspace. Current: Contoso Coffee, your role Client approver"><span class="wst" style="width:24px;height:24px;border-radius:6px;background:#92400E;font-size:10px" aria-hidden="true">CC</span><span class="wsn"><b>Contoso Coffee</b><span>Client approver</span></span><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button>
+    <nav class="nav" style="display:flex;flex-direction:column;gap:2px;margin-top:4px" aria-label="Main">
+      <a href="Main.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z"></path></svg><span class="nl">Overview</span></a>
+      <a href="Campaigns.dc.html" class="on" aria-current="page"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M14 2 2 7l5 2 2 5zM7 9l7-7" stroke-linejoin="round"></path></svg><span class="nl">Campaigns</span></a>
+      <a href="AutomationsList.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="4" cy="3" r="2"></circle><circle cx="4" cy="13" r="2"></circle><circle cx="12" cy="8" r="2"></circle><path d="M4 5v6M6 8h4"></path></svg><span class="nl">Automations</span></a>
+      <a href="Contacts.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="6" cy="5" r="2.5"></circle><path d="M1.5 14a4.5 4.5 0 0 1 9 0M11 3a2.5 2.5 0 0 1 0 5M14.5 14a4 4 0 0 0-3-3.8"></path></svg><span class="nl">Audience</span></a>
+      <a href="Deliverability.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 1.5 13.5 3.5v4.5c0 3-2.3 5.3-5.5 6.5C4.8 13.3 2.5 11 2.5 8V3.5z" stroke-linejoin="round"></path><path d="m5.5 8 1.8 1.8L10.8 6"></path></svg><span class="nl">Deliverability</span></a>
+      <a href="WorkspaceSettings.dc.html" class="xm"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 4h7M13 4h1M2 8h2M8 8h6M2 12h7M13 12h1"></path><circle cx="11" cy="4" r="1.8"></circle><circle cx="6" cy="8" r="1.8"></circle><circle cx="11" cy="12" r="1.8"></circle></svg><span class="nl">Settings</span></a>
+      <a href="ShellMore.dc.html" class="more" aria-label="More: Automations, Settings"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="3.5" cy="8" r="1.2"></circle><circle cx="8" cy="8" r="1.2"></circle><circle cx="12.5" cy="8" r="1.2"></circle></svg><span class="nl">More</span></a>
+    </nav>
+    <div class="sidefoot" style="margin-top:auto;display:flex;flex-direction:column;gap:8px">
+      <div class="instc" style="align-items:flex-start"><span class="wst" style="width:20px;height:20px;border-radius:5px;background:#0B1220;font-size:9px" aria-hidden="true">NS</span><div style="display:flex;flex-direction:column;line-height:1.3;min-width:0"><span style="font-size:12px;font-weight:600">Managed by Northwind Studio</span><span class="k" style="font-size:11px">Your contact: Mei Lin</span></div></div>
+      <div style="display:flex;align-items:center;gap:8px;padding:4px 8px"><span class="av" style="width:26px;height:26px;font-size:11px;background:#FEF3C7;color:#92400E" aria-hidden="true">JM</span><div style="display:flex;flex-direction:column;line-height:1.25"><span style="font-size:12px;font-weight:600">Jane Morales</span><span class="k" style="font-size:11px">Client approver</span></div></div>
+    </div>
+  </aside>
+  <div class="mainc" style="flex:999 1 560px;min-width:0;display:flex;flex-direction:column">
+    <header class="top" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 28px;background:#fff;border-bottom:1px solid #E3E6EB">
+      <nav aria-label="Breadcrumb" style="display:flex;align-items:center;gap:8px;font-size:13px;flex-wrap:wrap"><a href="Campaigns.dc.html" style="color:#5B6472">Campaigns</a><span class="k">/</span><a href="ApprovalInbox.dc.html" style="color:#5B6472">Approvals</a><span class="k">/</span><span style="font-weight:600">Holiday blend pre-order</span></nav><div style="margin-left:auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><div class="tools"><a href="Notifications.dc.html" class="ibtn" aria-label="Notifications, 1 unread"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 11V7a4 4 0 0 1 8 0v4l1.5 1.5h-11zM6.5 14a1.5 1.5 0 0 0 3 0"></path></svg><span class="cnt" aria-hidden="true">1</span></a><button class="ubtn" type="button" aria-haspopup="menu" aria-label="Account menu for Jane Morales"><span class="av" style="width:26px;height:26px;font-size:11px;background:#FEF3C7;color:#92400E" aria-hidden="true">JM</span><span class="unm">Jane</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button></div></div>
+    </header>
+    <h1 class="vh">Holiday blend pre-order</h1>
+    <main class="content" id="main" style="padding:24px 28px;display:flex;flex-direction:column;gap:20px">
+<section class="card" style="padding:16px 20px;display:flex;gap:12px 16px;align-items:center;flex-wrap:wrap;box-shadow:inset 4px 0 0 #B45309"><div style="flex:1 1 380px;min-width:0;display:flex;flex-direction:column;gap:4px"><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><h2 style="margin:0;font-size:19px;font-weight:700;letter-spacing:-.01em">Holiday blend pre-order</h2><span class="badge warn"><span class="dot"></span>Waiting for your approval</span></div><span class="k" style="color:#4B5563">Requested by Mei Lin, Northwind Studio · 14 Oct, 16:20 · you're reviewing as Jane Morales</span></div><div style="display:flex;gap:6px;flex-wrap:wrap"><span class="chip"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="1.5"></rect><path d="m2 4.5 6 4.5 6-4.5"></path></svg>Email</span><span class="chip">Rule: Client sign-off</span></div></section><div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start"><div style="flex:2 1 560px;min-width:0"><div style="display:flex;flex-direction:column;gap:16px;min-width:0;"><section class="card"><div class="c8h"><div><h2 class="h2">The email</h2><span class="k">As the 58,940 people will get it</span></div><div><button class="btn sm"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2 2 7l5 2 2 5zM7 9l7-7" stroke-linejoin="round"></path></svg>Send me a test</button></div></div><div style="padding:18px;background:#E9ECF0;display:flex;justify-content:center;border-radius:0 0 10px 10px"><div style="background:#fff;border:1px solid #E3E6EB;border-radius:4px;overflow:hidden;font-family:Georgia,'Times New Roman',serif;color:#1F2937;width:100%;max-width:560px;box-sizing:border-box"><div style="padding:10px 22px;border-bottom:1px solid #EEF0F3;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12.5px;display:flex;flex-direction:column;gap:2px"><span><span style="color:#5B6472">Subject</span> <b style="font-weight:600;color:#0B1220">The Holiday blend is back: pre-order now</b></span><span style="color:#5B6472">From Contoso Coffee &lt;hello@mail.contoso.example&gt;</span></div><div style="padding:14px 22px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #EEF0F3"><span style="width:28px;height:28px;border-radius:7px;background:#92400E;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-family:'IBM Plex Sans',system-ui,sans-serif;font-weight:800;font-size:12px">CC</span><span style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-weight:700;font-size:14px;color:#0B1220">Contoso Coffee</span></div><svg viewBox="0 0 560 240" width="100%" style="display:block" role="img" aria-label="Photo: the new Holiday blend bag on a wooden table"><rect width="560" height="240" fill="#FEF3C7"></rect><rect y="176" width="560" height="64" fill="#92400E" opacity=".18"></rect><circle cx="452" cy="58" r="34" fill="#FFFFFF" opacity=".55"></circle><circle cx="92" cy="70" r="22" fill="#FFFFFF" opacity=".45"></circle><path d="M222 44h116l14 26v128a8 8 0 0 1-8 8H216a8 8 0 0 1-8-8V70z" fill="#92400E"></path><path d="M208 70h144" stroke="#FEF3C7" stroke-width="3" opacity=".6"></path><rect x="236" y="104" width="88" height="54" rx="6" fill="#FEF3C7"></rect><text x="280" y="128" text-anchor="middle" font-size="13" font-weight="700" fill="#92400E" font-family="Georgia,serif">Holiday</text><text x="280" y="146" text-anchor="middle" font-size="12" fill="#92400E" font-family="Georgia,serif">blend 2026</text><ellipse cx="392" cy="196" rx="34" ry="8" fill="#92400E" opacity=".25"></ellipse><path d="M366 150h52v34a10 10 0 0 1-10 10h-32a10 10 0 0 1-10-10z" fill="#FFFFFF"></path><path d="M418 158h8a8 8 0 0 1 0 16h-8" fill="none" stroke="#FFFFFF" stroke-width="5"></path></svg><div style="padding:20px 22px 8px;display:flex;flex-direction:column;gap:12px"><h2 style="margin:0;font-size:22px;line-height:1.25;color:#0B1220;font-family:Georgia,'Times New Roman',serif">The Holiday blend is back</h2><p style="margin:0;font-size:14.5px;line-height:1.6">Dark chocolate, orange peel and a little cinnamon, roasted in small batches in Seattle. Pre-order now and we ship on 18 Nov, before anyone else gets a bag.</p><p style="margin:0;font-size:14.5px;line-height:1.6"><b>$18.50</b> a 12 oz bag · free shipping on two or more</p><div style="padding:4px 0 6px"><span style="display:inline-block;padding:10px 18px;border-radius:6px;background:#92400E;color:#fff;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;font-weight:600">Pre-order the Holiday blend</span></div></div><div style="margin-top:10px;padding:14px 22px;background:#F3F4F6;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:11.5px;color:#5B6472;line-height:1.6">Contoso Coffee · 1200 Pike St · Seattle, WA 98101<br>You get this because you're in the Coffee Club. <span style="text-decoration:underline">Unsubscribe</span> · <span style="text-decoration:underline">Preferences</span></div></div></div></section><section class="card" style=""><div class="c8h"><div><h2 class="h2">What you're approving</h2></div></div><div class="pad"><dl class="kv" style=""><dt>People</dt><dd><span style="display:flex;flex-direction:column;gap:2px"><span><b style="font-weight:600">58,940</b> on the Coffee Club and Newsletter lists</span><span class="k">1,212 suppressed and 74 role addresses are left out</span></span></dd><dt>When</dt><dd>3 Nov 2026, 08:00 Pacific time</dd><dt>From</dt><dd>Contoso Coffee &lt;hello@mail.contoso.example&gt;</dd><dt>Subject</dt><dd>The Holiday blend is back: pre-order now</dd></dl></div></section><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr));gap:16px;align-items:start;"><section class="card" style="padding:16px 18px;display:flex;flex-direction:column;gap:8px"><span class="k">Readiness</span><span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="badge ok"><span class="dot"></span>Ready</span><span style="font-weight:700">All 31 checks passed</span></span><span class="k" style="color:#4B5563">Reputation, authentication, content, links, compliance and audience · checked 15 Oct, 11:40, and again at send time</span><a href="SendReadiness.dc.html" class="lnk">See the 31 checks</a></section><section class="card" style="padding:16px 18px;display:flex;flex-direction:column;gap:8px"><span class="k">Cost</span><span style="font-size:20px;font-weight:700" class="num">$5.89 <span class="k" style="font-size:12px">estimated</span></span><span class="k" style="color:#4B5563">Sent through Contoso's own Amazon SES account in us-west-2, at $0.10 per 1,000 emails. Amazon bills Contoso directly.</span></section></div><section class="card" style=""><div class="c8h"><div><h2 class="h2">Note and comments</h2><span class="k">Visible to the author and the approvers</span></div></div><div class="pad" style="display:flex;flex-direction:column;gap:4px"><div style="display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:8px;background:#F9FAFB;border:1px solid #E3E6EB"><span class="av" style="width:28px;height:28px;font-size:11px;background:#FCE7F3;color:#9D174D" aria-hidden="true">ML</span><div style="display:flex;flex-direction:column;gap:3px;flex:1;min-width:0"><span style="font-weight:600">Mei Lin · note for the approver</span><span style="color:#374151">“Prices are final. The photo is the new bag.”</span><span class="k">14 Oct, 16:20 · Northwind Studio</span></div></div><div style="margin-top:6px"><div style="display:flex;gap:10px;align-items:flex-start;padding:12px 0;border-top:1px solid #EEF0F3"><span class="av" style="width:28px;height:28px;font-size:11px;background:#EDE9FE;color:#5B21B6" aria-hidden="true">RM</span><div style="display:flex;flex-direction:column;gap:3px;min-width:0;flex:1"><span style="display:flex;gap:6px;align-items:baseline;flex-wrap:wrap"><b style="font-weight:600">Ravi Menon</b><span class="k">Northwind Studio · 14 Oct, 16:48</span></span><span style="color:#374151">The bag photo is from Tuesday's shoot, so it's the 2026 design.</span></div></div><div style="display:flex;gap:10px;align-items:flex-start;padding:12px 0;border-top:1px solid #EEF0F3"><span class="av" style="width:28px;height:28px;font-size:11px;background:#FCE7F3;color:#9D174D" aria-hidden="true">ML</span><div style="display:flex;flex-direction:column;gap:3px;min-width:0;flex:1"><span style="display:flex;gap:6px;align-items:baseline;flex-wrap:wrap"><b style="font-weight:600">Mei Lin</b><span class="k">Northwind Studio · 14 Oct, 16:51</span></span><span style="color:#374151">Thanks Ravi. Jane, the send is set for 3 Nov at 08:00 your time, like last year.</span></div></div></div><div style="display:flex;flex-direction:column;gap:8px;padding-top:12px;border-top:1px solid #EEF0F3"><label class="lbl" for="jc">Your comment</label><textarea id="jc" class="in" rows="2" placeholder="Visible to Mei Lin and the other approvers"></textarea><div style="display:flex;justify-content:flex-end"><button class="btn sm">Post comment</button></div></div></div></section></div></div><div style="flex:1 1 300px;min-width:0"><section class="card dec8" aria-label="Your decision"><div class="c8h"><div><h2 class="h2">Your decision</h2><span class="k">You're Contoso Coffee's Client approver.</span></div></div><div class="pad" style="display:flex;flex-direction:column;gap:10px"><button class="btn pri" style="min-height:44px"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg>Approve</button><button class="btn" style="min-height:44px">Request changes</button><button class="btn danger" style="min-height:44px">Reject</button><div class="note n" role="note"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#4B5563" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M8 7.2v3.8M8 5v.1"></path></svg><div style="flex:1 1 160px;min-width:0">Approving covers this exact snapshot: the email, the people, the sender and the time. If Mei Lin changes any of them, you're asked again and see what changed.</div></div><dl class="kv" style=""><dt>Requested by</dt><dd>Mei Lin · Northwind Studio</dd><dt>Rule</dt><dd>Client sign-off: one approval from a Client approver</dd><dt>Agency staff</dt><dd>Their approvals don't count for this rule</dd><dt>Waiting</dt><dd>19 h 32 min, since 14 Oct, 16:20</dd></dl></div></section></div></div><div class="no-phone" style="display:flex;flex-direction:column;gap:20px"><div style="display:flex;flex-direction:column;gap:4px;margin-top:12px"><h2 class="ttl">States</h2><span class="lead">Approved, changes requested, invalidated by an edit, and the email that asked Jane. The phone board shows the review itself.</span></div><section style="display:flex;flex-direction:column;gap:14px" aria-label="Approved"><div class="strip"><span class="dot" style="color:#15803D"></span>Approved</div><div class="card" style="padding:16px 20px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;border-color:#BBF7D0;background:#F0FDF4"><span style="width:36px;height:36px;border-radius:50%;background:#DCFCE7;display:inline-flex;align-items:center;justify-content:center;flex:none"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="#166534" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg></span><span style="display:flex;flex-direction:column;gap:2px;flex:1 1 300px"><span style="font-weight:700;font-size:16px;color:#14532D">Approved by Jane Morales, 11:54. Mei Lin has been told.</span><span style="color:#14532D">The send goes out on 3 Nov at 08:00 Pacific time. If anything in it changes, you're asked again.</span></span><button class="btn sm">Undo approval</button></div><div class="card" style="padding:6px 18px 10px"><div class="ev"><span class="ic" style="background:#DBEAFE"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#1E40AF" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"></path></svg></span><div class="tx"><span style="font-weight:600">Requested by Mei Lin</span><span class="k">Northwind Studio · note: “Prices are final. The photo is the new bag.”</span></div><span class="tm">14 Oct 16:20</span></div><div class="ev"><span class="ic" style="background:#EEF0F3"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#4B5563" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="3.5" cy="8" r=".9"></circle><circle cx="8" cy="8" r=".9"></circle><circle cx="12.5" cy="8" r=".9"></circle></svg></span><div class="tx"><span style="font-weight:600">Opened by Jane Morales</span><span class="k">On her phone, signed in with a passkey</span></div><span class="tm">15 Oct 11:52</span></div><div class="ev"><span class="ic" style="background:#DCFCE7"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#166534" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg></span><div class="tx"><span style="font-weight:600">Approved by Jane Morales</span><span class="k">Client sign-off is met: one approval from a Client approver</span></div><span class="tm">11:54</span></div><div class="ev"><span class="ic" style="background:#DBEAFE"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#1E40AF" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"></path></svg></span><div class="tx"><span style="font-weight:600">Mei Lin was told</span><span class="k">In the app and by email</span></div><span class="tm">11:54</span></div><div class="ev"><span class="ic" style="background:#EEF0F3"><span class="spin"></span></span><div class="tx"><span style="font-weight:600;color:#5B6472">Scheduled</span><span class="k">3 Nov 2026, 08:00 America/Los_Angeles · checks run again at send time</span></div></div></div></section><section style="display:flex;flex-direction:column;gap:14px" aria-label="Request changes, with a comment"><div class="strip"><span class="dot" style="color:#B45309"></span>Request changes, with a comment</div><div class="state-grid"><section class="card dlg" role="dialog" aria-labelledby="rc-t" style="box-shadow:0 12px 32px rgba(11,18,32,.12);max-width:640px"><div class="dh"><span class="k">Holiday blend pre-order · Contoso Coffee</span><h2 id="rc-t" style="margin:0;font-size:18px;font-weight:700;letter-spacing:-.01em">Request changes</h2></div><div class="db"><span style="color:#374151">Mei Lin gets your comment in the app and by email. The send isn't scheduled again until she asks for approval again.</span><label class="lbl">What should change?<textarea class="in" rows="3" aria-label="What should change?">Could the subject say it ships 18 Nov? Our regulars ask every year, and it saves us a hundred replies.</textarea></label><label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" checked>Also post it in the comments</label></div><div class="df"><button class="btn">Cancel</button><button class="btn pri">Send to Mei Lin</button></div></section><section class="card" aria-label="What Mei Lin sees"><div class="c8h"><div><h2 class="h2">What Mei Lin sees</h2><span class="k">Her notifications on app.northwind.studio, and the same by email</span></div></div><div style="display:flex;gap:12px;align-items:flex-start;padding:12px 16px;border-top:1px solid #EEF0F3"><span class="dot" style="color:#B45309;margin-top:7px"></span><span style="display:flex;flex-direction:column;gap:3px;flex:1;min-width:0"><span style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><b style="font-size:13.5px">Jane Morales asked for changes</b><span class="k">11:58</span></span><span style="font-size:13px;color:#374151">Holiday blend pre-order · Contoso Coffee: “Could the subject say it ships 18 Nov? Our regulars ask every year, and it saves us a hundred replies.”</span><span style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap"><a href="Composer.dc.html" class="btn sm pri">Open the campaign</a><button class="btn sm">Reply</button></span></span></div><div class="foot"><span class="k">The campaign goes back to draft. Sending it again asks Jane for a new approval.</span></div></section></div></section><section style="display:flex;flex-direction:column;gap:14px" aria-label="Invalidated after Mei Lin changed the subject"><div class="strip"><span class="dot" style="color:#B45309"></span>Invalidated after Mei Lin changed the subject</div><section class="card" style="overflow:hidden;border-color:#FCD34D"><div class="c8h" style="background:#FFFBEB"><div><h2 class="h2" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">Holiday blend pre-order <span class="badge warn">Approval needed again</span></h2><span class="k" style="color:#78350F">Mei Lin changed the subject at 12:20, after you approved at 11:54. Your approval no longer covers this send.</span></div></div><div class="pad" style="display:flex;flex-direction:column;gap:12px"><div class="diff"><div class="ctx" style="background:#F9FAFB;font-weight:600">Subject</div><div class="del">− The Holiday blend is back: pre-order now</div><div class="add">+ Pre-order the Holiday blend: it ships 18 Nov</div></div><span class="k">Unchanged: the 58,940 people, the sender, 3 Nov at 08:00 Pacific, and the rest of the email.</span><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn pri">Approve the new version</button><button class="btn">Request changes</button></div></div></section></section><section style="display:flex;flex-direction:column;gap:14px" aria-label="The approval email Jane received"><div class="strip"><span class="dot" style="color:#6B7280"></span>The approval email Jane received</div><div class="state-grid"><div style="border:1px solid #E3E6EB;border-radius:10px;overflow:hidden;background:#E9ECF0;max-width:640px"><div style="display:flex;flex-direction:column;gap:2px;padding:10px 14px;border-bottom:1px solid #E3E6EB;font-size:12.5px;background:#fff"><span><span class="k">From</span> Northwind Studio &lt;notifications@app.northwind.studio&gt;</span><span><span class="k">To</span> jane.morales@contoso.example · 14 Oct, 16:20</span><span style="font-weight:600">Mei Lin asks you to approve “Holiday blend pre-order”</span></div><div style="padding:16px;display:flex;justify-content:center"><div style="width:100%;max-width:520px;background:#fff;border-radius:4px;overflow:hidden;box-shadow:0 1px 3px rgba(11,18,32,.12)"><div style="padding:16px 22px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #EEF0F3"><svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0B1220"></rect><path d="M9 23V9l14 14V9" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"></path><circle cx="23" cy="9" r="2.2" fill="#99F6E4"></circle></svg><span style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-weight:700;font-size:14px;color:#0B1220">Northwind Studio</span></div><div style="padding:20px 22px;display:flex;flex-direction:column;gap:12px;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;line-height:1.55;color:#1F2937"><span style="font-size:19px;font-weight:700;color:#0B1220;line-height:1.3">“Holiday blend pre-order” is waiting for your approval</span><span>Hi Jane, Mei Lin from Northwind Studio asks you to approve Contoso Coffee's next email.</span><div style="border:1px solid #E3E6EB;border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:4px;font-size:13px"><span><b style="font-weight:600">58,940 people</b> · Coffee Club and Newsletter</span><span>3 Nov, 08:00 Pacific time</span><span>Ready: all 31 checks passed · about $5.89 on Contoso's Amazon SES account</span></div><span style="color:#4B5563;font-style:italic">“Prices are final. The photo is the new bag.” Mei Lin</span><span style="display:inline-block;align-self:flex-start;padding:10px 18px;border-radius:6px;background:#0F766E;color:#fff;font-weight:600">Review and approve</span></div><div style="padding:14px 22px;background:#F3F4F6;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:11.5px;color:#5B6472;line-height:1.6">Sent by app.northwind.studio because you're a Client approver in Contoso Coffee. <span style="text-decoration:underline">Notification settings</span></div></div></div></div><section class="card" style=""><div class="c8h"><div><h2 class="h2">Who gets the request</h2><span class="k">Following each person's notification settings</span></div></div><div class="pad" style="display:flex;flex-direction:column;gap:12px"><dl class="kv" style=""><dt>Client approvers</dt><dd><span style="display:inline-flex;align-items:center;gap:8px;white-space:nowrap"><span class="av" style="width:22px;height:22px;font-size:11px;background:#FEF3C7;color:#92400E" aria-hidden="true">JM</span><span>Jane Morales</span></span> <span class="k" style="margin-left:6px">the only one in Contoso Coffee</span></dd><dt>Rule</dt><dd>Client sign-off: every send needs one approval from a Client approver</dd><dt>Agency staff</dt><dd>Tomás Herrera and Nadia Okafor see it in their notifications. Their approvals don't count for this rule.</dd></dl><div class="note n" role="note"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#4B5563" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M8 7.2v3.8M8 5v.1"></path></svg><div style="flex:1 1 320px;min-width:0">The email comes from the agency's instance, app.northwind.studio, with Northwind Studio's logo. Jane opened it on her phone on 15 Oct at 11:52.</div></div></div></section></div></section></div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":3868}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

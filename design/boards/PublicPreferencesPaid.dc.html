@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Email preferences · paid subscription</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F5F3FF;color:#1F2937;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:15px;line-height:1.5}
+a{color:#4338CA;text-decoration:none}a:hover{color:#3730A3}
+select{height:44px;padding:0 12px;border:1px solid #C9CED6;border-radius:9px;font:inherit;font-size:14px;width:100%;box-sizing:border-box;background:#fff}
+
+/* accessibility */
+:focus-visible{outline:2px solid #0F766E;outline-offset:2px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-9999px;top:8px;z-index:100;background:#fff;color:#0B1220;padding:8px 12px;border-radius:8px;border:1px solid #0F766E;font-weight:600;text-decoration:none}
+.skip:focus{left:8px}
+p a:not(.btn),span a:not(.btn):not([style*="color"]),td a:not(.btn):not([style*="color"]),li a:not(.btn),label a,.k a,.lead a{text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+.content > * a:not(.btn):not(p a):not(span a):not(td a):not(li a):not(label a):not(.k a),.top a:not(.btn),nav a:not(.btn),footer a:not(.btn){min-height:24px;display:inline-flex;align-items:center}
+input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F766E}
+.in,select.in,textarea.in,input.in{border-color:#8B94A3}
+@media (max-width:767px){
+  .sc-host{overflow-wrap:anywhere}
+  .sc-host table,.sc-host td,.sc-host th{overflow-wrap:normal}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+}
+
+/* expansion components (phases 1-8) */
+.num,.tbl td.r{font-variant-numeric:tabular-nums}
+.tbl th.r,.tbl td.r{text-align:right}
+.tbl tr.sel td{background:#F0FDFA}
+.tbl tr.xp td{background:#FBFBFC}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.stat{padding:14px 16px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.stat .v{font-size:22px;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums;line-height:1.25;margin-top:2px}
+.stat .s{font-size:12px;color:#5B6472;font-weight:500}
+.stat.hot{border-color:#FCA5A5;background:#FFF5F5}
+.strip{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;background:#0B1220;color:#fff;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.sk{background:#E9ECF0;border-radius:6px;display:inline-block}
+.bar{height:6px;border-radius:3px;background:#EEF0F3;overflow:hidden}.bar i{display:block;height:100%;border-radius:3px}
+.ptab{display:flex;border-bottom:1px solid #E3E6EB}
+.ptab button{flex:1;height:38px;border:0;background:none;font:inherit;font-size:12.5px;font-weight:600;color:#5B6472;cursor:pointer;border-bottom:2px solid transparent;padding:0 6px;white-space:nowrap}
+.ptab button.on{color:#0B1220;border-bottom-color:#0F766E}
+.seg{display:inline-flex;border:1px solid #D4D8DF;border-radius:8px;overflow:hidden;flex:none}
+.seg button{height:30px;padding:0 11px;border:0;background:#fff;font:inherit;font-size:12px;font-weight:600;color:#4B5563;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.seg button + button{border-left:1px solid #E3E6EB}
+.seg button.on{background:#0B1220;color:#fff}
+.cbx{border-radius:10px;overflow:hidden;border:1px solid #1F2937;background:#0B1220;min-width:0}
+.cbh{display:flex;align-items:center;gap:2px;padding:6px 8px;border-bottom:1px solid #1F2937;background:#111827;flex-wrap:wrap}
+.cbh button{height:28px;padding:0 10px;border:0;border-radius:6px;background:none;color:#B4BAC4;font:inherit;font-size:12px;font-weight:600;cursor:pointer}
+.cbh button.on{background:#273244;color:#fff}
+.cbh .cp{margin-left:auto;display:inline-flex;align-items:center;gap:6px;color:#E5E7EB;border:1px solid #374151}
+.cbx pre{margin:0;padding:12px 14px;font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace;font-size:12.5px;line-height:1.6;color:#E5E7EB;white-space:pre-wrap;overflow-wrap:anywhere}
+.cbx .c1{color:#93C5FD}.cbx .c2{color:#86EFAC}.cbx .c3{color:#FCD34D}.cbx .c4{color:#9CA3AF}.cbx .c5{color:#F9A8D4}
+.cbx .cm{color:#9CA3AF}
+.ev{display:flex;gap:14px;align-items:flex-start;padding:12px 0;border-top:1px solid #EEF0F3}
+.ev:first-child{border-top:0}
+.ev .ic{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.ev .tx{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.ev .tm{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;color:#5B6472;flex:none;padding-top:5px}
+.spin{width:14px;height:14px;border-radius:50%;border:2px solid #C9CED6;border-top-color:#0F766E;flex:none;display:inline-block}
+.mask{display:inline-flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;color:#4B5563;white-space:nowrap}
+.mask svg{flex:none}
+.tok{display:inline-flex;align-items:center;gap:4px;padding:0 6px;border-radius:5px;background:#EDE9FE;color:#5B21B6;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:.86em;font-weight:500;line-height:1.55;white-space:nowrap;vertical-align:baseline}
+.tok.s{background:#FEF3C7;color:#92400E}
+.tok.e{background:#FEE2E2;color:#991B1B;text-decoration:underline wavy #DC2626;text-underline-offset:3px}
+.mk{display:inline-flex;align-items:center;height:22px;padding:0 7px;border-radius:6px;background:#EEF0F3;color:#374151;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;white-space:nowrap}
+.toast{display:flex;gap:12px;align-items:center;padding:10px 12px 10px 14px;border-radius:10px;background:#0B1220;color:#fff;font-size:13.5px;box-shadow:0 12px 30px rgba(11,18,32,.25);max-width:520px;box-sizing:border-box}
+.toast .t{flex:1;min-width:0}
+.toast .k{color:#C3C2B7}
+.toast .btn{min-height:28px;padding:0 10px;font-size:12px;background:transparent;border-color:#4B5563;color:#fff}
+.toast .x{width:28px;height:28px;border:0;background:transparent;color:#9CA3AF;border-radius:6px;font-size:16px;cursor:pointer}
+.ti{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.scrim{position:absolute;inset:0;background:rgba(11,18,32,.32);z-index:55}
+.drw{position:absolute;top:0;right:0;bottom:0;width:600px;max-width:100%;background:#fff;border-left:1px solid #E3E6EB;box-shadow:-18px 0 40px rgba(11,18,32,.18);z-index:60;display:flex;flex-direction:column;box-sizing:border-box;overflow:hidden}
+.drw .dwh{display:flex;align-items:flex-start;gap:12px;padding:18px 22px 14px;border-bottom:1px solid #EEF0F3}
+.drw .dwb{padding:18px 22px;display:flex;flex-direction:column;gap:18px;overflow:auto}
+.drw h3{margin:0;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472}
+.empty{padding:44px 28px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;border-style:dashed}
+.empty .tt{font-size:18px;font-weight:700;letter-spacing:-.01em}
+.empty .ds{color:#4B5563;max-width:560px}
+.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:14px 18px;border-bottom:1px solid #EEF0F3}
+.fchips{display:flex;gap:6px;flex-wrap:wrap;padding:12px 18px;border-bottom:1px solid #EEF0F3}
+.fchip{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:999px;border:1px solid #D4D8DF;background:#fff;font:inherit;font-size:12.5px;font-weight:600;color:#374151;cursor:pointer;white-space:nowrap}
+.fchip b{font-weight:600;color:#5B6472;font-variant-numeric:tabular-nums}
+.fchip.on{background:#0B1220;border-color:#0B1220;color:#fff}.fchip.on b{color:#C9CED6}
+.live{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:#166534}
+.live .dot{box-shadow:0 0 0 4px rgba(22,101,52,.15)}
+.foot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid #EEF0F3}
+.spark{display:block}
+.lnk{display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:13px}
+.ttl{margin:0;font-size:22px;font-weight:700;letter-spacing:-.02em;line-height:1.2}
+.lead{margin:0;color:#4B5563;font-size:14px;max-width:760px}
+.state-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(460px,100%),1fr));gap:16px;align-items:start}
+.flowr{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px}
+.flowr .arw{color:#9AA3B2}
+.pill{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:8px;border:1px solid #E3E6EB;background:#F9FAFB;font-size:12.5px;font-weight:600;white-space:nowrap}
+.vline{display:flex;gap:10px;align-items:baseline;padding:8px 0;border-top:1px solid #EEF0F3;font-size:13px}
+.vline:first-child{border-top:0}
+.hl{background:#FEF2F2;box-shadow:inset 3px 0 0 #DC2626}
+.lines{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;line-height:1.7;background:#0B1220;color:#E5E7EB;border-radius:8px;overflow:hidden}
+.lines div{display:flex;gap:12px;padding:0 12px}
+.lines .ln{color:#9CA3AF;width:22px;text-align:right;flex:none;user-select:none}
+.lines .er{background:rgba(220,38,38,.22)}
+.callout{position:absolute;z-index:5}
+.only-phone{display:none}
+@media (max-width:1100px){.drw{width:520px}}
+@media (max-width:767px){.drw{width:100%;border-left:0}.stats{grid-template-columns:repeat(2,minmax(0,1fr))!important}.ttl{font-size:19px}}
+
+.pcard{width:100%;background:#fff;border:1px solid #E3E6EB;border-radius:16px;padding:32px;box-sizing:border-box;display:flex;flex-direction:column;gap:18px}
+.pbtn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:9px;background:#4338CA;color:#fff;font-weight:700;font-size:14px;border:0;cursor:pointer;text-decoration:none;font-family:inherit}
+.pbtn:hover{background:#3730A3;color:#fff}
+.pbtn2{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:9px;border:1px solid #C9CED6;background:#fff;color:#1F2937;font-weight:700;font-size:14px;cursor:pointer;text-decoration:none;font-family:inherit}
+.pin{height:44px;padding:0 14px;border:1px solid #8B94A3;border-radius:9px;font:inherit;font-size:14px;box-sizing:border-box;background:#fff;min-width:0;width:100%}
+.pmut{color:#5B6472}
+.tag{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;background:#EEF0F3;color:#4B5563}
+.brand{display:flex;align-items:center;gap:12px}
+.brand .m{width:40px;height:40px;border-radius:10px;background:#0B1220;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:16px}
+@media (max-width:767px){.pcard{padding:22px}.sc-host [style*="minmax(min("]{grid-template-columns:1fr!important}}
+</style>
+</helmet>
+<div style="min-height:100vh;background:#F5F3FF;position:relative">
+<div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:40px 16px 32px;box-sizing:border-box"><main style="width:100%;max-width:600px;display:flex;flex-direction:column;gap:18px"><section style="display:flex;flex-direction:column;gap:14px" aria-label="Preference center · Sam Rivera, Insider yearly (changes PublicPreferences)"><div class="strip"><span class="dot" style="color:#6B7280"></span>Preference center · Sam Rivera, Insider yearly (changes PublicPreferences)</div><div class="pcard"><div class="brand"><span class="m">A</span><span style="font-weight:700;font-size:18px">Acme</span></div><div style="display:flex;flex-direction:column;gap:6px"><h1 style="margin:0;font-size:26px;font-weight:700;letter-spacing:-.02em;line-height:1.15">Email preferences</h1><span style="color:#4B5563;font-size:15px">for sam.rivera@outlook.com · <a href="#" style="color:#4338CA">not you?</a></span></div><section aria-label="Your paid subscription" style="display:flex;flex-direction:column;gap:10px;padding:16px;border-radius:12px;background:#F5F3FF;border:1px solid #DDD6FE"><span style="font-size:13px;font-weight:600;color:#4338CA">Your paid subscription</span><div style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:700;font-size:16px;color:#1F2937">Weekly Digest Insider · yearly</span><span style="font-size:14px;color:#374151">$64 for your first year with FALL26, then $80 a year</span><span style="font-size:13px;color:#5B6472">Renews on 7 Oct 2027. We'll remind you 7 days before.</span></div><div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><a href="#" style="display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:9px;border:1px solid #C9CED6;background:#fff;color:#1F2937;font-weight:700;font-size:14px;text-decoration:none;box-sizing:border-box">Manage billing<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h4v4M13 3 7 9M11 9.5V13H3V5h3.5"></path></svg></a><a href="PublicCancel.dc.html" style="font-size:14px;font-weight:600;color:#4338CA;text-decoration:underline;text-underline-offset:2px">Cancel subscription</a></div></section><span style="font-size:13px;font-weight:600">Lists</span><label style="display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border:1px solid #E3E6EB;border-radius:10px;background:#fff"><input type="checkbox" checked style="margin-top:3px;accent-color:#0F766E"><span style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:600">Weekly Digest</span><span style="font-size:13px;color:#5B6472">Tuesdays. What shipped, what's next.</span></span></label><label style="display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border:1px solid #E3E6EB;border-radius:10px;background:#fff"><input type="checkbox" checked style="margin-top:3px;accent-color:#0F766E"><span style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:600">Product Updates</span><span style="font-size:13px;color:#5B6472">Only when something ships, about twice a month.</span></span></label><label style="display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border:1px solid #E3E6EB;border-radius:10px;background:#fff"><input type="checkbox" style="margin-top:3px;accent-color:#0F766E"><span style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:600">Beta Program</span><span style="font-size:13px;color:#5B6472">Early access invitations and feedback requests. Rare.</span></span></label><a href="#" style="display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:9px;background:#4338CA;color:#fff;font-weight:700;font-size:14px;text-decoration:none;box-sizing:border-box;width:100%">Save preferences</a><div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:13px;color:#5B6472"><span>Changes apply to the next send.</span><a href="PublicUnsubscribe.dc.html" style="color:#5B6472;text-decoration:underline">Unsubscribe from everything</a></div></div></section><section style="display:flex;flex-direction:column;gap:14px" aria-label="Other paid members, and a free reader"><div class="strip"><span class="dot" style="color:#6B7280"></span>Other paid members, and a free reader</div><div style="display:flex;flex-direction:column;gap:12px"><span style="font-size:12.5px;font-weight:600;color:#5B6472">Ravi Menon · complimentary access</span><section aria-label="Your paid subscription" style="display:flex;flex-direction:column;gap:10px;padding:16px;border-radius:12px;background:#F5F3FF;border:1px solid #DDD6FE"><span style="font-size:13px;font-weight:600;color:#4338CA">Your paid subscription</span><span style="font-weight:700;font-size:16px;color:#1F2937">Complimentary Insider access from Acme, no end date</span><span style="font-size:13px;color:#5B6472">Nothing to pay. Every Insider issue reaches you.</span><div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"></div></section><span style="font-size:12.5px;font-weight:600;color:#5B6472">Lena Fischer · a gift</span><section aria-label="Your paid subscription" style="display:flex;flex-direction:column;gap:10px;padding:16px;border-radius:12px;background:#F5F3FF;border:1px solid #DDD6FE"><span style="font-size:13px;font-weight:600;color:#4338CA">Your paid subscription</span><span style="font-weight:700;font-size:16px;color:#1F2937">A gift from Priya Natarajan, until 11 Oct 2027</span><span style="font-size:13px;color:#5B6472">Weekly Digest Insider for a year. Nothing renews unless you choose to continue.</span><div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><a href="PublicUpgrade.dc.html" style="display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:9px;border:1px solid #C9CED6;background:#fff;color:#1F2937;font-weight:700;font-size:14px;text-decoration:none;box-sizing:border-box">Keep Insider after your gift</a></div></section><span style="font-size:12.5px;font-weight:600;color:#5B6472">A free reader, while the upgrade page is public</span><a href="PublicUpgrade.dc.html" style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 16px;border-radius:12px;background:#F5F3FF;border:1px solid #DDD6FE;color:#1F2937;text-decoration:none"><span style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:700">Get more with Insider · from $8 a month</span><span style="font-size:13px;color:#5B6472">A deep dive every Tuesday, the archive, and quarterly roadmap calls.</span></span><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#4338CA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 4 4 4-4 4"></path></svg></a></div></section><section style="display:flex;flex-direction:column;gap:14px" aria-label="Unsubscribe page · for a paid member (changes PublicUnsubscribe)"><div class="strip"><span class="dot" style="color:#6B7280"></span>Unsubscribe page · for a paid member (changes PublicUnsubscribe)</div><div class="pcard"><div class="brand"><span class="m">A</span><span style="font-weight:700;font-size:18px">Acme</span></div><div style="display:flex;flex-direction:column;gap:6px"><h1 style="margin:0;font-size:24px;font-weight:700;letter-spacing:-.02em;line-height:1.2">Unsubscribe from all Acme emails?</h1><span style="color:#4B5563;font-size:15px">for sam.rivera@outlook.com</span></div><div style="display:flex;flex-wrap:nowrap;gap:10px;align-items:flex-start;padding:14px 16px;border:1px solid #DDD6FE;border-radius:12px;background:#F5F3FF;font-size:14px;color:#374151"><span style="flex:none;display:inline-flex;margin-top:1px"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="#4338CA" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M8 7.2v3.8M8 5v.1"></path></svg></span><span style="display:flex;flex-direction:column;gap:8px;min-width:0"><span>You're an Insider member. Unsubscribing stops all emails, including Insider issues, but doesn't cancel your subscription.</span><a href="PublicCancel.dc.html" style="font-weight:600;color:#4338CA;text-decoration:underline;text-underline-offset:2px">Cancel subscription</a></span></div><a href="#" style="display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:9px;background:#4338CA;color:#fff;font-weight:700;font-size:14px;text-decoration:none;box-sizing:border-box;width:100%">Unsubscribe from everything</a><a href="PublicPreferencesPaid.dc.html" style="align-self:center;font-size:14px;font-weight:600;color:#4338CA">Manage preferences instead</a></div></section><section style="display:flex;flex-direction:column;gap:14px" aria-label="Public archive · an issue in its free version (changes PublicArchive)"><div class="strip"><span class="dot" style="color:#6B7280"></span>Public archive · an issue in its free version (changes PublicArchive)</div><div class="pcard"><div class="brand"><span class="m">A</span><span style="font-weight:700;font-size:18px">Acme</span></div><div style="display:flex;flex-direction:column;gap:8px"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="tag">Weekly Digest</span><span style="font-size:13px;color:#5B6472">Tuesday 7 October 2026 · #141</span></div><h1 style="margin:0;font-size:26px;font-weight:700;letter-spacing:-.02em;line-height:1.2">The case for boring infrastructure</h1></div><p style="margin:0;font-size:15px;line-height:1.65;color:#374151">Why we moved three services back to Postgres, a reader's guide to feature flags, and the community links of the week.</p><div style="border:1px solid #DDD6FE;border-radius:14px;padding:22px 24px;background:#F5F3FF;display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;font-family:'IBM Plex Sans',system-ui,sans-serif"><span style="font-size:19px;font-weight:700;line-height:1.3;color:#1F2937">Get the full deep dive with Insider</span><p style="margin:0;font-size:14px;line-height:1.55;color:#374151;max-width:440px">Paid members get a deep dive every Tuesday, the archive, and quarterly roadmap calls.</p><span style="font-size:13px;font-weight:600;color:#1F2937">$8/month or $80/year · 14 days free</span><a href="PublicUpgrade.dc.html" style="margin-top:6px;display:inline-flex;align-items:center;justify-content:center;height:44px;padding:0 18px;border-radius:9px;background:#4338CA;color:#fff;font-weight:700;font-size:14px;text-decoration:none">Start your free trial</a></div><p style="margin:0;font-size:15px;line-height:1.65;color:#374151">This week's links: the incident review that changed our on-call rotation, and three talks worth an hour.</p><div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:nowrap;padding:12px 14px;border:1px solid #E3E6EB;border-radius:12px;background:#F9FAFB;font-size:13px;color:#4B5563"><span style="flex:none;display:inline-flex;margin-top:1px"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#4B5563" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M8 7.2v3.8M8 5v.1"></path></svg></span><span>The free version of this issue: the Insider deep dive is left out, and the Upgrade block stays. Paid-only campaigns aren't listed in the archive.</span></div></div></section></main><div style="display:flex;gap:16px;align-items:center;margin-top:18px;font-size:12.5px;color:#5B6472;flex-wrap:wrap;justify-content:center"><a href="PublicPreferences.dc.html" style="color:#5B6472">Email preferences</a><span>·</span><a href="Landing.dc.html" style="color:#5B6472">Sent with ReputeCast</a></div></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":720,"height":2612}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>
