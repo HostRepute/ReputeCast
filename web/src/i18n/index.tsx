@@ -5,7 +5,24 @@ import { getI18n, subscribeI18n, type I18nState } from './store'
 
 export { defineMessages, sourceMessages, translate, type Catalog, type MessageDescriptor, type Messages } from './define'
 export type { RichValues, Values } from './format'
-export { getI18n, setCatalogLoader, setLocale, setRegion, subscribeI18n, type AppLocale, type I18nState } from './store'
+export { getI18n, i18nKey, setCatalogLoader, setLocale, setPreferences, setRegion, subscribeI18n, type AppLocale, type I18nState, type Preferences } from './store'
+export { PSEUDO_LOCALE } from './pseudo'
+export { REGION_FORMATS, regionName, type HourCycle, type RegionFormat, type WeekStart } from './regions'
+export {
+  APP_LANGUAGES,
+  PSEUDO_LANGUAGE,
+  browserLanguage,
+  defaultRegionFor,
+  isAppLocale,
+  languageName,
+  pickableLanguages,
+  regionOptions,
+  resolvePreferences,
+  resolveVisitor,
+  type AppLanguage,
+  type InstanceDefaults,
+  type MemberChoices,
+} from './languages'
 
 /** The current language, region format and translations. */
 export function useI18n(): I18nState {
@@ -52,8 +69,8 @@ export function formatList(items: readonly string[], type: 'conjunction' | 'disj
   const key = `${getI18n().locale}|${type}`
   let f = listFormats.get(key)
   if (!f) {
-    // English lists follow the house style, without the serial comma.
-    f = new Intl.ListFormat(getI18n().locale === 'en' ? 'en-GB' : getI18n().locale, { style: 'long', type })
+    // English lists (and the pseudo-locale's) follow the house style, without the serial comma.
+    f = new Intl.ListFormat(getI18n().locale.startsWith('en') ? 'en-GB' : getI18n().locale, { style: 'long', type })
     listFormats.set(key, f)
   }
   return f.format(items)
