@@ -33,6 +33,10 @@ const (
 	// AccessWorkspace needs a member, API key or agent holding Permission in
 	// the workspace named by the {workspace} path parameter.
 	AccessWorkspace AccessKind = "workspace"
+	// AccessKey needs an API key; the workspace is the key's own, so the
+	// caller needs only the instance URL and the key (integrations' "Test
+	// connection").
+	AccessKey AccessKind = "key"
 )
 
 // Access is the requirement attached to an operation.
@@ -63,6 +67,10 @@ func Workspace(perm authz.Permission) Access {
 func WorkspaceHuman(perm authz.Permission) Access {
 	return Access{Kind: AccessWorkspace, Permission: perm, HumansOnly: true}
 }
+
+// CallingKey is for operations about the API key that calls them, in its
+// own workspace. It needs no permission: a key may always describe itself.
+var CallingKey = Access{Kind: AccessKey}
 
 const accessMetaKey = "reputecast.access"
 
@@ -100,6 +108,8 @@ func (o Op) operation() huma.Operation {
 	}
 	switch o.Access.Kind {
 	case AccessPublic:
+	case AccessKey:
+		op.Security = []map[string][]string{{"bearer": {}}}
 	case AccessWorkspace:
 		if o.Access.HumansOnly {
 			op.Security = []map[string][]string{{"session": {}}}

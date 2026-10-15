@@ -47,6 +47,8 @@ type ApiKey struct {
 	RotatedFrom    *uuid.UUID      `json:"rotatedFrom"`
 	LastUsedClient string          `json:"lastUsedClient"`
 	LastCall       string          `json:"lastCall"`
+	IntegrationID  *uuid.UUID      `json:"integrationId"`
+	GraceUntil     *time.Time      `json:"graceUntil"`
 }
 
 type ApiKeyRejection struct {
@@ -880,6 +882,76 @@ type InstanceSetting struct {
 	AuditStreamStatus    json.RawMessage `json:"auditStreamStatus"`
 }
 
+type Integration struct {
+	ID             uuid.UUID       `json:"id"`
+	WorkspaceID    uuid.UUID       `json:"workspaceId"`
+	Kind           string          `json:"kind"`
+	Label          string          `json:"label"`
+	Items          []string        `json:"items"`
+	OffItems       []string        `json:"offItems"`
+	Settings       json.RawMessage `json:"settings"`
+	ConnectedBy    *uuid.UUID      `json:"connectedBy"`
+	ConnectedAt    time.Time       `json:"connectedAt"`
+	FirstCallAt    *time.Time      `json:"firstCallAt"`
+	LastCallAt     *time.Time      `json:"lastCallAt"`
+	Attention      json.RawMessage `json:"attention"`
+	Notified       []string        `json:"notified"`
+	DisconnectedAt *time.Time      `json:"disconnectedAt"`
+	DisconnectedBy *uuid.UUID      `json:"disconnectedBy"`
+}
+
+type IntegrationCall struct {
+	ID            uuid.UUID       `json:"id"`
+	IntegrationID uuid.UUID       `json:"integrationId"`
+	WorkspaceID   uuid.UUID       `json:"workspaceId"`
+	ApiKeyID      *uuid.UUID      `json:"apiKeyId"`
+	OccurredAt    time.Time       `json:"occurredAt"`
+	WorkflowKey   string          `json:"workflowKey"`
+	WorkflowName  string          `json:"workflowName"`
+	Operation     string          `json:"operation"`
+	Item          string          `json:"item"`
+	Method        string          `json:"method"`
+	Path          string          `json:"path"`
+	Status        int32           `json:"status"`
+	Code          string          `json:"code"`
+	Detail        string          `json:"detail"`
+	DurationMs    int32           `json:"durationMs"`
+	Target        json.RawMessage `json:"target"`
+	ContactID     *uuid.UUID      `json:"contactId"`
+	Note          string          `json:"note"`
+	Request       json.RawMessage `json:"request"`
+	Response      json.RawMessage `json:"response"`
+	Ip            *netip.Addr     `json:"ip"`
+	Client        string          `json:"client"`
+}
+
+type IntegrationRelease struct {
+	Kind      string    `json:"kind"`
+	Version   string    `json:"version"`
+	Source    string    `json:"source"`
+	CheckedAt time.Time `json:"checkedAt"`
+}
+
+type IntegrationWebhook struct {
+	WebhookID     uuid.UUID  `json:"webhookId"`
+	IntegrationID uuid.UUID  `json:"integrationId"`
+	ApiKeyID      *uuid.UUID `json:"apiKeyId"`
+	Event         string     `json:"event"`
+	WorkflowKey   string     `json:"workflowKey"`
+	WorkflowName  string     `json:"workflowName"`
+	CreatedAt     time.Time  `json:"createdAt"`
+}
+
+type IntegrationWorkflow struct {
+	IntegrationID uuid.UUID       `json:"integrationId"`
+	Key           string          `json:"key"`
+	ExternalID    string          `json:"externalId"`
+	Name          string          `json:"name"`
+	Uses          json.RawMessage `json:"uses"`
+	FirstSeenAt   time.Time       `json:"firstSeenAt"`
+	LastSeenAt    time.Time       `json:"lastSeenAt"`
+}
+
 type Invitation struct {
 	ID                  uuid.UUID       `json:"id"`
 	WorkspaceID         uuid.UUID       `json:"workspaceId"`
@@ -1596,6 +1668,16 @@ type Webhook struct {
 	Demo            bool       `json:"demo"`
 }
 
+type WebhookContactEvent struct {
+	ID          int64           `json:"id"`
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	Event       string          `json:"event"`
+	ContactID   uuid.UUID       `json:"contactId"`
+	ListID      *uuid.UUID      `json:"listId"`
+	Data        json.RawMessage `json:"data"`
+	CreatedAt   time.Time       `json:"createdAt"`
+}
+
 type WebhookDelivery struct {
 	ID            uuid.UUID       `json:"id"`
 	WebhookID     uuid.UUID       `json:"webhookId"`
@@ -1614,6 +1696,43 @@ type WebhookDelivery struct {
 	EnqueuedAt    *time.Time      `json:"enqueuedAt"`
 	LastAttemptAt *time.Time      `json:"lastAttemptAt"`
 	DeliveredAt   *time.Time      `json:"deliveredAt"`
+}
+
+type WordpressDraft struct {
+	ID            uuid.UUID  `json:"id"`
+	IntegrationID uuid.UUID  `json:"integrationId"`
+	WorkspaceID   uuid.UUID  `json:"workspaceId"`
+	CampaignID    *uuid.UUID `json:"campaignId"`
+	PostID        string     `json:"postId"`
+	PostTitle     string     `json:"postTitle"`
+	PostUrl       string     `json:"postUrl"`
+	PublishedAt   *time.Time `json:"publishedAt"`
+	NotifiedUser  *uuid.UUID `json:"notifiedUser"`
+	CreatedAt     time.Time  `json:"createdAt"`
+}
+
+type WordpressSite struct {
+	IntegrationID   uuid.UUID       `json:"integrationId"`
+	WorkspaceID     uuid.UUID       `json:"workspaceId"`
+	Address         string          `json:"address"`
+	SiteUrl         string          `json:"siteUrl"`
+	Name            string          `json:"name"`
+	PluginVersion   string          `json:"pluginVersion"`
+	WpVersion       string          `json:"wpVersion"`
+	PhpVersion      string          `json:"phpVersion"`
+	FeedUrl         string          `json:"feedUrl"`
+	LanguagePlugin  string          `json:"languagePlugin"`
+	Categories      json.RawMessage `json:"categories"`
+	Forms           json.RawMessage `json:"forms"`
+	FirstReportAt   *time.Time      `json:"firstReportAt"`
+	LastReportAt    *time.Time      `json:"lastReportAt"`
+	LastCheckAt     *time.Time      `json:"lastCheckAt"`
+	LastCheckOk     *bool           `json:"lastCheckOk"`
+	LastCheckDetail string          `json:"lastCheckDetail"`
+	RuleEnabled     bool            `json:"ruleEnabled"`
+	Rule            json.RawMessage `json:"rule"`
+	RuleUpdatedBy   *uuid.UUID      `json:"ruleUpdatedBy"`
+	RuleUpdatedAt   *time.Time      `json:"ruleUpdatedAt"`
 }
 
 type Workspace struct {
