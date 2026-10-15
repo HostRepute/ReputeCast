@@ -302,25 +302,22 @@ const Masked = "••••••"
 // maskBody keeps a request body for the call log with its sensitive values
 // masked: the variables a transactional template marks sensitive (never
 // stored, as in the message log) and anything that looks like a secret.
+// Keys keep the order they were sent in.
 func (s *Service) maskBody(ctx context.Context, wsID uuid.UUID, op string, body []byte) json.RawMessage {
 	raw := jsonOrNil(body)
 	if raw == nil {
 		return nil
 	}
-	var v any
-	if json.Unmarshal(raw, &v) != nil {
-		return nil
-	}
 	var sensitive map[string]bool
 	if op == OpSendMessage && SensitiveVariables != nil {
-		if m, ok := v.(map[string]any); ok {
-			if tpl, _ := m["template"].(string); tpl != "" {
-				sensitive = SensitiveVariables(ctx, s.Q, wsID, tpl)
-			}
+		var m struct {
+			Template string `json:"template"`
+		}
+		if json.Unmarshal(raw, &m) == nil && m.Template != "" {
+			sensitive = SensitiveVariables(ctx, s.Q, wsID, m.Template)
 		}
 	}
-	v = maskValue(v, "", sensitive)
-	out, err := json.Marshal(v)
+	out, err := maskJSON(raw, sensitive)
 	if err != nil {
 		return nil
 	}
@@ -334,38 +331,111 @@ var SensitiveVariables func(ctx context.Context, q *store.Queries, workspaceID u
 
 var secretKey = regexp.MustCompile(`(?i)(password|passwd|secret|token|api[_-]?key|authorization)`)
 
-func maskValue(v any, key string, sensitive map[string]bool) any {
-	switch t := v.(type) {
-	case map[string]any:
-		for k, x := range t {
-			if k == "data" || k == "variables" {
-				if d, ok := x.(map[string]any); ok {
-					for dk, dv := range d {
-						if sensitive[dk] || secretKey.MatchString(dk) {
-							d[dk] = Masked
-						} else {
-							d[dk] = maskValue(dv, dk, sensitive)
-						}
-					}
-					continue
-				}
-			}
-			if secretKey.MatchString(k) {
-				if _, isStr := x.(string); isStr {
-					t[k] = Masked
-					continue
-				}
-			}
-			t[k] = maskValue(x, k, sensitive)
-		}
-		return t
-	case []any:
-		for i := range t {
-			t[i] = maskValue(t[i], key, sensitive)
-		}
-		return t
+// maskJSON copies a JSON document, keys in their order, with the
+// sensitive values masked: inside "data" or "variables", the template's
+// sensitive variables and anything secret-like; elsewhere, secret-like
+// string fields.
+func maskJSON(raw []byte, sensitive map[string]bool) ([]byte, error) {
+	dec := json.NewDecoder(bytes.NewReader(raw))
+	dec.UseNumber()
+	var out bytes.Buffer
+	if err := maskNode(dec, &out, "", sensitive); err != nil {
+		return nil, err
 	}
-	return v
+	return out.Bytes(), nil
+}
+
+// maskNode copies one value; key is the field it's the value of.
+func maskNode(dec *json.Decoder, out *bytes.Buffer, key string, sensitive map[string]bool) error {
+	tok, err := dec.Token()
+	if err != nil {
+		return err
+	}
+	delim, isDelim := tok.(json.Delim)
+	if !isDelim {
+		return writeScalar(out, tok)
+	}
+	if delim == '[' {
+		out.WriteByte('[')
+		for i := 0; dec.More(); i++ {
+			if i > 0 {
+				out.WriteByte(',')
+			}
+			if err := maskNode(dec, out, key, sensitive); err != nil {
+				return err
+			}
+		}
+		if _, err := dec.Token(); err != nil {
+			return err
+		}
+		out.WriteByte(']')
+		return nil
+	}
+	variables := key == "data" || key == "variables"
+	out.WriteByte('{')
+	for i := 0; dec.More(); i++ {
+		kt, err := dec.Token()
+		if err != nil {
+			return err
+		}
+		k, _ := kt.(string)
+		if i > 0 {
+			out.WriteByte(',')
+		}
+		if err := writeScalar(out, k); err != nil {
+			return err
+		}
+		out.WriteByte(':')
+		secret := secretKey.MatchString(k)
+		if variables && (sensitive[k] || secret) {
+			var skip json.RawMessage
+			if err := dec.Decode(&skip); err != nil {
+				return err
+			}
+			if err := writeScalar(out, Masked); err != nil {
+				return err
+			}
+			continue
+		}
+		if secret {
+			var v json.RawMessage
+			if err := dec.Decode(&v); err != nil {
+				return err
+			}
+			if len(v) > 0 && v[0] == '"' {
+				if err := writeScalar(out, Masked); err != nil {
+					return err
+				}
+				continue
+			}
+			inner := json.NewDecoder(bytes.NewReader(v))
+			inner.UseNumber()
+			if err := maskNode(inner, out, k, sensitive); err != nil {
+				return err
+			}
+			continue
+		}
+		if err := maskNode(dec, out, k, sensitive); err != nil {
+			return err
+		}
+	}
+	if _, err := dec.Token(); err != nil {
+		return err
+	}
+	out.WriteByte('}')
+	return nil
+}
+
+// writeScalar writes a string, number, boolean or null as JSON, leaving
+// <, > and & as they are.
+func writeScalar(out *bytes.Buffer, v any) error {
+	enc := json.NewEncoder(out)
+	enc.SetEscapeHTML(false)
+	if err := enc.Encode(v); err != nil {
+		return err
+	}
+	out.Truncate(out.Len() - 1) // Encode adds a newline
+	return nil
 }
 
 var emailRe = regexp.MustCompile(`[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}`)

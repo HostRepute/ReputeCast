@@ -130,12 +130,18 @@ func TestNormalizeLanguage(t *testing.T) {
 }
 
 func TestMaskBody(t *testing.T) {
-	var v any
-	_ = json.Unmarshal([]byte(`{"template":"payment-failed","to":{"email":"a@b.co"},"data":{"first_name":"Priya","update_url":"https://x","api_token":"t"},"password":"p"}`), &v)
-	out, _ := json.Marshal(maskValue(v, "", map[string]bool{"update_url": true}))
-	s := string(out)
-	if strings.Contains(s, "https://x") || strings.Contains(s, `"t"`) || strings.Contains(s, `"p"`) || !strings.Contains(s, "Priya") {
-		t.Errorf("masked: %s", s)
+	in := `{"template":"payment-failed","to":{"email":"a@b.co"},"data":{"first_name":"Priya","update_url":"https://x?a=1&b=<2>","api_token":"t","items":[{"n":1.50}]},"password":"p","auth":{"token":"q"}}`
+	out, err := maskJSON([]byte(in), map[string]bool{"update_url": true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Masked as the message log masks, with the keys in the order sent.
+	want := `{"template":"payment-failed","to":{"email":"a@b.co"},"data":{"first_name":"Priya","update_url":"••••••","api_token":"••••••","items":[{"n":1.50}]},"password":"••••••","auth":{"token":"••••••"}}`
+	if string(out) != want {
+		t.Errorf("masked:\n%s\nwant\n%s", out, want)
+	}
+	if !json.Valid(out) {
+		t.Error("masked body is valid JSON")
 	}
 	hidden := hideAddresses(json.RawMessage(`{"to":"finance@initech.example"}`), "a contact")
 	if strings.Contains(string(hidden), "@") {

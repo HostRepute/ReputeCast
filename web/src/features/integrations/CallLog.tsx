@@ -9,7 +9,7 @@ import { T, formatList, useT } from '@/i18n'
 import { clock } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { m } from './messages'
-import { AttentionIcon, base, dayStamp, entryName, itemName, tags, type ConnectKind } from './shared'
+import { base, dayStamp, entryName, InfoIcon, itemName, tags, type ConnectKind } from './shared'
 
 type Call = Schemas['IntegrationCallView']
 type Window = '24h' | '7d'
@@ -304,7 +304,7 @@ function Explain({ call, kind, above }: { call: Call; kind: ConnectKind; above?:
   return (
     <div className="ih-explain mb-1">
       <div className="row flex-nowrap items-start gap-2">
-        <AttentionIcon size={15} color={call.status === 409 ? 'var(--warn-bar)' : 'var(--bad-fg)'} />
+        <InfoIcon />
         <span className="text-ink">{line}</span>
       </div>
       {fix ? (
@@ -371,7 +371,9 @@ function CallBodies({ connectionId, call }: { connectionId: string; call: Call }
         </div>
         <pre>
           <span className="c4">{call.method}</span> {call.path}
-          {Object.entries(d.headers).map(([k, v]) => (
+          {Object.entries(d.headers)
+            .sort(([a], [b]) => (a === 'X-ReputeCast-Workflow' ? -1 : b === 'X-ReputeCast-Workflow' ? 1 : a.localeCompare(b)))
+            .map(([k, v]) => (
             <Fragment key={k}>
               {'\n'}
               <span className="c1">{k}</span>: {v}
@@ -408,9 +410,13 @@ function CallBodies({ connectionId, call }: { connectionId: string; call: Call }
 
 const MASK = '••••••'
 
+/** Arrays of plain values stay on one line, as the boards print them ("missing": ["amount_due"]). */
+const SCALAR = String.raw`(?:"(?:[^"\\]|\\.)*"|-?\d[\d.eE+-]*|true|false|null)`
+const SCALAR_ARRAY = new RegExp(String.raw`\[\n\s*(${SCALAR}(?:,\n\s*${SCALAR})*)\n\s*\]`, 'g')
+
 /** Pretty JSON with the boards' colours: keys blue, strings green, masked values amber with a note. */
 function Json({ value, maskedNote }: { value: unknown; maskedNote: string }) {
-  const text = JSON.stringify(value, null, 2) ?? ''
+  const text = (JSON.stringify(value, null, 2) ?? '').replace(SCALAR_ARRAY, (_, items: string) => `[${items.split(/,\n\s*/).join(', ')}]`)
   return (
     <>
       {text.split('\n').map((line, i) => (
@@ -445,21 +451,28 @@ function JsonLine({ line, maskedNote }: { line: string; maskedNote: string }) {
   )
 }
 
+/** A value's text: every string literal coloured, a masked one amber with the note at the end of the line. */
 function JsonValue({ text, maskedNote }: { text: string; maskedNote: string }) {
-  const s = /^("(?:[^"\\]|\\.)*")(,?)$/.exec(text)
-  if (!s) return <>{text}</>
-  const [, str, comma] = s
-  if (str === `"${MASK}"`)
-    return (
-      <>
-        <span className="c3">{str}</span>
-        {comma} <span className="cm">{maskedNote}</span>
-      </>
+  const parts: ReactNode[] = []
+  let masked = false
+  let last = 0
+  for (const match of text.matchAll(/"(?:[^"\\]|\\.)*"/g)) {
+    const at = match.index ?? 0
+    if (at > last) parts.push(text.slice(last, at))
+    const str = match[0]
+    if (str === `"${MASK}"`) masked = true
+    parts.push(
+      <span key={at} className={str === `"${MASK}"` ? 'c3' : 'c2'}>
+        {str}
+      </span>,
     )
+    last = at + str.length
+  }
+  if (last < text.length) parts.push(text.slice(last))
   return (
     <>
-      <span className="c2">{str}</span>
-      {comma}
+      {parts}
+      {masked ? <span className="cm"> {maskedNote}</span> : null}
     </>
   )
 }

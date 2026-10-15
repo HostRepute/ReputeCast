@@ -311,15 +311,15 @@ func seedHubZapierCalls(ctx context.Context, s *Seeder, id, key uuid.UUID) error
 	send := func(at time.Time, email string, status, ms int, idem string) hubCall {
 		c := hubCall{at: at, wfKey: stripe.key, wfName: stripe.name, op: "send-transactional-message", item: "send_transactional", method: "POST", path: messages,
 			status: status, ms: ms, target: map[string]any{"kind": "send_transactional", "template": "payment-failed", "email": email},
+			// The body keeps the order the Zap sent it in, as the call log does.
 			request: map[string]any{"headers": map[string]string{"X-ReputeCast-Workflow": stripe.name + "; id=" + stripe.key, "Idempotency-Key": "zap-284113907-" + idem},
-				"body": map[string]any{"template": "payment-failed", "to": map[string]any{"email": email}, "data": map[string]any{"first_name": "Priya", "update_url": "••••••"}}},
+				"body": json.RawMessage(fmt.Sprintf(`{"template":"payment-failed","to":{"email":%q},"data":{"first_name":"Priya","update_url":"••••••"}}`, email))},
 			response: map[string]any{"id": "msg_" + ID().String()[:12], "status": "queued"}}
 		if status == 422 {
 			c.code = "missing_variables"
 			c.detail = "payment-failed v1 needs amount_due."
 			c.note = string(fixed)
-			c.response = map[string]any{"type": "https://reputecast.dev/problems/missing_variables", "title": "Missing variables", "status": 422,
-				"code": "missing_variables", "detail": "payment-failed v1 needs amount_due.", "missing": []string{"amount_due"}}
+			c.response = json.RawMessage(`{"type":"https://reputecast.dev/problems/missing_variables","title":"Missing variables","detail":"payment-failed v1 needs amount_due.","missing":["amount_due"]}`)
 		}
 		return c
 	}

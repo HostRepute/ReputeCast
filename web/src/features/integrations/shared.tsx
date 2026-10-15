@@ -161,6 +161,16 @@ export function AttentionIcon({ size = 16, color = 'var(--warn-bar)' }: { size?:
   )
 }
 
+/** The blue information circle before an error's explanation (IntegrationsZapier). */
+export function InfoIcon({ size = 15 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="#1D4ED8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="mt-0.5 flex-none">
+      <circle cx="8" cy="8" r="6.2" />
+      <path d="M8 7.2v3.8M8 5v.1" />
+    </svg>
+  )
+}
+
 /** Connected, Not connected, Waiting for first call, Needs attention. */
 export function StatusBadge({ status }: { status: Status | Site['status'] }) {
   const t = useT()

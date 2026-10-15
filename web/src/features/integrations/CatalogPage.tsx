@@ -222,7 +222,7 @@ function Catalog({
             const full = !narrowGroups.includes(g.key)
             const cards = g.entries.map((e) => <EntryCard key={e.key} entry={e} canManage={hub.canManage} onConnect={onConnect} />)
             return (
-              <section key={g.key} className={`ih-group${full ? ' full' : ''}`} aria-labelledby={`g-${g.key}`}>
+              <section key={g.key} className={`ih-group${full ? ' ih-full' : ''}`} aria-labelledby={`g-${g.key}`}>
                 <div className="ih-gh">
                   <div className="ih-gt">
                     <h2 id={`g-${g.key}`}>{t(groupName[g.key])}</h2>

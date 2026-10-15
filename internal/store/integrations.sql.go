@@ -126,8 +126,8 @@ type IntegrationCallGetRow struct {
 	Target        json.RawMessage `json:"target"`
 	ContactID     *uuid.UUID      `json:"contactId"`
 	Note          string          `json:"note"`
-	Request       json.RawMessage `json:"request"`
-	Response      json.RawMessage `json:"response"`
+	Request       []byte          `json:"request"`
+	Response      []byte          `json:"response"`
 	Ip            *netip.Addr     `json:"ip"`
 	Client        string          `json:"client"`
 	ContactEmail  string          `json:"contactEmail"`
@@ -192,8 +192,8 @@ type IntegrationCallInsertParams struct {
 	Target        json.RawMessage `json:"target"`
 	ContactID     *uuid.UUID      `json:"contactId"`
 	Note          string          `json:"note"`
-	Request       json.RawMessage `json:"request"`
-	Response      json.RawMessage `json:"response"`
+	Request       []byte          `json:"request"`
+	Response      []byte          `json:"response"`
 	Ip            *netip.Addr     `json:"ip"`
 	Client        string          `json:"client"`
 }

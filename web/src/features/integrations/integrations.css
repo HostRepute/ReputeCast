@@ -162,7 +162,7 @@
     min-width: 0;
     align-self: stretch;
   }
-  .ih-group.full {
+  .ih-group.ih-full {
     grid-column: 1 / -1;
   }
   .ih-group > .ih-card {

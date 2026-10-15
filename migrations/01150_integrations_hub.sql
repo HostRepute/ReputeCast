@@ -66,8 +66,9 @@ CREATE TABLE integration_calls (
     contact_id     uuid,
     -- An optional note on how an error was resolved (otherwise computed).
     note           text        NOT NULL DEFAULT '',
-    request        jsonb,
-    response       jsonb,
+    -- json, not jsonb: bodies keep their keys in the order they were sent.
+    request        json,
+    response       json,
     ip             inet,
     client         text        NOT NULL DEFAULT ''
 );
