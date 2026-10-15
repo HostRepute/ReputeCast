@@ -98,6 +98,11 @@ export async function setPreferences(p: Preferences): Promise<void> {
   if (!same) publish(next)
 }
 
+/** Loads a language's translations without switching to it (a line in another language). */
+export function loadCatalog(locale: AppLocale): Promise<Catalog> {
+  return (loaders.get(locale) ?? loaders.get('en')!)()
+}
+
 /** Replaces how a language's translations load (tests, development locales). */
 export function setCatalogLoader(locale: AppLocale, loader: Loader): void {
   loaders.set(locale, loader)

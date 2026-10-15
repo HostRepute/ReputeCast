@@ -1,7 +1,9 @@
-import { useCallback, useSyncExternalStore, type ReactNode } from 'react'
-import type { MessageDescriptor } from './define'
+import { useCallback, useEffect, useState, useSyncExternalStore, type ReactNode } from 'react'
+import type { Catalog, MessageDescriptor } from './define'
 import { formatRich, formatText, type RichValues, type Values } from './format'
-import { getI18n, subscribeI18n, type I18nState } from './store'
+import { defaultRegionFor } from './languages'
+import { regionLocale } from './regions'
+import { getI18n, loadCatalog, subscribeI18n, type AppLocale, type I18nState } from './store'
 
 export { defineMessages, sourceMessages, translate, type Catalog, type MessageDescriptor, type Messages } from './define'
 export type { RichValues, Values } from './format'
@@ -47,6 +49,29 @@ export function T({ msg, values }: { msg: MessageDescriptor; values?: RichValues
 /** Formats a message outside React (toasts, document titles, formatters). */
 export function t(d: MessageDescriptor, values?: Values): string {
   return formatText(getI18n(), d, values)
+}
+
+/**
+ * Formats messages in another language than the app's, once its
+ * translations have loaded: a question in the language it offers ("Dùng
+ * ReputeCast bằng Tiếng Việt?"). Until then, and for messages that language
+ * lacks, the text is the app's language.
+ */
+export function useTIn(locale: AppLocale | undefined): (d: MessageDescriptor, values?: Values) => string {
+  const state = useI18n()
+  const [catalog, setCatalog] = useState<Catalog>()
+  useEffect(() => {
+    let live = true
+    if (locale) void loadCatalog(locale).then((c) => live && setCatalog(c))
+    return () => {
+      live = false
+    }
+  }, [locale])
+  return useCallback(
+    (d: MessageDescriptor, values?: Values) =>
+      formatText(locale && catalog ? { ...state, locale, catalog, region: regionLocale(defaultRegionFor(locale)) } : state, d, values),
+    [state, locale, catalog],
+  )
 }
 
 const collators = new Map<string, Intl.Collator>()

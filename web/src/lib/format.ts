@@ -417,6 +417,11 @@ export function dayMonthYear(d: string | number | Date): string {
   return `${p.day} ${p.month} ${p.year}`
 }
 
+/** A moment's year, month, day, weekday and time in the display timezone. */
+export function zonedParts(d: string | number | Date): DateParts {
+  return zoned(toDate(d))
+}
+
 /** The first day of the week in calendars: 1 is Monday, 0 is Sunday. */
 export function weekStartsOn(): 0 | 1 {
   const w: WeekStart = getI18n().weekStart

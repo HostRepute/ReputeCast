@@ -93,7 +93,7 @@ function asRegion(v: string | undefined): RegionFormat | undefined {
  * language, or the instance's default region when the language is the
  * instance's too. internal/i18n.Resolve does the same on the server.
  */
-export function resolvePreferences(choices: MemberChoices | undefined, inst: InstanceDefaults | undefined): Preferences {
+export function resolvePreferences(choices: MemberChoices | undefined, inst: InstanceDefaults | undefined): Required<Preferences> {
   const defLocale = asLocale(inst?.defaultLanguage, 'en')
   const defRegion = asRegion(inst?.defaultRegionFormat) ?? defaultRegionFor(defLocale)
   const chose = choices && isAppLocale(choices.language)
@@ -111,7 +111,7 @@ export function resolvePreferences(choices: MemberChoices | undefined, inst: Ins
  * in their menu, else the page's own (an invitation's language), else the
  * browser's when the app has it, else the instance default.
  */
-export function resolveVisitor(opts: { chosen?: string; page?: string; inst?: InstanceDefaults; available: readonly AppLanguage[]; browser?: readonly string[] }): Preferences {
+export function resolveVisitor(opts: { chosen?: string; page?: string; inst?: InstanceDefaults; available: readonly AppLanguage[]; browser?: readonly string[] }): Required<Preferences> {
   const defLocale = asLocale(opts.inst?.defaultLanguage, 'en')
   const has = (v?: string): v is AppLocale => !!v && opts.available.some((l) => l.code === v)
   const locale: AppLocale = has(opts.chosen) ? opts.chosen : has(opts.page) ? opts.page : (browserLanguage(opts.available, opts.browser) ?? defLocale)

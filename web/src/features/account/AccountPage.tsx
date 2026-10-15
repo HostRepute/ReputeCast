@@ -8,6 +8,7 @@ import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Grid } from '@/components/ui/Layout'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
+import { LanguageRegionCard } from '@/features/language/LanguageRegionCard'
 import { meQueryKey, useWorkspace } from '@/lib/session'
 import { ConnectedSignInsCard } from './ConnectedSignInsCard'
 import { NotificationPreferencesCard, WorkspacesCard } from './OtherCards'
@@ -48,6 +49,7 @@ export function AccountPage({ verifyEmail }: { verifyEmail?: string }) {
                   (which explains SSO) sits beside the profile and passkeys. */}
               <div className="col min-w-0" style={{ gap: 20 }}>
                 <ProfileCard a={a} />
+                <LanguageRegionCard />
                 <PasskeysCard a={a} />
                 {a.twoFactor.totp ? <AuthenticatorCard a={a} /> : null}
               </div>
@@ -56,6 +58,8 @@ export function AccountPage({ verifyEmail }: { verifyEmail?: string }) {
           ) : (
             <>
               <ProfileCard a={a} />
+              {/* Language & region follows Profile (LanguageRegion board). */}
+              <LanguageRegionCard />
               <PasswordCard a={a} />
               <PasskeysCard a={a} />
               {a.password.set || a.twoFactor.totp ? <AuthenticatorCard a={a} /> : null}

@@ -39,17 +39,33 @@ export function isVisitorPath(path: string): boolean {
   return /^\/(sign-in|invite\/|reset-password)/.test(path)
 }
 
-interface MeLike {
+/** Languages as the API lists them ({ code, name }), or plain codes. */
+type LanguageList = readonly (string | { code: string })[] | undefined
+
+export interface MeLike {
   user?: { preferences?: MemberChoices }
-  instance?: InstanceDefaults & { languages?: string[] }
+  instance?: Partial<InstanceDefaults> & { languages?: LanguageList }
 }
 
-interface MetaLike extends InstanceDefaults {
+interface MetaLike extends Partial<InstanceDefaults> {
+  languages?: LanguageList
+}
+
+interface Defaults extends InstanceDefaults {
   languages?: string[]
 }
 
+function codes(list: LanguageList): string[] | undefined {
+  return list?.map((l) => (typeof l === 'string' ? l : l.code))
+}
+
+function defaultsOf(x: MetaLike | undefined): Defaults | undefined {
+  if (!x) return undefined
+  return { defaultLanguage: x.defaultLanguage ?? 'en', defaultRegionFormat: x.defaultRegionFormat ?? 'standard', languages: codes(x.languages) }
+}
+
 let mode: 'member' | 'visitor' = 'visitor'
-let meta: MetaLike | undefined = read<MetaLike>(DEFAULTS_KEY)
+let meta: Defaults | undefined = read<Defaults>(DEFAULTS_KEY)
 let pageLanguage: string | undefined
 
 function visitorPreferences(): Preferences {
@@ -82,16 +98,16 @@ export async function bootI18n(path = typeof location === 'undefined' ? '/' : lo
 export function applyMember(me: MeLike): Promise<void> {
   mode = 'member'
   if (me.instance) {
-    meta = { defaultLanguage: me.instance.defaultLanguage, defaultRegionFormat: me.instance.defaultRegionFormat, languages: me.instance.languages }
+    meta = defaultsOf(me.instance)
     write(DEFAULTS_KEY, meta)
   }
-  return apply(resolvePreferences(me.user?.preferences, me.instance))
+  return apply(resolvePreferences(me.user?.preferences, meta))
 }
 
 /** Applies the visitor's language once the instance defaults (/meta) are known. */
 export function applyVisitor(next?: MetaLike): Promise<void> {
   if (next) {
-    meta = { defaultLanguage: next.defaultLanguage, defaultRegionFormat: next.defaultRegionFormat, languages: next.languages }
+    meta = defaultsOf(next)
     write(DEFAULTS_KEY, meta)
   }
   if (mode === 'member' && typeof location !== 'undefined' && !isVisitorPath(location.pathname)) return Promise.resolve()

@@ -1,0 +1,146 @@
+/* App languages (LanguageRegion board): Language & region, its preview, the
+   app-language listbox of development builds and the browser's suggestion. */
+
+.lang-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 12px 18px;
+  border-top: 1px solid var(--line-2);
+}
+
+.lang-foot .lnk {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 24px;
+  font-weight: 600;
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.lang-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--ground-3);
+}
+
+.lang-preview .v {
+  font-weight: 600;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The app-language picker when the pseudo-locale is offered: a listbox whose
+   options can carry a badge and a line of description. */
+.lang-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  text-align: left;
+  cursor: pointer;
+  font-weight: 600;
+  box-sizing: border-box;
+}
+
+.lang-menu {
+  min-width: var(--radix-select-trigger-width);
+}
+
+.lopt {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+  gap: 2px 10px;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  outline: none;
+}
+
+.lopt:hover,
+.lopt[data-highlighted] {
+  background: var(--ground);
+}
+
+.lopt[data-state='checked'] {
+  background: var(--accent-tint);
+}
+
+.lopt .nm {
+  font-weight: 600;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.lopt .sub {
+  grid-column: 2 / 4;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.lang-menu hr {
+  border: 0;
+  border-top: 1px solid var(--line-2);
+  margin: 4px 0;
+}
+
+/* The browser's suggestion (Your browser prefers …). */
+.lang-suggest {
+  padding: 14px 16px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  border-color: #bfdbfe;
+  background: #f8fbff;
+}
+
+.lang-suggest > svg {
+  flex: none;
+  margin-top: 1px;
+}
+
+/* The language menu at the foot of the sign-in, invitation and password pages. */
+.lang-auth-menu {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2px 6px;
+  margin-top: 16px;
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+
+.lang-auth-menu a,
+.lang-auth-menu button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--accent);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.lang-auth-menu [aria-current='true'] {
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: none;
+  cursor: default;
+}

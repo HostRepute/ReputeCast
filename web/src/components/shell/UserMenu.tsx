@@ -2,6 +2,7 @@ import { Link, useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { DropdownMenu } from 'radix-ui'
 import { http } from '@/api/client'
+import { LanguageMenuItem } from '@/features/language/LanguageMenuItem'
 import { useMediaQuery } from '@/lib/hooks'
 import { useMe, useOptionalWorkspace } from '@/lib/session'
 import { Icon } from '../icons/Icon'
@@ -71,6 +72,8 @@ export function UserMenu() {
               Account &amp; security
             </Link>
           </DropdownMenu.Item>
+          <LanguageMenuItem slug={slug} />
+
           <DropdownMenu.Item asChild>
             <Link to="/w/$workspace/notifications" params={{ workspace: slug }} hash="preferences">
               <Icon name="bell" />

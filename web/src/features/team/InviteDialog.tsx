@@ -9,6 +9,7 @@ import { Dialog } from '@/components/ui/Dialog'
 import { Skeleton } from '@/components/ui/Feedback'
 import { Menu, MenuItem, MenuLabel } from '@/components/ui/Menu'
 import { toast } from '@/components/ui/Toast'
+import { InvitationLanguageField } from '@/features/language/InvitationLanguageField'
 import { andList } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { copyText } from '../access/parts'
@@ -61,6 +62,7 @@ function InviteForm({ opts, open, close }: { opts: Schemas['TeamInviteOptions'];
   const [lists, setLists] = useState<string[]>([])
   const [domains, setDomains] = useState<string[]>([])
   const [message, setMessage] = useState('')
+  const [language, setLanguage] = useState(opts.defaultLanguage ?? 'en')
   const [error, setError] = useState<string>()
   const [created, setCreated] = useState<Created>()
   const inputRef = useRef<HTMLInputElement>(null)
@@ -105,6 +107,7 @@ function InviteForm({ opts, open, close }: { opts: Schemas['TeamInviteOptions'];
           message: message.trim() || undefined,
           scope: lists.length || domains.length ? { lists, senderDomains: domains } : undefined,
           sendEmail: opts.canEmail,
+          language: language as Schemas['TeamInviteInput']['language'],
         },
       },
       {
@@ -235,6 +238,7 @@ function InviteForm({ opts, open, close }: { opts: Schemas['TeamInviteOptions'];
           </select>
         </label>
       </div>
+      <InvitationLanguageField value={language} onChange={setLanguage} languages={opts.languages} defaultLanguage={opts.defaultLanguage} disabled={Boolean(created)} />
       <div className="lbl">
         <span>
           Scope <span className="k font-medium">· optional</span>
