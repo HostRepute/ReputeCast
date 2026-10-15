@@ -318,7 +318,7 @@ function PerList({ h }: { h: Health }) {
         <span className="k">30-day figures</span>
       </div>
       <TableScroll label="Health per list">
-        <table className="tbl compact first160 phone-wrap">
+        <table className="tbl compact first160 phone-wrap fit">
           <thead>
             <tr>
               <th scope="col">List</th>

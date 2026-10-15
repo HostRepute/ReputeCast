@@ -157,14 +157,15 @@
     border-radius: 8px;
     flex-wrap: nowrap;
   }
+  /* The radio stays beside its text, at the first line (ApprovalPolicy). */
   label.ap-opt {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 10px;
     padding: 8px 10px;
     border: 1px solid var(--line);
     border-radius: 8px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
   }
   .ap-policy {
     display: grid;

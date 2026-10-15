@@ -9,7 +9,8 @@ import { cn } from '@/lib/cn'
  *
  * At phone width, badges and buttons in cells stay on one line, as on the
  * team and access boards; pass `phoneWrap` to let them wrap like the rest of
- * the page, as on the other boards.
+ * the page, as on the other boards. `fit` lets every cell's text wrap (badges
+ * and buttons stay whole) so the columns fit the card before it scrolls.
  */
 export function Table({
   className,
@@ -18,16 +19,18 @@ export function Table({
   children,
   scroll = true,
   phoneWrap = false,
+  fit = false,
   ...rest
 }: TableHTMLAttributes<HTMLTableElement> & {
   density?: 'regular' | 'compact' | 'dense'
   caption?: string
   scroll?: boolean
   phoneWrap?: boolean
+  fit?: boolean
 }) {
   const table = (
     <table
-      className={cn('tbl', density === 'compact' && 'compact', density === 'dense' && 'dense', phoneWrap && 'phone-wrap', className)}
+      className={cn('tbl', density === 'compact' && 'compact', density === 'dense' && 'dense', phoneWrap && 'phone-wrap', fit && 'fit', className)}
       {...rest}
     >
       {caption ? <caption className="vh">{caption}</caption> : null}
