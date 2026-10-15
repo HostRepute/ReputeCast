@@ -263,9 +263,10 @@ WHERE iw.webhook_id = @webhook_id AND iw.integration_id = @integration_id;
 
 -- name: IntegrationManagedHooks :many
 -- Endpoints of the workspace an integration manages (the Webhooks page).
-SELECT iw.webhook_id, i.id AS integration_id, i.kind, i.label, iw.workflow_name
+SELECT iw.webhook_id, i.id AS integration_id, i.kind, i.label, iw.workflow_name, h.url
 FROM integration_webhooks iw
 JOIN integrations i ON i.id = iw.integration_id
+JOIN webhooks h ON h.id = iw.webhook_id
 WHERE i.workspace_id = @workspace_id;
 
 -- name: IntegrationManagedHook :one

@@ -1672,9 +1672,10 @@ func (q *Queries) IntegrationManagedHook(ctx context.Context, webhookID uuid.UUI
 }
 
 const integrationManagedHooks = `-- name: IntegrationManagedHooks :many
-SELECT iw.webhook_id, i.id AS integration_id, i.kind, i.label, iw.workflow_name
+SELECT iw.webhook_id, i.id AS integration_id, i.kind, i.label, iw.workflow_name, h.url
 FROM integration_webhooks iw
 JOIN integrations i ON i.id = iw.integration_id
+JOIN webhooks h ON h.id = iw.webhook_id
 WHERE i.workspace_id = $1
 `
 
@@ -1684,6 +1685,7 @@ type IntegrationManagedHooksRow struct {
 	Kind          string    `json:"kind"`
 	Label         string    `json:"label"`
 	WorkflowName  string    `json:"workflowName"`
+	Url           string    `json:"url"`
 }
 
 // Endpoints of the workspace an integration manages (the Webhooks page).
@@ -1702,6 +1704,7 @@ func (q *Queries) IntegrationManagedHooks(ctx context.Context, workspaceID uuid.
 			&i.Kind,
 			&i.Label,
 			&i.WorkflowName,
+			&i.Url,
 		); err != nil {
 			return nil, err
 		}

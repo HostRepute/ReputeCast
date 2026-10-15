@@ -9,6 +9,7 @@ import { ErrorPanel } from '@/components/ui/Feedback'
 import { EmptyRow, Table, Td, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { ScrollPre } from '@/components/ui/ScrollPre'
+import { ManagedWebhookCaption, ManagedWebhookView } from '@/features/integrations/ManagedWebhook'
 import { settingsTabs } from '@/features/settings/SettingsTabs'
 import { clock, clockSeconds, count, dayMonthDate, logTime } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
@@ -184,12 +185,16 @@ function EndpointsCard({ items, onAdd, onEdit }: { items?: Webhook[]; onAdd: () 
               return (
                 <tr key={w.id} className={failing ? 'bg-bad-tint' : undefined}>
                   <Td>
-                    <span className="mono">{w.url}</span>
-                    <div className="k">
-                      {w.name}
-                      {w.description ? ` · ${w.description}` : ''}
-                      {w.secretRotatedAt ? ` · secret rotated ${dayMonthDate(w.secretRotatedAt)}` : ''}
-                    </div>
+                    <span className="mono">{w.managedBy?.endpoint ?? w.url}</span>
+                    {w.managedBy ? (
+                      <ManagedWebhookCaption managedBy={w.managedBy} id={`managed-${w.id}`} />
+                    ) : (
+                      <div className="k">
+                        {w.name}
+                        {w.description ? ` · ${w.description}` : ''}
+                        {w.secretRotatedAt ? ` · secret rotated ${dayMonthDate(w.secretRotatedAt)}` : ''}
+                      </div>
+                    )}
                   </Td>
                   <Td>
                     <span className="inline-flex flex-wrap gap-x-1.5 gap-y-1 align-middle">
@@ -207,9 +212,13 @@ function EndpointsCard({ items, onAdd, onEdit }: { items?: Webhook[]; onAdd: () 
                     <Badge tone={st.tone}>{st.label}</Badge>
                   </Td>
                   <Td>
-                    <Button size="sm" onClick={() => onEdit(w)} aria-label={`Edit ${hostOf(w.url)}`}>
-                      Edit
-                    </Button>
+                    {w.managedBy ? (
+                      <ManagedWebhookView managedBy={w.managedBy} describedBy={`managed-${w.id}`} />
+                    ) : (
+                      <Button size="sm" onClick={() => onEdit(w)} aria-label={`Edit ${hostOf(w.url)}`}>
+                        Edit
+                      </Button>
+                    )}
                   </Td>
                 </tr>
               )

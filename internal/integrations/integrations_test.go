@@ -1158,6 +1158,19 @@ func TestDemoPages(t *testing.T) {
 		strings.Join(n8n.Workflows[1].Uses[0].GoalOf, ",") != "Onboarding · new workspace" || n8n.Workflows[2].Deliveries7d != 14 {
 		t.Errorf("n8n's workflows: %+v", n8n.Workflows)
 	}
+	// SettingsAudit's "Integrations" filter: the hub's actions, by group.
+	var audit struct {
+		Items []struct{ Action string }
+	}
+	c.Do("GET", ws+"/audit?category=integrations&range=all&limit=200", nil).MustStatus(t, 200).JSON(t, &audit)
+	groups := map[string]bool{}
+	for _, it := range audit.Items {
+		g, _, _ := strings.Cut(it.Action, ".")
+		groups[g] = true
+	}
+	if !groups["integration"] || !groups["wordpress"] || groups["webhook"] || groups["campaign"] {
+		t.Errorf("integrations category: %v", groups)
+	}
 	var beta struct {
 		Workflows []struct {
 			Uses []struct {

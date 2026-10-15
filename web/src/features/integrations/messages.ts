@@ -747,6 +747,55 @@ export const m = defineMessages('integrations', {
   loadSitesErrorBody: "{detail} Forms on your sites keep working: they load through each form's public script.",
   siteKeyName: 'WordPress · {host}',
 
+  // ── Keys & MCP: keys managed by integrations ─────────────────────────
+  keysTitle: 'Managed by integrations · {count}',
+  keysSub: 'Each integration has its own key, limited to the operations it uses. Rotate and take over in Integrations; revoking here stops its workflows.',
+  managedBy: 'Managed by {name}',
+  colPermsScope: 'Permissions and scope',
+  colCreatedBy: 'Created by',
+  colActions: 'Actions',
+  scopeOwnWebhooks: '{scope} · its own webhooks',
+  scopeSite: 'Its signup forms and post drafts only',
+  keyPhoneLine: '<mono>{masked}</mono> · {count, plural, one {# permission} other {# permissions}} · {scope}',
+  keyPhoneCreated: 'Created by {name} · last used {ago}',
+  keyPhoneCreatedNever: 'Created by {name} · not used yet',
+  revoke: 'Revoke',
+  revokeNamed: 'Revoke {key}',
+  revokeEyebrow: 'Settings › Keys & MCP · Managed by integrations',
+  revokeTitle: 'Revoke “{key}”?',
+  revokeBody:
+    '{kind, select, zapier {This key made {calls, plural, one {# call} other {# calls}} in the last 7 days, the last one {ago}. {name} stops working at once, and these Zaps fail from their next run:} make {This key made {calls, plural, one {# call} other {# calls}} in the last 7 days, the last one {ago}. {name} stops working at once, and these scenarios fail from their next run:} other {This key made {calls, plural, one {# call} other {# calls}} in the last 7 days, the last one {ago}. {name} stops working at once, and these workflows fail from their next run:}}',
+  revokeBodyNone: 'This key made {calls, plural, one {# call} other {# calls}} in the last 7 days, the last one {ago}. {name} stops working at once.',
+  revokeSiteBody:
+    "This key made {calls, plural, one {# call} other {# calls}} in the last 7 days, the last one {ago}. The site stops reporting in and making post drafts at once; its signup forms keep working.",
+  rotateInstead: 'To replace the key without failed runs, rotate it in Integrations instead: the old key keeps working for 24 hours.',
+  rotateInIntegrations: 'Rotate in Integrations',
+  revokeKey: 'Revoke key',
+  revokedToast: '“{key}” revoked',
+  revokeError: "Couldn't revoke the key",
+
+  // ── Webhooks: endpoints managed by integrations ──────────────────────
+  hookCaption: '{kind, select, zapier {Zap {workflow}} make {Make scenario {workflow}} other {n8n workflow {workflow}}}',
+  hookCaptionPlain: 'Created by {name}',
+  hookReadOnly: 'To change it, change the workflow in {name}, or disconnect {name}.',
+
+  // ── Keys & MCP: agents and integrations ──────────────────────────────
+  mcpNoIntegrations: 'Agents never connect integrations: integrations:manage is for people.',
+
+  // ── Team: integrations a member connected ────────────────────────────
+  memberLegend: 'Integrations {name} connected · {count}',
+  memberLegendMany: 'Integrations they connected · {count}',
+  memberPlatform:
+    '{kind, select, zapier {Key {key} · {count, plural, =0 {no Zap used it lately} one {# Zap uses it} other {# Zaps use it}}} make {Key {key} · {count, plural, =0 {no scenario used it lately} one {# scenario uses it} other {# scenarios use it}}} other {Key {key} · {count, plural, =0 {no workflow used it lately} one {# workflow uses it} other {# workflows use it}}}}',
+  memberSite: 'Its key lists forms and creates post drafts',
+  memberSiteSilent: 'Not heard from since {since}',
+  memberTakeOver: 'Take over',
+  memberDefault: 'default',
+  memberDisconnect: 'Disconnect',
+  memberFoot: "Take over makes you the keys' owner. The keys keep their values, so nothing changes in {tools}.",
+  memberNoManage: 'These stop working until someone with integrations:manage takes them over or disconnects them in Settings › Integrations.',
+  memberError: "Couldn't hand over {name}",
+
   // ── HostRepute ───────────────────────────────────────────────────────
   hrAdds: 'Adds',
   hrAddsValue: 'Google Postmaster Tools: domain reputation, spam rate and feedback loop · Microsoft SNDS: IP reputation for Outlook.com',

@@ -137,6 +137,9 @@ type WebhookManagedBy struct {
 	Name          string `json:"name" example:"n8n"`
 	// Workflow is the workflow that created it ("Unsubscribes → Acme Cloud CRM").
 	Workflow string `json:"workflow,omitempty"`
+	// Endpoint is its URL masked, as the integration's page shows it: a
+	// workflow tool's webhook address often carries a token.
+	Endpoint string `json:"endpoint,omitempty" example:"https://n8n.acme.io/webhook/7c1e…/reputecast"`
 }
 
 // Managed tells which endpoints integrations manage.

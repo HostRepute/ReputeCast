@@ -38001,6 +38001,12 @@
       "WebhookManagedBy": {
         "additionalProperties": false,
         "properties": {
+          "endpoint": {
+            "examples": [
+              "https://n8n.acme.io/webhook/7c1e…/reputecast"
+            ],
+            "type": "string"
+          },
           "integrationId": {
             "type": "string"
           },
@@ -45874,7 +45880,8 @@
                 "routing",
                 "audience",
                 "team",
-                "settings"
+                "settings",
+                "integrations"
               ],
               "type": "string"
             }
@@ -46130,7 +46137,8 @@
                 "routing",
                 "audience",
                 "team",
-                "settings"
+                "settings",
+                "integrations"
               ],
               "type": "string"
             }

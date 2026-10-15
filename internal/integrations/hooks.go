@@ -205,7 +205,7 @@ func (s *Service) ManagedHooks(ctx context.Context, workspaceID uuid.UUID) (map[
 	}
 	out := make(map[uuid.UUID]webhooks.WebhookManagedBy, len(rows))
 	for _, r := range rows {
-		out[r.WebhookID] = webhooks.WebhookManagedBy{IntegrationID: r.IntegrationID.String(), Kind: r.Kind, Name: Name(r.Kind), Workflow: r.WorkflowName}
+		out[r.WebhookID] = webhooks.WebhookManagedBy{IntegrationID: r.IntegrationID.String(), Kind: r.Kind, Name: Name(r.Kind), Workflow: r.WorkflowName, Endpoint: maskEndpoint(r.Url)}
 	}
 	return out, nil
 }
@@ -219,7 +219,7 @@ func (s *Service) ManagedHook(ctx context.Context, webhookID uuid.UUID) (*webhoo
 		}
 		return nil, err
 	}
-	return &webhooks.WebhookManagedBy{IntegrationID: r.IntegrationID.String(), Kind: r.Kind, Name: Name(r.Kind), Workflow: r.WorkflowName}, nil
+	return &webhooks.WebhookManagedBy{IntegrationID: r.IntegrationID.String(), Kind: r.Kind, Name: Name(r.Kind), Workflow: r.WorkflowName, Endpoint: maskEndpoint(r.Url)}, nil
 }
 
 // IntegrationTriggerSample is a sample delivery of a trigger, for the apps'
