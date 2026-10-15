@@ -47,6 +47,12 @@ type ApiKey struct {
 	RotatedFrom    *uuid.UUID      `json:"rotatedFrom"`
 	LastUsedClient string          `json:"lastUsedClient"`
 	LastCall       string          `json:"lastCall"`
+	Preset         string          `json:"preset"`
+	Mode           string          `json:"mode"`
+	Templates      []string        `json:"templates"`
+	Categories     []uuid.UUID     `json:"categories"`
+	TestAddresses  []string        `json:"testAddresses"`
+	RatePerSecond  int32           `json:"ratePerSecond"`
 }
 
 type ApiKeyRejection struct {
@@ -1352,6 +1358,7 @@ type SendingDomain struct {
 	AuthDetail     json.RawMessage `json:"authDetail"`
 	CreatedBy      *uuid.UUID      `json:"createdBy"`
 	UpdatedAt      time.Time       `json:"updatedAt"`
+	Transactional  bool            `json:"transactional"`
 }
 
 type SendingRateWindow struct {
@@ -1396,6 +1403,33 @@ type SignInThrottle struct {
 	Failures    int32      `json:"failures"`
 	LockedUntil *time.Time `json:"lockedUntil"`
 	UpdatedAt   time.Time  `json:"updatedAt"`
+}
+
+type SmtpRelay struct {
+	ID               bool            `json:"id"`
+	Enabled          bool            `json:"enabled"`
+	Hostname         string          `json:"hostname"`
+	StarttlsPort     int32           `json:"starttlsPort"`
+	TlsPort          int32           `json:"tlsPort"`
+	CertSource       string          `json:"certSource"`
+	CertFile         string          `json:"certFile"`
+	KeyFile          string          `json:"keyFile"`
+	Status           json.RawMessage `json:"status"`
+	CertNotAfter     *time.Time      `json:"certNotAfter"`
+	CertIssuer       string          `json:"certIssuer"`
+	RenewError       string          `json:"renewError"`
+	RenewFailedAt    *time.Time      `json:"renewFailedAt"`
+	EnabledBy        *uuid.UUID      `json:"enabledBy"`
+	EnabledAt        *time.Time      `json:"enabledAt"`
+	UnreachableSince *time.Time      `json:"unreachableSince"`
+	UpdatedBy        *uuid.UUID      `json:"updatedBy"`
+	UpdatedAt        time.Time       `json:"updatedAt"`
+}
+
+type SmtpRelayAcme struct {
+	Key       string    `json:"key"`
+	Sealed    []byte    `json:"sealed"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 type SndsDaily struct {
@@ -1458,6 +1492,7 @@ type StreamPolicy struct {
 	Failover       string     `json:"failover"`
 	BulkTermsAckAt *time.Time `json:"bulkTermsAckAt"`
 	BulkTermsAckBy *uuid.UUID `json:"bulkTermsAckBy"`
+	Priority       bool       `json:"priority"`
 }
 
 type SubscriberToken struct {
@@ -1514,6 +1549,222 @@ type TrackingLinkClick struct {
 	MessageID uuid.UUID `json:"messageId"`
 	Link      int32     `json:"link"`
 	ClickedAt time.Time `json:"clickedAt"`
+}
+
+type TransactionalAlert struct {
+	ID          uuid.UUID       `json:"id"`
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	Kind        string          `json:"kind"`
+	TemplateID  *uuid.UUID      `json:"templateId"`
+	ProviderID  *uuid.UUID      `json:"providerId"`
+	Value       float64         `json:"value"`
+	Threshold   float64         `json:"threshold"`
+	Detail      json.RawMessage `json:"detail"`
+	StartedAt   time.Time       `json:"startedAt"`
+	EndedAt     *time.Time      `json:"endedAt"`
+	SeenAt      *time.Time      `json:"seenAt"`
+	SeenBy      *uuid.UUID      `json:"seenBy"`
+}
+
+type TransactionalCategory struct {
+	ID          uuid.UUID  `json:"id"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	Name        string     `json:"name"`
+	Kind        string     `json:"kind"`
+	Description string     `json:"description"`
+	Position    int32      `json:"position"`
+	CreatedBy   *uuid.UUID `json:"createdBy"`
+	CreatedAt   time.Time  `json:"createdAt"`
+	UpdatedAt   time.Time  `json:"updatedAt"`
+}
+
+type TransactionalIdempotency struct {
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	Key         string          `json:"key"`
+	RequestHash string          `json:"requestHash"`
+	Status      int32           `json:"status"`
+	Response    json.RawMessage `json:"response"`
+	CreatedAt   time.Time       `json:"createdAt"`
+}
+
+type TransactionalMessage struct {
+	MessageID        uuid.UUID       `json:"messageId"`
+	WorkspaceID      uuid.UUID       `json:"workspaceId"`
+	Source           string          `json:"source"`
+	TemplateID       *uuid.UUID      `json:"templateId"`
+	TemplateKey      string          `json:"templateKey"`
+	TemplateName     string          `json:"templateName"`
+	TemplateVersion  *int32          `json:"templateVersion"`
+	CategoryID       *uuid.UUID      `json:"categoryId"`
+	CategoryName     string          `json:"categoryName"`
+	CategoryKind     string          `json:"categoryKind"`
+	KeyID            *uuid.UUID      `json:"keyId"`
+	KeyName          string          `json:"keyName"`
+	UserID           *uuid.UUID      `json:"userId"`
+	Ip               *netip.Addr     `json:"ip"`
+	IdempotencyKey   string          `json:"idempotencyKey"`
+	Subject          string          `json:"subject"`
+	FromEmail        string          `json:"fromEmail"`
+	FromName         string          `json:"fromName"`
+	ReplyTo          string          `json:"replyTo"`
+	ToName           string          `json:"toName"`
+	Cc               []string        `json:"cc"`
+	Bcc              []string        `json:"bcc"`
+	Tags             []string        `json:"tags"`
+	Metadata         json.RawMessage `json:"metadata"`
+	Data             json.RawMessage `json:"data"`
+	DataKeys         []string        `json:"dataKeys"`
+	Sensitive        []string        `json:"sensitive"`
+	Attachments      json.RawMessage `json:"attachments"`
+	SizeBytes        int32           `json:"sizeBytes"`
+	Test             bool            `json:"test"`
+	TestDelivered    bool            `json:"testDelivered"`
+	SendAt           *time.Time      `json:"sendAt"`
+	RejectReason     string          `json:"rejectReason"`
+	RejectDetail     json.RawMessage `json:"rejectDetail"`
+	TrackOpens       bool            `json:"trackOpens"`
+	TrackClicks      bool            `json:"trackClicks"`
+	Links            []string        `json:"links"`
+	Route            json.RawMessage `json:"route"`
+	Attempts         json.RawMessage `json:"attempts"`
+	FailedOverFrom   *uuid.UUID      `json:"failedOverFrom"`
+	FailedOverAt     *time.Time      `json:"failedOverAt"`
+	ProviderSince    *time.Time      `json:"providerSince"`
+	AcceptedAt       time.Time       `json:"acceptedAt"`
+	RenderedAt       *time.Time      `json:"renderedAt"`
+	ContentExpiresAt *time.Time      `json:"contentExpiresAt"`
+	ContentRemovedAt *time.Time      `json:"contentRemovedAt"`
+	ResentFrom       *uuid.UUID      `json:"resentFrom"`
+	EventsEmitted    []string        `json:"eventsEmitted"`
+}
+
+type TransactionalMessageContent struct {
+	MessageID uuid.UUID       `json:"messageId"`
+	Html      string          `json:"html"`
+	Text      string          `json:"text"`
+	Headers   json.RawMessage `json:"headers"`
+	ExpiresAt time.Time       `json:"expiresAt"`
+}
+
+type TransactionalOptOut struct {
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	Email       string     `json:"email"`
+	CategoryID  uuid.UUID  `json:"categoryId"`
+	OptedOutAt  time.Time  `json:"optedOutAt"`
+	Source      string     `json:"source"`
+	Reason      string     `json:"reason"`
+	MessageID   *uuid.UUID `json:"messageId"`
+}
+
+type TransactionalOutbox struct {
+	MessageID uuid.UUID `json:"messageId"`
+	Sealed    []byte    `json:"sealed"`
+	CreatedAt time.Time `json:"createdAt"`
+}
+
+type TransactionalRejectedCall struct {
+	ID             uuid.UUID   `json:"id"`
+	WorkspaceID    uuid.UUID   `json:"workspaceId"`
+	KeyID          *uuid.UUID  `json:"keyId"`
+	UserID         *uuid.UUID  `json:"userId"`
+	At             time.Time   `json:"at"`
+	Status         int32       `json:"status"`
+	Code           string      `json:"code"`
+	Detail         string      `json:"detail"`
+	TemplateKey    string      `json:"templateKey"`
+	Recipient      string      `json:"recipient"`
+	IdempotencyKey string      `json:"idempotencyKey"`
+	Ip             *netip.Addr `json:"ip"`
+}
+
+type TransactionalSetting struct {
+	WorkspaceID          uuid.UUID       `json:"workspaceId"`
+	LinkContacts         bool            `json:"linkContacts"`
+	ContentRetentionDays int32           `json:"contentRetentionDays"`
+	AlertBounceRate      float64         `json:"alertBounceRate"`
+	AlertFailed          int32           `json:"alertFailed"`
+	AlertMedianSeconds   int32           `json:"alertMedianSeconds"`
+	DefaultSenderID      *uuid.UUID      `json:"defaultSenderId"`
+	DefaultReplyTo       string          `json:"defaultReplyTo"`
+	DefaultTrackOpens    bool            `json:"defaultTrackOpens"`
+	DefaultTrackClicks   bool            `json:"defaultTrackClicks"`
+	Guide                json.RawMessage `json:"guide"`
+	UpdatedBy            *uuid.UUID      `json:"updatedBy"`
+	UpdatedAt            time.Time       `json:"updatedAt"`
+}
+
+type TransactionalTemplate struct {
+	ID               uuid.UUID       `json:"id"`
+	WorkspaceID      uuid.UUID       `json:"workspaceId"`
+	Key              string          `json:"key"`
+	Name             string          `json:"name"`
+	Description      string          `json:"description"`
+	CategoryID       *uuid.UUID      `json:"categoryId"`
+	Subject          string          `json:"subject"`
+	Preheader        string          `json:"preheader"`
+	EditorMode       string          `json:"editorMode"`
+	Mjml             string          `json:"mjml"`
+	Html             string          `json:"html"`
+	PlainText        string          `json:"plainText"`
+	Variables        json.RawMessage `json:"variables"`
+	TestData         json.RawMessage `json:"testData"`
+	SenderID         *uuid.UUID      `json:"senderId"`
+	ReplyTo          string          `json:"replyTo"`
+	TrackOpens       bool            `json:"trackOpens"`
+	TrackClicks      bool            `json:"trackClicks"`
+	DraftRevision    int32           `json:"draftRevision"`
+	DraftHash        string          `json:"draftHash"`
+	DraftSavedAt     time.Time       `json:"draftSavedAt"`
+	DraftSavedBy     *uuid.UUID      `json:"draftSavedBy"`
+	LiveVersion      *int32          `json:"liveVersion"`
+	LiveSince        *time.Time      `json:"liveSince"`
+	LiveBy           *uuid.UUID      `json:"liveBy"`
+	VersionsCount    int32           `json:"versionsCount"`
+	FirstPublishedAt *time.Time      `json:"firstPublishedAt"`
+	Origin           json.RawMessage `json:"origin"`
+	ArchivedAt       *time.Time      `json:"archivedAt"`
+	ArchivedBy       *uuid.UUID      `json:"archivedBy"`
+	DeletedAt        *time.Time      `json:"deletedAt"`
+	CreatedBy        *uuid.UUID      `json:"createdBy"`
+	CreatedAt        time.Time       `json:"createdAt"`
+	UpdatedAt        time.Time       `json:"updatedAt"`
+}
+
+type TransactionalTemplateDraft struct {
+	TemplateID uuid.UUID       `json:"templateId"`
+	Revision   int32           `json:"revision"`
+	Subject    string          `json:"subject"`
+	Preheader  string          `json:"preheader"`
+	Mjml       string          `json:"mjml"`
+	Html       string          `json:"html"`
+	Variables  json.RawMessage `json:"variables"`
+	SavedBy    *uuid.UUID      `json:"savedBy"`
+	SavedAt    time.Time       `json:"savedAt"`
+	Label      string          `json:"label"`
+	Source     string          `json:"source"`
+}
+
+type TransactionalTemplateVersion struct {
+	TemplateID  uuid.UUID       `json:"templateId"`
+	Version     int32           `json:"version"`
+	Subject     string          `json:"subject"`
+	Preheader   string          `json:"preheader"`
+	EditorMode  string          `json:"editorMode"`
+	Mjml        string          `json:"mjml"`
+	Html        string          `json:"html"`
+	PlainText   string          `json:"plainText"`
+	Variables   json.RawMessage `json:"variables"`
+	TestData    json.RawMessage `json:"testData"`
+	SenderID    *uuid.UUID      `json:"senderId"`
+	ReplyTo     string          `json:"replyTo"`
+	TrackOpens  bool            `json:"trackOpens"`
+	TrackClicks bool            `json:"trackClicks"`
+	ContentHash string          `json:"contentHash"`
+	SizeBytes   int32           `json:"sizeBytes"`
+	Change      string          `json:"change"`
+	Note        string          `json:"note"`
+	PublishedBy *uuid.UUID      `json:"publishedBy"`
+	PublishedAt time.Time       `json:"publishedAt"`
 }
 
 type UnsubscribeFeedback struct {
