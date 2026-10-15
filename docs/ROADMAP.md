@@ -1,7 +1,8 @@
 # Roadmap
 
-Milestones follow the kickoff plan (M0–M14). Work is organised in
-workstreams (vertical slices, `docs/dev/WORKSTREAMS.md`) that map onto the
+Milestones M0–M14 follow the kickoff plan; M15–M32 follow the design
+expansion (`docs/spec/reputecast-design-expansion-plan.md`). Work is organised
+in workstreams (vertical slices, `docs/dev/WORKSTREAMS.md`) that map onto the
 milestones; each milestone is shippable and testable on its own.
 
 Status: ✅ done · 🚧 in progress · ⏳ planned
@@ -23,6 +24,40 @@ Status: ✅ done · 🚧 in progress · ⏳ planned
 | **M12 Remaining adapters** | Mailgun, SendGrid, Resend, SparkPost, Mailjet, Brevo, Azure Communication Services, generic HTTP, adapter guide; community adapters (protocol, runtime, SDK) | W15, W16 | ✅ |
 | **M13 Deliverability and HostRepute** | Domain/IP health, provider account health, blocklists, Postmaster, SNDS, DMARC, incidents, Connect HostRepute | W07 | ✅ |
 | **M14 Migration, landing, docs, v1.0** | Importers from Brevo, Mailchimp, MailerLite, listmonk, Keila; landing page and README banner; documentation; release | W02, W08 | 🚧 (importers ✅, landing page ✅, README banner ✅, documentation ✅; the v1.0 tag and release wait for the repository to be pushed) |
+| **M15 Transactional email** | Templates in the composer's transactional mode with variables, test data, checks and versions; send, batch and render API with idempotency keys; send-only and test keys; the Transactional stream with failover and priority; suppression rules per stream; message log and detail; SMTP relay; categories and the category unsubscribe; delivery alerts; template import (Postmark, SendGrid, Mailgun, Notifuse, MJML, HTML); the Notifuse importer; welcome-series prompts; sidebar sections and the phone More sheet | X01, X02, X03 | ⏳ |
+| **M16 Integrations hub** | Catalog, integration pages with key presets and activity, managed keys and webhooks, REST hooks for Zapier, Make and n8n, WordPress sites, `form.submitted`, take over; the Zapier, Make and n8n apps and the WordPress plugin | X04, X09 | ⏳ |
+| **M17 Content languages** | Workspace languages, language versions of campaigns, automation emails and transactional templates, compare and Add language, the Languages check, results per language, page and form copy per language, the public language menu, the contact's language | X05, X08 | ⏳ |
+| **M18 App languages** | Language & region, instance defaults, member emails in their language, English and Vietnamese, the pseudo-locale and the stress-test rules | X07, then every workstream | ⏳ |
+| **M19 Accessibility checks** | Accessibility panel with fixes, contrast in the color picker, `lang`/`dir`/`role` at compile, the Send Readiness group and the workspace policy, gallery results | X06 | ⏳ |
+| **M20 Recurring and RSS digests** | Feed sources, schedules, the Feed items block, issues with approvals and Send Readiness | X10 | ⏳ |
+| **M21 Conditional content, polls and surveys** | Visibility on blocks and versions, preview as, the Poll block, answer and survey pages, poll results | X11 | ⏳ |
+| **M22 AI assistant** | AI models in the hub with the workspace's own key and cap, suggestions as diffs in the composer, segments and reports | X12 | ⏳ |
+| **M23 Contact scoring and growth sources** | Scoring rules, bands and decay, the score on profiles, segments and automations; Audience › Growth | X13 | ⏳ |
+| **M24 Address verification and placement tests** | Verification services and their uses; seed mailboxes, placement tests and results | X14 | ⏳ |
+| **M25 Referrals and recommendations** | Referral program, milestones and rewards, review queue, public hub and invite pages; recommendations and partner links | X15 | ⏳ |
+| **M26 Payments and paid subscriptions** | Stripe with a restricted key, tiers and prices, upgrade page and checkout, paid status, paid members and their import, paid-only content, member emails | X16 | ⏳ |
+| **M27 Offers, gifts, sponsorships and revenue** | Offers and the cancel page, gift subscriptions, sponsors and bookings, Earn overview, the conversion API and revenue attribution | X17 | ⏳ |
+| **M28 Publication website** | Posts from campaigns and web-only posts, home, tags and navigation, members, visibility, the meter and paywall | X18 | ⏳ |
+| **M29 Landing and sales pages, digital products** | The page builder, landing, sales and webinar pages, the shop, products, orders and downloads | X19 | ⏳ |
+| **M30 Shopify and WooCommerce** | Store connections, synced orders, products and customers, store triggers and blocks, revenue, the abandoned-cart starter | X20 | ⏳ |
+| **M31 SMS** | SMS providers and senders, routing by country, phone numbers and SMS consent, keywords and quiet hours, the SMS composer, review and report | X21 | ⏳ |
+| **M32 Web push, WhatsApp and agencies** | VAPID keys and the service worker, the prompt designer, push campaigns; WhatsApp through the Meta Cloud API; agency client workspaces, library and usage | X22, X23 | ⏳ |
+
+## Design expansion (M15–M32)
+
+The expansion's design is on the canvas pages P1–P8 and in `design/boards`; each phase has a brief in `docs/spec/reputecast-design-addon-*.md` and its boards are listed in `docs/DESIGN_INVENTORY.md`. Workstreams X01–X23 (`docs/dev/WORKSTREAMS.md`) build it on the `expansion` branch.
+
+**Decisions taken by default.** Each brief's section 8 lists conflicts the owner was asked to confirm. Until the owner decides otherwise, the build follows the brief:
+
+- **Logs and the audit log.** Automatic, high-volume events stay in their own logs, not the audit log: transactional and SMS/push/WhatsApp messages (90 days), AI requests (90 days, no content), real-time address checks (daily counts), referral and partner requests, payment events and conversions, page views, member sign-ins, orders and store webhooks. Everything a person or key changes is audited.
+- **Phase 1.** A fourth stream, Transactional, with automatic failover and priority over Broadcasts on shared providers. Unsubscribes and role addresses are marketing-only suppressions. MCP agents never send transactional mail. The SMTP relay ships in M15.
+- **Phase 2.** A fourth translation status, Draft; a Missing version passes Send Readiness and counts who gets the fallback; alt text moves from Content to Accessibility. Integration keys are limited to their integration's operations, keep working for 24 hours after a rotation and can be taken over. Every built-in role gets integrations:view. The Block policy also applies to publishing automations and transactional templates. `form.submitted` fires on confirmation. "ReputeCast standard" stays the default region format. The Vietnamese copy needs a native speaker's review.
+- **Phase 3.** Under an approval policy, an automatic digest issue waits for approval; issues go out on the owner's authority and pause when the owner loses campaigns:send. Poll answers are recorded by the answer page, not the link. AI report summaries send aggregate numbers only and can be switched off.
+- **Phase 4.** Placement history only shows tests people started (no schedules or alerts). IMAP app passwords are the dependable seed path. subscribers:verify is sensitive and not given to Editors. A rule change doesn't start "Score crosses…" automations.
+- **Phase 5.** Grow gets an Overview tab; the brief's extra counting and suspicion rules apply; the Stripe coupon reward waits for M26; recommendations go through a hosted page; partner links use single-use codes and one signing secret per direction; the leaderboard is off by default.
+- **Phase 6.** Earn gets a Settings tab. MRR leaves out trials, free periods, complimentary and gift access and includes past due; churn counts when access ends. Eight member emails in an Essential "Memberships" category. No card details are stored; Stripe connects with a restricted key only, never Connect. Attribution window: 7 days. One retention offer per paid member per 12 months.
+- **Phase 7.** Forms & pages tabs become Signup forms · Website · Pages · Branding & domain. Pages are stored as a GrapesJS project plus HTML (posts keep MJML). Product files go to the data volume. Sign-in links for members go through the System stream. Lead magnets are delivered by forms, not as free products.
+- **Phase 8.** Sending providers gets a channel switch. SMS consent is kept per list. sms:send, push:send and whatsapp:send are needed on top of campaigns:send. Quiet hours are limited to 08:00–21:00 local. One agency per instance, in a new top-level Agency area with instance-level roles.
 
 ## Done so far (M0)
 

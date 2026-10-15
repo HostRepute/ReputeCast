@@ -45,3 +45,55 @@ who owns what so branches merge cleanly. Conventions: `CONVENTIONS.md`.
 | W16 | **Community adapter runtime & SDK** (5.2) | ProvidersAdapters ("Build your own adapter") | — | the out-of-process adapter protocol (HTTP + JSON, signed), `providers/remote` (proxies Provider calls to installed community adapters), `sdk/adapter-sdk` (TypeScript `@reputecast/adapter-sdk`: `defineAdapter`, protocol server, contract-test runner), `sdk/adapter-template`, docs | 00850–00899 | — |
 
 Ports and databases: workstream `WNN` uses API `81NN`, web `52NN`, database `reputecast_wNN`.
+
+## Design expansion (M15–M32)
+
+The expansion (`docs/spec/reputecast-design-expansion-plan.md`, one brief per
+phase in `docs/spec/reputecast-design-addon-*.md`) is built on the
+`expansion` branch by workstreams X01–X23. Workstream `XNN` uses API `83NN`,
+web `53NN`, database `reputecast_xNN` and migrations
+`01000 + 50·(NN−1)` to `+49` (X01 01000–01049, X02 01050–01099, …).
+
+Rules on top of the shared resources above:
+
+| Thing | Rule |
+|---|---|
+| Permissions | All of the expansion's keys are in `internal/authz` already (read-only). |
+| App text | New strings go through `web/src/i18n` (`CONVENTIONS.md` › Text and app languages), English source only. Vietnamese comes with M18. `web/src/i18n/*` is read-only except for X07. |
+| Shell | `web/src/components/shell/*` belongs to X01 in wave 1. |
+| Registries, append-only | notification kinds (`internal/notify`), audit filter categories (`internal/auditlog`), webhook events (`internal/webhooks`), MCP tools (`internal/mcpserver`), Send Readiness checks (`internal/readiness`), `web/scripts/qa-map.ts`, `internal/demo/seeders.go`. |
+| Existing screens | Change another workstream's screen only where your boards change it, with small insertions; put the new parts in your own feature folder. |
+| Docs | Add rows to `docs/DESIGN_INVENTORY.md` (the integrator renumbers them) and a "Done so far (XNN …)" section at the end of `docs/ROADMAP.md`. |
+
+### Wave 1: phases 1 and 2
+
+| # | Workstream | Boards (plus Phone/Tablet) | Owns |
+|---|---|---|---|
+| X01 | **Shell, navigation and roles** | ShellMore; the sidebar of every app-shell board (Transactional, Grow, Earn); WorkspaceSettings › Sidebar sections; Roles, RoleEditor, RoleEditorStates (every expansion group); the shell layout fixes (avatar initials, tablet rail footer) | `web/src/components/shell/*`, `features/roles`, the workspace's sidebar-section setting, stub routes for Grow and Earn |
+| X02 | **Transactional sending** | Transactional, TransactionalStates, TransactionalGuide*, TransactionalMessages, TransactionalMessage(+States), TransactionalSetup(+States), TransactionalSettings, PublicUnsubscribeCategory; changes to Main, ProvidersRouting, SetupStreams, Providers, SettingsSenders, SettingsKeys(+States), SettingsStates, ContactProfile (transactional activity, category opt-outs), Suppressions, PublicPreferences (categories), SettingsAPI (event group), Notifications, SettingsAudit, InstanceSettings (SMTP relay), SettingsMCP | `internal/transactional` (templates, versions, render, send API, log, categories, settings, alerts, retention), `internal/smtprelay`, the Transactional stream in `routing`, per-stream suppression rules, send-only and test keys; routes `_app/transactional/**`, `w/$workspace/transactional/guide` |
+| X03 | **Transactional templates and migration** | TransactionalTemplate(+States), TransactionalPublish(+States), TransactionalImport(+States); changes to ApprovalPolicy, MigrationSource (Notifuse), ListHealth, FormBuilder and MigrationDone (welcome-series prompts) | the composer's transactional mode, template publish UI, `internal/transactional/importer` (Postmark, SendGrid, Mailgun, Notifuse, MJML, HTML → Liquid), the Notifuse importer in `internal/imports`, welcome-series prompts; routes `w/$workspace/transactional/templates/**`, `w/$workspace/transactional/import` |
+| X04 | **Integrations hub** | IntegrationsCatalog, IntegrationsZapier, IntegrationsConnect, IntegrationsWordPress, IntegrationsStates; changes to SettingsIntegrations (HostRepute's page in the hub), SettingsKeys (managed keys), Dialogs (revoke warning), SettingsAPI (managed endpoint, `form.submitted`), TeamDialogs (take over), Notifications, SettingsAudit, SettingsMCP | `internal/integrations` (catalog, presets, integration keys, REST hooks, activity, WordPress sites), routes `_app/settings/integrations/**` |
+| X05 | **Content languages: emails** | SettingsLanguages (Languages card), ComposerLanguages, ComposerCompare, LanguageStates, ReportLanguages, AutomationLanguages; language changes to the composer, Review & send, approvals, the transactional template editor, publish dialog, message log, message detail and setup | `internal/languages` (workspace languages, versions, statuses), language versions in campaigns, automation emails and transactional templates, the Languages check, results per language |
+| X06 | **Accessibility checks** | ComposerAccessibility, ComposerContrast, SendReadinessAccessibility, AccessibilityStates, SettingsLanguages (Accessibility card); accessibility changes to the composer, gallery, Review & send, automation and template publishing | `internal/accessibility` (checks on compiled HTML, compile-time `lang`/`dir`/`role`, fixes, workspace policy) |
+| X07 | **App languages** | LanguageRegion, the stress-test boards (Campaigns, Review & send, Team in Vietnamese and +40%); changes to AccountSecurity, ShellUserMenu, InstanceSettings and InstanceSetup (default language), TeamInvite (invitation language), SignInStates, AuthScreens, InviteStates | `web/src/i18n` (pseudo-locale, region formats, language loading), `lib/format` region formats, member language and region preferences, server messages and member emails in the member's language |
+
+### Later waves
+
+| # | Workstream | Milestone | Starts after |
+|---|---|---|---|
+| X08 | Content languages: forms, public pages and contacts (FormBuilderLanguages, the public language menu, contacts' language) | M17 | X05's workspace languages |
+| X09 | Integration apps: Zapier, Make, n8n, WordPress plugin | M16 | X04's API |
+| X10 | Recurring and RSS digests | M20 | wave 1 |
+| X11 | Conditional content, polls and surveys | M21 | wave 1 |
+| X12 | AI assistant | M22 | wave 1 |
+| X13 | Contact scoring and growth sources | M23 | wave 1 |
+| X14 | Address verification and placement tests | M24 | wave 1 |
+| X15 | Referrals and recommendations | M25 | X13 |
+| X16 | Payments and paid subscriptions | M26 | wave 2 |
+| X17 | Offers, gifts, sponsorships and revenue | M27 | X16 |
+| X18 | Publication website | M28 | X16 |
+| X19 | Landing and sales pages, digital products | M29 | X18 |
+| X20 | Shopify and WooCommerce | M30 | X09 |
+| X21 | SMS | M31 | wave 2 |
+| X22 | Web push and WhatsApp | M32 | X21 |
+| X23 | Agency accounts | M32 | wave 2 |
