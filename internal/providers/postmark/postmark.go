@@ -5,10 +5,12 @@ package postmark
 import (
 	"context"
 	"crypto/subtle"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
+	"net/mail"
 	"net/url"
 	"strconv"
 	"strings"
@@ -176,6 +178,8 @@ type header struct {
 type outMessage struct {
 	From          string
 	To            string
+	Cc            string `json:",omitempty"`
+	Bcc           string `json:",omitempty"`
 	ReplyTo       string `json:",omitempty"`
 	Subject       string
 	HtmlBody      string            `json:",omitempty"` //nolint:revive // Postmark field name
@@ -186,6 +190,15 @@ type outMessage struct {
 	MessageStream string
 	TrackOpens    bool
 	TrackLinks    string
+	Attachments   []attachment `json:",omitempty"`
+}
+
+// attachment is a file of an outbound message (base64 content).
+type attachment struct {
+	Name        string
+	Content     string
+	ContentType string
+	ContentID   string `json:",omitempty"`
 }
 
 type sendResult struct {
@@ -206,6 +219,24 @@ func (p *Provider) StreamFor(s providers.Stream) string {
 
 // Send implements providers.Provider with POST /email/batch.
 func (p *Provider) Send(ctx context.Context, msgs []providers.Message) ([]providers.SendResult, error) {
+	return p.send(ctx, msgs, nil)
+}
+
+// SendWithExtras implements providers.ExtrasSender: Cc, Bcc and
+// attachments (transactional mail).
+func (p *Provider) SendWithExtras(ctx context.Context, msgs []providers.Message, extras []providers.MessageExtras) ([]providers.SendResult, error) {
+	return p.send(ctx, msgs, extras)
+}
+
+func joinAddresses(as []mail.Address) string {
+	parts := make([]string, len(as))
+	for i, a := range as {
+		parts[i] = mimemsg.Address(a)
+	}
+	return strings.Join(parts, ", ")
+}
+
+func (p *Provider) send(ctx context.Context, msgs []providers.Message, extras []providers.MessageExtras) ([]providers.SendResult, error) {
 	if len(msgs) == 0 {
 		return []providers.SendResult{}, nil
 	}
@@ -226,6 +257,17 @@ func (p *Provider) Send(ctx context.Context, msgs []providers.Message) ([]provid
 		}
 		if m.ReplyTo != nil {
 			om.ReplyTo = mimemsg.Address(*m.ReplyTo)
+		}
+		if i < len(extras) {
+			x := extras[i]
+			om.Cc, om.Bcc = joinAddresses(x.Cc), joinAddresses(x.Bcc)
+			for _, a := range x.Attachments {
+				att := attachment{Name: a.Filename, Content: base64.StdEncoding.EncodeToString(a.Content), ContentType: a.ContentType}
+				if a.ContentID != "" {
+					att.ContentID = "cid:" + a.ContentID
+				}
+				om.Attachments = append(om.Attachments, att)
+			}
 		}
 		om.Headers = append(om.Headers, header{Name: "X-ReputeCast-Message", Value: m.ID.String()})
 		for k, v := range m.Headers {

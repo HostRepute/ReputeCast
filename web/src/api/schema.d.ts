@@ -6141,6 +6141,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/transactional/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send one message with a template's live version
+         * @description Answers 202 with the message ID and status queued (scheduled with send_at). Errors are RFC 9457 problems whose detail says what to fix: template_not_found, template_not_published, missing_variables (listed in missing), invalid_recipient, recipient_suppressed (with the reason and date), sender_not_verified, attachments_too_large (naming the route's provider limit), rate_limited (with Retry-After), no_healthy_route. Send an Idempotency-Key header: a retry with the same key within 24 hours gets the first answer and sends nothing. A test-mode key delivers only to the workspace's members and its allowed test addresses.
+         */
+        post: operations["send-transactional-message"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/messages/batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send up to 100 messages, each with its own recipient and data
+         * @description Each message gets its own answer in results, in the order sent: its ID and status, or the problem that stopped it (the same codes as one send).
+         */
+        post: operations["send-transactional-batch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/transactional/settings": {
         parameters: {
             query?: never;
@@ -6683,6 +6723,10 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        APIKeyCategoryRef: {
+            id: string;
+            name: string;
+        };
         APIKeyCreateInput: {
             /** @description Client label, e.g. Claude Desktop */
             description?: string;
@@ -6691,6 +6735,7 @@ export interface components {
             lists?: string[];
             name: string;
             permissions: string[];
+            transactional?: components["schemas"]["APIKeyTransactionalInput"];
         };
         APIKeyCreated: {
             endpoint: string;
@@ -6732,6 +6777,38 @@ export interface components {
              */
             since?: string;
         };
+        APIKeyTransactional: {
+            /** @description Categories it may send (SMTP credentials); empty for all */
+            categories: components["schemas"]["APIKeyCategoryRef"][];
+            /** @enum {string} */
+            mode: "live" | "test";
+            /** @enum {string} */
+            preset: "send_only" | "smtp";
+            /** Format: int64 */
+            ratePerSecond: number;
+            /** @description Template IDs it may send; empty for all, including ones published later */
+            templates: string[];
+            /** @description Allowed test addresses besides the members (qa+*@acme.io) */
+            testAddresses: string[];
+            username?: string;
+        };
+        APIKeyTransactionalInput: {
+            categories?: string[];
+            /**
+             * @default live
+             * @enum {string}
+             */
+            mode: "live" | "test";
+            /** @enum {string} */
+            preset: "send_only" | "smtp";
+            /**
+             * Format: int64
+             * @description Messages per second (50 by default)
+             */
+            ratePerSecond?: number;
+            templates?: string[];
+            testAddresses?: string[];
+        };
         APIKeyView: {
             /** Format: date-time */
             createdAt: string;
@@ -6758,6 +6835,7 @@ export interface components {
             sensitive: string[];
             /** @enum {string} */
             status: "active" | "expired";
+            transactional?: components["schemas"]["APIKeyTransactional"];
         };
         AccessRequestInputBody: {
             /** @description Why you need it; shown to whoever decides */
@@ -7200,8 +7278,9 @@ export interface components {
             after: string;
             before: string;
             /** @enum {string} */
-            field: "subject" | "preheader" | "link" | "content" | "sender" | "audience" | "audience_count" | "route" | "schedule";
+            field: "subject" | "preheader" | "link" | "content" | "sender" | "audience" | "audience_count" | "route" | "schedule" | "language";
             label: string;
+            what?: string;
         };
         ApprovalCommentInput: {
             body: string;
@@ -7385,10 +7464,18 @@ export interface components {
         };
         ApprovalPreview: {
             html: string;
+            language: string;
+            languages: components["schemas"]["ApprovalPreviewLanguage"][];
             preheader: string;
             subject: string;
             /** Format: int64 */
             version: number;
+        };
+        ApprovalPreviewLanguage: {
+            language: string;
+            name: string;
+            /** @enum {string} */
+            status: "source" | "translated" | "draft";
         };
         ApprovalReadinessView: {
             /** Format: int64 */
@@ -8415,6 +8502,7 @@ export interface components {
             clickMap: components["schemas"]["ReportClickMap"];
             engagement: components["schemas"]["ReportEngagement"];
             headline: components["schemas"]["ReportHeadline"];
+            languages?: components["schemas"]["ReportLanguages"];
             mailboxes: components["schemas"]["ReportMailboxRow"][];
             notSent?: components["schemas"]["ReportNotSent"];
             providers: components["schemas"]["ReportProviderTable"];
@@ -9290,7 +9378,7 @@ export interface components {
             /** @enum {string} */
             role?: "primary" | "split" | "fallback";
             /** @enum {string} */
-            stream: "broadcast" | "automation" | "system";
+            stream: "broadcast" | "automation" | "system" | "transactional";
             /** Format: int64 */
             weight?: number;
         };
@@ -9308,7 +9396,7 @@ export interface components {
             role: "primary" | "split" | "fallback";
             roleLabel: string;
             /** @enum {string} */
-            stream: "broadcast" | "automation" | "system";
+            stream: "broadcast" | "automation" | "system" | "transactional";
             tracking: string;
             /** Format: int64 */
             weight: number;
@@ -12755,7 +12843,7 @@ export interface components {
             /** @enum {string} */
             state: "failover_active" | "waiting" | "held" | "fallback_unavailable";
             /** @enum {string} */
-            stream: "broadcast" | "automation" | "system";
+            stream: "broadcast" | "automation" | "system" | "transactional";
             suggestion?: string;
             /** Format: int64 */
             switchBackMinutes: number;
@@ -12836,7 +12924,7 @@ export interface components {
             /** @enum {string} */
             role: "primary" | "split" | "fallback" | "condition";
             /** @enum {string} */
-            stream: "broadcast" | "automation" | "system";
+            stream: "broadcast" | "automation" | "system" | "transactional";
         };
         ProviderStreamRoute: {
             /** Format: int64 */
@@ -12846,7 +12934,7 @@ export interface components {
             fallback?: components["schemas"]["ProviderRouteShare"];
             splits: components["schemas"]["ProviderRouteShare"][];
             /** @enum {string} */
-            stream: "broadcast" | "automation" | "system";
+            stream: "broadcast" | "automation" | "system" | "transactional";
         };
         ProviderTrackingActionInput: {
             /** @enum {string} */
@@ -13509,6 +13597,7 @@ export interface components {
         ReportClickMap: {
             available: boolean;
             html: string;
+            language?: string;
             links: components["schemas"]["ReportLink"][];
             other?: components["schemas"]["ReportLinkGroup"];
             /**
@@ -13603,6 +13692,72 @@ export interface components {
             providers: components["schemas"]["ReportBacklogProvider"][];
             /** Format: date-time */
             since: string;
+        };
+        ReportLanguageCount: {
+            /** Format: int64 */
+            count: number;
+            language: string;
+            name: string;
+        };
+        ReportLanguageDraft: {
+            id: string;
+            name: string;
+        };
+        ReportLanguageFallback: {
+            draft?: components["schemas"]["ReportLanguageDraft"];
+            /** Format: double */
+            gap?: number;
+            got: string;
+            readers: string[];
+        };
+        ReportLanguageOption: {
+            language: string;
+            name: string;
+        };
+        ReportLanguageRow: {
+            /** Format: double */
+            clickRate?: number;
+            /** Format: int64 */
+            clicks: number;
+            /** Format: double */
+            complaintRate?: number;
+            /** Format: int64 */
+            complaints: number;
+            /** Format: int64 */
+            delivered: number;
+            /** Format: double */
+            deliveredRate?: number;
+            fallback: boolean;
+            /** Format: double */
+            humanOpenRate?: number;
+            /** Format: int64 */
+            humanOpens: number;
+            kinds: string[];
+            language: string;
+            missing?: string;
+            name: string;
+            readers: string[];
+            /** @enum {string} */
+            reason?: "missing" | "draft" | "held";
+            /** Format: int64 */
+            sent: number;
+            source: boolean;
+            /** Format: int64 */
+            translatedFrom?: number;
+            /** Format: double */
+            unsubscribeRate?: number;
+            /** Format: int64 */
+            unsubscribes: number;
+        };
+        ReportLanguages: {
+            clickMaps: components["schemas"]["ReportLanguageOption"][];
+            fallback?: components["schemas"]["ReportLanguageFallback"];
+            /** Format: int64 */
+            languages: number;
+            rows: components["schemas"]["ReportLanguageRow"][];
+            sent: components["schemas"]["ReportLanguageCount"][];
+            /** Format: int64 */
+            versions: number;
         };
         ReportLink: {
             /** Format: int64 */
@@ -14021,7 +14176,8 @@ export interface components {
             listId?: string;
             senderDomain?: string;
             /** @enum {string} */
-            stream: "broadcast" | "automation" | "system";
+            stream: "broadcast" | "automation" | "system" | "transactional";
+            template?: string;
         };
         RouteTestResult: {
             /** @enum {string} */
@@ -14060,16 +14216,22 @@ export interface components {
             warming?: string;
         };
         RoutingCondition: {
-            /** @enum {string} */
-            field: "mailbox_provider" | "list" | "sender_domain";
+            /**
+             * @description category: a transactional category (Transactional stream only)
+             * @enum {string}
+             */
+            field: "mailbox_provider" | "list" | "sender_domain" | "category";
             note?: string;
             /** Format: uuid */
             providerId: string;
             values: string[];
         };
         RoutingConditionView: {
-            /** @enum {string} */
-            field: "mailbox_provider" | "list" | "sender_domain";
+            /**
+             * @description category: a transactional category (Transactional stream only)
+             * @enum {string}
+             */
+            field: "mailbox_provider" | "list" | "sender_domain" | "category";
             note?: string;
             /** Format: uuid */
             providerId: string;
@@ -14077,6 +14239,7 @@ export interface components {
             values: string[];
         };
         RoutingConfig: {
+            categories: components["schemas"]["RoutingNamed"][];
             issues: components["schemas"]["RoutingIssue"][];
             lists: components["schemas"]["RoutingNamed"][];
             providers: components["schemas"]["RoutingProvider"][];
@@ -14086,6 +14249,7 @@ export interface components {
             senderDomains: string[];
             shared: components["schemas"]["RoutingShared"];
             streams: components["schemas"]["RoutingStreamView"][];
+            templates: components["schemas"]["RoutingNamed"][];
         };
         RoutingIssue: {
             blocking: boolean;
@@ -14149,9 +14313,10 @@ export interface components {
             failover: "automatic" | "pause_and_ask" | "warm_only";
             /** @description Provider id, or empty for none */
             fallback?: string;
+            priority?: boolean;
             splits: components["schemas"]["RoutingSplit"][];
             /** @enum {string} */
-            stream: "broadcast" | "automation" | "system";
+            stream: "broadcast" | "automation" | "system" | "transactional";
         };
         RoutingStreamView: {
             /** Format: date-time */
@@ -14160,9 +14325,11 @@ export interface components {
             /** @enum {string} */
             failover: "automatic" | "pause_and_ask" | "warm_only";
             fallback: string;
+            priority?: boolean;
+            senderDomains?: string[];
             splits: components["schemas"]["RoutingSplit"][];
             /** @enum {string} */
-            stream: "broadcast" | "automation" | "system";
+            stream: "broadcast" | "automation" | "system" | "transactional";
             volume?: components["schemas"]["RoutingVolume"];
         };
         RoutingTerms: {
@@ -15696,6 +15863,40 @@ export interface components {
             /** @example Sam Rivera */
             name?: string;
         };
+        TransactionalAttachmentInput: {
+            /** @description The file, base64-encoded */
+            content: string;
+            /** @description Makes it an inline image the HTML references as cid:<content_id> */
+            content_id?: string;
+            /**
+             * @description Guessed from the file name when omitted
+             * @example application/pdf
+             */
+            content_type?: string;
+            /** @example INV-2026-0418.pdf */
+            filename: string;
+        };
+        TransactionalBatch: {
+            messages: components["schemas"]["TransactionalSend"][];
+        };
+        TransactionalBatchItem: {
+            error?: components["schemas"]["TransactionalProblem"];
+            id?: string;
+            /** Format: int64 */
+            index: number;
+            /** Format: date-time */
+            send_at?: string;
+            /** @enum {string} */
+            status: "queued" | "scheduled" | "not_delivered" | "error";
+            test?: boolean;
+        };
+        TransactionalBatchResult: {
+            /** Format: int64 */
+            accepted: number;
+            /** Format: int64 */
+            failed: number;
+            results: components["schemas"]["TransactionalBatchItem"][];
+        };
         TransactionalBreakingChange: {
             breaking: components["schemas"]["TransactionalBreakingVariable"][];
             /**
@@ -15896,6 +16097,50 @@ export interface components {
              */
             version?: string;
         };
+        TransactionalProblem: {
+            /** @description Stable error code, e.g. permission_denied */
+            code?: string;
+            /**
+             * @description A human-readable explanation specific to this occurrence of the problem.
+             * @example Property foo is required but is missing.
+             */
+            detail?: string;
+            /** @description Optional list of individual error details */
+            errors?: components["schemas"]["ErrorDetail"][];
+            /** @description Members who hold the missing permission */
+            helpers?: string[];
+            /**
+             * Format: uri
+             * @description A URI reference that identifies the specific occurrence of the problem.
+             * @example https://example.com/error-log/abc123
+             */
+            instance?: string;
+            meta?: {
+                [key: string]: unknown;
+            };
+            /** @description Required variables the call didn't send (missing_variables) */
+            missing?: string[];
+            /** @description The missing permission key */
+            permission?: string;
+            /**
+             * Format: int64
+             * @description HTTP status code
+             * @example 400
+             */
+            status?: number;
+            /**
+             * @description A short, human-readable summary of the problem type. This value should not change between occurrences of the error.
+             * @example Bad Request
+             */
+            title?: string;
+            /**
+             * Format: uri
+             * @description A URI reference to human-readable documentation for the error.
+             * @default about:blank
+             * @example https://example.com/errors/example
+             */
+            type: string;
+        };
         TransactionalPublishApproval: {
             approvers: string[];
             reason?: string;
@@ -15971,6 +16216,52 @@ export interface components {
             undo?: boolean;
             /** Format: int64 */
             version: number;
+        };
+        TransactionalSend: {
+            attachments?: components["schemas"]["TransactionalAttachmentInput"][];
+            bcc?: components["schemas"]["TransactionalAddress"][];
+            cc?: components["schemas"]["TransactionalAddress"][];
+            /** @description The template's variables */
+            data?: {
+                [key: string]: unknown;
+            };
+            /** @description A verified Transactional sender, as an address or "Name <address>"; the template's sender when omitted */
+            from?: string;
+            metadata?: {
+                [key: string]: string;
+            };
+            /** @description Overrides the template's preheader (Liquid) */
+            preheader?: string;
+            reply_to?: string;
+            /**
+             * Format: date-time
+             * @description Send later, up to 72 hours ahead
+             */
+            send_at?: string;
+            /** @description Overrides the template's subject (Liquid) */
+            subject?: string;
+            /** @description Returned with every webhook event of the message */
+            tags?: string[];
+            /**
+             * @description The template's ID
+             * @example password-reset
+             */
+            template: string;
+            to: components["schemas"]["TransactionalAddress"];
+        };
+        TransactionalSendResult: {
+            detail?: string;
+            /** @example 0192f1c4-7b2e-7c51-9d0a-3f5e8b1a2c44 */
+            id: string;
+            /** Format: date-time */
+            send_at?: string;
+            /**
+             * @description not_delivered: a test-mode key's message to an address that isn't allowed
+             * @enum {string}
+             */
+            status: "queued" | "scheduled" | "not_delivered";
+            /** @description Sent with a test-mode key */
+            test?: boolean;
         };
         TransactionalSenderOption: {
             domain: string;
@@ -20531,7 +20822,10 @@ export interface operations {
     };
     "preview-approval": {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Preview a language version the approval covers; empty shows the source */
+                language?: string;
+            };
             header?: never;
             path: {
                 /** @description Workspace slug */
@@ -23221,7 +23515,10 @@ export interface operations {
     };
     "get-campaign-report": {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Show the click map of one language version (campaigns sent in several languages) */
+                language?: string;
+            };
             header?: never;
             path: {
                 /** @description Workspace slug */
@@ -31227,6 +31524,84 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "send-transactional-message": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description A retry with the same key within 24 hours never sends twice */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransactionalSend"];
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalSendResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "send-transactional-batch": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description A retry of the same batch within 24 hours never sends twice */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransactionalBatch"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalBatchResult"];
+                };
             };
             /** @description Error */
             default: {

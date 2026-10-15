@@ -219,7 +219,7 @@ func (e *Engine) outboxTick(ctx context.Context, pid uuid.UUID, transports map[u
 		return 0, nil
 	}
 	want := max(int(math.Floor(r.rate.PerSecond)), 1)
-	granted, err := e.reserve(ctx, pid, now.Unix(), want, int(math.Ceil(r.rate.PerSecond)))
+	granted, err := e.reserveAfterTransactional(ctx, pid, now.Unix(), want, int(math.Ceil(r.rate.PerSecond)), now)
 	if err != nil || granted <= 0 {
 		return 0, err
 	}

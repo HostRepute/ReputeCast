@@ -873,9 +873,15 @@ func testLanguages(t *testing.T, f *fixture) {
 		f.exec(`UPDATE contacts SET language = $2 WHERE id = (SELECT c.id FROM contacts c JOIN list_memberships m ON m.contact_id = c.id WHERE m.list_id = $1 ORDER BY c.email OFFSET $3 LIMIT 1)`,
 			f.list, lang, i)
 	}
+	// Each version is the source translated: its own headline and docs link,
+	// and the footer every version needs (Send Readiness checks each one).
 	add := func(lang, status, subject string) {
-		f.exec(`INSERT INTO content_translations (id, workspace_id, owner_kind, owner_id, language, status, subject, html, plain_text)
-			VALUES (gen_random_uuid(), $1, 'campaign', $2, $3, $4, $5::text, '<p>' || $5::text || ' <a href="https://acme.io/' || $3::text || '">link</a></p>', $5::text)`,
+		f.exec(`INSERT INTO content_translations (id, workspace_id, owner_kind, owner_id, language, status, subject, mjml, html, plain_text)
+			SELECT gen_random_uuid(), $1, 'campaign', c.id, $3, $4, $5::text,
+			       replace(replace(c.mjml, 'Three launches, one deprecation', $5::text), 'https://docs.acme.io/flags', 'https://acme.io/' || $3::text),
+			       replace(replace(c.html, 'Three launches, one deprecation', $5::text), 'https://docs.acme.io/flags', 'https://acme.io/' || $3::text),
+			       c.plain_text
+			FROM campaigns c WHERE c.id = $2`,
 			f.ws, f.campaign, lang, status, subject)
 	}
 	add("es", "translated", "Hola")

@@ -50,10 +50,18 @@ func (a *App) suppressionSync() *suppressions.Service {
 	return &suppressions.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Factory: a.providerFactory(), Log: a.Log, Jobs: func() *jobs.Client { return a.Jobs }}
 }
 
+// normalizerHooks are told about the events applied to messages; domains
+// add theirs from their own wire file (transactional mail's webhooks).
+var normalizerHooks []func(*App) ingest.MessageHook
+
 func (a *App) normalizer() *ingest.Normalizer {
 	sync := a.suppressionSync()
-	return &ingest.Normalizer{Pool: a.Pool, Q: a.Q, Factory: a.providerFactory(), Log: a.Log,
+	n := &ingest.Normalizer{Pool: a.Pool, Q: a.Q, Factory: a.providerFactory(), Log: a.Log,
 		OnSuppressed: func(ctx context.Context, ws uuid.UUID) { sync.Enqueue(ctx, ws) }}
+	for _, h := range normalizerHooks {
+		n.Hooks = append(n.Hooks, h(a))
+	}
+	return n
 }
 
 func init() {

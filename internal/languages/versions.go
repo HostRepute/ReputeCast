@@ -270,6 +270,8 @@ type SaveInput struct {
 	Source      string
 	Force       bool
 	Minify      bool
+	// Audited is set when the caller writes the audit entry (MCP agents).
+	Audited bool
 }
 
 // Saved is the result of a language version save.
@@ -360,9 +362,11 @@ func (s *Service) saveVersion(ctx context.Context, q *store.Queries, o Owner, p 
 	if cur.Preheader != in.Preheader {
 		before["preheader"], after["preheader"] = cur.Preheader, in.Preheader
 	}
-	if err := s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &o.WorkspaceID, Action: o.auditPrefix() + "save", TargetType: o.Kind, TargetID: o.ID.String(),
-		TargetName: o.Name, Before: before, After: after, Metadata: map[string]any{"language": lang, "label": in.Label, "source": source, "contentHash": hash}}); err != nil {
-		return Saved{}, cur, err
+	if !in.Audited {
+		if err := s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &o.WorkspaceID, Action: o.auditPrefix() + "save", TargetType: o.Kind, TargetID: o.ID.String(),
+			TargetName: o.Name, Before: before, After: after, Metadata: map[string]any{"language": lang, "label": in.Label, "source": source, "contentHash": hash}}); err != nil {
+			return Saved{}, cur, err
+		}
 	}
 	cur.Subject, cur.Preheader, cur.Mjml, cur.Html, cur.PlainText, cur.AbTest, cur.Links, cur.Version, cur.ContentHash = in.Subject, in.Preheader, src, html, plain, in.ABTest, lb, version, hash
 	return Saved{Version: int(version), SavedAt: now, ContentHash: hash, SizeBytes: len(html), PlainText: plain, HTML: html}, cur, nil
@@ -374,6 +378,14 @@ func baseMJML(ctx context.Context, q *store.Queries, id uuid.UUID, version int) 
 		return ""
 	}
 	return v.Mjml
+}
+
+// notFoundVersion maps a missing language version to a 404 that names it.
+func notFoundVersion(err error, lang string) error {
+	if errors.Is(err, pgx.ErrNoRows) {
+		return api.NotFound(NameOf(lang) + " version")
+	}
+	return err
 }
 
 // lockVersion loads one language version for a change.

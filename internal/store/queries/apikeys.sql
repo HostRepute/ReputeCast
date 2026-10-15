@@ -3,7 +3,8 @@
 -- name: KeysList :many
 SELECT k.id, k.workspace_id, k.kind, k.name, k.description, k.prefix, k.permissions, k.scope, k.created_by, k.created_at,
        k.expires_at, k.last_used_at, k.last_used_ip, k.last_used_client, k.last_call, k.revoked_at, k.rotated_from,
-       coalesce(u.name, '')::text AS created_by_name, coalesce(u.avatar_color, '')::text AS created_by_color
+       coalesce(u.name, '')::text AS created_by_name, coalesce(u.avatar_color, '')::text AS created_by_color,
+       k.preset, k.mode, k.templates, k.categories, k.test_addresses, k.rate_per_second
 FROM api_keys k
 LEFT JOIN users u ON u.id = k.created_by
 WHERE k.workspace_id = @workspace_id AND k.kind = @kind
@@ -14,7 +15,8 @@ ORDER BY (k.expires_at IS NOT NULL AND k.expires_at <= now()), coalesce(k.last_u
 -- name: KeysGet :one
 SELECT k.id, k.workspace_id, k.kind, k.name, k.description, k.prefix, k.permissions, k.scope, k.created_by, k.created_at,
        k.expires_at, k.last_used_at, k.last_used_ip, k.last_used_client, k.last_call, k.revoked_at, k.rotated_from,
-       coalesce(u.name, '')::text AS created_by_name, coalesce(u.avatar_color, '')::text AS created_by_color
+       coalesce(u.name, '')::text AS created_by_name, coalesce(u.avatar_color, '')::text AS created_by_color,
+       k.preset, k.mode, k.templates, k.categories, k.test_addresses, k.rate_per_second
 FROM api_keys k
 LEFT JOIN users u ON u.id = k.created_by
 WHERE k.id = @id AND k.workspace_id = @workspace_id AND k.kind = @kind;
@@ -23,6 +25,12 @@ WHERE k.id = @id AND k.workspace_id = @workspace_id AND k.kind = @kind;
 INSERT INTO api_keys (id, workspace_id, kind, name, description, prefix, token_hash, permissions, scope, created_by, expires_at, rotated_from)
 VALUES (@id, @workspace_id, @kind, @name, @description, @prefix, @token_hash, @permissions, @scope, @created_by, @expires_at, @rotated_from)
 RETURNING id, created_at;
+
+-- name: KeysSetTransactional :exec
+-- Makes a key a send-only, test-mode or SMTP key (transactional:send only).
+UPDATE api_keys SET preset = @preset, mode = @mode, templates = @templates, categories = @categories,
+    test_addresses = @test_addresses, rate_per_second = @rate_per_second
+WHERE id = @id AND workspace_id = @workspace_id;
 
 -- name: KeysRevoke :execrows
 UPDATE api_keys SET revoked_at = now() WHERE id = @id AND workspace_id = @workspace_id AND kind = @kind AND revoked_at IS NULL;

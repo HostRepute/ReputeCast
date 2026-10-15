@@ -83,6 +83,15 @@ var Events = []WebhookEventInfo{
 	{"provider.down", "Sending providers", "A sending provider is failing or unreachable."},
 	{"provider.recovered", "Sending providers", "A sending provider is healthy again."},
 	{"automation.published", "Automations", "A flow was published."},
+	{"message.sent", "Transactional messages", "A sending provider accepted a transactional message."},
+	{"message.delivered", "Transactional messages", "The mailbox provider accepted the message."},
+	{"message.deferred", "Transactional messages", "Delivery was delayed and will be retried."},
+	{"message.bounced", "Transactional messages", "Hard or soft bounce, with the provider's original code."},
+	{"message.complained", "Transactional messages", "The recipient marked the message as spam."},
+	{"message.rejected", "Transactional messages", "Stopped before sending: suppressed or opted out of its category."},
+	{"message.failed", "Transactional messages", "Every provider in the route failed after the retries."},
+	{"message.opened", "Transactional messages", "The message was opened (templates with open tracking)."},
+	{"message.clicked", "Transactional messages", "A tracked link was clicked (templates with click tracking)."},
 }
 
 // ValidEvent reports whether name is a known event or wildcard ("email.*", "*").

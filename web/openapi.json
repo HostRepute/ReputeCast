@@ -1,6 +1,22 @@
 {
   "components": {
     "schemas": {
+      "APIKeyCategoryRef": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
       "APIKeyCreateInput": {
         "additionalProperties": false,
         "properties": {
@@ -32,6 +48,9 @@
             "maxItems": 60,
             "minItems": 1,
             "type": "array"
+          },
+          "transactional": {
+            "$ref": "#/components/schemas/APIKeyTransactionalInput"
           }
         },
         "required": [
@@ -177,6 +196,114 @@
         ],
         "type": "object"
       },
+      "APIKeyTransactional": {
+        "additionalProperties": false,
+        "properties": {
+          "categories": {
+            "description": "Categories it may send (SMTP credentials); empty for all",
+            "items": {
+              "$ref": "#/components/schemas/APIKeyCategoryRef"
+            },
+            "type": "array"
+          },
+          "mode": {
+            "enum": [
+              "live",
+              "test"
+            ],
+            "type": "string"
+          },
+          "preset": {
+            "enum": [
+              "send_only",
+              "smtp"
+            ],
+            "type": "string"
+          },
+          "ratePerSecond": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "templates": {
+            "description": "Template IDs it may send; empty for all, including ones published later",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "testAddresses": {
+            "description": "Allowed test addresses besides the members (qa+*@acme.io)",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "username": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "preset",
+          "mode",
+          "templates",
+          "categories",
+          "testAddresses",
+          "ratePerSecond"
+        ],
+        "type": "object"
+      },
+      "APIKeyTransactionalInput": {
+        "additionalProperties": false,
+        "properties": {
+          "categories": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 50,
+            "type": "array"
+          },
+          "mode": {
+            "default": "live",
+            "enum": [
+              "live",
+              "test"
+            ],
+            "type": "string"
+          },
+          "preset": {
+            "enum": [
+              "send_only",
+              "smtp"
+            ],
+            "type": "string"
+          },
+          "ratePerSecond": {
+            "description": "Messages per second (50 by default)",
+            "format": "int64",
+            "maximum": 10000,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "templates": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 200,
+            "type": "array"
+          },
+          "testAddresses": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 50,
+            "type": "array"
+          }
+        },
+        "required": [
+          "preset"
+        ],
+        "type": "object"
+      },
       "APIKeyView": {
         "additionalProperties": false,
         "properties": {
@@ -252,6 +379,9 @@
               "expired"
             ],
             "type": "string"
+          },
+          "transactional": {
+            "$ref": "#/components/schemas/APIKeyTransactional"
           }
         },
         "required": [
@@ -1812,11 +1942,15 @@
               "audience",
               "audience_count",
               "route",
-              "schedule"
+              "schedule",
+              "language"
             ],
             "type": "string"
           },
           "label": {
+            "type": "string"
+          },
+          "what": {
             "type": "string"
           }
         },
@@ -2514,6 +2648,15 @@
           "html": {
             "type": "string"
           },
+          "language": {
+            "type": "string"
+          },
+          "languages": {
+            "items": {
+              "$ref": "#/components/schemas/ApprovalPreviewLanguage"
+            },
+            "type": "array"
+          },
           "preheader": {
             "type": "string"
           },
@@ -2529,7 +2672,34 @@
           "subject",
           "preheader",
           "html",
-          "version"
+          "version",
+          "language",
+          "languages"
+        ],
+        "type": "object"
+      },
+      "ApprovalPreviewLanguage": {
+        "additionalProperties": false,
+        "properties": {
+          "language": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "source",
+              "translated",
+              "draft"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "language",
+          "name",
+          "status"
         ],
         "type": "object"
       },
@@ -6029,6 +6199,9 @@
           "headline": {
             "$ref": "#/components/schemas/ReportHeadline"
           },
+          "languages": {
+            "$ref": "#/components/schemas/ReportLanguages"
+          },
           "mailboxes": {
             "items": {
               "$ref": "#/components/schemas/ReportMailboxRow"
@@ -9339,7 +9512,8 @@
             "enum": [
               "broadcast",
               "automation",
-              "system"
+              "system",
+              "transactional"
             ],
             "type": "string"
           },
@@ -9404,7 +9578,8 @@
             "enum": [
               "broadcast",
               "automation",
-              "system"
+              "system",
+              "transactional"
             ],
             "type": "string"
           },
@@ -9470,7 +9645,7 @@
             "items": {
               "$ref": "#/components/schemas/ConnectStreamChoiceInput"
             },
-            "maxItems": 3,
+            "maxItems": 4,
             "type": "array"
           }
         },
@@ -21379,7 +21554,8 @@
             "enum": [
               "broadcast",
               "automation",
-              "system"
+              "system",
+              "transactional"
             ],
             "type": "string"
           },
@@ -21657,7 +21833,8 @@
             "enum": [
               "broadcast",
               "automation",
-              "system"
+              "system",
+              "transactional"
             ],
             "type": "string"
           }
@@ -21699,7 +21876,8 @@
             "enum": [
               "broadcast",
               "automation",
-              "system"
+              "system",
+              "transactional"
             ],
             "type": "string"
           }
@@ -24079,6 +24257,9 @@
           "html": {
             "type": "string"
           },
+          "language": {
+            "type": "string"
+          },
           "links": {
             "items": {
               "$ref": "#/components/schemas/ReportLink"
@@ -24336,6 +24517,230 @@
           "minutes",
           "providers",
           "current"
+        ],
+        "type": "object"
+      },
+      "ReportLanguageCount": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "language": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "language",
+          "name",
+          "count"
+        ],
+        "type": "object"
+      },
+      "ReportLanguageDraft": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
+      "ReportLanguageFallback": {
+        "additionalProperties": false,
+        "properties": {
+          "draft": {
+            "$ref": "#/components/schemas/ReportLanguageDraft"
+          },
+          "gap": {
+            "format": "double",
+            "type": "number"
+          },
+          "got": {
+            "type": "string"
+          },
+          "readers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "readers",
+          "got"
+        ],
+        "type": "object"
+      },
+      "ReportLanguageOption": {
+        "additionalProperties": false,
+        "properties": {
+          "language": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "language",
+          "name"
+        ],
+        "type": "object"
+      },
+      "ReportLanguageRow": {
+        "additionalProperties": false,
+        "properties": {
+          "clickRate": {
+            "format": "double",
+            "type": "number"
+          },
+          "clicks": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "complaintRate": {
+            "format": "double",
+            "type": "number"
+          },
+          "complaints": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "delivered": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "deliveredRate": {
+            "format": "double",
+            "type": "number"
+          },
+          "fallback": {
+            "type": "boolean"
+          },
+          "humanOpenRate": {
+            "format": "double",
+            "type": "number"
+          },
+          "humanOpens": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "kinds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "language": {
+            "type": "string"
+          },
+          "missing": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "readers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "reason": {
+            "enum": [
+              "missing",
+              "draft",
+              "held"
+            ],
+            "type": "string"
+          },
+          "sent": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "source": {
+            "type": "boolean"
+          },
+          "translatedFrom": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "unsubscribeRate": {
+            "format": "double",
+            "type": "number"
+          },
+          "unsubscribes": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "language",
+          "name",
+          "fallback",
+          "readers",
+          "kinds",
+          "source",
+          "sent",
+          "delivered",
+          "humanOpens",
+          "clicks",
+          "unsubscribes",
+          "complaints"
+        ],
+        "type": "object"
+      },
+      "ReportLanguages": {
+        "additionalProperties": false,
+        "properties": {
+          "clickMaps": {
+            "items": {
+              "$ref": "#/components/schemas/ReportLanguageOption"
+            },
+            "type": "array"
+          },
+          "fallback": {
+            "$ref": "#/components/schemas/ReportLanguageFallback"
+          },
+          "languages": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/ReportLanguageRow"
+            },
+            "type": "array"
+          },
+          "sent": {
+            "items": {
+              "$ref": "#/components/schemas/ReportLanguageCount"
+            },
+            "type": "array"
+          },
+          "versions": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "languages",
+          "versions",
+          "rows",
+          "sent",
+          "clickMaps"
         ],
         "type": "object"
       },
@@ -25792,8 +26197,13 @@
             "enum": [
               "broadcast",
               "automation",
-              "system"
+              "system",
+              "transactional"
             ],
+            "type": "string"
+          },
+          "template": {
+            "maxLength": 64,
             "type": "string"
           }
         },
@@ -25946,10 +26356,12 @@
         "additionalProperties": false,
         "properties": {
           "field": {
+            "description": "category: a transactional category (Transactional stream only)",
             "enum": [
               "mailbox_provider",
               "list",
-              "sender_domain"
+              "sender_domain",
+              "category"
             ],
             "type": "string"
           },
@@ -25981,10 +26393,12 @@
         "additionalProperties": false,
         "properties": {
           "field": {
+            "description": "category: a transactional category (Transactional stream only)",
             "enum": [
               "mailbox_provider",
               "list",
-              "sender_domain"
+              "sender_domain",
+              "category"
             ],
             "type": "string"
           },
@@ -26022,6 +26436,12 @@
       "RoutingConfig": {
         "additionalProperties": false,
         "properties": {
+          "categories": {
+            "items": {
+              "$ref": "#/components/schemas/RoutingNamed"
+            },
+            "type": "array"
+          },
           "issues": {
             "items": {
               "$ref": "#/components/schemas/RoutingIssue"
@@ -26061,6 +26481,12 @@
               "$ref": "#/components/schemas/RoutingStreamView"
             },
             "type": "array"
+          },
+          "templates": {
+            "items": {
+              "$ref": "#/components/schemas/RoutingNamed"
+            },
+            "type": "array"
           }
         },
         "required": [
@@ -26068,6 +26494,8 @@
           "providers",
           "lists",
           "senderDomains",
+          "categories",
+          "templates",
           "savedBy",
           "issues",
           "shared"
@@ -26220,7 +26648,7 @@
             "items": {
               "$ref": "#/components/schemas/RoutingStreamInput"
             },
-            "maxItems": 3,
+            "maxItems": 4,
             "minItems": 1,
             "type": "array"
           }
@@ -26307,19 +26735,22 @@
             "description": "Provider id, or empty for none",
             "type": "string"
           },
+          "priority": {
+            "type": "boolean"
+          },
           "splits": {
             "items": {
               "$ref": "#/components/schemas/RoutingSplit"
             },
             "maxItems": 5,
-            "minItems": 1,
             "type": "array"
           },
           "stream": {
             "enum": [
               "broadcast",
               "automation",
-              "system"
+              "system",
+              "transactional"
             ],
             "type": "string"
           }
@@ -26356,6 +26787,15 @@
           "fallback": {
             "type": "string"
           },
+          "priority": {
+            "type": "boolean"
+          },
+          "senderDomains": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "splits": {
             "items": {
               "$ref": "#/components/schemas/RoutingSplit"
@@ -26366,7 +26806,8 @@
             "enum": [
               "broadcast",
               "automation",
-              "system"
+              "system",
+              "transactional"
             ],
             "type": "string"
           },
@@ -31932,6 +32373,119 @@
         ],
         "type": "object"
       },
+      "TransactionalAttachmentInput": {
+        "additionalProperties": false,
+        "properties": {
+          "content": {
+            "description": "The file, base64-encoded",
+            "type": "string"
+          },
+          "content_id": {
+            "description": "Makes it an inline image the HTML references as cid:\u003ccontent_id\u003e",
+            "maxLength": 200,
+            "type": "string"
+          },
+          "content_type": {
+            "description": "Guessed from the file name when omitted",
+            "examples": [
+              "application/pdf"
+            ],
+            "maxLength": 200,
+            "type": "string"
+          },
+          "filename": {
+            "examples": [
+              "INV-2026-0418.pdf"
+            ],
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "filename",
+          "content"
+        ],
+        "type": "object"
+      },
+      "TransactionalBatch": {
+        "additionalProperties": false,
+        "properties": {
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionalSend"
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "messages"
+        ],
+        "type": "object"
+      },
+      "TransactionalBatchItem": {
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/TransactionalProblem"
+          },
+          "id": {
+            "type": "string"
+          },
+          "index": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "send_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "queued",
+              "scheduled",
+              "not_delivered",
+              "error"
+            ],
+            "type": "string"
+          },
+          "test": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "index",
+          "status"
+        ],
+        "type": "object"
+      },
+      "TransactionalBatchResult": {
+        "additionalProperties": false,
+        "properties": {
+          "accepted": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "failed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionalBatchItem"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "results",
+          "accepted",
+          "failed"
+        ],
+        "type": "object"
+      },
       "TransactionalBreakingChange": {
         "additionalProperties": false,
         "properties": {
@@ -32681,6 +33235,84 @@
         },
         "type": "object"
       },
+      "TransactionalProblem": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "description": "Stable error code, e.g. permission_denied",
+            "type": "string"
+          },
+          "detail": {
+            "description": "A human-readable explanation specific to this occurrence of the problem.",
+            "examples": [
+              "Property foo is required but is missing."
+            ],
+            "type": "string"
+          },
+          "errors": {
+            "description": "Optional list of individual error details",
+            "items": {
+              "$ref": "#/components/schemas/ErrorDetail"
+            },
+            "type": "array"
+          },
+          "helpers": {
+            "description": "Members who hold the missing permission",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "instance": {
+            "description": "A URI reference that identifies the specific occurrence of the problem.",
+            "examples": [
+              "https://example.com/error-log/abc123"
+            ],
+            "format": "uri",
+            "type": "string"
+          },
+          "meta": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "missing": {
+            "description": "Required variables the call didn't send (missing_variables)",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "permission": {
+            "description": "The missing permission key",
+            "type": "string"
+          },
+          "status": {
+            "description": "HTTP status code",
+            "examples": [
+              400
+            ],
+            "format": "int64",
+            "type": "integer"
+          },
+          "title": {
+            "description": "A short, human-readable summary of the problem type. This value should not change between occurrences of the error.",
+            "examples": [
+              "Bad Request"
+            ],
+            "type": "string"
+          },
+          "type": {
+            "default": "about:blank",
+            "description": "A URI reference to human-readable documentation for the error.",
+            "examples": [
+              "https://example.com/errors/example"
+            ],
+            "format": "uri",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "TransactionalPublishApproval": {
         "additionalProperties": false,
         "properties": {
@@ -32918,6 +33550,128 @@
         },
         "required": [
           "version"
+        ],
+        "type": "object"
+      },
+      "TransactionalSend": {
+        "additionalProperties": false,
+        "properties": {
+          "attachments": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionalAttachmentInput"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "bcc": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionalAddress"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "cc": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionalAddress"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "data": {
+            "additionalProperties": {},
+            "description": "The template's variables",
+            "type": "object"
+          },
+          "from": {
+            "description": "A verified Transactional sender, as an address or \"Name \u003caddress\u003e\"; the template's sender when omitted",
+            "maxLength": 320,
+            "type": "string"
+          },
+          "metadata": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "preheader": {
+            "description": "Overrides the template's preheader (Liquid)",
+            "maxLength": 500,
+            "type": "string"
+          },
+          "reply_to": {
+            "maxLength": 320,
+            "type": "string"
+          },
+          "send_at": {
+            "description": "Send later, up to 72 hours ahead",
+            "format": "date-time",
+            "type": "string"
+          },
+          "subject": {
+            "description": "Overrides the template's subject (Liquid)",
+            "maxLength": 998,
+            "type": "string"
+          },
+          "tags": {
+            "description": "Returned with every webhook event of the message",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 10,
+            "type": "array"
+          },
+          "template": {
+            "description": "The template's ID",
+            "examples": [
+              "password-reset"
+            ],
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "to": {
+            "$ref": "#/components/schemas/TransactionalAddress"
+          }
+        },
+        "required": [
+          "template",
+          "to"
+        ],
+        "type": "object"
+      },
+      "TransactionalSendResult": {
+        "additionalProperties": false,
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "id": {
+            "examples": [
+              "0192f1c4-7b2e-7c51-9d0a-3f5e8b1a2c44"
+            ],
+            "type": "string"
+          },
+          "send_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "description": "not_delivered: a test-mode key's message to an address that isn't allowed",
+            "enum": [
+              "queued",
+              "scheduled",
+              "not_delivered"
+            ],
+            "type": "string"
+          },
+          "test": {
+            "description": "Sent with a test-mode key",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "status"
         ],
         "type": "object"
       },
@@ -41649,6 +42403,17 @@
               "format": "uuid",
               "type": "string"
             }
+          },
+          {
+            "description": "Preview a language version the approval covers; empty shows the source",
+            "explode": false,
+            "in": "query",
+            "name": "language",
+            "schema": {
+              "description": "Preview a language version the approval covers; empty shows the source",
+              "maxLength": 16,
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -47113,6 +47878,17 @@
             "schema": {
               "description": "Campaign id",
               "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Show the click map of one language version (campaigns sent in several languages)",
+            "explode": false,
+            "in": "query",
+            "name": "language",
+            "schema": {
+              "description": "Show the click map of one language version (campaigns sent in several languages)",
+              "maxLength": 16,
               "type": "string"
             }
           }
@@ -62972,6 +63748,162 @@
         ],
         "x-access": "workspace",
         "x-permission": "transactional:publish"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/transactional/messages": {
+      "post": {
+        "description": "Answers 202 with the message ID and status queued (scheduled with send_at). Errors are RFC 9457 problems whose detail says what to fix: template_not_found, template_not_published, missing_variables (listed in missing), invalid_recipient, recipient_suppressed (with the reason and date), sender_not_verified, attachments_too_large (naming the route's provider limit), rate_limited (with Retry-After), no_healthy_route. Send an Idempotency-Key header: a retry with the same key within 24 hours gets the first answer and sends nothing. A test-mode key delivers only to the workspace's members and its allowed test addresses.",
+        "operationId": "send-transactional-message",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "A retry with the same key within 24 hours never sends twice",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "schema": {
+              "description": "A retry with the same key within 24 hours never sends twice",
+              "maxLength": 255,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransactionalSend"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionalSendResult"
+                }
+              }
+            },
+            "description": "Accepted"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Send one message with a template's live version",
+        "tags": [
+          "Transactional messages"
+        ],
+        "x-access": "workspace",
+        "x-permission": "transactional:send"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/transactional/messages/batch": {
+      "post": {
+        "description": "Each message gets its own answer in results, in the order sent: its ID and status, or the problem that stopped it (the same codes as one send).",
+        "operationId": "send-transactional-batch",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "A retry of the same batch within 24 hours never sends twice",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "schema": {
+              "description": "A retry of the same batch within 24 hours never sends twice",
+              "maxLength": 255,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransactionalBatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionalBatchResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Send up to 100 messages, each with its own recipient and data",
+        "tags": [
+          "Transactional messages"
+        ],
+        "x-access": "workspace",
+        "x-permission": "transactional:send"
       }
     },
     "/api/v1/workspaces/{workspace}/transactional/settings": {

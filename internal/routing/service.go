@@ -82,7 +82,7 @@ type RoutingSplit struct {
 // RoutingCondition is a rule evaluated before the split: IF field matches
 // one of values THEN only providerId.
 type RoutingCondition struct {
-	Field      string   `json:"field" enum:"mailbox_provider,list,sender_domain"`
+	Field      string   `json:"field" enum:"mailbox_provider,list,sender_domain,category" doc:"category: a transactional category (Transactional stream only)"`
 	Values     []string `json:"values" minItems:"1" maxItems:"50"`
 	ProviderID string   `json:"providerId" format:"uuid"`
 	Note       string   `json:"note,omitempty" maxLength:"120"`
@@ -90,16 +90,21 @@ type RoutingCondition struct {
 
 // RoutingStreamInput is one stream's routing in a save.
 type RoutingStreamInput struct {
-	Stream     string             `json:"stream" enum:"broadcast,automation,system"`
-	Splits     []RoutingSplit     `json:"splits" minItems:"1" maxItems:"5"`
+	Stream string `json:"stream" enum:"broadcast,automation,system,transactional"`
+	// Splits are the default route; every stream needs one except
+	// Transactional, where none removes its route.
+	Splits     []RoutingSplit     `json:"splits" maxItems:"5"`
 	Fallback   string             `json:"fallback,omitempty" doc:"Provider id, or empty for none"`
 	Failover   string             `json:"failover" enum:"automatic,pause_and_ask,warm_only"`
 	Conditions []RoutingCondition `json:"conditions" maxItems:"20"`
+	// Priority (Transactional only): transactional messages go first within
+	// the rate of a provider that also sends a campaign.
+	Priority *bool `json:"priority,omitempty"`
 }
 
 // RoutingSaveInput replaces the routing of the streams it lists.
 type RoutingSaveInput struct {
-	Streams []RoutingStreamInput `json:"streams" minItems:"1" maxItems:"3"`
+	Streams []RoutingStreamInput `json:"streams" minItems:"1" maxItems:"4"`
 	// AcknowledgeBulkTerms keeps a Broadcast route that a provider's terms
 	// don't allow. The decision is recorded and Send Readiness blocks
 	// broadcasts while it stands.
@@ -123,7 +128,7 @@ type RoutingVolume struct {
 
 // RoutingStreamView is one stream's saved routing.
 type RoutingStreamView struct {
-	Stream     string                 `json:"stream" enum:"broadcast,automation,system"`
+	Stream     string                 `json:"stream" enum:"broadcast,automation,system,transactional"`
 	Splits     []RoutingSplit         `json:"splits"`
 	Fallback   string                 `json:"fallback"`
 	Failover   string                 `json:"failover" enum:"automatic,pause_and_ask,warm_only"`
@@ -132,6 +137,11 @@ type RoutingStreamView struct {
 	// route the provider's terms don't allow.
 	BulkTermsAcknowledgedAt *time.Time     `json:"bulkTermsAcknowledgedAt,omitempty"`
 	Volume                  *RoutingVolume `json:"volume,omitempty"`
+	// Priority (Transactional only): first in line on shared providers.
+	Priority *bool `json:"priority,omitempty"`
+	// SenderDomains (Transactional only) are the domains marked for
+	// transactional mail ("notify.acme.io").
+	SenderDomains []string `json:"senderDomains,omitempty"`
 }
 
 // RoutingTerms is one row of "What each connected provider's terms allow".
@@ -194,10 +204,14 @@ type RoutingConfig struct {
 	Providers     []RoutingProvider   `json:"providers"`
 	Lists         []RoutingNamed      `json:"lists"`
 	SenderDomains []string            `json:"senderDomains"`
-	SavedAt       *time.Time          `json:"savedAt,omitempty"`
-	SavedBy       string              `json:"savedBy"`
-	Issues        []RoutingIssue      `json:"issues"`
-	Shared        RoutingShared       `json:"shared"`
+	// Categories are the transactional categories (Transactional conditions);
+	// Templates the transactional templates the route tester offers.
+	Categories []RoutingNamed `json:"categories"`
+	Templates  []RoutingNamed `json:"templates"`
+	SavedAt    *time.Time     `json:"savedAt,omitempty"`
+	SavedBy    string         `json:"savedBy"`
+	Issues     []RoutingIssue `json:"issues"`
+	Shared     RoutingShared  `json:"shared"`
 }
 
 // Get returns the routing screen for a workspace.
@@ -215,7 +229,7 @@ func (s *Service) Get(ctx context.Context, ws *store.Workspace) (RoutingConfig, 
 		return RoutingConfig{}, err
 	}
 	listNames := map[string]string{}
-	out := RoutingConfig{Providers: provs, Lists: []RoutingNamed{}, SenderDomains: []string{}, Issues: Validate(set, facts)}
+	out := RoutingConfig{Providers: provs, Lists: []RoutingNamed{}, SenderDomains: []string{}, Categories: []RoutingNamed{}, Templates: []RoutingNamed{}, Issues: Validate(set, facts)}
 	for _, l := range lists {
 		out.Lists = append(out.Lists, RoutingNamed{ID: l.ID.String(), Name: l.Name})
 		listNames[l.ID.String()] = l.Name
@@ -227,17 +241,45 @@ func (s *Service) Get(ctx context.Context, ws *store.Workspace) (RoutingConfig, 
 	for _, d := range domains {
 		out.SenderDomains = append(out.SenderDomains, d.Domain)
 	}
+	categoryNames := map[string]string{}
+	if cats, err := s.Q.TxnRouteCategories(ctx, ws.ID); err == nil {
+		for _, c := range cats {
+			out.Categories = append(out.Categories, RoutingNamed{ID: c.ID.String(), Name: c.Name})
+			categoryNames[c.ID.String()] = c.Name
+		}
+	} else {
+		return RoutingConfig{}, err
+	}
+	if tpls, err := s.Q.TxnRouteTemplates(ctx, ws.ID); err == nil {
+		for _, t := range tpls {
+			out.Templates = append(out.Templates, RoutingNamed{ID: t.Key, Name: t.Name})
+		}
+	} else {
+		return RoutingConfig{}, err
+	}
+	txDomains, err := s.Q.TxnRouteDomains(ctx, ws.ID)
+	if err != nil {
+		return RoutingConfig{}, err
+	}
 	pols, err := s.Q.RoutingListPolicies(ctx, ws.ID)
 	if err != nil {
 		return RoutingConfig{}, err
 	}
 	acks := map[string]*time.Time{}
+	priority := true
 	for _, p := range pols {
 		acks[p.Stream] = p.BulkTermsAckAt
+		if p.Stream == string(StreamTransactional) {
+			priority = p.Priority
+		}
 	}
 	volumes := s.volumes(ctx, ws)
 	for _, stream := range Streams {
 		v := RoutingStreamView{Stream: string(stream), Splits: []RoutingSplit{}, Failover: string(set.Policy(stream)), Conditions: []RoutingConditionView{}, BulkTermsAcknowledgedAt: acks[string(stream)], Volume: volumes[stream]}
+		if stream == StreamTransactional {
+			pr := priority
+			v.Priority, v.SenderDomains = &pr, txDomains
+		}
 		for _, r := range set.StreamRules(stream) {
 			if r.Conditions.Empty() {
 				for _, sp := range r.Splits {
@@ -251,7 +293,7 @@ func (s *Service) Get(ctx context.Context, ws *store.Workspace) (RoutingConfig, 
 			if len(r.Splits) == 0 {
 				continue
 			}
-			c := conditionView(r, listNames)
+			c := conditionView(r, listNames, categoryNames)
 			v.Conditions = append(v.Conditions, c)
 		}
 		slices.SortStableFunc(v.Splits, func(a, b RoutingSplit) int { return b.Weight - a.Weight })
@@ -268,9 +310,18 @@ func (s *Service) Get(ctx context.Context, ws *store.Workspace) (RoutingConfig, 
 	return out, nil
 }
 
-func conditionView(r Rule, listNames map[string]string) RoutingConditionView {
+func conditionView(r Rule, listNames, categoryNames map[string]string) RoutingConditionView {
 	c := RoutingConditionView{RoutingCondition: RoutingCondition{ProviderID: r.Splits[0].ProviderID.String(), Note: r.Name}}
 	switch {
+	case len(r.Conditions.Categories) > 0:
+		c.Field, c.Values = "category", r.Conditions.Categories
+		for _, v := range c.Values {
+			name := categoryNames[v]
+			if name == "" {
+				name = "deleted category"
+			}
+			c.ValueLabels = append(c.ValueLabels, name)
+		}
 	case len(r.Conditions.MailboxProviders) > 0:
 		c.Field, c.Values = "mailbox_provider", r.Conditions.MailboxProviders
 		for _, v := range c.Values {
@@ -441,6 +492,12 @@ func toSet(in RoutingSaveInput, base Set) (Set, error) {
 		}
 		replaced[stream] = true
 		out.Policies[stream] = Policy(st.Failover)
+		if len(st.Splits) == 0 {
+			if stream == StreamTransactional {
+				continue // no Transactional route
+			}
+			return Set{}, api.Invalid(fmt.Sprintf("body.streams[%d].splits", i), "Pick a primary provider for "+streamName(stream)+".")
+		}
 		var fallback *uuid.UUID
 		if st.Fallback != "" {
 			id, err := uuid.Parse(st.Fallback)
@@ -491,6 +548,16 @@ func toSet(in RoutingSaveInput, base Set) (Set, error) {
 					}
 				}
 				cond.Lists = values
+			case "category":
+				if stream != StreamTransactional {
+					return Set{}, api.Invalid(fmt.Sprintf("body.streams[%d].conditions[%d].field", i, j), "Only Transactional routes have conditions by category.")
+				}
+				for _, v := range values {
+					if _, err := uuid.Parse(v); err != nil {
+						return Set{}, api.Invalid(fmt.Sprintf("body.streams[%d].conditions[%d].values", i, j), "Pick categories from this workspace.")
+					}
+				}
+				cond.Categories = values
 			default:
 				for k := range values {
 					values[k] = strings.ToLower(values[k])
@@ -543,6 +610,21 @@ func (s *Service) Save(ctx context.Context, ws *store.Workspace, in RoutingSaveI
 			}
 		}
 	}
+	if cats, err := s.Q.TxnRouteCategories(ctx, ws.ID); err == nil {
+		knownCat := map[string]bool{}
+		for _, c := range cats {
+			knownCat[c.ID.String()] = true
+		}
+		for _, r := range set.Rules {
+			for _, c := range r.Conditions.Categories {
+				if !knownCat[c] {
+					return RoutingConfig{}, api.Invalid("body.streams", "A condition names a category that isn't in this workspace.")
+				}
+			}
+		}
+	} else {
+		return RoutingConfig{}, err
+	}
 	issues := Validate(set, facts)
 	if Blocking(issues) {
 		for _, i := range issues {
@@ -589,6 +671,13 @@ func (s *Service) Save(ctx context.Context, ws *store.Workspace, in RoutingSaveI
 			}
 			if err := q.RoutingUpsertPolicy(ctx, params); err != nil {
 				return err
+			}
+		}
+		for _, st := range in.Streams {
+			if providers.Stream(st.Stream) == StreamTransactional && st.Priority != nil {
+				if err := q.TxnRouteSetPriority(ctx, store.TxnRouteSetPriorityParams{WorkspaceID: ws.ID, Priority: *st.Priority}); err != nil {
+					return err
+				}
 			}
 		}
 		wsID := ws.ID
