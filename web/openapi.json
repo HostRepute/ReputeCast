@@ -33909,6 +33909,17 @@
             ],
             "type": "string"
           },
+          "hiddenSections": {
+            "items": {
+              "enum": [
+                "transactional",
+                "grow",
+                "earn"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
           "hostRepute": {
             "$ref": "#/components/schemas/ShellHostRepute"
           },
@@ -33938,7 +33949,8 @@
           "actorType",
           "permissions",
           "scope",
-          "unread"
+          "unread",
+          "hiddenSections"
         ],
         "type": "object"
       },
@@ -34046,6 +34058,17 @@
             },
             "type": "array"
           },
+          "hiddenSections": {
+            "items": {
+              "enum": [
+                "transactional",
+                "grow",
+                "earn"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
           "id": {
             "type": "string"
           },
@@ -34085,7 +34108,42 @@
           "canTransfer",
           "canDelete",
           "hasPassword",
-          "helpers"
+          "helpers",
+          "hiddenSections"
+        ],
+        "type": "object"
+      },
+      "WorkspaceSidebar": {
+        "additionalProperties": false,
+        "properties": {
+          "hiddenSections": {
+            "description": "Sections hidden from the sidebar, in sidebar order",
+            "items": {
+              "enum": [
+                "transactional",
+                "grow",
+                "earn"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "hiddenSections"
+        ],
+        "type": "object"
+      },
+      "WorkspaceSidebarSectionInput": {
+        "additionalProperties": false,
+        "properties": {
+          "shown": {
+            "description": "Show the section in the sidebar; false hides it",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "shown"
         ],
         "type": "object"
       },
@@ -59067,6 +59125,88 @@
         ],
         "x-access": "workspace",
         "x-permission": "providers:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/settings/sidebar/{section}": {
+      "put": {
+        "operationId": "set-sidebar-section",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The section",
+            "in": "path",
+            "name": "section",
+            "required": true,
+            "schema": {
+              "description": "The section",
+              "enum": [
+                "transactional",
+                "grow",
+                "earn"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkspaceSidebarSectionInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceSidebar"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Show or hide a section in the sidebar (members can still open it by link)",
+        "tags": [
+          "Workspaces"
+        ],
+        "x-access": "workspace",
+        "x-permission": "workspace:manage"
       }
     },
     "/api/v1/workspaces/{workspace}/suppression-sync": {

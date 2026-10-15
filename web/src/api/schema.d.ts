@@ -5574,6 +5574,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/settings/sidebar/{section}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Show or hide a section in the sidebar (members can still open it by link) */
+        put: operations["set-sidebar-section"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/suppression-sync": {
         parameters: {
             query?: never;
@@ -15951,6 +15968,7 @@ export interface components {
         WorkspaceMe: {
             /** @enum {string} */
             actorType: "user" | "api_key" | "mcp_agent";
+            hiddenSections: ("transactional" | "grow" | "earn")[];
             hostRepute?: components["schemas"]["ShellHostRepute"];
             permissions: string[];
             scope: components["schemas"]["Scope"];
@@ -15986,6 +16004,7 @@ export interface components {
             defaultSenderId?: string;
             hasPassword: boolean;
             helpers: string[];
+            hiddenSections: ("transactional" | "grow" | "earn")[];
             id: string;
             members: components["schemas"]["WorkspaceMembersSummary"];
             name: string;
@@ -15993,6 +16012,14 @@ export interface components {
             senders: components["schemas"]["WorkspaceSender"][];
             slug: string;
             timezone: string;
+        };
+        WorkspaceSidebar: {
+            /** @description Sections hidden from the sidebar, in sidebar order */
+            hiddenSections: ("transactional" | "grow" | "earn")[];
+        };
+        WorkspaceSidebarSectionInput: {
+            /** @description Show the section in the sidebar; false hides it */
+            shown: boolean;
         };
         WorkspaceTransferCandidate: {
             eligible: boolean;
@@ -29144,6 +29171,44 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SettingsRotationResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-sidebar-section": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The section */
+                section: "transactional" | "grow" | "earn";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkspaceSidebarSectionInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceSidebar"];
                 };
             };
             /** @description Error */
