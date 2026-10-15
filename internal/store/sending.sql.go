@@ -272,6 +272,7 @@ SELECT page.id::uuid AS id,
        (c.broadcasts_stopped_at IS NOT NULL)::boolean AS sunset_stopped,
        EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = c.workspace_id AND s.email = c.email)::boolean AS suppressed,
        coalesce((SELECT p.paused_until > $1::timestamptz FROM contact_preferences p WHERE p.contact_id = c.id), false)::boolean AS paused,
+       coalesce(c.language, '')::text AS language,
        (excluded.contact_id IS NOT NULL)::boolean AS excluded_list,
        (excluded_staged.contact_id IS NOT NULL)::boolean AS excluded_segment,
        coalesce(member_lists.lists, '{}'::uuid[])::uuid[] AS lists,
@@ -311,6 +312,7 @@ type SendingAudiencePageRow struct {
 	SunsetStopped   bool            `json:"sunsetStopped"`
 	Suppressed      bool            `json:"suppressed"`
 	Paused          bool            `json:"paused"`
+	Language        string          `json:"language"`
 	ExcludedList    bool            `json:"excludedList"`
 	ExcludedSegment bool            `json:"excludedSegment"`
 	Lists           []uuid.UUID     `json:"lists"`
@@ -358,6 +360,7 @@ func (q *Queries) SendingAudiencePage(ctx context.Context, arg SendingAudiencePa
 			&i.SunsetStopped,
 			&i.Suppressed,
 			&i.Paused,
+			&i.Language,
 			&i.ExcludedList,
 			&i.ExcludedSegment,
 			&i.Lists,
@@ -809,9 +812,9 @@ WITH picked AS (
 ), upd AS (
     UPDATE messages m SET claimed_at = $5::timestamptz, attempts = m.attempts + 1
     FROM picked WHERE m.id = picked.id
-    RETURNING m.id, m.workspace_id, m.contact_id, m.email, m.variant, m.mailbox_provider, m.attempts
+    RETURNING m.id, m.workspace_id, m.contact_id, m.email, m.variant, m.mailbox_provider, m.attempts, m.language
 )
-SELECT upd.id, upd.contact_id, upd.email, upd.variant, upd.mailbox_provider, upd.attempts,
+SELECT upd.id, upd.contact_id, upd.email, upd.variant, upd.mailbox_provider, upd.attempts, upd.language,
        coalesce(c.first_name, '')::text AS first_name, coalesce(c.last_name, '')::text AS last_name,
        coalesce(c.attributes, '{}'::jsonb)::jsonb AS attributes, coalesce(c.tier, '')::text AS tier,
        coalesce(c.source, '')::text AS source, (c.last_human_open_at IS NOT NULL)::boolean AS engaged,
@@ -838,6 +841,7 @@ type SendingClaimRow struct {
 	Variant         string          `json:"variant"`
 	MailboxProvider string          `json:"mailboxProvider"`
 	Attempts        int16           `json:"attempts"`
+	Language        string          `json:"language"`
 	FirstName       string          `json:"firstName"`
 	LastName        string          `json:"lastName"`
 	Attributes      json.RawMessage `json:"attributes"`
@@ -874,6 +878,7 @@ func (q *Queries) SendingClaim(ctx context.Context, arg SendingClaimParams) ([]S
 			&i.Variant,
 			&i.MailboxProvider,
 			&i.Attempts,
+			&i.Language,
 			&i.FirstName,
 			&i.LastName,
 			&i.Attributes,

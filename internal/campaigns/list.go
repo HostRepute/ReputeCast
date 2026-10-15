@@ -38,6 +38,9 @@ type Service struct {
 	// AfterChange runs once a save of the content, audience, sender or
 	// settings committed (the approvals domain re-checks open approvals).
 	AfterChange ChangeHook
+	// Translations handles language versions (?language= on the content
+	// endpoints); nil without content languages.
+	Translations Translations
 }
 
 // ChangeHook is told which campaign changed. The save already committed, so

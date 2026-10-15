@@ -263,6 +263,7 @@ func TestSending(t *testing.T) {
 	t.Run("DemoSendReset", func(t *testing.T) { testDemoReset(t, s.fixture(t, "Demo reset")) })
 	t.Run("BestTime", func(t *testing.T) { testBestTime(t, s.fixture(t, "Best time")) })
 	t.Run("AudienceFromSeveralLists", func(t *testing.T) { testSeveralLists(t, s.fixture(t, "Several lists")) })
+	t.Run("Languages", func(t *testing.T) { testLanguages(t, s.fixture(t, "Languages")) })
 }
 
 // testBestTime sends at each recipient's best time: a contact who usually
@@ -857,5 +858,53 @@ func testSeveralLists(t *testing.T, f *fixture) {
 	}
 	if err := f.e.Cancel(f.ctx, f.campaign, f.sofia); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// testLanguages gives each recipient the language version for them: their
+// own when it is translated, otherwise the fallback (English, the source),
+// with the reason recorded on the message.
+func testLanguages(t *testing.T, f *fixture) {
+	f.exec(`UPDATE campaigns SET ab_test = NULL WHERE id = $1`, f.campaign)
+	f.exec(`INSERT INTO workspace_languages (workspace_id, code, page_copy_status) VALUES ($1, 'es', 'live'), ($1, 'de', 'live'), ($1, 'vi', 'not_set_up')
+		ON CONFLICT (workspace_id, code) DO UPDATE SET removed_at = NULL`, f.ws)
+	f.addContacts(contactSpec{n: 6, mailbox: "gmail", domain: "gmail.com", engaged: true})
+	for i, lang := range []string{"es-MX", "de-AT", "", "pt-BR", "vi", "en"} {
+		f.exec(`UPDATE contacts SET language = $2 WHERE id = (SELECT c.id FROM contacts c JOIN list_memberships m ON m.contact_id = c.id WHERE m.list_id = $1 ORDER BY c.email OFFSET $3 LIMIT 1)`,
+			f.list, lang, i)
+	}
+	add := func(lang, status, subject string) {
+		f.exec(`INSERT INTO content_translations (id, workspace_id, owner_kind, owner_id, language, status, subject, html, plain_text)
+			VALUES (gen_random_uuid(), $1, 'campaign', $2, $3, $4, $5::text, '<p>' || $5::text || ' <a href="https://acme.io/' || $3::text || '">link</a></p>', $5::text)`,
+			f.ws, f.campaign, lang, status, subject)
+	}
+	add("es", "translated", "Hola")
+	add("de", "translated", "Hallo")
+	add("vi", "draft", "Xin chào")
+	f.startSend(engine.StartOptions{})
+	type row struct{ lang, contact, reason string }
+	want := map[row]int64{{"es", "es", "match"}: 1, {"de", "de", "match"}: 1, {"en", "", "no_language"}: 1, {"en", "pt", "not_offered"}: 1, {"en", "vi", "draft"}: 1, {"en", "en", "match"}: 1}
+	for r, n := range want {
+		if got := f.count(`SELECT count(*) FROM messages WHERE campaign_id = $1 AND language = $2 AND contact_language = $3 AND language_reason = $4`, f.campaign, r.lang, r.contact, r.reason); got != n {
+			f.dump()
+			rows, _ := f.env.App.Pool.Query(f.ctx, `SELECT m.email, m.language, m.contact_language, m.language_reason, c.language FROM messages m JOIN contacts c ON c.id = m.contact_id WHERE m.campaign_id = $1`, f.campaign)
+			for rows.Next() {
+				var e, l, cl, re, raw string
+				_ = rows.Scan(&e, &l, &cl, &re, &raw)
+				t.Logf("message %s: %q %q %q (contact %q)", e, l, cl, re, raw)
+			}
+			rows.Close()
+			t.Fatalf("%+v: %d messages, want %d", r, got, n)
+		}
+	}
+	// Each version's links are numbered after the source's.
+	if n := f.count(`SELECT count(*) FROM campaign_links WHERE campaign_id = $1 AND url IN ('https://acme.io/es', 'https://acme.io/de')`, f.campaign); n != 2 {
+		t.Fatalf("%d language version links indexed, want 2", n)
+	}
+	if _, done, err := f.e.Drive(f.ctx, f.campaign, f.start, 10*time.Minute); err != nil || !done {
+		t.Fatalf("the send didn't finish: done=%v err=%v", done, err)
+	}
+	if n := f.count(`SELECT count(*) FROM messages WHERE campaign_id = $1 AND sent_at IS NOT NULL`, f.campaign); n != 6 {
+		t.Fatalf("%d sent, want 6", n)
 	}
 }
