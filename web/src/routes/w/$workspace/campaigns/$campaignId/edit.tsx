@@ -13,7 +13,7 @@ const search = z.object({
     .optional()
     .catch(undefined),
   /** Panel to open with it: the inspector tab, and the left panel tab. */
-  panel: z.enum(['style', 'settings', 'deliverability']).optional().catch(undefined),
+  panel: z.enum(['style', 'settings', 'deliverability', 'accessibility']).optional().catch(undefined),
   left: z.enum(['blocks', 'layers', 'templates']).optional().catch(undefined),
 })
 
@@ -27,7 +27,8 @@ export const Route = createFileRoute('/w/$workspace/campaigns/$campaignId/edit')
     return (
       <ComposerPage
         campaignId={campaignId}
-        search={s}
+        // Until the composer has its Accessibility panel, its issues open in Deliverability.
+        search={{ ...s, panel: s.panel === 'accessibility' ? 'deliverability' : s.panel }}
         onSearch={(next) =>
           void navigate({
             // The deep link is used once: later changes drop it.

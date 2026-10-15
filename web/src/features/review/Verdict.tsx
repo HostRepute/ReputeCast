@@ -5,23 +5,31 @@ import { Grid } from '@/components/ui/Layout'
 import { cn } from '@/lib/cn'
 import { clock, count } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
+import { m as am } from '@/features/accessibility/messages'
+import { accessibilityBlock } from '@/features/accessibility/review'
+import { useT } from '@/i18n'
 import { blockedLine, countsLine, recheckText, scheduleSentence, sendsIn, thresholdsLine, verdictTitle, type Review, type Run } from './logic'
 import { VerdictIcon, whenText } from './parts'
 
 /** Ready, Ready with warnings or Blocked, with the banner's actions. */
 export function VerdictBanner({ run, mode, actions }: { run: Run; mode: Review['schedule']['mode']; actions?: ReactNode }) {
   const now = useNow()
+  const t = useT()
   const blocked = run.verdict === 'blocked'
   const kind = blocked ? 'bad' : run.verdict === 'warnings' ? 'warn' : 'ok'
+  // Blocked by the workspace's accessibility policy alone: the banner says so.
+  const a11y = blocked ? accessibilityBlock(run) : undefined
   return (
     <section className={cn('rv-verdict rise', `v-${kind}`)} role={blocked ? 'alert' : 'status'}>
       <VerdictIcon kind={kind} />
       <div className="rv-vtext">
-        <span className="rv-vtitle">{verdictTitle(run.verdict)}</span>
+        <span className="rv-vtitle">{a11y ? t(am.blockedTitle, { count: a11y.count }) : verdictTitle(run.verdict)}</span>
         <span>
-          {blocked
-            ? blockedLine(run.counts, run.checks)
-            : `${countsLine(run.counts)}. Checks finished ${whenText(run.ranAt, now)}, ${recheckText(mode)}.`}
+          {a11y
+            ? t(am.blockedLine, { counts: countsLine(run.counts), note: a11y.note })
+            : blocked
+              ? blockedLine(run.counts, run.checks)
+              : `${countsLine(run.counts)}. Checks finished ${whenText(run.ranAt, now)}, ${recheckText(mode)}.`}
         </span>
       </div>
       {actions ? <div className="rv-vacts">{actions}</div> : null}

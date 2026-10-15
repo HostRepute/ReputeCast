@@ -289,7 +289,7 @@ func TestReadinessFixes(t *testing.T) {
 	if !strings.HasPrefix(fixedRow, "Card titles are Heading 2, and footer text is 12 px | Fixed by Linh Nguyen at ") || !strings.HasSuffix(fixedRow, "in English · recorded in the audit log") {
 		t.Fatalf("fixed row: %q", fixedRow)
 	}
-	if moderate != "2 moderate issues: “Click here”, a bare URL" {
+	if moderate != "2 moderate issues: “Click here” and a bare URL" {
 		t.Fatalf("moderate: %q", moderate)
 	}
 	// Nothing left to fix in one click.

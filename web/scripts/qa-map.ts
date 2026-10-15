@@ -166,4 +166,14 @@ export const entries: Entry[] = [
   { board: 'PublicUnsubscribe', manual: true },
   // X01 · the phone tab bar's More sheet: open it with More at 390 × 844 (any screen; the board draws it over Overview).
   { board: 'ShellMore', manual: true },
+  // X06 · accessibility. Settings › General shows the Accessibility card (and X05's Languages card); the board is
+  // the page scrolled to them. Review & send of Weekly Digest #143 has the Accessibility group (X05 adds Languages).
+  { board: 'SettingsLanguages', path: `${ws}/settings` },
+  { board: 'SettingsLanguagesTablet', path: `${ws}/settings`, widths: [834] },
+  { board: 'SettingsLanguagesPhone', path: `${ws}/settings`, widths: [390] },
+  { board: 'SendReadinessAccessibility', path: `${ws}/campaigns/{campaign:Weekly Digest #143}/review`, widths: [1440, 834] },
+  { board: 'SendReadinessAccessibilityPhone', path: `${ws}/campaigns/{campaign:Weekly Digest #143}/review`, widths: [390] },
+  // The policy set to Block, the one-click preview, the checks running or failing: switch the policy on
+  // Settings › General or through PUT …/accessibility/policy, then reproduce by hand.
+  { board: 'AccessibilityStates', manual: true },
 ]

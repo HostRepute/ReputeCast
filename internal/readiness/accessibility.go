@@ -101,7 +101,7 @@ func (b *builder) accessibility() {
 	}
 	if !a.Checked {
 		b.add(ReadinessCheck{Key: "accessibility.unchecked", Group: GroupAccessibility, Status: Unknown, Title: "Couldn't run the accessibility checks",
-			Detail: firstNonEmpty(a.Problem, "The other checks finished; the verdict waits for this one."), Note: "not checked", Label: "Accessibility"})
+			Detail: firstNonEmpty(a.Problem, "The other checks finished; the verdict waits for this one."), Label: "Accessibility"})
 		return
 	}
 	r := a.Report
@@ -142,8 +142,10 @@ func (b *builder) accessibility() {
 				s := is.Fix.Suggestions[0]
 				c.Fixes = append(c.Fixes, apply(FixAccessibilityColor, "Use "+s.Color, "", map[string]string{"path": pathParam(is.Path), "color": s.Color,
 					"target": is.Fix.Target, "from": is.Fix.From, "label": is.Element.Label}))
+			} else {
+				// No color passes against what it sits on: the composer's picker helps.
+				c.Fixes = append(c.Fixes, link("Open in composer", b.editor(is.Path, "accessibility")))
 			}
-			c.Fixes = append(c.Fixes, link("Open in composer", b.editor(is.Path, "accessibility")))
 		default:
 			c.Label = "Alt text"
 			c.Title = is.Title + " · " + languageNames(is.Languages)
@@ -210,7 +212,12 @@ func (b *builder) moderateRow(moderate []accessibility.AccessibilityIssue, r acc
 		}
 	}
 	n := len(moderate)
-	title := fmt.Sprintf("%d moderate %s: %s", n, Plural(int64(n), "issue", "issues"), strings.Join(phrases, ", "))
+	// Two read as a pair ("“Click here” and a bare URL"); more as a list.
+	list := strings.Join(phrases, ", ")
+	if len(phrases) == 2 {
+		list = JoinAnd(phrases)
+	}
+	title := fmt.Sprintf("%d moderate %s: %s", n, Plural(int64(n), "issue", "issues"), list)
 	c := ReadinessCheck{Key: "accessibility.moderate", Group: GroupAccessibility, Status: Warn, Title: title, Label: "Moderate issues",
 		Ack: fmt.Sprintf("I understand %d moderate accessibility %s %s.", n, Plural(int64(n), "issue", "issues"), Plural(int64(n), "remains", "remain")), Fixes: []ReadinessFix{}}
 	switch {
