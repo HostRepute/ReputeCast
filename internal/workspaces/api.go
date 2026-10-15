@@ -32,6 +32,8 @@ func Register(h huma.API, s *Service) {
 			return api.NoContent, s.UpdateGeneral(ctx, api.WorkspaceFrom(ctx), in.Body)
 		})
 
+	registerSidebar(h, s, tags, base)
+
 	api.Post(h, api.Op{ID: "transfer-workspace", Path: base + "/transfer", Summary: "Make another member the Owner; you become an Admin", Tags: tags, Access: api.WorkspaceHuman(authz.WorkspaceTransfer), Status: 204},
 		func(ctx context.Context, in *struct {
 			api.WorkspaceInput

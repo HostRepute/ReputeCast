@@ -68,6 +68,34 @@ const icons = {
   import: { body: <path d="M8 11V3M4.5 6.5 8 3l3.5 3.5M2 13h12" /> },
   export: { body: <path d="M8 3v8M4.5 7.5 8 11l3.5-3.5M2 13h12" /> },
   bell: { body: <path d="M4 11V7a4 4 0 0 1 8 0v4l1.5 1.5h-11zM6.5 14a1.5 1.5 0 0 0 3 0" /> },
+  // Sections added by the design expansion, and the phone tab bar's More.
+  transactional: {
+    body: (
+      <>
+        <rect x="1.5" y="3.5" width="13" height="9" rx="1.5" />
+        <path d="m2 4.5 6 4.5 6-4.5" />
+      </>
+    ),
+  },
+  grow: { body: <path d="M2 12.5 6 8.5l3 3 5-5.5M10.5 5.5H14V9" /> },
+  earn: {
+    body: (
+      <>
+        <circle cx="8" cy="8" r="6.2" />
+        <path d="M10 5.9H7.1a1.3 1.3 0 0 0 0 2.6h1.8a1.3 1.3 0 0 1 0 2.6H6M8 4.4v1.5M8 11.1v1.5" />
+      </>
+    ),
+  },
+  moreSections: {
+    body: (
+      <>
+        <circle cx="3.5" cy="8" r="1.2" />
+        <circle cx="8" cy="8" r="1.2" />
+        <circle cx="12.5" cy="8" r="1.2" />
+      </>
+    ),
+    strokeWidth: 1.8,
+  },
 
   // Arrows and chevrons
   chevronDown: { body: <path d="m4 6 4 4 4-4" />, strokeWidth: 1.8 },

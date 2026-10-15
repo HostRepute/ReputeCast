@@ -1364,6 +1364,9 @@ type Querier interface {
 	// Unfinished setups of a workspace, newest first (resume "Connect SES").
 	SetupOpen(ctx context.Context, arg SetupOpenParams) ([]ProviderSetup, error)
 	SetupSave(ctx context.Context, arg SetupSaveParams) (ProviderSetup, error)
+	// Sidebar sections (Settings › General): the sections a workspace hides.
+	SidebarHiddenSectionsForUpdate(ctx context.Context, id uuid.UUID) ([]string, error)
+	SidebarSetHiddenSections(ctx context.Context, arg SidebarSetHiddenSectionsParams) error
 	// Unsubscribes block Broadcasts and Automations; System mail (password
 	// resets, receipts) still reaches the contact.
 	SignupAddUnsubscribe(ctx context.Context, arg SignupAddUnsubscribeParams) error

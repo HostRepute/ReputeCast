@@ -3,6 +3,7 @@ import { Link } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
 import { $api, errorMessage, type Schemas } from '@/api/client'
 import { Page } from '@/components/shell/Page'
+import { SidebarSectionsCard } from '@/components/shell/SidebarSectionsCard'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { CardSection } from '@/components/ui/Card'
 import { UnsavedChangesGuard } from '@/components/ui/ConfirmDialog'
@@ -49,6 +50,7 @@ function General({ s }: { s: Schemas['WorkspaceSettings'] }) {
     <div className={cardGrid}>
       {/* Saved values come back from the server; remounting resets the form to them. */}
       <WorkspaceCard key={`${s.name}|${s.timezone}|${s.defaultSenderId ?? ''}`} s={s} />
+      <SidebarSectionsCard s={s} />
       <ApprovalsCard s={s} />
       <MembersCard s={s} />
       <section className="card" style={{ borderColor: '#FCA5A5' }} aria-labelledby="danger-h">
@@ -254,7 +256,7 @@ function GeneralSkeleton() {
       <span className="vh" role="status">
         Loading the workspace settings
       </span>
-      {[5, 4, 3, 2].map((rows, i) => (
+      {[5, 3, 4, 3, 2].map((rows, i) => (
         <section key={i} className="card">
           <div className="sec">
             <div className="flex flex-col gap-1.5">
