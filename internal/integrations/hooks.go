@@ -3,6 +3,7 @@ package integrations
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -94,7 +95,7 @@ func (s *Service) Subscribe(ctx context.Context, ws *store.Workspace, p *authz.P
 		return IntegrationHook{}, s.privateRefusal(ctx, in.URL, fmt.Errorf("%s resolves to %s, a private address", u.Hostname(), addr))
 	}
 	wf := ParseWorkflow(workflow)
-	noteUse(ctx, it.Key, "")
+	noteUse(ctx, WorkflowUse{Item: it.Key})
 	noteTargetJSON(ctx, CallTarget{Kind: "subscribe", Event: event, Endpoint: maskEndpoint(u.String())})
 	id := uuid.Must(uuid.NewV7())
 	secret := webhooks.NewSecret()
@@ -213,7 +214,7 @@ func (s *Service) ManagedHooks(ctx context.Context, workspaceID uuid.UUID) (map[
 func (s *Service) ManagedHook(ctx context.Context, webhookID uuid.UUID) (*webhooks.WebhookManagedBy, error) {
 	r, err := s.Q.IntegrationManagedHook(ctx, webhookID)
 	if err != nil {
-		if err == pgx.ErrNoRows {
+		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
 		}
 		return nil, err

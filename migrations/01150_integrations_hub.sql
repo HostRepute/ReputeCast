@@ -121,9 +121,9 @@ CREATE TABLE wordpress_sites (
     forms             jsonb       NOT NULL DEFAULT '[]',
     first_report_at   timestamptz,
     last_report_at    timestamptz,
+    -- The last "Check now": {"ok","outcome","ms","seconds","status","detail"}.
     last_check_at     timestamptz,
-    last_check_ok     boolean,
-    last_check_detail text        NOT NULL DEFAULT '',
+    last_check        jsonb,
     -- Posts in these categories become a draft for the audience, with the
     -- template and sender; notify_user_id is told.
     rule_enabled      boolean     NOT NULL DEFAULT false,
@@ -216,14 +216,14 @@ BEGIN
     IF NEW.erased_at IS NOT NULL THEN
         RETURN NULL;
     END IF;
-    IF NEW.first_name IS DISTINCT FROM OLD.first_name THEN changed := changed || 'first_name'; END IF;
-    IF NEW.last_name IS DISTINCT FROM OLD.last_name THEN changed := changed || 'last_name'; END IF;
-    IF NEW.company IS DISTINCT FROM OLD.company THEN changed := changed || 'company'; END IF;
-    IF NEW.country IS DISTINCT FROM OLD.country THEN changed := changed || 'country'; END IF;
-    IF NEW.timezone IS DISTINCT FROM OLD.timezone THEN changed := changed || 'timezone'; END IF;
-    IF NEW.language IS DISTINCT FROM OLD.language THEN changed := changed || 'language'; END IF;
-    IF NEW.tags IS DISTINCT FROM OLD.tags THEN changed := changed || 'tags'; END IF;
-    IF NEW.attributes IS DISTINCT FROM OLD.attributes THEN changed := changed || 'fields'; END IF;
+    IF NEW.first_name IS DISTINCT FROM OLD.first_name THEN changed := array_append(changed, 'first_name'); END IF;
+    IF NEW.last_name IS DISTINCT FROM OLD.last_name THEN changed := array_append(changed, 'last_name'); END IF;
+    IF NEW.company IS DISTINCT FROM OLD.company THEN changed := array_append(changed, 'company'); END IF;
+    IF NEW.country IS DISTINCT FROM OLD.country THEN changed := array_append(changed, 'country'); END IF;
+    IF NEW.timezone IS DISTINCT FROM OLD.timezone THEN changed := array_append(changed, 'timezone'); END IF;
+    IF NEW.language IS DISTINCT FROM OLD.language THEN changed := array_append(changed, 'language'); END IF;
+    IF NEW.tags IS DISTINCT FROM OLD.tags THEN changed := array_append(changed, 'tags'); END IF;
+    IF NEW.attributes IS DISTINCT FROM OLD.attributes THEN changed := array_append(changed, 'fields'); END IF;
     IF cardinality(changed) = 0 OR NOT webhook_listens(NEW.workspace_id, 'contact.updated') THEN
         RETURN NULL;
     END IF;

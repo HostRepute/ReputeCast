@@ -48,7 +48,9 @@ type Service struct {
 	AllowPrivate func() bool
 	// HTTP overrides the client of "Check now" and the release check (tests).
 	HTTP *http.Client
-	Now  func() time.Time
+	// CheckTimeout overrides how long "Check now" waits (10 s).
+	CheckTimeout time.Duration
+	Now          func() time.Time
 }
 
 func (s *Service) now() time.Time {

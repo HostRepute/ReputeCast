@@ -29,11 +29,11 @@ ORDER BY i.connected_at DESC
 LIMIT 1;
 
 -- name: IntegrationLastLabel :one
--- The label of the automation platform connected last ("Acme ops"), to
--- suggest the next key's name.
+-- The label the first automation platform was connected with ("Acme ops"),
+-- to suggest the next key's name.
 SELECT label FROM integrations
 WHERE workspace_id = @workspace_id AND kind <> 'wordpress' AND label <> ''
-ORDER BY connected_at DESC
+ORDER BY connected_at
 LIMIT 1;
 
 -- name: IntegrationInsert :exec
@@ -219,7 +219,7 @@ SELECT * FROM integration_workflows WHERE integration_id = @integration_id AND k
 -- name: IntegrationWorkflows :many
 SELECT * FROM integration_workflows
 WHERE integration_id = @integration_id AND last_seen_at >= @since
-ORDER BY last_seen_at DESC;
+ORDER BY first_seen_at, key;
 
 -- name: IntegrationWorkflowsPurge :execrows
 DELETE FROM integration_workflows WHERE last_seen_at < @before;
@@ -327,7 +327,7 @@ UPDATE wordpress_sites SET site_url = @site_url, name = @name, plugin_version = 
 WHERE integration_id = @integration_id;
 
 -- name: WordPressSiteChecked :exec
-UPDATE wordpress_sites SET last_check_at = @at::timestamptz, last_check_ok = @ok::boolean, last_check_detail = @detail
+UPDATE wordpress_sites SET last_check_at = @at::timestamptz, last_check = @last_check
 WHERE integration_id = @integration_id;
 
 -- name: WordPressSiteSetRule :exec
@@ -436,6 +436,15 @@ VALUES (@id, @contact_id, sqlc.narg(list_id), @action, @source, @detail, @note, 
 
 -- name: IntegrationCustomFields :many
 SELECT key, label, type, options FROM custom_fields WHERE workspace_id = @workspace_id ORDER BY position, key;
+
+-- name: IntegrationEventFlows :many
+-- Live automations with their trigger and graph, to name the flows an API
+-- event starts or ends ("which starts the Onboarding automation").
+SELECT a.name, a.trigger, v.graph
+FROM automations a
+JOIN automation_versions v ON v.automation_id = a.id AND v.version = a.live_version
+WHERE a.workspace_id = @workspace_id AND a.status = 'live' AND a.deleted_at IS NULL
+ORDER BY a.name;
 
 -- name: IntegrationTemplates :many
 -- Saved templates for the post-draft rule (kind template, not deleted).

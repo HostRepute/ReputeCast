@@ -596,12 +596,19 @@ func (s *Service) numbers(ctx context.Context, l loaded) (IntegrationNumbers, []
 		deliveries[h.WorkflowKey] += h.Deliveries7d
 	}
 	out := []IntegrationWorkflowRow{}
+	var flows *eventFlows
 	for _, w := range wfs {
 		row := IntegrationWorkflowRow{Key: w.Key, Name: w.Name, Unnamed: w.Name == "", Uses: []WorkflowUse{}, LastRunAt: w.LastSeenAt}
 		_ = json.Unmarshal(w.Uses, &row.Uses)
-		for _, u := range row.Uses {
+		for i, u := range row.Uses {
 			if it, ok := ItemByKey(l.conn.Kind, u.Item); ok && it.Kind == ItemTrigger {
 				row.Trigger = true
+			}
+			if u.Event != "" {
+				if flows == nil {
+					flows = s.eventFlows(ctx, l.conn.WorkspaceID)
+				}
+				row.Uses[i].Starts, row.Uses[i].GoalOf = flows.starts[u.Event], flows.goals[u.Event]
 			}
 		}
 		if c, ok := byKey[w.Key]; ok {
@@ -642,6 +649,49 @@ func (s *Service) numbers(ctx context.Context, l loaded) (IntegrationNumbers, []
 		n.LastCallWorkflow = latest.Name
 	}
 	return n, out, nil
+}
+
+// eventFlows are the live automations an API event starts, and those that
+// have it as a goal, by event.
+type eventFlows struct {
+	starts, goals map[string][]string
+}
+
+func (s *Service) eventFlows(ctx context.Context, wsID uuid.UUID) *eventFlows {
+	out := &eventFlows{starts: map[string][]string{}, goals: map[string][]string{}}
+	rows, err := s.Q.IntegrationEventFlows(ctx, wsID)
+	if err != nil {
+		return out
+	}
+	for _, r := range rows {
+		var t struct {
+			Kind  string `json:"kind"`
+			Event string `json:"event"`
+		}
+		if json.Unmarshal(r.Trigger, &t) == nil && t.Kind == "api_event" && t.Event != "" {
+			out.starts[t.Event] = append(out.starts[t.Event], r.Name)
+		}
+		var g struct {
+			Nodes []struct {
+				Type string `json:"type"`
+				Data struct {
+					Condition *struct {
+						Kind  string `json:"kind"`
+						Event string `json:"event"`
+					} `json:"condition"`
+				} `json:"data"`
+			} `json:"nodes"`
+		}
+		if json.Unmarshal(r.Graph, &g) != nil {
+			continue
+		}
+		for _, n := range g.Nodes {
+			if c := n.Data.Condition; n.Type == "goal" && c != nil && c.Kind == "event" && c.Event != "" && !slices.Contains(out.goals[c.Event], r.Name) {
+				out.goals[c.Event] = append(out.goals[c.Event], r.Name)
+			}
+		}
+	}
+	return out
 }
 
 // IntegrationResolution says an error is behind us: who fixed it and when,
@@ -873,6 +923,26 @@ type IntegrationConnectInfo struct {
 	// ConnectionID is set when reconnecting a connection whose key stopped.
 	ConnectionID string `json:"connectionId,omitempty"`
 	InstanceURL  string `json:"instanceUrl"`
+	// Order and Includes let the dialog show the key's permissions as the
+	// switches change: in this order, leaving out a permission another one
+	// includes ("subscribers:edit includes subscribers:view").
+	Order    []string            `json:"order"`
+	Includes map[string][]string `json:"includes"`
+}
+
+// permissionIncludes says which of the catalog's permissions each one includes.
+func permissionIncludes() ([]string, map[string][]string) {
+	order := permStrings(permissionOrder)
+	inc := map[string][]string{}
+	for _, p := range permissionOrder {
+		set := authz.NewSet(p)
+		for _, q := range permissionOrder {
+			if q != p && set.Has(q) {
+				inc[string(p)] = append(inc[string(p)], string(q))
+			}
+		}
+	}
+	return order, inc
 }
 
 // IntegrationItemLock is a trigger or action in the connect dialog: on by
@@ -898,6 +968,7 @@ func (s *Service) ConnectInfo(ctx context.Context, ws *store.Workspace, p *authz
 		return IntegrationConnectInfo{}, api.NotFound("Integration")
 	}
 	out := IntegrationConnectInfo{Kind: kind, Items: []IntegrationItemLock{}, Lists: []access.ScopedList{}, Reach: s.Reachability(ctx), InstanceURL: s.base()}
+	out.Order, out.Includes = permissionIncludes()
 	on := DefaultItems(kind)
 	if IsPlatform(kind) {
 		if row, err := s.Q.IntegrationActiveByKind(ctx, store.IntegrationActiveByKindParams{WorkspaceID: ws.ID, Kind: kind}); err == nil {

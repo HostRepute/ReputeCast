@@ -165,9 +165,8 @@ func (s *Service) planJoins(ctx context.Context, ws *store.Workspace, p *authz.P
 				if left != nil {
 					when = "on " + consentDate(*left, wsLocation(ws))
 				}
-				pr := api.Err(http.StatusConflict, CodeUnsubscribed, fmt.Sprintf("%s left %s %s. ReputeCast doesn't add people back to a list they left.", email, l.Name, when))
-				pr.WithMeta("list", l.Name, "listId", id.String(), "leftAt", left)
-				return nil, pr
+				return nil, api.Err(http.StatusConflict, CodeUnsubscribed, fmt.Sprintf("%s left %s %s. ReputeCast doesn't add people back to a list they left.", email, l.Name, when)).
+					WithMeta("list", l.Name, "listId", id.String(), "leftAt", left)
 			} else if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 				return nil, err
 			} else if err == nil && m.Status == "subscribed" {
@@ -188,10 +187,9 @@ func (s *Service) refuseSuppressed(ctx context.Context, ws *store.Workspace, ema
 	if err != nil {
 		return err
 	}
-	pr := api.Err(http.StatusConflict, CodeSuppressed, fmt.Sprintf("%s is on the suppression list since %s (%s). ReputeCast doesn't add suppressed addresses.",
-		email, consentDate(sup.CreatedAt, wsLocation(ws)), suppressionWords(sup.Reason)))
-	pr.WithMeta("reason", sup.Reason, "since", sup.CreatedAt)
-	return pr
+	return api.Err(http.StatusConflict, CodeSuppressed, fmt.Sprintf("%s is on the suppression list since %s (%s). ReputeCast doesn't add suppressed addresses.",
+		email, consentDate(sup.CreatedAt, wsLocation(ws)), suppressionWords(sup.Reason))).
+		WithMeta("reason", sup.Reason, "since", sup.CreatedAt)
 }
 
 func cleanEmail(raw string) (string, error) {
@@ -388,7 +386,7 @@ func (s *Service) TagContact(ctx context.Context, ws *store.Workspace, in Contac
 	}
 	tags := cleanTags(in.Tags, nil)
 	api.NoteCall(ctx, noteItem, "add_tag")
-	noteUse(ctx, "add_tag", strings.Join(tags, ", "))
+	noteUse(ctx, WorkflowUse{Item: "add_tag", Tags: cleanTags(tags, nil)})
 	noteTargetJSON(ctx, CallTarget{Kind: "add_tag", Email: email, Tag: strings.Join(tags, ", ")})
 	c, err := s.Q.GetContactByEmail(ctx, store.GetContactByEmailParams{WorkspaceID: ws.ID, Email: email})
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -417,7 +415,7 @@ func (s *Service) TagContact(ctx context.Context, ws *store.Workspace, in Contac
 }
 
 // noteContactCall describes a contact action for the call log and the
-// workflow list ("Beta Program · tag beta-applicant · double opt-in").
+// workflow list: its lists, tags and opt-in.
 func (s *Service) noteContactCall(ctx context.Context, item, email string, c *store.Contact, listIDs, tags []string, consent string) {
 	names := []string{}
 	if lists, err := s.Q.IntegrationListNames(ctx, api.WorkspaceFrom(ctx).ID); err == nil {
@@ -429,17 +427,11 @@ func (s *Service) noteContactCall(ctx context.Context, item, email string, c *st
 			}
 		}
 	}
-	parts := append([]string{}, names...)
-	for _, t := range cleanTags(tags, nil) {
-		parts = append(parts, "tag "+t)
+	use := WorkflowUse{Item: item, Lists: names, Tags: cleanTags(tags, nil)}
+	if consent == "double" || consent == "single" {
+		use.OptIn = consent
 	}
-	switch consent {
-	case "double":
-		parts = append(parts, "double opt-in")
-	case "single":
-		parts = append(parts, "single opt-in")
-	}
-	noteUse(ctx, item, strings.Join(parts, " · "))
+	noteUse(ctx, use)
 	noteTargetJSON(ctx, CallTarget{Kind: item, Email: email, List: strings.Join(names, ", ")})
 	if c != nil {
 		api.NoteCall(ctx, noteContact, c.ID.String())
@@ -452,7 +444,6 @@ func integrationName(ctx context.Context) string {
 	}
 	return "the API"
 }
-
 
 func listNames(joins []joinPlan) []string {
 	out := []string{}

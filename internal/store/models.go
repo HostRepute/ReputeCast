@@ -1712,27 +1712,26 @@ type WordpressDraft struct {
 }
 
 type WordpressSite struct {
-	IntegrationID   uuid.UUID       `json:"integrationId"`
-	WorkspaceID     uuid.UUID       `json:"workspaceId"`
-	Address         string          `json:"address"`
-	SiteUrl         string          `json:"siteUrl"`
-	Name            string          `json:"name"`
-	PluginVersion   string          `json:"pluginVersion"`
-	WpVersion       string          `json:"wpVersion"`
-	PhpVersion      string          `json:"phpVersion"`
-	FeedUrl         string          `json:"feedUrl"`
-	LanguagePlugin  string          `json:"languagePlugin"`
-	Categories      json.RawMessage `json:"categories"`
-	Forms           json.RawMessage `json:"forms"`
-	FirstReportAt   *time.Time      `json:"firstReportAt"`
-	LastReportAt    *time.Time      `json:"lastReportAt"`
-	LastCheckAt     *time.Time      `json:"lastCheckAt"`
-	LastCheckOk     *bool           `json:"lastCheckOk"`
-	LastCheckDetail string          `json:"lastCheckDetail"`
-	RuleEnabled     bool            `json:"ruleEnabled"`
-	Rule            json.RawMessage `json:"rule"`
-	RuleUpdatedBy   *uuid.UUID      `json:"ruleUpdatedBy"`
-	RuleUpdatedAt   *time.Time      `json:"ruleUpdatedAt"`
+	IntegrationID  uuid.UUID       `json:"integrationId"`
+	WorkspaceID    uuid.UUID       `json:"workspaceId"`
+	Address        string          `json:"address"`
+	SiteUrl        string          `json:"siteUrl"`
+	Name           string          `json:"name"`
+	PluginVersion  string          `json:"pluginVersion"`
+	WpVersion      string          `json:"wpVersion"`
+	PhpVersion     string          `json:"phpVersion"`
+	FeedUrl        string          `json:"feedUrl"`
+	LanguagePlugin string          `json:"languagePlugin"`
+	Categories     json.RawMessage `json:"categories"`
+	Forms          json.RawMessage `json:"forms"`
+	FirstReportAt  *time.Time      `json:"firstReportAt"`
+	LastReportAt   *time.Time      `json:"lastReportAt"`
+	LastCheckAt    *time.Time      `json:"lastCheckAt"`
+	LastCheck      json.RawMessage `json:"lastCheck"`
+	RuleEnabled    bool            `json:"ruleEnabled"`
+	Rule           json.RawMessage `json:"rule"`
+	RuleUpdatedBy  *uuid.UUID      `json:"ruleUpdatedBy"`
+	RuleUpdatedAt  *time.Time      `json:"ruleUpdatedAt"`
 }
 
 type Workspace struct {

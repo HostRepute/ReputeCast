@@ -38,8 +38,23 @@ const KnownPluginVersion = "1.3.0"
 // SiteSilentAfter is when a site that hasn't reported in needs attention.
 const SiteSilentAfter = 24 * time.Hour
 
-// CheckTimeout bounds "Check now".
-const CheckTimeout = 10 * time.Second
+// DefaultCheckTimeout bounds "Check now".
+const DefaultCheckTimeout = 10 * time.Second
+
+func (s *Service) checkTimeout() time.Duration {
+	if s.CheckTimeout > 0 {
+		return s.CheckTimeout
+	}
+	return DefaultCheckTimeout
+}
+
+// seconds writes a duration as the check says it: "10 s", "0.5 s".
+func seconds(d time.Duration) string {
+	if d%time.Second == 0 {
+		return fmt.Sprintf("%d s", int(d.Seconds()))
+	}
+	return fmt.Sprintf("%.1f s", d.Seconds())
+}
 
 // WordPressCategory is a post category of a site, as the plugin reports it.
 type WordPressCategory struct {
@@ -256,7 +271,7 @@ func siteBareHost(raw string) string {
 // WordPressPost is a published post the plugin sends.
 type WordPressPost struct {
 	ID          string     `json:"id" maxLength:"64"`
-	URL         string     `json:"url" maxLength:"1000"`
+	URL         string     `json:"url,omitempty" maxLength:"1000"`
 	Title       string     `json:"title" minLength:"1" maxLength:"300"`
 	Excerpt     string     `json:"excerpt,omitempty" maxLength:"2000"`
 	ImageURL    string     `json:"imageUrl,omitempty" maxLength:"1000" doc:"The featured image"`
@@ -589,7 +604,15 @@ func (s *Service) SetRule(ctx context.Context, ws *store.Workspace, p *authz.Pri
 type WordPressCheck struct {
 	OK        bool      `json:"ok"`
 	CheckedAt time.Time `json:"checkedAt"`
-	Detail    string    `json:"detail" example:"Timed out after 10 s"`
+	// Outcome: the site answered 200, timed out, answered another status,
+	// was blocked by the SSRF guard, or couldn't be reached.
+	Outcome string `json:"outcome" enum:"answered,timeout,status,blocked,unreachable"`
+	// Ms is how long a site took to answer; Seconds the time limit it ran
+	// out of; Status the HTTP status it answered.
+	Ms      int64   `json:"ms,omitempty"`
+	Seconds float64 `json:"seconds,omitempty"`
+	Status  int     `json:"status,omitempty"`
+	Detail  string  `json:"detail" example:"Timed out after 10 s"`
 }
 
 // CheckSite calls the site's status endpoint once, through the SSRF guard.
@@ -608,42 +631,44 @@ func (s *Service) CheckSite(ctx context.Context, ws *store.Workspace, id uuid.UU
 	}
 	base := site.SiteUrl
 	if base == "" {
-		base = "https://" + site.Address
+		base = siteBase(site.Address)
 	}
-	out := WordPressCheck{CheckedAt: s.now()}
-	out.OK, out.Detail = s.probe(ctx, strings.TrimRight(base, "/")+"/wp-json/reputecast/v1/status")
-	if err := s.Q.WordPressSiteChecked(ctx, store.WordPressSiteCheckedParams{IntegrationID: conn.ID, At: out.CheckedAt, Ok: out.OK, Detail: out.Detail}); err != nil {
+	out := s.probe(ctx, strings.TrimRight(base, "/")+"/wp-json/reputecast/v1/status")
+	out.CheckedAt = s.now()
+	b, _ := json.Marshal(out)
+	if err := s.Q.WordPressSiteChecked(ctx, store.WordPressSiteCheckedParams{IntegrationID: conn.ID, At: out.CheckedAt, LastCheck: b}); err != nil {
 		return out, err
 	}
 	return out, nil
 }
 
 // probe GETs a site's status endpoint and describes the answer.
-func (s *Service) probe(ctx context.Context, target string) (bool, string) {
+func (s *Service) probe(ctx context.Context, target string) WordPressCheck {
 	u, err := s.policy().ValidateURL(target)
 	if err != nil {
-		return false, "Blocked: " + err.Error()
+		return WordPressCheck{Outcome: "blocked", Detail: "Blocked: " + err.Error()}
 	}
-	ctx, cancel := context.WithTimeout(ctx, CheckTimeout)
+	timeout := s.checkTimeout()
+	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
-		return false, "Invalid address"
+		return WordPressCheck{Outcome: "unreachable", Detail: "Invalid address"}
 	}
 	req.Header.Set("User-Agent", "ReputeCast-Check")
 	start := s.now()
-	resp, err := s.client(CheckTimeout).Do(req)
+	resp, err := s.client(timeout).Do(req)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) || strings.Contains(err.Error(), "Client.Timeout") || strings.Contains(err.Error(), "deadline exceeded") {
-			return false, fmt.Sprintf("Timed out after %d s", int(CheckTimeout.Seconds()))
+			return WordPressCheck{Outcome: "timeout", Seconds: timeout.Seconds(), Detail: "Timed out after " + seconds(timeout)}
 		}
-		return false, netguard.Describe(ctx, err)
+		return WordPressCheck{Outcome: "unreachable", Detail: netguard.Describe(ctx, err)}
 	}
 	defer func() { _ = resp.Body.Close() }()
 	_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 64<<10))
 	ms := s.now().Sub(start).Milliseconds()
 	if resp.StatusCode != http.StatusOK {
-		return false, fmt.Sprintf("Answered HTTP %d %s", resp.StatusCode, http.StatusText(resp.StatusCode))
+		return WordPressCheck{Outcome: "status", Status: resp.StatusCode, Detail: fmt.Sprintf("Answered HTTP %d %s", resp.StatusCode, http.StatusText(resp.StatusCode))}
 	}
-	return true, fmt.Sprintf("Answered in %d ms", ms)
+	return WordPressCheck{OK: true, Outcome: "answered", Ms: ms, Detail: fmt.Sprintf("Answered in %d ms", ms)}
 }

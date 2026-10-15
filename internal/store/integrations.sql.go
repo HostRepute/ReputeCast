@@ -876,6 +876,42 @@ func (q *Queries) IntegrationEventContacts(ctx context.Context, ids []uuid.UUID)
 	return items, nil
 }
 
+const integrationEventFlows = `-- name: IntegrationEventFlows :many
+SELECT a.name, a.trigger, v.graph
+FROM automations a
+JOIN automation_versions v ON v.automation_id = a.id AND v.version = a.live_version
+WHERE a.workspace_id = $1 AND a.status = 'live' AND a.deleted_at IS NULL
+ORDER BY a.name
+`
+
+type IntegrationEventFlowsRow struct {
+	Name    string          `json:"name"`
+	Trigger json.RawMessage `json:"trigger"`
+	Graph   json.RawMessage `json:"graph"`
+}
+
+// Live automations with their trigger and graph, to name the flows an API
+// event starts or ends ("which starts the Onboarding automation").
+func (q *Queries) IntegrationEventFlows(ctx context.Context, workspaceID uuid.UUID) ([]IntegrationEventFlowsRow, error) {
+	rows, err := q.db.Query(ctx, integrationEventFlows, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []IntegrationEventFlowsRow{}
+	for rows.Next() {
+		var i IntegrationEventFlowsRow
+		if err := rows.Scan(&i.Name, &i.Trigger, &i.Graph); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const integrationFirstCall = `-- name: IntegrationFirstCall :one
 SELECT c.id, c.occurred_at, c.operation, c.status, c.ip, c.client, c.workflow_name
 FROM integration_calls c
@@ -1490,12 +1526,12 @@ func (q *Queries) IntegrationLastAttempt(ctx context.Context, webhookID uuid.UUI
 const integrationLastLabel = `-- name: IntegrationLastLabel :one
 SELECT label FROM integrations
 WHERE workspace_id = $1 AND kind <> 'wordpress' AND label <> ''
-ORDER BY connected_at DESC
+ORDER BY connected_at
 LIMIT 1
 `
 
-// The label of the automation platform connected last ("Acme ops"), to
-// suggest the next key's name.
+// The label the first automation platform was connected with ("Acme ops"),
+// to suggest the next key's name.
 func (q *Queries) IntegrationLastLabel(ctx context.Context, workspaceID uuid.UUID) (string, error) {
 	row := q.db.QueryRow(ctx, integrationLastLabel, workspaceID)
 	var label string
@@ -2248,7 +2284,7 @@ func (q *Queries) IntegrationWorkflowSeen(ctx context.Context, arg IntegrationWo
 const integrationWorkflows = `-- name: IntegrationWorkflows :many
 SELECT integration_id, key, external_id, name, uses, first_seen_at, last_seen_at FROM integration_workflows
 WHERE integration_id = $1 AND last_seen_at >= $2
-ORDER BY last_seen_at DESC
+ORDER BY first_seen_at, key
 `
 
 type IntegrationWorkflowsParams struct {
@@ -2683,7 +2719,7 @@ func (q *Queries) WordPressForms(ctx context.Context, workspaceID uuid.UUID) ([]
 }
 
 const wordPressSite = `-- name: WordPressSite :one
-SELECT integration_id, workspace_id, address, site_url, name, plugin_version, wp_version, php_version, feed_url, language_plugin, categories, forms, first_report_at, last_report_at, last_check_at, last_check_ok, last_check_detail, rule_enabled, rule, rule_updated_by, rule_updated_at FROM wordpress_sites WHERE integration_id = $1
+SELECT integration_id, workspace_id, address, site_url, name, plugin_version, wp_version, php_version, feed_url, language_plugin, categories, forms, first_report_at, last_report_at, last_check_at, last_check, rule_enabled, rule, rule_updated_by, rule_updated_at FROM wordpress_sites WHERE integration_id = $1
 `
 
 func (q *Queries) WordPressSite(ctx context.Context, integrationID uuid.UUID) (WordpressSite, error) {
@@ -2705,8 +2741,7 @@ func (q *Queries) WordPressSite(ctx context.Context, integrationID uuid.UUID) (W
 		&i.FirstReportAt,
 		&i.LastReportAt,
 		&i.LastCheckAt,
-		&i.LastCheckOk,
-		&i.LastCheckDetail,
+		&i.LastCheck,
 		&i.RuleEnabled,
 		&i.Rule,
 		&i.RuleUpdatedBy,
@@ -2716,24 +2751,18 @@ func (q *Queries) WordPressSite(ctx context.Context, integrationID uuid.UUID) (W
 }
 
 const wordPressSiteChecked = `-- name: WordPressSiteChecked :exec
-UPDATE wordpress_sites SET last_check_at = $1::timestamptz, last_check_ok = $2::boolean, last_check_detail = $3
-WHERE integration_id = $4
+UPDATE wordpress_sites SET last_check_at = $1::timestamptz, last_check = $2
+WHERE integration_id = $3
 `
 
 type WordPressSiteCheckedParams struct {
-	At            time.Time `json:"at"`
-	Ok            bool      `json:"ok"`
-	Detail        string    `json:"detail"`
-	IntegrationID uuid.UUID `json:"integrationId"`
+	At            time.Time       `json:"at"`
+	LastCheck     json.RawMessage `json:"lastCheck"`
+	IntegrationID uuid.UUID       `json:"integrationId"`
 }
 
 func (q *Queries) WordPressSiteChecked(ctx context.Context, arg WordPressSiteCheckedParams) error {
-	_, err := q.db.Exec(ctx, wordPressSiteChecked,
-		arg.At,
-		arg.Ok,
-		arg.Detail,
-		arg.IntegrationID,
-	)
+	_, err := q.db.Exec(ctx, wordPressSiteChecked, arg.At, arg.LastCheck, arg.IntegrationID)
 	return err
 }
 
@@ -2842,7 +2871,7 @@ func (q *Queries) WordPressSiteSetRule(ctx context.Context, arg WordPressSiteSet
 }
 
 const wordPressSites = `-- name: WordPressSites :many
-SELECT s.integration_id, s.workspace_id, s.address, s.site_url, s.name, s.plugin_version, s.wp_version, s.php_version, s.feed_url, s.language_plugin, s.categories, s.forms, s.first_report_at, s.last_report_at, s.last_check_at, s.last_check_ok, s.last_check_detail, s.rule_enabled, s.rule, s.rule_updated_by, s.rule_updated_at, i.label, i.connected_at, i.connected_by, i.first_call_at, i.last_call_at, coalesce(u.name, '')::text AS connected_by_name
+SELECT s.integration_id, s.workspace_id, s.address, s.site_url, s.name, s.plugin_version, s.wp_version, s.php_version, s.feed_url, s.language_plugin, s.categories, s.forms, s.first_report_at, s.last_report_at, s.last_check_at, s.last_check, s.rule_enabled, s.rule, s.rule_updated_by, s.rule_updated_at, i.label, i.connected_at, i.connected_by, i.first_call_at, i.last_call_at, coalesce(u.name, '')::text AS connected_by_name
 FROM wordpress_sites s
 JOIN integrations i ON i.id = s.integration_id AND i.disconnected_at IS NULL
 LEFT JOIN users u ON u.id = i.connected_by
@@ -2866,8 +2895,7 @@ type WordPressSitesRow struct {
 	FirstReportAt   *time.Time      `json:"firstReportAt"`
 	LastReportAt    *time.Time      `json:"lastReportAt"`
 	LastCheckAt     *time.Time      `json:"lastCheckAt"`
-	LastCheckOk     *bool           `json:"lastCheckOk"`
-	LastCheckDetail string          `json:"lastCheckDetail"`
+	LastCheck       json.RawMessage `json:"lastCheck"`
 	RuleEnabled     bool            `json:"ruleEnabled"`
 	Rule            json.RawMessage `json:"rule"`
 	RuleUpdatedBy   *uuid.UUID      `json:"ruleUpdatedBy"`
@@ -2905,8 +2933,7 @@ func (q *Queries) WordPressSites(ctx context.Context, workspaceID uuid.UUID) ([]
 			&i.FirstReportAt,
 			&i.LastReportAt,
 			&i.LastCheckAt,
-			&i.LastCheckOk,
-			&i.LastCheckDetail,
+			&i.LastCheck,
 			&i.RuleEnabled,
 			&i.Rule,
 			&i.RuleUpdatedBy,

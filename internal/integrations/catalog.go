@@ -206,7 +206,21 @@ func Permissions(kind string, items []string) []authz.Permission {
 	if triggers {
 		short = append(short, authz.WebhooksManage)
 	}
+	// Contacts first, then campaigns and transactional email, then the
+	// webhooks of the triggers, as the boards list a key's permissions.
+	rank := func(p authz.Permission) int {
+		if i := slices.Index(permissionOrder, p); i >= 0 {
+			return i
+		}
+		return len(permissionOrder)
+	}
+	slices.SortStableFunc(short, func(a, b authz.Permission) int { return rank(a) - rank(b) })
 	return short
+}
+
+var permissionOrder = []authz.Permission{
+	authz.SubscribersCreate, authz.SubscribersEdit, authz.SubscribersView, authz.CampaignsEdit, authz.CampaignsView,
+	authz.TransactionalView, authz.TransactionalSend, authz.WebhooksManage,
 }
 
 // Needs returns every permission an item needs from the person who turns it

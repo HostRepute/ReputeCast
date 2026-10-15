@@ -35,8 +35,9 @@ func TestListCampaigns(t *testing.T) {
 	c.Do("GET", "/workspaces/acme-newsletter/campaigns?pageSize=9", nil).MustStatus(t, 200).JSON(t, &list)
 	// 48 campaigns of the Campaigns board plus the approval sample data:
 	// November Product Update (waiting for approval), two of Daniel's drafts
-	// and the Beta Program launch invite (sent).
-	if list.Total != 52 || list.Counts.All != 52 || list.Counts.Drafts != 5 || list.Counts.Scheduled != 1 || list.Counts.Sent != 46 {
+	// and the Beta Program launch invite (sent). The integrations hub adds
+	// the draft blog.acme.io made from a post (Scheduled rollouts are here).
+	if list.Total != 53 || list.Counts.All != 53 || list.Counts.Drafts != 6 || list.Counts.Scheduled != 1 || list.Counts.Sent != 46 {
 		t.Fatalf("counts: total %d %+v", list.Total, list.Counts)
 	}
 	if len(list.Items) != 9 {
@@ -57,13 +58,14 @@ func TestListCampaigns(t *testing.T) {
 	if !list.Items[2].Blocked || list.Items[2].Audience != "All subscribers" || list.Items[2].Readiness == nil || list.Items[2].Readiness.Issues != 3 {
 		t.Fatalf("blocked draft: %+v", list.Items[2])
 	}
-	var oct = list.Items[6]
+	// Seventh on the board; the post draft (a newer draft) comes before it.
+	var oct = list.Items[7]
 	if oct.Name != "October Product Update" || len(oct.Notes) == 0 || oct.Notes[0] != "A/B subject, winner B" {
 		t.Fatalf("A/B note: %+v", oct)
 	}
 
 	c.Do("GET", "/workspaces/acme-newsletter/campaigns?status=drafts", nil).MustStatus(t, 200).JSON(t, &list)
-	if list.Total != 5 {
+	if list.Total != 6 {
 		t.Fatalf("drafts: %d", list.Total)
 	}
 	c.Do("GET", "/workspaces/acme-newsletter/campaigns?q=flash", nil).MustStatus(t, 200).JSON(t, &list)

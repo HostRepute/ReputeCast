@@ -653,6 +653,9 @@ type Querier interface {
 	IntegrationDraftVersion(ctx context.Context, arg IntegrationDraftVersionParams) error
 	// Contacts for event payloads, with their lists.
 	IntegrationEventContacts(ctx context.Context, ids []uuid.UUID) ([]IntegrationEventContactsRow, error)
+	// Live automations with their trigger and graph, to name the flows an API
+	// event starts or ends ("which starts the Onboarding automation").
+	IntegrationEventFlows(ctx context.Context, workspaceID uuid.UUID) ([]IntegrationEventFlowsRow, error)
 	// The first call made with a key (the "waiting for a first call" timeline).
 	IntegrationFirstCall(ctx context.Context, arg IntegrationFirstCallParams) (IntegrationFirstCallRow, error)
 	IntegrationGet(ctx context.Context, arg IntegrationGetParams) (IntegrationGetRow, error)
@@ -683,8 +686,8 @@ type Querier interface {
 	IntegrationKeysRevokeAll(ctx context.Context, arg IntegrationKeysRevokeAllParams) ([]IntegrationKeysRevokeAllRow, error)
 	// The newest attempt of a failing managed webhook ("Attempt 4 of 8 · 502").
 	IntegrationLastAttempt(ctx context.Context, webhookID uuid.UUID) (IntegrationLastAttemptRow, error)
-	// The label of the automation platform connected last ("Acme ops"), to
-	// suggest the next key's name.
+	// The label the first automation platform was connected with ("Acme ops"),
+	// to suggest the next key's name.
 	IntegrationLastLabel(ctx context.Context, workspaceID uuid.UUID) (string, error)
 	// When and how a contact left a list ("left Beta Program on 2 Oct").
 	IntegrationLastLeft(ctx context.Context, arg IntegrationLastLeftParams) (IntegrationLastLeftRow, error)

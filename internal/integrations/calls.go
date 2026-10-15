@@ -149,21 +149,56 @@ func (s *Service) Record(ctx context.Context, c api.IntegrationCall) {
 	if !IsPlatform(ik.Kind) || c.Operation == OpMe || item == "" && c.Notes[noteUses] == "" {
 		return
 	}
-	uses := s.workflowUses(ctx, ik.ID, wf.Key(), item, c.Notes[noteUses])
+	var t CallTarget
+	_ = json.Unmarshal(target, &t)
+	uses := s.workflowUses(ctx, ik.ID, wf.Key(), item, c.Notes[noteUses], t)
 	_ = s.Q.IntegrationWorkflowSeen(ctx, store.IntegrationWorkflowSeenParams{
 		IntegrationID: ik.ID, Key: wf.Key(), ExternalID: wf.ID, Name: wf.Name, Uses: uses, At: c.At,
 	})
 }
 
-// WorkflowUse is one thing a workflow uses: an action with its detail
-// ("Beta Program · tag beta-applicant · double opt-in"), or a trigger.
+// WorkflowUse is one thing a workflow uses: a trigger, or an action with
+// what it was last called with (the app words it: "Beta Program · tag
+// beta-applicant · double opt-in").
 type WorkflowUse struct {
-	Item   string `json:"item"`
-	Detail string `json:"detail,omitempty"`
+	Item string `json:"item"`
+	// Lists, Tags and OptIn describe a contact action.
+	Lists []string `json:"lists,omitempty"`
+	Tags  []string `json:"tags,omitempty"`
+	OptIn string   `json:"optIn,omitempty" enum:"single,double"`
+	// Event is the event "Record an event" records; Template the template
+	// "Send a transactional email" sends.
+	Event    string `json:"event,omitempty"`
+	Template string `json:"template,omitempty"`
+	// Starts and GoalOf name the live automations the event starts, or
+	// that have it as their goal (worked out when the page is read).
+	Starts []string `json:"starts,omitempty"`
+	GoalOf []string `json:"goalOf,omitempty"`
+}
+
+// merge takes what a newer call says about the same use.
+func (u *WorkflowUse) merge(n WorkflowUse) {
+	if len(n.Lists) > 0 {
+		u.Lists = n.Lists
+	}
+	if len(n.Tags) > 0 {
+		u.Tags = n.Tags
+	}
+	if n.OptIn != "" {
+		u.OptIn = n.OptIn
+	}
+	if n.Event != "" {
+		u.Event = n.Event
+	}
+	if n.Template != "" {
+		u.Template = n.Template
+	}
 }
 
 // workflowUses adds what this call used to what the workflow used before.
-func (s *Service) workflowUses(ctx context.Context, integrationID uuid.UUID, key, item, note string) json.RawMessage {
+// Without a note from the operation, the call's target says the event or
+// the template.
+func (s *Service) workflowUses(ctx context.Context, integrationID uuid.UUID, key, item, note string, target CallTarget) json.RawMessage {
 	var uses []WorkflowUse
 	if w, err := s.Q.IntegrationWorkflow(ctx, store.IntegrationWorkflowParams{IntegrationID: integrationID, Key: key}); err == nil {
 		_ = json.Unmarshal(w.Uses, &uses)
@@ -171,14 +206,14 @@ func (s *Service) workflowUses(ctx context.Context, integrationID uuid.UUID, key
 	use := WorkflowUse{Item: item}
 	if note != "" {
 		_ = json.Unmarshal([]byte(note), &use)
+	} else {
+		use.Event, use.Template = target.Event, target.Template
 	}
 	if use.Item != "" {
 		replaced := false
 		for i := range uses {
 			if uses[i].Item == use.Item {
-				if use.Detail != "" {
-					uses[i].Detail = use.Detail
-				}
+				uses[i].merge(use)
 				replaced = true
 			}
 		}
@@ -193,10 +228,10 @@ func (s *Service) workflowUses(ctx context.Context, integrationID uuid.UUID, key
 	return b
 }
 
-func noteUse(ctx context.Context, item, detail string) {
-	b, _ := json.Marshal(WorkflowUse{Item: item, Detail: detail})
+func noteUse(ctx context.Context, use WorkflowUse) {
+	b, _ := json.Marshal(use)
 	api.NoteCall(ctx, noteUses, string(b))
-	api.NoteCall(ctx, noteItem, item)
+	api.NoteCall(ctx, noteItem, use.Item)
 }
 
 // describe works out the target of a call to another package's operation

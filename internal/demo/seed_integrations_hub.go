@@ -16,16 +16,29 @@ import (
 
 func init() { seedIntegrationsHub = seedIntegrationsHubImpl }
 
-// hubTime is a moment of the expansion's sample day relative to its "now",
-// Wed 15 Oct 2026 14:20: hubTime(14, 18) is two minutes ago.
+// hubTime is a moment of the expansion's sample day, counted back from now
+// as the sample's 14:20: hubTime(14, 18) is two minutes ago, at any hour.
+// (designDay's "today" starts at 11:00 New York time, so its 14:18 would be
+// in the future until then.)
 func (s *Seeder) hubTime(hour, minute int) time.Time {
-	return s.Now.Add(-(time.Duration(14*60+20-(hour*60+minute)) * time.Minute))
+	return s.Ago(time.Duration(14*60+20-(hour*60+minute)) * time.Minute)
 }
 
-// hubDay is a day before the sample day at a clock time, as hubTime
-// counts: hubDay(1, 22, 10) is 13 Oct 22:10 when the sample day is the 15th.
+// hubDay is a clock time on an earlier day, as the rest of the demo dates
+// them: hubDay(2, 22, 10) is 13 Oct 22:10 when the sample day is the 15th.
 func (s *Seeder) hubDay(daysAgo, hour, minute int) time.Time {
-	return s.hubTime(hour, minute).Add(-time.Duration(daysAgo) * 24 * time.Hour)
+	return s.designDay(daysAgo, hour, minute)
+}
+
+// hubFormat words a seeded moment as the app's server-side sentences do, in
+// the workspace's time zone ("10:04", "2 Oct", "13 Oct 22:10"), so text
+// matches the times it describes at any hour.
+func (s *Seeder) hubFormat(t time.Time, layout string) string {
+	loc, err := time.LoadLocation(s.WS().Timezone)
+	if err != nil {
+		loc = time.UTC
+	}
+	return t.In(loc).Format(layout)
 }
 
 // hubIntegration is a connection of the sample with its key.
@@ -49,6 +62,11 @@ type hubIntegration struct {
 func seedIntegrationsHubImpl(ctx context.Context, s *Seeder) error {
 	ws := s.WS()
 	marcus, linh, sofia := s.Users["marcus@acme.io"], s.Users["linh@acme.io"], s.Users["sofia@acme.io"]
+	// Content Writer, the sample's custom role, sees integrations (brief 3.9).
+	if _, err := s.Tx.Exec(ctx, `UPDATE roles SET permissions = array_append(permissions, 'integrations:view')
+		WHERE workspace_id = $1 AND key = 'content-writer' AND NOT ('integrations:view' = ANY (permissions))`, ws.ID); err != nil {
+		return err
+	}
 	platform := []string{"contact.subscribed", "contact.unsubscribed", "contact.updated", "form.submitted", "campaign.completed", "message.bounced",
 		"upsert_contact", "add_to_list", "add_tag", "record_event", "send_transactional"}
 	conns := []hubIntegration{
@@ -62,8 +80,8 @@ func seedIntegrationsHubImpl(ctx context.Context, s *Seeder) error {
 			head: "2b7d", tail: "a51f", lastUsed: s.hubTime(14, 14), ip: "203.0.113.80", client: "WordPress, ReputeCast plugin 1.2.0",
 			firstCall: s.hubDay(20, 15, 33), lastCall: s.hubTime(14, 14)},
 		{kind: "wordpress", label: "staging.acme.io", items: []string{"list_forms", "create_drafts"}, by: "marcus@acme.io", at: s.hubDay(13, 9, 20),
-			head: "c03e", tail: "6d92", lastUsed: s.hubDay(1, 22, 10), ip: "203.0.113.81", client: "WordPress, ReputeCast plugin 1.3.0",
-			firstCall: s.hubDay(13, 9, 24), lastCall: s.hubDay(1, 22, 10)},
+			head: "c03e", tail: "6d92", lastUsed: s.hubDay(2, 22, 10), ip: "203.0.113.81", client: "WordPress, ReputeCast plugin 1.3.0",
+			firstCall: s.hubDay(13, 9, 24), lastCall: s.hubDay(2, 22, 10)},
 	}
 	ids := map[string]uuid.UUID{}
 	keys := map[string]uuid.UUID{}
@@ -245,8 +263,9 @@ func seedHubZapierCalls(ctx context.Context, s *Seeder, id, key uuid.UUID) error
 	betaList := s.Lists["Beta Program"]
 	applicants := []string{"priya.n@example.com", "j.okafor@example.org", "m.lindqvist@example.se", "carla.mendes@example.com.br", "t.nakamura@example.jp",
 		"a.haddad@example.com", "sven.berg@example.no", "leah.cohen@example.com"}
-	// Beta applications: 20 in the last 24 hours, 108 before, one kept out.
-	times := append(spread(20, s.Ago(23*time.Hour+40*time.Minute), s.hubTime(14, 18)), spread(108, s.hubDay(6, 15, 0), s.hubDay(1, 13, 50))...)
+	// Beta applications: 20 in the last 24 hours, 107 before, and the one
+	// that kept consent (128 in all).
+	times := append(spread(20, s.Ago(23*time.Hour+40*time.Minute), s.hubTime(14, 18)), spread(107, s.hubDay(6, 15, 0), s.hubDay(1, 13, 50))...)
 	for i, at := range times {
 		email := applicants[i%len(applicants)]
 		c := hubCall{at: at, wfKey: beta.key, wfName: beta.name, op: "upsert-contact", item: "upsert_contact", method: "POST", path: contacts, status: 200, ms: 44 + (i*7)%27,
@@ -263,14 +282,15 @@ func seedHubZapierCalls(ctx context.Context, s *Seeder, id, key uuid.UUID) error
 		}
 	}
 	left := s.hubDay(13, 9, 41).In(time.UTC)
+	refused := "rob@example.net left Beta Program on " + s.hubFormat(left, "2 Jan") + ". ReputeCast doesn't add people back to a list they left."
 	if err := insertHubCall(ctx, s, id, key, ip, client, hubCall{at: s.hubDay(1, 16, 12), wfKey: beta.key, wfName: beta.name, op: "upsert-contact", item: "upsert_contact",
 		method: "POST", path: contacts, status: 409, ms: 52, code: "unsubscribed",
-		detail: "rob@example.net left Beta Program on 2 Oct. ReputeCast doesn't add people back to a list they left.",
+		detail: refused,
 		target: map[string]any{"kind": "upsert_contact", "email": "rob@example.net", "list": "Beta Program"},
 		request: map[string]any{"headers": map[string]string{"X-ReputeCast-Workflow": beta.name + "; id=" + beta.key},
 			"body": map[string]any{"email": "rob@example.net", "tags": []string{"beta-applicant"}, "lists": []string{betaList.String()}, "consent": "double"}},
 		response: map[string]any{"status": 409, "title": "Conflict", "code": "unsubscribed",
-			"detail": "rob@example.net left Beta Program on 2 Oct. ReputeCast doesn't add people back to a list they left.",
+			"detail": refused,
 			"meta":   map[string]any{"list": "Beta Program", "listId": betaList.String(), "leftAt": left}}}); err != nil {
 		return err
 	}
@@ -319,9 +339,9 @@ func seedHubZapierCalls(ctx context.Context, s *Seeder, id, key uuid.UUID) error
 		first     time.Time
 		last      time.Time
 	}{
-		{beta.key, beta.name, []map[string]string{{"item": "upsert_contact", "detail": "Beta Program · tag beta-applicant · double opt-in"}}, s.hubDay(21, 10, 30), s.hubTime(14, 18)},
-		{hub.key, hub.name, []map[string]string{{"item": "add_tag", "detail": "customer"}}, s.hubDay(19, 9, 0), s.hubTime(12, 51)},
-		{stripe.key, stripe.name, []map[string]string{{"item": "send_transactional", "detail": "payment-failed"}}, s.hubTime(11, 52), s.hubTime(13, 55)},
+		{beta.key, beta.name, []map[string]any{{"item": "upsert_contact", "lists": []string{"Beta Program"}, "tags": []string{"beta-applicant"}, "optIn": "double"}}, s.hubDay(21, 10, 30), s.hubTime(14, 18)},
+		{hub.key, hub.name, []map[string]any{{"item": "add_tag", "tags": []string{"customer"}}}, s.hubDay(19, 9, 0), s.hubTime(12, 51)},
+		{stripe.key, stripe.name, []map[string]any{{"item": "send_transactional", "template": "payment-failed"}}, s.hubTime(11, 52), s.hubTime(13, 55)},
 	} {
 		uses, _ := json.Marshal(w.uses)
 		if _, err := s.Tx.Exec(ctx, `INSERT INTO integration_workflows (integration_id, key, external_id, name, uses, first_seen_at, last_seen_at) VALUES ($1,$2,$2,$3,$4,$5,$6)`,
@@ -342,10 +362,10 @@ func seedHubN8n(ctx context.Context, s *Seeder, id, key, linh uuid.UUID) error {
 	for _, wf := range []struct {
 		key, name, event string
 		n                int
-		last             time.Time
+		last, first      time.Time
 	}{
-		{"wf_7Hq2", "Acme Cloud: workspace created", "workspace.created", 61, s.hubTime(14, 14)},
-		{"wf_9Kx4", "Acme Cloud: teammate invited", "teammate.invited", 23, s.hubTime(13, 37)},
+		{"wf_7Hq2", "Acme Cloud: workspace created", "workspace.created", 61, s.hubTime(14, 14), s.hubDay(16, 11, 50)},
+		{"wf_9Kx4", "Acme Cloud: teammate invited", "teammate.invited", 23, s.hubTime(13, 37), s.hubDay(16, 11, 58)},
 	} {
 		for i, at := range spread(wf.n, s.hubDay(6, 14, 0), wf.last) {
 			email := people[i%len(people)]
@@ -356,9 +376,9 @@ func seedHubN8n(ctx context.Context, s *Seeder, id, key, linh uuid.UUID) error {
 				return err
 			}
 		}
-		uses, _ := json.Marshal([]map[string]string{{"item": "record_event", "detail": wf.event}})
+		uses, _ := json.Marshal([]map[string]string{{"item": "record_event", "event": wf.event}})
 		if _, err := s.Tx.Exec(ctx, `INSERT INTO integration_workflows (integration_id, key, external_id, name, uses, first_seen_at, last_seen_at) VALUES ($1,$2,$2,$3,$4,$5,$6)`,
-			id, wf.key, wf.name, uses, s.hubDay(16, 12, 0), wf.last); err != nil {
+			id, wf.key, wf.name, uses, wf.first, wf.last); err != nil {
 			return err
 		}
 	}
@@ -467,9 +487,10 @@ func seedHubWordPress(ctx context.Context, s *Seeder, ids, keys map[string]uuid.
 		return err
 	}
 	if _, err := s.Tx.Exec(ctx, `INSERT INTO wordpress_sites (integration_id, workspace_id, address, site_url, name, plugin_version, wp_version, php_version, feed_url,
-		categories, forms, first_report_at, last_report_at, last_check_at, last_check_ok, last_check_detail)
-		VALUES ($1,$2,'staging.acme.io','https://staging.acme.io','Acme Blog (staging)','1.3.0','6.9.2','8.2','https://staging.acme.io/feed/',$3,$4,$5,$6,$7,false,'Timed out after 10 s')`,
-		staging, ws.ID, blogCats, stagingForms, s.hubDay(13, 9, 24), s.hubDay(1, 22, 10), s.hubTime(14, 2)); err != nil {
+		categories, forms, first_report_at, last_report_at, last_check_at, last_check)
+		VALUES ($1,$2,'staging.acme.io','https://staging.acme.io','Acme Blog (staging)','1.3.0','6.9.2','8.2','https://staging.acme.io/feed/',$3,$4,$5,$6,$7,
+		'{"ok":false,"outcome":"timeout","seconds":10,"detail":"Timed out after 10 s"}')`,
+		staging, ws.ID, blogCats, stagingForms, s.hubDay(13, 9, 24), s.hubDay(2, 22, 10), s.hubTime(14, 2)); err != nil {
 		return err
 	}
 	// The post published at 10:04 and its draft, a minute later.
@@ -508,13 +529,13 @@ func seedHubWordPress(ctx context.Context, s *Seeder, ids, keys map[string]uuid.
 	}
 	keyBlog := keys["blog.acme.io"]
 	if err := hubAudit(ctx, s, keyBlog, "WordPress · blog.acme.io", "api_key", "wordpress.draft_created", campaign, "Product Updates · "+post.title,
-		map[string]any{"summary": "draft from the post published 10:04 · rule Announcements → Product Updates · Sofia Rossi notified",
+		map[string]any{"summary": "draft from the post published " + s.hubFormat(s.hubTime(10, 4), "15:04") + " · rule Announcements → Product Updates · Sofia Rossi notified",
 			"actor_label": "integration key", "source": "api", "via": "rc_live_2b7d…a51f"}, created.Add(9*time.Second)); err != nil {
 		return err
 	}
 	// staging.acme.io went quiet on 13 Oct at 22:10: members with
 	// integrations:manage heard about it a day later.
-	silent := s.hubDay(1, 22, 10)
+	silent := s.hubDay(2, 22, 10)
 	attention, _ := json.Marshal([]map[string]any{{"code": "site_silent", "since": silent, "host": "staging.acme.io", "connectionId": staging.String()}})
 	if _, err := s.Tx.Exec(ctx, `UPDATE integrations SET attention = $2, notified = '{site_silent}' WHERE id = $1`, staging, attention); err != nil {
 		return err
@@ -524,7 +545,7 @@ func seedHubWordPress(ctx context.Context, s *Seeder, ids, keys map[string]uuid.
 		read := at.Add(40 * time.Minute)
 		if _, err := s.Tx.Exec(ctx, `INSERT INTO notifications (id, user_id, workspace_id, kind, severity, title, summary, body, link, created_at, read_at, email_status, emailed_at)
 			VALUES ($1,$2,$3,'integration_attention','warn','Integration needs attention','',$4,$5,$6,$7,'sent',$6)`,
-			ID(), s.Users[email].ID, &wsID, "WordPress: staging.acme.io hasn't reported in since 13 Oct 22:10. Check the site, or disconnect it if it's gone.",
+			ID(), s.Users[email].ID, &wsID, "WordPress: staging.acme.io hasn't reported in since "+s.hubFormat(silent, "2 Jan 15:04")+". Check the site, or disconnect it if it's gone.",
 			"/w/"+ws.Slug+"/settings/integrations/wordpress", at, read); err != nil {
 			return err
 		}
@@ -539,7 +560,7 @@ func seedHubWordPress(ctx context.Context, s *Seeder, ids, keys map[string]uuid.
 	}{
 		{"blog.acme.io", s.hubTime(14, 14), "203.0.113.80", "WordPress, ReputeCast plugin 1.2.0", "1.2.0"},
 		{"blog.acme.io", s.hubTime(10, 4), "203.0.113.80", "WordPress, ReputeCast plugin 1.2.0", "1.2.0"},
-		{"staging.acme.io", s.hubDay(1, 22, 10), "203.0.113.81", "WordPress, ReputeCast plugin 1.3.0", "1.3.0"},
+		{"staging.acme.io", s.hubDay(2, 22, 10), "203.0.113.81", "WordPress, ReputeCast plugin 1.3.0", "1.3.0"},
 	} {
 		if err := insertHubCall(ctx, s, ids[c.site], keys[c.site], c.ip, c.ver, hubCall{at: c.at, op: "report-wordpress-site", method: "POST", path: report,
 			status: 200, ms: 31, target: map[string]any{"kind": "report", "version": c.version, "endpoint": c.site}}); err != nil {

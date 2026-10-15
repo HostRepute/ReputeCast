@@ -55,9 +55,21 @@ type IntegrationReason struct {
 	NextAt     *time.Time `json:"nextAt,omitempty"`
 	Calls      int64      `json:"calls,omitempty"`
 	Failed     int64      `json:"failed,omitempty"`
-	// CheckedAt and CheckDetail are the last "Check now" of a silent site.
-	CheckedAt   *time.Time `json:"checkedAt,omitempty"`
-	CheckDetail string     `json:"checkDetail,omitempty"`
+	// Check is the last "Check now" of a silent site.
+	Check *WordPressCheck `json:"check,omitempty"`
+}
+
+// lastCheck reads a site's last "Check now".
+func lastCheck(site *store.WordpressSite) *WordPressCheck {
+	if site == nil || site.LastCheckAt == nil || len(site.LastCheck) == 0 {
+		return nil
+	}
+	var c WordPressCheck
+	if json.Unmarshal(site.LastCheck, &c) != nil {
+		return nil
+	}
+	c.CheckedAt = *site.LastCheckAt
+	return &c
 }
 
 var rejectedCodes = []string{"key_revoked", "key_expired", "owner_deactivated"}
@@ -109,7 +121,7 @@ func (s *Service) reasons(ctx context.Context, wsID uuid.UUID, conn store.Integr
 	}
 	if site != nil && site.LastReportAt != nil && now.Sub(*site.LastReportAt) >= SiteSilentAfter {
 		out = append(out, IntegrationReason{Code: ReasonSiteSilent, Since: site.LastReportAt, Host: siteBareHost(firstNonEmpty(site.SiteUrl, site.Address)),
-			ConnectionID: conn.ID.String(), CheckedAt: site.LastCheckAt, CheckDetail: site.LastCheckDetail})
+			ConnectionID: conn.ID.String(), Check: lastCheck(site)})
 	}
 	return out
 }

@@ -319,6 +319,19 @@ func Register(h huma.API, s *Service) {
 			out, err := s.CheckAddress(ctx, in.Body.Address)
 			return api.OK(out), err
 		})
+	api.Put(h, api.Op{ID: "set-integration-address", Path: base + "/connections/{id}/address", Summary: "Keep n8n's address, to open it and to check that triggers can reach it",
+		Tags: hub, Access: manage},
+		func(ctx context.Context, in *struct {
+			IntegrationPath
+			Body IntegrationAddressInput
+		}) (*api.Body[IntegrationAddressCheck], error) {
+			id, err := in.id()
+			if err != nil {
+				return nil, err
+			}
+			out, err := s.SetAddress(ctx, api.WorkspaceFrom(ctx), id, in.Body.Address)
+			return api.OK(out), err
+		})
 	api.Get(h, api.Op{ID: "list-member-integrations", Path: base + "/owned-by/{userId}", Summary: "Integrations whose key a member owns (deactivate and remove dialogs)",
 		Tags: hub, Access: api.Workspace(authz.TeamManage)},
 		func(ctx context.Context, in *ownedInput) (*api.Body[IntegrationOwnedList], error) {

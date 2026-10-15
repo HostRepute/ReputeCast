@@ -57,12 +57,17 @@ func TestWebhooks(t *testing.T) {
 			Success24h   *float64
 			Total24h     int64
 			Queued       int64
+			ManagedBy    *struct{ Kind, Workflow string }
 		}
 		Events []struct{ Name string }
 	}
 	c.Do("GET", ws+"/webhooks", nil).MustStatus(t, 200).JSON(t, &list)
-	if len(list.Items) != 3 || list.Items[2].Status != "failing" || list.Items[2].Total24h != 18402 || list.Items[2].Success24h == nil || *list.Items[2].Success24h != 61 {
+	if len(list.Items) != 4 || list.Items[2].Status != "failing" || list.Items[2].Total24h != 18402 || list.Items[2].Success24h == nil || *list.Items[2].Success24h != 61 {
 		t.Fatalf("seeded webhooks: %+v", list.Items)
+	}
+	// The SettingsAPI board's fourth endpoint: n8n's, managed by n8n.
+	if m := list.Items[3].ManagedBy; m == nil || m.Kind != "n8n" || m.Workflow != "Unsubscribes → Acme Cloud CRM" || list.Items[0].ManagedBy != nil {
+		t.Fatalf("managed endpoint: %+v", list.Items[3])
 	}
 
 	rcv := &receiver{}

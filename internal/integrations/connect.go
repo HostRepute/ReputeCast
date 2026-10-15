@@ -32,7 +32,7 @@ const RotationGrace = 24 * time.Hour
 // IntegrationConnectInput connects an integration: what it may do, its key's
 // name, list scope and expiry.
 type IntegrationConnectInput struct {
-	Items     []string   `json:"items" maxItems:"20" doc:"Catalog keys of the triggers and actions turned on"`
+	Items     []string   `json:"items,omitempty" maxItems:"20" doc:"Catalog keys of the triggers and actions turned on"`
 	Name      string     `json:"name,omitempty" maxLength:"80" doc:"The key's name, \"Make · Acme ops\""`
 	Lists     []string   `json:"lists,omitempty" maxItems:"100" doc:"Limit the key to these lists; empty for all lists"`
 	ExpiresAt *time.Time `json:"expiresAt,omitempty"`
@@ -229,8 +229,9 @@ func (s *Service) DefaultLabel(ctx context.Context, ws *store.Workspace) string 
 	return ws.Name
 }
 
-// siteHost normalizes a WordPress site's address to its host and path
-// ("blog.acme.io", "acme.io/news").
+// siteHost normalizes a WordPress site's address to its host, port and path
+// ("blog.acme.io", "acme.io/news"). https is assumed; a site typed with
+// http:// keeps it.
 func siteHost(raw string) (string, error) {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
@@ -240,14 +241,25 @@ func siteHost(raw string) (string, error) {
 		raw = "https://" + raw
 	}
 	u, err := url.Parse(raw)
-	if err != nil || u.Hostname() == "" || strings.Contains(u.Hostname(), " ") {
+	if err != nil || u.Hostname() == "" || strings.Contains(u.Hostname(), " ") || (u.Scheme != "https" && u.Scheme != "http") {
 		return "", errors.New("enter the site's address, like blog.acme.io")
 	}
-	host := strings.ToLower(u.Hostname())
+	host := strings.ToLower(u.Host)
 	if p := strings.Trim(u.EscapedPath(), "/"); p != "" {
 		host += "/" + p
 	}
+	if u.Scheme == "http" {
+		host = "http://" + host
+	}
 	return host, nil
+}
+
+// siteBase is the address "Check now" calls: https unless typed with http.
+func siteBase(address string) string {
+	if strings.HasPrefix(address, "http://") || strings.HasPrefix(address, "https://") {
+		return strings.TrimRight(address, "/")
+	}
+	return "https://" + strings.TrimRight(address, "/")
 }
 
 // Connect creates an integration's key with the triggers and actions turned
@@ -1043,6 +1055,54 @@ func (s *Service) CheckAddress(ctx context.Context, raw string) (IntegrationAddr
 	}
 	out.Allowed = !private || s.allowPrivate()
 	return out, nil
+}
+
+// IntegrationAddressInput is n8n's address, set while connecting.
+type IntegrationAddressInput struct {
+	Address string `json:"address" maxLength:"300" example:"https://n8n.acme.io" doc:"Empty to forget it"`
+}
+
+// SetAddress keeps n8n's address, to open it from its page and to check
+// that triggers can reach it. It answers what ReputeCast sees of it.
+func (s *Service) SetAddress(ctx context.Context, ws *store.Workspace, id uuid.UUID, raw string) (IntegrationAddressCheck, error) {
+	conn, _, err := s.connection(ctx, ws, id)
+	if err != nil {
+		return IntegrationAddressCheck{}, err
+	}
+	if conn.Kind != KindN8n {
+		return IntegrationAddressCheck{}, api.Invalid("body.address", Name(conn.Kind)+" has no address to set.")
+	}
+	var settings map[string]any
+	_ = json.Unmarshal(conn.Settings, &settings)
+	if settings == nil {
+		settings = map[string]any{}
+	}
+	before, _ := settings["address"].(string)
+	var out IntegrationAddressCheck
+	if strings.TrimSpace(raw) == "" {
+		delete(settings, "address")
+	} else {
+		if out, err = s.CheckAddress(ctx, raw); err != nil {
+			return out, err
+		}
+		settings["address"] = out.Address
+	}
+	if before == out.Address {
+		return out, nil
+	}
+	b, _ := json.Marshal(settings)
+	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+		q := store.New(tx)
+		if err := q.IntegrationSetSettings(ctx, store.IntegrationSetSettingsParams{ID: conn.ID, Settings: b}); err != nil {
+			return err
+		}
+		summary := "address " + firstNonEmpty(out.Address, "removed")
+		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "integration.address_changed", TargetType: "integration", TargetID: conn.ID.String(),
+			TargetName: Name(conn.Kind) + " · " + conn.Label,
+			Before:     map[string]any{"address": before}, After: map[string]any{"address": out.Address},
+			Metadata: map[string]any{"summary": summary, "permission": string(authz.IntegrationsManage)}})
+	})
+	return out, err
 }
 
 func normalizeAddress(raw string) (string, error) {

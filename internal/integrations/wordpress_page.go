@@ -187,9 +187,8 @@ func (s *Service) siteView(ctx context.Context, ws *store.Workspace, l loaded, p
 		LanguagePlugin: st.LanguagePlugin, Forms: []IntegrationSiteForm{}, Categories: []WordPressCategory{}, Drafts: []IntegrationSiteDraft{},
 		ConnectedBy: l.by, ConnectedAt: l.conn.ConnectedAt, Reasons: l.rs, Items: s.itemStates(ctx, ws, l)}
 	v.UpdateAvailable = st.PluginVersion != "" && newerVersion(page.LatestPlugin, st.PluginVersion)
-	if st.LastCheckAt != nil {
-		ok := st.LastCheckOk != nil && *st.LastCheckOk
-		v.LastCheck = &WordPressCheck{OK: ok, CheckedAt: *st.LastCheckAt, Detail: st.LastCheckDetail}
+	if c := lastCheck(st); c != nil {
+		v.LastCheck = c
 	}
 	_ = json.Unmarshal(st.Categories, &v.Categories)
 	if v.Categories == nil {
