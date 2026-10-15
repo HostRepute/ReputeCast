@@ -142,7 +142,7 @@ func (b *builder) languages() {
 			continue
 		}
 		gets := languageName(l.Gets)
-		row := ReadinessCheckRow{Label: l.Name, Count: l.Readers}
+		row := ReadinessCheckRow{Label: l.Name, Count: l.Readers, Language: l.Language, Gets: l.Gets, GetsName: gets}
 		switch {
 		case l.Held:
 			row.Detail = fmt.Sprintf("gets %s, as chosen", gets)

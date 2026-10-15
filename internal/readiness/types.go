@@ -106,6 +106,12 @@ type ReadinessCheckRow struct {
 	Label  string `json:"label"`
 	Count  int64  `json:"count"`
 	Detail string `json:"detail"`
+	// Language is the readers' language and Gets the version they get
+	// (Recipients per language: Audience › By version and the
+	// confirmation step read them).
+	Language string `json:"language,omitempty"`
+	Gets     string `json:"gets,omitempty"`
+	GetsName string `json:"getsName,omitempty"`
 }
 
 // ReadinessGroup is a group heading with its caption and a summary of what

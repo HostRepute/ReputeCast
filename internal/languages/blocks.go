@@ -25,8 +25,8 @@ type Block struct {
 	// "Hero image", "Two cards").
 	Name string `json:"name"`
 	// Heading is the highest heading level inside (1–3), 0 without one.
-	Heading  int       `json:"heading"`
-	Segments []Segment `json:"segments"`
+	Heading  int            `json:"heading"`
+	Segments []BlockSegment `json:"segments"`
 	// Hash fingerprints what is translated (texts, labels, alt texts):
 	// style and link changes don't make a translation outdated.
 	Hash string `json:"-"`
@@ -40,9 +40,9 @@ type Block struct {
 	End   int `json:"-"`
 }
 
-// Segment is one piece of a block a translator reads or writes: a text, a
+// BlockSegment is one piece of a block a translator reads or writes: a text, a
 // button label, an image's alt text.
-type Segment struct {
+type BlockSegment struct {
 	// Path is the element index path from the block element.
 	Path []int `json:"path"`
 	// Kind is text, button, image, social, nav, raw or table.
@@ -87,7 +87,7 @@ func Blocks(mjmlSrc, htmlSrc string) []Block {
 	out := make([]Block, 0, len(body.Children))
 	firstText := true
 	for i, n := range body.Children {
-		b := Block{Index: i, Tag: n.Tag, Label: mjml.SectionLabel(n, i, len(body.Children)), Segments: []Segment{}, Start: n.Start, End: n.End}
+		b := Block{Index: i, Tag: n.Tag, Label: mjml.SectionLabel(n, i, len(body.Children)), Segments: []BlockSegment{}, Start: n.Start, End: n.End}
 		collect(n, nil, 0, &b)
 		b.Raw = shortHash(mjmlSrc[n.Start:n.End])
 		b.Hash = textHash(b.Segments)
@@ -108,7 +108,7 @@ func htmlBlocks(src string) []Block {
 		return []Block{}
 	}
 	text := plain(src)
-	b := Block{Tag: "html", Label: "email", Name: "The email", Segments: []Segment{{Kind: "raw", Text: text, Path: []int{}}}, Start: 0, End: len(src)}
+	b := Block{Tag: "html", Label: "email", Name: "The email", Segments: []BlockSegment{{Kind: "raw", Text: text, Path: []int{}}}, Start: 0, End: len(src)}
 	b.Raw = shortHash(src)
 	b.Hash = textHash(b.Segments)
 	b.Text = text
@@ -133,7 +133,7 @@ func collect(n *mjml.Node, p []int, column int, b *Block) {
 		}
 		t := plain(n.Inner)
 		if t != "" || kind == "text" {
-			s := Segment{Path: clonePath(p), Kind: kind, Text: t, HTML: n.Inner, Column: column}
+			s := BlockSegment{Path: clonePath(p), Kind: kind, Text: t, HTML: n.Inner, Column: column}
 			if m := headingRe.FindStringSubmatch(n.Inner); m != nil {
 				s.Heading, _ = strconv.Atoi(m[1])
 			}
@@ -143,20 +143,20 @@ func collect(n *mjml.Node, p []int, column int, b *Block) {
 		}
 		return
 	case "mj-button":
-		b.Segments = append(b.Segments, Segment{Path: clonePath(p), Kind: "button", Text: plain(n.Inner), HTML: n.Inner, Column: column, URL: n.Attr("href")})
+		b.Segments = append(b.Segments, BlockSegment{Path: clonePath(p), Kind: "button", Text: plain(n.Inner), HTML: n.Inner, Column: column, URL: n.Attr("href")})
 		return
 	case "mj-image":
-		b.Segments = append(b.Segments, Segment{Path: clonePath(p), Kind: "image", Alt: strings.TrimSpace(n.Attr("alt")), URL: n.Attr("src"), Column: column})
+		b.Segments = append(b.Segments, BlockSegment{Path: clonePath(p), Kind: "image", Alt: strings.TrimSpace(n.Attr("alt")), URL: n.Attr("src"), Column: column})
 		return
 	case "mj-social-element":
 		label := plain(n.Inner)
 		if label == "" {
 			label = strings.TrimSpace(n.Attr("name"))
 		}
-		b.Segments = append(b.Segments, Segment{Path: clonePath(p), Kind: "social", Text: label, Alt: strings.TrimSpace(n.Attr("alt")), URL: n.Attr("href"), Column: column})
+		b.Segments = append(b.Segments, BlockSegment{Path: clonePath(p), Kind: "social", Text: label, Alt: strings.TrimSpace(n.Attr("alt")), URL: n.Attr("href"), Column: column})
 		return
 	case "mj-navbar-link":
-		b.Segments = append(b.Segments, Segment{Path: clonePath(p), Kind: "nav", Text: plain(n.Inner), HTML: n.Inner, URL: n.Attr("href"), Column: column})
+		b.Segments = append(b.Segments, BlockSegment{Path: clonePath(p), Kind: "nav", Text: plain(n.Inner), HTML: n.Inner, URL: n.Attr("href"), Column: column})
 		return
 	}
 	for i, c := range n.Children {
@@ -179,7 +179,7 @@ func plain(s string) string {
 }
 
 // translatable is what a translator writes in a segment.
-func (s Segment) translatable() string {
+func (s BlockSegment) translatable() string {
 	switch s.Kind {
 	case "image":
 		return s.Alt
@@ -191,7 +191,7 @@ func (s Segment) translatable() string {
 
 // textHash fingerprints what a block has to translate; "" when it has
 // nothing (an image without alt text, a divider).
-func textHash(segs []Segment) string {
+func textHash(segs []BlockSegment) string {
 	empty := true
 	for _, s := range segs {
 		if t := strings.Trim(s.translatable(), " \x01"); t != "" {

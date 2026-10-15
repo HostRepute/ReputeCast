@@ -1252,6 +1252,9 @@ type Querier interface {
 	// Messages that will never be sent: rejected by the provider, failed after
 	// every retry, or dropped (suppressed during the send, contact erased).
 	SendingMarkUnsent(ctx context.Context, arg SendingMarkUnsentParams) error
+	// A queued automation email whose language version stopped being sent (its
+	// language was removed) goes out in the source instead.
+	SendingMessageToSource(ctx context.Context, arg SendingMessageToSourceParams) error
 	// Moves what is left of one provider's share to another provider.
 	SendingMoveRemaining(ctx context.Context, arg SendingMoveRemainingParams) (int64, error)
 	SendingNextSimEvent(ctx context.Context) (time.Time, error)
