@@ -19,6 +19,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/campaigns"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/publicurl"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -41,6 +42,9 @@ type Service struct {
 	URLs publicurl.Builder
 	// AfterChange is told when a fix or a send setting changed a campaign.
 	AfterChange AfterChange
+	// Languages gives the facts of the Languages group and checks every
+	// language version; nil leaves them out.
+	Languages *languages.Service
 }
 
 func (s *Service) now() time.Time {
@@ -89,9 +93,24 @@ func (s *Service) Campaign(ctx context.Context, ws *store.Workspace, id uuid.UUI
 	return c, nil
 }
 
-// CurrentFingerprint is the fingerprint of the campaign as it stands.
+// CurrentFingerprint is the fingerprint of the campaign as it stands,
+// language versions included.
 func (s *Service) CurrentFingerprint(ctx context.Context, ws *store.Workspace, c store.ReadinessCampaignRow) string {
-	return Fingerprint(c, RoutingKey(ctx, s.Q, ws.ID))
+	fp := Fingerprint(c, RoutingKey(ctx, s.Q, ws.ID))
+	if s.Languages != nil {
+		fp = WithLanguages(fp, s.Languages.CampaignDigest(ctx, s.Q, ws.ID, c.ID))
+	}
+	return fp
+}
+
+// WithLanguages adds a campaign's language versions (languages.CampaignDigest)
+// to its fingerprint; a campaign without versions keeps its fingerprint.
+func WithLanguages(fingerprint, digest string) string {
+	if digest == "" {
+		return fingerprint
+	}
+	sum := sha256.Sum256([]byte(fingerprint + "\x00" + digest))
+	return hex.EncodeToString(sum[:])
 }
 
 // Run runs every check on a campaign and stores the result. It returns
@@ -113,7 +132,7 @@ func (s *Service) Run(ctx context.Context, ws *store.Workspace, id uuid.UUID, o 
 	groups[0].Status = "running"
 	gb, _ := json.Marshal(groups)
 	if _, err := s.Q.ReadinessStartProgress(ctx, store.ReadinessStartProgressParams{CampaignID: id, RunID: runID, Trigger: o.Trigger, StartedBy: o.By,
-		Now: started, Groups: gb, Total: 25, StaleBefore: started.Add(-staleAfter)}); err != nil {
+		Now: started, Groups: gb, Total: 26, StaleBefore: started.Add(-staleAfter)}); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return ReadinessRun{}, ErrRunning
 		}
@@ -162,6 +181,7 @@ func (s *Service) progress(ctx context.Context, id, runID uuid.UUID, groups []Re
 	}
 	done, total := 0, 0
 	running := false
+	shown := make([]ReadinessProgressGroup, 0, len(groups))
 	for i := range groups {
 		g := &groups[i]
 		rg, ok := byKey[g.Key]
@@ -173,6 +193,10 @@ func (s *Service) progress(ctx context.Context, id, runID uuid.UUID, groups []Re
 		case doneGroups[g.Key] && ok:
 			g.Status, g.Text, g.Done = rg.Status, firstNonEmpty(rg.Summary, rg.Caption), rg.Total
 			done += rg.Total
+		case doneGroups[g.Key] && st != stagePrepare:
+			// A group with nothing to check (Languages for an email in one
+			// language) leaves the list once its stage ran.
+			continue
 		case !running:
 			g.Status, running = "running", true
 			if ok {
@@ -184,8 +208,9 @@ func (s *Service) progress(ctx context.Context, id, runID uuid.UUID, groups []Re
 				g.Text = rg.Running
 			}
 		}
+		shown = append(shown, *g)
 	}
-	gb, _ := json.Marshal(groups)
+	gb, _ := json.Marshal(shown)
 	_ = s.Q.ReadinessUpdateProgress(ctx, store.ReadinessUpdateProgressParams{Groups: gb, Done: int32(done), Total: int32(max(total, done)), Now: s.now(), CampaignID: id, RunID: runID})
 }
 

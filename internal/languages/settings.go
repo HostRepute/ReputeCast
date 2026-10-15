@@ -85,12 +85,13 @@ func settingsOf(rows []store.LanguagesListRow) Settings {
 			st.Fallback = r.Code
 		}
 	}
-	if len(st.Languages) == 0 {
-		st.Languages = []string{"en"}
-		st.offered["en"] = true
-	}
 	if st.Default == "" {
-		st.Default = st.Languages[0]
+		// A workspace that never chose its languages writes in English.
+		if !st.offered["en"] {
+			st.Languages = append([]string{"en"}, st.Languages...)
+			st.offered["en"] = true
+		}
+		st.Default = "en"
 	}
 	if st.Fallback == "" {
 		st.Fallback = st.Default

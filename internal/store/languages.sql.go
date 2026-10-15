@@ -960,11 +960,14 @@ func (q *Queries) LanguagesContactCodes(ctx context.Context, workspaceID uuid.UU
 
 const languagesEnsureDefault = `-- name: LanguagesEnsureDefault :exec
 INSERT INTO workspace_languages (workspace_id, code, is_default, is_fallback, added_at, page_copy_status)
-SELECT $1, 'en', true, true, w.created_at, 'live' FROM workspaces w
-WHERE w.id = $1 AND NOT EXISTS (SELECT 1 FROM workspace_languages WHERE workspace_id = $1)
+SELECT $1, 'en', true, NOT EXISTS (SELECT 1 FROM workspace_languages f WHERE f.workspace_id = $1 AND f.is_fallback), w.created_at, 'live'
+FROM workspaces w
+WHERE w.id = $1 AND NOT EXISTS (SELECT 1 FROM workspace_languages d WHERE d.workspace_id = $1 AND d.is_default)
+ON CONFLICT (workspace_id, code) DO UPDATE SET is_default = true, is_fallback = EXCLUDED.is_fallback OR workspace_languages.is_fallback, removed_at = NULL, removed_by = NULL
 `
 
-// A workspace that never set its languages writes in English.
+// A workspace that never chose its default writes in English: English
+// becomes its default (and its fallback unless it has one).
 func (q *Queries) LanguagesEnsureDefault(ctx context.Context, workspaceID uuid.UUID) error {
 	_, err := q.db.Exec(ctx, languagesEnsureDefault, workspaceID)
 	return err

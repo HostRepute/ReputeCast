@@ -676,7 +676,8 @@ type Querier interface {
 	// Contacts per language code as stored ("es-MX", "" for none), erased
 	// contacts left out, as on Contacts.
 	LanguagesContactCodes(ctx context.Context, workspaceID uuid.UUID) ([]LanguagesContactCodesRow, error)
-	// A workspace that never set its languages writes in English.
+	// A workspace that never chose its default writes in English: English
+	// becomes its default (and its fallback unless it has one).
 	LanguagesEnsureDefault(ctx context.Context, workspaceID uuid.UUID) error
 	// Content languages (design expansion M17): workspace languages, language
 	// versions of emails and their sources.

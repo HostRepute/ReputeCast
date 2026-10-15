@@ -189,7 +189,19 @@ func (s Segment) translatable() string {
 	return s.Text
 }
 
+// textHash fingerprints what a block has to translate; "" when it has
+// nothing (an image without alt text, a divider).
 func textHash(segs []Segment) string {
+	empty := true
+	for _, s := range segs {
+		if t := strings.Trim(s.translatable(), " \x01"); t != "" {
+			empty = false
+			break
+		}
+	}
+	if empty {
+		return ""
+	}
 	h := sha256.New()
 	for _, s := range segs {
 		h.Write([]byte(s.Kind))
@@ -246,6 +258,10 @@ func summary(b Block, header bool) string {
 	lines := make([]string, 0, len(order))
 	for _, c := range order {
 		lines = append(lines, strings.Join(cols[c], " · "))
+	}
+	if header {
+		// A header's logo and links read as one line.
+		return strings.Join(lines, " · ")
 	}
 	return strings.Join(lines, "\n")
 }

@@ -180,7 +180,7 @@ func Compare(source []Block, keys []SourceBlock, version []Block, links Links, d
 				r.State = RowChanged
 				p.Changed++
 				p.Attention++
-			case version[vi].Hash == source[si].Hash && source[si].Hash != emptyHash && draft:
+			case version[vi].Hash == source[si].Hash && source[si].Hash != "" && draft:
 				r.State = RowStill
 				p.Still++
 			case l.Hash != source[si].Hash && draft:

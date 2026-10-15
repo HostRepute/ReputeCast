@@ -20,10 +20,11 @@ func Align(before, after []AlignKey) []int {
 		out[i] = -1
 	}
 	usedBefore := make([]bool, len(before))
+	// ordered marks later blocks matched in order: they bound the gaps.
+	ordered := make([]bool, len(after))
 	// 1. Exact matches in order.
 	for _, p := range lcs(before, after, func(a, b AlignKey) bool { return a.Raw != "" && a.Raw == b.Raw }) {
-		out[p[1]] = p[0]
-		usedBefore[p[0]] = true
+		out[p[1]], usedBefore[p[0]], ordered[p[1]] = p[0], true, true
 	}
 	// Exact matches that moved.
 	for j := range after {
@@ -37,21 +38,18 @@ func Align(before, after []AlignKey) []int {
 			}
 		}
 	}
-	// 2 and 3, gap by gap between anchors that kept their order.
+	// 2 and 3, gap by gap between blocks matched in order.
 	gapPass := func(match func(a, b AlignKey) bool) {
 		lastBefore := -1
 		j := 0
 		for j < len(after) {
-			if out[j] >= 0 {
-				if out[j] > lastBefore {
-					lastBefore = out[j]
-				}
+			if ordered[j] {
+				lastBefore = out[j]
 				j++
 				continue
 			}
-			// The gap runs to the next matched later block.
 			end := j
-			for end < len(after) && out[end] < 0 {
+			for end < len(after) && !ordered[end] {
 				end++
 			}
 			nextBefore := len(before)
@@ -60,9 +58,12 @@ func Align(before, after []AlignKey) []int {
 			}
 			k := lastBefore + 1
 			for g := j; g < end; g++ {
+				if out[g] >= 0 {
+					continue // moved
+				}
 				for i := k; i < nextBefore && i < len(before); i++ {
 					if !usedBefore[i] && match(before[i], after[g]) {
-						out[g], usedBefore[i] = i, true
+						out[g], usedBefore[i], ordered[g] = i, true, true
 						k = i + 1
 						break
 					}
@@ -71,7 +72,19 @@ func Align(before, after []AlignKey) []int {
 			j = end
 		}
 	}
-	gapPass(func(a, b AlignKey) bool { return a.Hash == b.Hash && a.Hash != emptyHash })
+	gapPass(func(a, b AlignKey) bool { return a.Hash != "" && a.Hash == b.Hash })
+	// Blocks that moved and changed style keep their text.
+	for j := range after {
+		if out[j] >= 0 || after[j].Hash == "" {
+			continue
+		}
+		for i := range before {
+			if !usedBefore[i] && before[i].Hash == after[j].Hash {
+				out[j], usedBefore[i] = i, true
+				break
+			}
+		}
+	}
 	gapPass(func(a, b AlignKey) bool { return true })
 	return out
 }
@@ -81,9 +94,6 @@ type AlignKey struct {
 	Raw  string
 	Hash string
 }
-
-// emptyHash is the fingerprint of a block with nothing to translate.
-var emptyHash = textHash(nil)
 
 // lcs returns index pairs of a longest common subsequence.
 func lcs(a, b []AlignKey, eq func(x, y AlignKey) bool) [][2]int {
