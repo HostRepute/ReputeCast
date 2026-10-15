@@ -164,4 +164,6 @@ export const entries: Entry[] = [
   { board: 'PublicConfirm', manual: true },
   { board: 'PublicPreferences', manual: true },
   { board: 'PublicUnsubscribe', manual: true },
+  // X01 · the phone tab bar's More sheet: open it with More at 390 × 844 (any screen; the board draws it over Overview).
+  { board: 'ShellMore', manual: true },
 ]

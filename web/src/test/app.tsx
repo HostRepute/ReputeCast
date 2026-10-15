@@ -14,6 +14,7 @@ export function workspaceMe(patch: Partial<WorkspaceMe> = {}): WorkspaceMe {
     scope: {} as WorkspaceMe['scope'],
     timezone: 'UTC',
     unread: 0,
+    hiddenSections: [],
     workspace: { id: 'ws-1', slug: 'acme-newsletter', name: 'Acme Newsletter', roleKey: 'viewer', roleName: 'Viewer', memberCount: 6, subscribers: 48213 },
     ...patch,
   }

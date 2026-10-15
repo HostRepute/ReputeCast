@@ -124,6 +124,8 @@ type WorkspaceSettings struct {
 	// Reason explains read-only access.
 	Reason  string   `json:"reason,omitempty"`
 	Helpers []string `json:"helpers"`
+	// HiddenSections are the sections hidden from the sidebar (Sidebar sections).
+	HiddenSections []string `json:"hiddenSections" enum:"transactional,grow,earn"`
 }
 
 type policy struct {
@@ -202,6 +204,7 @@ func (s *Service) Settings(ctx context.Context, ws *store.Workspace, p *authz.Pr
 		CanManage: p.Can(authz.WorkspaceManage), CanTransfer: p.Can(authz.WorkspaceTransfer) && p.IsHuman(), CanDelete: p.Can(authz.WorkspaceDelete) && p.IsHuman(),
 		Helpers: access.Helpers(ctx, s.Q, ws.ID, authz.WorkspaceManage),
 	}
+	out.HiddenSections = HiddenSections(ws)
 	if ws.DefaultSenderID != nil {
 		out.DefaultSenderID = ws.DefaultSenderID.String()
 	}
