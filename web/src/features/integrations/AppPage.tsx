@@ -89,8 +89,8 @@ export function AppPage({ kind }: { kind: PlatformKind }) {
           ) : (
             <Connected app={app} onDialog={setDialog} />
           )}
-          {dialog === 'connect' || dialog === null ? (
-            <ConnectDialog kind={kind} open={dialog === 'connect'} onOpenChange={close} onDone={() => setDialog(null)} />
+          {dialog === 'connect' ? (
+            <ConnectDialog kind={kind} open onOpenChange={close} onDone={() => setDialog(null)} />
           ) : null}
           {app.connectionId ? (
             <>

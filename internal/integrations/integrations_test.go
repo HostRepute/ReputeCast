@@ -1078,6 +1078,25 @@ func TestMemberIntegrations(t *testing.T) {
 	if r := a.Do("GET", ws+"/integrations/owned-by/"+marcus, nil); r.Status != 403 {
 		t.Errorf("a Viewer: %d", r.Status)
 	}
+	// His member page lists his own API keys; the integrations' keys are
+	// handed over in the dialogs, so "Revoke them now" leaves them alone.
+	var member string
+	_ = env.App.Pool.QueryRow(context.Background(), `SELECT m.id FROM workspace_members m JOIN users u ON u.id = m.user_id WHERE u.email = 'marcus@acme.io'`).Scan(&member)
+	var detail struct {
+		APIKeys []struct{ Name string }
+	}
+	l.Do("GET", ws+"/members/"+member, nil).MustStatus(t, 200).JSON(t, &detail)
+	for _, k := range detail.APIKeys {
+		if strings.HasPrefix(k.Name, "Zapier · ") || strings.HasPrefix(k.Name, "WordPress · ") {
+			t.Errorf("an integration's key among his API keys: %s", k.Name)
+		}
+	}
+	l.Do("POST", ws+"/members/"+member+"/deactivate", map[string]any{"revokeKeys": true}).MustStatus(t, 200)
+	var revoked int
+	_ = env.App.Pool.QueryRow(context.Background(), `SELECT count(*) FROM api_keys WHERE integration_id IS NOT NULL AND revoked_at IS NOT NULL`).Scan(&revoked)
+	if revoked != 0 {
+		t.Errorf("deactivating revoked %d integration keys", revoked)
+	}
 }
 
 func TestDemoPages(t *testing.T) {

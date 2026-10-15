@@ -1591,11 +1591,14 @@ type Querier interface {
 	// Team: members, invitations, sign-in methods and member detail.
 	TeamListMembers(ctx context.Context, workspaceID uuid.UUID) ([]TeamListMembersRow, error)
 	TeamMarkInvitationSent(ctx context.Context, arg TeamMarkInvitationSentParams) error
+	// Integrations' keys are listed apart: the deactivate and remove dialogs
+	// take them over or disconnect them.
 	TeamMemberAPIKeys(ctx context.Context, arg TeamMemberAPIKeysParams) ([]TeamMemberAPIKeysRow, error)
 	TeamMemberActivity(ctx context.Context, arg TeamMemberActivityParams) ([]TeamMemberActivityRow, error)
 	TeamMemberEmails(ctx context.Context, arg TeamMemberEmailsParams) ([]string, error)
 	TeamPendingInviteEmails(ctx context.Context, arg TeamPendingInviteEmailsParams) ([]string, error)
 	TeamRevokeInvitation(ctx context.Context, arg TeamRevokeInvitationParams) (int64, error)
+	// Integrations' keys stay: deactivating takes them over or disconnects them.
 	TeamRevokeKeysCreatedBy(ctx context.Context, arg TeamRevokeKeysCreatedByParams) ([]TeamRevokeKeysCreatedByRow, error)
 	TeamRevokeUserSessions(ctx context.Context, userID uuid.UUID) (int64, error)
 	TeamSetMemberRole(ctx context.Context, arg TeamSetMemberRoleParams) error

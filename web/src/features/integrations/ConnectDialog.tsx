@@ -63,7 +63,11 @@ export function ConnectDialog({
   const [step, setStep] = useState<Step>('choose')
   const [secret, setSecret] = useState<Secret | null>(null)
   const [count, setCount] = useState(0)
+  // The last step's eyebrow follows its phase: Listening, After 10 minutes, the time of the first call.
+  const [phase, setPhase] = useState<string>()
   const refresh = useRefreshHub()
+  const t = useT()
+  const unreachable = (kind === 'zapier' || kind === 'make') && info.data !== undefined && !info.data.reachability.reachable
   const close = (o: boolean) => {
     if (!o) void refresh()
     onOpenChange(o)
@@ -73,8 +77,18 @@ export function ConnectDialog({
       open={open}
       onOpenChange={close}
       title={<DialogTitle kind={kind} step={step} secret={secret} />}
-      eyebrow={<Eyebrow kind={kind} step={step} secret={secret} />}
-      description={step === 'choose' ? <ChooseDescription kind={kind} /> : step === 'paste' && kind !== 'wordpress' ? <PasteDescription kind={kind} /> : undefined}
+      eyebrow={
+        step === 'choose' && unreachable ? (
+          <span className="k">{t(m.privateEyebrow)}</span>
+        ) : step === 'wait' ? (
+          phase ? <span className="k">{phase}</span> : null
+        ) : (
+          <Eyebrow kind={kind} step={step} secret={secret} />
+        )
+      }
+      description={
+        step === 'choose' && !unreachable ? <ChooseDescription kind={kind} /> : step === 'paste' && kind !== 'wordpress' ? <PasteDescription kind={kind} /> : undefined
+      }
       dismissible={step !== 'paste'}
       size="md"
       hideClose
@@ -97,7 +111,7 @@ export function ConnectDialog({
       ) : step === 'paste' && secret ? (
         <Paste kind={kind} info={info.data} secret={secret} onContinue={() => setStep('wait')} />
       ) : secret ? (
-        <Wait kind={kind} secret={secret} count={count} onClose={() => close(false)} onDone={() => (onDone ? onDone() : close(false))} />
+        <Wait kind={kind} secret={secret} count={count} onPhase={setPhase} onClose={() => close(false)} onDone={() => (onDone ? onDone() : close(false))} />
       ) : null}
     </Dialog>
   )
@@ -269,7 +283,6 @@ function Choose({ kind, info, onCancel, onCreated }: { kind: ConnectKind; info: 
     const r = info.reachability
     return (
       <>
-        <span className="k -mt-2">{t(m.privateEyebrow)}</span>
         <Steps kind={kind} step="choose" blocked />
         <Note tone="bad" role="alert">
           <span className="font-semibold">{t(m.unreachableTitle, { name })}</span>
@@ -771,7 +784,21 @@ export function operationLabel(t: ReturnType<typeof useT>, op: string): string {
 }
 
 /** Step 3: a live line until the first call (or the site's first report), then Connected. */
-function Wait({ kind, secret, count, onClose, onDone }: { kind: ConnectKind; secret: Secret; count: number; onClose: () => void; onDone: () => void }) {
+function Wait({
+  kind,
+  secret,
+  count,
+  onPhase,
+  onClose,
+  onDone,
+}: {
+  kind: ConnectKind
+  secret: Secret
+  count: number
+  onPhase: (eyebrow: string) => void
+  onClose: () => void
+  onDone: () => void
+}) {
   const { slug } = useWorkspace()
   const t = useT()
   const name = t(entryName[kind])
@@ -792,13 +819,15 @@ function Wait({ kind, secret, count, onClose, onDone }: { kind: ConnectKind; sec
   }, [])
   const done = status.data && isDone(status.data, wp)
   const late = !done && now - since > NO_CALL_AFTER
+  const firstAt = status.data?.firstCall ? new Date(status.data.firstCall.at) : status.data?.reported ? new Date(status.data.reported) : undefined
+  const eyebrow = done ? (firstAt ? clock(firstAt) : '') : late ? t(m.afterMinutes) : wp ? t(m.wpWaitEyebrow) : t(m.listening)
+  useEffect(() => onPhase(eyebrow), [eyebrow, onPhase])
 
   if (done && status.data) {
     const fc = status.data.firstCall
     const at = fc ? new Date(fc.at) : status.data.reported ? new Date(status.data.reported) : new Date()
     return (
       <>
-        <span className="k -mt-2">{clock(at)}</span>
         <Steps kind={kind} step="wait" />
         <div className="flex flex-col">
           <Ev icon="ok" title={t(m.evKeyCreated)} sub={t(m.evKeyCreatedLine, { time: clock(createdAt), key: secret.key.name, count })} time={clockSeconds(createdAt)} />
@@ -830,7 +859,6 @@ function Wait({ kind, secret, count, onClose, onDone }: { kind: ConnectKind; sec
     const minutes = Math.floor((now - createdAt.getTime()) / 60_000)
     return (
       <>
-        <span className="k -mt-2">{t(m.afterMinutes)}</span>
         <Steps kind={kind} step="wait" />
         <Ev icon="warn" title={t(m.noCallYet)} sub={t(m.noCallSub, { key: secret.key.name, time: clock(createdAt), minutes })} />
         <Note tone="warn">{t(m.noCallNote)}</Note>
@@ -862,7 +890,6 @@ function Wait({ kind, secret, count, onClose, onDone }: { kind: ConnectKind; sec
 
   return (
     <>
-      <span className="k -mt-2">{wp ? t(m.wpWaitEyebrow) : t(m.listening)}</span>
       <Steps kind={kind} step="wait" />
       <div className="flex flex-col" aria-live="polite">
         <Ev
