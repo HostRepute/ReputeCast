@@ -36,6 +36,10 @@ func (rl RateLimits) Middleware() func(http.Handler) http.Handler {
 			switch {
 			case strings.HasPrefix(r.URL.Path, "/api/v1/auth/"):
 				authed.ServeHTTP(w, r)
+			case transactionalSend(r):
+				// Transactional sends have their own rate, set on each key
+				// (50 per second by default), applied by the send API.
+				next.ServeHTTP(w, r)
 			case strings.HasPrefix(r.URL.Path, "/api/"):
 				limitedAPI.ServeHTTP(w, r)
 			default:
@@ -43,6 +47,15 @@ func (rl RateLimits) Middleware() func(http.Handler) http.Handler {
 			}
 		})
 	}
+}
+
+// transactionalSend reports whether r sends transactional messages
+// (POST …/transactional/messages and …/messages/batch).
+func transactionalSend(r *http.Request) bool {
+	if r.Method != http.MethodPost || !strings.HasPrefix(r.URL.Path, "/api/v1/workspaces/") {
+		return false
+	}
+	return strings.HasSuffix(r.URL.Path, "/transactional/messages") || strings.HasSuffix(r.URL.Path, "/transactional/messages/batch")
 }
 
 // keyByCredential buckets requests by API key (hashed) when one is sent,

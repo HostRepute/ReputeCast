@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"math/big"
 	"net/http"
+	"net/mail"
 	"strconv"
 	"strings"
 	"sync"
@@ -174,14 +175,32 @@ func (p *Provider) call(ctx context.Context, op, path string, in, out any) error
 // Send implements providers.Provider through POST /api/v1/send/raw, one
 // message per call (Postal has no batch endpoint).
 func (p *Provider) Send(ctx context.Context, msgs []providers.Message) ([]providers.SendResult, error) {
+	return p.send(ctx, msgs, nil)
+}
+
+// SendWithExtras implements providers.ExtrasSender: copies and attachments
+// go in the raw message, every recipient in rcpt_to.
+func (p *Provider) SendWithExtras(ctx context.Context, msgs []providers.Message, extras []providers.MessageExtras) ([]providers.SendResult, error) {
+	return p.send(ctx, msgs, extras)
+}
+
+func (p *Provider) send(ctx context.Context, msgs []providers.Message, extras []providers.MessageExtras) ([]providers.SendResult, error) {
 	results := make([]providers.SendResult, 0, len(msgs))
-	for _, m := range msgs {
-		raw, _, err := mimemsg.Build(m, time.Now(), map[string]string{"X-Postal-Tag": TagPrefix + m.ID.String()})
+	for i, m := range msgs {
+		var x providers.MessageExtras
+		if i < len(extras) {
+			x = extras[i]
+		}
+		raw, _, err := mimemsg.BuildWithExtras(m, x, time.Now(), map[string]string{"X-Postal-Tag": TagPrefix + m.ID.String()})
 		if err != nil {
 			results = append(results, providers.SendResult{MessageID: m.ID, Err: &providers.SendError{Code: "Render", Message: err.Error()}})
 			continue
 		}
-		body := map[string]any{"mail_from": m.From.Address, "rcpt_to": []string{m.To.Address}, "data": base64.StdEncoding.EncodeToString(raw)}
+		rcpt := []string{m.To.Address}
+		for _, a := range append(append([]mail.Address{}, x.Cc...), x.Bcc...) {
+			rcpt = append(rcpt, a.Address)
+		}
+		body := map[string]any{"mail_from": m.From.Address, "rcpt_to": rcpt, "data": base64.StdEncoding.EncodeToString(raw)}
 		var data struct {
 			MessageID string `json:"message_id"`
 			Messages  map[string]struct {

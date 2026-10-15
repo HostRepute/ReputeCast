@@ -25,6 +25,9 @@ const (
 	RuleAuthorLacksSend   = "author_lacks_send"
 	RuleApprovalLists     = "approval_lists"
 	RuleAutomationPublish = "automation_publish"
+	// RuleTransactionalPublish: publishing a transactional template needs
+	// approval (add-on transactional §3.6; off by default).
+	RuleTransactionalPublish = "transactional_publish"
 )
 
 // InvalidationShare is how far the audience may move (in percent) before an
@@ -59,10 +62,11 @@ type policyDoc struct {
 			Enabled bool `json:"enabled"`
 		} `json:"approval_lists"`
 	} `json:"rules"`
-	ApprovalsRequired int      `json:"approvals_required"`
-	ApproverRoles     []string `json:"approver_roles,omitempty"`
-	AutomationPublish bool     `json:"automation_publish"`
-	EmergencyBypass   *bool    `json:"emergency_bypass"`
+	ApprovalsRequired    int      `json:"approvals_required"`
+	ApproverRoles        []string `json:"approver_roles,omitempty"`
+	AutomationPublish    bool     `json:"automation_publish"`
+	TransactionalPublish bool     `json:"transactional_publish"`
+	EmergencyBypass      *bool    `json:"emergency_bypass"`
 }
 
 // ApprovalAudienceRule is the audience-size rule.
@@ -83,7 +87,10 @@ type ApprovalPolicy struct {
 	ApprovalLists     bool `json:"approvalLists"`
 	ApprovalsRequired int  `json:"approvalsRequired" minimum:"1" maximum:"2"`
 	AutomationPublish bool `json:"automationPublish"`
-	EmergencyBypass   bool `json:"emergencyBypass"`
+	// TransactionalPublish: publishing a transactional template needs an
+	// approver other than the publisher (off by default).
+	TransactionalPublish bool `json:"transactionalPublish"`
+	EmergencyBypass      bool `json:"emergencyBypass"`
 }
 
 // ParsePolicy reads the stored policy. An empty policy is the default of a
@@ -95,15 +102,16 @@ func ParsePolicy(raw json.RawMessage) ApprovalPolicy {
 			AuthorLacksSend: true, ApprovalsRequired: 1, EmergencyBypass: true}
 	}
 	p := ApprovalPolicy{
-		AudienceMin:       ApprovalAudienceRule{Enabled: d.Rules.AudienceMin.Enabled, N: d.Rules.AudienceMin.N},
-		WarmingProvider:   d.Rules.Warming.Enabled || d.Rules.NewProvider.Enabled,
-		NewProviderDays:   d.Rules.NewProvider.Days,
-		ReadyWithWarnings: d.Rules.Warnings.Enabled,
-		AuthorLacksSend:   d.Rules.LacksSend.Enabled,
-		ApprovalLists:     d.Rules.Lists.Enabled,
-		ApprovalsRequired: d.ApprovalsRequired,
-		AutomationPublish: d.AutomationPublish,
-		EmergencyBypass:   d.EmergencyBypass == nil || *d.EmergencyBypass,
+		AudienceMin:          ApprovalAudienceRule{Enabled: d.Rules.AudienceMin.Enabled, N: d.Rules.AudienceMin.N},
+		WarmingProvider:      d.Rules.Warming.Enabled || d.Rules.NewProvider.Enabled,
+		NewProviderDays:      d.Rules.NewProvider.Days,
+		ReadyWithWarnings:    d.Rules.Warnings.Enabled,
+		AuthorLacksSend:      d.Rules.LacksSend.Enabled,
+		ApprovalLists:        d.Rules.Lists.Enabled,
+		ApprovalsRequired:    d.ApprovalsRequired,
+		AutomationPublish:    d.AutomationPublish,
+		TransactionalPublish: d.TransactionalPublish,
+		EmergencyBypass:      d.EmergencyBypass == nil || *d.EmergencyBypass,
 	}
 	if p.AudienceMin.N <= 0 {
 		p.AudienceMin.N = 10000
@@ -134,6 +142,7 @@ func (p ApprovalPolicy) toDB(prev json.RawMessage) json.RawMessage {
 	d.Rules.Lists.Enabled = p.ApprovalLists
 	d.ApprovalsRequired = p.ApprovalsRequired
 	d.AutomationPublish = p.AutomationPublish
+	d.TransactionalPublish = p.TransactionalPublish
 	b := p.EmergencyBypass
 	d.EmergencyBypass = &b
 	if len(d.ApproverRoles) == 0 {
@@ -166,7 +175,7 @@ func (p ApprovalPolicy) RuleLabels() []string {
 
 // ApprovalRuleMatch is a rule that matched a send.
 type ApprovalRuleMatch struct {
-	Key string `json:"key" enum:"audience_min,warming_provider,new_provider,ready_with_warnings,author_lacks_send,approval_lists,automation_publish"`
+	Key string `json:"key" enum:"audience_min,warming_provider,new_provider,ready_with_warnings,author_lacks_send,approval_lists,automation_publish,transactional_publish"`
 	// Label is the sentence ("Audience of 47,912 is at least 10,000"),
 	// Short the inbox phrase ("audience ≥ 10,000") and Badge the chip.
 	Label string `json:"label"`

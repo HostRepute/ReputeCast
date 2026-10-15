@@ -60,6 +60,11 @@ func (s *Service) newSource(src string, c credentials) (Source, error) {
 			base = c.BaseURL
 		}
 		return NewKeila(base, c.APIKey, s.HTTP)
+	case "notifuse":
+		if base == "" {
+			base = c.BaseURL
+		}
+		return NewNotifuse(base, c.APIKey, s.HTTP)
 	}
 	return nil, fmt.Errorf("unknown source %q", src)
 }
@@ -68,7 +73,7 @@ func (s *Service) newSource(src string, c credentials) (Source, error) {
 type ImportConnectInput struct {
 	APIKey  string `json:"apiKey" minLength:"1" maxLength:"500" doc:"Write-only: stored encrypted, never returned"`
 	User    string `json:"user,omitempty" maxLength:"200" doc:"listmonk API user"`
-	BaseURL string `json:"baseUrl,omitempty" maxLength:"500" format:"uri" doc:"listmonk or Keila server address"`
+	BaseURL string `json:"baseUrl,omitempty" maxLength:"500" format:"uri" doc:"listmonk, Keila or Notifuse server address"`
 }
 
 // Connect checks the key against the source, stores it encrypted and

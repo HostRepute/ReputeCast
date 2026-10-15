@@ -32,7 +32,9 @@ func (s *Service) accessibilityChecks(ctx context.Context, cs checkSubject, html
 	}
 	checks, err := s.Accessibility.TemplateChecks(ctx, cs.WorkspaceID, cs.TemplateID, mj, html)
 	if err != nil {
-		s.log().WarnContext(ctx, "transactional accessibility checks", "err", err)
+		if s.Log != nil {
+			s.Log.WarnContext(ctx, "transactional accessibility checks", "err", err)
+		}
 		return false
 	}
 	for _, c := range checks {

@@ -55,9 +55,6 @@ const (
 	CodeIdempotencyReused = "idempotency_key_reused"
 	// CodeTemplateNotAllowed answers a key limited to other templates.
 	CodeTemplateNotAllowed = "template_not_allowed"
-	// CodeRecipientOptedOut is a batch item to an address that turned the
-	// template's Optional category off.
-	CodeRecipientOptedOut = "recipient_opted_out"
 	// Template editing.
 	CodeVersionConflict   = "version_conflict"
 	CodeBreakingChange    = "breaking_change"
@@ -152,10 +149,7 @@ type Service struct {
 	// Outbox wakes the sending engine's transactional outbox in the
 	// transaction that queued messages.
 	Outbox func(ctx context.Context, tx pgx.Tx) error
-	// ProviderLimit returns the largest message a provider accepts, in
-	// bytes (attachments included); 0 when it doesn't say.
-	ProviderLimit func(adapter string) int64
-	Now           func() time.Time
+	Now    func() time.Time
 
 	limiter keyLimiter
 }
@@ -165,13 +159,6 @@ func (s *Service) now() time.Time {
 		return s.Now()
 	}
 	return time.Now()
-}
-
-func (s *Service) log() *slog.Logger {
-	if s.Log != nil {
-		return s.Log
-	}
-	return slog.Default()
 }
 
 func newID() uuid.UUID { return uuid.Must(uuid.NewV7()) }

@@ -1,0 +1,8 @@
+{
+  "templates": [
+    { "id": "password_reset", "name": "Password reset", "version": 4, "channel": "email", "category": "transactional" },
+    { "id": "weekly_digest", "name": "Weekly digest", "version": 7, "channel": "email", "category": "marketing" },
+    { "id": "double_optin", "name": "Confirm your subscription", "version": 1, "channel": "email", "category": "opt_in" },
+    { "id": "blog_post", "name": "Blog post page", "version": 2, "channel": "web", "category": "blog" }
+  ]
+}

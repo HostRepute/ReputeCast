@@ -42,6 +42,9 @@ type Service struct {
 	Automations *automations.Service
 	// Languages snapshots a campaign's language versions; nil leaves them out.
 	Languages *languages.Service
+	// TransactionalTemplates describes what publishing a transactional
+	// template would change, for its approval request.
+	TransactionalTemplates TransactionalTemplates
 }
 
 func (s *Service) now() time.Time {

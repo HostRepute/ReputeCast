@@ -81,11 +81,11 @@ function BlockTile({ def, flagged, onSaved }: { def: BlockDef | { id: string; la
   )
 }
 
-function BlocksTab({ onShowSections }: { onShowSections: () => void }) {
+function BlocksTab({ onShowSections, blocks, note }: { onShowSections: () => void; blocks?: BlockDef[]; note?: ReactNode }) {
   const c = useComposer()
   const [q, setQ] = useState('')
   const sections = $api.useQuery('get', '/api/v1/workspaces/{workspace}/templates', { params: { path: { workspace: c.slug } } }, { staleTime: 60_000 })
-  const defs = useMemo(() => blockDefs(c.context.postalAddress), [c.context.postalAddress])
+  const defs = useMemo(() => blocks ?? blockDefs(c.context.postalAddress), [blocks, c.context.postalAddress])
   useEffect(() => {
     if (!c.editor) return
     const api = blocksApi(c.editor)
@@ -131,6 +131,7 @@ function BlocksTab({ onShowSections }: { onShowSections: () => void }) {
           </div>
         )
       })}
+      {note}
     </>
   )
 }
@@ -305,12 +306,15 @@ function TemplatesTab({ sectionsRef }: { sectionsRef: RefObject<HTMLDivElement |
   )
 }
 
-/** Left panel: Blocks · Layers · Templates. */
-export function LeftPanel() {
+/**
+ * Left panel: Blocks · Layers · Templates. The transactional mode passes its
+ * own blocks (the transactional footer) and a note under them.
+ */
+export function LeftPanel({ blocks, note }: { blocks?: BlockDef[]; note?: ReactNode } = {}) {
   const c = useComposer()
   const sectionsRef = useRef<HTMLDivElement | null>(null)
   if (c.isEmpty) {
-    const defs = blockDefs(c.context.postalAddress)
+    const defs = blocks ?? blockDefs(c.context.postalAddress)
     return (
       // A preview of what comes next, inactive until a start is picked.
       <aside className="cpanel left dim" aria-hidden="true" inert>
@@ -362,6 +366,8 @@ export function LeftPanel() {
       >
         <TabPanel value="blocks">
           <BlocksTab
+            blocks={blocks}
+            note={note}
             onShowSections={() => {
               c.setLeftTab('templates')
               window.setTimeout(() => sectionsRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' }), 50)

@@ -69,7 +69,7 @@ func TestRoutingSaveAndBulkTerms(t *testing.T) {
 	owner.SignInDemo("linh@acme.io")
 	var c config
 	owner.Do("GET", ws+"/routing", nil).MustStatus(t, 200).JSON(t, &c)
-	if len(c.Streams) != 3 || c.Streams[0].Stream != "broadcast" || len(c.Streams[0].Splits) != 2 || len(c.Streams[0].Conditions) != 2 {
+	if len(c.Streams) != 4 || c.Streams[0].Stream != "broadcast" || len(c.Streams[0].Splits) != 2 || len(c.Streams[0].Conditions) != 2 {
 		t.Fatalf("routing %+v", c.Streams)
 	}
 	if v := c.Streams[0].Volume; v == nil || v.Per != "week" || v.Count == 0 || v.Smallest == 0 {

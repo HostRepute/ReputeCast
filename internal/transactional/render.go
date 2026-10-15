@@ -144,12 +144,6 @@ func withPreheader(doc, preheader string) string {
 	return div + doc
 }
 
-// maskedRender renders what the log keeps: sensitive values replaced by
-// ••••••, so a reset link never reaches the database.
-func maskedRender(c content, data map[string]any, to recipient, links map[string]string) (rendered, error) {
-	return render(c, maskData(c.Variables, data), to, links)
-}
-
 // liquidMessage turns a parse error into the editor's sentence: "The
 // {% if %} on line 14 has no {% endif %}."
 func liquidMessage(p liquid.LiquidProblem) string {

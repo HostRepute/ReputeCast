@@ -117,6 +117,7 @@ export const fieldText: Record<Condition['field'], string> = {
   mailbox_provider: 'recipient mailbox provider',
   list: 'list',
   sender_domain: 'sender domain',
+  category: 'category',
 }
 
 const streamTitle: Record<Stream, string> = { broadcast: 'Broadcasts', automation: 'Automations', system: 'System' }

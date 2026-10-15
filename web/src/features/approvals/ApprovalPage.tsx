@@ -18,6 +18,7 @@ import { AccessTable } from '@/features/access/parts'
 import { HeldCard, HeldActions } from '@/features/review/ApprovalCard'
 import { agoWords, countsShort, groupTitles, groupWords, linkParts, minutes, providerColor, verdictTitle, zonedWhen } from '@/features/review/logic'
 import { AppHref, CheckBadge, whenText } from '@/features/review/parts'
+import { TransactionalApprovalCard, TransactionalDecisionDetail, TransactionalDecisionNote } from '@/features/transactional-templates/ApprovalCard'
 import { ApprovalStatusBadge, approverNames, decidedText, deciderFirst, DiffLines, requestTone, unchangedText, type Change } from './parts'
 import '@/features/review/review.css'
 
@@ -186,6 +187,7 @@ function DetailBody({ detail: d }: { detail: Detail }) {
             </HeldCard>
           ) : null}
           {d.subjectType === 'automation' ? <AutomationCard detail={d} /> : null}
+          {d.transactional ? <TransactionalApprovalCard snapshot={d.transactional} /> : null}
           {d.campaign ? <CampaignCard detail={d} busy={busy === 'test'} onTest={() => void sendTest()} /> : null}
           {d.readiness ? <ReadinessCard detail={d} busy={busy} onFix={(c, f) => void applyFix(c, f)} /> : null}
           {d.audience || d.route ? <AudienceRouteCard detail={d} /> : null}
@@ -207,9 +209,13 @@ function DetailBody({ detail: d }: { detail: Detail }) {
         badge={ask === 'reject' ? 'Reject' : 'Request changes'}
         title={ask === 'reject' ? `Reject “${d.name}”?` : `Ask ${d.author.name} for changes?`}
         description={
-          ask === 'reject'
-            ? `${d.author.name} is told and the campaign goes back to a draft. Reject when it shouldn't go out at all; for fixes, request changes instead.`
-            : `The request goes back to ${d.author.name} with your comment. The campaign stays a draft until they ask again.`
+          d.transactional ? (
+            <TransactionalDecisionDetail kind={ask ?? 'request_changes'} author={d.author.name} />
+          ) : ask === 'reject' ? (
+            `${d.author.name} is told and the campaign goes back to a draft. Reject when it shouldn't go out at all; for fixes, request changes instead.`
+          ) : (
+            `The request goes back to ${d.author.name} with your comment. The campaign stays a draft until they ask again.`
+          )
         }
         reason={{ label: ask === 'reject' ? 'Why reject it?' : 'What should change?', minLength: 3 }}
         confirmLabel={ask === 'reject' ? 'Reject' : 'Request changes'}
@@ -664,7 +670,7 @@ function ScheduleNoteCard({ detail: d }: { detail: Detail }) {
         ? `${s.mode === 'best_time' ? 'Best time per recipient within 24 h of ' : ''}${zonedWhen(s.at, s.timezone)}`
         : 'Not scheduled yet'
   return (
-    <Sec id="ap-schedule" title={d.subjectType === 'automation' ? 'Note' : 'Schedule and note'}>
+    <Sec id="ap-schedule" title={d.subjectType === 'campaign' ? 'Schedule and note' : 'Note'}>
       <div className="pad col gap-3!">
         <dl className="kv">
           {d.subjectType === 'campaign' ? (
@@ -815,12 +821,16 @@ function DecisionCard({ detail: d, busy, onApprove, onChanges, onReject }: { det
             <Button variant="danger" className="justify-center" loading={busy === 'reject'} disabledReason={reason} onClick={onReject}>
               Reject
             </Button>
-            <div className="note n text-[12.5px]">
-              <span>
-                Approving covers this exact snapshot. If {d.author.name.split(' ')[0]} edits the content, audience, route or schedule, or the audience moves more than 10%, the
-                approval is invalidated and you see the diff.
-              </span>
-            </div>
+            {d.transactional ? (
+              <TransactionalDecisionNote author={d.author.name} />
+            ) : (
+              <div className="note n text-[12.5px]">
+                <span>
+                  Approving covers this exact snapshot. If {d.author.name.split(' ')[0]} edits the content, audience, route or schedule, or the audience moves more than 10%, the
+                  approval is invalidated and you see the diff.
+                </span>
+              </div>
+            )}
           </>
         ) : d.status === 'invalidated' ? (
           <div className="note n text-[12.5px]">

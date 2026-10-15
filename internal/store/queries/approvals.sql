@@ -1,8 +1,10 @@
 -- name: ApprovalInsertRequest :exec
 INSERT INTO approval_requests (id, workspace_id, subject_type, campaign_id, automation_id, requested_by, requested_at, note, status,
-                               matched_rules, approvals_required, snapshot, campaign_version, readiness_run_id, previous_id, bypass_reason)
+                               matched_rules, approvals_required, snapshot, campaign_version, readiness_run_id, previous_id, bypass_reason,
+                               transactional_template_id)
 VALUES (@id, @workspace_id, @subject_type, sqlc.narg(campaign_id), sqlc.narg(automation_id), sqlc.narg(requested_by), @requested_at, @note, @status,
-        @matched_rules, @approvals_required, @snapshot, sqlc.narg(campaign_version), sqlc.narg(readiness_run_id), sqlc.narg(previous_id), @bypass_reason);
+        @matched_rules, @approvals_required, @snapshot, sqlc.narg(campaign_version), sqlc.narg(readiness_run_id), sqlc.narg(previous_id), @bypass_reason,
+        sqlc.narg(transactional_template_id));
 
 -- name: ApprovalGet :one
 SELECT r.*,
@@ -11,7 +13,7 @@ SELECT r.*,
        coalesce(u.avatar_color, '')::text AS requested_by_color,
        coalesce(d.name, '')::text AS decided_by_name,
        coalesce(i.name, '')::text AS invalidated_by_name,
-       coalesce(c.name, a.name, '')::text AS subject_name,
+       coalesce(c.name, a.name, t.name, '')::text AS subject_name,
        coalesce(c.status, '')::text AS campaign_status,
        c.scheduled_at AS campaign_scheduled_at,
        c.started_at AS campaign_started_at,
@@ -22,6 +24,7 @@ LEFT JOIN users d ON d.id = r.decided_by
 LEFT JOIN users i ON i.id = r.invalidated_by
 LEFT JOIN campaigns c ON c.id = r.campaign_id
 LEFT JOIN automations a ON a.id = r.automation_id
+LEFT JOIN transactional_templates t ON t.id = r.transactional_template_id
 WHERE r.workspace_id = @workspace_id AND r.id = @id;
 
 -- name: ApprovalLock :one
@@ -109,7 +112,7 @@ SELECT id FROM chain ORDER BY depth;
 
 -- name: ApprovalList :many
 -- The approval inbox. Approvers see every request; others only their own.
-SELECT r.id, r.subject_type, r.campaign_id, r.automation_id, r.requested_by, r.requested_at, r.status, r.matched_rules, r.approvals_required,
+SELECT r.id, r.subject_type, r.campaign_id, r.automation_id, r.transactional_template_id, r.requested_by, r.requested_at, r.status, r.matched_rules, r.approvals_required,
        r.decided_at, r.invalidated_at, r.invalidated_reason, r.changes, r.bypass_reason,
        coalesce((r.snapshot ->> 'audience_count')::bigint, 0)::bigint AS audience_count,
        coalesce(r.snapshot -> 'route', '[]'::jsonb)::jsonb AS route,
@@ -120,7 +123,7 @@ SELECT r.id, r.subject_type, r.campaign_id, r.automation_id, r.requested_by, r.r
        coalesce(u.email, '')::text AS requested_by_email,
        coalesce(u.avatar_color, '')::text AS requested_by_color,
        coalesce(d.name, '')::text AS decided_by_name,
-       coalesce(c.name, a.name, '')::text AS subject_name,
+       coalesce(c.name, a.name, t.name, '')::text AS subject_name,
        coalesce(c.status, '')::text AS campaign_status,
        c.scheduled_at AS campaign_scheduled_at,
        c.started_at AS campaign_started_at,
@@ -130,6 +133,7 @@ LEFT JOIN users u ON u.id = r.requested_by
 LEFT JOIN users d ON d.id = r.decided_by
 LEFT JOIN campaigns c ON c.id = r.campaign_id
 LEFT JOIN automations a ON a.id = r.automation_id
+LEFT JOIN transactional_templates t ON t.id = r.transactional_template_id
 WHERE r.workspace_id = @workspace_id AND r.status <> 'bypassed'
   AND (@all_requests::boolean OR r.requested_by = @viewer::uuid)
   AND r.requested_at >= @since::timestamptz
@@ -143,7 +147,7 @@ LIMIT 200;
 
 -- name: ApprovalPendingForWorkspace :many
 SELECT r.id, r.requested_at, coalesce((r.snapshot ->> 'audience_count')::bigint, 0)::bigint AS audience_count,
-       coalesce(c.name, a.name, '')::text AS subject_name,
+       coalesce(c.name, a.name, t.name, '')::text AS subject_name,
        coalesce(u.name, '')::text AS requested_by_name,
        coalesce(u.email, '')::text AS requested_by_email,
        coalesce(u.avatar_color, '')::text AS requested_by_color
@@ -151,6 +155,7 @@ FROM approval_requests r
 LEFT JOIN users u ON u.id = r.requested_by
 LEFT JOIN campaigns c ON c.id = r.campaign_id
 LEFT JOIN automations a ON a.id = r.automation_id
+LEFT JOIN transactional_templates t ON t.id = r.transactional_template_id
 WHERE r.workspace_id = @workspace_id AND r.status = 'pending'
 ORDER BY r.requested_at DESC;
 

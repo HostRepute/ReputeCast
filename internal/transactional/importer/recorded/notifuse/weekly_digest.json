@@ -1,0 +1,19 @@
+{
+  "template": {
+    "id": "weekly_digest",
+    "name": "Weekly digest",
+    "version": 7,
+    "channel": "email",
+    "category": "marketing",
+    "test_data": {},
+    "email": {
+      "subject": "This week at Acme",
+      "subject_preview": null,
+      "compiled_preview": "<!doctype html><html><body>This week</body></html>",
+      "editor_mode": "code",
+      "mjml_source": "<mjml>\n  <mj-body>\n    <mj-section>\n      <mj-column>\n        <mj-text>Hi {{ contact.first_name }}, here is this week's news.</mj-text>\n        <mj-text><a href=\"{{ notification_center_url }}\">Email preferences</a> · <a href=\"{{ unsubscribe_url }}\">Unsubscribe</a></mj-text>\n      </mj-column>\n    </mj-section>\n  </mj-body>\n</mjml>",
+      "visual_editor_tree": null,
+      "text": null
+    }
+  }
+}

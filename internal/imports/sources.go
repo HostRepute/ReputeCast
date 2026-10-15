@@ -32,6 +32,9 @@ type ImportConnection struct {
 	BaseURL    string             `json:"baseUrl,omitempty"`
 	Lists      []ImportSourceList `json:"lists"`
 	CheckedAt  time.Time          `json:"checkedAt"`
+	// Templates are the email templates the source can bring along
+	// (Notifuse).
+	Templates *ImportTemplateCounts `json:"templates,omitempty"`
 }
 
 // ImportSourceList is an audience, list or group in the source.

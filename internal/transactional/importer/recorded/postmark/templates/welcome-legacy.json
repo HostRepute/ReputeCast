@@ -1,0 +1,1 @@
+{ "TemplateId": 30102, "Name": "Old welcome (2023)", "Alias": "welcome-legacy", "Subject": "Welcome to Acme Cloud", "TemplateType": "Standard", "LayoutTemplate": "acme-layout", "Active": false, "AssociatedServerId": 41208 }

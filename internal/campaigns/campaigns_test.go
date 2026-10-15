@@ -53,18 +53,21 @@ func TestListCampaigns(t *testing.T) {
 	if list.Items[1].Name != "November Product Update" || list.Items[1].Status != "approval" {
 		t.Fatalf("waiting for approval: %+v", list.Items[1])
 	}
-	// "3 blocking issues", as on the board and on Review & send: its two
-	// warnings aren't counted.
-	if !list.Items[2].Blocked || list.Items[2].Audience != "All subscribers" || list.Items[2].Readiness == nil || list.Items[2].Readiness.Issues != 3 {
-		t.Fatalf("blocked draft: %+v", list.Items[2])
-	}
 	// Drafts follow their last save (Weekly Digest #143's is relative to the
-	// clock), so the October update is found by name.
-	var oct = list.Items[0]
+	// clock), so the drafts below are found by name.
+	var flash, oct = list.Items[0], list.Items[0]
 	for _, it := range list.Items {
-		if it.Name == "October Product Update" {
+		switch it.Name {
+		case "Flash sale: 48 hours only":
+			flash = it
+		case "October Product Update":
 			oct = it
 		}
+	}
+	// "3 blocking issues", as on the board and on Review & send: its two
+	// warnings aren't counted.
+	if !flash.Blocked || flash.Audience != "All subscribers" || flash.Readiness == nil || flash.Readiness.Issues != 3 {
+		t.Fatalf("blocked draft: %+v", flash)
 	}
 	if oct.Name != "October Product Update" || len(oct.Notes) == 0 || oct.Notes[0] != "A/B subject, winner B" {
 		t.Fatalf("A/B note: %+v", oct)
