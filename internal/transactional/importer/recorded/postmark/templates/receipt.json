@@ -1,0 +1,1 @@
+{ "TemplateId": 31003, "Name": "Receipt", "Alias": "receipt", "Subject": "Your Acme Cloud receipt {{ receipt_id }}", "TemplateType": "Standard", "LayoutTemplate": null, "Active": true, "AssociatedServerId": 41208 }

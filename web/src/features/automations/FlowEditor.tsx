@@ -131,8 +131,8 @@ export function FlowEditorPage({ automationId, search, onSearch }: { automationI
   )
 }
 
-/** Creates a draft from ?template= (or blank) and opens it. */
-export function NewAutomationPage({ template }: { template?: Schemas['AutomationCreateBody']['template'] }) {
+/** Creates a draft from ?template= (or blank), on ?list= when given, and opens it. */
+export function NewAutomationPage({ template, list }: { template?: Schemas['AutomationCreateBody']['template']; list?: string }) {
   const { slug } = useWorkspace()
   const navigate = useNavigate()
   const reason = usePermissionReason('automations:edit')
@@ -143,10 +143,10 @@ export function NewAutomationPage({ template }: { template?: Schemas['Automation
     if (started.current || reason) return
     started.current = true
     mutate(
-      { params: { path: { workspace: slug } }, body: template ? { template } : {} },
+      { params: { path: { workspace: slug } }, body: template ? { template, list } : {} },
       { onSuccess: (r) => void navigate({ to: '/w/$workspace/automations/$automationId', params: { workspace: slug, automationId: r.id }, search: {}, replace: true }) },
     )
-  }, [reason, slug, template, mutate, navigate])
+  }, [reason, slug, template, list, mutate, navigate])
   if (reason) return <EditorError error={new ApiError(403, { status: 403, title: 'Not allowed', detail: reason } as Schemas['Problem'])} />
   if (create.isError) return <EditorError error={create.error} title="Couldn't create the automation" />
   return <EditorSkeleton />

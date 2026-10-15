@@ -1,8 +1,10 @@
 import { useState, type ReactNode } from 'react'
+import { useT } from '@/i18n'
 import { clock, clockSeconds, count } from '@/lib/format'
 import { probe, useSystemStatus, type Maintenance } from '@/lib/systemStatus'
 import { Badge } from '../ui/Badge'
 import { Button, ButtonAnchor } from '../ui/Button'
+import { m } from './messages'
 
 /**
  * Banners at the top of the content column (SystemStates board): a full-width
@@ -33,17 +35,18 @@ export function SystemBanner({
 
 /** Offline (no network) or unreachable (ReputeCast doesn't answer). */
 export function OfflineBanner({ unreachable, onRetry, retrying }: { unreachable?: boolean; onRetry: () => void; retrying?: boolean }) {
+  const t = useT()
   return (
     <SystemBanner
       tone="warn"
-      badge="Offline"
+      badge={t(m.bannerOffline)}
       actions={
         <Button size="sm" onClick={onRetry} loading={retrying}>
-          Retry now
+          {t(m.bannerRetryNow)}
         </Button>
       }
     >
-      {unreachable ? "Can't reach ReputeCast." : "You're offline."} Edits save on this device and sync when the connection is back. Sending and live stats are paused.
+      {t(unreachable ? m.bannerUnreachableBody : m.bannerOfflineBody)}
     </SystemBanner>
   )
 }
@@ -63,39 +66,46 @@ export function ReconnectingBanner({
   maxAttempts: number
   onReconnect: () => void
 }) {
+  const t = useT()
   return (
     <SystemBanner
       tone="info"
-      badge="Reconnecting"
+      badge={t(m.bannerReconnecting)}
       actions={
         <Button size="sm" onClick={onReconnect}>
-          Reconnect now
+          {t(m.bannerReconnectNow)}
         </Button>
       }
     >
-      Live event stream dropped at {clockSeconds(droppedAt)}. Counts below are from {clock(dataAsOf)}. Reconnecting automatically, attempt {attempt} of {maxAttempts}.
+      {t(m.bannerReconnectingBody, { droppedAt: clockSeconds(droppedAt), asOf: clock(dataAsOf), attempt, max: maxAttempts })}
     </SystemBanner>
   )
 }
 
 /** The instance is read-only while an upgrade installs. */
 export function MaintenanceBanner({ maintenance }: { maintenance: Maintenance }) {
+  const t = useT()
   const { version, startedBy, startedAt, etaSeconds, notesUrl } = maintenance
   const minutes = etaSeconds ? Math.max(1, Math.round(etaSeconds / 60)) : undefined
-  const who = startedBy ? ` by ${startedBy}` : ''
-  const when = [startedAt ? `started ${clock(startedAt)}` : '', minutes ? `about ${minutes} minute${minutes === 1 ? '' : 's'}` : ''].filter(Boolean).join(', ')
+  const when =
+    startedAt && minutes
+      ? t(m.bannerMaintenanceStartedEta, { time: clock(startedAt), minutes })
+      : startedAt
+        ? t(m.bannerMaintenanceStarted, { time: clock(startedAt) })
+        : minutes
+          ? t(m.bannerMaintenanceEta, { minutes })
+          : 'none'
   return (
     <SystemBanner
       tone="neutral"
-      badge="Read-only · upgrade"
+      badge={t(m.bannerMaintenance)}
       actions={
         <ButtonAnchor size="sm" href={notesUrl ?? 'https://github.com/hostrepute/reputecast/releases'}>
-          What&apos;s new
+          {t(m.bannerWhatsNew)}
         </ButtonAnchor>
       }
     >
-      {version ? `ReputeCast ${version} is being installed${who}` : `ReputeCast is being upgraded${who}`}
-      {when ? ` (${when})` : ''}. Reading works; edits and sends resume when it finishes.
+      {t(m.bannerMaintenanceBody, { version: version || 'none', by: startedBy || 'none', when })}
     </SystemBanner>
   )
 }
@@ -107,10 +117,10 @@ export function MaintenanceBanner({ maintenance }: { maintenance: Maintenance })
 export function QuotaBanner({
   provider,
   quota,
-  period = '24-hour',
+  period,
   usedUpAt,
   held,
-  heldStream = 'Broadcasts',
+  heldStream,
   resumesAt,
   continues,
   requestHref,
@@ -129,25 +139,34 @@ export function QuotaBanner({
   requestHref: string
   moveTo?: { provider: string; onMove: () => void }
 }) {
+  const t = useT()
+  const values = {
+    provider,
+    period: period ?? t(m.bannerQuotaPeriod),
+    quota: count(quota),
+    time: clock(usedUpAt),
+    stream: heldStream ?? t(m.bannerQuotaStream),
+    held: count(held),
+    resumesAt,
+  }
   return (
     <SystemBanner
       tone="bad"
-      badge="Quota reached"
+      badge={t(m.bannerQuota)}
       actions={
         <>
           <ButtonAnchor size="sm" href={requestHref} newTab={false}>
-            Request a higher quota
+            {t(m.bannerQuotaRequest)}
           </ButtonAnchor>
           {moveTo ? (
             <Button size="sm" onClick={moveTo.onMove}>
-              Move the rest to {moveTo.provider}
+              {t(m.bannerQuotaMove, { provider: moveTo.provider })}
             </Button>
           ) : null}
         </>
       }
     >
-      {provider} {period} quota of {count(quota)} is used up at {clock(usedUpAt)}. {heldStream} hold {count(held)} recipients until {resumesAt}
-      {continues ? `; ${continues}` : ''}.
+      {continues ? t(m.bannerQuotaBodyContinues, { ...values, continues }) : t(m.bannerQuotaBody, values)}
     </SystemBanner>
   )
 }

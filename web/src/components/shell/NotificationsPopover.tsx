@@ -3,6 +3,7 @@ import { Link, useRouter } from '@tanstack/react-router'
 import { Popover as RPopover } from 'radix-ui'
 import { useState, type MouseEvent, type ReactNode } from 'react'
 import { $api, errorMessage, http, type Schemas } from '@/api/client'
+import { t, useT } from '@/i18n'
 import { cn } from '@/lib/cn'
 import { notificationAgo } from '@/lib/format'
 import { useOptionalWorkspace, useWorkspace, workspaceMeKey } from '@/lib/session'
@@ -10,6 +11,7 @@ import { Icon } from '../icons/Icon'
 import { Badge } from '../ui/Badge'
 import { Skeleton } from '../ui/Feedback'
 import { toast } from '../ui/Toast'
+import { m } from './messages'
 
 export type NotificationItem = Schemas['NotificationItem']
 
@@ -42,9 +44,9 @@ export function useNotificationActions() {
     try {
       const { data } = await http.POST('/api/v1/workspaces/{workspace}/notifications/read-all', { params: { path: { workspace: slug } } })
       await refresh()
-      if (data?.marked) toast({ kind: 'success', title: `${data.marked} ${data.marked === 1 ? 'notification' : 'notifications'} marked as read` })
+      if (data?.marked) toast({ kind: 'success', title: t(m.notificationsMarked, { count: data.marked }) })
     } catch (e) {
-      toast({ kind: 'error', title: "Couldn't mark them as read", detail: errorMessage(e) })
+      toast({ kind: 'error', title: t(m.notificationsMarkFailed), detail: errorMessage(e) })
     } finally {
       setMarking(false)
     }
@@ -75,6 +77,7 @@ export function NotificationLink({
   srUnread?: boolean
 }) {
   const router = useRouter()
+  const tr = useT()
   const { markRead } = useNotificationActions()
   const href = n.link || '#'
   const click = (e: MouseEvent<HTMLAnchorElement>) => {
@@ -87,7 +90,7 @@ export function NotificationLink({
   return (
     <a href={href} className={cn(className, !n.read && unreadClassName)} role={role} onClick={click}>
       {children}
-      {n.read || !srUnread ? null : <span className="vh">unread</span>}
+      {n.read || !srUnread ? null : <span className="vh">{tr(m.notificationsUnreadSr)}</span>}
     </a>
   )
 }
@@ -110,13 +113,14 @@ export function notificationDotColor(severity: string) {
 export function NotificationsPopover() {
   const ws = useOptionalWorkspace()
   const [open, setOpen] = useState(false)
+  const tr = useT()
   if (!ws) return null
   const n = ws.me.unread
   return (
     <RPopover.Root open={open} onOpenChange={setOpen}>
       <RPopover.Trigger asChild>
         {/* The board's bell is a link, so it renders content-box (38px); a button would be 36px. */}
-        <button type="button" className="ibtn box-content" aria-label={n ? `Notifications, ${n} unread` : 'Notifications'}>
+        <button type="button" className="ibtn box-content" aria-label={n ? tr(m.notificationsBellUnread, { count: n }) : tr(m.notificationsTitle)}>
           <Icon name="bell" />
           {n ? (
             <span className="cnt" aria-hidden="true">
@@ -126,7 +130,7 @@ export function NotificationsPopover() {
         </button>
       </RPopover.Trigger>
       <RPopover.Portal>
-        <RPopover.Content className="menu w-[420px] p-0!" align="end" sideOffset={10} alignOffset={-20} collisionPadding={12} aria-label="Notifications">
+        <RPopover.Content className="menu w-[420px] p-0!" align="end" sideOffset={10} alignOffset={-20} collisionPadding={12} aria-label={tr(m.notificationsTitle)}>
           {open ? <Panel slug={ws.slug} unread={n} onClose={() => setOpen(false)} /> : null}
         </RPopover.Content>
       </RPopover.Portal>
@@ -137,16 +141,17 @@ export function NotificationsPopover() {
 function Panel({ slug, unread, onClose }: { slug: string; unread: number; onClose: () => void }) {
   const list = $api.useQuery('get', '/api/v1/workspaces/{workspace}/notifications', { params: { path: { workspace: slug }, query: { limit: 6 } } })
   const { markAll, marking } = useNotificationActions()
+  const tr = useT()
   const count = list.data?.unread ?? unread
   return (
     <>
       <div className="sec" style={{ padding: '12px 14px' }}>
         <div className="row" style={{ gap: 8 }}>
-          <h2 className="h2 text-[14px]!">Notifications</h2>
-          {count ? <Badge tone="bad">{count} unread</Badge> : null}
+          <h2 className="h2 text-[14px]!">{tr(m.notificationsTitle)}</h2>
+          {count ? <Badge tone="bad">{tr(m.notificationsUnreadBadge, { count })}</Badge> : null}
         </div>
         <button type="button" className="btn sm" disabled={marking || !count} onClick={markAll}>
-          Mark all as read
+          {tr(m.notificationsMarkAll)}
         </button>
       </div>
       <div className="col" style={{ gap: 0, padding: 6 }}>
@@ -157,7 +162,7 @@ function Panel({ slug, unread, onClose }: { slug: string; unread: number; onClos
         ) : list.isPending ? (
           <div aria-busy="true">
             <span className="vh" role="status">
-              Loading notifications…
+              {tr(m.notificationsLoading)}
             </span>
             {[0, 1, 2].map((i) => (
               <div key={i} className="flex gap-2.5 px-2.5 py-2">
@@ -171,8 +176,8 @@ function Panel({ slug, unread, onClose }: { slug: string; unread: number; onClos
           </div>
         ) : list.data.items.length === 0 ? (
           <div className="note n m-1 flex-col items-center gap-1 text-center">
-            <span className="font-semibold">You're all caught up</span>
-            <span className="k">Approvals, auto-pauses, provider incidents, team changes and HostRepute alerts show up here.</span>
+            <span className="font-semibold">{tr(m.notificationsEmptyTitle)}</span>
+            <span className="k">{tr(m.notificationsEmptyBody)}</span>
           </div>
         ) : (
           list.data.items.map((it) => (
@@ -193,10 +198,10 @@ function Panel({ slug, unread, onClose }: { slug: string; unread: number; onClos
       </div>
       <div className="sec border-t border-line-2" style={{ borderBottom: 0, padding: '10px 14px' }}>
         <Link to="/w/$workspace/notifications" params={{ workspace: slug }} className="text-[13px] font-semibold!" onClick={onClose}>
-          All notifications
+          {tr(m.notificationsAll)}
         </Link>
         <Link to="/w/$workspace/notifications" params={{ workspace: slug }} hash="preferences" className="k" onClick={onClose}>
-          Preferences
+          {tr(m.notificationsPreferences)}
         </Link>
       </div>
     </>

@@ -26,6 +26,9 @@ const (
 type CreateParams struct {
 	Name     string
 	Template string
+	// ListID is the list a list-triggered template starts on (the
+	// welcome-series prompt); empty takes the workspace's first list.
+	ListID string
 }
 
 // Create makes a draft flow. Templates also create their emails.
@@ -60,6 +63,21 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, by *uuid.UUID
 			listID := ""
 			if len(lists) > 0 {
 				listID = lists[0].ID.String()
+			}
+			if p.ListID != "" {
+				found := false
+				for _, l := range lists {
+					if l.ID.String() == p.ListID {
+						listID, found = p.ListID, true
+						// "Welcome series · Product Updates", unless named.
+						if strings.TrimSpace(p.Name) == "" {
+							name = tpl.Name + " · " + l.Name
+						}
+					}
+				}
+				if !found {
+					return api.Invalid("body.list", "That list isn't in this workspace.")
+				}
 			}
 			graph = tpl.build(listID)
 		}

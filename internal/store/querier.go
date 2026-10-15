@@ -1533,6 +1533,16 @@ type Querier interface {
 	// and the sunset policy use it); last_open_machine says what the latest was.
 	TrackingTouchContactOpen(ctx context.Context, arg TrackingTouchContactOpenParams) error
 	TxnAppendAttempts(ctx context.Context, arg TxnAppendAttemptsParams) error
+	// A newer draft replaces the request for an older one.
+	TxnApprovalCancelPending(ctx context.Context, arg TxnApprovalCancelPendingParams) error
+	// The approved request that covers a draft, if any.
+	TxnApprovalForHash(ctx context.Context, arg TxnApprovalForHashParams) (uuid.UUID, error)
+	// Approvals for publishing transactional templates (add-on transactional §3.6).
+	// The latest request about a template, pending first.
+	TxnApprovalLatest(ctx context.Context, templateID *uuid.UUID) (TxnApprovalLatestRow, error)
+	// The approved request a publish relied on remembers the version it made live.
+	TxnApprovalMarkPublished(ctx context.Context, arg TxnApprovalMarkPublishedParams) error
+	TxnApprovalPending(ctx context.Context, templateID *uuid.UUID) (TxnApprovalPendingRow, error)
 	// Categories with their template counts and opt-outs.
 	TxnCategories(ctx context.Context, workspaceID uuid.UUID) ([]TxnCategoriesRow, error)
 	TxnCategory(ctx context.Context, arg TxnCategoryParams) (TransactionalCategory, error)
@@ -1699,6 +1709,15 @@ type Querier interface {
 	WarmupSetProgress(ctx context.Context, arg WarmupSetProgressParams) error
 	WarmupSetStatus(ctx context.Context, arg WarmupSetStatusParams) error
 	WarmupUpdateSettings(ctx context.Context, arg WarmupUpdateSettingsParams) error
+	WelcomeDismiss(ctx context.Context, arg WelcomeDismissParams) error
+	WelcomeDismissedLists(ctx context.Context, workspaceID uuid.UUID) ([]uuid.UUID, error)
+	WelcomeForm(ctx context.Context, arg WelcomeFormParams) (WelcomeFormRow, error)
+	WelcomeImport(ctx context.Context, arg WelcomeImportParams) (WelcomeImportRow, error)
+	// Automations that start on a list or a form, with their status.
+	WelcomeListTriggers(ctx context.Context, workspaceID uuid.UUID) ([]WelcomeListTriggersRow, error)
+	// Welcome-series prompts (add-on transactional §6).
+	// The workspace's lists, newest first.
+	WelcomeLists(ctx context.Context, workspaceID uuid.UUID) ([]WelcomeListsRow, error)
 	WorkspaceProviders(ctx context.Context, workspaceID uuid.UUID) ([]WorkspaceProvidersRow, error)
 	WorkspaceTierHistory(ctx context.Context, arg WorkspaceTierHistoryParams) ([]WorkspaceTierHistoryRow, error)
 	WsAuditSettings(ctx context.Context, id uuid.UUID) (WsAuditSettingsRow, error)

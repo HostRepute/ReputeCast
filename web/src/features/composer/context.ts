@@ -20,6 +20,15 @@ export type SaveStatus =
   | { kind: 'error'; version: number; message: string }
 
 export interface ComposerState {
+  /**
+   * What is being edited. In 'transactional' mode (features/composer/transactional)
+   * `campaign` describes a transactional template, so its id isn't a campaign's:
+   * shared parts must not call campaign endpoints with it.
+   */
+  kind?: 'campaign' | 'transactional'
+  /** The View switcher's items, when they differ from Visual · MJML · HTML (the transactional mode adds Text); selectView picks one. */
+  views?: { key: string; label: string; on: boolean }[]
+  selectView?(key: string): void
   slug: string
   campaign: Campaign
   context: ComposerCtxData

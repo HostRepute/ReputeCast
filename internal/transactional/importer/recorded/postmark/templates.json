@@ -1,0 +1,14 @@
+{
+  "TotalCount": 9,
+  "Templates": [
+    { "Active": true, "TemplateId": 31001, "Name": "Account verification", "Alias": "verify-email", "TemplateType": "Standard", "LayoutTemplate": null },
+    { "Active": true, "TemplateId": 31002, "Name": "Password reset", "Alias": "password-reset", "TemplateType": "Standard", "LayoutTemplate": null },
+    { "Active": true, "TemplateId": 31003, "Name": "Receipt", "Alias": "receipt", "TemplateType": "Standard", "LayoutTemplate": null },
+    { "Active": true, "TemplateId": 31004, "Name": "Team invitation", "Alias": "team-invite", "TemplateType": "Standard", "LayoutTemplate": null },
+    { "Active": true, "TemplateId": 31005, "Name": "Usage alert", "Alias": "usage-alert", "TemplateType": "Standard", "LayoutTemplate": null },
+    { "Active": true, "TemplateId": 31006, "Name": "Comment notification", "Alias": "comment-notification", "TemplateType": "Standard", "LayoutTemplate": null },
+    { "Active": false, "TemplateId": 30102, "Name": "Old welcome (2023)", "Alias": "welcome-legacy", "TemplateType": "Standard", "LayoutTemplate": "acme-layout" },
+    { "Active": false, "TemplateId": 30388, "Name": "Webinar reminder", "Alias": "webinar", "TemplateType": "Standard", "LayoutTemplate": null },
+    { "Active": false, "TemplateId": 30411, "Name": "Test", "Alias": "test", "TemplateType": "Standard", "LayoutTemplate": null }
+  ]
+}

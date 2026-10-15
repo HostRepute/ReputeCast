@@ -2,6 +2,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { useEffect, useId, useState, type FormEvent } from 'react'
 import { ApiError, errorMessage, http, type Schemas } from '@/api/client'
+import { t, useT } from '@/i18n'
 import { clock as clockTime, spanWords } from '@/lib/format'
 import {
   extendSession,
@@ -19,6 +20,7 @@ import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
 import { Dialog } from '../ui/Dialog'
 import { toast } from '../ui/Toast'
+import { m } from './messages'
 import { SessionEndingNotice } from './SystemNotices'
 
 type SSOStart = Schemas['SSOStart']
@@ -60,10 +62,10 @@ export function SessionGuard() {
   const extend = async () => {
     setExtending(true)
     try {
-      const t = await extendSession()
-      toast({ kind: 'success', title: 'Session extended', detail: `ends ${clockTime(t.endsAt)} unless you keep working` })
+      const timing = await extendSession()
+      toast({ kind: 'success', title: t(m.sessionExtended), detail: t(m.sessionExtendedDetail, { time: clockTime(timing.endsAt) }) })
     } catch (e) {
-      if (!(e instanceof ApiError && e.status === 401)) toast({ kind: 'error', title: "Couldn't extend the session", detail: errorMessage(e), retry: () => void extend() })
+      if (!(e instanceof ApiError && e.status === 401)) toast({ kind: 'error', title: t(m.sessionExtendFailed), detail: errorMessage(e), retry: () => void extend() })
     } finally {
       setExtending(false)
     }
@@ -86,13 +88,13 @@ export function SessionGuard() {
 }
 
 function endedSentence(reason: EndReason): string {
-  const t = getSessionState().timing
-  if (reason === 'idle' && t?.idleTimeoutSeconds) return `Your session ended after ${spanWords(t.idleTimeoutSeconds * 1000)} without activity, as set by your instance.`
-  if (reason === 'lifetime' && t) {
-    const days = Math.round((Date.parse(t.expiresAt) - Date.parse(t.signedInAt)) / 86_400_000)
-    return `Your session reached its ${days}-day limit, as set by your instance.`
+  const timing = getSessionState().timing
+  if (reason === 'idle' && timing?.idleTimeoutSeconds) return t(m.sessionEndedIdle, { span: spanWords(timing.idleTimeoutSeconds * 1000) })
+  if (reason === 'lifetime' && timing) {
+    const days = Math.round((Date.parse(timing.expiresAt) - Date.parse(timing.signedInAt)) / 86_400_000)
+    return t(m.sessionEndedLifetime, { days })
   }
-  return 'Your session ended: you signed out in another tab, or an admin ended it.'
+  return t(m.sessionEndedOther)
 }
 
 /** "Sign in again to keep working": the page stays mounted behind it. */
@@ -108,6 +110,7 @@ export function SignInAgainDialog({ open, reason, workNote }: { open: boolean; r
   const [sso, setSso] = useState<SSOStart | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string>()
+  const tr = useT()
 
   useEffect(() => {
     if (!open || !email) return
@@ -133,7 +136,7 @@ export function SignInAgainDialog({ open, reason, workNote }: { open: boolean; r
     reset()
     await sessionRenewed()
     await qc.invalidateQueries()
-    toast({ kind: 'success', title: 'Signed in again', detail: 'your work is where you left it' })
+    toast({ kind: 'success', title: t(m.sessionSignedInAgain), detail: t(m.sessionSignedInAgainDetail) })
   }
 
   const submit = async (e: FormEvent) => {
@@ -169,14 +172,14 @@ export function SignInAgainDialog({ open, reason, workNote }: { open: boolean; r
       onOpenChange={() => {}}
       layout="session"
       dismissible={false}
-      eyebrow={<Badge tone="info">Session ended</Badge>}
-      title="Sign in again to keep working"
-      description={`${endedSentence(reason)} ${workNote ?? "Anything you haven't saved stays on this page and is kept when you sign in."}`}
+      eyebrow={<Badge tone="info">{tr(m.sessionEndedBadge)}</Badge>}
+      title={tr(m.sessionSignInAgainTitle)}
+      description={`${endedSentence(reason)} ${workNote ?? tr(m.sessionWorkKept)}`}
     >
       <form className="flex flex-col gap-3" onSubmit={(e) => void submit(e)} noValidate>
         {!challenge ? (
           <div className="lblc">
-            <label htmlFor={fieldId}>Password for {email ?? 'your account'}</label>
+            <label htmlFor={fieldId}>{email ? tr(m.sessionPasswordFor, { email }) : tr(m.sessionPasswordForAccount)}</label>
             <input
               id={fieldId}
               className="in"
@@ -191,7 +194,7 @@ export function SignInAgainDialog({ open, reason, workNote }: { open: boolean; r
           </div>
         ) : (
           <div className="lblc">
-            <label htmlFor={fieldId}>{method === 'totp' ? 'Code from your authenticator app' : 'One of your recovery codes'}</label>
+            <label htmlFor={fieldId}>{method === 'totp' ? tr(m.sessionTotpLabel) : tr(m.sessionRecoveryLabel)}</label>
             <input
               id={fieldId}
               className="in"
@@ -205,7 +208,7 @@ export function SignInAgainDialog({ open, reason, workNote }: { open: boolean; r
               required
             />
             <button type="button" className="self-start border-0 bg-transparent p-0 text-[12.5px] font-medium text-accent underline" onClick={() => setMethod(method === 'totp' ? 'recovery' : 'totp')}>
-              {method === 'totp' ? 'Use a recovery code instead' : 'Use the authenticator app instead'}
+              {method === 'totp' ? tr(m.sessionUseRecovery) : tr(m.sessionUseTotp)}
             </button>
           </div>
         )}
@@ -215,20 +218,20 @@ export function SignInAgainDialog({ open, reason, workNote }: { open: boolean; r
           </span>
         ) : null}
         <div className="flex flex-wrap gap-2">
-          <Button type="submit" variant="primary" loading={busy} disabledReason={!email ? 'Reload the page to sign in again.' : undefined}>
-            {challenge ? 'Verify' : 'Sign in'}
+          <Button type="submit" variant="primary" loading={busy} disabledReason={!email ? tr(m.sessionReload) : undefined}>
+            {challenge ? tr(m.sessionVerify) : tr(m.sessionSignIn)}
           </Button>
           {sso ? (
             <a className="btn" href={sso.startUrl}>
-              Use SSO
+              {tr(m.sessionUseSso)}
             </a>
           ) : null}
           <Button className="ml-auto" onClick={() => void signOutEverywhere(navigate, () => qc.clear())}>
-            Sign out
+            {tr(m.sessionSignOut)}
           </Button>
         </div>
       </form>
-      <span className="k">Two minutes before a session ends, a banner offers to extend it so nothing is lost mid-edit.</span>
+      <span className="k">{tr(m.sessionWarningNote)}</span>
     </Dialog>
   )
 }

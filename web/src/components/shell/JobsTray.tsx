@@ -1,14 +1,16 @@
 import { Link, useRouter, useRouterState } from '@tanstack/react-router'
 import { useEffect, useRef, useState } from 'react'
+import { t, useT } from '@/i18n'
 import { isActive, useBackgroundJobs, type BackgroundJob, type JobStatus } from '@/lib/jobs'
 import { useWorkspace } from '@/lib/session'
 import { Icon } from '../icons/Icon'
 import { toast } from '../ui/Toast'
+import { m } from './messages'
 
 function meta(j: BackgroundJob): string {
-  if (j.status === 'queued') return 'queued'
-  const pct = j.progress !== undefined ? `${Math.round(j.progress)}%` : 'running'
-  return j.eta ? `${pct} · ${j.eta}` : pct
+  if (j.status === 'queued') return t(m.jobQueued)
+  const pct = j.progress !== undefined ? t(m.jobPercent, { pct: Math.round(j.progress) }) : t(m.jobRunning)
+  return j.eta ? t(m.jobWithEta, { progress: pct, eta: j.eta }) : pct
 }
 
 /**
@@ -25,6 +27,7 @@ export function JobsTray() {
   const path = useRouterState({ select: (s) => s.location.pathname })
   const active = running.filter((j) => j.href !== path)
   const seen = useRef(new Map<string, JobStatus>())
+  const tr = useT()
 
   useEffect(() => {
     for (const j of jobs) {
@@ -34,26 +37,26 @@ export function JobsTray() {
       if (j.status === 'done') {
         toast({
           kind: 'success',
-          title: `${j.kind === 'import' ? 'Import' : 'Export'} finished`,
+          title: t(j.kind === 'import' ? m.jobImportFinished : m.jobExportFinished),
           detail: j.detail,
-          action: j.href ? { label: 'Open', onClick: () => router.history.push(j.href!) } : undefined,
+          action: j.href ? { label: t(m.jobOpen), onClick: () => router.history.push(j.href!) } : undefined,
         })
       } else if (j.status === 'failed') {
-        toast({ kind: 'error', title: `${j.title} failed`, detail: j.detail ?? 'see the job history for what went wrong' })
+        toast({ kind: 'error', title: t(m.jobFailed, { title: j.title }), detail: j.detail ?? t(m.jobFailedDetail) })
       }
     }
   }, [jobs, router])
 
   if (!active.length) return null
   return (
-    <section className="tray" aria-label="Background jobs">
+    <section className="tray" aria-label={tr(m.jobsLabel)}>
       <div className="th">
         <button type="button" aria-expanded={open} onClick={() => setOpen(!open)}>
-          Background jobs · {active.length}
+          {tr(m.jobsToggle, { count: active.length })}
           <Icon name={open ? 'chevronDown' : 'chevronUp'} size={14} />
         </button>
         <Link to="/w/$workspace/settings/audit" params={{ workspace: slug }} className="k">
-          History
+          {tr(m.jobsHistory)}
         </Link>
       </div>
       {open ? (
@@ -69,7 +72,7 @@ export function JobsTray() {
               </div>
             </div>
           ))}
-          <span className="k">Jobs keep running if you close the tab. You get a toast here and an email when one finishes or fails.</span>
+          <span className="k">{tr(m.jobsFootnote)}</span>
         </>
       ) : null}
     </section>

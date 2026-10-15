@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Usage alert</title>
+</head>
+<body style="margin:0;background:#f4f4f7;font-family:Helvetica,Arial,sans-serif;color:#51545e">
+<table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+<tr><td style="padding:24px">
+<h1 style="color:#333333;font-size:22px">Hi {{ name }},</h1>
+<p>Your workspace has used {{ usage_percent }}% of the {{ plan_name }} plan this month. When it reaches 100%, new deploys wait until the next month or an upgrade.</p>
+<p><a href="{{ action_url }}" style="background:#3869d4;color:#ffffff;padding:10px 18px;border-radius:3px;text-decoration:none">See your usage</a></p>
+<p>The Acme Cloud team</p>
+</td></tr>
+</table>
+</body>
+</html>

@@ -372,7 +372,15 @@ function SaveTemplateDialog({ open, onClose, onSaved }: { open: boolean; onClose
       if (kind === 'template') await c.save({ manual: true, quiet: true })
       await http.POST('/api/v1/workspaces/{workspace}/templates', {
         params: { path: { workspace: c.slug } },
-        body: { kind, name: name.trim(), description: description.trim() || undefined, mjml, html: kind === 'template' ? c.compileCurrent()?.html : undefined, sourceCampaignId: c.campaign.id },
+        body: {
+          kind,
+          name: name.trim(),
+          description: description.trim() || undefined,
+          mjml,
+          html: kind === 'template' ? c.compileCurrent()?.html : undefined,
+          // A transactional template isn't a campaign.
+          sourceCampaignId: c.kind === 'transactional' ? undefined : c.campaign.id,
+        },
       })
       void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/templates'] })
       onSaved(name.trim())

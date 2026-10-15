@@ -1,0 +1,12 @@
+Hi {{ name }},
+
+Thanks for using Acme Cloud. This email is the receipt for your purchase.
+
+{{ receipt_id }} · {{ date }}
+
+{{#each items}}
+{{ description }}: {{ amount }}
+{{/each}}
+Total: {{ total }}
+
+Questions? Contact our support team: {{ support_url }}
