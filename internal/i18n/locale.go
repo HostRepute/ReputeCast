@@ -210,8 +210,14 @@ func WithLang(ctx context.Context, l Lang) context.Context {
 
 // LangFrom returns the language stored by WithLang, or Default.
 func LangFrom(ctx context.Context) Lang {
+	l, _ := LangFromContext(ctx)
+	return l
+}
+
+// LangFromContext is LangFrom, saying whether a language was stored.
+func LangFromContext(ctx context.Context) (Lang, bool) {
 	if l, ok := ctx.Value(ctxKey{}).(Lang); ok {
-		return l
+		return l, true
 	}
-	return Default
+	return Default, false
 }

@@ -3,7 +3,6 @@ package instance
 import (
 	"context"
 	"fmt"
-	"html"
 	"net/http"
 	"slices"
 	"strings"
@@ -15,11 +14,12 @@ import (
 	"github.com/hostrepute/reputecast/internal/access"
 	"github.com/hostrepute/reputecast/internal/accounts"
 	"github.com/hostrepute/reputecast/internal/api"
+	"github.com/hostrepute/reputecast/internal/applang"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authn"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
-	"github.com/hostrepute/reputecast/internal/mailer"
+	"github.com/hostrepute/reputecast/internal/membermail"
 	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -546,11 +546,8 @@ func (s *Service) ResetTwoFactor(ctx context.Context, id uuid.UUID, in InstanceT
 	}
 	// An email too, when one can be sent: the person may not sign in soon.
 	if s.mail().SystemAvailable(ctx, nil) {
-		msg := mailer.Message{To: u.Email, ToName: u.Name, Kind: "twofa_reset", Subject: "Two-factor was reset on your " + st.Name + " account",
-			Text: fmt.Sprintf("%s, an instance admin, reset two-factor on your account %s.\n\nReason: %s\n\nSign in with your password and set up an authenticator app again before %s. If you didn't ask for this, tell your admin right away.\n",
-				displayName(me.Name, me.Email), u.Email, reason, grace.Format("January 2")),
-			HTML: fmt.Sprintf(`<p style="font:14px/1.5 sans-serif">%s, an instance admin, reset two-factor on your account <b>%s</b>.</p><p style="font:14px/1.5 sans-serif">Reason: %s</p><p style="font:14px/1.5 sans-serif">Sign in with your password and set up an authenticator app again before %s. If you didn't ask for this, tell your admin right away.</p>`,
-				html.EscapeString(displayName(me.Name, me.Email)), html.EscapeString(u.Email), html.EscapeString(reason), grace.Format("January 2"))}
+		msg := membermail.TwoFactorReset(applang.ForUserID(ctx, s.Q, id), st.Name, displayName(me.Name, me.Email), u.Email, reason, grace)
+		msg.To, msg.ToName = u.Email, u.Name
 		if _, err := s.mail().SendSystem(ctx, msg); err != nil {
 			s.Log.WarnContext(ctx, "two-factor reset email not sent", "user", id, "err", err)
 		}
@@ -663,11 +660,8 @@ func (s *Service) SendPasswordReset(ctx context.Context, id uuid.UUID) (Instance
 	}
 	link := accounts.ResetLink(s.publicURL(st), token)
 	admin := displayName(me.Name, me.Email)
-	msg := mailer.Message{To: u.Email, ToName: u.Name, Kind: "password_reset", Subject: "Reset your " + st.Name + " password",
-		Text: fmt.Sprintf("%s, an instance admin, sent you a link to set a new password for %s on %s.\n\nSet a new password: %s\n\nThe link works once and expires in 15 minutes. Your current password keeps working until you use it.\n",
-			admin, u.Email, st.Name, link),
-		HTML: fmt.Sprintf(`<p style="font:14px/1.5 sans-serif">%s, an instance admin, sent you a link to set a new password for <b>%s</b> on %s.</p><p style="font:14px sans-serif"><a href="%s">Set a new password</a></p><p style="font:13px/1.5 sans-serif;color:#5B6472">The link works once and expires in 15 minutes. Your current password keeps working until you use it.</p>`,
-			html.EscapeString(admin), html.EscapeString(u.Email), html.EscapeString(st.Name), html.EscapeString(link))}
+	msg := membermail.AdminPasswordReset(applang.ForUserID(ctx, s.Q, id), st.Name, admin, u.Email, link)
+	msg.To, msg.ToName = u.Email, u.Name
 	via, err := s.mail().SendSystem(ctx, msg)
 	if err != nil {
 		_ = s.Q.InvalidatePasswordResets(ctx, id)

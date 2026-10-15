@@ -304,7 +304,7 @@ func (q *Queries) GetAvatar(ctx context.Context, userID uuid.UUID) (UserAvatar, 
 }
 
 const getInvitationView = `-- name: GetInvitationView :one
-SELECT i.id, i.workspace_id, i.email, i.role_id, i.scope, i.message, i.token_hash, i.invited_by, i.sent_via, i.last_sent_at, i.created_at, i.expires_at, i.accepted_at, i.accepted_by, i.revoked_at, i.token_enc, i.expires_days, i.reinvite_requested_at, r.name AS role_name, r.key AS role_key, r.builtin AS role_builtin, r.permissions AS role_permissions,
+SELECT i.id, i.workspace_id, i.email, i.role_id, i.scope, i.message, i.token_hash, i.invited_by, i.sent_via, i.last_sent_at, i.created_at, i.expires_at, i.accepted_at, i.accepted_by, i.revoked_at, i.token_enc, i.expires_days, i.reinvite_requested_at, i.language, r.name AS role_name, r.key AS role_key, r.builtin AS role_builtin, r.permissions AS role_permissions,
        w.name AS workspace_name, w.slug AS workspace_slug, w.approval_policy AS workspace_approval_policy,
        coalesce(u.name, '')::text AS invited_by_name, coalesce(u.email, '')::text AS invited_by_email,
        coalesce(u.status, '')::text AS invited_by_status
@@ -334,6 +334,7 @@ type GetInvitationViewRow struct {
 	TokenEnc                []byte          `json:"tokenEnc"`
 	ExpiresDays             int32           `json:"expiresDays"`
 	ReinviteRequestedAt     *time.Time      `json:"reinviteRequestedAt"`
+	Language                *string         `json:"language"`
 	RoleName                string          `json:"roleName"`
 	RoleKey                 string          `json:"roleKey"`
 	RoleBuiltin             bool            `json:"roleBuiltin"`
@@ -368,6 +369,7 @@ func (q *Queries) GetInvitationView(ctx context.Context, tokenHash []byte) (GetI
 		&i.TokenEnc,
 		&i.ExpiresDays,
 		&i.ReinviteRequestedAt,
+		&i.Language,
 		&i.RoleName,
 		&i.RoleKey,
 		&i.RoleBuiltin,
@@ -440,7 +442,7 @@ func (q *Queries) GetUsablePasswordReset(ctx context.Context, tokenHash []byte) 
 }
 
 const getUserByWebAuthnID = `-- name: GetUserByWebAuthnID :one
-SELECT id, email, name, avatar_color, timezone, password_hash, password_set_at, must_change_password, is_instance_admin, break_glass, status, deactivated_at, totp_secret_enc, totp_enabled_at, twofa_grace_until, failed_attempts, locked_until, last_sign_in_at, last_active_at, created_at, updated_at, webauthn_id, totp_label, recovery_codes_saved_at, avatar_updated_at FROM users WHERE webauthn_id = $1
+SELECT id, email, name, avatar_color, timezone, password_hash, password_set_at, must_change_password, is_instance_admin, break_glass, status, deactivated_at, totp_secret_enc, totp_enabled_at, twofa_grace_until, failed_attempts, locked_until, last_sign_in_at, last_active_at, created_at, updated_at, webauthn_id, totp_label, recovery_codes_saved_at, avatar_updated_at, language, region_format, hour_cycle, week_start, language_prompted_at FROM users WHERE webauthn_id = $1
 `
 
 func (q *Queries) GetUserByWebAuthnID(ctx context.Context, webauthnID []byte) (User, error) {
@@ -472,6 +474,11 @@ func (q *Queries) GetUserByWebAuthnID(ctx context.Context, webauthnID []byte) (U
 		&i.TotpLabel,
 		&i.RecoveryCodesSavedAt,
 		&i.AvatarUpdatedAt,
+		&i.Language,
+		&i.RegionFormat,
+		&i.HourCycle,
+		&i.WeekStart,
+		&i.LanguagePromptedAt,
 	)
 	return i, err
 }

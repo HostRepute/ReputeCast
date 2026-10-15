@@ -3,7 +3,6 @@ package accounts
 import (
 	"context"
 	"fmt"
-	"html"
 	"net/http"
 	"slices"
 	"strings"
@@ -13,11 +12,12 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/api"
+	"github.com/hostrepute/reputecast/internal/applang"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authn"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
-	"github.com/hostrepute/reputecast/internal/mailer"
+	"github.com/hostrepute/reputecast/internal/membermail"
 	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -409,13 +409,8 @@ func (s *Service) RequestEmailChange(ctx context.Context, in AccountEmailChangeI
 	expires := s.now().Add(emailChangeTTL)
 	link := s.publicURL(ctx) + s.accountPath(ctx, u.ID) + "?verifyEmail=" + token
 	st, _ := s.policy(ctx)
-	msg := mailer.Message{
-		To: email, ToName: u.Name, Kind: "email_change",
-		Subject: "Confirm your new email for " + st.Name,
-		Text:    fmt.Sprintf("%s asked to sign in to %s with this address from now on.\n\nConfirm the change: %s\n\nThe link works for 24 hours. If you didn't ask for this, ignore this email.\n", u.Email, st.Name, link),
-		HTML: fmt.Sprintf(`<p style="font:14px/1.5 sans-serif">%s asked to sign in to %s with this address from now on.</p><p style="font:14px sans-serif"><a href="%s">Confirm the change</a></p><p style="font:13px/1.5 sans-serif;color:#5B6472">The link works for 24 hours. If you didn't ask for this, ignore this email.</p>`,
-			html.EscapeString(u.Email), html.EscapeString(st.Name), html.EscapeString(link)),
-	}
+	msg := membermail.EmailChange(applang.ForUser(ctx, s.Q, *u), st.Name, u.Email, link)
+	msg.To, msg.ToName = email, u.Name
 	if _, err := s.mail().SendSystem(ctx, msg); err != nil {
 		s.Log.WarnContext(ctx, "email change verification not sent", "user", u.ID, "err", err)
 		return AccountEmailChangeStarted{}, unsent
@@ -497,9 +492,9 @@ func (s *Service) ConfirmEmailChange(ctx context.Context, token string) (Account
 	}
 	// Tell the old address, so a takeover doesn't go unnoticed.
 	st, _ := s.policy(ctx)
-	_, _ = s.mail().SendSystem(ctx, mailer.Message{To: u.Email, ToName: u.Name, Kind: "email_changed",
-		Subject: "Your " + st.Name + " email was changed",
-		Text:    fmt.Sprintf("The account that used %s on %s now signs in with %s. If you didn't do this, contact your instance admin right away.\n", u.Email, st.Name, ch.NewEmail)})
+	notice := membermail.EmailChanged(applang.ForUser(ctx, s.Q, *u), st.Name, u.Email, ch.NewEmail)
+	notice.To, notice.ToName = u.Email, u.Name
+	_, _ = s.mail().SendSystem(ctx, notice)
 	return AccountEmailChanged{Email: ch.NewEmail}, nil
 }
 

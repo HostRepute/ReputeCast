@@ -49,7 +49,7 @@ func (f *formatter) nodes(ns []node, pound *float64) string {
 				s = accent(s)
 			}
 			if f.mode == modeHTML {
-				s = html.EscapeString(s)
+				s = escapeText(s)
 			}
 			b.WriteString(s)
 		case argNode:
@@ -146,7 +146,7 @@ func (f *formatter) arg(v argNode) string {
 
 func (f *formatter) escape(s string) string {
 	if f.mode == modeHTML {
-		return html.EscapeString(s)
+		return escapeText(s)
 	}
 	return s
 }
@@ -246,6 +246,13 @@ func pluralForm(l Locale, v float64, ordinal bool) string {
 	}
 	return "other"
 }
+
+// textEscaper escapes text for HTML element content. Apostrophes stay as
+// they are ("wasn't"): they only matter inside attributes, and messages
+// never go into one.
+var textEscaper = strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;", `"`, "&#34;")
+
+func escapeText(s string) string { return textEscaper.Replace(s) }
 
 func htmlToText(h string) string {
 	var b strings.Builder

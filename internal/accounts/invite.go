@@ -53,6 +53,9 @@ type InvitationView struct {
 	Social          []string                 `json:"social" doc:"Social sign-in providers to join with: google, microsoft, github"`
 	SSO             *SSOStart                `json:"sso,omitempty"`
 	TwoFactor       InvitationTwoFactor      `json:"twoFactor"`
+	// Language is the invitation's (the instance default when it has none):
+	// the page reads in it unless the visitor picks another.
+	Language string `json:"language,omitempty" example:"en"`
 }
 
 // InvitationPasswordPolicy is the password policy shown while creating a password.
@@ -118,6 +121,10 @@ func (s *Service) Invitation(ctx context.Context, token string) (InvitationView,
 		PasswordAllowed: methodAllowed(st, "password"),
 		PasswordPolicy:  InvitationPasswordPolicy{MinLength: int(st.PasswordMinLength), BreachedCheck: st.BreachedCheck},
 		Social:          []string{},
+		Language:        st.DefaultLanguage,
+	}
+	if inv.Language != nil && *inv.Language != "" {
+		v.Language = *inv.Language
 	}
 	if v.InviterName == "" {
 		v.InviterName = "An admin of " + inv.WorkspaceName

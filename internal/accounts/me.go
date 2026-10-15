@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/hostrepute/reputecast/internal/api"
+	"github.com/hostrepute/reputecast/internal/applang"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/version"
@@ -27,6 +28,9 @@ type MeUser struct {
 	Passkeys        int        `json:"passkeys"`
 	RecoveryCodes   int        `json:"recoveryCodes" doc:"Unused recovery codes"`
 	TwoFAGraceUntil *time.Time `json:"twoFAGraceUntil,omitempty"`
+	// Preferences are the app language and region format the person chose
+	// (Account & security › Language & region).
+	Preferences applang.MemberLanguage `json:"preferences,omitempty"`
 }
 
 // MeWorkspace is one workspace the person belongs to.
@@ -47,6 +51,11 @@ type MeInstance struct {
 	Version       string `json:"version"`
 	LatestVersion string `json:"latestVersion,omitempty"`
 	SetupComplete bool   `json:"setupComplete"`
+	// DefaultLanguage and DefaultRegionFormat apply to members who haven't chosen.
+	DefaultLanguage     string `json:"defaultLanguage,omitempty" example:"en"`
+	DefaultRegionFormat string `json:"defaultRegionFormat,omitempty" example:"standard"`
+	// Languages are the app languages the server answers in (the pseudo-locale when it's on).
+	Languages []applang.LanguageOption `json:"languages,omitempty"`
 }
 
 // Me is GET /me.
@@ -88,7 +97,9 @@ func (s *Service) Me(ctx context.Context) (Me, error) {
 	if err != nil {
 		return Me{}, err
 	}
-	me.Instance = MeInstance{Name: st.Name, PublicURL: st.PublicUrl, Version: version.Get().Version, SetupComplete: st.SetupCompletedAt != nil}
+	me.Instance = MeInstance{Name: st.Name, PublicURL: st.PublicUrl, Version: version.Get().Version, SetupComplete: st.SetupCompletedAt != nil,
+		DefaultLanguage: st.DefaultLanguage, DefaultRegionFormat: st.DefaultRegionFormat, Languages: applang.Languages()}
+	me.User.Preferences = applang.Choices(*u)
 	if len(st.LatestRelease) > 0 {
 		var rel struct {
 			Tag string `json:"tag"`

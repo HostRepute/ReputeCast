@@ -15,11 +15,14 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/access"
 	"github.com/hostrepute/reputecast/internal/api"
+	"github.com/hostrepute/reputecast/internal/applang"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authn"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/mailer"
+	"github.com/hostrepute/reputecast/internal/membermail"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -149,6 +152,10 @@ type TeamInviteOptions struct {
 	ExpiryOptions  []int  `json:"expiryOptions"`
 	// SignInSummary is "Invitees pick a password or continue with Google, Microsoft or GitHub."
 	SignInSummary string `json:"signInSummary"`
+	// Languages an invitation can be written in, and the instance default
+	// the dialog starts on.
+	Languages       []applang.LanguageOption `json:"languages,omitempty"`
+	DefaultLanguage string                   `json:"defaultLanguage,omitempty" example:"en"`
 }
 
 // Options returns what the invite dialog needs.
@@ -205,6 +212,12 @@ func (s *Service) Options(ctx context.Context, ws *store.Workspace, p *authz.Pri
 		}
 	}
 	out.SignInSummary = signInSummary(pol)
+	out.Languages, out.DefaultLanguage = []applang.LanguageOption{}, pol.DefaultLanguage
+	for _, l := range applang.Languages() {
+		if l.Code != string(i18n.Pseudo) {
+			out.Languages = append(out.Languages, l)
+		}
+	}
 	return out, nil
 }
 
@@ -275,6 +288,9 @@ type TeamInviteInput struct {
 	Message       string               `json:"message,omitempty" maxLength:"1000"`
 	// SendEmail false only creates the links (the "copy links" fallback).
 	SendEmail *bool `json:"sendEmail,omitempty"`
+	// Language is the invitation email's and the page's; the instance
+	// default when omitted. Once they sign in, members pick their own.
+	Language string `json:"language,omitempty" enum:"en,vi"`
 }
 
 // TeamCreatedInvitation is one created invitation with its link.
@@ -354,6 +370,13 @@ func (s *Service) Invite(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	if days == 0 {
 		days = DefaultInviteDays
 	}
+	language := in.Language
+	if language == "" {
+		language = s.policy(ctx).DefaultLanguage
+	}
+	if l, ok := i18n.ParseLocale(language); !ok || l == i18n.Pseudo || string(l) != language {
+		return TeamInviteResult{}, api.Invalid("body.language", "Pick a language ReputeCast is translated into.")
+	}
 	sendEmail := in.SendEmail == nil || *in.SendEmail
 	now := s.now()
 	expires := now.Add(time.Duration(days) * 24 * time.Hour)
@@ -379,10 +402,13 @@ func (s *Service) Invite(ctx context.Context, ws *store.Workspace, p *authz.Prin
 			}); err != nil {
 				return err
 			}
+			if err := q.AppLangSetInvitationLanguage(ctx, store.AppLangSetInvitationLanguageParams{ID: id, Language: &language}); err != nil {
+				return err
+			}
 			made = append(made, created{id, e, token})
 			if err := s.Audit.LogWith(ctx, q, audit.Event{
 				WorkspaceID: &ws.ID, Action: "team.invited", TargetType: "invitation", TargetID: id.String(), TargetName: e,
-				After: map[string]any{"email": e, "role": role.Name, "scope": access.View(scope, lists, true).Label, "expires_at": expires},
+				After: map[string]any{"email": e, "role": role.Name, "scope": access.View(scope, lists, true).Label, "expires_at": expires, "language": language},
 				Metadata: map[string]any{
 					"summary":    inviteSummary(role.Name, access.View(scope, lists, false).Label, expires),
 					"permission": string(authz.TeamInvite),
@@ -402,7 +428,7 @@ func (s *Service) Invite(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	for _, c := range made {
 		ci := TeamCreatedInvitation{ID: c.id.String(), Email: c.email, Link: base + "/invite/" + c.token}
 		if !stop {
-			provider, err := s.sendInvite(ctx, ws, p, c.email, c.token, role.Name, in.Message, expires)
+			provider, err := s.sendInvite(ctx, ws, p, c.email, c.token, role.Name, in.Message, expires, language)
 			if err == nil {
 				ci.Emailed = true
 				res.SentVia = provider
@@ -431,20 +457,27 @@ func inviteSummary(role, scope string, expires time.Time) string {
 	return s + " · expires " + expires.Format("Jan 2")
 }
 
-func (s *Service) sendInvite(ctx context.Context, ws *store.Workspace, p *authz.Principal, email, token, role, message string, expires time.Time) (string, error) {
+// wsLocation is the workspace's timezone, where an invitation's expiry date is read.
+func wsLocation(tz string) *time.Location {
+	if l, err := time.LoadLocation(tz); err == nil {
+		return l
+	}
+	return time.UTC
+}
+
+// sendInvite emails an invitation in its language (the instance default
+// when it has none).
+func (s *Service) sendInvite(ctx context.Context, ws *store.Workspace, p *authz.Principal, email, token, role, message string, expires time.Time, language string) (string, error) {
 	if s.Mail == nil {
 		return "", errNoMail
 	}
 	link := s.base(ctx) + "/invite/" + token
-	text := fmt.Sprintf("%s invited you to %s on ReputeCast as %s.\n\n", p.Name, ws.Name, role)
-	if strings.TrimSpace(message) != "" {
-		text += strings.TrimSpace(message) + "\n\n"
-	}
-	text += fmt.Sprintf("Accept the invitation: %s\n\nThe link works until %s.\n", link, expires.Format("Jan 2, 2006"))
-	wsID := ws.ID
-	provider, err := s.Mail.SendSystem(ctx, mailer.Message{
-		WorkspaceID: &wsID, To: email, Subject: fmt.Sprintf("%s invited you to %s", p.Name, ws.Name), Text: text, Kind: "invite",
+	msg := membermail.Invitation(applang.ForInvitation(ctx, s.Q, language), membermail.InvitationEmail{
+		Inviter: p.Name, Workspace: ws.Name, Role: role, Message: message, Link: link, Expires: expires.In(wsLocation(ws.Timezone)),
 	})
+	wsID := ws.ID
+	msg.WorkspaceID, msg.To = &wsID, email
+	provider, err := s.Mail.SendSystem(ctx, msg)
 	if err != nil {
 		return "", err
 	}
@@ -527,7 +560,8 @@ func (s *Service) Resend(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	}
 	expires := s.now().Add(time.Duration(days) * 24 * time.Hour)
 	res := TeamResendResult{Link: s.base(ctx) + "/invite/" + token, ExpiresAt: expires}
-	provider, mailErr := s.sendInvite(ctx, ws, p, inv.Email, token, inv.RoleName, inv.Message, expires)
+	language, _ := s.Q.AppLangInvitationLanguage(ctx, inv.ID)
+	provider, mailErr := s.sendInvite(ctx, ws, p, inv.Email, token, inv.RoleName, inv.Message, expires, language)
 	var via *string
 	if mailErr == nil {
 		res.Emailed, res.SentVia = true, provider
