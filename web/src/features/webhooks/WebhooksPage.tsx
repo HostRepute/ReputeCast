@@ -5,6 +5,7 @@ import { Page } from '@/components/shell/Page'
 import { ForbiddenState } from '@/components/shell/SystemScreens'
 import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonAnchor, ButtonLink } from '@/components/ui/Button'
+import { CardSection } from '@/components/ui/Card'
 import { ErrorPanel } from '@/components/ui/Feedback'
 import { EmptyRow, Table, Td, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
@@ -57,7 +58,7 @@ export function WebhooksPage() {
         <>
           <div className="flex flex-wrap items-start gap-5">
             {q.data && q.data.items.length === 0 ? (
-              <div className="min-w-0 flex-[1.2_1_520px]">
+              <div className="min-w-0 flex-[1_1_100%]">
                 <DashedEmpty
                   title="No webhooks"
                   action={
@@ -125,18 +126,11 @@ function MovedCard() {
     keys.data ? `${keys.data.items.length} API ${keys.data.items.length === 1 ? 'key' : 'keys'}` : '',
     agents.data ? `${agents.data.items.length} MCP ${agents.data.items.length === 1 ? 'agent' : 'agents'}` : '',
   ].filter(Boolean)
-  // As the board renders it: its CSS has no rules for the card's section
-  // and padding classes, so the block is compact and the button follows the
-  // sentence inline (on the same line when it fits, under it otherwise).
+  // A card header and a padded row, the sentence and the button at its ends (SettingsAPI).
   return (
     <section className="card" aria-labelledby="moved-h">
-      <div className="flex min-w-0 flex-col gap-0.5">
-        <h2 className="h2" id="moved-h">
-          API keys and MCP agents moved
-        </h2>
-        <span className="k">Now under the Keys &amp; MCP tab</span>
-      </div>
-      <div>
+      <CardSection id="moved-h" title="API keys and MCP agents moved" caption="Now under the Keys & MCP tab" />
+      <div className="pad row justify-between">
         <span className="k">
           {counts.length ? `${counts.join(' · ')} · ` : ''}permissions use the same keys as roles and never exceed their creator&apos;s. Secrets are shown once.
         </span>
@@ -150,7 +144,7 @@ function MovedCard() {
 
 function EndpointsCard({ items, onAdd, onEdit }: { items?: Webhook[]; onAdd: () => void; onEdit: (w: Webhook) => void }) {
   return (
-    <section className="card min-w-0 flex-[1.2_1_520px]" aria-labelledby="hooks-h">
+    <section className="card min-w-0 flex-[1_1_100%]" aria-labelledby="hooks-h">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line-2 px-4.5 py-3.5">
         <div className="flex flex-col">
           <h2 className="h2" id="hooks-h">

@@ -182,10 +182,7 @@ function AutomationTable({ items }: { items: Item[] }) {
   )
   return (
     <section className="card" aria-label="Automations">
-      <Table
-        phoneWrap
-        className="[&_td]:whitespace-nowrap [&_td:first-child]:min-w-[150px] [&_td:first-child]:whitespace-normal [&_td:nth-child(3)]:min-w-[150px] [&_td:nth-child(3)]:whitespace-normal [&_td:nth-child(9)]:min-w-[150px] [&_td:nth-child(9)]:whitespace-normal"
-      >
+      <Table phoneWrap fit className="[&_td:first-child]:min-w-[150px] [&_td:nth-child(3)]:min-w-[150px] [&_td:nth-child(9)]:min-w-[150px]">
         <thead>
           <tr>
             <Th>Automation</Th>

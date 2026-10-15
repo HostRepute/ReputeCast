@@ -425,7 +425,6 @@ export function LiveBody({ s, campaignId, streaming, stale, asOf, incident }: { 
         <div className="flex flex-wrap items-start gap-5">
           <div className="flex min-w-0 flex-col gap-5" style={{ flex: '2 1 560px' }}>
             <MailboxTable s={s} decision={false} />
-            <ProviderTable s={s} />
             <EventsCard s={s} streaming={streaming} />
           </div>
           <div className="flex flex-col gap-4 max-md:min-w-0" style={{ flex: '1 1 320px', maxWidth: 400 }}>
@@ -434,6 +433,8 @@ export function LiveBody({ s, campaignId, streaming, stale, asOf, incident }: { 
             <DeliveredMixCard s={s} />
           </div>
         </div>
+        {/* Full width below, so all nine columns fit (LiveMonitor). */}
+        <ProviderTable s={s} />
       </div>
     </>
   )

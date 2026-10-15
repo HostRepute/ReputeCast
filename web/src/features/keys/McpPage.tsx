@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import { $api, errorMessage, type Schemas } from '@/api/client'
 import { Page } from '@/components/shell/Page'
 import { ForbiddenState } from '@/components/shell/SystemScreens'
@@ -170,7 +170,9 @@ function AgentsMatrix({ o }: { o: Overview }) {
           <span className="k">Permissions per agent. &quot;Approve&quot; means a team member confirms in ReputeCast before the action runs.</span>
         </div>
       </div>
-      <Table phoneWrap density="dense" caption="Agents and what they can do" className="[&_td:first-child]:min-w-[200px] [&_td:nth-child(4)]:min-w-[240px] [&_td]:whitespace-normal">
+      {/* The board's 240 px for the fourth column is a preferred width here, not a
+          minimum: the column gives way when a long tool name needs the room. */}
+      <Table phoneWrap fit density="dense" caption="Agents and what they can do" className="[&_td:first-child]:min-w-[200px] [&_td:nth-child(4)]:w-[240px] [&_td]:whitespace-normal">
         <thead>
           <tr>
             <Th>Agent</Th>
@@ -229,7 +231,18 @@ function LastCall({ agentId }: { agentId: string }) {
   return (
     <>
       {logTime(k.lastUsedAt, now)}
-      {k.lastCall ? ` · ${k.lastCall}` : ''}
+      {k.lastCall ? ' · ' : ''}
+      {/* A tool name may break after its underscores, so the column fits the card. */}
+      {k.lastCall?.split('_').map((part, i, all) => (
+        <Fragment key={i}>
+          {part}
+          {i < all.length - 1 ? (
+            <>
+              _<wbr />
+            </>
+          ) : null}
+        </Fragment>
+      ))}
     </>
   )
 }
@@ -239,7 +252,7 @@ function ActionsCard() {
   const now = useNow()
   const q = $api.useQuery('get', '/api/v1/workspaces/{workspace}/mcp-agents/actions', { params: { path: { workspace: slug }, query: { limit: 5 } } })
   return (
-    <section className="card min-w-0 flex-[1.4_1_560px]" aria-labelledby="mcp-acts-h">
+    <section className="card min-w-0 flex-[1_1_100%]" aria-labelledby="mcp-acts-h">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line-2 px-4.5 py-3.5">
         <h2 className="h2" id="mcp-acts-h">
           Recent agent actions
@@ -257,7 +270,7 @@ function ActionsCard() {
       ) : !q.data ? (
         <TableSkeleton rows={3} label="Loading the agent actions" />
       ) : (
-        <Table phoneWrap density="dense" caption="Recent agent actions" className="[&_td:first-child]:min-w-[200px] [&_td:nth-child(2)]:whitespace-nowrap [&_td:nth-child(4)]:min-w-[240px]">
+        <Table phoneWrap fit density="dense" caption="Recent agent actions" className="[&_td:first-child]:min-w-[200px] [&_td:nth-child(2)]:whitespace-nowrap [&_td:nth-child(4)]:min-w-[240px]">
           <thead>
             <tr>
               <Th>Time</Th>

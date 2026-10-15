@@ -83,11 +83,12 @@ export function AdaptersPage() {
       ) : (
         <>
           <BuiltinCard data={data} />
+          {/* Community adapters take the full width so their table fits; the HTTP form and the SDK share the next row. */}
           <div className="flex flex-wrap items-start gap-5">
             <CommunityCard data={data} reason={reason} onInstall={() => setInstalling(true)} />
             <HTTPAdapterCard data={data} reason={reason} />
+            <BuildYourOwn data={data} />
           </div>
-          <BuildYourOwn data={data} />
         </>
       )}
       {installing ? <InstallDialog onClose={() => setInstalling(false)} /> : null}
@@ -180,7 +181,7 @@ function CommunityCard({ data, reason, onInstall }: { data: Overview; reason?: s
   })
   const short = (name: string) => name.split(' ')[0]
   return (
-    <section className="card flex min-w-0 flex-[2_1_560px] flex-col" aria-labelledby="pv-community">
+    <section className="card flex min-w-0 flex-[1_1_100%] flex-col" aria-labelledby="pv-community">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line-2 px-5 py-3.5">
         <div className="flex flex-col">
           <h2 className="h2" id="pv-community">
@@ -557,7 +558,7 @@ function HTTPAdapterCard({ data, reason }: { data: Overview; reason?: string }) 
 /** The adapter SDK in one card. */
 function BuildYourOwn({ data }: { data: Overview }) {
   return (
-    <section className="card flex flex-wrap items-start gap-5 px-[22px] py-5" aria-labelledby="pv-sdk">
+    <section className="card flex min-w-0 flex-[1.4_1_560px] flex-wrap items-start gap-5 px-[22px] py-5" aria-labelledby="pv-sdk">
       <div className="flex flex-[1_1_320px] flex-col gap-2">
         <h2 className="h2" id="pv-sdk">
           Build your own adapter
