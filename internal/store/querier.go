@@ -663,6 +663,8 @@ type Querier interface {
 	// Calls rejected in the last 7 days, with the busiest client address.
 	KeysRejections(ctx context.Context, apiKeyID uuid.UUID) (KeysRejectionsRow, error)
 	KeysRevoke(ctx context.Context, arg KeysRevokeParams) (int64, error)
+	// Makes a key a send-only, test-mode or SMTP key (transactional:send only).
+	KeysSetTransactional(ctx context.Context, arg KeysSetTransactionalParams) error
 	KeysTouch(ctx context.Context, arg KeysTouchParams) error
 	// Adding a language that was removed brings it back with its page copy.
 	LanguagesAdd(ctx context.Context, arg LanguagesAddParams) error
@@ -1522,6 +1524,7 @@ type Querier interface {
 	// last_open_at counts every open, last_human_open_at only people's (tiers
 	// and the sunset policy use it); last_open_machine says what the latest was.
 	TrackingTouchContactOpen(ctx context.Context, arg TrackingTouchContactOpenParams) error
+	TxnAppendAttempts(ctx context.Context, arg TxnAppendAttemptsParams) error
 	// Categories with their template counts and opt-outs.
 	TxnCategories(ctx context.Context, workspaceID uuid.UUID) ([]TxnCategoriesRow, error)
 	TxnCategory(ctx context.Context, arg TxnCategoryParams) (TransactionalCategory, error)
@@ -1529,15 +1532,71 @@ type Querier interface {
 	TxnCategoryInsert(ctx context.Context, arg TxnCategoryInsertParams) error
 	TxnCategoryTemplateCount(ctx context.Context, categoryID *uuid.UUID) (int64, error)
 	TxnCategoryUpdate(ctx context.Context, arg TxnCategoryUpdateParams) error
+	TxnContactByEmail(ctx context.Context, arg TxnContactByEmailParams) (TxnContactByEmailRow, error)
+	TxnIdemGet(ctx context.Context, arg TxnIdemGetParams) (TransactionalIdempotency, error)
+	TxnIdemInsert(ctx context.Context, arg TxnIdemInsertParams) (string, error)
+	TxnIdemPurge(ctx context.Context, before time.Time) (int64, error)
+	TxnIdemSave(ctx context.Context, arg TxnIdemSaveParams) error
+	TxnInsertContent(ctx context.Context, arg TxnInsertContentParams) error
+	TxnInsertMessage(ctx context.Context, arg TxnInsertMessageParams) error
+	TxnInsertMessageLog(ctx context.Context, arg TxnInsertMessageLogParams) error
+	TxnInsertOutbox(ctx context.Context, arg TxnInsertOutboxParams) error
+	TxnInsertRejectedCall(ctx context.Context, arg TxnInsertRejectedCallParams) error
+	// A key's transactional settings (send-only, test mode, scope, rate).
+	TxnKey(ctx context.Context, arg TxnKeyParams) (TxnKeyRow, error)
+	TxnMarkEmitted(ctx context.Context, arg TxnMarkEmittedParams) error
+	TxnMarkFailed(ctx context.Context, arg TxnMarkFailedParams) error
+	TxnMarkFailedOver(ctx context.Context, arg TxnMarkFailedOverParams) error
+	TxnMemberEmails(ctx context.Context, workspaceID uuid.UUID) ([]string, error)
+	// What a message's webhook events carry.
+	TxnMessageEvent(ctx context.Context, messageID uuid.UUID) (TxnMessageEventRow, error)
+	TxnMessageLinks(ctx context.Context, messageID uuid.UUID) ([]string, error)
+	// A message moves to the next provider of its route (failover).
+	TxnMoveToProvider(ctx context.Context, arg TxnMoveToProviderParams) error
+	TxnOptOut(ctx context.Context, arg TxnOptOutParams) (TxnOptOutRow, error)
+	// Claims up to lim due transactional messages of one provider, with their
+	// sealed payload and what failover needs.
+	TxnOutboxClaim(ctx context.Context, arg TxnOutboxClaimParams) ([]TxnOutboxClaimRow, error)
+	// The provider accepted these messages, or every provider failed: their
+	// sealed payload (and its sensitive values) goes.
+	TxnOutboxDone(ctx context.Context, ids []uuid.UUID) error
+	// How many transactional messages a provider has to send now.
+	TxnOutboxDue(ctx context.Context, arg TxnOutboxDueParams) (int64, error)
+	// How much of a provider's second transactional mail takes before
+	// Broadcasts: its due transactional messages when the workspace keeps
+	// "first in line on shared providers" on (the default), else 0.
+	TxnOutboxHeadroom(ctx context.Context, arg TxnOutboxHeadroomParams) (int64, error)
+	// Queued transactional messages whose provider was removed.
+	TxnOutboxOrphans(ctx context.Context) ([]TxnOutboxOrphansRow, error)
+	// Providers with transactional mail to send now.
+	TxnOutboxProviders(ctx context.Context, now time.Time) ([]uuid.UUID, error)
+	// Queued transactional messages of a provider (failover when it is down).
+	TxnOutboxQueuedOn(ctx context.Context, arg TxnOutboxQueuedOnParams) ([]TxnOutboxQueuedOnRow, error)
 	// What the template's calls of a period sent: per call, the variable
 	// names (the breaking-change check of the publish dialog).
 	TxnRecentCallKeys(ctx context.Context, arg TxnRecentCallKeysParams) ([]TxnRecentCallKeysRow, error)
 	TxnRejectedCallsForTemplate(ctx context.Context, arg TxnRejectedCallsForTemplateParams) ([]TxnRejectedCallsForTemplateRow, error)
+	// Whether an address carries a marketing-only role suppression (the log
+	// marks it "Role address").
+	TxnRoleSuppressed(ctx context.Context, arg TxnRoleSuppressedParams) (bool, error)
+	// Transactional categories for the routing screen's conditions.
+	TxnRouteCategories(ctx context.Context, workspaceID uuid.UUID) ([]TxnRouteCategoriesRow, error)
+	// Sending domains marked for transactional mail.
+	TxnRouteDomains(ctx context.Context, workspaceID uuid.UUID) ([]string, error)
+	TxnRouteSetPriority(ctx context.Context, arg TxnRouteSetPriorityParams) error
+	// Whether a suppression stops transactional mail: everything except the
+	// marketing-only ones (unsubscribes and role addresses).
+	TxnRouteSuppressedAllMail(ctx context.Context, arg TxnRouteSuppressedAllMailParams) (bool, error)
+	TxnRouteTemplateCategory(ctx context.Context, arg TxnRouteTemplateCategoryParams) (*uuid.UUID, error)
+	TxnRouteTemplates(ctx context.Context, workspaceID uuid.UUID) ([]TxnRouteTemplatesRow, error)
 	TxnSenderByEmail(ctx context.Context, arg TxnSenderByEmailParams) (TxnSenderByEmailRow, error)
 	TxnSenderByID(ctx context.Context, arg TxnSenderByIDParams) (TxnSenderByIDRow, error)
 	// The workspace's senders with their domain's transactional flag and
 	// verification state.
 	TxnSenders(ctx context.Context, workspaceID uuid.UUID) ([]TxnSendersRow, error)
+	// A soft bounce of a transactional message is its final answer: the log
+	// shows it as Bounced (soft), where campaigns count it as a deferral.
+	TxnSetBounced(ctx context.Context, arg TxnSetBouncedParams) error
 	TxnSettings(ctx context.Context, workspaceID uuid.UUID) (TxnSettingsRow, error)
 	// Transactional email: settings, categories, templates, versions, the
 	// message log, opt-outs, idempotency, alerts and the first-send guide.
@@ -1545,6 +1604,11 @@ type Querier interface {
 	TxnSettingsForUpdate(ctx context.Context, workspaceID uuid.UUID) (TransactionalSetting, error)
 	TxnSettingsSetGuide(ctx context.Context, arg TxnSettingsSetGuideParams) error
 	TxnSettingsUpdate(ctx context.Context, arg TxnSettingsUpdateParams) error
+	TxnSoftBounces(ctx context.Context, arg TxnSoftBouncesParams) (int64, error)
+	TxnSuppressSoftBounces(ctx context.Context, arg TxnSuppressSoftBouncesParams) (uuid.UUID, error)
+	// The suppression that stops transactional mail to an address, if any:
+	// everything except the marketing-only ones (unsubscribes, role addresses).
+	TxnSuppression(ctx context.Context, arg TxnSuppressionParams) (TxnSuppressionRow, error)
 	TxnTemplate(ctx context.Context, arg TxnTemplateParams) (TxnTemplateRow, error)
 	TxnTemplateArchive(ctx context.Context, arg TxnTemplateArchiveParams) error
 	TxnTemplateDelete(ctx context.Context, arg TxnTemplateDeleteParams) error
@@ -1567,6 +1631,7 @@ type Querier interface {
 	TxnTemplateUpdateMeta(ctx context.Context, arg TxnTemplateUpdateMetaParams) error
 	// The workspace's templates (archived ones too), with what the list shows.
 	TxnTemplates(ctx context.Context, workspaceID uuid.UUID) ([]TxnTemplatesRow, error)
+	TxnTrackingDomainVerified(ctx context.Context, arg TxnTrackingDomainVerifiedParams) (bool, error)
 	TxnVersion(ctx context.Context, arg TxnVersionParams) (TxnVersionRow, error)
 	TxnVersionInsert(ctx context.Context, arg TxnVersionInsertParams) error
 	TxnVersions(ctx context.Context, templateID uuid.UUID) ([]TxnVersionsRow, error)

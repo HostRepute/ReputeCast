@@ -53,7 +53,10 @@ type Service struct {
 	Links       *linktoken.Signer
 	Log         *slog.Logger
 	Automations *automations.Service
-	Now         func() time.Time
+	// Transactional resolves the tracked links of transactional messages
+	// and fires their message.opened and message.clicked webhook events.
+	Transactional TransactionalTracking
+	Now           func() time.Time
 
 	once  sync.Once
 	in    chan *pending
@@ -91,6 +94,14 @@ func (s *Service) log() *slog.Logger {
 		return s.Log
 	}
 	return slog.Default()
+}
+
+// TransactionalTracking is what the tracking endpoints need from
+// transactional email: each message keeps its own tracked links (their
+// targets differ per recipient), and engagement fires webhooks.
+type TransactionalTracking interface {
+	TrackedLink(ctx context.Context, q *store.Queries, messageID uuid.UUID, position int) (string, bool)
+	Engagement(ctx context.Context, tx pgx.Tx, messageID uuid.UUID, click bool, at time.Time) error
 }
 
 // Routes mounts the tracking endpoints.
@@ -173,6 +184,20 @@ func (s *Service) target(ctx context.Context, c linktoken.Claims) (string, error
 	}
 	if m.WorkspaceID != c.WorkspaceID {
 		return "", errors.New("token workspace mismatch")
+	}
+	if m.Stream == "transactional" {
+		if s.Transactional == nil {
+			return "", errors.New("no links")
+		}
+		raw, ok := s.Transactional.TrackedLink(ctx, s.Q, m.ID, int(c.Link))
+		if !ok {
+			return "", errors.New("unknown link")
+		}
+		u, err := url.Parse(raw)
+		if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+			return "", errors.New("not a web link")
+		}
+		return u.String(), nil
 	}
 	var key uuid.UUID
 	var load func() (map[int]string, error)
@@ -334,7 +359,7 @@ func (s *Service) RecordEngagement(ctx context.Context, evs []sending.Engagement
 	return sending.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		for _, ev := range evs {
-			if err := s.apply(ctx, q, ev); err != nil {
+			if err := s.apply(ctx, tx, q, ev); err != nil {
 				return err
 			}
 		}
@@ -343,7 +368,7 @@ func (s *Service) RecordEngagement(ctx context.Context, evs []sending.Engagement
 }
 
 // apply records one open or click.
-func (s *Service) apply(ctx context.Context, q *store.Queries, ev sending.Engagement) error {
+func (s *Service) apply(ctx context.Context, tx pgx.Tx, q *store.Queries, ev sending.Engagement) error {
 	m, err := q.TrackingMessage(ctx, ev.MessageID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil
@@ -477,6 +502,11 @@ func (s *Service) apply(ctx context.Context, q *store.Queries, ev sending.Engage
 			}
 		}
 	}
+	if m.Stream == "transactional" && s.Transactional != nil && (firstOpen || firstClick) {
+		if err := s.Transactional.Engagement(ctx, tx, m.ID, ev.Click && firstClick, ev.At); err != nil {
+			return err
+		}
+	}
 	if m.Stream == "automation" && s.Automations != nil {
 		if firstOpen {
 			if err := s.Automations.RecordMessageEvent(ctx, q, automations.MessageEvent{MessageID: m.ID, Type: "opened", Machine: v.Machine && !ev.Click, At: ev.At}); err != nil {
@@ -493,6 +523,19 @@ func (s *Service) apply(ctx context.Context, q *store.Queries, ev sending.Engage
 }
 
 func (s *Service) linksOf(ctx context.Context, q *store.Queries, m store.TrackingMessageRow) (map[int]string, error) {
+	if m.Stream == "transactional" {
+		out := map[int]string{}
+		if s.Transactional != nil {
+			for i := 1; i <= 50; i++ {
+				l, ok := s.Transactional.TrackedLink(ctx, q, m.ID, i)
+				if !ok {
+					break
+				}
+				out[i] = l
+			}
+		}
+		return out, nil
+	}
 	if m.CampaignID != nil {
 		return s.cachedLinks(*m.CampaignID, func() (map[int]string, error) {
 			rows, err := q.TrackingCampaignLinks(ctx, *m.CampaignID)

@@ -196,7 +196,7 @@ func TestProvidersOverview(t *testing.T) {
 			}
 		}
 	}
-	if len(o.Routing) != 3 || o.Routing[0].Failover != "pause_and_ask" {
+	if len(o.Routing) != 4 || o.Routing[0].Failover != "pause_and_ask" || o.Routing[3].Stream != "transactional" {
 		t.Fatalf("routing %+v", o.Routing)
 	}
 	// Credentials are write-only: no value ever comes back.

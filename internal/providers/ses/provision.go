@@ -43,9 +43,9 @@ const (
 )
 
 // configSetNames are the per-stream configuration sets.
-var configSetNames = map[string]string{"broadcast": "rc-broadcasts", "automation": "rc-automations", "system": "rc-system"}
+var configSetNames = map[string]string{"broadcast": "rc-broadcasts", "automation": "rc-automations", "system": "rc-system", "transactional": "rc-transactional"}
 
-var streamOrder = []string{"broadcast", "automation", "system"}
+var streamOrder = []string{"broadcast", "automation", "system", "transactional"}
 
 // RegionNames are the SES regions with the names the AWS console uses.
 var RegionNames = map[string]string{

@@ -165,6 +165,12 @@ func (p *Provider) Send(ctx context.Context, msgs []providers.Message) ([]provid
 	return out, nil
 }
 
+// SendWithExtras implements providers.ExtrasSender: the demo transport
+// accepts copies and attachments like the adapter it stands in for.
+func (p *Provider) SendWithExtras(ctx context.Context, msgs []providers.Message, _ []providers.MessageExtras) ([]providers.SendResult, error) {
+	return p.Send(ctx, msgs)
+}
+
 func (p *Provider) op() string {
 	switch p.s.Mimic {
 	case "postal":

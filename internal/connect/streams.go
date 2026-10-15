@@ -20,7 +20,7 @@ import (
 
 // ConnectStreamView is one stream card of step 5.
 type ConnectStreamView struct {
-	Stream      string `json:"stream" enum:"broadcast,automation,system"`
+	Stream      string `json:"stream" enum:"broadcast,automation,system,transactional"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	Enabled     bool   `json:"enabled"`
@@ -53,9 +53,10 @@ type ConnectStreams struct {
 }
 
 var streamDescriptions = map[string]string{
-	"broadcast":  "Campaigns and newsletters. Highest volume, most sensitive to reputation.",
-	"automation": "Emails sent by flows: welcome series, onboarding, re-engagement.",
-	"system":     "Double opt-in confirmations, preference-center links, team invites. Must always go out.",
+	"broadcast":     "Campaigns and newsletters. Highest volume, most sensitive to reputation.",
+	"automation":    "Emails sent by flows: welcome series, onboarding, re-engagement.",
+	"system":        "Double opt-in confirmations, preference-center links, team invites. Must always go out.",
+	"transactional": "Mail from your product through the API or SMTP relay: password resets, receipts, alerts. Must always go out.",
 }
 
 func policyText(p routing.Policy) string {
@@ -217,7 +218,7 @@ func trimFloat(v float64) string {
 
 // ConnectStreamChoiceInput is one stream of step 5.
 type ConnectStreamChoiceInput struct {
-	Stream  string `json:"stream" enum:"broadcast,automation,system"`
+	Stream  string `json:"stream" enum:"broadcast,automation,system,transactional"`
 	Enabled bool   `json:"enabled"`
 	Role    string `json:"role,omitempty" enum:"primary,split,fallback"`
 	Weight  int    `json:"weight,omitempty" minimum:"1" maximum:"99"`
@@ -225,7 +226,7 @@ type ConnectStreamChoiceInput struct {
 
 // ConnectStreamsInput assigns the provider to streams.
 type ConnectStreamsInput struct {
-	Streams []ConnectStreamChoiceInput `json:"streams" maxItems:"3"`
+	Streams []ConnectStreamChoiceInput `json:"streams" maxItems:"4"`
 }
 
 // SaveStreams assigns the provider to the chosen streams through the
