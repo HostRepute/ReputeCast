@@ -37,7 +37,13 @@ type updateCampaignInput struct {
 
 type saveContentInput struct {
 	CampaignPath
-	Body ComposerSaveContent
+	Language string `query:"language" maxLength:"16" doc:"Save a language version (its code, such as de); empty saves the source"`
+	Body     ComposerSaveContent
+}
+
+type getCampaignInput struct {
+	CampaignPath
+	Language string `query:"language" maxLength:"16" doc:"Return a language version's content (its code, such as de); empty returns the source"`
 }
 
 type versionsInput struct {
@@ -117,12 +123,12 @@ func RegisterComposer(h huma.API, s *Service) {
 		})
 	api.Get(h, api.Op{ID: "get-campaign", Path: "/workspaces/{workspace}/campaigns/{campaignId}", Summary: "Get a campaign with its content, audience, sender and route",
 		Tags: tags, Access: view},
-		func(ctx context.Context, in *CampaignPath) (*api.Body[ComposerCampaign], error) {
+		func(ctx context.Context, in *getCampaignInput) (*api.Body[ComposerCampaign], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
 			}
-			out, err := s.Detail(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id)
+			out, err := s.DetailIn(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id, in.Language)
 			return api.OK(out), err
 		})
 	api.Patch(h, api.Op{ID: "update-campaign", Path: "/workspaces/{workspace}/campaigns/{campaignId}", Summary: "Rename a campaign or change its sender, reply-to, audience or content settings",
@@ -143,7 +149,7 @@ func RegisterComposer(h huma.API, s *Service) {
 			if err != nil {
 				return nil, err
 			}
-			out, err := s.Save(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id, in.Body)
+			out, err := s.SaveIn(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id, in.Language, in.Body)
 			return api.OK(out), err
 		})
 	api.Get(h, api.Op{ID: "list-campaign-versions", Path: "/workspaces/{workspace}/campaigns/{campaignId}/versions", Summary: "Version history, newest first",

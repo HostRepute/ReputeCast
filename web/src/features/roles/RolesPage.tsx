@@ -12,9 +12,13 @@ import { Note } from '@/components/ui/Note'
 import { Td, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { settingsTabs } from '@/features/settings/SettingsTabs'
+import { common } from '@/i18n/common'
+import { t, useT } from '@/i18n'
 import { monthDay } from '@/lib/format'
 import { deniedReason, useWorkspace } from '@/lib/session'
 import { AccessTable, GroupRow, HasMark, RoleBadge } from '../access/parts'
+import { m } from './messages'
+import { matrixNote } from './notes'
 
 type Role = Schemas['RoleSummary']
 type RoleList = Schemas['RoleList']
@@ -22,22 +26,23 @@ type RoleList = Schemas['RoleList']
 /** A5 §5.8 Roles: the role list and the compare-roles matrix (Roles board). */
 export function RolesPage() {
   const { slug } = useWorkspace()
+  const tr = useT()
   const q = $api.useQuery('get', '/api/v1/workspaces/{workspace}/roles', { params: { path: { workspace: slug } } })
   const canManage = q.data?.canManage ?? false
   return (
     <Page
-      title="Settings"
+      title={tr(m.pageTitle)}
       tabs={settingsTabs(slug)}
       actions={
         canManage ? (
           <ButtonLink variant="primary" to="/w/$workspace/settings/roles/$roleId" params={{ workspace: slug, roleId: 'new' }}>
-            New custom role
+            {tr(m.newRole)}
           </ButtonLink>
         ) : null
       }
     >
       {q.isError ? (
-        <ErrorPanel title="Couldn't load the roles" actions={<Button onClick={() => q.refetch()}>Retry</Button>}>
+        <ErrorPanel title={tr(m.loadFailed)} actions={<Button onClick={() => q.refetch()}>{tr(common.retry)}</Button>}>
           {errorMessage(q.error)}
         </ErrorPanel>
       ) : q.isPending ? (
@@ -54,29 +59,30 @@ export function RolesPage() {
 
 function RolesCard({ list }: { list: RoleList }) {
   const { slug } = useWorkspace()
+  const tr = useT()
   const [deleting, setDeleting] = useState<Role>()
   const reason = list.canManage ? undefined : deniedReason('team:manage', list.helpers)
   return (
     <section className="card" aria-labelledby="roles-h">
       <CardSection
-        title={<span id="roles-h">Roles · {list.roles.length}</span>}
-        caption="Built-in roles can't be edited. Duplicate one to start a custom role."
+        title={<span id="roles-h">{tr(m.rolesTitle, { count: list.roles.length })}</span>}
+        caption={tr(m.rolesCaption)}
         actions={
           list.canManage ? (
             <ButtonLink size="sm" variant="primary" to="/w/$workspace/settings/roles/$roleId" params={{ workspace: slug, roleId: 'new' }}>
-              New custom role
+              {tr(m.newRole)}
             </ButtonLink>
           ) : null
         }
       />
-      <AccessTable caption="Roles">
+      <AccessTable caption={tr(m.rolesTableCaption)}>
         <thead>
           <tr>
-            <Th>Role</Th>
-            <Th>Type</Th>
-            <Th>Members</Th>
+            <Th>{tr(m.colRole)}</Th>
+            <Th>{tr(m.colType)}</Th>
+            <Th>{tr(m.colMembers)}</Th>
             <Th>
-              <span className="vh">Actions</span>
+              <span className="vh">{tr(m.colActions)}</span>
             </Th>
           </tr>
         </thead>
@@ -87,39 +93,45 @@ function RolesCard({ list }: { list: RoleList }) {
                 <div className="col gap-0.5">
                   <span className="row gap-2">
                     <RoleBadge role={r} />
-                    {r.builtin ? <Badge tone="neutral">read-only</Badge> : null}
+                    {r.builtin ? <Badge tone="neutral">{tr(m.readOnlyBadge)}</Badge> : null}
                   </span>
                   <span className="k whitespace-normal">{r.description}</span>
                 </div>
               </Td>
-              <Td>{r.builtin ? 'Built-in' : `Custom · ${r.createdBy ? `created by ${r.createdBy}, ` : 'created '}${monthDay(r.createdAt)}`}</Td>
+              <Td>
+                {r.builtin
+                  ? tr(m.typeBuiltin)
+                  : r.createdBy
+                    ? tr(m.typeCustomBy, { name: r.createdBy, date: monthDay(r.createdAt) })
+                    : tr(m.typeCustom, { date: monthDay(r.createdAt) })}
+              </Td>
               <Td>{membersText(r)}</Td>
               <Td>
                 <div className="row gap-1.5">
                   {reason ? (
                     <Button size="sm" disabledReason={reason}>
-                      {r.builtin ? 'Duplicate to customize' : 'Edit'}
+                      {r.builtin ? tr(m.duplicateToCustomize) : tr(m.edit)}
                     </Button>
                   ) : r.builtin ? (
                     <ButtonLink size="sm" to="/w/$workspace/settings/roles/$roleId" params={{ workspace: slug, roleId: 'new' }} search={{ from: r.id }}>
-                      Duplicate to customize
+                      {tr(m.duplicateToCustomize)}
                     </ButtonLink>
                   ) : (
                     <>
-                      <ButtonLink size="sm" to="/w/$workspace/settings/roles/$roleId" params={{ workspace: slug, roleId: r.id }} aria-label={`Edit ${r.name}`}>
-                        Edit
+                      <ButtonLink size="sm" to="/w/$workspace/settings/roles/$roleId" params={{ workspace: slug, roleId: r.id }} aria-label={tr(m.editLabel, { name: r.name })}>
+                        {tr(m.edit)}
                       </ButtonLink>
                       <ButtonLink
                         size="sm"
                         to="/w/$workspace/settings/roles/$roleId"
                         params={{ workspace: slug, roleId: 'new' }}
                         search={{ from: r.id }}
-                        aria-label={`Duplicate ${r.name}`}
+                        aria-label={tr(m.duplicateLabel, { name: r.name })}
                       >
-                        Duplicate
+                        {tr(m.duplicate)}
                       </ButtonLink>
-                      <Button size="sm" variant="danger" onClick={() => setDeleting(r)} aria-label={`Delete ${r.name}`}>
-                        Delete
+                      <Button size="sm" variant="danger" onClick={() => setDeleting(r)} aria-label={tr(m.deleteLabel, { name: r.name })}>
+                        {tr(m.delete)}
                       </Button>
                     </>
                   )}
@@ -136,18 +148,21 @@ function RolesCard({ list }: { list: RoleList }) {
 
 /** "1 · Linh Nguyen", "1 active · Marcus Chen (Tom Becker deactivated)", "1 · Sofia Rossi (+1 invited)". */
 export function membersText(r: Role): string {
-  const active = r.members.filter((m) => m.status === 'active').map((m) => m.name)
-  const inactive = r.members.filter((m) => m.status !== 'active').map((m) => m.name)
-  const names = active.length > 3 ? `${active.slice(0, 3).join(', ')} +${active.length - 3}` : active.join(', ')
-  let out = r.active === 0 ? 'None' : `${r.active}${r.deactivated > 0 ? ' active' : ''} · ${names}`
-  if (r.deactivated > 0) out += r.deactivated === 1 && inactive[0] ? ` (${inactive[0]} deactivated)` : ` (${r.deactivated} deactivated)`
-  if (r.invited > 0) out += ` (+${r.invited} invited)`
+  const active = r.members.filter((x) => x.status === 'active').map((x) => x.name)
+  const inactive = r.members.filter((x) => x.status !== 'active').map((x) => x.name)
+  const names = active.length > 3 ? t(m.membersNames, { names: active.slice(0, 3).join(', '), more: active.length - 3 }) : active.join(', ')
+  let out = r.active === 0 ? t(m.membersNone) : t(r.deactivated > 0 ? m.membersCountActive : m.membersCount, { count: r.active, names })
+  if (r.deactivated > 0) {
+    out = r.deactivated === 1 && inactive[0] ? t(m.membersOneDeactivated, { members: out, name: inactive[0] }) : t(m.membersDeactivated, { members: out, count: r.deactivated })
+  }
+  if (r.invited > 0) out = t(m.membersInvited, { members: out, count: r.invited })
   return out
 }
 
 function DeleteRoleDialog({ role, onClose }: { role: Role; onClose: () => void }) {
   const { slug } = useWorkspace()
   const qc = useQueryClient()
+  const tr = useT()
   const assigned = role.active + role.deactivated
   // A role someone still holds can't go (RoleEditorStates, "Can't delete").
   if (assigned > 0)
@@ -155,18 +170,17 @@ function DeleteRoleDialog({ role, onClose }: { role: Role; onClose: () => void }
       <Dialog
         open
         onOpenChange={(o) => !o && onClose()}
-        eyebrow={<span className="k">Dialog · delete role</span>}
-        title={`“${role.name}” can't be deleted yet`}
+        eyebrow={<span className="k">{tr(m.deleteEyebrow)}</span>}
+        title={tr(m.cantDeleteTitle, { name: role.name })}
         hideClose
         footer={
           <Button variant="primary" onClick={onClose}>
-            Close
+            {tr(m.close)}
           </Button>
         }
       >
-        <Note tone="bad" label="Can't delete">
-          “{role.name}” is assigned to {assigned} {assigned === 1 ? 'member' : 'members'}. Move {role.members.map((m) => m.name).join(', ')} to another role first,
-          then delete.
+        <Note tone="bad" label={tr(m.cantDeleteLabel)}>
+          {tr(m.cantDeleteBody, { name: role.name, count: assigned, names: role.members.map((x) => x.name).join(', ') })}
         </Note>
       </Dialog>
     )
@@ -175,14 +189,14 @@ function DeleteRoleDialog({ role, onClose }: { role: Role; onClose: () => void }
       open
       onOpenChange={(o) => !o && onClose()}
       tone="bad"
-      badge="Delete role"
-      title={`Delete “${role.name}”?`}
-      description="The role and its permission set are deleted. Nobody holds it, so no one loses access; the audit log keeps its history."
-      confirmLabel="Delete role"
-      busyLabel="Deleting…"
+      badge={tr(m.deleteBadge)}
+      title={tr(m.deleteTitle, { name: role.name })}
+      description={tr(m.deleteBody)}
+      confirmLabel={tr(m.deleteConfirm)}
+      busyLabel={tr(m.deleteBusy)}
       onConfirm={async () => {
         await http.DELETE('/api/v1/workspaces/{workspace}/roles/{roleId}', { params: { path: { workspace: slug, roleId: role.id } } })
-        toast({ kind: 'deleted', title: `Role “${role.name}” deleted`, detail: 'logged as role.deleted' })
+        toast({ kind: 'deleted', title: tr(m.deletedToast, { name: role.name }), detail: tr(m.deletedDetail) })
         void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/roles'] })
       }}
     />
@@ -190,6 +204,7 @@ function DeleteRoleDialog({ role, onClose }: { role: Role; onClose: () => void }
 }
 
 function CompareCard({ list }: { list: RoleList }) {
+  const tr = useT()
   const [hidden, setHidden] = useState<string[]>([])
   const shown = list.roles.filter((r) => !hidden.includes(r.id))
   const perms = list.permissions.filter((p) => !p.ownerOnly)
@@ -197,12 +212,12 @@ function CompareCard({ list }: { list: RoleList }) {
   return (
     <section className="card" aria-labelledby="cmp-h">
       <CardSection
-        title={<span id="cmp-h">Compare roles</span>}
-        caption="Side by side · ⚑ marks sensitive permissions that trigger the two-factor policy"
+        title={<span id="cmp-h">{tr(m.compareTitle)}</span>}
+        caption={tr(m.compareCaption)}
         actions={
-          <div className="row gap-2" role="group" aria-label="Columns">
+          <div className="row gap-2" role="group" aria-label={tr(m.columnsLabel)}>
             <span className="k" aria-hidden="true">
-              Columns:
+              {tr(m.columns)}
             </span>
             {list.roles.map((r) => {
               const on = !hidden.includes(r.id)
@@ -212,7 +227,7 @@ function CompareCard({ list }: { list: RoleList }) {
                   type="button"
                   className={on ? 'chip box-content border-line-strong! bg-white! text-ink! hover:bg-ground!' : 'chip box-content border-dashed! text-ink-3! line-through'}
                   aria-pressed={on}
-                  title={on ? `Hide the ${r.name} column` : `Show the ${r.name} column`}
+                  title={on ? tr(m.hideColumn, { name: r.name }) : tr(m.showColumn, { name: r.name })}
                   onClick={() => setHidden((cur) => (on ? (shown.length > 1 ? [...cur, r.id] : cur) : cur.filter((x) => x !== r.id)))}
                 >
                   {r.name}
@@ -222,10 +237,10 @@ function CompareCard({ list }: { list: RoleList }) {
           </div>
         }
       />
-      <AccessTable caption="Compare roles">
+      <AccessTable caption={tr(m.compareTitle)}>
         <thead>
           <tr>
-            <Th>Permission</Th>
+            <Th>{tr(m.colPermission)}</Th>
             {shown.map((r) => (
               <Th key={r.id} align="center">
                 {r.name}
@@ -240,26 +255,36 @@ function CompareCard({ list }: { list: RoleList }) {
             return (
               <Fragment key={g}>
                 <GroupRow label={g} cells={shown.length} />
-                {rows.map((p) => (
-                  <tr key={p.key}>
-                    <Td>
-                      {p.label} <span className="k mono">{p.key}</span>
-                      {p.sensitive ? (
-                        <>
-                          {' '}
-                          <span title="Sensitive permission">
-                            <SensitiveFlag />
-                          </span>
-                        </>
-                      ) : null}
-                    </Td>
-                    {shown.map((r) => (
-                      <Td key={r.id} align="center">
-                        <HasMark on={has(r, p.key)} />
+                {rows.map((p) => {
+                  const note = matrixNote(p)
+                  return (
+                    <tr key={p.key}>
+                      <Td>
+                        {p.label} <span className="k mono">{p.key}</span>
+                        {p.sensitive ? (
+                          <>
+                            {' '}
+                            <span title={tr(m.sensitiveTitle)}>
+                              <SensitiveFlag>{tr(m.sensitive)}</SensitiveFlag>
+                            </span>
+                          </>
+                        ) : null}
+                        {note.suffix ? (
+                          <>
+                            {' '}
+                            <span className="k">{tr(note.suffix)}</span>
+                          </>
+                        ) : null}
+                        {note.line ? <div className="k mt-0.5 whitespace-normal">{tr(note.line)}</div> : null}
                       </Td>
-                    ))}
-                  </tr>
-                ))}
+                      {shown.map((r) => (
+                        <Td key={r.id} align="center">
+                          <HasMark on={has(r, p.key)} />
+                        </Td>
+                      ))}
+                    </tr>
+                  )
+                })}
               </Fragment>
             )
           })}
@@ -275,10 +300,11 @@ export function implied(catalog: Schemas['PermissionInfo'][], held: string[], ke
 }
 
 function RolesSkeleton() {
+  const tr = useT()
   return (
     <div className="flex flex-col gap-5" aria-busy="true">
       <span className="vh" role="status">
-        Loading the roles
+        {tr(m.loading)}
       </span>
       <section className="card">
         <div className="sec">
