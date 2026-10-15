@@ -1518,6 +1518,15 @@ type Querier interface {
 	WarmupSetProgress(ctx context.Context, arg WarmupSetProgressParams) error
 	WarmupSetStatus(ctx context.Context, arg WarmupSetStatusParams) error
 	WarmupUpdateSettings(ctx context.Context, arg WarmupUpdateSettingsParams) error
+	WelcomeDismiss(ctx context.Context, arg WelcomeDismissParams) error
+	WelcomeDismissedLists(ctx context.Context, workspaceID uuid.UUID) ([]uuid.UUID, error)
+	WelcomeForm(ctx context.Context, arg WelcomeFormParams) (WelcomeFormRow, error)
+	WelcomeImport(ctx context.Context, arg WelcomeImportParams) (WelcomeImportRow, error)
+	// Automations that start on a list or a form, with their status.
+	WelcomeListTriggers(ctx context.Context, workspaceID uuid.UUID) ([]WelcomeListTriggersRow, error)
+	// Welcome-series prompts (add-on transactional §6).
+	// The workspace's lists, newest first.
+	WelcomeLists(ctx context.Context, workspaceID uuid.UUID) ([]WelcomeListsRow, error)
 	WorkspaceProviders(ctx context.Context, workspaceID uuid.UUID) ([]WorkspaceProvidersRow, error)
 	WorkspaceTierHistory(ctx context.Context, arg WorkspaceTierHistoryParams) ([]WorkspaceTierHistoryRow, error)
 	WsAuditSettings(ctx context.Context, id uuid.UUID) (WsAuditSettingsRow, error)

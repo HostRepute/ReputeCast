@@ -3888,6 +3888,11 @@
       "AutomationCreateBody": {
         "additionalProperties": false,
         "properties": {
+          "list": {
+            "description": "For a template that starts on a list (welcome-series): the list; otherwise the workspace's first list",
+            "format": "uuid",
+            "type": "string"
+          },
           "name": {
             "maxLength": 120,
             "type": "string"
@@ -31658,6 +31663,61 @@
         ],
         "type": "object"
       },
+      "WelcomePrompt": {
+        "additionalProperties": false,
+        "properties": {
+          "coveredLists": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "draftId": {
+            "type": "string"
+          },
+          "listId": {
+            "type": "string"
+          },
+          "listName": {
+            "type": "string"
+          },
+          "starter": {
+            "enum": [
+              "welcome-series"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "listId",
+          "listName",
+          "coveredLists",
+          "starter"
+        ],
+        "type": "object"
+      },
+      "WelcomePromptDismissInput": {
+        "additionalProperties": false,
+        "properties": {
+          "listId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "listId"
+        ],
+        "type": "object"
+      },
+      "WelcomePromptResult": {
+        "additionalProperties": false,
+        "properties": {
+          "prompt": {
+            "$ref": "#/components/schemas/WelcomePrompt"
+          }
+        },
+        "type": "object"
+      },
       "WorkspaceApprovals": {
         "additionalProperties": false,
         "properties": {
@@ -59309,6 +59369,144 @@
         ],
         "x-access": "workspace",
         "x-permission": "webhooks:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/welcome-prompt": {
+      "get": {
+        "description": "The first list of the screen whose new subscribers get no welcome email: no live automation starts on it (or on the form), and nobody dismissed it.",
+        "operationId": "get-welcome-prompt",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The screen: List health, a form in the builder, or an import's summary",
+            "explode": false,
+            "in": "query",
+            "name": "context",
+            "schema": {
+              "description": "The screen: List health, a form in the builder, or an import's summary",
+              "enum": [
+                "health",
+                "form",
+                "import"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "The form or the import (not for List health)",
+            "explode": false,
+            "in": "query",
+            "name": "id",
+            "schema": {
+              "description": "The form or the import (not for List health)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WelcomePromptResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "The Welcome series prompt for a screen",
+        "tags": [
+          "Automations"
+        ],
+        "x-access": "workspace",
+        "x-permission": "automations:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/welcome-prompt/dismiss": {
+      "post": {
+        "operationId": "dismiss-welcome-prompt",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WelcomePromptDismissInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Stop offering the Welcome series for a list (Not now)",
+        "tags": [
+          "Automations"
+        ],
+        "x-access": "workspace",
+        "x-permission": "automations:edit"
       }
     }
   }

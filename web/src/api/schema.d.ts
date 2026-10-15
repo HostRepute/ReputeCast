@@ -6023,6 +6023,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/welcome-prompt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The Welcome series prompt for a screen
+         * @description The first list of the screen whose new subscribers get no welcome email: no live automation starts on it (or on the form), and nobody dismissed it.
+         */
+        get: operations["get-welcome-prompt"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/welcome-prompt/dismiss": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stop offering the Welcome series for a list (Not now) */
+        post: operations["dismiss-welcome-prompt"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -7106,6 +7143,11 @@ export interface components {
             within?: components["schemas"]["AutomationDuration"];
         };
         AutomationCreateBody: {
+            /**
+             * Format: uuid
+             * @description For a template that starts on a list (welcome-series): the list; otherwise the workspace's first list
+             */
+            list?: string;
             name?: string;
             /**
              * @description Starter template; omit for a blank canvas
@@ -15016,6 +15058,21 @@ export interface components {
              */
             total24h: number;
             url: string;
+        };
+        WelcomePrompt: {
+            coveredLists: string[];
+            draftId?: string;
+            listId: string;
+            listName: string;
+            /** @enum {string} */
+            starter: "welcome-series";
+        };
+        WelcomePromptDismissInput: {
+            /** Format: uuid */
+            listId: string;
+        };
+        WelcomePromptResult: {
+            prompt?: components["schemas"]["WelcomePrompt"];
         };
         WorkspaceApprovals: {
             /** Format: int64 */
@@ -29407,6 +29464,77 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["WebhookTestResult"];
                 };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-welcome-prompt": {
+        parameters: {
+            query?: {
+                /** @description The screen: List health, a form in the builder, or an import's summary */
+                context?: "health" | "form" | "import";
+                /** @description The form or the import (not for List health) */
+                id?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WelcomePromptResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "dismiss-welcome-prompt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WelcomePromptDismissInput"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Error */
             default: {

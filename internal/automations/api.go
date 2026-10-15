@@ -40,6 +40,7 @@ type versionInput struct {
 type automationCreateBody struct {
 	Name     string `json:"name,omitempty" maxLength:"120"`
 	Template string `json:"template,omitempty" enum:"welcome-series,re-engagement,onboarding" doc:"Starter template; omit for a blank canvas"`
+	List     string `json:"list,omitempty" format:"uuid" doc:"For a template that starts on a list (welcome-series): the list; otherwise the workspace's first list"`
 }
 
 type createInput struct {
@@ -231,7 +232,7 @@ func Register(h huma.API, s *Service) {
 		})
 	api.Post(h, api.Op{ID: "create-automation", Path: "/workspaces/{workspace}/automations", Summary: "Create a draft automation from a starter template or a blank canvas", Tags: tags, Access: edit, Status: http.StatusCreated},
 		func(ctx context.Context, in *createInput) (*api.Body[AutomationCreated], error) {
-			id, err := s.Create(ctx, api.WorkspaceFrom(ctx), actor(ctx), CreateParams{Name: in.Body.Name, Template: in.Body.Template})
+			id, err := s.Create(ctx, api.WorkspaceFrom(ctx), actor(ctx), CreateParams{Name: in.Body.Name, Template: in.Body.Template, ListID: in.Body.List})
 			if err != nil {
 				return nil, err
 			}

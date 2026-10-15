@@ -1453,6 +1453,25 @@ type TrackingLinkClick struct {
 	ClickedAt time.Time `json:"clickedAt"`
 }
 
+type TransactionalTemplateImport struct {
+	ID             uuid.UUID       `json:"id"`
+	WorkspaceID    uuid.UUID       `json:"workspaceId"`
+	Source         string          `json:"source"`
+	Status         string          `json:"status"`
+	CredentialsEnc []byte          `json:"credentialsEnc"`
+	Connection     json.RawMessage `json:"connection"`
+	Available      json.RawMessage `json:"available"`
+	Picked         []string        `json:"picked"`
+	Files          json.RawMessage `json:"files"`
+	Report         json.RawMessage `json:"report"`
+	Error          json.RawMessage `json:"error"`
+	Result         json.RawMessage `json:"result"`
+	CreatedBy      *uuid.UUID      `json:"createdBy"`
+	CreatedAt      time.Time       `json:"createdAt"`
+	UpdatedAt      time.Time       `json:"updatedAt"`
+	FinishedAt     *time.Time      `json:"finishedAt"`
+}
+
 type UnsubscribeFeedback struct {
 	ID          uuid.UUID  `json:"id"`
 	WorkspaceID uuid.UUID  `json:"workspaceId"`
@@ -1614,6 +1633,13 @@ type WebhookDelivery struct {
 	EnqueuedAt    *time.Time      `json:"enqueuedAt"`
 	LastAttemptAt *time.Time      `json:"lastAttemptAt"`
 	DeliveredAt   *time.Time      `json:"deliveredAt"`
+}
+
+type WelcomePromptDismissal struct {
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	ListID      uuid.UUID  `json:"listId"`
+	DismissedBy *uuid.UUID `json:"dismissedBy"`
+	DismissedAt time.Time  `json:"dismissedAt"`
 }
 
 type Workspace struct {
