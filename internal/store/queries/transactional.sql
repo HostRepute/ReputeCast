@@ -256,6 +256,33 @@ SELECT o.opted_out_at, o.source, c.name AS category_name
 FROM transactional_opt_outs o JOIN transactional_categories c ON c.id = o.category_id
 WHERE o.workspace_id = @workspace_id AND o.email = @email AND o.category_id = @category_id;
 
+-- name: TxnOptOutsFor :many
+-- An address's opt-outs of Optional categories.
+SELECT o.category_id, o.opted_out_at, o.source, o.reason, c.name AS category_name
+FROM transactional_opt_outs o JOIN transactional_categories c ON c.id = o.category_id
+WHERE o.workspace_id = @workspace_id AND o.email = @email
+ORDER BY c.position, c.created_at;
+
+-- name: TxnOptOutInsert :execrows
+-- Turns a category off for an address; the first date is kept.
+INSERT INTO transactional_opt_outs (workspace_id, email, category_id, opted_out_at, source, message_id)
+VALUES (@workspace_id, @email, @category_id, @opted_out_at, @source, sqlc.narg(message_id))
+ON CONFLICT (workspace_id, email, category_id) DO NOTHING;
+
+-- name: TxnOptOutDelete :execrows
+DELETE FROM transactional_opt_outs WHERE workspace_id = @workspace_id AND email = @email AND category_id = @category_id;
+
+-- name: TxnOptOutReason :execrows
+UPDATE transactional_opt_outs SET reason = @reason
+WHERE workspace_id = @workspace_id AND email = @email AND category_id = @category_id;
+
+-- name: TxnMessageCategory :one
+-- The address and category a transactional message went out with (its
+-- unsubscribe and preference links).
+SELECT m.email, t.category_id, t.category_name, t.category_kind
+FROM messages m JOIN transactional_messages t ON t.message_id = m.id
+WHERE m.id = @id AND m.workspace_id = @workspace_id;
+
 -- name: TxnContactByEmail :one
 SELECT id, mailbox_provider, first_name, last_name FROM contacts
 WHERE workspace_id = @workspace_id AND email = @email AND erased_at IS NULL;

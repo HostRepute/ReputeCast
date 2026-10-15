@@ -642,6 +642,38 @@ func (q *Queries) TxnMemberEmails(ctx context.Context, workspaceID uuid.UUID) ([
 	return items, nil
 }
 
+const txnMessageCategory = `-- name: TxnMessageCategory :one
+SELECT m.email, t.category_id, t.category_name, t.category_kind
+FROM messages m JOIN transactional_messages t ON t.message_id = m.id
+WHERE m.id = $1 AND m.workspace_id = $2
+`
+
+type TxnMessageCategoryParams struct {
+	ID          uuid.UUID `json:"id"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+}
+
+type TxnMessageCategoryRow struct {
+	Email        string     `json:"email"`
+	CategoryID   *uuid.UUID `json:"categoryId"`
+	CategoryName string     `json:"categoryName"`
+	CategoryKind string     `json:"categoryKind"`
+}
+
+// The address and category a transactional message went out with (its
+// unsubscribe and preference links).
+func (q *Queries) TxnMessageCategory(ctx context.Context, arg TxnMessageCategoryParams) (TxnMessageCategoryRow, error) {
+	row := q.db.QueryRow(ctx, txnMessageCategory, arg.ID, arg.WorkspaceID)
+	var i TxnMessageCategoryRow
+	err := row.Scan(
+		&i.Email,
+		&i.CategoryID,
+		&i.CategoryName,
+		&i.CategoryKind,
+	)
+	return i, err
+}
+
 const txnMessageEvent = `-- name: TxnMessageEvent :one
 SELECT t.message_id, t.template_key, t.template_version, t.category_name, t.tags, t.metadata, t.test, t.reject_reason, t.source,
        m.email, m.status, m.error, coalesce(m.provider_message_id, '')::text AS provider_message_id,
@@ -744,6 +776,127 @@ func (q *Queries) TxnOptOut(ctx context.Context, arg TxnOptOutParams) (TxnOptOut
 	var i TxnOptOutRow
 	err := row.Scan(&i.OptedOutAt, &i.Source, &i.CategoryName)
 	return i, err
+}
+
+const txnOptOutDelete = `-- name: TxnOptOutDelete :execrows
+DELETE FROM transactional_opt_outs WHERE workspace_id = $1 AND email = $2 AND category_id = $3
+`
+
+type TxnOptOutDeleteParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Email       string    `json:"email"`
+	CategoryID  uuid.UUID `json:"categoryId"`
+}
+
+func (q *Queries) TxnOptOutDelete(ctx context.Context, arg TxnOptOutDeleteParams) (int64, error) {
+	result, err := q.db.Exec(ctx, txnOptOutDelete, arg.WorkspaceID, arg.Email, arg.CategoryID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const txnOptOutInsert = `-- name: TxnOptOutInsert :execrows
+INSERT INTO transactional_opt_outs (workspace_id, email, category_id, opted_out_at, source, message_id)
+VALUES ($1, $2, $3, $4, $5, $6)
+ON CONFLICT (workspace_id, email, category_id) DO NOTHING
+`
+
+type TxnOptOutInsertParams struct {
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	Email       string     `json:"email"`
+	CategoryID  uuid.UUID  `json:"categoryId"`
+	OptedOutAt  time.Time  `json:"optedOutAt"`
+	Source      string     `json:"source"`
+	MessageID   *uuid.UUID `json:"messageId"`
+}
+
+// Turns a category off for an address; the first date is kept.
+func (q *Queries) TxnOptOutInsert(ctx context.Context, arg TxnOptOutInsertParams) (int64, error) {
+	result, err := q.db.Exec(ctx, txnOptOutInsert,
+		arg.WorkspaceID,
+		arg.Email,
+		arg.CategoryID,
+		arg.OptedOutAt,
+		arg.Source,
+		arg.MessageID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const txnOptOutReason = `-- name: TxnOptOutReason :execrows
+UPDATE transactional_opt_outs SET reason = $1
+WHERE workspace_id = $2 AND email = $3 AND category_id = $4
+`
+
+type TxnOptOutReasonParams struct {
+	Reason      string    `json:"reason"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Email       string    `json:"email"`
+	CategoryID  uuid.UUID `json:"categoryId"`
+}
+
+func (q *Queries) TxnOptOutReason(ctx context.Context, arg TxnOptOutReasonParams) (int64, error) {
+	result, err := q.db.Exec(ctx, txnOptOutReason,
+		arg.Reason,
+		arg.WorkspaceID,
+		arg.Email,
+		arg.CategoryID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const txnOptOutsFor = `-- name: TxnOptOutsFor :many
+SELECT o.category_id, o.opted_out_at, o.source, o.reason, c.name AS category_name
+FROM transactional_opt_outs o JOIN transactional_categories c ON c.id = o.category_id
+WHERE o.workspace_id = $1 AND o.email = $2
+ORDER BY c.position, c.created_at
+`
+
+type TxnOptOutsForParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Email       string    `json:"email"`
+}
+
+type TxnOptOutsForRow struct {
+	CategoryID   uuid.UUID `json:"categoryId"`
+	OptedOutAt   time.Time `json:"optedOutAt"`
+	Source       string    `json:"source"`
+	Reason       string    `json:"reason"`
+	CategoryName string    `json:"categoryName"`
+}
+
+// An address's opt-outs of Optional categories.
+func (q *Queries) TxnOptOutsFor(ctx context.Context, arg TxnOptOutsForParams) ([]TxnOptOutsForRow, error) {
+	rows, err := q.db.Query(ctx, txnOptOutsFor, arg.WorkspaceID, arg.Email)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []TxnOptOutsForRow{}
+	for rows.Next() {
+		var i TxnOptOutsForRow
+		if err := rows.Scan(
+			&i.CategoryID,
+			&i.OptedOutAt,
+			&i.Source,
+			&i.Reason,
+			&i.CategoryName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const txnOutboxClaim = `-- name: TxnOutboxClaim :many

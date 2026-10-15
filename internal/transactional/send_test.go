@@ -254,10 +254,10 @@ func (s *sendEnv) events(id string) []string {
 	return out
 }
 
-// unfold undoes quoted-printable soft line breaks so a test can look for
-// a value in a received message.
+// unfold undoes quoted-printable soft line breaks and folded headers so a
+// test can look for a value in a received message.
 func unfold(data string) string {
-	return strings.NewReplacer("=\r\n", "", "=3D", "=").Replace(data)
+	return strings.NewReplacer("=\r\n", "", "=3D", "=", "\r\n ", "", "\r\n\t", "").Replace(data)
 }
 
 func TestSendAndDeliver(t *testing.T) {

@@ -13,6 +13,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/mailer"
 	"github.com/hostrepute/reputecast/internal/providers"
+	"github.com/hostrepute/reputecast/internal/publicpages"
 	"github.com/hostrepute/reputecast/internal/sending/engine"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/transactional"
@@ -74,6 +75,45 @@ func (a *App) Transactional() *transactional.Service { return transactionalServi
 // drive it with Step).
 func (a *App) TransactionalOutbox() *engine.TransactionalOutbox { return transactionalOutbox(a) }
 
+// transactionalNotifications puts Optional categories on the public pages.
+type transactionalNotifications struct{ s *transactional.Service }
+
+// Message implements publicpages.Notifications.
+func (n transactionalNotifications) Message(ctx context.Context, ws *store.Workspace, id uuid.UUID) (publicpages.NotificationMessage, bool, error) {
+	m, ok, err := n.s.NotificationMessage(ctx, ws, id)
+	return publicpages.NotificationMessage{Email: m.Email, CategoryID: m.CategoryID, CategoryName: m.CategoryName, Optional: m.Optional, Product: m.Product}, ok, err
+}
+
+// For implements publicpages.Notifications.
+func (n transactionalNotifications) For(ctx context.Context, ws *store.Workspace, email string) (publicpages.NotificationSet, error) {
+	set, err := n.s.Notifications(ctx, ws, email)
+	out := publicpages.NotificationSet{Product: set.Product}
+	for _, c := range set.Categories {
+		out.Categories = append(out.Categories, publicpages.NotificationCategory{ID: c.ID, Name: c.Name, Description: c.Description, On: c.On, OptedOutAt: c.OptedOutAt})
+	}
+	return out, err
+}
+
+// Save implements publicpages.Notifications.
+func (n transactionalNotifications) Save(ctx context.Context, tx pgx.Tx, ws *store.Workspace, email string, on, shown []uuid.UUID, msg *uuid.UUID) error {
+	return n.s.SetNotifications(ctx, tx, ws, email, on, shown, transactional.OptOutPreferenceCenter, msg)
+}
+
+// TurnOff implements publicpages.Notifications.
+func (n transactionalNotifications) TurnOff(ctx context.Context, tx pgx.Tx, ws *store.Workspace, email string, category uuid.UUID, source string, msg uuid.UUID) error {
+	return n.s.TurnOff(ctx, tx, ws, email, category, source, msg)
+}
+
+// TurnOn implements publicpages.Notifications.
+func (n transactionalNotifications) TurnOn(ctx context.Context, tx pgx.Tx, ws *store.Workspace, email string, category uuid.UUID) error {
+	return n.s.TurnOn(ctx, tx, ws, email, category)
+}
+
+// Reason implements publicpages.Notifications.
+func (n transactionalNotifications) Reason(ctx context.Context, ws *store.Workspace, email string, category uuid.UUID, reason string) error {
+	return n.s.OptOutReason(ctx, ws, email, category, reason)
+}
+
 // transactionalHooks tells the transactional domain what the outbox did.
 type transactionalHooks struct{ s *transactional.Service }
 
@@ -87,6 +127,7 @@ func (h transactionalHooks) TransactionalOutcome(ctx context.Context, tx pgx.Tx,
 }
 
 func init() {
+	publicNotifications = func(a *App) publicpages.Notifications { return transactionalNotifications{s: transactionalService(a)} }
 	apiRegistrars = append(apiRegistrars, func(a *App, h huma.API) {
 		s := transactionalService(a)
 		transactional.RegisterTemplates(h, s)

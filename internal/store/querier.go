@@ -1545,12 +1545,21 @@ type Querier interface {
 	TxnMarkFailed(ctx context.Context, arg TxnMarkFailedParams) error
 	TxnMarkFailedOver(ctx context.Context, arg TxnMarkFailedOverParams) error
 	TxnMemberEmails(ctx context.Context, workspaceID uuid.UUID) ([]string, error)
+	// The address and category a transactional message went out with (its
+	// unsubscribe and preference links).
+	TxnMessageCategory(ctx context.Context, arg TxnMessageCategoryParams) (TxnMessageCategoryRow, error)
 	// What a message's webhook events carry.
 	TxnMessageEvent(ctx context.Context, messageID uuid.UUID) (TxnMessageEventRow, error)
 	TxnMessageLinks(ctx context.Context, messageID uuid.UUID) ([]string, error)
 	// A message moves to the next provider of its route (failover).
 	TxnMoveToProvider(ctx context.Context, arg TxnMoveToProviderParams) error
 	TxnOptOut(ctx context.Context, arg TxnOptOutParams) (TxnOptOutRow, error)
+	TxnOptOutDelete(ctx context.Context, arg TxnOptOutDeleteParams) (int64, error)
+	// Turns a category off for an address; the first date is kept.
+	TxnOptOutInsert(ctx context.Context, arg TxnOptOutInsertParams) (int64, error)
+	TxnOptOutReason(ctx context.Context, arg TxnOptOutReasonParams) (int64, error)
+	// An address's opt-outs of Optional categories.
+	TxnOptOutsFor(ctx context.Context, arg TxnOptOutsForParams) ([]TxnOptOutsForRow, error)
 	// Claims up to lim due transactional messages of one provider, with their
 	// sealed payload and what failover needs.
 	TxnOutboxClaim(ctx context.Context, arg TxnOutboxClaimParams) ([]TxnOutboxClaimRow, error)
