@@ -222,6 +222,28 @@ func TestSMTPRelay(t *testing.T) {
 	if err := c.Auth(sasl.NewPlainClient("", api.Key.ID, api.Secret)); err == nil || !strings.Contains(err.Error(), "API key") {
 		t.Fatalf("API key over SMTP: %v", err)
 	}
+	// An integration's key only calls its integration's operations: refused
+	// with the reason, even when it holds transactional:send and the SMTP
+	// preset.
+	var zapier uuid.UUID
+	if err := e.env.App.Pool.QueryRow(context.Background(), `SELECT id FROM integrations WHERE workspace_id = $1 AND kind = 'zapier' AND disconnected_at IS NULL`, e.ws).Scan(&zapier); err != nil {
+		t.Fatalf("the demo's Zapier: %v", err)
+	}
+	var integ struct {
+		Key    struct{ ID string }
+		Secret string
+	}
+	e.owner.Do("POST", ws+"/api-keys", map[string]any{"name": "Zapier · Acme ops", "permissions": []string{"transactional:send"}, "transactional": map[string]any{"preset": "smtp"}}).
+		MustStatus(t, 201).JSON(t, &integ)
+	e.exec(`UPDATE api_keys SET integration_id = $1 WHERE id = $2`, zapier, integ.Key.ID)
+	c = e.client(false)
+	err = c.Auth(sasl.NewPlainClient("", integ.Key.ID, integ.Secret))
+	if err == nil || !strings.Contains(err.Error(), "535") || !strings.Contains(err.Error(), "belongs to the Zapier integration, which can only call its own operations") {
+		t.Fatalf("integration key over SMTP: %v", err)
+	}
+	if n := e.count(`SELECT count(*) FROM api_keys WHERE id = $1 AND last_call = 'SMTP AUTH'`, integ.Key.ID); n != 0 {
+		t.Fatal("a refused integration key was marked as used by the relay")
+	}
 
 	// A receipt: logged as Raw (SMTP), routed, delivered.
 	c = e.client(false)

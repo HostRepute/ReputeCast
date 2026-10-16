@@ -220,9 +220,13 @@ WHERE t.workspace_id = @workspace_id AND t.accepted_at >= @since AND t.template_
 GROUP BY t.template_id;
 
 -- name: TxnKey :one
--- A key's transactional settings (send-only, test mode, scope, rate).
-SELECT id, name, kind, preset, mode, templates, categories, test_addresses, rate_per_second, permissions, created_by
-FROM api_keys WHERE id = @id AND workspace_id = @workspace_id;
+-- A key's transactional settings (send-only, test mode, scope, rate), and
+-- the integration it belongs to, if any.
+SELECT k.id, k.name, k.kind, k.preset, k.mode, k.templates, k.categories, k.test_addresses, k.rate_per_second, k.permissions, k.created_by,
+       k.integration_id, coalesce(i.kind, '')::text AS integration_kind
+FROM api_keys k
+LEFT JOIN integrations i ON i.id = k.integration_id
+WHERE k.id = @id AND k.workspace_id = @workspace_id;
 
 -- name: TxnIdemInsert :one
 INSERT INTO transactional_idempotency (workspace_id, key, request_hash, created_at)

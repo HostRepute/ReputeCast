@@ -75,7 +75,34 @@ var (
 	ErrSMTPKeyExpired    = errors.New("this SMTP credential has expired; create a new one in Transactional › Setup")
 	ErrSMTPCannotSend    = errors.New("this credential doesn't hold transactional:send")
 	ErrSMTPWorkspaceGone = errors.New("the credential's workspace was deleted")
+	// ErrSMTPIntegrationKey: an integration's key (Zapier, Make, n8n,
+	// WordPress) only calls its own integration's operations.
+	ErrSMTPIntegrationKey = errors.New("this key belongs to an integration, which can only call its own operations; create an SMTP credential in Transactional › Setup")
 )
+
+// smtpIntegrationKeyError names the integration a refused key belongs to.
+type smtpIntegrationKeyError struct{ name string }
+
+func (e smtpIntegrationKeyError) Error() string {
+	return "this key belongs to the " + e.name + " integration, which can only call its own operations; create an SMTP credential in Transactional › Setup"
+}
+
+func (e smtpIntegrationKeyError) Unwrap() error { return ErrSMTPIntegrationKey }
+
+// integrationName is how people call an integration's kind.
+func integrationName(kind string) string {
+	switch kind {
+	case "zapier":
+		return "Zapier"
+	case "make":
+		return "Make"
+	case "n8n":
+		return "n8n"
+	case "wordpress":
+		return "WordPress"
+	}
+	return ""
+}
 
 // AuthenticateSMTP checks an SMTP credential: the username is the key's ID
 // and the password its secret.
@@ -100,12 +127,20 @@ func (s *Service) AuthenticateSMTP(ctx context.Context, username, password strin
 	if k.ExpiresAt != nil && !k.ExpiresAt.After(s.now()) {
 		return SMTPCredential{}, ErrSMTPKeyExpired
 	}
-	if !slices.Contains(k.Permissions, "transactional:send") {
-		return SMTPCredential{}, ErrSMTPCannotSend
-	}
 	tk, err := s.Q.TxnKey(ctx, store.TxnKeyParams{ID: k.ID, WorkspaceID: k.WorkspaceID})
 	if err != nil {
 		return SMTPCredential{}, err
+	}
+	// Integration keys call their integration's operations only, whatever
+	// they hold.
+	if tk.IntegrationID != nil {
+		if name := integrationName(tk.IntegrationKind); name != "" {
+			return SMTPCredential{}, smtpIntegrationKeyError{name: name}
+		}
+		return SMTPCredential{}, ErrSMTPIntegrationKey
+	}
+	if !slices.Contains(k.Permissions, "transactional:send") {
+		return SMTPCredential{}, ErrSMTPCannotSend
 	}
 	if tk.Preset != "smtp" {
 		return SMTPCredential{}, ErrSMTPNotSMTPKey

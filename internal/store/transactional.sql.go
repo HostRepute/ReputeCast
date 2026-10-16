@@ -1112,8 +1112,11 @@ func (q *Queries) TxnInsertRejectedCall(ctx context.Context, arg TxnInsertReject
 }
 
 const txnKey = `-- name: TxnKey :one
-SELECT id, name, kind, preset, mode, templates, categories, test_addresses, rate_per_second, permissions, created_by
-FROM api_keys WHERE id = $1 AND workspace_id = $2
+SELECT k.id, k.name, k.kind, k.preset, k.mode, k.templates, k.categories, k.test_addresses, k.rate_per_second, k.permissions, k.created_by,
+       k.integration_id, coalesce(i.kind, '')::text AS integration_kind
+FROM api_keys k
+LEFT JOIN integrations i ON i.id = k.integration_id
+WHERE k.id = $1 AND k.workspace_id = $2
 `
 
 type TxnKeyParams struct {
@@ -1122,20 +1125,23 @@ type TxnKeyParams struct {
 }
 
 type TxnKeyRow struct {
-	ID            uuid.UUID   `json:"id"`
-	Name          string      `json:"name"`
-	Kind          string      `json:"kind"`
-	Preset        string      `json:"preset"`
-	Mode          string      `json:"mode"`
-	Templates     []string    `json:"templates"`
-	Categories    []uuid.UUID `json:"categories"`
-	TestAddresses []string    `json:"testAddresses"`
-	RatePerSecond int32       `json:"ratePerSecond"`
-	Permissions   []string    `json:"permissions"`
-	CreatedBy     *uuid.UUID  `json:"createdBy"`
+	ID              uuid.UUID   `json:"id"`
+	Name            string      `json:"name"`
+	Kind            string      `json:"kind"`
+	Preset          string      `json:"preset"`
+	Mode            string      `json:"mode"`
+	Templates       []string    `json:"templates"`
+	Categories      []uuid.UUID `json:"categories"`
+	TestAddresses   []string    `json:"testAddresses"`
+	RatePerSecond   int32       `json:"ratePerSecond"`
+	Permissions     []string    `json:"permissions"`
+	CreatedBy       *uuid.UUID  `json:"createdBy"`
+	IntegrationID   *uuid.UUID  `json:"integrationId"`
+	IntegrationKind string      `json:"integrationKind"`
 }
 
-// A key's transactional settings (send-only, test mode, scope, rate).
+// A key's transactional settings (send-only, test mode, scope, rate), and
+// the integration it belongs to, if any.
 func (q *Queries) TxnKey(ctx context.Context, arg TxnKeyParams) (TxnKeyRow, error) {
 	row := q.db.QueryRow(ctx, txnKey, arg.ID, arg.WorkspaceID)
 	var i TxnKeyRow
@@ -1151,6 +1157,8 @@ func (q *Queries) TxnKey(ctx context.Context, arg TxnKeyParams) (TxnKeyRow, erro
 		&i.RatePerSecond,
 		&i.Permissions,
 		&i.CreatedBy,
+		&i.IntegrationID,
+		&i.IntegrationKind,
 	)
 	return i, err
 }

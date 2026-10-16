@@ -1706,7 +1706,8 @@ type Querier interface {
 	TxnInsertMessageLog(ctx context.Context, arg TxnInsertMessageLogParams) error
 	TxnInsertOutbox(ctx context.Context, arg TxnInsertOutboxParams) error
 	TxnInsertRejectedCall(ctx context.Context, arg TxnInsertRejectedCallParams) error
-	// A key's transactional settings (send-only, test mode, scope, rate).
+	// A key's transactional settings (send-only, test mode, scope, rate), and
+	// the integration it belongs to, if any.
 	TxnKey(ctx context.Context, arg TxnKeyParams) (TxnKeyRow, error)
 	// The message log, newest first. status is what the log shows: test,
 	// rejected, queued, sent, delivered, deferred, bounced, complained or
