@@ -226,7 +226,7 @@ export function RightPanel() {
   const a11yTab = accessibilityTab(a11y)
   if (a11yTab) items.push({ value: 'accessibility', label: a11yTab })
   return (
-    <aside className={tab === 'accessibility' ? 'cpanel right a11y-wide' : 'cpanel right'} aria-label="Style, settings, deliverability and accessibility">
+    <aside className={tab === 'accessibility' || items.length > 3 ? 'cpanel right a11y-wide' : 'cpanel right'} aria-label="Style, settings, deliverability and accessibility">
       <PanelTabs value={tab} onChange={c.setRightTab} label="Inspector" items={items} className="flex flex-1 flex-col">
         <TabPanel value="style" className="flex flex-1 flex-col" tabIndex={-1}>
           {sel ? (

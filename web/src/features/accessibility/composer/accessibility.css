@@ -368,11 +368,17 @@
   border-color: #fcd34d;
 }
 
-/* The right panel is 360 px wide on the Accessibility boards (300 px
-   otherwise). Unlayered, like the composer's own styles it widens. */
+/* The right panel is 360 px wide on the Accessibility boards, and whenever
+   it has four tabs (300 px otherwise). Unlayered, like the composer's own
+   styles it widens. */
 .cpanel.right.a11y-wide {
   flex-basis: 360px;
   max-width: 360px;
+}
+/* Four tabs fit on one line, as on ComposerAccessibility. */
+.cpanel.right.a11y-wide .ptab button {
+  padding: 0 6px;
+  white-space: nowrap;
 }
 @media (max-width: 1100px) {
   .cpanel.right.a11y-wide {
