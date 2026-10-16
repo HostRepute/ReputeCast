@@ -196,12 +196,12 @@ func (s *Service) CampaignResults(ctx context.Context, ws *store.Workspace, camp
 		// Their own language first, then the others by readers, "no
 		// language" and "other languages" last.
 		weight := func(k string) int {
-			switch {
-			case k == row.Language:
+			switch k {
+			case row.Language:
 				return 0
-			case k == "no_language":
+			case "no_language":
 				return 2
-			case k == "not_offered":
+			case "not_offered":
 				return 3
 			}
 			return 1
@@ -303,8 +303,8 @@ func (s *Service) ClickMapVersion(ctx context.Context, campaignID uuid.UUID, lan
 		return "", 0, 0, false
 	}
 	start := 0
-	switch {
-	case lang == "" || lang == snap.Source:
+	switch lang {
+	case "", snap.Source:
 		html = snap.HTML
 	default:
 		for _, l := range snap.Languages {

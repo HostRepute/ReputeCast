@@ -219,8 +219,15 @@ func TestPostTranslationsBecomeLanguageVersions(t *testing.T) {
 	env.SeedDemo()
 	c := env.Client()
 	c.SignInDemo("marcus@acme.io")
-	for _, code := range []string{"es", "de"} {
-		c.Do("POST", ws+"/languages", map[string]any{"code": code}).MustStatus(t, 200)
+	// The demo's workspace writes in English, Spanish and German; not French.
+	var langs struct{ Languages []struct{ Code string } }
+	c.Do("GET", ws+"/languages", nil).MustStatus(t, 200).JSON(t, &langs)
+	offered := map[string]bool{}
+	for _, l := range langs.Languages {
+		offered[l.Code] = true
+	}
+	if !offered["es"] || !offered["de"] || offered["fr"] {
+		t.Fatalf("the demo's languages: %+v", langs.Languages)
 	}
 	site := connect(t, c, "wordpress", map[string]any{"items": []string{"list_forms", "create_drafts"}, "address": "news.example.org"})
 	ids := lists(t, env)
@@ -288,7 +295,7 @@ func TestPostTranslationsBecomeLanguageVersions(t *testing.T) {
 	if german.Created || german.Reason != "exists" || german.CampaignID != draft.CampaignID || len(german.Languages) != 0 {
 		t.Errorf("the German post itself: %+v", german)
 	}
-	if v := versions(draft.CampaignID); v["en"] != "source" || v["es"] != "up_to_date" || v["de"] != "up_to_date" || len(v) != 4 {
+	if v := versions(draft.CampaignID); v["en"] != "source" || v["es"] != "up_to_date" || v["de"] != "up_to_date" || v["fr"] != "" {
 		t.Errorf("versions: %v", v)
 	}
 	var drafts int

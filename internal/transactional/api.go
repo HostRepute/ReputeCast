@@ -42,7 +42,8 @@ type templateUpdateInput struct {
 
 type draftSaveInput struct {
 	TemplatePath
-	Body TransactionalDraftSave
+	Language string `query:"language" maxLength:"16" doc:"Saves a language version instead of the draft (internal/languages)"`
+	Body     TransactionalDraftSave
 }
 
 type previewInput struct {
@@ -128,8 +129,8 @@ func RegisterTemplates(h huma.API, s *Service) {
 		})
 	api.Get(h, api.Op{ID: "get-transactional-template", Path: Base + "/templates/{template}", Summary: "Get a template with its draft, variables, test data and live version",
 		Tags: tagTemplates, Access: view},
-		func(ctx context.Context, in *TemplatePath) (*api.Body[TransactionalTemplate], error) {
-			out, err := s.Template(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Template)
+		func(ctx context.Context, in *templateGetInput) (*api.Body[TransactionalTemplate], error) {
+			out, err := s.TemplateIn(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Template, in.Language)
 			return api.OK(out), err
 		})
 	api.Patch(h, api.Op{ID: "update-transactional-template", Path: Base + "/templates/{template}", Summary: "Rename a template, change its category, or its ID before the first publish",
@@ -142,7 +143,7 @@ func RegisterTemplates(h huma.API, s *Service) {
 		Description: "Content, variables, test data, sender, reply-to and tracking. Fails with 409 version_conflict when someone saved a newer revision since baseRevision; the problem's meta says who, when and what each side changed. Send force: true to keep yours.",
 		Tags:        tagTemplates, Access: edit, MaxBodyBytes: 16 << 20},
 		func(ctx context.Context, in *draftSaveInput) (*api.Body[TransactionalDraftSaved], error) {
-			out, err := s.SaveDraft(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Template, in.Body)
+			out, err := s.SaveDraftIn(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Template, in.Language, in.Body)
 			return api.OK(out), err
 		})
 	api.Post(h, api.Op{ID: "preview-transactional-template", Path: Base + "/templates/{template}/preview", Summary: "Render the draft or a version with test data (nothing is sent)",

@@ -53,6 +53,10 @@ type Service struct {
 	// HTTP calls webhook steps; nil uses NewWebhookClient (public addresses only).
 	HTTP *http.Client
 	Now  func() time.Time
+
+	// Languages are the emails' language versions (internal/languages);
+	// nil leaves them out.
+	Languages EmailLanguages
 }
 
 func (s *Service) now() time.Time {

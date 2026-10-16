@@ -240,7 +240,7 @@ func Normalize(raw string) (string, bool) {
 }
 
 // Suggest returns the closest catalog language for a value Normalize
-// refused ("Spansih" → "es"), or "".
+// refused ("Spanosh" → "es"), or "".
 func Suggest(raw string) string {
 	f := fold(raw)
 	if f == "" {

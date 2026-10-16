@@ -494,7 +494,7 @@ func insertBlock(src string, blocks []Block, after int, block string) (string, b
 	if body == nil {
 		return "", false
 	}
-	pos := -1
+	var pos int
 	switch {
 	case after >= 0 && after < len(blocks):
 		pos = blocks[after].End

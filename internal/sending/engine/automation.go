@@ -37,8 +37,12 @@ var _ automations.Mailer = AutomationMailer{}
 func (m AutomationMailer) QueueAutomationEmail(ctx context.Context, tx pgx.Tx, o automations.OutgoingEmail) (automations.QueuedEmail, error) {
 	q := store.New(tx)
 	mbp := o.MailboxProvider
-	if c, err := q.SendingContactForAutomation(ctx, o.ContactID); err == nil && c.MailboxProvider != "" && mbp == "" {
-		mbp = c.MailboxProvider
+	contactLanguage := ""
+	if c, err := q.SendingContactForAutomation(ctx, o.ContactID); err == nil {
+		if c.MailboxProvider != "" && mbp == "" {
+			mbp = c.MailboxProvider
+		}
+		contactLanguage = c.Language
 	}
 	if mbp == "" {
 		mbp = routing.MailboxProvider(o.To)
@@ -61,11 +65,20 @@ func (m AutomationMailer) QueueAutomationEmail(ctx context.Context, tx pgx.Tx, o
 			version = int(v)
 		}
 	}
-	ref, _ := json.Marshal(contentRef{Email: o.EmailID, Version: version, Subject: o.Subject})
+	ml, err := m.E.automationLanguage(ctx, o.WorkspaceID, o.EmailID, version, contactLanguage)
+	if err != nil {
+		return out, err
+	}
+	cr := contentRef{Email: o.EmailID, Version: version, Subject: o.Subject}
+	if ml.Language != "" && ml.Language != ml.source {
+		cr.Language = ml.Language
+	}
+	ref, _ := json.Marshal(cr)
 	node := o.NodeID
 	if err := q.SendingInsertAutomationMessage(ctx, store.SendingInsertAutomationMessageParams{
 		ID: out.MessageID, WorkspaceID: o.WorkspaceID, AutomationID: &o.AutomationID, AutomationNode: &node, ContactID: &o.ContactID,
 		Email: o.To, ProviderID: provider, MailboxProvider: mbp, Status: status, QueuedAt: m.E.now(), ContentRef: ref,
+		Language: ml.Language, ContactLanguage: ml.Contact, LanguageReason: ml.Reason,
 	}); err != nil {
 		return out, err
 	}
@@ -126,6 +139,9 @@ type outboxTemplate struct {
 	sender  store.SendingAutomationSenderRow
 	name    string
 	missing string
+	// source is set when the language version queued is no longer sent:
+	// the source language goes instead.
+	source string
 }
 
 // RunOutbox sends queued automation emails per provider, within each
@@ -337,7 +353,7 @@ func (e *Engine) composeAutomation(ctx context.Context, r *runRoute, row store.S
 	if ref.Email == uuid.Nil {
 		return providers.Message{}, errors.New("the flow step has no email")
 	}
-	k := ref.Email.String() + ":" + fmt.Sprint(ref.Version) + ":" + ref.Subject
+	k := ref.Email.String() + ":" + fmt.Sprint(ref.Version) + ":" + ref.Subject + ":" + ref.Language
 	ot := cache[k]
 	if ot == nil {
 		ot = &outboxTemplate{}
@@ -351,14 +367,31 @@ func (e *Engine) composeAutomation(ctx context.Context, r *runRoute, row store.S
 				subject = ref.Subject
 			}
 			c := Content{Subject: subject, Preheader: em.Preheader, HTML: media.Absolutize(em.Html, e.URLs.Base()), Text: em.PlainText}
+			lang := ref.Language
+			if lang != "" {
+				// A language version has its own subject: the step's subject
+				// override is the source's.
+				lc, source, err := e.automationTranslation(ctx, em.WorkspaceID, ref.Email, ref.Version, lang)
+				switch {
+				case err != nil:
+					ot.missing = err.Error()
+				case lc == nil:
+					// The version stopped being sent after this email was
+					// queued (its language was removed): the source goes.
+					ot.source, lang = source, ""
+				default:
+					c = *lc
+				}
+			}
 			tpl, err := Prepare(c, Tracking{Opens: true, Clicks: true})
 			if err != nil {
 				ot.missing = err.Error()
 			} else {
 				ot.tpl, ot.name = tpl, em.Name
-				if n, err := e.Q.SendingAutomationLinkCount(ctx, store.SendingAutomationLinkCountParams{EmailID: ref.Email, Version: int32(ref.Version)}); err == nil && n == 0 {
+				if n, err := e.Q.SendingAutomationLinkCount(ctx, store.SendingAutomationLinkCountParams{EmailID: ref.Email, Version: int32(ref.Version), Language: lang}); err == nil && n == 0 {
 					for _, l := range tpl.Links {
-						_ = e.Q.SendingInsertAutomationLink(ctx, store.SendingInsertAutomationLinkParams{EmailID: ref.Email, Version: int32(ref.Version), Position: int32(l.Position), Url: l.URL, Label: l.Label})
+						_ = e.Q.SendingInsertAutomationLink(ctx, store.SendingInsertAutomationLinkParams{EmailID: ref.Email, Version: int32(ref.Version), Language: lang,
+							Position: int32(l.Position), Url: l.URL, Label: l.Label})
 					}
 				}
 			}
@@ -370,6 +403,11 @@ func (e *Engine) composeAutomation(ctx context.Context, r *runRoute, row store.S
 	}
 	if ot.missing != "" {
 		return providers.Message{}, errors.New(capitalize(ot.missing) + ".")
+	}
+	if ot.source != "" {
+		if err := e.Q.SendingMessageToSource(ctx, store.SendingMessageToSourceParams{ID: row.ID, Language: ot.source}); err != nil {
+			return providers.Message{}, err
+		}
 	}
 	var contact uuid.UUID
 	if row.ContactID != nil {

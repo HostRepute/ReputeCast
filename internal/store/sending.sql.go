@@ -453,16 +453,17 @@ func (q *Queries) SendingAutomationEmailLatest(ctx context.Context, id uuid.UUID
 }
 
 const sendingAutomationLinkCount = `-- name: SendingAutomationLinkCount :one
-SELECT count(*)::bigint FROM automation_email_links WHERE email_id = $1 AND version = $2
+SELECT count(*)::bigint FROM automation_email_links WHERE email_id = $1 AND version = $2 AND language = $3
 `
 
 type SendingAutomationLinkCountParams struct {
-	EmailID uuid.UUID `json:"emailId"`
-	Version int32     `json:"version"`
+	EmailID  uuid.UUID `json:"emailId"`
+	Version  int32     `json:"version"`
+	Language string    `json:"language"`
 }
 
 func (q *Queries) SendingAutomationLinkCount(ctx context.Context, arg SendingAutomationLinkCountParams) (int64, error) {
-	row := q.db.QueryRow(ctx, sendingAutomationLinkCount, arg.EmailID, arg.Version)
+	row := q.db.QueryRow(ctx, sendingAutomationLinkCount, arg.EmailID, arg.Version, arg.Language)
 	var column_1 int64
 	err := row.Scan(&column_1)
 	return column_1, err
@@ -1036,7 +1037,7 @@ func (q *Queries) SendingComplaintCohorts(ctx context.Context, arg SendingCompla
 }
 
 const sendingContactForAutomation = `-- name: SendingContactForAutomation :one
-SELECT id, email, mailbox_provider, status, erased_at FROM contacts WHERE id = $1
+SELECT id, email, mailbox_provider, status, erased_at, language FROM contacts WHERE id = $1
 `
 
 type SendingContactForAutomationRow struct {
@@ -1045,6 +1046,7 @@ type SendingContactForAutomationRow struct {
 	MailboxProvider string     `json:"mailboxProvider"`
 	Status          string     `json:"status"`
 	ErasedAt        *time.Time `json:"erasedAt"`
+	Language        string     `json:"language"`
 }
 
 func (q *Queries) SendingContactForAutomation(ctx context.Context, id uuid.UUID) (SendingContactForAutomationRow, error) {
@@ -1056,6 +1058,7 @@ func (q *Queries) SendingContactForAutomation(ctx context.Context, id uuid.UUID)
 		&i.MailboxProvider,
 		&i.Status,
 		&i.ErasedAt,
+		&i.Language,
 	)
 	return i, err
 }
@@ -1548,13 +1551,14 @@ func (q *Queries) SendingIncidents(ctx context.Context, campaignID uuid.UUID) ([
 }
 
 const sendingInsertAutomationLink = `-- name: SendingInsertAutomationLink :exec
-INSERT INTO automation_email_links (email_id, version, position, url, label) VALUES ($1, $2, $3, $4, $5)
+INSERT INTO automation_email_links (email_id, version, language, position, url, label) VALUES ($1, $2, $3, $4, $5, $6)
 ON CONFLICT DO NOTHING
 `
 
 type SendingInsertAutomationLinkParams struct {
 	EmailID  uuid.UUID `json:"emailId"`
 	Version  int32     `json:"version"`
+	Language string    `json:"language"`
 	Position int32     `json:"position"`
 	Url      string    `json:"url"`
 	Label    string    `json:"label"`
@@ -1564,6 +1568,7 @@ func (q *Queries) SendingInsertAutomationLink(ctx context.Context, arg SendingIn
 	_, err := q.db.Exec(ctx, sendingInsertAutomationLink,
 		arg.EmailID,
 		arg.Version,
+		arg.Language,
 		arg.Position,
 		arg.Url,
 		arg.Label,
@@ -1572,8 +1577,10 @@ func (q *Queries) SendingInsertAutomationLink(ctx context.Context, arg SendingIn
 }
 
 const sendingInsertAutomationMessage = `-- name: SendingInsertAutomationMessage :exec
-INSERT INTO messages (id, workspace_id, stream, automation_id, automation_node, contact_id, email, provider_id, mailbox_provider, status, queued_at, content_ref)
-VALUES ($1, $2, 'automation', $3, $4, $5, $6, $7, $8, $9, $10, $11)
+INSERT INTO messages (id, workspace_id, stream, automation_id, automation_node, contact_id, email, provider_id, mailbox_provider, status, queued_at, content_ref,
+    language, contact_language, language_reason)
+VALUES ($1, $2, 'automation', $3, $4, $5, $6, $7, $8, $9, $10, $11,
+    $12, $13, $14)
 `
 
 type SendingInsertAutomationMessageParams struct {
@@ -1588,6 +1595,9 @@ type SendingInsertAutomationMessageParams struct {
 	Status          string          `json:"status"`
 	QueuedAt        time.Time       `json:"queuedAt"`
 	ContentRef      json.RawMessage `json:"contentRef"`
+	Language        string          `json:"language"`
+	ContactLanguage string          `json:"contactLanguage"`
+	LanguageReason  string          `json:"languageReason"`
 }
 
 func (q *Queries) SendingInsertAutomationMessage(ctx context.Context, arg SendingInsertAutomationMessageParams) error {
@@ -1603,6 +1613,9 @@ func (q *Queries) SendingInsertAutomationMessage(ctx context.Context, arg Sendin
 		arg.Status,
 		arg.QueuedAt,
 		arg.ContentRef,
+		arg.Language,
+		arg.ContactLanguage,
+		arg.LanguageReason,
 	)
 	return err
 }
@@ -1819,6 +1832,23 @@ type SendingMarkUnsentParams struct {
 // every retry, or dropped (suppressed during the send, contact erased).
 func (q *Queries) SendingMarkUnsent(ctx context.Context, arg SendingMarkUnsentParams) error {
 	_, err := q.db.Exec(ctx, sendingMarkUnsent, arg.Ids, arg.Statuses, arg.Errors)
+	return err
+}
+
+const sendingMessageToSource = `-- name: SendingMessageToSource :exec
+UPDATE messages SET content_ref = content_ref - 'language', language = $1, language_reason = 'not_offered'
+WHERE id = $2
+`
+
+type SendingMessageToSourceParams struct {
+	Language string    `json:"language"`
+	ID       uuid.UUID `json:"id"`
+}
+
+// A queued automation email whose language version stopped being sent (its
+// language was removed) goes out in the source instead.
+func (q *Queries) SendingMessageToSource(ctx context.Context, arg SendingMessageToSourceParams) error {
+	_, err := q.db.Exec(ctx, sendingMessageToSource, arg.Language, arg.ID)
 	return err
 }
 

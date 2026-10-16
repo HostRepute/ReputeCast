@@ -2000,6 +2000,88 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/automation-emails/{id}/languages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** An automation email version's language versions with their status */
+        get: operations["list-automation-email-languages"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automation-emails/{id}/languages/{language}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One language version of an automation email version */
+        get: operations["get-automation-email-language"];
+        /**
+         * Write a language version of an automation email, adding it when missing
+         * @description Writing makes the email's next version, with every language version carried over; a step sends it once the flow is published.
+         */
+        put: operations["save-automation-email-language"];
+        post?: never;
+        /**
+         * Remove an automation email's language version
+         * @description Writing makes the email's next version, with every language version carried over; a step sends it once the flow is published.
+         */
+        delete: operations["remove-automation-email-language"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automation-emails/{id}/languages/{language}/mark-translated": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark an automation email's Draft language version translated, so it is sent
+         * @description Writing makes the email's next version, with every language version carried over; a step sends it once the flow is published.
+         */
+        post: operations["mark-automation-email-language-translated"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automation-emails/{id}/languages/{language}/mark-up-to-date": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark an automation email's Outdated language version up to date
+         * @description Writing makes the email's next version, with every language version carried over; a step sends it once the flow is published.
+         */
+        post: operations["mark-automation-email-language-up-to-date"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/automations": {
         parameters: {
             query?: never;
@@ -2567,6 +2649,26 @@ export interface paths {
         put?: never;
         /** Keep every language version up to date after a source edit that needs no translating */
         post: operations["keep-campaign-languages-up-to-date"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/languages/preview-contacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Contacts to preview a campaign as, one per language
+         * @description One contact per workspace language among the audience's lists, in the workspace's order, then one whose language the workspace doesn't offer, each with the version they get.
+         */
+        get: operations["list-campaign-language-preview-contacts"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -7097,6 +7199,90 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}/languages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A template draft's language versions with their status
+         * @description Every workspace language is listed: the source, versions that are Up to date, Outdated or Draft, and Missing ones, whose recipients get the fallback. Publishing the template publishes every language version with it; each send picks the version its recipient gets.
+         */
+        get: operations["list-transactional-template-languages"];
+        put?: never;
+        /**
+         * Add a language version (a Draft) to a template's draft
+         * @description It starts from a copy of the source (layout and text) or from the layout only. A Draft is never sent: its recipients get the fallback until it is marked translated. Edit it with ?language= on the template and its draft.
+         */
+        post: operations["add-transactional-template-language"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}/languages/{language}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove a language version from a template's draft
+         * @description Published versions keep theirs until the next publish.
+         */
+        delete: operations["remove-transactional-template-language"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}/languages/{language}/mark-translated": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark a Draft translated
+         * @description It is sent once the template is published again.
+         */
+        post: operations["mark-transactional-template-language-translated"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}/languages/{language}/mark-up-to-date": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark an Outdated version up to date
+         * @description For source changes that need no translating, such as a typo.
+         */
+        post: operations["mark-transactional-template-language-up-to-date"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/transactional/templates/{template}/preview": {
         parameters: {
             query?: never;
@@ -9126,6 +9312,17 @@ export interface components {
             name: string;
             subject?: string;
         };
+        AutomationEmailLanguage: {
+            html: string;
+            language: string;
+            name: string;
+            preheader: string;
+            /** @enum {string} */
+            status: "up_to_date" | "outdated" | "draft";
+            subject: string;
+            /** Format: int64 */
+            version: number;
+        };
         AutomationEmailOption: {
             id: string;
             /** Format: int64 */
@@ -9207,6 +9404,23 @@ export interface components {
             nodeId?: string;
             /** @enum {string} */
             severity: "error" | "warning";
+        };
+        AutomationLanguageMark: {
+            /** Format: int64 */
+            version: number;
+        };
+        AutomationLanguageSave: {
+            html: string;
+            preheader?: string;
+            subject: string;
+            translated?: boolean;
+            /** Format: int64 */
+            version: number;
+        };
+        AutomationLanguageSaved: {
+            languages: components["schemas"]["EmailLanguages"];
+            /** Format: int64 */
+            version: number;
         };
         AutomationList: {
             alerts: components["schemas"]["AutomationAlert"][];
@@ -9593,6 +9807,19 @@ export interface components {
             index?: number;
             key?: string;
         };
+        BlockSegment: {
+            alt?: string;
+            /** Format: int64 */
+            column: number;
+            /** Format: int64 */
+            heading: number;
+            html?: string;
+            kind: string;
+            path: number[];
+            strong: boolean;
+            text: string;
+            url?: string;
+        };
         CallTarget: {
             email?: string;
             endpoint?: string;
@@ -9752,7 +9979,7 @@ export interface components {
             /** Format: int64 */
             index: number;
             name: string;
-            segments: components["schemas"]["Segment"][];
+            segments: components["schemas"]["BlockSegment"][];
             text: string;
         };
         CompareRow: {
@@ -9992,6 +10219,7 @@ export interface components {
         ComposerPreviewRequest: {
             /** Format: uuid */
             contactId?: string;
+            editing?: string;
             html?: string;
             language?: string;
             preheader?: string;
@@ -14427,6 +14655,18 @@ export interface components {
             lists: string[];
             pause: boolean;
         };
+        PreviewContact: {
+            email: string;
+            gets: string;
+            /** Format: uuid */
+            id: string;
+            language: string;
+            name: string;
+            offered: boolean;
+        };
+        PreviewContactList: {
+            items: components["schemas"]["PreviewContact"][];
+        };
         Problem: {
             /** @description Stable error code, e.g. permission_denied */
             code?: string;
@@ -15154,7 +15394,10 @@ export interface components {
             /** Format: int64 */
             count: number;
             detail: string;
+            gets?: string;
+            getsName?: string;
             label: string;
+            language?: string;
         };
         ReadinessCounts: {
             /** Format: int64 */
@@ -15375,11 +15618,19 @@ export interface components {
             suggested: boolean;
         };
         RemovalItem: {
-            detail: string;
+            /** Format: int64 */
+            changed?: number;
             id: string;
             /** @enum {string} */
             kind: "campaign" | "automation_email" | "transactional_template";
+            languages?: string[];
+            /** Format: int64 */
+            liveVersion?: number;
             name: string;
+            /** @enum {string} */
+            state?: "draft" | "scheduled" | "waiting" | "sending";
+            /** @enum {string} */
+            status?: "up_to_date" | "outdated" | "draft" | "held";
         };
         RemoveSuppressionInput: {
             reason: string;
@@ -15934,6 +16185,7 @@ export interface components {
             at: string;
             by: string;
             delivered?: string;
+            languages?: string[];
             provider: string;
             to: string;
         };
@@ -16570,19 +16822,6 @@ export interface components {
         ScopedList: {
             id: string;
             name: string;
-        };
-        Segment: {
-            alt?: string;
-            /** Format: int64 */
-            column: number;
-            /** Format: int64 */
-            heading: number;
-            html?: string;
-            kind: string;
-            path: number[];
-            strong: boolean;
-            text: string;
-            url?: string;
         };
         SegmentCatalog: {
             fields: components["schemas"]["SegmentCatalogField"][];
@@ -18014,6 +18253,7 @@ export interface components {
             changed: boolean;
             content: components["schemas"]["TransactionalDiffLine"][];
             contentSummary: string;
+            languages?: components["schemas"]["TransactionalLanguageChange"][];
             preheader?: components["schemas"]["TransactionalTextChange"];
             settings: string[];
             subject?: components["schemas"]["TransactionalTextChange"];
@@ -18061,6 +18301,12 @@ export interface components {
             savedAt: string;
             /** Format: int64 */
             sizeBytes: number;
+        };
+        TransactionalLanguageChange: {
+            /** @enum {string} */
+            change: "added" | "changed" | "removed";
+            language: string;
+            name: string;
         };
         TransactionalMakeOptional: {
             default: string;
@@ -18159,6 +18405,16 @@ export interface components {
             note?: string;
             publishAnyway?: boolean;
         };
+        TransactionalPublishLanguage: {
+            /** Format: int64 */
+            attention: number;
+            gets: string;
+            getsName: string;
+            language: string;
+            name: string;
+            /** @enum {string} */
+            status: "source" | "up_to_date" | "outdated" | "draft";
+        };
         TransactionalPublishPreview: {
             approval: components["schemas"]["TransactionalPublishApproval"];
             blocking: string[];
@@ -18173,6 +18429,7 @@ export interface components {
             draftSavedAt: string;
             draftSavedBy: string;
             key: string;
+            languages: components["schemas"]["TransactionalPublishLanguage"][];
             liveBy?: string;
             /** Format: date-time */
             liveSince?: string;
@@ -18202,11 +18459,18 @@ export interface components {
             data?: {
                 [key: string]: unknown;
             };
+            /**
+             * @description The language version to render; the linked contact's language, then the fallback, when omitted
+             * @example es
+             */
+            language?: string;
             /** @description Fills to.email and to.name */
             to?: components["schemas"]["TransactionalAddress"];
         };
         TransactionalRendered: {
             html: string;
+            /** @example es */
+            language?: string;
             subject: string;
             /** @example password-reset */
             template: string;
@@ -18232,6 +18496,11 @@ export interface components {
             };
             /** @description A verified Transactional sender, as an address or "Name <address>"; the template's sender when omitted */
             from?: string;
+            /**
+             * @description The language version to send; the linked contact's language, then the fallback, when omitted
+             * @example es
+             */
+            language?: string;
             metadata?: {
                 [key: string]: string;
             };
@@ -18403,6 +18672,7 @@ export interface components {
             /** @description The ID the API sends, fixed after the first publish */
             key: string;
             keyLocked: boolean;
+            language: string;
             liveBy?: string;
             /** Format: date-time */
             liveSince?: string;
@@ -18417,6 +18687,7 @@ export interface components {
             preheader: string;
             replyTo: string;
             sender?: components["schemas"]["TransactionalSenderRef"];
+            sourceLanguage: string;
             subject: string;
             testData: components["schemas"]["TransactionalTestData"][];
             trackClicks: boolean;
@@ -23696,6 +23967,230 @@ export interface operations {
             };
         };
     };
+    "list-automation-email-languages": {
+        parameters: {
+            query: {
+                /** @description The email version a step sends */
+                version: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailLanguages"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-automation-email-language": {
+        parameters: {
+            query: {
+                /** @description The email version a step sends */
+                version: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+                language: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationEmailLanguage"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-automation-email-language": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+                language: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AutomationLanguageSave"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationLanguageSaved"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-automation-email-language": {
+        parameters: {
+            query: {
+                /** @description The email version a step sends */
+                version: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+                language: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationLanguageSaved"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "mark-automation-email-language-translated": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+                language: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AutomationLanguageMark"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationLanguageSaved"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "mark-automation-email-language-up-to-date": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+                language: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AutomationLanguageMark"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationLanguageSaved"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "list-automations": {
         parameters: {
             query?: {
@@ -25013,7 +25508,11 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -25046,7 +25545,11 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -25079,7 +25582,11 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -25108,11 +25615,48 @@ export interface operations {
             };
         };
     };
+    "list-campaign-language-preview-contacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreviewContactList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "set-campaign-source-language": {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -25146,6 +25690,9 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
                 language: string;
             };
             cookie?: never;
@@ -25177,6 +25724,9 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
                 language: string;
             };
             cookie?: never;
@@ -25207,7 +25757,12 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+                language: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -25240,7 +25795,12 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+                language: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -25274,6 +25834,9 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
                 language: string;
             };
             cookie?: never;
@@ -25304,7 +25867,12 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+                language: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -25337,7 +25905,12 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+                language: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -25372,7 +25945,12 @@ export interface operations {
                 limit?: number;
             };
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+                language: string;
+            };
             cookie?: never;
         };
         requestBody?: never;
@@ -35560,7 +36138,10 @@ export interface operations {
     };
     "get-transactional-template": {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description A language version's content in place of the draft's (internal/languages) */
+                language?: string;
+            };
             header?: never;
             path: {
                 /** @description Workspace slug */
@@ -35808,7 +36389,10 @@ export interface operations {
     };
     "save-transactional-template-draft": {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Saves a language version instead of the draft (internal/languages) */
+                language?: string;
+            };
             header?: never;
             path: {
                 /** @description Workspace slug */
@@ -35831,6 +36415,191 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TransactionalDraftSaved"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-transactional-template-languages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The template's ID, such as password-reset, or its UUID */
+                template: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailLanguages"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "add-transactional-template-language": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The template's ID, such as password-reset, or its UUID */
+                template: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddLanguageInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailLanguages"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-transactional-template-language": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The template's ID, such as password-reset, or its UUID */
+                template: string;
+                language: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailLanguages"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "mark-transactional-template-language-translated": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The template's ID, such as password-reset, or its UUID */
+                template: string;
+                language: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MarkInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailLanguages"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "mark-transactional-template-language-up-to-date": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The template's ID, such as password-reset, or its UUID */
+                template: string;
+                language: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MarkInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailLanguages"];
                 };
             };
             /** @description Error */

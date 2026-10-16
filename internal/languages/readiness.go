@@ -31,7 +31,7 @@ type ReadinessFacts struct {
 	OthersGet string
 	// Recipients is the audience's total.
 	Recipients int64
-	// Versions are the versions that are sent, the source first, with their
+	// Versions are the versions that are sent besides the source, with their
 	// content (Send Readiness checks every version).
 	Versions []ReadinessVersion
 }

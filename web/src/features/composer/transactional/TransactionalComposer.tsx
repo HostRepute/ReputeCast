@@ -33,6 +33,7 @@ import { TxToolbar } from './Toolbar'
 import type { Category, Checks, Data, Preview, Settings, Template, TestData, TxTab, TxView, Variable } from './types'
 import { dataFor, removeOutputs, renameInData, renameInSource, type TokenView } from './variables'
 import { VersionsDialog, type CompareTarget } from './VersionsDialog'
+import { versionLanguage } from '@/features/languages/composerParts'
 import '../composer.css'
 import './transactional.css'
 
@@ -45,6 +46,8 @@ export interface TxSearch {
   tab?: TxTab
   /** Open the publish dialog (the approval notification links here with it). */
   publish?: boolean
+  /** A language version (internal/languages); none is the source. */
+  language?: string
 }
 
 const BACKUP_KEY = (id: string) => `rc-transactional-backup:${id}`
@@ -79,7 +82,7 @@ function campaignShim(t: Template, canEditTemplates: boolean): Campaign {
     editorMode: t.editorMode,
     html: t.html,
     id: t.id,
-    language: '',
+    language: t.language,
     mjml: t.mjml,
     name: t.name,
     plainText: t.plainText,
@@ -87,7 +90,7 @@ function campaignShim(t: Template, canEditTemplates: boolean): Campaign {
     replyTo: t.replyTo,
     route: { shares: [], source: 'none' },
     settings: { minify: false },
-    sourceLanguage: '',
+    sourceLanguage: t.sourceLanguage,
     status: 'draft',
     subject: t.subject,
     updatedAt: t.updatedAt,
@@ -126,6 +129,8 @@ export function TransactionalComposer({
   const qc = useQueryClient()
   const canEditTemplates = useCan('templates:edit')
   const [tpl, setTpl] = useState(template)
+  // The language version open (internal/languages): saves go to it.
+  const language = versionLanguage(template)
   const canEdit = tpl.access.canEdit
   const canPublish = tpl.access.canPublish
 
@@ -319,7 +324,7 @@ export function TransactionalComposer({
         setStatus({ kind: 'saving', version: baseRev.current })
         try {
           const { data } = await http.PUT('/api/v1/workspaces/{workspace}/transactional/templates/{template}/draft', {
-            params: { path: { workspace: slug, template: tpl.id } },
+            params: { path: { workspace: slug, template: tpl.id }, query: language ? { language } : {} },
             body: {
               baseRevision: baseRev.current,
               subject,
@@ -391,7 +396,7 @@ export function TransactionalComposer({
         saving.current = null
       }
     },
-    [canEdit, currentMjml, compileCurrent, htmlMode, slug, tpl.id, subject, preheader, editorMode, html, plainText, variables, testData, meta, qc],
+    [canEdit, currentMjml, compileCurrent, htmlMode, slug, tpl.id, subject, preheader, editorMode, html, plainText, variables, testData, meta, qc, language],
   )
 
   // Autosave every 30 s while there are changes, and 2 s after a structural change.
@@ -488,9 +493,11 @@ export function TransactionalComposer({
   )
 
   const reloadFromServer = useCallback(async () => {
-    const { data } = await http.GET('/api/v1/workspaces/{workspace}/transactional/templates/{template}', { params: { path: { workspace: slug, template: tpl.id } } })
+    const { data } = await http.GET('/api/v1/workspaces/{workspace}/transactional/templates/{template}', {
+      params: { path: { workspace: slug, template: tpl.id }, query: language ? { language } : {} },
+    })
     if (data) applyTemplate(data, 'reload')
-  }, [slug, tpl.id, applyTemplate])
+  }, [slug, tpl.id, applyTemplate, language])
 
   const setSubject = useCallback(
     (v: string) => {
@@ -865,7 +872,8 @@ export function TransactionalComposer({
     setDesignTab,
     updateTemplate,
     mergeTemplate,
-    afterPublish,
+    // On a language version the draft's revision isn't the editor's.
+    afterPublish: language ? mergeTemplate : afterPublish,
     openPublish,
     openVersions: () => setVersions('list'),
     canEdit,

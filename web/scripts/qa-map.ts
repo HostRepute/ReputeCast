@@ -201,4 +201,12 @@ export const entries: Entry[] = [
   { board: 'ComposerAccessibilityTablet', path: `${ws}/campaigns/{campaign:Weekly Digest #143}/edit?panel=accessibility`, widths: [834] },
   { board: 'ComposerAccessibilityPhone', path: `${ws}/campaigns/{campaign:Weekly Digest #143}/edit?panel=accessibility`, widths: [390] },
   { board: 'ComposerContrast', manual: true },
+  // X05 · content languages (the Settings › General entries above cover its Languages card).
+  { board: 'LanguageStates', manual: true },
+  { board: 'ComposerLanguages', path: `${ws}/campaigns/{campaign:Weekly Digest #143}/edit?language=de`, widths: [1440] },
+  { board: 'ComposerLanguagesTablet', path: `${ws}/campaigns/{campaign:Weekly Digest #143}/edit?language=de`, widths: [834] },
+  { board: 'ComposerLanguagesPhone', path: `${ws}/campaigns/{campaign:Weekly Digest #143}/edit?language=de`, widths: [390] },
+  { board: 'ComposerCompare', path: `${ws}/campaigns/{campaign:Weekly Digest #143}/edit?language=de&view=compare`, widths: [1440] },
+  { board: 'ReportLanguages', manual: true },
+  { board: 'AutomationLanguages', manual: true },
 ]

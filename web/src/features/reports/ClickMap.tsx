@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Schemas } from '@/api/client'
 import { Button } from '@/components/ui/Button'
 import { TableScroll } from '@/components/ui/Table'
@@ -302,17 +302,45 @@ function LinkTable({ m }: { m: Schemas['ReportClickMap'] }) {
  * "Click map": the email as sent with the share of clicks on each link.
  * clicks is the headline count; imported history may have clicks but no links.
  */
-export function ClickMap({ m, clicks, imported }: { m: Schemas['ReportClickMap']; clicks: number; imported: boolean }) {
+export function ClickMap({
+  m,
+  clicks,
+  imported,
+  picker,
+  languageNote,
+}: {
+  m: Schemas['ReportClickMap']
+  clicks: number
+  imported: boolean
+  /** The language picker of a campaign sent in several languages. */
+  picker?: ReactNode
+  /** Who else the version shown went to (readers who got the fallback). */
+  languageNote?: ReactNode
+}) {
   const [table, setTable] = useState(false)
   const note = clickNote(m)
   const noLinks = m.links.length === 0
   return (
     <section className={cn('card flex min-w-0 flex-[1_1_380px] flex-col gap-3 px-5 py-4.5', !m.available && !noLinks && !table && 'border-bad-line')} aria-labelledby="rep-map-h">
       <div className="flex items-center justify-between max-md:flex-wrap">
-        <h2 className="h2" id="rep-map-h">
-          Click map
-        </h2>
-        {noLinks ? null : <span className="k">share of {count(m.total)} clicks</span>}
+        {picker ? (
+          <>
+            <div className="flex min-w-0 flex-col gap-0.5">
+              <h2 className="h2" id="rep-map-h">
+                Click map
+              </h2>
+              <span className="k">{noLinks ? null : `share of ${count(m.total)} clicks`}</span>
+            </div>
+            {picker}
+          </>
+        ) : (
+          <>
+            <h2 className="h2" id="rep-map-h">
+              Click map
+            </h2>
+            {noLinks ? null : <span className="k">share of {count(m.total)} clicks</span>}
+          </>
+        )}
       </div>
       {noLinks ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 py-8 text-center">
@@ -362,6 +390,7 @@ export function ClickMap({ m, clicks, imported }: { m: Schemas['ReportClickMap']
         </div>
       )}
       {note && !noLinks && m.available && !table ? <span className="k">{note}</span> : null}
+      {languageNote}
     </section>
   )
 }

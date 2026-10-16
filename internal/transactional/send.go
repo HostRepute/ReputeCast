@@ -63,6 +63,9 @@ type TransactionalSend struct {
 	Metadata    map[string]string              `json:"metadata,omitempty"`
 	Attachments []TransactionalAttachmentInput `json:"attachments,omitempty" maxItems:"20"`
 	SendAt      *time.Time                     `json:"send_at,omitempty" doc:"Send later, up to 72 hours ahead"`
+	// Language picks a language version (es, pt-BR); without it the linked
+	// contact's language is used, then the workspace's fallback.
+	Language string `json:"language,omitempty" maxLength:"16" example:"es" doc:"The language version to send; the linked contact's language, then the fallback, when omitted"`
 }
 
 // TransactionalSendResult answers an accepted message (202).
@@ -145,6 +148,7 @@ type prepared struct {
 	idemKey       string
 	resentFrom    *uuid.UUID
 	dropped       []string
+	language      LanguageChoice
 }
 
 // routeChoice is where a message goes and why.
@@ -506,9 +510,15 @@ func (s *Service) prepare(ctx context.Context, ws *store.Workspace, c caller, in
 			}
 		}
 	}
+	// The language version the recipient gets (internal/languages).
+	if s.Translations != nil {
+		if p.language, err = s.Translations.Choose(ctx, q, ws, lt.ID, lt.Version, in.Language, p.contactID); err != nil {
+			return nil, err
+		}
+	}
 	// Render: what the provider gets, and what the log keeps.
 	links := s.messageLinks(ws, p.id, p.contactID, lt.CategoryKind == KindOptional)
-	cnt := lt.Content
+	cnt := lt.Content.withLanguage(p.language.Content)
 	if in.Subject != "" {
 		cnt.Subject = in.Subject
 	}
@@ -735,6 +745,11 @@ func (s *Service) record(ctx context.Context, tx pgx.Tx, ws *store.Workspace, c 
 	if err := q.TxnInsertMessage(ctx, store.TxnInsertMessageParams{ID: p.id, WorkspaceID: ws.ID, ContactID: p.contactID, Email: p.to.Address, ProviderID: provider,
 		MailboxProvider: p.mailbox, Status: status, QueuedAt: p.accepted, NextAttemptAt: next, Kind: kind, Error: errText, RouteNote: note}); err != nil {
 		return err
+	}
+	if s.Translations != nil && p.language.Language != "" {
+		if err := s.Translations.Record(ctx, q, p.id, p.language); err != nil {
+			return err
+		}
 	}
 	var tplID *uuid.UUID
 	var tplVersion *int32
