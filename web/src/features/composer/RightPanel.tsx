@@ -2,6 +2,7 @@ import type { Component } from 'grapesjs'
 import { useEffect, useState } from 'react'
 import { Badge } from '@/components/ui/Badge'
 import { PanelTabs, TabPanel } from '@/components/ui/Tabs'
+import { LanguageBlockPanel } from '@/features/languages/composerParts'
 import { useComposer, type Issue } from './context'
 import { mjChildren, sectionOf, tagOf } from './editor/labels'
 import { applyFix, bodyOf, reveal } from './fixes'
@@ -242,6 +243,9 @@ export function RightPanel() {
               <fieldset disabled={!c.canEdit} className="contents">
                 <SettingsFields key={sel.cid} c={sel} />
               </fieldset>
+              <div className="px-3 pb-3">
+                <LanguageBlockPanel />
+              </div>
             </>
           ) : (
             <NothingSelected />

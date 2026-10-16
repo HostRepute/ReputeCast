@@ -20681,6 +20681,54 @@
         ],
         "type": "object"
       },
+      "PreviewContact": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "gets": {
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "language": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "offered": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email",
+          "language",
+          "gets",
+          "offered"
+        ],
+        "type": "object"
+      },
+      "PreviewContactList": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PreviewContact"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
       "Problem": {
         "additionalProperties": false,
         "properties": {
@@ -47102,6 +47150,73 @@
         ],
         "x-access": "workspace",
         "x-permission": "campaigns:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/languages/preview-contacts": {
+      "get": {
+        "description": "One contact per workspace language among the audience's lists, in the workspace's order, then one whose language the workspace doesn't offer, each with the version they get.",
+        "operationId": "list-campaign-language-preview-contacts",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreviewContactList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Contacts to preview a campaign as, one per language",
+        "tags": [
+          "Campaigns"
+        ],
+        "x-access": "workspace",
+        "x-permission": "subscribers:view"
       }
     },
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/languages/source": {

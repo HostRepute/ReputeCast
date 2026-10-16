@@ -6,6 +6,7 @@ import { ButtonLink } from '@/components/ui/Button'
 import { useDocumentTitle } from '@/lib/hooks'
 import { useCan, useWorkspace } from '@/lib/session'
 import { Composer, type ComposerSearch } from './Composer'
+import { useOpenLanguage } from '@/features/languages/composerParts'
 import './composer.css'
 
 /** Loading state (ComposerStates): the composer's frame with skeletons while a campaign opens. */
@@ -98,14 +99,22 @@ function ComposerError({ error, path, campaignId, retry }: { error: unknown; pat
 /** /w/$workspace/campaigns/$campaignId/edit: loads the campaign and the composer's context. */
 export function ComposerPage({ campaignId, search, onSearch }: { campaignId: string; search: ComposerSearch; onSearch: (s: ComposerSearch) => void }) {
   const { slug } = useWorkspace()
-  const campaign = $api.useQuery('get', '/api/v1/workspaces/{workspace}/campaigns/{campaignId}', { params: { path: { workspace: slug, campaignId } } }, { refetchOnWindowFocus: false, retry: (n, e) => !(e as unknown as ApiError)?.status && n < 2 })
+  const lang = useOpenLanguage(campaignId, search.language)
+  const campaign = $api.useQuery(
+    'get',
+    '/api/v1/workspaces/{workspace}/campaigns/{campaignId}',
+    { params: { path: { workspace: slug, campaignId }, query: lang.load ? { language: lang.load } : undefined } },
+    { refetchOnWindowFocus: false, retry: (n, e) => !(e as unknown as ApiError)?.status && n < 2, enabled: lang.ready },
+  )
   const context = $api.useQuery('get', '/api/v1/workspaces/{workspace}/composer', { params: { path: { workspace: slug } } }, { staleTime: 60_000 })
   useDocumentTitle(campaign.data ? `${campaign.data.name} · Composer · ReputeCast` : 'Composer · ReputeCast')
   const path = `/campaigns/${campaignId}/edit`
   if (campaign.isError) return <ComposerError error={campaign.error} path={path} campaignId={campaignId} retry={() => void campaign.refetch()} />
   if (context.isError) return <ComposerError error={context.error} path={path} retry={() => void context.refetch()} />
   if (!campaign.data || !context.data) return <ComposerSkeleton title="Opening the campaign" detail="Content, audience and sender · usually under a second" />
-  return <Composer key={campaign.data.id} campaign={campaign.data} context={context.data} search={search} onSearch={onSearch} />
+  return (
+    <Composer key={`${campaign.data.id}:${campaign.data.language}:${lang.missing ?? ''}`} campaign={campaign.data} context={context.data} search={search} onSearch={onSearch} missingLanguage={lang.missing} />
+  )
 }
 
 /** /w/$workspace/campaigns/new: creates the draft, then opens it (blank, from a template or a copy). */

@@ -17,19 +17,24 @@ import { trackChanges, type ChangeTracker } from './editor/changes'
 import { createComposerEditor, type ComposerEditor, type DeviceId } from './editor/grapes'
 import { atPath } from './editor/labels'
 import { canvasHead, isEmptyBody, joinMjml, splitMjml, withHeadMeta } from './editor/mjmlDoc'
-import { Footer } from './Footer'
+import { Footer, VersionLink } from './Footer'
 import { Header, PermissionBanner } from './Header'
 import { LeftPanel } from './LeftPanel'
 import { PreviewView } from './PreviewView'
 import { RightPanel } from './RightPanel'
 import { SubjectBar } from './SubjectBar'
+import { ComposerCompare, ComposerCompareFooter, ComposerMissingLanguage, versionLanguage } from '@/features/languages/composerParts'
+import { useLanguagesCache } from '@/features/languages/composer'
+import { useSourceEdits } from '@/features/languages/sourceEdits'
 import './composer.css'
 
 // CodeMirror loads with the code view only.
 const CodeView = lazy(() => import('./CodeView').then((m) => ({ default: m.CodeView })))
 
 export interface ComposerSearch {
-  view?: View
+  view?: View | 'compare'
+  /** A language version (internal/languages); none is the source. */
+  language?: string
   device?: DeviceId
   variant?: string
   /** Component to select once the canvas is ready (element path from mj-body, "1-0-0"). */
@@ -51,13 +56,30 @@ type PendingSource = { source: 'template' | 'import' | 'code' | 'restore'; label
  * around it, autosave with conflict detection, inline deliverability checks,
  * the code view and client previews.
  */
-export function Composer({ campaign, context, search, onSearch }: { campaign: Campaign; context: ComposerCtxData; search: ComposerSearch; onSearch: (s: ComposerSearch) => void }) {
+export function Composer({
+  campaign,
+  context,
+  search,
+  onSearch,
+  missingLanguage,
+}: {
+  campaign: Campaign
+  context: ComposerCtxData
+  search: ComposerSearch
+  onSearch: (s: ComposerSearch) => void
+  /** A language without a version was picked: the canvas gives way to "No … version". */
+  missingLanguage?: string
+}) {
   const { slug } = useWorkspace()
   const qc = useQueryClient()
   const navigate = useNavigate()
   const canEditPerm = useCan('campaigns:edit')
-  const canEdit = canEditPerm && campaign.access.editable
-  const view: View = search.view ?? 'visual'
+  const canEdit = canEditPerm && campaign.access.editable && !missingLanguage
+  const view: View = search.view === 'compare' ? 'visual' : (search.view ?? 'visual')
+  const comparing = search.view === 'compare'
+  const language = versionLanguage(campaign)
+  const afterSourceSave = useSourceEdits(slug, campaign.id, useLanguagesCache(campaign.id).set)
+  const savedMjml = useRef(campaign.mjml)
   const device: DeviceId = search.device ?? 'desktop'
   const variant = search.variant ?? 'A'
 
@@ -273,7 +295,7 @@ export function Composer({ campaign, context, search, onSearch }: { campaign: Ca
         setStatus({ kind: 'saving', version: version.current })
         try {
           const { data } = await http.PUT('/api/v1/workspaces/{workspace}/campaigns/{campaignId}/content', {
-            params: { path: { workspace: slug, campaignId: campaign.id } },
+            params: { path: { workspace: slug, campaignId: campaign.id }, query: language ? { language } : {} },
             body: { baseVersion: version.current, subject, preheader, mjml, html: compiled?.html ?? '', abTest: abForSave(), label, source, force: opts.force || undefined },
           })
           version.current = data!.version
@@ -286,6 +308,9 @@ export function Composer({ campaign, context, search, onSearch }: { campaign: Ca
           }
           setStatus(revision.current === rev0 ? { kind: 'saved', at: data!.savedAt, version: data!.version } : { kind: 'dirty', at: data!.savedAt, version: data!.version })
           if (opts.manual && !opts.quiet) setSavedCard({ version: data!.version, at: data!.savedAt })
+          // The source's versions: offer to keep them in step (LanguageStates).
+          if (!language) void afterSourceSave(savedMjml.current, mjml, data!.version)
+          savedMjml.current = mjml
           void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/campaigns'] })
           void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/campaigns/{campaignId}/versions'] })
           return true
@@ -320,7 +345,7 @@ export function Composer({ campaign, context, search, onSearch }: { campaign: Ca
         saving.current = null
       }
     },
-    [canEdit, currentMjml, compileCurrent, abForSave, slug, campaign.id, subject, preheader, qc],
+    [canEdit, currentMjml, compileCurrent, abForSave, slug, campaign.id, subject, preheader, qc, language, afterSourceSave],
   )
 
 
@@ -349,9 +374,11 @@ export function Composer({ campaign, context, search, onSearch }: { campaign: Ca
     return () => window.clearInterval(h)
   }, [status.kind])
   const reloadFromServer = useCallback(async () => {
-    const { data } = await http.GET('/api/v1/workspaces/{workspace}/campaigns/{campaignId}', { params: { path: { workspace: slug, campaignId: campaign.id } } })
+    const { data } = await http.GET('/api/v1/workspaces/{workspace}/campaigns/{campaignId}', {
+      params: { path: { workspace: slug, campaignId: campaign.id }, query: language ? { language } : {} },
+    })
     if (!data) return
-    qc.setQueryData(['get', '/api/v1/workspaces/{workspace}/campaigns/{campaignId}', { params: { path: { workspace: slug, campaignId: campaign.id } } }], data)
+    qc.setQueryData(['get', '/api/v1/workspaces/{workspace}/campaigns/{campaignId}', { params: { path: { workspace: slug, campaignId: campaign.id }, query: language ? { language } : undefined } }], data)
     setName(data.name)
     setSubjectState(data.subject)
     setPreheaderState(data.preheader)
@@ -368,7 +395,7 @@ export function Composer({ campaign, context, search, onSearch }: { campaign: Ca
       savedRevision.current = revision.current
       setStatus({ kind: 'saved', at: data.autosavedAt ?? data.updatedAt, version: data.version })
     }, 50)
-  }, [slug, campaign.id, qc, loadContent])
+  }, [slug, campaign.id, qc, loadContent, language])
 
   const setSubject = useCallback(
     (v: string) => {
@@ -427,7 +454,7 @@ export function Composer({ campaign, context, search, onSearch }: { campaign: Ca
         void http
           .POST('/api/v1/workspaces/{workspace}/campaigns/{campaignId}/checks', {
             params: { path: { workspace: slug, campaignId: campaign.id } },
-            body: { subject, preheader, mjml, html },
+            body: { subject, preheader, mjml, html, language },
           })
           .then(({ data }) => {
             if (n === seq.current && data) setChecks(data)
@@ -441,7 +468,7 @@ export function Composer({ campaign, context, search, onSearch }: { campaign: Ca
     )
     return () => window.clearTimeout(h)
     // rev covers canvas edits; ge triggers the first run once the editor is ready.
-  }, [rev, ge, subject, preheader, empty, slug, campaign.id, campaign.html, campaign.mjml, compileCurrent, currentMjml, checksNonce])
+  }, [rev, ge, subject, preheader, empty, slug, campaign.id, campaign.html, campaign.mjml, compileCurrent, currentMjml, checksNonce, language])
 
   const onSettingsChanged = useCallback(() => {
     setChecksNonce((n) => n + 1)
@@ -578,6 +605,7 @@ export function Composer({ campaign, context, search, onSearch }: { campaign: Ca
     setAssetTarget,
     previewSlot,
     setPreviewSlot,
+    missingLanguage,
   }
 
   const goReview = useCallback(async () => {
@@ -627,10 +655,16 @@ export function Composer({ campaign, context, search, onSearch }: { campaign: Ca
         {view === 'preview' ? <PreviewView onReview={goReview} /> : null}
         {/* The canvas stays mounted off screen in the other views: GrapesJS keeps its state and compiles. */}
         <div className={`flex flex-1 flex-col${view === 'preview' ? ' cmp-offstage' : ''}`} inert={view === 'preview' || undefined} aria-hidden={view === 'preview' || undefined}>
-          {view === 'visual' ? <SubjectBar /> : null}
+          {view === 'visual' && !comparing && !missingLanguage ? <SubjectBar /> : null}
           <div className="cmp-body">
-            {view === 'visual' ? <LeftPanel /> : null}
-            <div className={`cmp-main${view !== 'visual' ? ' cmp-offstage' : ''}`} inert={view !== 'visual' || undefined} aria-hidden={view !== 'visual' || undefined}>
+            {view === 'visual' && !comparing && !missingLanguage ? <LeftPanel /> : null}
+            {comparing ? <ComposerCompare /> : null}
+            {missingLanguage && !comparing ? <ComposerMissingLanguage language={missingLanguage} /> : null}
+            <div
+              className={`cmp-main${view !== 'visual' || comparing || missingLanguage ? ' cmp-offstage' : ''}`}
+              inert={view !== 'visual' || comparing || Boolean(missingLanguage) || undefined}
+              aria-hidden={view !== 'visual' || comparing || Boolean(missingLanguage) || undefined}
+            >
               <CanvasArea containerRef={containerRef} savedCard={savedCard} onCloseSaved={() => setSavedCard(null)} onReview={goReview} />
             </div>
             {view === 'mjml' || view === 'html' ? (
@@ -638,9 +672,15 @@ export function Composer({ campaign, context, search, onSearch }: { campaign: Ca
                 <CodeView />
               </Suspense>
             ) : null}
-            {view === 'visual' ? <RightPanel /> : null}
+            {view === 'visual' && !comparing && !missingLanguage ? <RightPanel /> : null}
           </div>
-          {view !== 'preview' ? <Footer /> : null}
+          {view === 'preview' || (missingLanguage && !comparing) ? null : comparing ? (
+            <ComposerCompareFooter>
+              <VersionLink />
+            </ComposerCompareFooter>
+          ) : (
+            <Footer />
+          )}
         </div>
         <Dialogs dialog={dialog} onClose={() => setDialog(null)} onSavedTemplate={(t) => setSavedCard({ version: version.current, at: new Date().toISOString(), template: t })} />
         <UnsavedChangesGuard

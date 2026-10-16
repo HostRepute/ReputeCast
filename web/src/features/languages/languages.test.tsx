@@ -1,7 +1,9 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import type { Schemas } from '@/api/client'
 import { t } from '@/i18n'
-import { diffWords } from './compare'
+import { compareLanguage, diffWords, excerpt } from './compare'
+import { LanguageSwitcher, type Langs } from './composer'
+import { withoutVersion } from './composerParts'
 import { brandOf } from './LanguagesCard'
 import { sentByLanguage } from './report'
 import { ByVersion, confirmLanguages, languageRows, sentVersions, testLanguages } from './review'
@@ -60,7 +62,98 @@ describe('languages in Review & send', () => {
   })
 })
 
+type Version = Schemas['EmailLanguage']
+
+const version = (patch: Partial<Version> & Pick<Version, 'language' | 'name' | 'status'>): Version => ({
+  native: '',
+  offered: true,
+  held: false,
+  attention: 0,
+  changed: 0,
+  blocks: 9,
+  upToDate: 9,
+  translated: 9,
+  still: 0,
+  subjectChanged: false,
+  preheaderChanged: false,
+  noLanguage: 0,
+  notOffered: 0,
+  gets: patch.language,
+  translatedBy: '',
+  translatedFrom: 0,
+  version: 1,
+  updatedBy: '',
+  subject: '',
+  preheader: '',
+  changedBlocks: [],
+  stillIndexes: [],
+  changedIndexes: [],
+  ...patch,
+})
+
+/** Weekly Digest #143's versions (ComposerLanguages). */
+const versions: Langs = {
+  source: 'en',
+  sourceVersion: 9,
+  canChangeSource: false,
+  default: 'en',
+  fallback: 'en',
+  blocks: 9,
+  canEdit: true,
+  editHelpers: [],
+  canManageWorkspace: true,
+  workspaceHelpers: [],
+  versions: [
+    version({ language: 'en', name: 'English', status: 'source', readers: 26890 }),
+    version({ language: 'es', name: 'Spanish', status: 'up_to_date', readers: 2740, translatedBy: 'Daniel Park', translatedFrom: 9 }),
+    version({ language: 'de', name: 'German', status: 'outdated', attention: 2, readers: 1468, translatedBy: 'Sofia Rossi', translatedFrom: 6 }),
+    version({ language: 'vi', name: 'Vietnamese', status: 'missing', gets: 'en', readers: 506 }),
+  ],
+}
+
+describe('the composer’s language switcher', () => {
+  const noop = () => {}
+
+  it('counts the languages with a version on the source, as on Weekly Digest #142', () => {
+    render(<LanguageSwitcher campaignName="Weekly Digest #143" data={versions} language="en" onPick={noop} onCompare={noop} onAdd={noop} />)
+    const button = screen.getByRole('button', { name: 'Language version: English, the source. 3 of 4 workspace languages have a version. Change language' })
+    expect(button).toHaveTextContent('EnglishSource · 3 of 4 languages')
+  })
+
+  it('names a version and its status, and lists every language with its readers', () => {
+    const pick = vi.fn()
+    render(<LanguageSwitcher campaignName="Weekly Digest #143" data={versions} language="de" onPick={pick} onCompare={noop} onAdd={noop} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Language version: German, outdated. Change language' }))
+    const list = screen.getByRole('listbox', { name: 'Language versions of Weekly Digest #143' })
+    expect(list).toHaveTextContent('GermanOutdated · 2 blocks1,468')
+    expect(list).toHaveTextContent('VietnameseMissing · gets English506')
+    fireEvent.click(screen.getByRole('option', { name: /Spanish/ }))
+    expect(pick).toHaveBeenCalledWith('es')
+  })
+})
+
 describe('the composer’s helpers', () => {
+  it('keeps the words around a change in the inspector', () => {
+    const before = 'Stream every workspace event to S3 or your SIEM, with 13 months of history. See the changelog'
+    const after = 'Stream every workspace event to S3 or your SIEM, with 13 months of history and a search. See the changelog'
+    const text = excerpt(diffWords(before, after), 4)
+      .map((p) => (p.kind === 'same' ? p.text : `[${p.kind} ${p.text.trim()}]`))
+      .join('')
+    expect(text).toBe('…with 13 months of [del history.][add history] [add and a search.]See the changelog')
+    expect(excerpt([{ kind: 'same', text: 'all the same' }])).toEqual([{ kind: 'same', text: 'all the same' }])
+  })
+
+  it('leaves the save state’s version number to the source', () => {
+    expect(withoutVersion('Draft · autosaved 11:20 · v14', true)).toBe('Draft · autosaved 11:20')
+    expect(withoutVersion('Draft · autosaved 11:20 · v14', false)).toBe('Draft · autosaved 11:20 · v14')
+  })
+
+  it('compares the version asked for, or the first outdated one', () => {
+    expect(compareLanguage(versions, 'es')).toBe('es')
+    expect(compareLanguage(versions, '')).toBe('de')
+    expect(compareLanguage(versions, 'vi')).toBe('de')
+  })
+
   it('shows what changed in a source block since translation', () => {
     expect(diffWords('you can now schedule flag changes ahead of time.', 'you can now schedule flag changes ahead of time, in any timezone.')).toEqual([
       { kind: 'same', text: 'you can now schedule flag changes ahead of ' },

@@ -1253,6 +1253,61 @@ func (q *Queries) LanguagesMessageResults(ctx context.Context, campaignID *uuid.
 	return items, nil
 }
 
+const languagesPreviewContacts = `-- name: LanguagesPreviewContacts :many
+SELECT DISTINCT ON (lower(split_part(replace(c.language, '_', '-'), '-', 1)))
+       c.id, c.email, c.first_name, c.last_name, c.language
+FROM contacts c
+WHERE c.workspace_id = $1 AND c.erased_at IS NULL AND c.status = 'active' AND c.language <> ''
+  AND (cardinality($2::uuid[]) = 0 OR EXISTS (
+    SELECT 1 FROM list_memberships m
+    WHERE m.contact_id = c.id AND m.status = 'subscribed'
+      AND m.list_id = ANY(ARRAY(SELECT ll.id FROM lists ll WHERE ll.id = ANY($2::uuid[]) AND ll.deleted_at IS NULL))))
+ORDER BY lower(split_part(replace(c.language, '_', '-'), '-', 1)), (c.first_name = '') ASC, c.last_open_at DESC NULLS LAST, c.email
+LIMIT 200
+`
+
+type LanguagesPreviewContactsParams struct {
+	WorkspaceID uuid.UUID   `json:"workspaceId"`
+	Lists       []uuid.UUID `json:"lists"`
+}
+
+type LanguagesPreviewContactsRow struct {
+	ID        uuid.UUID `json:"id"`
+	Email     string    `json:"email"`
+	FirstName string    `json:"firstName"`
+	LastName  string    `json:"lastName"`
+	Language  string    `json:"language"`
+}
+
+// "Preview as" in the composer: one active contact per contact language
+// (its base code), from the given lists when there are any, people with a
+// first name first.
+func (q *Queries) LanguagesPreviewContacts(ctx context.Context, arg LanguagesPreviewContactsParams) ([]LanguagesPreviewContactsRow, error) {
+	rows, err := q.db.Query(ctx, languagesPreviewContacts, arg.WorkspaceID, arg.Lists)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []LanguagesPreviewContactsRow{}
+	for rows.Next() {
+		var i LanguagesPreviewContactsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Email,
+			&i.FirstName,
+			&i.LastName,
+			&i.Language,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const languagesRemove = `-- name: LanguagesRemove :execrows
 UPDATE workspace_languages SET removed_at = $1, removed_by = $2
 WHERE workspace_id = $3 AND code = $4 AND removed_at IS NULL AND NOT is_default AND NOT is_fallback

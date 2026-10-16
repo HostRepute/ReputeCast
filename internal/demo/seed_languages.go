@@ -97,9 +97,9 @@ type langShare struct {
 // rest. In all: 35,500 English, 4,180 Spanish, 2,240 German, 773
 // Vietnamese, 5,508 with no language and 12 others (SettingsLanguages).
 var (
-	langDigestShares = []langShare{{"es", 1320}, {"es-MX", 1000}, {"es-ES", 300}, {"es-AR", 120}, {"de", 1180}, {"de-AT", 200}, {"de-CH", 88},
+	langDigestShares = []langShare{{"es", 1320}, {"es-MX", 1000}, {"es-ES", 300}, {"es-AR", 120}, {"de", 1172}, {"de-AT", 200}, {"de-CH", 88}, {"de-LU", 8},
 		{"vi", 506}, {"", 3613}, {"pt-BR", 5}, {"fr", 2}, {"it", 1}}
-	langOtherShares = []langShare{{"es", 680}, {"es-MX", 500}, {"es-ES", 200}, {"es-AR", 60}, {"de", 620}, {"de-AT", 100}, {"de-CH", 52},
+	langOtherShares = []langShare{{"es", 680}, {"es-MX", 500}, {"es-ES", 200}, {"es-AR", 60}, {"de", 616}, {"de-AT", 100}, {"de-CH", 52}, {"de-LU", 4},
 		{"vi", 267}, {"", 1895}, {"pt-BR", 2}, {"fr", 1}, {"it", 1}}
 )
 

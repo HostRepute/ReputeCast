@@ -700,6 +700,10 @@ type Querier interface {
 	LanguagesLock(ctx context.Context, workspaceID uuid.UUID) ([]string, error)
 	// Results of a sent campaign per language version and why readers got it.
 	LanguagesMessageResults(ctx context.Context, campaignID *uuid.UUID) ([]LanguagesMessageResultsRow, error)
+	// "Preview as" in the composer: one active contact per contact language
+	// (its base code), from the given lists when there are any, people with a
+	// first name first.
+	LanguagesPreviewContacts(ctx context.Context, arg LanguagesPreviewContactsParams) ([]LanguagesPreviewContactsRow, error)
 	LanguagesRemove(ctx context.Context, arg LanguagesRemoveParams) (int64, error)
 	LanguagesSetDefault(ctx context.Context, arg LanguagesSetDefaultParams) (int64, error)
 	LanguagesSetFallback(ctx context.Context, arg LanguagesSetFallbackParams) (int64, error)

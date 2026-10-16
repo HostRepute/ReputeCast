@@ -2,6 +2,7 @@ import type { Component } from 'grapesjs'
 import { Fragment } from 'react'
 import { $api } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
+import { useVersionName } from '@/features/languages/composerParts'
 import { useComposer } from './context'
 import { ancestry, mjChildren, sectionLabel, tagOf } from './editor/labels'
 import { kb } from './format'
@@ -77,6 +78,7 @@ export function Breadcrumb() {
 /** Size, images and links of the whole email, from the last check. */
 export function SizeSummary() {
   const c = useComposer()
+  const language = useVersionName()
   const r = c.checks
   if (!r) return <span className="k" style={{ marginLeft: 'auto' }}>Checking…</span>
   const issues = contentIssues(r.issues)
@@ -86,6 +88,7 @@ export function SizeSummary() {
   const near = r.sizeBytes >= 85 * 1024
   return (
     <span className="k" style={{ marginLeft: 'auto', ...(issues.length && (near || r.imagesMissingAlt || extra) ? { color: '#92400E', fontWeight: 600 } : {}) }}>
+      {language ? `${language} · ` : ''}
       {kb(r.sizeBytes)} of 102 KB · {images} · {links}
     </span>
   )
@@ -112,7 +115,7 @@ export function ChecksBadge() {
   )
 }
 
-function VersionLink() {
+export function VersionLink() {
   const c = useComposer()
   const q = $api.useQuery('get', '/api/v1/workspaces/{workspace}/campaigns/{campaignId}/versions', { params: { path: { workspace: c.slug, campaignId: c.campaign.id } } }, { staleTime: 30_000 })
   const n = q.data?.total ?? c.campaign.versionCount

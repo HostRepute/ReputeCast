@@ -296,6 +296,17 @@ func registerCampaign(h huma.API, s *Service) {
 			out, err := s.CampaignLanguages(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id)
 			return api.OK(out), err
 		})
+	api.Get(h, api.Op{ID: "list-campaign-language-preview-contacts", Path: base + "/preview-contacts", Summary: "Contacts to preview a campaign as, one per language",
+		Description: "One contact per workspace language among the audience's lists, in the workspace's order, then one whose language the workspace doesn't offer, each with the version they get.",
+		Tags:        tags, Access: api.Workspace(authz.SubscribersView)},
+		func(ctx context.Context, in *CampaignPath) (*api.Body[PreviewContactList], error) {
+			id, err := in.id()
+			if err != nil {
+				return nil, err
+			}
+			out, err := s.CampaignPreviewContacts(ctx, api.WorkspaceFrom(ctx), id)
+			return api.OK(out), err
+		})
 	api.Post(h, api.Op{ID: "add-campaign-language", Path: base, Summary: "Add a language version (a Draft) to a campaign",
 		Description: "It starts from a copy of the source (layout and text) or from the layout only. A Draft is never sent: its readers get the fallback until it is marked translated.",
 		Tags:        tags, Access: edit, Status: http.StatusCreated},

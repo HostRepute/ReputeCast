@@ -151,6 +151,9 @@ export const mr = defineMessages('languages.review', {
 /** The composer's language versions (ComposerLanguages, ComposerCompare, LanguageStates). */
 export const mz = defineMessages('languages.composer', {
   switcherLabel: 'Language version: {language}, {status}. Change language',
+  switcherSourceLabel:
+    'Language version: {language}, the source. {have} of {total, plural, one {# workspace language has} other {# workspace languages have}} a version. Change language',
+  sourceChip: 'Source · {have} of {total, plural, one {# language} other {# languages}}',
   listLabel: 'Language versions of {name}',
   versions: 'Language versions',
   readers: 'Readers',
@@ -217,6 +220,10 @@ export const mz = defineMessages('languages.composer', {
   compareTitle: 'Compare {source} <span>(source)</span> with',
   compareLanguage: 'Language to compare',
   progress: '{upToDate} of {blocks} blocks up to date',
+  compareCrumb: 'Compare',
+  compareCrumbLanguages: '{source} and {language}',
+  compareFoot:
+    '{language} · {size, select, none {} other {{size} of 102 KB · }}{changed} of {blocks, plural, one {# block} other {# blocks}} changed in {source} since v{version}',
   onlyAttention: 'Only rows that need attention',
   backToCanvas: 'Back to the canvas',
   sourceHead: '{source} · source · v{version}',
@@ -233,6 +240,7 @@ export const mz = defineMessages('languages.composer', {
   stateOnly: 'Only in {language}',
   sourceLabel: '{source} · source',
   sameImage: 'The same image',
+  noText: 'No text',
   changeLine: 'v{from} → v{to} · {name}, {date}',
   showOnCanvas: 'Show on canvas',
   copyInto: 'Copy into {language}',
@@ -258,6 +266,8 @@ export const mz = defineMessages('languages.composer', {
   inboxIn: 'Inbox preview · {client} · {language}',
   statusLine: '{language} · {size} of 102 KB',
   previewAs: '{name} · {language}',
+  previewAsLabel: 'Preview as',
+  previewAsPick: 'Choose a contact',
   previewAsGets: '{name} · {language}, gets {gets}',
   noLanguage: 'no language',
   testOne: 'Language of the test',

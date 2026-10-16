@@ -2527,6 +2527,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/languages/preview-contacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Contacts to preview a campaign as, one per language
+         * @description One contact per workspace language among the audience's lists, in the workspace's order, then one whose language the workspace doesn't offer, each with the version they get.
+         */
+        get: operations["list-campaign-language-preview-contacts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/languages/source": {
         parameters: {
             query?: never;
@@ -12698,6 +12718,18 @@ export interface components {
             };
             lists: string[];
             pause: boolean;
+        };
+        PreviewContact: {
+            email: string;
+            gets: string;
+            /** Format: uuid */
+            id: string;
+            language: string;
+            name: string;
+            offered: boolean;
+        };
+        PreviewContactList: {
+            items: components["schemas"]["PreviewContact"][];
         };
         Problem: {
             /** @description Stable error code, e.g. permission_denied */
@@ -23093,6 +23125,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EmailLanguages"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-campaign-language-preview-contacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreviewContactList"];
                 };
             };
             /** @description Error */

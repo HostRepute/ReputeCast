@@ -52,6 +52,16 @@ export function statusChip(l: Lang, gets: string, t: Translate): { tone: Tone; t
   return { tone: 'neutral', text: t(mc.missingGets, { language: gets }), short: t(mc.missing) }
 }
 
+/** Two panes side by side: Compare languages (the boards' icon). */
+export function CompareIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+      <rect x="1.5" y="2.5" width="5.6" height="11" rx="1.2" />
+      <path d="M9.3 2.5h4a1.2 1.2 0 0 1 1.2 1.2v8.6a1.2 1.2 0 0 1-1.2 1.2h-4z" />
+    </svg>
+  )
+}
+
 /** The name of a language in a list of versions. */
 export function nameIn(data: Langs | undefined, code: string): string {
   return data?.versions.find((v) => v.language === code)?.name ?? code
@@ -101,6 +111,10 @@ export function LanguageSwitcher({
   if (!current || data.versions.length < 2) return null
   const chip = statusChip(current, nameIn(data, current.gets), t)
   const versions = data.versions.filter((v) => v.status !== 'missing' && v.status !== 'source').length
+  // On the source, the chip counts the workspace languages with a version.
+  const offered = data.versions.filter((v) => v.offered)
+  const have = offered.filter((v) => v.status !== 'missing').length
+  const onSource = current.status === 'source'
   const pick = (code: string) => {
     setOpen(false)
     onPick(code)
@@ -119,11 +133,15 @@ export function LanguageSwitcher({
             className="btn lng-sw"
             aria-haspopup="listbox"
             aria-expanded={open}
-            aria-label={t(mz.switcherLabel, { language: current.name, status: chip.short.toLowerCase() })}
+            aria-label={
+              onSource
+                ? t(mz.switcherSourceLabel, { language: current.name, have, total: offered.length })
+                : t(mz.switcherLabel, { language: current.name, status: chip.short.toLowerCase() })
+            }
           >
             <Icon name="globe" size={16} />
             <span>{current.name}</span>
-            <Badge tone={chip.tone}>{chip.short}</Badge>
+            <Badge tone={chip.tone}>{onSource ? t(mz.sourceChip, { have, total: offered.length }) : chip.short}</Badge>
             <Icon name="chevronDown" size={14} />
           </button>
         }
@@ -166,7 +184,7 @@ export function LanguageSwitcher({
         </div>
         <hr />
         <button type="button" disabled={versions === 0} onClick={() => (setOpen(false), onCompare())}>
-          <Icon name="list" size={14} />
+          <CompareIcon />
           {t(mz.compare)}
         </button>
         {data.canEdit ? (
@@ -381,7 +399,8 @@ export function LanguageBanner({ campaignId, data, language, onCompare }: { camp
         : t(mz.outdatedTextNoName, { count: l.attention, source, language: l.name })
     body = (
       <Banner tone="w" title={t(mz.outdatedTitle, { language: l.name })} text={text}>
-        <Button size="sm" variant="primary" icon="list" onClick={onCompare}>
+        <Button size="sm" variant="primary" onClick={onCompare}>
+          <CompareIcon />
           {t(mz.compareButton)}
         </Button>
         {data.canEdit ? (
@@ -469,21 +488,22 @@ export function MissingLanguage({ data, language, onAdd }: { data: Langs; langua
   const fallback = nameIn(data, l.gets)
   return (
     <div className="lng-missing" role="status">
-      <div className="card flex flex-col gap-3" style={{ padding: '22px 24px', maxWidth: 520 }}>
-        <span className="flex items-center gap-2" style={{ fontWeight: 700, fontSize: 16 }}>
-          {t(mz.missingTitle, { language: l.name })}
-        </span>
-        <span style={{ color: 'var(--ink-nav)' }}>{t(mz.missingText, { count: l.readers ?? 0, language: l.name, fallback })}</span>
-        <div className="flex flex-wrap gap-2">
+      <div className="card lng-empty">
+        <span className="tt">{t(mz.missingTitle, { language: l.name })}</span>
+        <span className="ds">{t(mz.missingText, { count: l.readers ?? 0, language: l.name, fallback })}</span>
+        <div className="flex flex-wrap justify-center gap-2">
           {data.canEdit ? (
-            <Button variant="primary" icon="plus" onClick={onAdd}>
+            <Button variant="primary" onClick={onAdd}>
               {t(mz.addButton, { language: l.name })}
             </Button>
           ) : null}
-          <Button icon="sparkle" disabledReason={t(mz.aiNotYet)}>
+          <Button icon="sparkle" disabled aria-describedby="lng-missing-ai">
             {t(mz.translateAi)}
           </Button>
         </div>
+        <span className="k" id="lng-missing-ai">
+          {t(mz.aiNotYet)}
+        </span>
       </div>
     </div>
   )

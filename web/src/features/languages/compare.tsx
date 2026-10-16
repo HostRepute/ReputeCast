@@ -58,6 +58,37 @@ export function diffWords(before: string, after: string): Piece[] {
   return out
 }
 
+/**
+ * A diff around its changes (the inspector's "English · v6 → v9"): an
+ * unchanged run keeps `words` words next to each change, and "…" stands
+ * for the rest.
+ */
+export function excerpt(parts: Piece[], words = 8): Piece[] {
+  const isWord = (w: string) => !/^\s+$/.test(w)
+  // The tokens up to the n-th word from the start, or from the end.
+  const head = (tokens: string[], n: number) => {
+    let seen = 0
+    const i = tokens.findIndex((w) => isWord(w) && ++seen === n)
+    return tokens.slice(0, i + 1).join('')
+  }
+  const tail = (tokens: string[], n: number) => {
+    let seen = 0
+    for (let i = tokens.length - 1; i >= 0; i--) if (isWord(tokens[i]!) && ++seen === n) return tokens.slice(i).join('')
+    return tokens.join('')
+  }
+  return parts.map((p, i): Piece => {
+    if (p.kind !== 'same') return p
+    const tokens = p.text.split(/(\s+)/).filter((w) => w !== '')
+    const count = tokens.filter(isWord).length
+    const first = i === 0
+    const last = i === parts.length - 1
+    if (first && last) return p
+    if (first) return count <= words ? p : { kind: 'same', text: `…${tail(tokens, words)}` }
+    if (last) return count <= words ? p : { kind: 'same', text: `${head(tokens, words)}…` }
+    return count <= words * 2 ? p : { kind: 'same', text: `${head(tokens, words)} … ${tail(tokens, words)}` }
+  })
+}
+
 function Diff({ before, after }: { before: string; after: string }) {
   return (
     <>
@@ -105,6 +136,48 @@ function attention(r: Row): boolean {
  * the version was translated, and the actions each state offers. The
  * version's text is edited on the canvas ("Show on canvas").
  */
+/** The version the compare view shows: the one asked for when it has a version, else the first outdated one. */
+export function compareLanguage(data: Langs, language: string): string | undefined {
+  const choices = data.versions.filter((v) => v.status !== 'source' && v.status !== 'missing')
+  return choices.some((c) => c.language === language) ? language : (choices.find((c) => c.status === 'outdated') ?? choices[0])?.language
+}
+
+/** The composer's status bar while comparing (ComposerCompare). */
+export function CompareFooter({ campaignId, data, language, size, children }: { campaignId: string; data: Langs; language: string; size?: string; children?: ReactNode }) {
+  const { slug } = useWorkspace()
+  const t = useT()
+  const lang = compareLanguage(data, language)
+  const q = $api.useQuery('get', comparePath, { params: { path: { workspace: slug, campaignId, language: lang ?? '' } } }, { enabled: Boolean(lang) })
+  const source = nameIn(data, data.source)
+  const name = nameIn(data, lang ?? '')
+  return (
+    <footer className="cmp-foot">
+      <div className="bc">
+        <span>{t(mz.compareCrumb)}</span>
+        {lang ? (
+          <>
+            <span aria-hidden="true">›</span>
+            <span>{t(mz.compareCrumbLanguages, { source, language: name })}</span>
+          </>
+        ) : null}
+      </div>
+      <span className="k" style={{ marginLeft: 'auto' }}>
+        {q.data
+          ? t(mz.compareFoot, {
+              language: name,
+              size: size ?? 'none',
+              changed: q.data.rows.filter((r) => r.state === 'changed').length,
+              blocks: q.data.blocks,
+              source,
+              version: q.data.translatedFrom,
+            })
+          : null}
+      </span>
+      {children}
+    </footer>
+  )
+}
+
 export function CompareView({
   campaignId,
   data,
@@ -127,7 +200,7 @@ export function CompareView({
   const cache = useLanguagesCache(campaignId)
   const [only, setOnly] = useState(false)
   const choices = data.versions.filter((v) => v.status !== 'source' && v.status !== 'missing')
-  const lang = choices.some((c) => c.language === language) ? language : (choices.find((c) => c.status === 'outdated') ?? choices[0])?.language
+  const lang = compareLanguage(data, language)
   const q = $api.useQuery('get', comparePath, { params: { path: { workspace: slug, campaignId, language: lang ?? '' } } }, { enabled: Boolean(lang) })
   const path = { workspace: slug, campaignId, language: lang ?? '' }
   const upToDate = $api.useMutation('post', '/api/v1/workspaces/{workspace}/campaigns/{campaignId}/languages/{language}/mark-up-to-date')
@@ -354,7 +427,15 @@ function BlockRow({
       <div className="lng-cmpc">
         <div className="src">
           <span className="tl">{t(mz.sourceLabel, { source })}</span>
-          {r.source ? r.state === 'changed' && r.before ? <Diff before={r.before} after={r.source.text} /> : r.source.text : '—'}
+          {r.source ? (
+            r.state === 'changed' && r.before ? (
+              <Diff before={r.before} after={r.source.text} />
+            ) : (
+              r.source.text || <span className="k">{t(mz.noText)}</span>
+            )
+          ) : (
+            '—'
+          )}
           {r.state === 'changed' && r.changed ? (
             <div className="k" style={{ marginTop: 6 }}>
               {t(mz.changeLine, { from: r.fromVersion, to: c.sourceVersion, name: r.changed.by, date: `${dayMonthDate(r.changed.at)} ${clock(r.changed.at)}` })}
@@ -367,6 +448,10 @@ function BlockRow({
             image && r.state === 'up_to_date' ? (
               <div className="k" style={{ paddingTop: 9, color: 'var(--ink-nav)' }}>
                 {t(mz.sameImage)}
+              </div>
+            ) : !r.version.text.trim() ? (
+              <div className="k" style={{ paddingTop: 9 }}>
+                {t(mz.noText)}
               </div>
             ) : (
               <div className={`lng-text${r.state === 'changed' ? ' on' : ''}`} lang={c.language}>

@@ -3,7 +3,13 @@ import { z } from 'zod'
 import { ComposerPage } from '@/features/composer/ComposerPage'
 
 const search = z.object({
-  view: z.enum(['visual', 'mjml', 'html', 'preview']).optional().catch(undefined),
+  view: z.enum(['visual', 'mjml', 'html', 'preview', 'compare']).optional().catch(undefined),
+  /** A language version (its code, such as de); none is the source. */
+  language: z
+    .string()
+    .regex(/^[a-z]{2,3}$/)
+    .optional()
+    .catch(undefined),
   device: z.enum(['desktop', 'mobile']).optional().catch(undefined),
   variant: z.enum(['A', 'B', 'C']).optional().catch(undefined),
   /** Deep link to a component: its element path from mj-body ("2" is the third section, "1-0-0" its first element). */
@@ -31,7 +37,7 @@ export const Route = createFileRoute('/w/$workspace/campaigns/$campaignId/edit')
         onSearch={(next) =>
           void navigate({
             // The deep link is used once: later changes drop it.
-            search: { view: next.view === 'visual' ? undefined : next.view, device: next.device, variant: next.variant as 'B' | 'C' | undefined },
+            search: { view: next.view === 'visual' ? undefined : next.view, device: next.device, variant: next.variant as 'B' | 'C' | undefined, language: next.language },
             replace: true,
             ignoreBlocker: true,
           })
