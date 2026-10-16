@@ -53,6 +53,40 @@ type ContactActivityItem struct {
 	IP             string `json:"ip,omitempty"`
 	Actor          string `json:"actor,omitempty"`
 	ConsentVersion string `json:"consentVersion,omitempty"`
+	// Poll answers and survey responses (types poll_answer, survey_started
+	// and survey_response; design expansion, X11): the question, the answer,
+	// the one it replaced and the comment; how many of a survey's questions
+	// were answered, and until when the response can change.
+	Question      string     `json:"question,omitempty"`
+	Answer        string     `json:"answer,omitempty"`
+	Previous      string     `json:"previous,omitempty"`
+	Comment       string     `json:"comment,omitempty"`
+	Answered      int        `json:"answered,omitempty"`
+	Questions     int        `json:"questions,omitempty"`
+	EditableUntil *time.Time `json:"editableUntil,omitempty"`
+}
+
+// ActivitySource adds events another domain keeps to the timeline (poll
+// answers and survey responses): the ones before the cursor, newest first,
+// and how many there are in all.
+type ActivitySource interface {
+	ContactActivity(ctx context.Context, ws *store.Workspace, contactID uuid.UUID, before *time.Time, beforeID string, limit int) ([]ContactActivityItem, int64, error)
+}
+
+// mergeActivity merges two timelines ordered newest first.
+func mergeActivity(a, b []ContactActivityItem) []ContactActivityItem {
+	out := make([]ContactActivityItem, 0, len(a)+len(b))
+	i, j := 0, 0
+	for i < len(a) || j < len(b) {
+		if j >= len(b) || (i < len(a) && (a[i].At.After(b[j].At) || (a[i].At.Equal(b[j].At) && a[i].ID > b[j].ID))) {
+			out = append(out, a[i])
+			i++
+		} else {
+			out = append(out, b[j])
+			j++
+		}
+	}
+	return out
 }
 
 // ContactActivityPage is one page of the timeline, newest first.
@@ -86,6 +120,8 @@ func (s *Service) Activity(ctx context.Context, ws *store.Workspace, contactID u
 	}
 	args := []any{contactID, types, withConsent}
 	cur := ""
+	var curAt *time.Time
+	var curID uuid.UUID
 	if cursor != "" {
 		at, id, err := decodeCursor(cursor)
 		if err != nil {
@@ -93,6 +129,7 @@ func (s *Service) Activity(ctx context.Context, ws *store.Workspace, contactID u
 		}
 		args = append(args, at, id)
 		cur = " WHERE (ev.occurred_at, ev.id) < ($4, $5)"
+		curAt, curID = &at, id
 	}
 	union := `SELECT de.id, 'event'::text AS src, de.type AS kind, de.occurred_at,
 		       coalesce(m.variant, '') AS variant, coalesce(m.failover, false) AS failover, coalesce(m.route_note, '') AS route_note,
@@ -188,6 +225,14 @@ func (s *Service) Activity(ctx context.Context, ws *store.Workspace, contactID u
 	}
 	if err := rows.Err(); err != nil {
 		return out, err
+	}
+	if s.Answers != nil && filter != "deliveries" && filter != "consent" {
+		extra, n, err := s.Answers.ContactActivity(ctx, ws, contactID, curAt, curID.String(), limit+1)
+		if err != nil {
+			return out, err
+		}
+		out.Total += n
+		out.Items = mergeActivity(out.Items, extra)
 	}
 	if len(out.Items) > limit {
 		last := out.Items[limit-1]
