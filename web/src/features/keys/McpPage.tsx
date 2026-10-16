@@ -19,6 +19,7 @@ import { useWorkspace } from '@/lib/session'
 import { CreateKeyDialog } from './CreateKeyDialog'
 import { KeySecretDialog } from './KeySecretDialog'
 import { DashedEmpty, TableSkeleton } from './parts'
+import { McpIntegrationsNote } from '@/features/integrations/ManagedWebhook'
 
 type Overview = Schemas['MCPOverview']
 
@@ -330,6 +331,7 @@ function ToolsCard({ o }: { o: Overview }) {
           </li>
         ))}
       </ul>
+      <McpIntegrationsNote />
       <span className="k">
         Resources: {o.resources.join(', ')}. Prompts: {o.prompts.map((p) => `"${p}"`).join(', ')}.
       </span>

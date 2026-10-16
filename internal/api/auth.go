@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -76,6 +77,19 @@ type Authenticator struct {
 	// revoked or expired (reason "revoked" or "expired"), so Settings › Keys
 	// can show what still uses it.
 	OnKeyRejected func(ctx context.Context, keyID uuid.UUID, reason string)
+	// Integrations knows what integration keys may call and logs their
+	// calls. Without it integration keys are refused.
+	Integrations Integrations
+}
+
+// caller is who a request comes from: a person or a key, and for an
+// integration key its integration.
+type caller struct {
+	p     *authz.Principal
+	u     *store.User
+	s     *store.Session
+	ik    *IntegrationKey
+	keyID uuid.UUID
 }
 
 // Middleware returns the Huma middleware enforcing each operation's Access.
@@ -93,13 +107,34 @@ func (a *Authenticator) Middleware(hapi huma.API) func(huma.Context, func(huma.C
 			next(huma.WithContext(hctx, ctx))
 			return
 		}
-		p, u, s, perr := a.resolve(ctx, hctx)
+		start := a.now()
+		c, perr := a.resolve(ctx, hctx, start)
 		if perr != nil {
 			a.write(hapi, hctx, perr)
 			return
 		}
+		p, u, s := c.p, c.u, c.s
+		// refuse answers with a problem, logging the call when an
+		// integration key made it.
+		refuse := func(perr *Problem) {
+			a.recordRefused(ctx, hctx, c.ik, c.keyID, start, perr)
+			a.write(hapi, hctx, perr)
+		}
+		if c.ik != nil && !c.ik.Allows(operationID(hctx)) {
+			refuse(Err(http.StatusForbidden, CodeNotForThisKey, fmt.Sprintf(
+				"This key belongs to %s and works only for what %s can do. Change what %s can do in Settings › Integrations.", c.ik.Name, c.ik.Name, c.ik.Name)))
+			return
+		}
+		if access.Integration != "" && (c.ik == nil || access.Integration != "*" && c.ik.Kind != access.Integration) {
+			who := "an integration's key"
+			if access.Integration == "wordpress" {
+				who = "a WordPress site's key"
+			}
+			refuse(Err(http.StatusForbidden, CodePermissionDenied, "Only "+who+" calls this."))
+			return
+		}
 		if access.HumansOnly && p.Type != authz.ActorUser {
-			a.write(hapi, hctx, Err(http.StatusForbidden, CodeHumansOnly, "This action can only be taken by a signed-in person, not an API key or agent."))
+			refuse(Err(http.StatusForbidden, CodeHumansOnly, "This action can only be taken by a signed-in person, not an API key or agent."))
 			return
 		}
 		if u != nil && !access.AllowPending {
@@ -114,17 +149,32 @@ func (a *Authenticator) Middleware(hapi huma.API) func(huma.Context, func(huma.C
 				a.write(hapi, hctx, Err(http.StatusForbidden, CodePermissionDenied, "Only instance admins can open Instance admin."))
 				return
 			}
+		case AccessKey:
+			if p.Type == authz.ActorUser {
+				a.write(hapi, hctx, Err(http.StatusForbidden, CodePermissionDenied, "Call this with an API key: it describes the key that calls it."))
+				return
+			}
+			ws, err := a.Q.GetWorkspace(ctx, p.WorkspaceID)
+			if err != nil {
+				if errors.Is(err, pgx.ErrNoRows) {
+					refuse(Err(http.StatusNotFound, CodeWorkspaceNotFound, "Workspace not found."))
+					return
+				}
+				refuse(a.unavailable(ctx, "workspace", err))
+				return
+			}
+			ctx = context.WithValue(ctx, workspaceKey, &ws)
 		case AccessWorkspace:
 			ws, perr := a.workspacePrincipal(ctx, hctx.Param("workspace"), p)
 			if perr != nil {
-				a.write(hapi, hctx, perr)
+				refuse(perr)
 				return
 			}
 			ctx = context.WithValue(ctx, workspaceKey, ws)
 			if access.Permission != "" && !p.Can(access.Permission) {
 				helpers := a.helpers(ctx, ws.ID, access.Permission, p.UserID)
 				a.auditDenied(audit.WithPrincipal(ctx, p), hctx, ws.ID, access.Permission)
-				a.write(hapi, hctx, Forbidden(access.Permission, helpers))
+				refuse(Forbidden(access.Permission, helpers))
 				return
 			}
 		}
@@ -136,8 +186,20 @@ func (a *Authenticator) Middleware(hapi huma.API) func(huma.Context, func(huma.C
 		if s != nil {
 			ctx = context.WithValue(ctx, sessionKey, s)
 		}
+		if c.ik != nil {
+			ctx = context.WithValue(ctx, integrationKey, c.ik)
+			a.serveRecorded(ctx, hctx, c.ik, c.keyID, start, next)
+			return
+		}
 		next(huma.WithContext(hctx, ctx))
 	}
+}
+
+func operationID(hctx huma.Context) string {
+	if op := hctx.Operation(); op != nil {
+		return op.OperationID
+	}
+	return ""
 }
 
 func (a *Authenticator) write(hapi huma.API, hctx huma.Context, p *Problem) {
@@ -193,14 +255,13 @@ func (a *Authenticator) sessionUser(ctx context.Context, hctx huma.Context) (*st
 	return &u, &sess, nil
 }
 
-func (a *Authenticator) resolve(ctx context.Context, hctx huma.Context) (*authz.Principal, *store.User, *store.Session, *Problem) {
+func (a *Authenticator) resolve(ctx context.Context, hctx huma.Context, start time.Time) (caller, *Problem) {
 	if bearer := bearerToken(hctx.Header("Authorization")); bearer != "" {
-		p, perr := a.keyPrincipal(ctx, bearer)
-		return p, nil, nil, perr
+		return a.keyPrincipal(ctx, hctx, bearer, start)
 	}
 	u, s, perr := a.sessionUser(ctx, hctx)
 	if perr != nil {
-		return nil, nil, nil, perr
+		return caller{}, perr
 	}
 	p := &authz.Principal{
 		Type:            authz.ActorUser,
@@ -213,7 +274,7 @@ func (a *Authenticator) resolve(ctx context.Context, hctx huma.Context) (*authz.
 		MFAVerified:     s.MfaVerified,
 		Permissions:     authz.Set{},
 	}
-	return p, u, s, nil
+	return caller{p: p, u: u, s: s}, nil
 }
 
 func (a *Authenticator) keyRejected(ctx context.Context, id uuid.UUID, reason string) {
@@ -222,24 +283,47 @@ func (a *Authenticator) keyRejected(ctx context.Context, id uuid.UUID, reason st
 	}
 }
 
-func (a *Authenticator) keyPrincipal(ctx context.Context, token string) (*authz.Principal, *Problem) {
+func (a *Authenticator) keyPrincipal(ctx context.Context, hctx huma.Context, token string, start time.Time) (caller, *Problem) {
 	if !authn.LooksLikeAPIKey(token) {
-		return nil, Err(http.StatusUnauthorized, CodeUnauthenticated, "Unknown API key.")
+		return caller{}, Err(http.StatusUnauthorized, CodeUnauthenticated, "Unknown API key.")
 	}
 	k, err := a.Q.GetAPIKeyByToken(ctx, authn.HashToken(token))
 	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, Err(http.StatusUnauthorized, CodeUnauthenticated, "This API key is revoked or unknown.")
+		return caller{}, Err(http.StatusUnauthorized, CodeUnauthenticated, "This API key is revoked or unknown.")
 	}
 	if err != nil {
-		return nil, a.unavailable(ctx, "API key", err)
+		return caller{}, a.unavailable(ctx, "API key", err)
 	}
-	if k.RevokedAt != nil {
+	// An integration key works only through its integration: for the
+	// operations it was given, with its own refusals in its call log.
+	var ik *IntegrationKey
+	if k.IntegrationID != nil {
+		if a.Integrations == nil {
+			return caller{}, Err(http.StatusUnauthorized, CodeUnauthenticated, "This API key belongs to an integration, and integrations aren't available on this server.")
+		}
+		if ik, err = a.Integrations.Key(ctx, *k.IntegrationID); err != nil {
+			return caller{}, a.unavailable(ctx, "integration", err)
+		}
+	}
+	refuse := func(p *Problem) (caller, *Problem) {
+		a.recordRefused(ctx, hctx, ik, k.ID, start, p)
+		return caller{}, p
+	}
+	// A rotated integration key keeps working during its grace period.
+	inGrace := k.GraceUntil != nil && k.GraceUntil.After(a.now())
+	if k.RevokedAt != nil && !inGrace || ik != nil && ik.Disconnected {
 		a.keyRejected(ctx, k.ID, "revoked")
-		return nil, Err(http.StatusUnauthorized, CodeUnauthenticated, "This API key is revoked or unknown.")
+		if ik != nil {
+			return refuse(Err(http.StatusUnauthorized, CodeKeyRevoked, fmt.Sprintf("This key was revoked. Reconnect %s in Settings › Integrations to get a new key.", ik.Name)))
+		}
+		return caller{}, Err(http.StatusUnauthorized, CodeUnauthenticated, "This API key is revoked or unknown.")
 	}
 	if k.ExpiresAt != nil && !k.ExpiresAt.After(a.now()) {
 		a.keyRejected(ctx, k.ID, "expired")
-		return nil, Err(http.StatusUnauthorized, CodeUnauthenticated, "This API key expired on "+k.ExpiresAt.Format("Jan 2, 2006")+". Rotate it in Settings › Keys & MCP.")
+		if ik != nil {
+			return refuse(Err(http.StatusUnauthorized, CodeKeyExpired, fmt.Sprintf("This key expired on %s. Reconnect %s in Settings › Integrations to get a new key.", k.ExpiresAt.Format("Jan 2, 2006"), ik.Name)))
+		}
+		return caller{}, Err(http.StatusUnauthorized, CodeUnauthenticated, "This API key expired on "+k.ExpiresAt.Format("Jan 2, 2006")+". Rotate it in Settings › Keys & MCP.")
 	}
 	perms := authz.ParseSet(k.Permissions)
 	// A key never exceeds what its creator can do right now: nothing once
@@ -250,9 +334,13 @@ func (a *Authenticator) keyPrincipal(ctx context.Context, token string) (*authz.
 		case err == nil && m.Status == "active":
 			perms = perms.Intersect(authz.Effective(m.RoleKey, m.RoleBuiltin, m.RolePermissions))
 		case err == nil || errors.Is(err, pgx.ErrNoRows):
+			if ik != nil {
+				return refuse(Err(http.StatusForbidden, CodeOwnerDeactivated, fmt.Sprintf(
+					"The member who owns this key left the workspace, so it has lost its permissions. Someone with integrations:manage can take it over in Settings › Integrations › %s; the key stays the same.", ik.Name)))
+			}
 			perms = authz.Set{}
 		default:
-			return nil, a.unavailable(ctx, "API key creator", err)
+			return caller{}, a.unavailable(ctx, "API key creator", err)
 		}
 	}
 	var scope authz.Scope
@@ -268,7 +356,7 @@ func (a *Authenticator) keyPrincipal(ctx context.Context, token string) (*authz.
 	if k.CreatedBy != nil {
 		creator = *k.CreatedBy
 	}
-	return &authz.Principal{
+	return caller{p: &authz.Principal{
 		Type:        typ,
 		ID:          k.ID,
 		Name:        k.Name,
@@ -277,7 +365,7 @@ func (a *Authenticator) keyPrincipal(ctx context.Context, token string) (*authz.
 		Permissions: perms,
 		Scope:       scope,
 		MFAVerified: true,
-	}, nil
+	}, ik: ik, keyID: k.ID}, nil
 }
 
 // workspacePrincipal loads the workspace and fills in the principal's

@@ -29,6 +29,9 @@ const (
 	KindHostReputeAlert     = "hostrepute_alert"
 	KindSendFinished        = "send_finished"
 	KindJobFinished         = "job_finished" // imports, exports
+	// Integrations hub (design expansion, phase 2).
+	KindIntegrationAttention = "integration_attention" // an integration needs attention
+	KindPostDraftCreated     = "post_draft_created"    // a WordPress post became a campaign draft
 	// KindTransactionalAlert is a delivery alert of transactional mail: a
 	// template's bounce rate, failed messages or the median delivery time
 	// over the last hour passed its limit.

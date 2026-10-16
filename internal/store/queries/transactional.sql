@@ -533,10 +533,12 @@ WHERE t.workspace_id = @workspace_id AND t.accepted_at >= @since::timestamptz AN
 GROUP BY 1;
 
 -- name: TxnLogKeys :many
--- Keys that can send, for the log's key filter.
-SELECT id, name, revoked_at FROM api_keys
-WHERE workspace_id = @workspace_id AND kind = 'api_key' AND 'transactional:send' = ANY(permissions)
-ORDER BY created_at;
+-- Keys that can send, for the log's key filter; an integration's key once
+-- it has sent something.
+SELECT k.id, k.name, k.revoked_at FROM api_keys k
+WHERE k.workspace_id = @workspace_id AND k.kind = 'api_key' AND 'transactional:send' = ANY(k.permissions)
+  AND (k.integration_id IS NULL OR EXISTS (SELECT 1 FROM transactional_messages t WHERE t.key_id = k.id))
+ORDER BY k.created_at;
 
 -- name: TxnLogTemplates :many
 -- Templates for the log's template filter, archived ones included.
@@ -754,10 +756,12 @@ WHERE t.workspace_id = @workspace_id AND t.accepted_at >= @since::timestamptz
 
 -- name: TxnSendingKeys :many
 -- Keys holding transactional:send, for the overview and Setup.
+-- Integrations' keys are listed with their integration instead.
 SELECT k.id, k.name, k.prefix, k.preset, k.mode, k.templates, k.categories, k.test_addresses, k.rate_per_second,
        k.created_at, k.expires_at, k.last_used_at, k.last_used_ip, k.revoked_at, coalesce(u.name, '')::text AS created_by_name
 FROM api_keys k LEFT JOIN users u ON u.id = k.created_by
 WHERE k.workspace_id = @workspace_id AND k.kind = 'api_key' AND 'transactional:send' = ANY(k.permissions) AND k.revoked_at IS NULL
+  AND k.integration_id IS NULL
 ORDER BY k.created_at;
 
 -- name: TxnFirstRun :one

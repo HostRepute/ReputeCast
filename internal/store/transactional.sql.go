@@ -1389,9 +1389,10 @@ func (q *Queries) TxnLogCounts(ctx context.Context, arg TxnLogCountsParams) ([]T
 }
 
 const txnLogKeys = `-- name: TxnLogKeys :many
-SELECT id, name, revoked_at FROM api_keys
-WHERE workspace_id = $1 AND kind = 'api_key' AND 'transactional:send' = ANY(permissions)
-ORDER BY created_at
+SELECT k.id, k.name, k.revoked_at FROM api_keys k
+WHERE k.workspace_id = $1 AND k.kind = 'api_key' AND 'transactional:send' = ANY(k.permissions)
+  AND (k.integration_id IS NULL OR EXISTS (SELECT 1 FROM transactional_messages t WHERE t.key_id = k.id))
+ORDER BY k.created_at
 `
 
 type TxnLogKeysRow struct {
@@ -1400,7 +1401,8 @@ type TxnLogKeysRow struct {
 	RevokedAt *time.Time `json:"revokedAt"`
 }
 
-// Keys that can send, for the log's key filter.
+// Keys that can send, for the log's key filter; an integration's key once
+// it has sent something.
 func (q *Queries) TxnLogKeys(ctx context.Context, workspaceID uuid.UUID) ([]TxnLogKeysRow, error) {
 	rows, err := q.db.Query(ctx, txnLogKeys, workspaceID)
 	if err != nil {
@@ -2932,6 +2934,7 @@ SELECT k.id, k.name, k.prefix, k.preset, k.mode, k.templates, k.categories, k.te
        k.created_at, k.expires_at, k.last_used_at, k.last_used_ip, k.revoked_at, coalesce(u.name, '')::text AS created_by_name
 FROM api_keys k LEFT JOIN users u ON u.id = k.created_by
 WHERE k.workspace_id = $1 AND k.kind = 'api_key' AND 'transactional:send' = ANY(k.permissions) AND k.revoked_at IS NULL
+  AND k.integration_id IS NULL
 ORDER BY k.created_at
 `
 
@@ -2954,6 +2957,7 @@ type TxnSendingKeysRow struct {
 }
 
 // Keys holding transactional:send, for the overview and Setup.
+// Integrations' keys are listed with their integration instead.
 func (q *Queries) TxnSendingKeys(ctx context.Context, workspaceID uuid.UUID) ([]TxnSendingKeysRow, error) {
 	rows, err := q.db.Query(ctx, txnSendingKeys, workspaceID)
 	if err != nil {

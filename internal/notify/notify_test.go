@@ -24,10 +24,12 @@ func TestDemoNotificationCenter(t *testing.T) {
 	var list map[string]any
 	c.Do("GET", "/workspaces/acme-newsletter/notifications", nil).MustStatus(t, 200).JSON(t, &list)
 	items := list["items"].([]any)
-	if len(items) != 8 || list["unread"].(float64) != 3 || list["retentionDays"].(float64) != 90 {
+	// The Notifications board, with staging.acme.io's "Integration needs
+	// attention" (integrations hub) after the unread ones.
+	if len(items) != 9 || list["unread"].(float64) != 3 || list["retentionDays"].(float64) != 90 {
 		t.Fatalf("center: %d items, %v unread", len(items), list["unread"])
 	}
-	want := []string{"Approval requested", "Send auto-paused", "Provider down", "Approval given", "Webhooks silent", "Approval invalidated", "Invite accepted", "HostRepute alert"}
+	want := []string{"Approval requested", "Send auto-paused", "Provider down", "Integration needs attention", "Approval given", "Webhooks silent", "Approval invalidated", "Invite accepted", "HostRepute alert"}
 	for i, w := range want {
 		it := items[i].(map[string]any)
 		if it["title"] != w {
@@ -168,7 +170,7 @@ func TestSummarize(t *testing.T) {
 		p.Events = append(p.Events, notify.NotificationEventPreference{Type: e.Key, InApp: true, Email: e.DefaultEmail})
 	}
 	s := notify.Summarize(p)
-	if s.InApp != "All events" || s.Email != "Approvals, auto-pauses, provider down, transactional delivery alerts, SMTP relay outages" || s.QuietHours != "22:00–07:00 America/New_York, email only" {
+	if s.InApp != "All events" || s.Email != "Approvals, auto-pauses, provider down, integration problems, post drafts, transactional delivery alerts, SMTP relay outages" || s.QuietHours != "22:00–07:00 America/New_York, email only" {
 		t.Fatalf("summary: %+v", s)
 	}
 }

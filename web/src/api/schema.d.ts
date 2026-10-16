@@ -788,6 +788,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/integration": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Test connection: the key's workspace and what it can do
+         * @description Needs only the key: the apps call it first to learn the workspace slug the other paths take.
+         */
+        get: operations["get-integration"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/integrations/hostrepute/callback": {
         parameters: {
             query?: never;
@@ -3540,6 +3560,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/contacts/tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add tags to a contact, matched by email */
+        post: operations["tag-contact"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/contacts/upsert": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create or update a contact, matched by email
+         * @description Adds to lists with single or double opt-in. Never adds someone back to a list they left (409 unsubscribed) or a suppressed address (409 suppressed). Updating an existing contact needs subscribers:edit.
+         */
+        post: operations["upsert-contact"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/contacts/views": {
         parameters: {
             query?: never;
@@ -4360,6 +4417,114 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/integration/fields": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Custom fields, for the apps' field mapping */
+        get: operations["list-integration-fields"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/integration/hooks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Subscribe a workflow to a trigger (REST hook); the signing secret is shown once
+         * @description Creates a managed webhook. It can't be edited by hand, answers to the integration only, and is removed when the endpoint answers 410 Gone.
+         */
+        post: operations["subscribe-integration-hook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/integration/hooks/{hookId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Unsubscribe: remove a workflow's managed webhook */
+        delete: operations["unsubscribe-integration-hook"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/integration/lists": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists, for the apps' dropdowns */
+        get: operations["list-integration-lists"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/integration/samples/{event}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A sample payload of a trigger, for field mapping */
+        get: operations["get-integration-trigger-sample"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/integration/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Published transactional templates and their variables, for "Send a transactional email"
+         * @description Only keys with "Send a transactional email" turned on can call it. Send with send-transactional-message.
+         */
+        get: operations["list-integration-templates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/integrations": {
         parameters: {
             query?: never;
@@ -4369,6 +4534,307 @@ export interface paths {
         };
         /** Settings › Integrations: HostRepute, webhooks, MCP, Postmaster and SNDS */
         get: operations["get-integrations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/integrations/address-check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Whether triggers can reach a workflow tool's address (private addresses need an instance admin) */
+        post: operations["check-integration-address"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/integrations/apps/{kind}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** An automation platform's page: numbers, workflows, webhooks, what it can do and its key */
+        get: operations["get-integration-app"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/integrations/apps/{kind}/connect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What the connect dialog offers you: triggers and actions, locks, lists and reachability */
+        get: operations["get-integration-connect"];
+        put?: never;
+        /**
+         * Connect an integration; its key is shown once
+         * @description Creates the integration's own key with the permissions of the triggers and actions turned on. The key works only for those.
+         */
+        post: operations["connect-integration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/integrations/catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The integrations catalog: groups, statuses and what needs attention */
+        get: operations["get-integration-catalog"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/integrations/connections/{id}/address": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Keep n8n's address, to open it and to check that triggers can reach it */
+        put: operations["set-integration-address"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/integrations/connections/{id}/calls": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The 7-day call log: workflow, action, target, result and duration
+         * @description Addresses show to members with subscribers:view; others see "a contact".
+         */
+        get: operations["list-integration-calls"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/integrations/connections/{id}/calls/{callId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One call with its request and response, secrets masked */
+        get: operations["get-integration-call"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/integrations/connections/{id}/change": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Change what an integration can do; its key changes in place */
+        post: operations["change-integration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/integrations/connections/{id}/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check now: call a site's status endpoint once, through the SSRF guard */
+        post: operations["check-wordpress-site"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/integrations/connections/{id}/disconnect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What disconnecting stops, removes and keeps */
+        get: operations["get-integration-disconnect"];
+        put?: never;
+        /**
+         * Disconnect: revoke the key and remove the webhooks it created
+         * @description Contacts, events and messages created through the integration stay.
+         */
+        post: operations["disconnect-integration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/integrations/connections/{id}/reconnect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Give an integration whose key was revoked or expired a new key, shown once */
+        post: operations["reconnect-integration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/integrations/connections/{id}/rotate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Rotate an integration's key; the old one works for 24 hours */
+        post: operations["rotate-integration-key"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/integrations/connections/{id}/rule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set a site's post-draft rule: categories, audience, template, sender, who's notified */
+        put: operations["set-wordpress-rule"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/integrations/connections/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Whether a new key has been called yet (the connect dialog's last step) */
+        get: operations["get-integration-status"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/integrations/connections/{id}/stop-old-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stop a rotated key before its 24 hours run out */
+        post: operations["stop-integration-old-key"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/integrations/connections/{id}/take-over": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What taking over the key would change: the permissions you hold and don't */
+        get: operations["get-integration-take-over"];
+        put?: never;
+        /** Become the owner of an integration's key; it keeps its value */
+        post: operations["take-over-integration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/integrations/connections/{id}/webhooks/{webhookId}/dead-letters": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A managed webhook's dead-letter queue */
+        get: operations["list-integration-dead-letters"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4482,6 +4948,74 @@ export interface paths {
         put?: never;
         /** Sync HostRepute data now */
         post: operations["sync-hostrepute"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/integrations/keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Keys managed by integrations (Keys & MCP's second table) */
+        get: operations["list-integration-keys"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/integrations/owned-by/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Integrations whose key a member owns (deactivate and remove dialogs) */
+        get: operations["list-member-integrations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/integrations/reachability/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Run the public URL check again: can Zapier and Make reach this instance? */
+        post: operations["check-integration-reachability"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/integrations/wordpress": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** WordPress sites: health, forms, post drafts and keys */
+        get: operations["get-integration-wordpress"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -4751,6 +5285,26 @@ export interface paths {
         head?: never;
         /** Rename a list or change its opt-in setting */
         patch: operations["update-list"];
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/lists/{id}/contacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add a contact to a list, single or double opt-in
+         * @description Never adds someone back to a list they left, or a suppressed address: both answer 409 with the date and the reason.
+         */
+        post: operations["add-contact-to-list"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/workspaces/{workspace}/lists/{id}/impact": {
@@ -6956,6 +7510,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/wordpress/drafts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a campaign draft from a published post, as the site's rule says
+         * @description campaigns:edit lets a site's key create drafts from posts only: it can't open, change or send any other campaign. Nothing is sent.
+         */
+        post: operations["create-wordpress-draft"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/wordpress/forms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The signup forms, for the block and the shortcode
+         * @description subscribers:view lets a site's key list forms only: it can't read contacts.
+         */
+        get: operations["list-wordpress-forms"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/wordpress/report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Report in: plugin, WordPress and PHP versions, the feed and where forms are used
+         * @description The plugin reports when it connects, every 12 hours and with every post. ReputeCast never polls a site.
+         */
+        post: operations["report-wordpress-site"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -8729,6 +9343,17 @@ export interface components {
             index?: number;
             key?: string;
         };
+        CallTarget: {
+            email?: string;
+            endpoint?: string;
+            event?: string;
+            kind: string;
+            list?: string;
+            tag?: string;
+            template?: string;
+            title?: string;
+            version?: string;
+        };
         CampaignList: {
             counts: components["schemas"]["CampaignStatusCounts"];
             items: components["schemas"]["CampaignListItem"][];
@@ -9890,6 +10515,11 @@ export interface components {
             /** Format: int64 */
             total: number;
         };
+        ContactListAddInput: {
+            /** @enum {string} */
+            consent?: "single" | "double";
+            email: string;
+        };
         ContactListConsent: {
             doubleOptIn: boolean;
             events: components["schemas"]["ContactConsentEvent"][];
@@ -9919,6 +10549,12 @@ export interface components {
             suppressed: boolean;
             /** @enum {string} */
             tier: "active" | "cooling" | "at_risk" | "sunset";
+        };
+        ContactListJoin: {
+            id: string;
+            name: string;
+            /** @enum {string} */
+            status: "subscribed" | "pending";
         };
         ContactProfile: {
             /** Format: int64 */
@@ -10004,6 +10640,10 @@ export interface components {
             /** @description Why, for the audit log and the list */
             reason: string;
         };
+        ContactTagInput: {
+            email: string;
+            tags: string[];
+        };
         ContactUpdate: {
             company?: string;
             country?: string;
@@ -10016,6 +10656,29 @@ export interface components {
             lastName?: string;
             tags?: string[];
             timezone?: string;
+        };
+        ContactUpsertInput: {
+            company?: string;
+            /** @enum {string} */
+            consent?: "single" | "double";
+            /** @example rob@example.net */
+            email: string;
+            fields?: {
+                [key: string]: unknown;
+            };
+            firstName?: string;
+            language?: string;
+            lastName?: string;
+            lists?: string[];
+            tags?: string[];
+        };
+        ContactUpsertResult: {
+            confirmationSent: boolean;
+            contactId: string;
+            created: boolean;
+            email: string;
+            lists: components["schemas"]["ContactListJoin"][];
+            tags: string[];
         };
         ContactViewInput: {
             filters: components["schemas"]["ContactFilter"];
@@ -10634,6 +11297,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string;
             updatedBy?: string;
+        };
+        Envelope: {
+            /** Format: date-time */
+            created_at: string;
+            data: unknown;
+            id: string;
+            type: string;
+            workspace: string;
         };
         ErrorDetail: {
             /** @description Where the error occurred, e.g. 'body.items[3].tags' or 'path.thing-id' */
@@ -11672,6 +12343,708 @@ export interface components {
             name: string;
             slug: string;
         };
+        IntegrationAddressCheck: {
+            address: string;
+            admins: string[];
+            allowed: boolean;
+            host: string;
+            private: boolean;
+            resolves?: string;
+        };
+        IntegrationAddressCheckInput: {
+            /** @example https://n8n.acme.io */
+            address: string;
+        };
+        IntegrationAddressInput: {
+            /**
+             * @description Empty to forget it
+             * @example https://n8n.acme.io
+             */
+            address: string;
+        };
+        IntegrationAlert: {
+            address?: string;
+            connectionId?: string;
+            entry: string;
+            reason: components["schemas"]["IntegrationReason"];
+        };
+        IntegrationApp: {
+            /** Format: int64 */
+            actions: number;
+            address?: string;
+            canManage: boolean;
+            /** Format: date-time */
+            connectedAt?: string;
+            connectedBy?: components["schemas"]["IntegrationPerson"];
+            connectionId?: string;
+            firstCall?: components["schemas"]["IntegrationFirstCall"];
+            helpers: string[];
+            instanceUrl: string;
+            items: components["schemas"]["IntegrationItemState"][];
+            key?: components["schemas"]["IntegrationKeyView"];
+            /** @enum {string} */
+            kind: "zapier" | "make" | "n8n";
+            label?: string;
+            numbers: components["schemas"]["IntegrationNumbers"];
+            oldKey?: components["schemas"]["IntegrationKeyView"];
+            reachability: components["schemas"]["IntegrationReachability"];
+            reasons: components["schemas"]["IntegrationReason"][];
+            receives: string[];
+            rejected: components["schemas"]["IntegrationRejectedCall"][];
+            /** @enum {string} */
+            status: "not_connected" | "waiting" | "connected" | "attention";
+            /** Format: int64 */
+            triggers: number;
+            webhooks: components["schemas"]["IntegrationManagedHook"][];
+            workflows: components["schemas"]["IntegrationWorkflowRow"][];
+        };
+        IntegrationAttempt: {
+            /** Format: date-time */
+            at?: string;
+            /** Format: int32 */
+            attempt: number;
+            event: string;
+            /** Format: int32 */
+            maxAttempts: number;
+            /** Format: int64 */
+            queued: number;
+            /** Format: int32 */
+            status?: number;
+            statusText?: string;
+        };
+        IntegrationCallDetail: {
+            call: components["schemas"]["IntegrationCallView"];
+            headers: {
+                [key: string]: string;
+            };
+            request?: unknown;
+            response?: unknown;
+        };
+        IntegrationCallList: {
+            /**
+             * Format: int64
+             * @description Errors in the window
+             */
+            errors: number;
+            items: components["schemas"]["IntegrationCallView"][];
+            /** Format: int64 */
+            limit: number;
+            /** Format: int64 */
+            offset: number;
+            /**
+             * Format: int64
+             * @description Calls in the window
+             */
+            total: number;
+        };
+        IntegrationCallView: {
+            /** Format: date-time */
+            at: string;
+            client?: string;
+            code?: string;
+            detail?: string;
+            /** Format: int32 */
+            durationMs: number;
+            id: string;
+            ip?: string;
+            item?: string;
+            method: string;
+            missing?: string[];
+            operation: string;
+            path: string;
+            resolution?: components["schemas"]["IntegrationResolution"];
+            /** Format: int32 */
+            status: number;
+            target: components["schemas"]["CallTarget"];
+            unnamed: boolean;
+            /** @enum {string} */
+            who: "email" | "contact" | "erased" | "none";
+            workflow: string;
+        };
+        IntegrationChangeInput: {
+            items: string[];
+            lists?: string[];
+        };
+        IntegrationChanged: {
+            items: string[];
+            permissions: string[];
+            /** Format: int64 */
+            webhooksRemoved: number;
+        };
+        IntegrationConnectInfo: {
+            connectionId?: string;
+            includes: {
+                [key: string]: string[];
+            };
+            instanceUrl: string;
+            items: components["schemas"]["IntegrationItemLock"][];
+            kind: string;
+            lists: components["schemas"]["ScopedList"][];
+            /** @description The suggested key name, "Make · Acme ops" */
+            name: string;
+            order: string[];
+            reachability: components["schemas"]["IntegrationReachability"];
+        };
+        IntegrationConnectInput: {
+            address?: string;
+            /** Format: date-time */
+            expiresAt?: string;
+            /** @description Catalog keys of the triggers and actions turned on */
+            items?: string[];
+            /** @description Limit the key to these lists; empty for all lists */
+            lists?: string[];
+            /** @description The key's name, "Make · Acme ops" */
+            name?: string;
+        };
+        IntegrationDeadLetter: {
+            email?: string;
+            error?: string;
+            event: string;
+            /** Format: date-time */
+            firstTryAt: string;
+            id: string;
+            /** Format: date-time */
+            keptUntil: string;
+            /** Format: int32 */
+            lastAnswer?: number;
+            /** Format: date-time */
+            lastAttempt?: string;
+            statusText?: string;
+        };
+        IntegrationDeadLetterList: {
+            items: components["schemas"]["IntegrationDeadLetter"][];
+        };
+        IntegrationDisconnectInput: {
+            reason?: string;
+        };
+        IntegrationDisconnectPreview: {
+            /** Format: int64 */
+            dead: number;
+            key?: components["schemas"]["IntegrationKeyView"];
+            /** Format: int64 */
+            queued: number;
+            /** Format: int64 */
+            webhooks: number;
+            /** @description Workflows seen in the last 30 days: they stop */
+            workflows: components["schemas"]["IntegrationWorkflowRef"][];
+        };
+        IntegrationEntry: {
+            connectionId?: string;
+            facts: components["schemas"]["IntegrationFacts"];
+            /** @enum {string} */
+            key: "zapier" | "make" | "n8n" | "wordpress" | "hostrepute" | "api" | "webhooks" | "mcp";
+            reasons: components["schemas"]["IntegrationReason"][];
+            /** @enum {string} */
+            status: "not_connected" | "waiting" | "connected" | "attention" | "none";
+            updateAvailable: boolean;
+        };
+        IntegrationFacts: {
+            /** Format: int64 */
+            actions: number;
+            /** Format: int64 */
+            agents: number;
+            /** Format: int64 */
+            endpoints: number;
+            /** Format: int64 */
+            failing: number;
+            /** Format: date-time */
+            keyCreatedAt?: string;
+            /** Format: date-time */
+            lastCallAt?: string;
+            /** Format: date-time */
+            lastSyncAt?: string;
+            mcpEnabled: boolean;
+            /** Format: int64 */
+            silentSites: number;
+            /** Format: int64 */
+            sites: number;
+            team?: string;
+            /** Format: int64 */
+            triggers: number;
+            /** Format: int64 */
+            updates: number;
+            /** Format: int64 */
+            workflows: number;
+        };
+        IntegrationFieldItem: {
+            key: string;
+            label: string;
+            type: string;
+        };
+        IntegrationFieldItems: {
+            items: components["schemas"]["IntegrationFieldItem"][];
+        };
+        IntegrationFirstCall: {
+            /** Format: date-time */
+            at: string;
+            client?: string;
+            ip?: string;
+            operation: string;
+            /** Format: int32 */
+            status: number;
+        };
+        IntegrationGroup: {
+            entries: components["schemas"]["IntegrationEntry"][];
+            /** @enum {string} */
+            key: "automation" | "websites" | "deliverability" | "developer" | "ai" | "verification" | "payments" | "commerce";
+        };
+        IntegrationHook: {
+            /** Format: date-time */
+            createdAt: string;
+            event: string;
+            id: string;
+            /** @description The signing secret. Only in the answer to the subscribe call. */
+            secret?: string;
+            signatureHeader: string;
+            timestampHeader: string;
+            url: string;
+        };
+        IntegrationHookInput: {
+            /**
+             * @description The trigger's event
+             * @example contact.unsubscribed
+             */
+            event: string;
+            /** @description Where ReputeCast posts the events: the workflow's webhook address */
+            url: string;
+        };
+        IntegrationHub: {
+            alerts: components["schemas"]["IntegrationAlert"][];
+            canManage: boolean;
+            /** @description Groups with something in them, in order */
+            groups: components["schemas"]["IntegrationGroup"][];
+            helpers: string[];
+        };
+        IntegrationItemLock: {
+            event?: string;
+            helpers?: string[];
+            key: string;
+            /** @enum {string} */
+            kind: "trigger" | "action";
+            locked: boolean;
+            missing?: string;
+            new: boolean;
+            on: boolean;
+            permissions: string[];
+            sensitive: boolean;
+        };
+        IntegrationItemState: {
+            available: boolean;
+            event?: string;
+            key: string;
+            /** @enum {string} */
+            kind: "trigger" | "action";
+            missing?: string;
+            new: boolean;
+            /** @enum {string} */
+            offReason?: "turned_off" | "owner_lacks" | "";
+            on: boolean;
+            owner?: string;
+            permissions: string[];
+            sensitive: boolean;
+        };
+        IntegrationKeyView: {
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            expiresAt?: string;
+            /**
+             * Format: date-time
+             * @description A rotated key keeps working until then
+             */
+            graceUntil?: string;
+            id: string;
+            /** Format: date-time */
+            lastUsedAt?: string;
+            lastUsedClient?: string;
+            lastUsedIp?: string;
+            /** @example rc_live_5d1e…7b20 */
+            masked: string;
+            name: string;
+            owner: components["schemas"]["IntegrationPerson"];
+            /** Format: date-time */
+            ownerLeftAt?: string;
+            /** @enum {string} */
+            ownerStatus: "active" | "deactivated" | "removed";
+            /** @description As held: implied view permissions left out */
+            permissions: string[];
+            /** Format: date-time */
+            revokedAt?: string;
+            scope: components["schemas"]["ScopeSummary"];
+            sensitive: string[];
+            /** @enum {string} */
+            status: "active" | "grace" | "revoked" | "expired";
+        };
+        IntegrationListItem: {
+            doubleOptIn: boolean;
+            id: string;
+            name: string;
+        };
+        IntegrationListItems: {
+            items: components["schemas"]["IntegrationListItem"][];
+        };
+        IntegrationListOption: {
+            /** Format: int64 */
+            contacts: number;
+            id: string;
+            name: string;
+        };
+        IntegrationManagedHook: {
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: int64 */
+            dead: number;
+            /** Format: int64 */
+            delivered24h: number;
+            /** @description Masked: https://n8n.acme.io/webhook/7c1e…/reputecast */
+            endpoint: string;
+            event: string;
+            /** Format: date-time */
+            failingSince?: string;
+            id: string;
+            lastAttempt?: components["schemas"]["IntegrationAttempt"];
+            /** Format: int32 */
+            lastStatus?: number;
+            /** Format: date-time */
+            nextAt?: string;
+            /** Format: int64 */
+            queued: number;
+            /** Format: date-time */
+            recoveredAt?: string;
+            /** Format: int64 */
+            retrying: number;
+            /** @enum {string} */
+            status: "new" | "healthy" | "failing" | "dead_letters";
+            statusText?: string;
+            /** Format: int64 */
+            total24h: number;
+            workflow?: string;
+        };
+        IntegrationManagedKey: {
+            /** Format: int64 */
+            calls7d: number;
+            connectionId: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            expiresAt?: string;
+            /**
+             * Format: date-time
+             * @description A rotated key keeps working until then
+             */
+            graceUntil?: string;
+            id: string;
+            kind: string;
+            label: string;
+            /** Format: date-time */
+            lastUsedAt?: string;
+            lastUsedClient?: string;
+            lastUsedIp?: string;
+            /** @example rc_live_5d1e…7b20 */
+            masked: string;
+            name: string;
+            owner: components["schemas"]["IntegrationPerson"];
+            /** Format: date-time */
+            ownerLeftAt?: string;
+            /** @enum {string} */
+            ownerStatus: "active" | "deactivated" | "removed";
+            /** @description As held: implied view permissions left out */
+            permissions: string[];
+            /** Format: date-time */
+            revokedAt?: string;
+            scope: components["schemas"]["ScopeSummary"];
+            sensitive: string[];
+            /** @enum {string} */
+            status: "active" | "grace" | "revoked" | "expired";
+            workflows: components["schemas"]["IntegrationWorkflowRef"][];
+        };
+        IntegrationManagedKeyList: {
+            items: components["schemas"]["IntegrationManagedKey"][];
+        };
+        IntegrationMe: {
+            /** @description Actions turned on */
+            actions: string[];
+            /** @enum {string} */
+            integration: "zapier" | "make" | "n8n" | "wordpress" | "";
+            /** @description The key's name */
+            key: string;
+            permissions: string[];
+            /** @description Events of the triggers turned on */
+            triggers: string[];
+            /** @description The workspace slug, for the other calls' paths */
+            workspace: string;
+            workspaceName: string;
+        };
+        IntegrationNumbers: {
+            /** Format: int64 */
+            calls7d: number;
+            /**
+             * Format: int64
+             * @description Calls refused to keep consent (409)
+             */
+            consentKept7d: number;
+            /** Format: int64 */
+            errors7d: number;
+            /**
+             * Format: int64
+             * @description Errors a later call from the same workflow got past
+             */
+            fixed7d: number;
+            /** Format: date-time */
+            lastCallAt?: string;
+            lastCallWorkflow?: string;
+            /** Format: int64 */
+            managedWebhooks: number;
+        };
+        IntegrationOption: {
+            detail?: string;
+            id: string;
+            name: string;
+        };
+        IntegrationOwned: {
+            connectionId: string;
+            keyName: string;
+            kind: string;
+            label: string;
+            /** Format: date-time */
+            silentSince?: string;
+            /**
+             * Format: int64
+             * @description Workflows seen in the last 30 days
+             */
+            workflows: number;
+        };
+        IntegrationOwnedList: {
+            canManage: boolean;
+            items: components["schemas"]["IntegrationOwned"][];
+        };
+        IntegrationPerson: {
+            avatarColor?: string;
+            id?: string;
+            name: string;
+        };
+        IntegrationReachability: {
+            admins: string[];
+            /** Format: date-time */
+            checkedAt?: string;
+            dns: components["schemas"]["CheckLine"];
+            private: boolean;
+            privateWebhooks: boolean;
+            reach: components["schemas"]["CheckLine"];
+            reachable: boolean;
+            tls: components["schemas"]["CheckLine"];
+            url: string;
+        };
+        IntegrationReason: {
+            by?: string;
+            /** Format: int64 */
+            calls?: number;
+            check?: components["schemas"]["WordPressCheck"];
+            /** @enum {string} */
+            code: "key_revoked" | "key_expired" | "owner_left" | "key_expiring" | "deliveries_failing" | "calls_failing" | "site_silent";
+            connectionId?: string;
+            /** Format: int64 */
+            failed?: number;
+            host?: string;
+            /** Format: date-time */
+            nextAt?: string;
+            /** Format: int64 */
+            rejected?: number;
+            /** Format: int64 */
+            retrying?: number;
+            /** Format: date-time */
+            since?: string;
+            /** Format: int32 */
+            status?: number;
+            statusText?: string;
+        };
+        IntegrationRejectedCall: {
+            /** Format: date-time */
+            at: string;
+            code: string;
+            /** Format: int32 */
+            status: number;
+            workflow: string;
+        };
+        IntegrationResolution: {
+            /** Format: date-time */
+            fixedAt?: string;
+            fixedBy?: string;
+            laterRuns: string[];
+        };
+        IntegrationSecret: {
+            /** @description Paste it into the other tool with the key */
+            instanceUrl: string;
+            integrationId: string;
+            key: components["schemas"]["IntegrationKeyView"];
+            kind: string;
+            /** Format: date-time */
+            oldKeyUntil?: string;
+            /** @description The full key. Shown only in this response. */
+            secret: string;
+        };
+        IntegrationSite: {
+            categories: components["schemas"]["WordPressCategory"][];
+            /** Format: date-time */
+            connectedAt: string;
+            connectedBy?: string;
+            drafts: components["schemas"]["IntegrationSiteDraft"][];
+            /** Format: int64 */
+            draftsThisWeek: number;
+            feedUrl?: string;
+            /** Format: date-time */
+            firstReportAt?: string;
+            forms: components["schemas"]["IntegrationSiteForm"][];
+            host: string;
+            /** @description The connection's id */
+            id: string;
+            items: components["schemas"]["IntegrationItemState"][];
+            key?: components["schemas"]["IntegrationKeyView"];
+            languagePlugin?: string;
+            lastCheck?: components["schemas"]["WordPressCheck"];
+            /** Format: date-time */
+            lastReportAt?: string;
+            name?: string;
+            oldKey?: components["schemas"]["IntegrationKeyView"];
+            phpVersion?: string;
+            pluginVersion?: string;
+            reasons: components["schemas"]["IntegrationReason"][];
+            rule: components["schemas"]["IntegrationSiteRule"];
+            signupsRejected: boolean;
+            siteUrl?: string;
+            /** @enum {string} */
+            status: "waiting" | "connected" | "attention";
+            updateAvailable: boolean;
+            wordpressVersion?: string;
+        };
+        IntegrationSiteDraft: {
+            audience?: string;
+            campaignId?: string;
+            /** Format: date-time */
+            createdAt: string;
+            notified?: string;
+            postUrl?: string;
+            /** Format: date-time */
+            publishedAt?: string;
+            /** @description The campaign's status (draft, scheduled, sent…) */
+            status: string;
+            title: string;
+        };
+        IntegrationSiteForm: {
+            /** @description The site is one of the form's allowed domains */
+            allowed: boolean;
+            /** @description The form's uuid, for links */
+            id: string;
+            /** @enum {string} */
+            kind: "block" | "shortcode" | "widget";
+            /** @description The site uses a form that no longer exists */
+            missing: boolean;
+            name: string;
+            places: components["schemas"]["WordPressFormPlace"][];
+            /** @example frm_8c2e1a */
+            publicId: string;
+        };
+        IntegrationSiteRule: {
+            categories: components["schemas"]["WordPressCategory"][];
+            enabled: boolean;
+            list?: components["schemas"]["IntegrationListOption"];
+            listIds: string[];
+            notify?: components["schemas"]["IntegrationOption"];
+            sender?: components["schemas"]["IntegrationOption"];
+            /** @description A rule was set up (even if it's off now) */
+            set: boolean;
+            template?: components["schemas"]["IntegrationOption"];
+        };
+        IntegrationStatus: {
+            firstCall?: components["schemas"]["IntegrationFirstCall"];
+            /** Format: date-time */
+            keyCreatedAt?: string;
+            /** Format: date-time */
+            reported?: string;
+            /** @enum {string} */
+            status: "waiting" | "connected" | "attention";
+        };
+        IntegrationTakeOverPreview: {
+            held: string[];
+            key: components["schemas"]["IntegrationKeyView"];
+            missing: string[];
+            newOwner: components["schemas"]["IntegrationPerson"];
+            roleName: string;
+            stops: string[];
+        };
+        IntegrationTemplateItem: {
+            /**
+             * @description The template's ID, for the send call
+             * @example payment-failed
+             */
+            key: string;
+            name: string;
+            variables: components["schemas"]["IntegrationTemplateVariable"][];
+            /**
+             * Format: int32
+             * @description The live version
+             */
+            version: number;
+        };
+        IntegrationTemplateItems: {
+            items: components["schemas"]["IntegrationTemplateItem"][];
+        };
+        IntegrationTemplateVariable: {
+            description?: string;
+            /** @example amount_due */
+            name: string;
+            required: boolean;
+            /** @description Masked in the call log, never stored */
+            sensitive: boolean;
+            /** @example text */
+            type: string;
+        };
+        IntegrationTriggerSample: {
+            event: string;
+            payload: components["schemas"]["Envelope"];
+        };
+        IntegrationWordPressPage: {
+            canEditForms: boolean;
+            canManage: boolean;
+            connectedBy?: string;
+            helpers: string[];
+            instanceUrl: string;
+            latestPlugin: string;
+            lists: components["schemas"]["IntegrationListOption"][];
+            members: components["schemas"]["IntegrationOption"][];
+            reasons: components["schemas"]["IntegrationReason"][];
+            senders: components["schemas"]["IntegrationOption"][];
+            sites: components["schemas"]["IntegrationSite"][];
+            /** @enum {string} */
+            status: "not_connected" | "waiting" | "connected" | "attention";
+            templates: components["schemas"]["IntegrationOption"][];
+            updateAvailable: boolean;
+        };
+        IntegrationWorkflowRef: {
+            /** Format: date-time */
+            lastRunAt: string;
+            name: string;
+            unnamed: boolean;
+        };
+        IntegrationWorkflowRow: {
+            /** Format: int64 */
+            calls7d: number;
+            /** Format: int64 */
+            consentKept7d: number;
+            /** Format: int64 */
+            deliveries7d: number;
+            /** Format: int64 */
+            errors7d: number;
+            /** Format: date-time */
+            fixedAt?: string;
+            key: string;
+            /** Format: date-time */
+            lastRunAt: string;
+            name: string;
+            trigger: boolean;
+            unnamed: boolean;
+            uses: components["schemas"]["WorkflowUse"][];
+        };
         InvitationAcceptInput: {
             name?: string;
             password?: string;
@@ -12488,7 +13861,7 @@ export interface components {
             /** @description Full sentence for the notification center */
             body: string;
             /** @enum {string} */
-            category: "approvals" | "sending" | "providers" | "team" | "hostrepute" | "other" | "transactional";
+            category: "approvals" | "sending" | "providers" | "team" | "hostrepute" | "other" | "integrations" | "transactional";
             /** @example Approvals */
             categoryLabel: string;
             /** Format: date-time */
@@ -17729,6 +19102,16 @@ export interface components {
             signatureHeader: string;
             timestampHeader: string;
         };
+        WebhookManagedBy: {
+            /** @example https://n8n.acme.io/webhook/7c1e…/reputecast */
+            endpoint?: string;
+            integrationId: string;
+            /** @example n8n */
+            kind: string;
+            /** @example n8n */
+            name: string;
+            workflow?: string;
+        };
         WebhookRetryInput: {
             /** @description Only this endpoint; empty retries every endpoint */
             webhookId?: string;
@@ -17756,6 +19139,7 @@ export interface components {
             lastDeliveryAt?: string;
             /** Format: int32 */
             lastStatus?: number;
+            managedBy?: components["schemas"]["WebhookManagedBy"];
             name: string;
             /**
              * Format: int64
@@ -17795,6 +19179,131 @@ export interface components {
         };
         WelcomePromptResult: {
             prompt?: components["schemas"]["WelcomePrompt"];
+        };
+        WordPressCategory: {
+            id: string;
+            name: string;
+            slug: string;
+        };
+        WordPressCheck: {
+            /** Format: date-time */
+            checkedAt: string;
+            /** @example Timed out after 10 s */
+            detail: string;
+            /** Format: int64 */
+            ms?: number;
+            ok: boolean;
+            /** @enum {string} */
+            outcome: "answered" | "timeout" | "status" | "blocked" | "unreachable";
+            /** Format: double */
+            seconds?: number;
+            /** Format: int64 */
+            status?: number;
+        };
+        WordPressDraftInput: {
+            post: components["schemas"]["WordPressPost"];
+        };
+        WordPressDraftResult: {
+            campaignId?: string;
+            created: boolean;
+            name?: string;
+            /** @enum {string} */
+            reason?: "no_rule" | "rule_off" | "category" | "exists" | "";
+        };
+        WordPressForm: {
+            /** @example frm_8c2e1a */
+            id: string;
+            kind: string;
+            name: string;
+            /** @description The form's public script, as embeds load it */
+            script: string;
+            /** @example [reputecast_form id="frm_8c2e1a"] */
+            shortcode: string;
+            siteAllowed: boolean;
+            /** @enum {string} */
+            status: "draft" | "live" | "paused";
+        };
+        WordPressFormList: {
+            items: components["schemas"]["WordPressForm"][];
+        };
+        WordPressFormPlace: {
+            /** @example Join the beta */
+            title: string;
+            url?: string;
+        };
+        WordPressFormUse: {
+            /**
+             * @description The form's id (frm_…)
+             * @example frm_8c2e1a
+             */
+            form: string;
+            /** @enum {string} */
+            kind: "block" | "shortcode" | "widget";
+            places: components["schemas"]["WordPressFormPlace"][];
+        };
+        WordPressPost: {
+            /** @description Category slugs */
+            categories?: string[];
+            excerpt?: string;
+            id: string;
+            /** @description The featured image */
+            imageUrl?: string;
+            language?: string;
+            /** Format: date-time */
+            publishedAt?: string;
+            title: string;
+            url?: string;
+        };
+        WordPressReportInput: {
+            categories?: components["schemas"]["WordPressCategory"][];
+            feedUrl?: string;
+            forms?: components["schemas"]["WordPressFormUse"][];
+            /** @enum {string} */
+            languagePlugin?: "wpml" | "polylang" | "";
+            name?: string;
+            /** @example 8.3 */
+            phpVersion?: string;
+            /** @example 1.2.0 */
+            pluginVersion: string;
+            /** @example https://blog.acme.io */
+            siteUrl: string;
+            /** @example 6.9.2 */
+            wordpressVersion?: string;
+        };
+        WordPressReportResult: {
+            latestPlugin: string;
+            /** @description The site's address as ReputeCast lists it */
+            site: string;
+            workspace: string;
+            workspaceName: string;
+        };
+        WordPressRule: {
+            /** @description Category slugs */
+            categories: string[];
+            listIds: string[];
+            notifyUserId?: string;
+            senderId?: string;
+            templateId?: string;
+        };
+        WordPressRuleInput: {
+            /** @description Category slugs */
+            categories: string[];
+            enabled: boolean;
+            listIds: string[];
+            notifyUserId?: string;
+            senderId?: string;
+            templateId?: string;
+        };
+        WorkflowUse: {
+            event?: string;
+            goalOf?: string[];
+            item: string;
+            lists?: string[];
+            /** @enum {string} */
+            optIn?: "single" | "double";
+            starts?: string[];
+            tags?: string[];
+            template?: string;
         };
         WorkspaceApprovals: {
             /** Format: int64 */
@@ -19834,6 +21343,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PasskeyOptions"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-integration": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntegrationMe"];
                 };
             };
             /** @description Error */
@@ -22053,7 +23591,7 @@ export interface operations {
                 /** @description Action group (routing) or action (routing.updated) */
                 action?: string;
                 /** @description A group of actions, as in the action filter */
-                category?: "sending" | "routing" | "audience" | "team" | "settings" | "transactional";
+                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional";
                 result?: "allowed" | "denied" | "error";
                 range?: "24h" | "7d" | "30d" | "90d" | "all";
                 /** @description Overrides range */
@@ -22135,7 +23673,7 @@ export interface operations {
                 /** @description Action group (routing) or action (routing.updated) */
                 action?: string;
                 /** @description A group of actions, as in the action filter */
-                category?: "sending" | "routing" | "audience" | "team" | "settings" | "transactional";
+                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional";
                 result?: "allowed" | "denied" | "error";
                 range?: "24h" | "7d" | "30d" | "90d" | "all";
                 /** @description Overrides range */
@@ -25994,6 +27532,78 @@ export interface operations {
             };
         };
     };
+    "tag-contact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContactTagInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactUpsertResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "upsert-contact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContactUpsertInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactUpsertResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "list-contact-views": {
         parameters: {
             query?: never;
@@ -28077,6 +29687,205 @@ export interface operations {
             };
         };
     };
+    "list-integration-fields": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntegrationFieldItems"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "subscribe-integration-hook": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The calling workflow: "<name>; id=<id>", the name percent-encoded when it isn't ASCII */
+                "X-ReputeCast-Workflow"?: string;
+            };
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IntegrationHookInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntegrationHook"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "unsubscribe-integration-hook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                hookId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-integration-lists": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntegrationListItems"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-integration-trigger-sample": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                event: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntegrationTriggerSample"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-integration-templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntegrationTemplateItems"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "get-integrations": {
         parameters: {
             query?: never;
@@ -28096,6 +29905,696 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HostReputeIntegrationsOverview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "check-integration-address": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IntegrationAddressCheckInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntegrationAddressCheck"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-integration-app": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                kind: "zapier" | "make" | "n8n" | "wordpress";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntegrationApp"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-integration-connect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                kind: "zapier" | "make" | "n8n" | "wordpress";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntegrationConnectInfo"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "connect-integration": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                kind: "zapier" | "make" | "n8n" | "wordpress";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IntegrationConnectInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntegrationSecret"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-integration-catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntegrationHub"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-integration-address": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IntegrationAddressInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntegrationAddressCheck"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-integration-calls": {
+        parameters: {
+            query?: {
+                /** @description Only errors */
+                errors?: boolean;
+                window?: "24h" | "7d";
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntegrationCallList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-integration-call": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+                callId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntegrationCallDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "change-integration": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IntegrationChangeInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntegrationChanged"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "check-wordpress-site": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WordPressCheck"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-integration-disconnect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntegrationDisconnectPreview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "disconnect-integration": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IntegrationDisconnectInput"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "reconnect-integration": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IntegrationConnectInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntegrationSecret"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "rotate-integration-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntegrationSecret"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-wordpress-rule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WordPressRuleInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WordPressRule"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-integration-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntegrationStatus"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "stop-integration-old-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-integration-take-over": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntegrationTakeOverPreview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "take-over-integration": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntegrationTakeOverPreview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-integration-dead-letters": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+                webhookId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntegrationDeadLetterList"];
                 };
             };
             /** @description Error */
@@ -28298,6 +30797,135 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HostReputeSyncQueued"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-integration-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntegrationManagedKeyList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-member-integrations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntegrationOwnedList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "check-integration-reachability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntegrationReachability"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-integration-wordpress": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntegrationWordPressPage"];
                 };
             };
             /** @description Error */
@@ -28932,6 +31560,44 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AudienceListSummary"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "add-contact-to-list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The list */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContactListAddInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactUpsertResult"];
                 };
             };
             /** @description Error */
@@ -34363,6 +37029,110 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-wordpress-draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WordPressDraftInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WordPressDraftResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-wordpress-forms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WordPressFormList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "report-wordpress-site": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WordPressReportInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WordPressReportResult"];
+                };
             };
             /** @description Error */
             default: {
