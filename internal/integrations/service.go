@@ -111,6 +111,18 @@ func (w Workflow) Key() string {
 	return w.Name
 }
 
+// String is the header as a person reads it, the name decoded:
+// "Unsubscribes → Acme Cloud CRM; id=wf_2Lm8".
+func (w Workflow) String() string {
+	switch {
+	case w.Name != "" && w.ID != "":
+		return w.Name + "; id=" + w.ID
+	case w.ID != "":
+		return "id=" + w.ID
+	}
+	return w.Name
+}
+
 // ParseWorkflow reads "<name>; id=<id>" (the name may be percent-encoded, or
 // given as name=…). Either part may be missing.
 func ParseWorkflow(h string) Workflow {

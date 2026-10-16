@@ -172,6 +172,54 @@ func (s *Service) Unsubscribe(ctx context.Context, ws *store.Workspace, hookID u
 	})
 }
 
+// Hook returns one of the calling integration's managed webhooks, without
+// its secret: n8n checks that a workflow's webhook still exists whenever the
+// workflow is turned on (or n8n restarts), and subscribes again when it
+// doesn't, for example after a 410 Gone removed it.
+func (s *Service) Hook(ctx context.Context, hookID uuid.UUID) (IntegrationHook, error) {
+	ik, _, err := s.callingIntegration(ctx)
+	if err != nil {
+		return IntegrationHook{}, err
+	}
+	h, err := s.Q.IntegrationWebhookOf(ctx, store.IntegrationWebhookOfParams{WebhookID: hookID, IntegrationID: ik.ID})
+	if err != nil {
+		return IntegrationHook{}, api.MapError(err, "Webhook")
+	}
+	api.NoteCall(ctx, noteItem, h.Event)
+	noteTargetJSON(ctx, CallTarget{Kind: "hook", Event: h.Event, Endpoint: maskEndpoint(h.Url)})
+	return IntegrationHook{ID: h.WebhookID.String(), Event: h.Event, URL: h.Url, CreatedAt: h.CreatedAt,
+		SignatureHeader: webhooks.HeaderSignature, TimestampHeader: webhooks.HeaderTimestamp}, nil
+}
+
+// IntegrationFormItem is a signup form, for the Form submitted trigger's
+// form filter in the apps.
+type IntegrationFormItem struct {
+	ID     string `json:"id" example:"frm_8c2e1a" doc:"The form's ID, as form.submitted's form_id"`
+	Name   string `json:"name"`
+	Status string `json:"status" enum:"draft,live,paused"`
+}
+
+// IntegrationFormItems are the workspace's signup forms.
+type IntegrationFormItems struct {
+	Items []IntegrationFormItem `json:"items"`
+}
+
+// TriggerForms lists the signup forms, so a workflow can start from one
+// form's submissions only. Only keys with the Form submitted trigger on can
+// call it; it reads forms, never contacts.
+func (s *Service) TriggerForms(ctx context.Context, ws *store.Workspace) (IntegrationFormItems, error) {
+	rows, err := s.Q.WordPressForms(ctx, ws.ID)
+	if err != nil {
+		return IntegrationFormItems{}, err
+	}
+	noteTargetJSON(ctx, CallTarget{Kind: "forms"})
+	out := IntegrationFormItems{Items: []IntegrationFormItem{}}
+	for _, f := range rows {
+		out.Items = append(out.Items, IntegrationFormItem{ID: f.PublicID, Name: f.Name, Status: f.Status})
+	}
+	return out, nil
+}
+
 // Gone removes a managed webhook whose endpoint answered 410 Gone, as
 // Zapier's REST Hooks ask. The system is the actor.
 func (s *Service) Gone(ctx context.Context, webhookID uuid.UUID) {

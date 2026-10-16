@@ -2,6 +2,9 @@ package integrations
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,6 +14,7 @@ import (
 	"net/url"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -28,6 +32,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/netguard"
 	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/store"
+	"github.com/hostrepute/reputecast/internal/webhooks"
 )
 
 // KnownPluginVersion is the WordPress plugin release this version of
@@ -633,7 +638,11 @@ func (s *Service) CheckSite(ctx context.Context, ws *store.Workspace, id uuid.UU
 	if base == "" {
 		base = siteBase(site.Address)
 	}
-	out := s.probe(ctx, strings.TrimRight(base, "/")+"/wp-json/reputecast/v1/status")
+	hashes, err := s.Q.WordPressSiteKeyHashes(ctx, &conn.ID)
+	if err != nil {
+		return WordPressCheck{}, err
+	}
+	out := s.probe(ctx, strings.TrimRight(base, "/")+"/wp-json/reputecast/v1/status", statusHeaders(hashes, s.now()))
 	out.CheckedAt = s.now()
 	b, _ := json.Marshal(out)
 	if err := s.Q.WordPressSiteChecked(ctx, store.WordPressSiteCheckedParams{IntegrationID: conn.ID, At: out.CheckedAt, LastCheck: b}); err != nil {
@@ -642,8 +651,34 @@ func (s *Service) CheckSite(ctx context.Context, ws *store.Workspace, id uuid.UU
 	return out, nil
 }
 
+// StatusSignature signs a "Check now" call with one of a site's keys: the
+// hex HMAC-SHA256 of "{timestamp}.status", keyed with the key's SHA-256.
+// ReputeCast keeps only that hash; the plugin computes it from the key it
+// holds, so it answers only the workspace it's connected to.
+func StatusSignature(keyHash []byte, ts int64) string {
+	m := hmac.New(sha256.New, keyHash)
+	m.Write([]byte(strconv.FormatInt(ts, 10) + ".status"))
+	return hex.EncodeToString(m.Sum(nil))
+}
+
+// statusHeaders sign a "Check now" call with every live key of the site
+// (a rotated key keeps working for 24 hours, and the plugin may still hold
+// it): X-ReputeCast-Timestamp, and the signatures comma-separated in
+// X-ReputeCast-Signature.
+func statusHeaders(hashes [][]byte, now time.Time) map[string]string {
+	if len(hashes) == 0 {
+		return nil
+	}
+	ts := now.Unix()
+	sigs := make([]string, 0, len(hashes))
+	for _, h := range hashes {
+		sigs = append(sigs, StatusSignature(h, ts))
+	}
+	return map[string]string{webhooks.HeaderTimestamp: strconv.FormatInt(ts, 10), webhooks.HeaderSignature: strings.Join(sigs, ",")}
+}
+
 // probe GETs a site's status endpoint and describes the answer.
-func (s *Service) probe(ctx context.Context, target string) WordPressCheck {
+func (s *Service) probe(ctx context.Context, target string, headers map[string]string) WordPressCheck {
 	u, err := s.policy().ValidateURL(target)
 	if err != nil {
 		return WordPressCheck{Outcome: "blocked", Detail: "Blocked: " + err.Error()}
@@ -656,6 +691,10 @@ func (s *Service) probe(ctx context.Context, target string) WordPressCheck {
 		return WordPressCheck{Outcome: "unreachable", Detail: "Invalid address"}
 	}
 	req.Header.Set("User-Agent", "ReputeCast-Check")
+	req.Header.Set("Accept", "application/json")
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
 	start := s.now()
 	resp, err := s.client(timeout).Do(req)
 	if err != nil {
