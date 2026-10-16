@@ -507,6 +507,9 @@ type txnMsg struct {
 	delivCode          string
 	failedOverAt       *time.Time
 	routeFailedAtStart bool
+	// rawCategory is the category Raw (SMTP) mail named (X-ReputeCast-Category,
+	// or the credential's only one).
+	rawCategory string
 }
 
 var txnFirstNames = []string{"Sam", "Priya", "Alex", "Jordan", "Kim", "Lena", "Mateo", "Aisha", "Noah", "Mia", "Lucas", "Zoe", "Omar", "Ivy", "Hugo", "Nora", ""}
@@ -617,7 +620,7 @@ func (t *txnSeed) week(ctx context.Context) error {
 	type reserved struct{ sent, hard, soft, deferred, complained, last24, bounced24, deferred24 int }
 	// What the samples, the outage and this week's history already take.
 	res := map[string]reserved{
-		"password-reset": {sent: 1 + 13 + 1, last24: 1},               // Sam today; 13 outage messages and Sam's on 9 Oct
+		"password-reset": {sent: 1 + 1 + 13 + 1, last24: 2},           // Sam and Lucía today; 13 outage messages and Sam's on 9 Oct
 		"magic-link":     {sent: 16},                                  // outage messages
 		"welcome":        {sent: 1 + 7, last24: 1},                    // Priya today; outage messages
 		"invoice-paid":   {sent: 1, last24: 1},                        // billing@northwind today
@@ -864,6 +867,14 @@ func (t *txnSeed) add(m *txnMsg) error {
 		for k := range m.data {
 			dataKeys = append(dataKeys, k)
 		}
+	} else if m.rawCategory != "" {
+		c := t.categories[m.rawCategory]
+		catID, catName = &c, m.rawCategory
+		for _, cc := range txnCategories {
+			if cc.name == m.rawCategory {
+				catKind = cc.kind
+			}
+		}
 	}
 	if sensitive == nil {
 		sensitive = []string{}
@@ -1058,7 +1069,7 @@ func (t *txnSeed) samples(ctx context.Context) error {
 		errorText: "Test mode: not a member or an allowed test address, so not delivered."})
 	rows = append(rows, &txnMsg{id: ID(), email: "finance@northwind.example", mailbox: "other", status: "delivered", accepted: t0.Add(-366 * time.Second), deliverAfter: 1820 * time.Millisecond,
 		data: map[string]any{}, subject: "Your receipt #4821", keyName: "Billing service (SMTP)", ip: "198.51.100.40", tags: []string{"receipt"}, metadata: map[string]string{},
-		source: "smtp", fromEmail: "billing@notify.acme.io", keepContent: true})
+		source: "smtp", fromEmail: "billing@notify.acme.io", keepContent: true, rawCategory: "Billing"})
 	alexAt := t0.Add(-734 * time.Second)
 	opened := alexAt.Add(3*time.Minute + 2*time.Second)
 	rows = append(rows, &txnMsg{id: ID(), plan: t.plan("usage-summary"), key: "usage-summary", email: "alex.morgan@example.com", name: "Alex Morgan", mailbox: "other", status: "delivered",
@@ -1066,7 +1077,22 @@ func (t *txnSeed) samples(ctx context.Context) error {
 		data:    map[string]any{"first_name": "Alex", "projects": 4, "deploys": 37, "usage_url": "https://app.acme.io/usage"},
 		subject: "Your week in Acme Cloud", keyName: "Acme Cloud · production", ip: "198.51.100.24", tags: []string{"weekly"}, metadata: map[string]string{"user_id": "u_29034"},
 		source: "api", fromEmail: "no-reply@notify.acme.io", keepContent: true})
-	// The raw SMTP receipt counts in the Billing category.
+	// Lucía Fernández's reset in Spanish, her contact's language (the
+	// languages brief: "At 14:02 it went to lucia.fernandez@example.com:
+	// Spanish, from the contact"), 18 minutes ago on that page's clock.
+	lucia := &txnMsg{id: ID(), plan: t.plan("password-reset"), key: "password-reset", email: "lucia.fernandez@example.com", name: "Lucía Fernández", mailbox: "other",
+		status: "delivered", accepted: s.Ago(18 * time.Minute), deliverAfter: 1220 * time.Millisecond, provider: &pm,
+		data: map[string]any{"first_name": "Lucía", "reset_url": transactional.Mask, "expires_in": "30 minutes"}, subject: "Restablece tu contraseña de Acme Cloud",
+		keyName: "Acme Cloud · production", ip: "198.51.100.24", tags: []string{"auth"}, metadata: map[string]string{"user_id": "u_51337"}, source: "api",
+		fromEmail: "no-reply@notify.acme.io"}
+	rows = append(rows, lucia)
+	// X05's seeder names the contact and translates the template after
+	// this one: link and label the message once every seeder has run.
+	s.After(func(ctx context.Context, s *Seeder) error {
+		_, err := s.Tx.Exec(ctx, `UPDATE messages SET contact_id = (SELECT id FROM contacts WHERE workspace_id = $1 AND email = $3 AND erased_at IS NULL LIMIT 1),
+			language = 'es', contact_language = 'es', language_reason = 'match' WHERE id = $2`, t.ws.ID, lucia.id, lucia.email)
+		return err
+	})
 	for _, m := range rows {
 		if err := t.add(m); err != nil {
 			return err
@@ -1077,10 +1103,6 @@ func (t *txnSeed) samples(ctx context.Context) error {
 			}
 		}
 	}
-	// The raw receipt: logged as Raw (SMTP) in the Billing category.
-	t.txnRows[len(t.txnRows)-2][7] = ptr(t.categories["Billing"])
-	t.txnRows[len(t.txnRows)-2][8] = "Billing"
-	t.txnRows[len(t.txnRows)-2][9] = transactional.KindEssential
 	return nil
 }
 

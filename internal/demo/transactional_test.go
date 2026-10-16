@@ -144,6 +144,26 @@ func TestTransactionalDemo(t *testing.T) {
 	}
 	c.Do("GET", base+"/messages/0192f1c4-7b2e-7c51-9d0a-3f5e8b1a2c44/content", nil).MustStatus(t, 200)
 
+	// Lucía Fernández's reset went out in Spanish, her contact's language
+	// (the languages brief): the log's Language column and the detail's line.
+	var lucia struct {
+		Items []struct {
+			ID, Email, Language, Subject string
+			ContactID                    string
+		}
+	}
+	c.Do("GET", base+"/messages?range=24h&q=lucia.fernandez", nil).MustStatus(t, 200).JSON(t, &lucia)
+	if len(lucia.Items) != 1 || lucia.Items[0].Language != "es" || lucia.Items[0].ContactID == "" || lucia.Items[0].Subject != "Restablece tu contraseña de Acme Cloud" {
+		t.Fatalf("Lucía's message: %+v", lucia.Items)
+	}
+	var lang struct {
+		LanguageInfo *struct{ Sent, Contact, Reason string }
+	}
+	c.Do("GET", base+"/messages/"+lucia.Items[0].ID, nil).MustStatus(t, 200).JSON(t, &lang)
+	if lang.LanguageInfo == nil || lang.LanguageInfo.Sent != "es" || lang.LanguageInfo.Contact != "es" || lang.LanguageInfo.Reason != "match" {
+		t.Fatalf("Lucía's language: %+v", lang.LanguageInfo)
+	}
+
 	// Categories and their opt-outs.
 	var cats struct {
 		Items []struct {

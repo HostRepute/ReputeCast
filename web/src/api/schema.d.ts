@@ -18812,6 +18812,7 @@ export interface components {
             failedOver?: components["schemas"]["TransactionalFailover"];
             id: string;
             key?: string;
+            language?: string;
             name?: string;
             /** Format: date-time */
             openedAt?: string;
@@ -18871,6 +18872,7 @@ export interface components {
             ip?: string;
             key?: string;
             keyRef?: components["schemas"]["TransactionalRef"];
+            languageInfo?: components["schemas"]["TransactionalMessageLanguage"];
             metadata: {
                 [key: string]: string;
             };
@@ -18910,6 +18912,12 @@ export interface components {
             /** Format: int64 */
             variables: number;
             webhooks: components["schemas"]["TransactionalWebhookDelivery"][];
+        };
+        TransactionalMessageLanguage: {
+            contact?: string;
+            /** @enum {string} */
+            reason?: "match" | "no_language" | "not_offered" | "missing" | "draft" | "held" | "requested" | "";
+            sent: string;
         };
         TransactionalOptOutInfo: {
             category: string;

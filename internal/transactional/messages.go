@@ -121,6 +121,19 @@ type TransactionalLogItem struct {
 	Error       string     `json:"error,omitempty"`
 	Key         string     `json:"key,omitempty"`
 	Category    string     `json:"category,omitempty"`
+	// Language is the language version the message went out in (a base
+	// code such as es); empty for a template in one language.
+	Language string `json:"language,omitempty"`
+}
+
+// TransactionalMessageLanguage is why a message went out in its language:
+// "Spanish, from the contact", "Requested pt-BR, sent English".
+type TransactionalMessageLanguage struct {
+	// Sent is the version's language; Contact the contact's language, or
+	// the one the call asked for.
+	Sent    string `json:"sent"`
+	Contact string `json:"contact,omitempty"`
+	Reason  string `json:"reason,omitempty" enum:"match,no_language,not_offered,missing,draft,held,requested,"`
 }
 
 // TransactionalLogCounts are the log's numbers per status.
@@ -376,7 +389,7 @@ func ms(from time.Time, to *time.Time) *int64 {
 func logItem(r store.TxnLogRow) TransactionalLogItem {
 	it := TransactionalLogItem{ID: r.MessageID.String(), At: r.AcceptedAt, Email: r.Email, Name: r.ToName, Subject: r.Subject, Status: r.Status,
 		Deferrals: int(r.Deferrals), TestDelivered: r.TestDelivered, RoleAddress: r.RoleAddress, Tracked: r.TrackOpens || r.TrackClicks,
-		OpenedAt: r.OpenedAt, ClickedAt: r.ClickedAt, Key: r.KeyName, Category: r.CategoryName}
+		OpenedAt: r.OpenedAt, ClickedAt: r.ClickedAt, Key: r.KeyName, Category: r.CategoryName, Language: r.Language}
 	if r.ContactID != nil {
 		it.ContactID = r.ContactID.String()
 	}
@@ -631,6 +644,8 @@ type TransactionalMessageDetail struct {
 	Resend          TransactionalResendState  `json:"resend"`
 	// CanRemoveSuppression: removing needs subscribers:edit.
 	CanRemoveSuppression bool `json:"canRemoveSuppression"`
+	// Language: the version sent and why; nil for a template in one language.
+	Language *TransactionalMessageLanguage `json:"languageInfo,omitempty"`
 }
 
 // TransactionalRouteInfo is how a message was routed.
@@ -676,13 +691,16 @@ func (s *Service) Message(ctx context.Context, ws *store.Workspace, id uuid.UUID
 		Test: r.Test, TestDelivered: r.TestDelivered, RejectReason: r.RejectReason, RejectDetail: r.RejectDetail, TrackOpens: r.TrackOpens,
 		TrackClicks: r.TrackClicks, FailedOverFrom: r.FailedOverFrom, FailedOverFromName: r.FailedOverFromName, FailedOverAt: r.FailedOverAt,
 		KeyID: r.KeyID, KeyName: r.KeyName, IdempotencyKey: r.IdempotencyKey, Tags: r.Tags, Metadata: r.Metadata, CategoryName: r.CategoryName,
-		CategoryKind: r.CategoryKind, Status: r.Status, RoleAddress: r.RoleAddress})
+		CategoryKind: r.CategoryKind, Status: r.Status, RoleAddress: r.RoleAddress, Language: r.Language})
 	out := TransactionalMessageDetail{TransactionalLogItem: item, CategoryKind: r.CategoryKind, ProviderMessageID: r.ProviderMessageID,
 		IdempotencyKey: r.IdempotencyKey, Tags: nonNilStrings(r.Tags), Metadata: map[string]string{}, From: addrLine(r.FromName, r.FromEmail), ReplyTo: r.ReplyTo,
 		Cc: nonNilStrings(r.Cc), Bcc: nonNilStrings(r.Bcc), Dropped: []string{}, Attachments: []TransactionalAttachmentMeta{}, SizeBytes: int(r.SizeBytes),
 		Variables: len(r.DataKeys), SensitiveSent: []string{}, Source: r.Source, SendAt: r.SendAt, SoftBounceLimit: SoftBounceLimit,
 		Timeline: []TransactionalTimelineEntry{}, Attempts: []TransactionalAttempt{}, Webhooks: []TransactionalWebhookDelivery{}}
 	_ = json.Unmarshal(r.Metadata, &out.Metadata)
+	if r.Language != "" || r.LanguageReason != "" {
+		out.Language = &TransactionalMessageLanguage{Sent: r.Language, Contact: r.ContactLanguage, Reason: r.LanguageReason}
+	}
 	if r.ContactID != nil && r.ContactExists {
 		name := r.ContactName
 		if name == "" {

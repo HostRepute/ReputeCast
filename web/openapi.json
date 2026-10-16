@@ -38318,6 +38318,9 @@
           "key": {
             "type": "string"
           },
+          "language": {
+            "type": "string"
+          },
           "name": {
             "type": "string"
           },
@@ -38519,6 +38522,9 @@
           "keyRef": {
             "$ref": "#/components/schemas/TransactionalRef"
           },
+          "languageInfo": {
+            "$ref": "#/components/schemas/TransactionalMessageLanguage"
+          },
           "metadata": {
             "additionalProperties": {
               "type": "string"
@@ -38674,6 +38680,34 @@
           "testDelivered",
           "roleAddress",
           "tracked"
+        ],
+        "type": "object"
+      },
+      "TransactionalMessageLanguage": {
+        "additionalProperties": false,
+        "properties": {
+          "contact": {
+            "type": "string"
+          },
+          "reason": {
+            "enum": [
+              "match",
+              "no_language",
+              "not_offered",
+              "missing",
+              "draft",
+              "held",
+              "requested",
+              ""
+            ],
+            "type": "string"
+          },
+          "sent": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sent"
         ],
         "type": "object"
       },

@@ -1169,7 +1169,7 @@ WITH log AS (
            m.provider_id, coalesce(p.name, '')::text AS provider_name, m.error, m.sent_at, m.delivered_at, m.opened_at, m.clicked_at,
            t.test, t.test_delivered, t.reject_reason, t.reject_detail, t.track_opens, t.track_clicks,
            t.failed_over_from, coalesce(fp.name, '')::text AS failed_over_from_name, t.failed_over_at,
-           t.key_id, t.key_name, t.idempotency_key, t.tags, t.metadata, t.category_name, t.category_kind, t.workspace_id,
+           t.key_id, t.key_name, t.idempotency_key, t.tags, t.metadata, t.category_name, t.category_kind, t.workspace_id, m.language,
            (CASE WHEN t.test THEN 'test'
                  WHEN t.reject_reason <> '' OR m.status IN ('rejected', 'cancelled') THEN 'rejected'
                  WHEN m.status = 'held' THEN 'queued'
@@ -1192,7 +1192,7 @@ SELECT log.message_id, log.accepted_at, log.email, log.contact_id, log.to_name, 
        log.provider_id, log.provider_name, log.error, log.sent_at, log.delivered_at, log.opened_at, log.clicked_at,
        log.test, log.test_delivered, log.reject_reason, log.reject_detail, log.track_opens, log.track_clicks,
        log.failed_over_from, log.failed_over_from_name, log.failed_over_at,
-       log.key_id, log.key_name, log.idempotency_key, log.tags, log.metadata, log.category_name, log.category_kind, log.status,
+       log.key_id, log.key_name, log.idempotency_key, log.tags, log.metadata, log.category_name, log.category_kind, log.status, log.language,
        (SELECT count(*) FROM delivery_events e WHERE e.message_id = log.message_id AND e.type = 'deferred')::int AS deferrals,
        coalesce((SELECT e.type || ':' || e.bounce_class || ':' || e.original_code || ' ' || e.diagnostic FROM delivery_events e
                  WHERE e.message_id = log.message_id AND e.type IN ('hard_bounce', 'soft_bounce') ORDER BY e.occurred_at DESC LIMIT 1), '')::text AS bounce,
@@ -1254,6 +1254,7 @@ type TxnLogRow struct {
 	CategoryName       string          `json:"categoryName"`
 	CategoryKind       string          `json:"categoryKind"`
 	Status             string          `json:"status"`
+	Language           string          `json:"language"`
 	Deferrals          int32           `json:"deferrals"`
 	Bounce             string          `json:"bounce"`
 	RoleAddress        bool            `json:"roleAddress"`
@@ -1320,6 +1321,7 @@ func (q *Queries) TxnLog(ctx context.Context, arg TxnLogParams) ([]TxnLogRow, er
 			&i.CategoryName,
 			&i.CategoryKind,
 			&i.Status,
+			&i.Language,
 			&i.Deferrals,
 			&i.Bounce,
 			&i.RoleAddress,
@@ -1570,6 +1572,7 @@ SELECT t.message_id, t.workspace_id, t.source, t.template_id, t.template_key, t.
        t.accepted_at, t.rendered_at, t.content_expires_at, t.content_removed_at, t.resent_from,
        m.email, m.contact_id, m.provider_id, coalesce(m.provider_message_id, '')::text AS provider_message_id, m.mailbox_provider,
        m.status AS raw_status, m.error, m.sent_at, m.delivered_at, m.opened_at, m.clicked_at,
+       m.language, m.contact_language, m.language_reason,
        coalesce(p.name, '')::text AS provider_name,
        coalesce(fp.name, '')::text AS failed_over_from_name,
        coalesce(u.name, '')::text AS user_name,
@@ -1653,6 +1656,9 @@ type TxnMessageDetailRow struct {
 	DeliveredAt        *time.Time      `json:"deliveredAt"`
 	OpenedAt           *time.Time      `json:"openedAt"`
 	ClickedAt          *time.Time      `json:"clickedAt"`
+	Language           string          `json:"language"`
+	ContactLanguage    string          `json:"contactLanguage"`
+	LanguageReason     string          `json:"languageReason"`
 	ProviderName       string          `json:"providerName"`
 	FailedOverFromName string          `json:"failedOverFromName"`
 	UserName           string          `json:"userName"`
@@ -1724,6 +1730,9 @@ func (q *Queries) TxnMessageDetail(ctx context.Context, arg TxnMessageDetailPara
 		&i.DeliveredAt,
 		&i.OpenedAt,
 		&i.ClickedAt,
+		&i.Language,
+		&i.ContactLanguage,
+		&i.LanguageReason,
 		&i.ProviderName,
 		&i.FailedOverFromName,
 		&i.UserName,
