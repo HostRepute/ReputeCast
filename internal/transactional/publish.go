@@ -693,9 +693,11 @@ func (s *Service) Publish(ctx context.Context, ws *store.Workspace, p *authz.Pri
 		html := t.Html
 		if strings.TrimSpace(html) == "" {
 			html, _ = content{Subject: t.Subject, Preheader: t.Preheader, MJML: t.Mjml}.compiledHTML()
-			// lang, dir and the layout tables' role (accessibility).
-			html = accessibility.FinalizeStored(ctx, q, ws.ID, accessibility.OwnerTransactional, id, 0, html)
 		}
+		// lang, dir and the layout tables' role (accessibility): already there
+		// when the draft was saved through the API, added to HTML stored
+		// before them.
+		html = accessibility.FinalizeStored(ctx, q, ws.ID, accessibility.OwnerTransactional, id, 0, html)
 		hash := draftHash(t.Subject, t.Preheader, t.EditorMode, t.Mjml, t.Html, t.PlainText, vars, t.SenderID, t.ReplyTo, t.TrackOpens, t.TrackClicks)
 		change := strings.TrimSpace(in.Note)
 		if change == "" {

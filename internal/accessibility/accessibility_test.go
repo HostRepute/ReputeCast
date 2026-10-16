@@ -587,7 +587,21 @@ func TestTransactionalTemplates(t *testing.T) {
 	if n := len(shown); n == 0 || dialog.Checks.Passed != n || shown[n-1] != "accessibility.ok" || strings.HasPrefix(shown[0], "accessibility.") || strings.Contains(strings.Join(shown, ","), "lang_dir") {
 		t.Fatalf("publish dialog: %d %v", dialog.Checks.Passed, shown)
 	}
+	// HTML stored without the additions (seeded, or saved before them) gets
+	// them when it is published.
+	if _, err := env.App.Pool.Exec(ctx, `UPDATE transactional_templates SET html = replace(html, ' lang="en" dir="ltr"', '') WHERE key = 'a11y-reset'`); err != nil {
+		t.Fatal(err)
+	}
 	linh.Do("POST", tx+"/a11y-reset/publish", map[string]any{"baseRevision": saved.DraftRevision}).MustStatus(t, 200)
+	var published string
+	if err := env.App.Pool.QueryRow(ctx, `SELECT v.html FROM transactional_template_versions v JOIN transactional_templates t ON t.id = v.template_id
+		WHERE t.key = 'a11y-reset' ORDER BY v.version DESC LIMIT 1`).Scan(&published); err != nil {
+		t.Fatal(err)
+	}
+	_, rest, _ := strings.Cut(published, "<html")
+	if tag, _, _ := strings.Cut(rest, ">"); !strings.Contains(tag, ` lang="en" dir="ltr"`) {
+		t.Fatalf("the published version has lang and dir: %.200s", published)
+	}
 }
 
 // The composer's fixes change the MJML the way Review & send's do; people
