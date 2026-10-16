@@ -10,10 +10,6 @@ export const BASE = 'https://reputecast.acme.io';
 export const WS = `${BASE}/api/v1/workspaces/acme-newsletter`;
 export const KEY = `rc_live_9a40${'0'.repeat(56)}e1c3`;
 
-// Fields another workstream adds to the API in this release (X05 adds
-// `language` to the transactional send API).
-const pending = { 'send-transactional-message': ['language'] };
-
 export interface Call {
 	method: string;
 	url: string;
@@ -62,15 +58,12 @@ export function mockServer(routes: Route[]) {
 	const done = () => {
 		expect(queue.map((r) => `${r.method} ${r.url}`)).toEqual([]);
 		for (const c of calls) {
-			const res = checkRequest(
-				{
-					method: c.method,
-					url: c.url,
-					body: c.body,
-					headers: c.headers as Record<string, string>,
-				},
-				{ pending },
-			);
+			const res = checkRequest({
+				method: c.method,
+				url: c.url,
+				body: c.body,
+				headers: c.headers as Record<string, string>,
+			});
 			if (!res.ok) problems.push(`${c.method} ${c.url}: ${res.errors.join('; ')}`);
 		}
 		expect(problems).toEqual([]);

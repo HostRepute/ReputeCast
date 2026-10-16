@@ -14,10 +14,6 @@ const read = (p) => JSON.parse(readFileSync(join(root, p), 'utf8'))
 const app = read('app.json')
 const base = read('src/base.imljson')
 
-// Fields another workstream adds to the API in this release (X05 adds
-// `language` to the transactional send API).
-const pending = { 'send-transactional-message': ['language'] }
-
 const connection = { instanceUrl: 'https://reputecast.acme.io', apiKey: `rc_live_7f0c3d9e41a8b62f05c7e1d4b3a2${'0'.repeat(36)}`, workspace: 'acme-newsletter' }
 const scenario = { id: 4211, name: 'Typeform → ReputeCast' }
 const beta = '0192a4c1-0000-7000-8000-00000000b3a3'
@@ -25,7 +21,7 @@ const beta = '0192a4c1-0000-7000-8000-00000000b3a3'
 const send = (kind, name, parameters, extra = {}) => {
   const api = read(`src/${kind}/${name}/api.imljson`)
   const req = request(base, api, { connection, parameters, scenario, ...extra })
-  const check = checkRequest({ method: req.method, url: req.url, body: req.body, headers: req.headers }, { pending })
+  const check = checkRequest({ method: req.method, url: req.url, body: req.body, headers: req.headers })
   assert.deepEqual(check.errors, [], `${kind}/${name}: ${check.errors.join('; ')}`)
   return { req, api, operationId: check.operationId }
 }

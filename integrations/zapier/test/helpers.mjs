@@ -20,11 +20,6 @@ export const KEY = `rc_live_5d1e${'0'.repeat(56)}7b20`;
 export const authData = { instanceUrl: BASE, apiKey: KEY, workspace: 'acme-newsletter' };
 export const WS = '/api/v1/workspaces/acme-newsletter';
 
-// Fields another workstream adds to the API in this release (X05 adds
-// `language` to the transactional send API); the contract accepts them and
-// says so.
-export const pending = { 'send-transactional-message': ['language'] };
-
 /**
  * A mock ReputeCast. expect() queues one answer; done() checks that every
  * queued call happened and that requests and answers fit the OpenAPI
@@ -50,7 +45,7 @@ export function mockServer() {
   const done = () => {
     scope.done();
     for (const c of calls) {
-      const r = checkRequest(c, { pending });
+      const r = checkRequest(c);
       if (!r.ok) {
         problems.push(`${c.method} ${c.url}: ${r.errors.join('; ')}`);
       }
