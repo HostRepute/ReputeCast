@@ -60,5 +60,15 @@
   "problem.membershipDeactivated": "Tư cách thành viên của bạn trong {workspace} đã bị vô hiệu hóa. Hãy nhờ quản trị viên kích hoạt lại.",
   "problem.inviteNoNeed": "Lời mời này không cần gửi lại.",
   "problem.passkeyUnreadableLeft": "Không đọc được phản hồi của trình duyệt. Còn {left} lần thử.",
-  "problem.passkeyWrongLeft": "Khóa truy cập đó không dùng được. Còn {left} lần thử."
+  "problem.passkeyWrongLeft": "Khóa truy cập đó không dùng được. Còn {left} lần thử.",
+  "account.unlinkFirst": "Hãy thêm khóa truy cập hoặc mật khẩu trước",
+  "account.ssoManaged": "SSO được áp dụng bắt buộc cho {domain}; tài khoản này do tổ chức của bạn quản lý",
+  "account.ssoName": "SSO {provider}",
+  "account.ssoUnnamed": "Đăng nhập một lần",
+  "account.noteOrg": "tổ chức {org}",
+  "account.noteBreakGlass": "vẫn giữ mật khẩu khẩn cấp",
+  "account.lastOwner": "Hãy chuyển quyền sở hữu trước khi rời: Chủ sở hữu cuối cùng không thể rời đi",
+  "duration.days": "{n, plural, other {# ngày}}",
+  "duration.hours": "{n, plural, other {# giờ}}",
+  "duration.minutes": "{n, plural, other {# phút}}"
 }

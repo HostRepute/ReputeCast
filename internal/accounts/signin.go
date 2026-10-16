@@ -334,13 +334,6 @@ func anonActor(email string) *audit.Actor {
 	return &audit.Actor{Type: "user", Name: email}
 }
 
-func plural(n int, one, many string) string {
-	if n == 1 {
-		return one
-	}
-	return many
-}
-
 func urlEscape(s string) string {
 	r := strings.NewReplacer("%", "%25", "+", "%2B", "@", "%40", "&", "%26", "=", "%3D", "#", "%23", " ", "%20", "?", "%3F")
 	return r.Replace(s)

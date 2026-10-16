@@ -60,5 +60,15 @@
   "problem.membershipDeactivated": "Your membership in {workspace} was deactivated. Ask an admin to reactivate it.",
   "problem.inviteNoNeed": "This invitation doesn't need a new one.",
   "problem.passkeyUnreadableLeft": "Your browser's answer couldn't be read. {left, plural, one {# attempt} other {# attempts}} left.",
-  "problem.passkeyWrongLeft": "That passkey didn't work. {left, plural, one {# attempt} other {# attempts}} left."
+  "problem.passkeyWrongLeft": "That passkey didn't work. {left, plural, one {# attempt} other {# attempts}} left.",
+  "account.unlinkFirst": {"message": "Add a passkey or password first", "note": "why the only sign-in method can't be unlinked (a button's tooltip)"},
+  "account.ssoManaged": {"message": "SSO is enforced for {domain}; the identity is managed by your organization", "note": "a button's tooltip; domain: acme.io"},
+  "account.ssoName": {"message": "{provider} SSO", "note": "a row of Connected sign-ins; provider: Okta, Google Workspace"},
+  "account.ssoUnnamed": {"message": "Single sign-on", "note": "an SSO provider without a name"},
+  "account.noteOrg": {"message": "org {org}", "note": "after a GitHub username: linh-nguyen · org acme-eng"},
+  "account.noteBreakGlass": {"message": "break-glass password kept", "note": "after an SSO identity: acme.io · break-glass password kept"},
+  "account.lastOwner": {"message": "Transfer ownership before leaving: the last Owner can't leave", "note": "why Leave workspace is off (a button's tooltip)"},
+  "duration.days": {"message": "{n, plural, one {# day} other {# days}}", "note": "the session policy: Sessions last 14 days and end after 12 hours idle"},
+  "duration.hours": "{n, plural, one {# hour} other {# hours}}",
+  "duration.minutes": "{n, plural, one {# minute} other {# minutes}}"
 }

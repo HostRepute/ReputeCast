@@ -9,7 +9,7 @@ import { Grid } from '@/components/ui/Layout'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
 import { LanguageRegionCard } from '@/features/language/LanguageRegionCard'
-import { useT } from '@/i18n'
+import { t as tr, useT } from '@/i18n'
 import { roleName } from '@/lib/roles'
 import { meQueryKey, useWorkspace } from '@/lib/session'
 import { ConnectedSignInsCard } from './ConnectedSignInsCard'
@@ -84,6 +84,7 @@ export function AccountPage({ verifyEmail }: { verifyEmail?: string }) {
 
 /** Confirms an email change from the verification link (…/account?verifyEmail=…). */
 function VerifyEmail({ token }: { token?: string }) {
+  const t = useT()
   const navigate = useNavigate()
   const refresh = useRefreshAccount()
   const qc = useQueryClient()
@@ -96,7 +97,7 @@ function VerifyEmail({ token }: { token?: string }) {
       try {
         const { data } = await http.POST('/api/v1/me/email/verify', { body: { token } })
         setState({ ok: data?.email })
-        toast({ kind: 'success', title: 'Email changed', detail: `You sign in with ${data?.email} now.` })
+        toast({ kind: 'success', title: tr(m.emailChanged), detail: tr(m.signInWith, { email: data?.email ?? '' }) })
         await refresh()
         await qc.invalidateQueries({ queryKey: meQueryKey })
       } catch (e) {
@@ -108,13 +109,13 @@ function VerifyEmail({ token }: { token?: string }) {
   }, [token, navigate, refresh, qc])
   if (state.ok)
     return (
-      <Note tone="ok" label="Email changed">
-        You sign in with {state.ok} now. Your old address got a note about the change.
+      <Note tone="ok" label={t(m.emailChanged)}>
+        {t(m.emailChangedNote, { email: state.ok })}
       </Note>
     )
   if (state.error)
     return (
-      <Note tone="bad" label="Not changed">
+      <Note tone="bad" label={t(m.notChanged)}>
         {state.error}
       </Note>
     )
@@ -140,10 +141,11 @@ function CardSkeleton({ rows = 3, wide }: { rows?: number; wide?: boolean }) {
 }
 
 function AccountSkeleton() {
+  const t = useT()
   return (
     <Grid min={420} gap={20} className="items-start" aria-busy="true">
       <span className="vh" role="status">
-        Loading your account…
+        {t(m.loading)}
       </span>
       <CardSkeleton rows={5} />
       <CardSkeleton rows={4} />

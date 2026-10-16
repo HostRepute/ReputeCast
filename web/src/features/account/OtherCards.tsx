@@ -10,27 +10,31 @@ import { Dialog } from '@/components/ui/Dialog'
 import { Note } from '@/components/ui/Note'
 import { Table, Td, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
+import { useT } from '@/i18n'
 import { count } from '@/lib/format'
+import { roleName } from '@/lib/roles'
 import { meQueryKey, useWorkspace } from '@/lib/session'
 import { useRefreshAccount } from './AccountPage'
+import { m } from './messages'
 
 type Account = Schemas['AccountOverview']
 type Membership = Schemas['AccountWorkspace']
 
 /** My workspaces: my role in each, and Leave workspace (not the last Owner). */
 export function WorkspacesCard({ a }: { a: Account }) {
+  const t = useT()
   const [leave, setLeave] = useState<Membership>()
   return (
     <section className="card" aria-labelledby="h-workspaces">
-      <CardSection id="h-workspaces" title="My workspaces" caption="Leaving removes your access; your history in the audit log stays" />
-      <Table density="compact" className="[&_td]:whitespace-normal" caption="My workspaces">
+      <CardSection id="h-workspaces" title={t(m.myWorkspaces)} caption={t(m.workspacesCaption)} />
+      <Table density="compact" className="[&_td]:whitespace-normal" caption={t(m.myWorkspaces)}>
         <thead>
           <tr>
-            <Th>Workspace</Th>
-            <Th>My role</Th>
-            <Th>Members</Th>
+            <Th>{t(m.workspace)}</Th>
+            <Th>{t(m.myRole)}</Th>
+            <Th>{t(m.members)}</Th>
             <Th>
-              <span className="vh">Actions</span>
+              <span className="vh">{t(m.actions)}</span>
             </Th>
           </tr>
         </thead>
@@ -41,12 +45,12 @@ export function WorkspacesCard({ a }: { a: Account }) {
                 <span className="font-semibold">{w.name}</span>
               </Td>
               <Td>
-                <Badge tone={w.roleKey === 'owner' ? 'purple' : 'neutral'}>{w.roleName}</Badge>
+                <Badge tone={w.roleKey === 'owner' ? 'purple' : 'neutral'}>{roleName({ key: w.roleKey, name: w.roleName })}</Badge>
               </Td>
               <Td>{count(w.members)}</Td>
               <Td>
-                <Button size="sm" disabledReason={w.canLeave ? undefined : w.leaveReason} onClick={() => setLeave(w)} aria-label={`Leave workspace ${w.name}`}>
-                  Leave workspace
+                <Button size="sm" disabledReason={w.canLeave ? undefined : w.leaveReason} onClick={() => setLeave(w)} aria-label={t(m.leaveNamed, { name: w.name })}>
+                  {t(m.leaveWorkspace)}
                 </Button>
               </Td>
             </tr>
@@ -59,6 +63,7 @@ export function WorkspacesCard({ a }: { a: Account }) {
 }
 
 function LeaveDialog({ workspace, onClose }: { workspace?: Membership; onClose: () => void }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const navigate = useNavigate()
   const qc = useQueryClient()
@@ -73,11 +78,11 @@ function LeaveDialog({ workspace, onClose }: { workspace?: Membership; onClose: 
         setError(undefined)
         onClose()
       }}
-      title={`Leave ${workspace?.name ?? ''}?`}
+      title={t(m.leaveTitle, { name: workspace?.name ?? '' })}
       size="sm"
       footer={
         <>
-          <Button onClick={onClose}>Stay</Button>
+          <Button onClick={onClose}>{t(m.stay)}</Button>
           <Button
             variant="danger-primary"
             loading={busy}
@@ -87,7 +92,7 @@ function LeaveDialog({ workspace, onClose }: { workspace?: Membership; onClose: 
               setError(undefined)
               try {
                 await http.POST('/api/v1/workspaces/{workspace}/leave', { params: { path: { workspace: workspace.slug } } })
-                toast({ kind: 'deleted', title: `You left ${workspace.name}` })
+                toast({ kind: 'deleted', title: t(m.left, { name: workspace.name }) })
                 onClose()
                 if (workspace.slug === slug) {
                   qc.removeQueries({ queryKey: ['workspace-me', slug] })
@@ -101,18 +106,18 @@ function LeaveDialog({ workspace, onClose }: { workspace?: Membership; onClose: 
               }
             }}
           >
-            Leave workspace
+            {t(m.leaveWorkspace)}
           </Button>
         </>
       }
     >
       <ul className="m-0 flex list-disc flex-col gap-1 pl-5 text-ink-2">
-        <li>You lose access to its campaigns, contacts, automations and settings.</li>
-        <li>API keys and MCP agents you created there are revoked.</li>
-        <li>Your history stays in the audit log. An admin can invite you again.</li>
+        <li>{t(m.leaveAccess)}</li>
+        <li>{t(m.leaveKeys)}</li>
+        <li>{t(m.leaveHistory)}</li>
       </ul>
       {error ? (
-        <Note tone="bad" label="Not left">
+        <Note tone="bad" label={t(m.notLeft)}>
           {error}
         </Note>
       ) : null}
@@ -122,22 +127,24 @@ function LeaveDialog({ workspace, onClose }: { workspace?: Membership; onClose: 
 
 /** Summary of the notification preferences, edited on the notifications screen. */
 export function NotificationPreferencesCard({ a }: { a: Account }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const n = a.notifications
   return (
     <section className="card" aria-labelledby="h-notif-prefs" id="notifications">
-      <CardSection id="h-notif-prefs" title="Notification preferences" caption="Per event type, in-app and/or email" />
+      {/* The summary comes from the server, in the member's language. */}
+      <CardSection id="h-notif-prefs" title={t(m.notificationPreferences)} caption={t(m.notificationsCaption)} />
       <div className="pad col">
         <KeyValues
           items={[
-            ['In-app', n.inApp],
-            ['Email', n.email],
-            ['Quiet hours', n.quietHours],
+            [t(m.inApp), n.inApp],
+            [t(m.email), n.email],
+            [t(m.quietHours), n.quietHours],
           ]}
         />
         <div className="row">
           <ButtonLink size="sm" to="/w/$workspace/notifications" params={{ workspace: slug }} hash="preferences">
-            Edit preferences
+            {t(m.editPreferences)}
           </ButtonLink>
         </div>
       </div>

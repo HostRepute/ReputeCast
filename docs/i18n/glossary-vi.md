@@ -247,6 +247,29 @@ Languages are always named in their own language, in every interface
 language: English, Tiếng Việt, Deutsch (Deutschland). "ReputeCast standard"
 is a name and stays in English.
 
+## Account and security
+
+| English | Tiếng Việt |
+|---|---|
+| Full name | Họ và tên |
+| Upload photo · Remove | Tải ảnh lên · Xóa |
+| Change email · verification link | Đổi email · liên kết xác minh |
+| Current password · New password | Mật khẩu hiện tại · Mật khẩu mới |
+| security key · platform passkey | khóa bảo mật · khóa truy cập trên thiết bị |
+| Rename · Keep it | Đổi tên · Giữ lại |
+| Time-based codes (TOTP) | Mã theo thời gian (TOTP) |
+| Set up · Replace app | Thiết lập · Thay ứng dụng |
+| Regenerate codes | Tạo lại mã |
+| 7 of 10 remain | Còn 7 trên 10 mã |
+| Connected sign-ins | Đăng nhập đã liên kết |
+| Link · Unlink · Managed | Liên kết · Hủy liên kết · Được quản lý |
+| session · Active sessions · This session | phiên · Phiên đang hoạt động · Phiên này |
+| Sign out all other sessions | Đăng xuất mọi phiên khác |
+| Device · Browser · IP · location (approx.) | Thiết bị · Trình duyệt · IP · vị trí (ước tính) |
+| My workspaces · Leave workspace | Không gian làm việc của tôi · Rời không gian làm việc |
+| In-app · All events | Trong ứng dụng · Tất cả sự kiện |
+| MCP agent | tác tử MCP |
+
 ## Words used everywhere
 
 | English | Tiếng Việt |

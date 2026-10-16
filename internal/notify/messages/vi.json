@@ -1,0 +1,16 @@
+{
+  "summary.all": "Tất cả sự kiện",
+  "summary.off": "Tắt",
+  "summary.approvals": "phê duyệt",
+  "summary.quietHours": "{start}–{end} {timezone}, chỉ email",
+  "short.approval_requested": "yêu cầu phê duyệt",
+  "short.approval_decided": "quyết định phê duyệt",
+  "short.approval_invalidated": "phê duyệt bị vô hiệu",
+  "short.send_paused": "tự tạm dừng",
+  "short.provider_down": "nhà cung cấp gặp sự cố",
+  "short.webhooks_silent": "webhook im lặng",
+  "short.invite_accepted": "lời mời",
+  "short.hostrepute_alert": "cảnh báo HostRepute",
+  "short.integration_attention": "sự cố tích hợp",
+  "short.post_draft_created": "bản nháp bài viết"
+}

@@ -37,7 +37,10 @@ export default translate(m, {
 
 A server catalog is a JSON object of `"key": "text"`, or
 `"key": { "message": "text", "note": "for translators" }` when the English
-needs explaining. Read the notes; they say what an argument holds.
+needs explaining. Read the notes; they say what an argument holds. A few
+keys are made from data, such as `short.<event type>` in
+`internal/notify/messages`: a new event type shows its English in the code
+until its key is added to `en.json`, so add it there when you add the type.
 
 A key that is missing from a translation shows in English, so a screen is
 never blank. Translate the glossary's terms first, then the screens.

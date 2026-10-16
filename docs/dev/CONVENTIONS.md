@@ -280,9 +280,13 @@ being converted.
   names and codes, DNS records, code samples and CLI output.
 - **Server text** a member reads (problem details with their fix, "who can
   help", notifications, member emails, the invitation page's role
-  description) comes from the package's `messages/<locale>.json` catalog
-  through `internal/i18n`, in the request's language (`i18n.LangFrom(ctx)`).
-  API clients get English unless they send `Accept-Language`.
+  description, a disabled button's reason) comes from the package's
+  `messages/<locale>.json` catalog through `internal/i18n`, in the request's
+  language (`i18n.LangFrom(ctx)`). API clients get English unless they send
+  `Accept-Language`. The app sends its language with every request and
+  refetches what's on screen when the language changes, so such a query
+  needs nothing more. A key made at run time (`short.<event type>`) uses
+  `Lookup` and falls back to the English in the code.
 - **Checks:** `pnpm run i18n:check` lists what each language misses, by file,
   and fails on broken ICU or a translation that uses an argument or a tag
   its English doesn't have. It writes `src/i18n/status.gen.ts`: outside

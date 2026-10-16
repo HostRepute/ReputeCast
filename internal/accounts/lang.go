@@ -82,6 +82,19 @@ var (
 	mInviteNoNeed          = msgs.M("problem.inviteNoNeed")
 	mPasskeyUnreadableLeft = msgs.M("problem.passkeyUnreadableLeft")
 	mPasskeyWrongLeft      = msgs.M("problem.passkeyWrongLeft")
+
+	// Account & security's texts from the server: why a button is off,
+	// the notes after an identity and the session policy.
+	mUnlinkFirst    = msgs.M("account.unlinkFirst")
+	mSSOManaged     = msgs.M("account.ssoManaged")
+	mSSOName        = msgs.M("account.ssoName")
+	mSSOUnnamed     = msgs.M("account.ssoUnnamed")
+	mNoteOrg        = msgs.M("account.noteOrg")
+	mNoteBreakGlass = msgs.M("account.noteBreakGlass")
+	mLastOwner      = msgs.M("account.lastOwner")
+	mDays           = msgs.M("duration.days")
+	mHours          = msgs.M("duration.hours")
+	mMinutes        = msgs.M("duration.minutes")
 )
 
 // say writes one of the package's messages in the request's language.

@@ -85,6 +85,52 @@ func TestInvitationInVietnamese(t *testing.T) {
 	}
 }
 
+// Account & security reads in the member's language: the notes after an
+// identity, why a button is off, the notification summary and the session
+// policy come from the server.
+func TestAccountOverviewInVietnamese(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	c := env.Client()
+	c.Header = http.Header{"Accept-Language": {"vi"}}
+	c.SignInDemo("linh@acme.io")
+	var a map[string]any
+	c.Do("GET", "/me/account", nil).MustStatus(t, 200).JSON(t, &a)
+	byKind := map[string]map[string]any{}
+	for _, i := range a["identities"].([]any) {
+		m := i.(map[string]any)
+		byKind[m["kind"].(string)] = m
+	}
+	if g := byKind["github"]; g["notes"].([]any)[0] != "tổ chức acme-eng" {
+		t.Errorf("GitHub notes: %v", g["notes"])
+	}
+	if s := byKind["sso"]; s["name"] != "SSO Google Workspace" {
+		t.Errorf("SSO name: %v", s["name"])
+	}
+	if w := a["workspaces"].([]any)[0].(map[string]any); w["leaveReason"] != "Hãy chuyển quyền sở hữu trước khi rời: Chủ sở hữu cuối cùng không thể rời đi" {
+		t.Errorf("leave reason: %v", w["leaveReason"])
+	}
+	n := a["notifications"].(map[string]any)
+	if n["inApp"] != "Tất cả sự kiện" || n["email"] != "Phê duyệt, tự tạm dừng, nhà cung cấp gặp sự cố, cảnh báo HostRepute, sự cố tích hợp, bản nháp bài viết" ||
+		n["quietHours"] != "22:00–07:00 America/New_York, chỉ email" {
+		t.Errorf("notifications: %v", n)
+	}
+	if sp := a["sessionPolicy"].(map[string]any); sp["lifetime"] != "14 ngày" || sp["idle"] != "12 giờ" {
+		t.Errorf("session policy: %v", sp)
+	}
+
+	// Sofia's only way in is Google Workspace.
+	s := env.Client()
+	s.Header = http.Header{"Accept-Language": {"vi"}}
+	s.SignInDemo("sofia@acme.io")
+	s.Do("GET", "/me/account", nil).MustStatus(t, 200).JSON(t, &a)
+	for _, i := range a["identities"].([]any) {
+		if m := i.(map[string]any); m["kind"] == "sso" && m["unlinkReason"] != "Hãy thêm khóa truy cập hoặc mật khẩu trước" {
+			t.Errorf("unlink reason: %v", m["unlinkReason"])
+		}
+	}
+}
+
 // The sign-in pages show the server's problems in the page's language.
 func TestSignInProblemsInVietnamese(t *testing.T) {
 	env := apptest.New(t)
