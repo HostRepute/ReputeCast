@@ -7,7 +7,7 @@ import { count } from '@/lib/format'
 import { confirmLanguages } from '@/features/languages/review'
 import { mr } from '@/features/languages/messages'
 import { useT } from '@/i18n'
-import { acknowledgements, minutes, plural, scheduleSentence, thresholdsLine, verdictTitle, type Review, type Run } from './logic'
+import { acknowledgedKeys, acknowledgements, minutes, plural, scheduleSentence, thresholdsLine, verdictTitle, type Review, type Run } from './logic'
 
 export type SendIntent = { acknowledged: string[]; confirm?: string }
 
@@ -67,7 +67,7 @@ export function ConfirmSend({
     setBusy(true)
     setError(undefined)
     try {
-      await onConfirm({ acknowledged: checked, confirm: large ? typed : undefined })
+      await onConfirm({ acknowledged: acknowledgedKeys(acks, checked), confirm: large ? typed : undefined })
       setBusy(false)
       close(false)
     } catch (e) {

@@ -23,6 +23,8 @@ import { LeftPanel } from './LeftPanel'
 import { PreviewView } from './PreviewView'
 import { RightPanel } from './RightPanel'
 import { SubjectBar } from './SubjectBar'
+import { AccessibilityProvider } from '@/features/accessibility/composer/state'
+import { withoutAltText } from '@/features/accessibility/composer/Status'
 import { ComposerCompare, ComposerCompareFooter, ComposerMissingLanguage, versionLanguage } from '@/features/languages/composerParts'
 import { useLanguagesCache } from '@/features/languages/composer'
 import { useSourceEdits } from '@/features/languages/sourceEdits'
@@ -39,7 +41,7 @@ export interface ComposerSearch {
   variant?: string
   /** Component to select once the canvas is ready (element path from mj-body, "1-0-0"). */
   select?: string
-  panel?: 'style' | 'settings' | 'deliverability'
+  panel?: 'style' | 'settings' | 'deliverability' | 'accessibility'
   left?: 'blocks' | 'layers' | 'templates'
 }
 
@@ -107,7 +109,7 @@ export function Composer({
   const [checks, setChecks] = useState<Checks>()
   const [checksPending, setChecksPending] = useState(false)
   const [checksNonce, setChecksNonce] = useState(0)
-  const [rightTab, setRightTab] = useState<'style' | 'settings' | 'deliverability'>(search.panel ?? 'style')
+  const [rightTab, setRightTab] = useState<'style' | 'settings' | 'deliverability' | 'accessibility'>(search.panel ?? 'style')
   const [leftTab, setLeftTab] = useState<'blocks' | 'layers' | 'templates'>(search.left ?? 'blocks')
   // A deep link selects its component once the canvas is ready.
   const deepLink = useRef(search.select)
@@ -590,7 +592,8 @@ export function Composer({
     registerLeaveCheck,
     setCodeDirty,
     isEmpty: empty,
-    checks: empty ? undefined : checks,
+    // The images' alt text is listed in the Accessibility tab.
+    checks: empty ? undefined : withoutAltText(checks),
     checksPending,
     rightTab,
     setRightTab,
@@ -645,6 +648,7 @@ export function Composer({
 
   return (
     <ComposerCtx.Provider value={state}>
+      <AccessibilityProvider>
       <div className="cmp rc-app">
         <a href="#main" className="skip">
           Skip to content
@@ -693,6 +697,7 @@ export function Composer({
           }}
         />
       </div>
+      </AccessibilityProvider>
     </ComposerCtx.Provider>
   )
 }

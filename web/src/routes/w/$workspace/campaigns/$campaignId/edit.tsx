@@ -19,7 +19,7 @@ const search = z.object({
     .optional()
     .catch(undefined),
   /** Panel to open with it: the inspector tab, and the left panel tab. */
-  panel: z.enum(['style', 'settings', 'deliverability']).optional().catch(undefined),
+  panel: z.enum(['style', 'settings', 'deliverability', 'accessibility']).optional().catch(undefined),
   left: z.enum(['blocks', 'layers', 'templates']).optional().catch(undefined),
 })
 

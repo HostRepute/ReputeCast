@@ -155,6 +155,8 @@ func probed(entries ...[3]string) []contentcheck.ContentCheckLink {
 func (r *readinessSeed) storeRun(ctx context.Context, id uuid.UUID, f readiness.Facts, ranAt time.Time, by *uuid.UUID, trigger string) (readiness.ReadinessResult, uuid.UUID, error) {
 	f = r.langReadinessFacts(f) // the Languages group of the design expansion (seed_languages.go)
 	s := r.s
+	// The Accessibility group (design expansion) checks the sample content.
+	f = demoAccessibilityFacts(ctx, r, id, f)
 	res := readiness.Assemble(f)
 	checks, est, err := readiness.EncodeResult(res)
 	if err != nil {

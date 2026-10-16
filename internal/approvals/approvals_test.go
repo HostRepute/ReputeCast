@@ -335,8 +335,9 @@ func TestReadinessRunAndFixes(t *testing.T) {
 	}
 	runs := n.audit("readiness.run", digest)
 	linh.Do("POST", ws+"/campaigns/"+digest+"/readiness", nil).MustStatus(t, 200).JSON(t, &run)
-	// Seven groups, and Languages: the sample's #142 goes out in three languages.
-	if run.ID == "" || run.Counts.Total < 20 || len(run.Groups) < 7 {
+	// Seven groups of 1.0, Accessibility, and Languages when an email goes
+	// out in several languages (the sample's #142 does).
+	if run.ID == "" || run.Counts.Total < 20 || len(run.Groups) < 8 {
 		t.Fatalf("run: %+v", run)
 	}
 	if n.audit("readiness.run", digest) != runs+1 {

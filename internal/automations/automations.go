@@ -48,6 +48,8 @@ type Service struct {
 	Gate PublishGate
 	// Checks runs content checks on emails before publishing.
 	Checks ContentChecker
+	// Accessibility checks the emails before publishing; nil skips it.
+	Accessibility AccessibilityGate
 	// HTTP calls webhook steps; nil uses NewWebhookClient (public addresses only).
 	HTTP *http.Client
 	Now  func() time.Time

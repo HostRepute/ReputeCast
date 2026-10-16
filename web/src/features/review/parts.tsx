@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button'
 import { cn } from '@/lib/cn'
 import { clock, shortDate } from '@/lib/format'
 import { deniedReason } from '@/lib/session'
+import { CodeText, Swatch } from '@/features/accessibility/review'
 import { CheckRowsGrid } from '@/features/languages/review'
 import { statusWord, type Check, type CheckStatus, type Fix } from './logic'
 
@@ -92,6 +93,7 @@ export function FixButtons({
         loading={busy === `${check.key}:${f.action}`}
         onClick={() => onApply(check, f)}
       >
+        {f.action === 'accessibility_color' && f.params?.color ? <Swatch color={f.params.color} /> : null}
         {f.label}
       </Button>
     ) : (
@@ -108,18 +110,21 @@ export function CheckRow({
   check,
   title,
   showDetail = true,
+  alert,
   children,
 }: {
   check: Check
   title?: ReactNode
   showDetail?: boolean
+  /** A check that couldn't run, shown as an error (the Accessibility group's). */
+  alert?: boolean
   children?: ReactNode
 }) {
   return (
-    <div className={cn('rv-row', check.status === 'warn' && 'r-warn', check.status === 'block' && 'r-bad')}>
+    <div className={cn('rv-row', check.status === 'warn' && 'r-warn', (check.status === 'block' || alert) && 'r-bad')} role={alert ? 'alert' : undefined}>
       <CheckBadge status={check.status} />
       <div className="rv-rt">
-        <span className="rv-t">{title ?? check.title}</span>
+        <span className="rv-t">{title ?? <CodeText text={check.title} />}</span>
         {showDetail && check.detail ? <span className={cn('k', check.mono && 'mono')}>{check.detail}</span> : null}
         {check.rows?.length ? <CheckRowsGrid rows={check.rows} /> : null}
       </div>

@@ -16,6 +16,10 @@ var automationMailer = func(*App) automations.Mailer { return automations.QueueO
 // same way; the default publishes right away.
 var automationGate = func(*App) automations.PublishGate { return automations.NoApproval{} }
 
+// automationAccessibility checks the emails of a version before publishing;
+// the accessibility domain replaces it from its wire file. Nil skips it.
+var automationAccessibility = func(*App) automations.AccessibilityGate { return nil }
+
 // automationLanguages gives emails their language versions; the content
 // languages domain replaces it from its wire file.
 var automationLanguages = func(*App) automations.EmailLanguages { return nil }
@@ -29,9 +33,10 @@ func newAutomations(a *App) *automations.Service {
 			}
 			return a.Jobs
 		},
-		Mailer:    automationMailer(a),
-		Gate:      automationGate(a),
-		Languages: automationLanguages(a),
+		Mailer:        automationMailer(a),
+		Gate:          automationGate(a),
+		Accessibility: automationAccessibility(a),
+		Languages:     automationLanguages(a),
 	}
 }
 

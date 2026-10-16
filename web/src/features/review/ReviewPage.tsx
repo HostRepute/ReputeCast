@@ -14,6 +14,9 @@ import { useNow } from '@/lib/hooks'
 import { deniedReason, useMe, useWorkspace } from '@/lib/session'
 import { statusWord as campaignWord } from '@/features/composer/format'
 import { approverNames, deciderFirst } from '@/features/approvals/parts'
+import { m as am } from '@/features/accessibility/messages'
+import { accessibilityBlock, OneClickDialog } from '@/features/accessibility/review'
+import { useT } from '@/i18n'
 import { approvalMode, ApprovedCard, BypassDialog, canRestore, HeldActions, HeldCard, InvalidatedCard, RequiredCard, WaitingCard } from './ApprovalCard'
 import { AudienceCard, finalCount, RouteCard, ScheduleNote, SchedulingCard, TestSendsCard, ThresholdsCard, ThrottlingCard } from './Aside'
 import { Checklist, RunningList, UnknownList } from './Checklist'
@@ -151,6 +154,9 @@ function ReviewBody({
   const [confirm, setConfirm] = useState<'send' | 'approved' | null>(null)
   const [bypass, setBypass] = useState(false)
   const [unschedule, setUnschedule] = useState(false)
+  // "Fix 2 in one click" shows what it changes first.
+  const [oneClick, setOneClick] = useState<{ check: Check; fix: Fix }>()
+  const tr = useT()
 
   // The checks run on their own when the campaign changed since the last
   // run (or never ran): once per visit, for people who may run them.
@@ -359,7 +365,8 @@ function ReviewBody({
   const showScheduled = scheduled && mode === 'none'
   const can = { edit: a.canEdit, send: a.canSend, editable: c.editable }
   const reasonFor = (f: Fix) => fixReason(f, can, helpers)
-  const apply = (check: Check, fix: Fix) => void applyFixes([{ check, fix }], `${check.key}:${fix.action}`)
+  const apply = (check: Check, fix: Fix) =>
+    fix.action === 'accessibility_one_click' ? setOneClick({ check, fix }) : void applyFixes([{ check, fix }], `${check.key}:${fix.action}`)
   const fixAll = (status: 'warn' | 'block') => {
     const items = run.checks.filter((x) => x.status === status).flatMap((x) => {
       const f = primaryFix(x)
@@ -484,7 +491,12 @@ function ReviewBody({
         actions={
           blocked ? (
             <>
-              {blockFixes.length ? (
+              {accessibilityBlock(run) ? (
+                // Alt text and colors are fixed in the composer, where the issues are listed.
+                <ButtonLink to="/w/$workspace/campaigns/$campaignId/edit" params={{ workspace: slug, campaignId }} search={{ panel: 'accessibility' }}>
+                  {tr(am.openInComposer)}
+                </ButtonLink>
+              ) : blockFixes.length ? (
                 <Button variant="danger-primary" loading={busy === 'all'} onClick={() => void applyFixes(blockFixes, 'all')}>
                   {fixAllLabel('block', blockFixes.length)}
                 </Button>
@@ -557,7 +569,14 @@ function ReviewBody({
       <div className="flex flex-wrap items-start gap-5">
         <div className="flex min-w-0 flex-[1_1_560px] flex-col gap-5">
           {approvalCard}
-          <Checklist run={run} busy={busy} reasonFor={reasonFor} onApply={apply} />
+          <Checklist run={run} busy={busy} reasonFor={reasonFor} onApply={apply} onRerun={a.canEdit && c.editable ? () => void runChecks() : undefined} />
+          {oneClick ? (
+            <OneClickDialog
+              campaignId={campaignId}
+              onOpenChange={(open) => (open ? undefined : setOneClick(undefined))}
+              onConfirm={() => applyFixes([oneClick], `${oneClick.check.key}:${oneClick.fix.action}`)}
+            />
+          ) : null}
         </div>
         <aside className="rv-aside" aria-label="Audience, route and send settings">
           <AudienceCard audience={run.estimates.audience}>

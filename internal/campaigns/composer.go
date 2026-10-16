@@ -14,6 +14,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/hostrepute/reputecast/internal/accessibility"
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
@@ -182,6 +183,9 @@ type ComposerAccess struct {
 	// CanSend is campaigns:send. Without it "Review & send" becomes "Request approval".
 	CanSend     bool     `json:"canSend"`
 	SendHelpers []string `json:"sendHelpers" doc:"Members who hold campaigns:send"`
+	// EditHelpers are members who hold campaigns:edit, named to people who
+	// can't edit (the Accessibility panel's read-only note).
+	EditHelpers []string `json:"editHelpers,omitempty" doc:"Members who hold campaigns:edit (when the caller can't edit)"`
 	// CanManageRouting is providers:manage; others see the route read-only.
 	CanManageRouting bool `json:"canManageRouting"`
 	// CanSendTestToOthers lets test emails go to other addresses (campaigns:send).
@@ -294,6 +298,9 @@ func (s *Service) access(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		Editable: editableStatuses[status], CanEdit: p.Can(authz.CampaignsEdit), CanSend: p.Can(authz.CampaignsSend),
 		CanManageRouting: p.Can(authz.ProvidersManage), CanSendTestToOthers: p.Can(authz.CampaignsSend),
 		CanEditTemplates: p.Can(authz.TemplatesEdit), CanViewContacts: p.Can(authz.SubscribersView), SendHelpers: []string{},
+	}
+	if !a.CanEdit {
+		a.EditHelpers = s.helpers(ctx, ws.ID, authz.CampaignsEdit)
 	}
 	if !a.Editable {
 		switch status {
@@ -450,6 +457,7 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	if src != "" && html == "" {
 		html = mjml.Compile(src).HTML
 	}
+	html = accessibility.FinalizeStored(ctx, s.Q, ws.ID, accessibility.OwnerCampaign, uuid.Nil, 0, html)
 	id := uuid.Must(uuid.NewV7())
 	now := s.now()
 	actor := p.UserID

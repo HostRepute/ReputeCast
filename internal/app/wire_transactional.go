@@ -26,6 +26,10 @@ import (
 // publishing never needs one.
 var transactionalGate = func(*App) transactional.PublishGate { return nil }
 
+// transactionalAccessibility adds the Accessibility group to a template's
+// checks; the accessibility domain replaces it from its wire file.
+var transactionalAccessibility = func(*App) transactional.AccessibilityChecker { return nil }
+
 // transactionalTranslations gives templates their language versions; the
 // content-languages domain replaces it (nil: every template is in one
 // language).
@@ -57,6 +61,7 @@ func transactionalService(a *App) *transactional.Service {
 
 		Translations: transactionalTranslations(a),
 	}
+	s.Accessibility = transactionalAccessibility(a)
 	v, _ := transactionalServices.LoadOrStore(a, s)
 	return v.(*transactional.Service)
 }

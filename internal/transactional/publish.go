@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/hostrepute/reputecast/internal/accessibility"
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
@@ -572,7 +573,7 @@ func (s *Service) publishPreview(ctx context.Context, q *store.Queries, ws *stor
 	cs := s.draftSubject(ctx, ws, t)
 	cs.Variables = vars
 	cs.ProbeLinks = true
-	out.Checks = s.runChecks(ctx, cs)
+	out.Checks = publishChecks(s.runChecks(ctx, cs))
 	out.TestRenders = append(out.TestRenders, out.Checks.TestData...)
 	if len(calls) > 0 {
 		c := calls[0]
@@ -709,6 +710,10 @@ func (s *Service) Publish(ctx context.Context, ws *store.Workspace, p *authz.Pri
 		if strings.TrimSpace(html) == "" {
 			html, _ = content{Subject: t.Subject, Preheader: t.Preheader, MJML: t.Mjml}.compiledHTML()
 		}
+		// lang, dir and the layout tables' role (accessibility): already there
+		// when the draft was saved through the API, added to HTML stored
+		// before them.
+		html = accessibility.FinalizeStored(ctx, q, ws.ID, accessibility.OwnerTransactional, id, 0, html)
 		hash := draftHash(t.Subject, t.Preheader, t.EditorMode, t.Mjml, t.Html, t.PlainText, vars, t.SenderID, t.ReplyTo, t.TrackOpens, t.TrackClicks)
 		change := strings.TrimSpace(in.Note)
 		if change == "" {

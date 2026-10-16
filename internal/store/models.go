@@ -12,6 +12,34 @@ import (
 	"github.com/google/uuid"
 )
 
+type AccessibilityFix struct {
+	ID          uuid.UUID  `json:"id"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	CampaignID  uuid.UUID  `json:"campaignId"`
+	ContentHash string     `json:"contentHash"`
+	Kinds       []string   `json:"kinds"`
+	Summary     string     `json:"summary"`
+	Languages   []string   `json:"languages"`
+	FixedBy     *uuid.UUID `json:"fixedBy"`
+	FixedAt     time.Time  `json:"fixedAt"`
+}
+
+type AccessibilityLinkTitle struct {
+	Url       string    `json:"url"`
+	Title     string    `json:"title"`
+	Lang      string    `json:"lang"`
+	Status    int32     `json:"status"`
+	FetchedAt time.Time `json:"fetchedAt"`
+}
+
+type AccessibilityPolicy struct {
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	OnSerious   string     `json:"onSerious"`
+	MinTextPx   int32      `json:"minTextPx"`
+	UpdatedBy   *uuid.UUID `json:"updatedBy"`
+	UpdatedAt   time.Time  `json:"updatedAt"`
+}
+
 type AdapterRuntime struct {
 	AdapterID          uuid.UUID  `json:"adapterId"`
 	AdapterKey         string     `json:"adapterKey"`
