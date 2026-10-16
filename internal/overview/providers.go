@@ -69,9 +69,15 @@ func detail(c manage.ProviderCard) string {
 	// A provider's own stream label ("Transactional stream" at Postmark)
 	// reads as ReputeCast's stream once it carries Transactional: the
 	// streams below say it.
-	carries := slices.ContainsFunc(c.Roles, func(r manage.ProviderStreamRole) bool { return r.Stream == "transactional" && (r.Role == "primary" || r.Role == "split") })
-	if l := strings.TrimSpace(strings.TrimPrefix(c.Label, "self-hosted · ")); l != "" && l != "self-hosted" && !(carries && strings.HasSuffix(l, " stream")) {
-		parts = append(parts, l)
+	carries := slices.ContainsFunc(c.Roles, func(r manage.ProviderStreamRole) bool {
+		return r.Stream == "transactional" && (r.Role == "primary" || r.Role == "split")
+	})
+	label := strings.TrimSpace(strings.TrimPrefix(c.Label, "self-hosted · "))
+	if carries && strings.HasSuffix(label, " stream") {
+		label = ""
+	}
+	if label != "" && label != "self-hosted" {
+		parts = append(parts, label)
 	}
 	if c.IPMode == "dedicated" && len(c.IPs) > 0 {
 		parts = append(parts, strings.Join(c.IPs, ", ")+" dedicated")
