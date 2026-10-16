@@ -1,0 +1,27 @@
+{
+  "problem.unknownService": "That verification service isn't in the catalog.",
+  "problem.alreadyConnected": { "message": "{service} is already connected in this workspace. Replace its key on its page.", "note": "service: ZeroBounce, Kickbox…" },
+  "problem.notConnected": "{service} isn't connected in this workspace.",
+  "problem.keyRejected": { "message": "{service} rejected this key ({status}). Copy it again from the API page of your {service} account, or create a new one there.", "note": "status: the HTTP status the service answered, such as 401" },
+  "problem.noCreditsKey": "The key works, but {service} has no credits left. Add credits in {service}, then try again.",
+  "problem.unreachable": "{service} didn't answer, so nothing was saved. Try again in a moment.",
+  "problem.noService": "No verification service is connected. Connect one in Settings › Integrations.",
+  "problem.noServiceAsk": { "message": "No verification service is connected. {helpers} can connect one in Settings › Integrations.", "note": "helpers: names joined as 'A or B'" },
+  "problem.nothingToCheck": "There's nothing to check: every address was checked in the last 90 days, or the selection is empty.",
+  "problem.jobFinished": "This job has already ended.",
+  "problem.jobNotStopped": "Only a job that stopped for credits or an outage can be resumed.",
+  "problem.formsEdit": { "message": "Turning real-time checks on or off also needs forms:edit. Ask {helpers}.", "note": "helpers: names joined as 'A or B'" },
+  "problem.formsEditPlain": "Turning real-time checks on or off also needs forms:edit.",
+  "problem.noFormsService": "Pick a default service for signup forms first, on its page in Settings › Integrations.",
+  "problem.contactErased": "This contact was erased, so there's no address to check.",
+
+  "notify.jobFinishedTitle": { "message": "Verification finished · {label}", "note": "label: what was checked (Sunset tier, Product Updates)" },
+  "notify.jobFinishedSummary": "{suppressed, plural, one {# suppressed} other {# suppressed}}, {risky, plural, one {# tagged risky} other {# tagged risky}}. {service} checked {checked, number} addresses.",
+  "notify.jobStoppedTitle": "Verification stopped · {label}",
+  "notify.jobStoppedCredits": "{service} has no credits left. Results for {checked, number} of {total, number} are kept. Add credits in {service}, then Resume.",
+  "notify.jobStoppedDown": "{service} didn't answer for an hour. Results for {checked, number} of {total, number} are kept; check the rest later.",
+  "notify.jobStoppedKey": "{service} rejected the API key. Results for {checked, number} of {total, number} are kept. Replace the key, then Resume.",
+  "notify.creditsLowTitle": "Verification credits low · {service}",
+  "notify.creditsLowSummary": "{balance, number} credits left at {service}.",
+  "notify.creditsLowNeeded": "{balance, number} credits left at {service}. Checking {label} needs {needed, number}."
+}

@@ -30,6 +30,10 @@ var Events = []EventType{
 	{Key: KindHostReputeAlert, Label: "HostRepute alerts", Audience: "Everyone with deliverability:view", Short: "HostRepute alerts", DefaultEmail: false, Kinds: []string{KindHostReputeAlert}},
 	{Key: KindIntegrationAttention, Label: "Integration needs attention", Audience: "Everyone with integrations:manage", Short: "integration problems", DefaultEmail: true, Kinds: []string{KindIntegrationAttention}},
 	{Key: KindPostDraftCreated, Label: "Post draft created", Audience: "When a WordPress post-draft rule names you", Short: "post drafts", DefaultEmail: true, Kinds: []string{KindPostDraftCreated}},
+	{Key: KindVerificationEnded, Label: "Verification finished or stopped", Audience: "The person who started it", Short: "verification jobs", DefaultEmail: true, Kinds: []string{KindVerificationEnded}},
+	{Key: KindVerificationCreditsLow, Label: "Verification credits low", Audience: "Everyone with integrations:manage", Short: "low verification credits", DefaultEmail: true, Kinds: []string{KindVerificationCreditsLow}},
+	{Key: KindPlacementFinished, Label: "Placement test finished", Audience: "The person who started it", Short: "placement tests", DefaultEmail: false, Kinds: []string{KindPlacementFinished}},
+	{Key: KindSeedSignInFailed, Label: "Seed mailbox sign-in failed", Audience: "Everyone with placement:manage", Short: "seed sign-in failures", DefaultEmail: true, Kinds: []string{KindSeedSignInFailed}},
 }
 
 // otherEvent covers kinds without a preference row (send finished, jobs):

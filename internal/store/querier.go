@@ -1012,6 +1012,54 @@ type Querier interface {
 	// Overview (spec 7.1).
 	OverviewNextScheduled(ctx context.Context, arg OverviewNextScheduledParams) (OverviewNextScheduledRow, error)
 	PauseAutomation(ctx context.Context, arg PauseAutomationParams) error
+	PlacementCopies(ctx context.Context, testID uuid.UUID) ([]PlacementCopy, error)
+	PlacementCopiesDeleted(ctx context.Context, arg PlacementCopiesDeletedParams) error
+	// Copies whose hand-off time has come.
+	PlacementCopiesDue(ctx context.Context, arg PlacementCopiesDueParams) ([]PlacementCopy, error)
+	PlacementCopiesNotArrived(ctx context.Context, testID uuid.UUID) error
+	// Copies of a seed that couldn't be read (its sign-in failed during the test).
+	PlacementCopiesNotChecked(ctx context.Context, arg PlacementCopiesNotCheckedParams) error
+	PlacementCopiesOfTests(ctx context.Context, testIds []uuid.UUID) ([]PlacementCopy, error)
+	PlacementCopy(ctx context.Context, arg PlacementCopyParams) (PlacementCopy, error)
+	PlacementCopyByID(ctx context.Context, id uuid.UUID) (PlacementCopy, error)
+	// The provider's events for a copy.
+	PlacementCopyEvents(ctx context.Context, messageID *uuid.UUID) ([]DeliveryEvent, error)
+	PlacementCopyFound(ctx context.Context, arg PlacementCopyFoundParams) error
+	PlacementCopyInsert(ctx context.Context, arg PlacementCopyInsertParams) error
+	PlacementCopySent(ctx context.Context, arg PlacementCopySentParams) error
+	PlacementLatestForCampaign(ctx context.Context, arg PlacementLatestForCampaignParams) (PlacementTest, error)
+	PlacementMessageKind(ctx context.Context, id uuid.UUID) (string, error)
+	PlacementOAuthStateInsert(ctx context.Context, arg PlacementOAuthStateInsertParams) error
+	// Single use: the state is removed as it's read.
+	PlacementOAuthStateTake(ctx context.Context, stateHash []byte) (PlacementOauthState, error)
+	PlacementOAuthStatesExpire(ctx context.Context, now time.Time) error
+	PlacementSeed(ctx context.Context, arg PlacementSeedParams) (PlacementSeed, error)
+	PlacementSeedByEmail(ctx context.Context, arg PlacementSeedByEmailParams) (PlacementSeed, error)
+	PlacementSeedDelete(ctx context.Context, arg PlacementSeedDeleteParams) (int64, error)
+	PlacementSeedFolders(ctx context.Context, arg PlacementSeedFoldersParams) error
+	PlacementSeedInsert(ctx context.Context, arg PlacementSeedInsertParams) error
+	PlacementSeedReconnect(ctx context.Context, arg PlacementSeedReconnectParams) error
+	// A refreshed OAuth token.
+	PlacementSeedSetCredentials(ctx context.Context, arg PlacementSeedSetCredentialsParams) error
+	PlacementSeedStatus(ctx context.Context, arg PlacementSeedStatusParams) error
+	PlacementSeedUsed(ctx context.Context, arg PlacementSeedUsedParams) error
+	// Placement tests (internal/placement): seed mailboxes, tests, copies.
+	PlacementSeeds(ctx context.Context, workspaceID uuid.UUID) ([]PlacementSeedsRow, error)
+	PlacementSettings(ctx context.Context, workspaceID uuid.UUID) (string, error)
+	PlacementSettingsSet(ctx context.Context, arg PlacementSettingsSetParams) error
+	PlacementTest(ctx context.Context, arg PlacementTestParams) (PlacementTestRow, error)
+	PlacementTestByID(ctx context.Context, id uuid.UUID) (PlacementTest, error)
+	PlacementTestCopiesDeleted(ctx context.Context, arg PlacementTestCopiesDeletedParams) error
+	PlacementTestInsert(ctx context.Context, arg PlacementTestInsertParams) error
+	PlacementTestSetStatus(ctx context.Context, arg PlacementTestSetStatusParams) error
+	PlacementTestStop(ctx context.Context, arg PlacementTestStopParams) (int64, error)
+	PlacementTests(ctx context.Context, arg PlacementTestsParams) ([]PlacementTestsRow, error)
+	// Tests through one provider since a time (the warm-up planner's card).
+	PlacementTestsForProvider(ctx context.Context, arg PlacementTestsForProviderParams) ([]PlacementTest, error)
+	// Tests sending or waiting, and finished ones still within the late window.
+	PlacementTestsOpen(ctx context.Context, now *time.Time) ([]PlacementTest, error)
+	// Tests whose copies are due to be deleted from the seeds.
+	PlacementTestsToDelete(ctx context.Context, now *time.Time) ([]PlacementTest, error)
 	ProvActiveFailovers(ctx context.Context, workspaceID uuid.UUID) ([]StreamFailover, error)
 	ProvAwaitingCampaigns(ctx context.Context, arg ProvAwaitingCampaignsParams) ([]ProvAwaitingCampaignsRow, error)
 	ProvAwaitingCount(ctx context.Context, arg ProvAwaitingCountParams) (ProvAwaitingCountRow, error)
@@ -1854,6 +1902,82 @@ type Querier interface {
 	UpsertNotificationSettings(ctx context.Context, arg UpsertNotificationSettingsParams) error
 	UseRecoveryCode(ctx context.Context, arg UseRecoveryCodeParams) (uuid.UUID, error)
 	UsersShareWorkspace(ctx context.Context, arg UsersShareWorkspaceParams) (bool, error)
+	// Contacts per latest result, for a set of contacts.
+	VerifCheckCounts(ctx context.Context, arg VerifCheckCountsParams) (VerifCheckCountsRow, error)
+	// Contacts whose address was checked since a time (skipped by "Skip
+	// addresses checked in the last 90 days"), with the latest check's day.
+	VerifCheckedSince(ctx context.Context, arg VerifCheckedSinceParams) ([]VerifCheckedSinceRow, error)
+	// The latest results of the contacts with these addresses (Send Readiness).
+	VerifChecksByEmail(ctx context.Context, arg VerifChecksByEmailParams) ([]VerifChecksByEmailRow, error)
+	VerifConsentEvents(ctx context.Context, arg VerifConsentEventsParams) error
+	VerifContactCheck(ctx context.Context, arg VerifContactCheckParams) (ContactAddressCheck, error)
+	VerifContactChecksUpsert(ctx context.Context, arg VerifContactChecksUpsertParams) error
+	VerifContactsByEmail(ctx context.Context, arg VerifContactsByEmailParams) ([]VerifContactsByEmailRow, error)
+	VerifFormCheckEnabled(ctx context.Context, arg VerifFormCheckEnabledParams) (bool, error)
+	VerifFormCheckSet(ctx context.Context, arg VerifFormCheckSetParams) error
+	VerifFormChecks(ctx context.Context, workspaceID uuid.UUID) ([]VerificationFormCheck, error)
+	VerifJobByID(ctx context.Context, id uuid.UUID) (VerificationJob, error)
+	VerifJobCancel(ctx context.Context, arg VerifJobCancelParams) (int64, error)
+	// One worker at a time: the job is held until claimed_until.
+	VerifJobClaim(ctx context.Context, arg VerifJobClaimParams) (int64, error)
+	VerifJobGet(ctx context.Context, arg VerifJobGetParams) (VerifJobGetRow, error)
+	VerifJobInsert(ctx context.Context, arg VerifJobInsertParams) error
+	// A job's checked addresses, for the results CSV.
+	VerifJobItemsAll(ctx context.Context, jobID uuid.UUID) ([]VerifJobItemsAllRow, error)
+	VerifJobItemsDone(ctx context.Context, arg VerifJobItemsDoneParams) error
+	VerifJobItemsInsert(ctx context.Context, arg VerifJobItemsInsertParams) error
+	// Jobs of the workspace since a time, newest first (uses, the jobs tray).
+	VerifJobList(ctx context.Context, arg VerifJobListParams) ([]VerifJobListRow, error)
+	VerifJobPending(ctx context.Context, arg VerifJobPendingParams) ([]VerifJobPendingRow, error)
+	VerifJobPendingCount(ctx context.Context, jobID uuid.UUID) (int64, error)
+	VerifJobRelease(ctx context.Context, id uuid.UUID) error
+	// The results of an import's check, by address.
+	VerifJobResults(ctx context.Context, jobID uuid.UUID) ([]VerifJobResultsRow, error)
+	// A job stopped for credits or an outage goes on with what's left.
+	VerifJobResume(ctx context.Context, arg VerifJobResumeParams) (int64, error)
+	VerifJobSaveCounts(ctx context.Context, arg VerifJobSaveCountsParams) error
+	VerifJobSetStatus(ctx context.Context, arg VerifJobSetStatusParams) error
+	// Jobs to work on: queued or running, and paused ones whose retry is due.
+	VerifJobsRunnable(ctx context.Context, now *time.Time) ([]VerificationJob, error)
+	VerifLatestImportJob(ctx context.Context, arg VerifLatestImportJobParams) (VerificationJob, error)
+	VerifPendingCount(ctx context.Context, workspaceID uuid.UUID) (int64, error)
+	VerifPendingDelete(ctx context.Context, id uuid.UUID) error
+	VerifPendingDue(ctx context.Context, lim int32) ([]VerificationRealtimePending, error)
+	VerifPendingInsert(ctx context.Context, arg VerifPendingInsertParams) error
+	VerifPendingTried(ctx context.Context, id uuid.UUID) error
+	VerifRealtimeCount(ctx context.Context, arg VerifRealtimeCountParams) error
+	VerifRealtimeDaily(ctx context.Context, arg VerifRealtimeDailyParams) ([]VerificationRealtimeDaily, error)
+	// "Asked to fix their address" per form over a period.
+	VerifRealtimeInvalidByForm(ctx context.Context, arg VerifRealtimeInvalidByFormParams) ([]VerifRealtimeInvalidByFormRow, error)
+	// Every connected service of the instance, for the hourly balance read.
+	VerifServiceAll(ctx context.Context) ([]VerificationService, error)
+	VerifServiceAnswered(ctx context.Context, arg VerifServiceAnsweredParams) error
+	VerifServiceByID(ctx context.Context, id uuid.UUID) (VerificationService, error)
+	VerifServiceByKey(ctx context.Context, arg VerifServiceByKeyParams) (VerificationService, error)
+	// One default per use: setting it on one service takes it off the others.
+	VerifServiceClearDefaults(ctx context.Context, arg VerifServiceClearDefaultsParams) error
+	VerifServiceDelete(ctx context.Context, arg VerifServiceDeleteParams) (int64, error)
+	// An error answer; the streak keeps its first time ("from 15:05 to 15:10").
+	VerifServiceFailed(ctx context.Context, arg VerifServiceFailedParams) error
+	VerifServiceInsert(ctx context.Context, arg VerifServiceInsertParams) error
+	// Address verification services (internal/verification): connections,
+	// jobs and their addresses, each contact's latest result, real-time checks
+	// on signup forms.
+	VerifServiceList(ctx context.Context, workspaceID uuid.UUID) ([]VerifServiceListRow, error)
+	VerifServiceLowNotified(ctx context.Context, arg VerifServiceLowNotifiedParams) error
+	VerifServiceSetBalance(ctx context.Context, arg VerifServiceSetBalanceParams) error
+	VerifServiceSetKey(ctx context.Context, arg VerifServiceSetKeyParams) error
+	VerifServiceSettings(ctx context.Context, arg VerifServiceSettingsParams) error
+	VerifServiceTested(ctx context.Context, arg VerifServiceTestedParams) error
+	VerifServiceUsed(ctx context.Context, arg VerifServiceUsedParams) error
+	// Replace a contact's verify:… tags with the latest result's (none for valid).
+	VerifSetTags(ctx context.Context, arg VerifSetTagsParams) error
+	// Invalid addresses: the contacts are suppressed for all mail.
+	VerifSuppressContacts(ctx context.Context, arg VerifSuppressContactsParams) ([]uuid.UUID, error)
+	VerifSuppressedEmails(ctx context.Context, arg VerifSuppressedEmailsParams) ([]string, error)
+	// Per engagement tier: contacts, and those checked since a time (List
+	// health's "never checked").
+	VerifTierCheckSummary(ctx context.Context, arg VerifTierCheckSummaryParams) ([]VerifTierCheckSummaryRow, error)
 	// Runs waiting at a branch for an open or click: wake them as soon as the
 	// email they wait on has one, instead of at the end of the window.
 	WakeAutomationBranchRuns(ctx context.Context, now *time.Time) (int64, error)

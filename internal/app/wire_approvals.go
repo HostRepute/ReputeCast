@@ -41,12 +41,19 @@ func readinessService(a *App) *readiness.Service {
 	if acc := readinessAccessibility(a); acc != nil {
 		rs.Accessibility = acc
 	}
+	if v := readinessVerification(a); v != nil {
+		rs.Verification = v
+	}
 	return rs
 }
 
 // readinessAccessibility runs the Accessibility group of Send Readiness; the
 // accessibility domain replaces it from its wire file. Nil leaves it out.
 var readinessAccessibility = func(*App) readiness.AccessibilityChecker { return nil }
+
+// readinessVerification gives Audience quality the address checks; the
+// verification domain replaces it from its wire file. Nil leaves them out.
+var readinessVerification = func(*App) readiness.VerificationChecker { return nil }
 
 // newApprovals builds the approvals service with its own Send Readiness.
 func newApprovals(a *App) *approvals.Service {

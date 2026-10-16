@@ -89,7 +89,7 @@ func TestPreferencesAndDelivery(t *testing.T) {
 	var prefs map[string]any
 	c.Do("GET", "/me/notification-preferences?workspace="+ws.Slug, nil).MustStatus(t, 200).JSON(t, &prefs)
 	events := prefs["events"].([]any)
-	if len(events) != 10 || prefs["digest"] != "immediate" || prefs["quietHours"] != nil {
+	if len(events) != len(notify.Events) || prefs["digest"] != "immediate" || prefs["quietHours"] != nil {
 		t.Fatalf("defaults: %v", prefs)
 	}
 	if e := events[0].(map[string]any); e["type"] != "approval_requested" || e["inApp"] != true || e["email"] != true || e["audience"] != "Only for approvers" {
@@ -172,14 +172,14 @@ func TestSummarize(t *testing.T) {
 		p.Events = append(p.Events, notify.NotificationEventPreference{Type: e.Key, InApp: true, Email: e.DefaultEmail})
 	}
 	s := notify.Summarize(p)
-	if s.InApp != "All events" || s.Email != "Approvals, auto-pauses, provider down, integration problems, post drafts" || s.QuietHours != "22:00–07:00 America/New_York, email only" {
+	if s.InApp != "All events" || s.Email != "Approvals, auto-pauses, provider down, integration problems, post drafts, verification jobs, low verification credits, seed sign-in failures" || s.QuietHours != "22:00–07:00 America/New_York, email only" {
 		t.Fatalf("summary: %+v", s)
 	}
 
 	// In the member's app language, starting with a capital in any script.
 	vi := i18n.For(i18n.Vietnamese)
 	s = notify.SummarizeIn(vi, p)
-	if s.InApp != "Tất cả sự kiện" || s.Email != "Phê duyệt, tự tạm dừng, nhà cung cấp gặp sự cố, sự cố tích hợp, bản nháp bài viết" || s.QuietHours != "22:00–07:00 America/New_York, chỉ email" {
+	if s.InApp != "Tất cả sự kiện" || s.Email != "Phê duyệt, tự tạm dừng, nhà cung cấp gặp sự cố, sự cố tích hợp, bản nháp bài viết, verification jobs, low verification credits, seed sign-in failures" || s.QuietHours != "22:00–07:00 America/New_York, chỉ email" {
 		t.Fatalf("Vietnamese summary: %+v", s)
 	}
 	p.QuietHours = nil

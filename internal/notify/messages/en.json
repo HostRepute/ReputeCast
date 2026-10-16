@@ -12,5 +12,9 @@
   "short.invite_accepted": "invites",
   "short.hostrepute_alert": "HostRepute alerts",
   "short.integration_attention": "integration problems",
-  "short.post_draft_created": "post drafts"
+  "short.post_draft_created": "post drafts",
+  "short.verification_ended": "verification jobs",
+  "short.verification_credits_low": "low verification credits",
+  "short.placement_finished": "placement tests",
+  "short.seed_signin_failed": "seed sign-in failures"
 }

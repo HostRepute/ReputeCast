@@ -593,6 +593,17 @@ type Contact struct {
 	BroadcastsStoppedAt *time.Time      `json:"broadcastsStoppedAt"`
 }
 
+type ContactAddressCheck struct {
+	ContactID   uuid.UUID  `json:"contactId"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	Result      string     `json:"result"`
+	Reason      string     `json:"reason"`
+	Code        string     `json:"code"`
+	Service     string     `json:"service"`
+	JobID       *uuid.UUID `json:"jobId"`
+	CheckedAt   time.Time  `json:"checkedAt"`
+}
+
 type ContactPreference struct {
 	ContactID   uuid.UUID  `json:"contactId"`
 	Frequency   string     `json:"frequency"`
@@ -1201,6 +1212,116 @@ type PasswordReset struct {
 	ExpiresAt time.Time  `json:"expiresAt"`
 	UsedAt    *time.Time `json:"usedAt"`
 	Source    string     `json:"source"`
+}
+
+type PlacementCopy struct {
+	ID                uuid.UUID       `json:"id"`
+	TestID            uuid.UUID       `json:"testId"`
+	WorkspaceID       uuid.UUID       `json:"workspaceId"`
+	SeedID            *uuid.UUID      `json:"seedId"`
+	SeedEmail         string          `json:"seedEmail"`
+	SeedProvider      string          `json:"seedProvider"`
+	Position          int32           `json:"position"`
+	ProviderID        *uuid.UUID      `json:"providerId"`
+	ProviderName      string          `json:"providerName"`
+	Token             string          `json:"token"`
+	Round             int32           `json:"round"`
+	SendAt            time.Time       `json:"sendAt"`
+	Status            string          `json:"status"`
+	Folder            string          `json:"folder"`
+	FolderName        string          `json:"folderName"`
+	Tab               string          `json:"tab"`
+	Late              bool            `json:"late"`
+	HandedAt          *time.Time      `json:"handedAt"`
+	ReceivedAt        *time.Time      `json:"receivedAt"`
+	FoundAt           *time.Time      `json:"foundAt"`
+	ProviderMessageID string          `json:"providerMessageId"`
+	Error             string          `json:"error"`
+	Auth              json.RawMessage `json:"auth"`
+	Hop               json.RawMessage `json:"hop"`
+	Headers           string          `json:"headers"`
+	Ref               json.RawMessage `json:"ref"`
+	NotChecked        string          `json:"notChecked"`
+	DeletedAt         *time.Time      `json:"deletedAt"`
+}
+
+type PlacementOauthState struct {
+	StateHash   []byte     `json:"stateHash"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	UserID      uuid.UUID  `json:"userId"`
+	Kind        string     `json:"kind"`
+	Provider    string     `json:"provider"`
+	SeedID      *uuid.UUID `json:"seedId"`
+	VerifierEnc []byte     `json:"verifierEnc"`
+	CreatedAt   time.Time  `json:"createdAt"`
+	ExpiresAt   time.Time  `json:"expiresAt"`
+}
+
+type PlacementSeed struct {
+	ID             uuid.UUID       `json:"id"`
+	WorkspaceID    uuid.UUID       `json:"workspaceId"`
+	Email          string          `json:"email"`
+	Provider       string          `json:"provider"`
+	Auth           string          `json:"auth"`
+	ImapHost       string          `json:"imapHost"`
+	ImapPort       int32           `json:"imapPort"`
+	Username       string          `json:"username"`
+	CredentialsEnc []byte          `json:"credentialsEnc"`
+	Status         string          `json:"status"`
+	StatusAt       *time.Time      `json:"statusAt"`
+	StatusDetail   string          `json:"statusDetail"`
+	Folders        json.RawMessage `json:"folders"`
+	CheckedAt      *time.Time      `json:"checkedAt"`
+	LastUsedAt     *time.Time      `json:"lastUsedAt"`
+	LastTestID     *uuid.UUID      `json:"lastTestId"`
+	LastTestLabel  string          `json:"lastTestLabel"`
+	AddedBy        *uuid.UUID      `json:"addedBy"`
+	AddedAt        time.Time       `json:"addedAt"`
+}
+
+type PlacementSetting struct {
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	DeleteAfter string     `json:"deleteAfter"`
+	UpdatedBy   *uuid.UUID `json:"updatedBy"`
+	UpdatedAt   time.Time  `json:"updatedAt"`
+}
+
+type PlacementTest struct {
+	ID              uuid.UUID       `json:"id"`
+	WorkspaceID     uuid.UUID       `json:"workspaceId"`
+	Name            string          `json:"name"`
+	ContentKind     string          `json:"contentKind"`
+	ContentID       *uuid.UUID      `json:"contentId"`
+	ContentName     string          `json:"contentName"`
+	ContentNote     string          `json:"contentNote"`
+	Variant         string          `json:"variant"`
+	Language        string          `json:"language"`
+	Personalization string          `json:"personalization"`
+	Through         string          `json:"through"`
+	Stream          string          `json:"stream"`
+	ProviderIds     []uuid.UUID     `json:"providerIds"`
+	SenderID        *uuid.UUID      `json:"senderId"`
+	FromName        string          `json:"fromName"`
+	FromEmail       string          `json:"fromEmail"`
+	Origin          string          `json:"origin"`
+	Status          string          `json:"status"`
+	Subject         string          `json:"subject"`
+	Html            string          `json:"html"`
+	TextBody        string          `json:"textBody"`
+	Links           json.RawMessage `json:"links"`
+	Providers       json.RawMessage `json:"providers"`
+	StartedBy       *uuid.UUID      `json:"startedBy"`
+	StartedAt       time.Time       `json:"startedAt"`
+	LastSentAt      *time.Time      `json:"lastSentAt"`
+	WaitUntil       *time.Time      `json:"waitUntil"`
+	LateUntil       *time.Time      `json:"lateUntil"`
+	FinishedAt      *time.Time      `json:"finishedAt"`
+	StoppedBy       *uuid.UUID      `json:"stoppedBy"`
+	StoppedAt       *time.Time      `json:"stoppedAt"`
+	DeleteAfter     string          `json:"deleteAfter"`
+	DeleteAt        *time.Time      `json:"deleteAt"`
+	CopiesDeletedAt *time.Time      `json:"copiesDeletedAt"`
+	CopiesDeletedBy *uuid.UUID      `json:"copiesDeletedBy"`
 }
 
 type PostmasterDaily struct {
@@ -1986,6 +2107,114 @@ type UserRecoveryCode struct {
 	CodeHash  []byte     `json:"codeHash"`
 	UsedAt    *time.Time `json:"usedAt"`
 	CreatedAt time.Time  `json:"createdAt"`
+}
+
+type VerificationFormCheck struct {
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	FormKey     string     `json:"formKey"`
+	Enabled     bool       `json:"enabled"`
+	UpdatedBy   *uuid.UUID `json:"updatedBy"`
+	UpdatedAt   time.Time  `json:"updatedAt"`
+}
+
+type VerificationJob struct {
+	ID            uuid.UUID       `json:"id"`
+	WorkspaceID   uuid.UUID       `json:"workspaceId"`
+	ServiceID     *uuid.UUID      `json:"serviceId"`
+	Service       string          `json:"service"`
+	Kind          string          `json:"kind"`
+	Target        json.RawMessage `json:"target"`
+	Label         string          `json:"label"`
+	Origin        string          `json:"origin"`
+	CampaignID    *uuid.UUID      `json:"campaignId"`
+	ImportID      *uuid.UUID      `json:"importId"`
+	Status        string          `json:"status"`
+	StopReason    string          `json:"stopReason"`
+	SkipRecent    bool            `json:"skipRecent"`
+	Total         int32           `json:"total"`
+	Skipped       int32           `json:"skipped"`
+	Checked       int32           `json:"checked"`
+	Valid         int32           `json:"valid"`
+	Invalid       int32           `json:"invalid"`
+	Risky         int32           `json:"risky"`
+	Unknown       int32           `json:"unknown"`
+	Suppressed    int32           `json:"suppressed"`
+	Reasons       json.RawMessage `json:"reasons"`
+	PriceMicros   int64           `json:"priceMicros"`
+	BalanceBefore *int64          `json:"balanceBefore"`
+	BalanceAfter  *int64          `json:"balanceAfter"`
+	StartedBy     *uuid.UUID      `json:"startedBy"`
+	CreatedAt     time.Time       `json:"createdAt"`
+	StartedAt     *time.Time      `json:"startedAt"`
+	FinishedAt    *time.Time      `json:"finishedAt"`
+	StoppedBy     *uuid.UUID      `json:"stoppedBy"`
+	ErrorSince    *time.Time      `json:"errorSince"`
+	NextTryAt     *time.Time      `json:"nextTryAt"`
+	RetryUntil    *time.Time      `json:"retryUntil"`
+	LastError     string          `json:"lastError"`
+	ClaimedUntil  *time.Time      `json:"claimedUntil"`
+}
+
+type VerificationJobItem struct {
+	JobID     uuid.UUID  `json:"jobId"`
+	Email     string     `json:"email"`
+	ContactID *uuid.UUID `json:"contactId"`
+	Position  int32      `json:"position"`
+	Done      bool       `json:"done"`
+	Result    string     `json:"result"`
+	Reason    string     `json:"reason"`
+	Code      string     `json:"code"`
+	CheckedAt *time.Time `json:"checkedAt"`
+}
+
+type VerificationRealtimeDaily struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Service     string    `json:"service"`
+	FormKey     string    `json:"formKey"`
+	Day         time.Time `json:"day"`
+	Checks      int32     `json:"checks"`
+	Valid       int32     `json:"valid"`
+	Invalid     int32     `json:"invalid"`
+	Risky       int32     `json:"risky"`
+	Unknown     int32     `json:"unknown"`
+	NoAnswer    int32     `json:"noAnswer"`
+}
+
+type VerificationRealtimePending struct {
+	ID          uuid.UUID `json:"id"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Email       string    `json:"email"`
+	FormKey     string    `json:"formKey"`
+	CreatedAt   time.Time `json:"createdAt"`
+	Tries       int32     `json:"tries"`
+}
+
+type VerificationService struct {
+	ID              uuid.UUID  `json:"id"`
+	WorkspaceID     uuid.UUID  `json:"workspaceId"`
+	Service         string     `json:"service"`
+	Region          string     `json:"region"`
+	CredentialsEnc  []byte     `json:"credentialsEnc"`
+	PriceMicros     int64      `json:"priceMicros"`
+	DefaultBulk     bool       `json:"defaultBulk"`
+	DefaultForms    bool       `json:"defaultForms"`
+	Balance         *int64     `json:"balance"`
+	BalanceAt       *time.Time `json:"balanceAt"`
+	LastUsedAt      *time.Time `json:"lastUsedAt"`
+	LastUsedBy      *uuid.UUID `json:"lastUsedBy"`
+	LastUsedWhat    string     `json:"lastUsedWhat"`
+	LastError       string     `json:"lastError"`
+	LastErrorAt     *time.Time `json:"lastErrorAt"`
+	LastErrorSince  *time.Time `json:"lastErrorSince"`
+	LastSuccessAt   *time.Time `json:"lastSuccessAt"`
+	LastSuccessWhat string     `json:"lastSuccessWhat"`
+	TestedAt        *time.Time `json:"testedAt"`
+	TestOk          *bool      `json:"testOk"`
+	LowNotifiedAt   *time.Time `json:"lowNotifiedAt"`
+	ConnectedBy     *uuid.UUID `json:"connectedBy"`
+	ConnectedAt     time.Time  `json:"connectedAt"`
+	UpdatedBy       *uuid.UUID `json:"updatedBy"`
+	UpdatedAt       time.Time  `json:"updatedAt"`
 }
 
 type WarmupEvent struct {

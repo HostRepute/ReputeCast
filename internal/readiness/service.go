@@ -48,6 +48,9 @@ type Service struct {
 	// Accessibility runs the Accessibility group and its fixes; nil leaves
 	// the group out.
 	Accessibility AccessibilityChecker
+	// Verification gives the address checks in Audience quality; nil
+	// leaves them out.
+	Verification VerificationChecker
 }
 
 func (s *Service) now() time.Time {

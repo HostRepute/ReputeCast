@@ -32,6 +32,11 @@ const (
 	// Integrations hub (design expansion, phase 2).
 	KindIntegrationAttention = "integration_attention" // an integration needs attention
 	KindPostDraftCreated     = "post_draft_created"    // a WordPress post became a campaign draft
+	// Address verification and placement tests (design expansion, phase 4).
+	KindVerificationEnded      = "verification_ended"       // a verification job finished or stopped
+	KindVerificationCreditsLow = "verification_credits_low" // a service's balance runs low
+	KindPlacementFinished      = "placement_finished"       // a placement test finished
+	KindSeedSignInFailed       = "seed_signin_failed"       // a seed mailbox's sign-in failed or expired
 )
 
 // Notification is what appears in the notification center.
