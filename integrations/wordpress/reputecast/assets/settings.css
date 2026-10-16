@@ -1,0 +1,48 @@
+/* Settings › ReputeCast: WordPress's own admin styles, plus a status badge. */
+.reputecast-settings .reputecast-lead {
+	max-width: 48em;
+	font-size: 14px;
+}
+
+.reputecast-settings .reputecast-badge {
+	display: inline-block;
+	padding: 0 8px;
+	border-radius: 2px;
+	background: #f0f0f1;
+	color: #50575e;
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 20px;
+	vertical-align: baseline;
+}
+
+.reputecast-settings .reputecast-badge.is-ok {
+	background: #edfaef;
+	color: #007017;
+}
+
+.reputecast-settings .reputecast-badge.is-warning {
+	background: #fcf9e8;
+	color: #8a6116;
+}
+
+.reputecast-settings .reputecast-badge.is-error {
+	background: #fcf0f1;
+	color: #b32d2e;
+}
+
+.reputecast-settings .reputecast-inline-form {
+	margin-top: 8px;
+}
+
+.reputecast-settings .reputecast-table {
+	max-width: 960px;
+}
+
+.reputecast-settings .reputecast-table code {
+	word-break: break-all;
+}
+
+.reputecast-settings h2 {
+	margin-top: 2em;
+}
