@@ -226,4 +226,25 @@ export const entries: Entry[] = [
   { board: 'StressReviewVi', manual: true },
   { board: 'StressReviewPseudo', manual: true },
   { board: 'StressReviewPseudoPhone', manual: true },
+  // X02 · transactional email. Sam Rivera's password reset has the board's message ID; the log's
+  // second row (Jordan, rejected) opens with a click. The guide's step 5 is delivered after "Send it
+  // from here instead"; its other states (waiting, rejected, done) and the boards' states (first run,
+  // alert, no route, outage, read-only, retention, relay off or unreachable) need data changes.
+  { board: 'Transactional', path: `${ws}/transactional`, widths: [1440] },
+  { board: 'TransactionalTablet', path: `${ws}/transactional`, widths: [834] },
+  { board: 'TransactionalPhone', path: `${ws}/transactional`, widths: [390] },
+  { board: 'TransactionalStates', manual: true },
+  { board: 'TransactionalGuideSteps', path: `${ws}/transactional/guide?step=1`, widths: [1440], viewportOnly: true, height: 900 },
+  { board: 'TransactionalGuide', manual: true },
+  { board: 'TransactionalGuideStates', manual: true },
+  { board: 'TransactionalMessages', path: `${ws}/transactional/messages`, widths: [1440] },
+  { board: 'TransactionalMessagesTablet', path: `${ws}/transactional/messages`, widths: [834] },
+  { board: 'TransactionalMessagesPhone', path: `${ws}/transactional/messages`, widths: [390] },
+  { board: 'TransactionalMessage', path: `${ws}/transactional/messages/0192f1c4-7b2e-7c51-9d0a-3f5e8b1a2c44`, widths: [1440] },
+  { board: 'TransactionalMessagePhone', path: `${ws}/transactional/messages/0192f1c4-7b2e-7c51-9d0a-3f5e8b1a2c44`, widths: [390] },
+  { board: 'TransactionalMessageStates', manual: true },
+  { board: 'TransactionalSetup', path: `${ws}/transactional/setup`, widths: [1440] },
+  { board: 'TransactionalSetupStates', manual: true },
+  { board: 'TransactionalSettings', path: `${ws}/transactional/settings`, widths: [1440] },
+  { board: 'PublicUnsubscribeCategory', manual: true },
 ]
