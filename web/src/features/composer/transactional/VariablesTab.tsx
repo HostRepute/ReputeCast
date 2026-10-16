@@ -216,7 +216,7 @@ function CheckNote({ tone, title, checks }: { tone: 'w' | 'n'; title: string; ch
         <span className="font-bold">{title}</span>
         {checks.map((ch) => (
           <div key={`${ch.id}-${ch.variable}-${ch.line ?? 0}`} className="flex flex-col gap-1.5">
-            <span>{ch.detail || ch.title}</span>
+            <span>{ch.id === 'variables.unused' && ch.variable ? t(m.unusedDetail, { name: ch.variable }) : ch.detail || ch.title}</span>
             {tx.canEdit && ch.fixes.some((f) => APPLICABLE.has(f.kind)) ? (
               <span className="flex flex-wrap gap-1.5">
                 {ch.fixes
