@@ -133,10 +133,13 @@ func (b *builder) accessibility() {
 			c.Label = "Contrast"
 			if is.Element.Role == "button" {
 				c.Title = fmt.Sprintf("“%s” button: text contrast %s, below %s", is.Element.Label, accessibility.FormatRatio(is.Fix.Ratio), needText(is.Fix.Needs))
-				c.Detail = fmt.Sprintf("%s on %s. The color is shared by every language, so one fix covers them all.", capitalize(colorWord(is.Fix.Against)), is.Fix.From)
+				c.Detail = fmt.Sprintf("%s on %s.", capitalize(colorWord(is.Fix.Against)), is.Fix.From)
 			} else {
 				c.Title = fmt.Sprintf("“%s”: text contrast %s, below %s", is.Element.Label, accessibility.FormatRatio(is.Fix.Ratio), needText(is.Fix.Needs))
-				c.Detail = fmt.Sprintf("%s on %s. The color is shared by every language, so one fix covers them all.", is.Fix.From, colorWord(is.Fix.Against))
+				c.Detail = fmt.Sprintf("%s on %s.", is.Fix.From, colorWord(is.Fix.Against))
+			}
+			if len(r.Languages) > 1 {
+				c.Detail += " The color is shared by every language, so one fix covers them all."
 			}
 			if len(is.Fix.Suggestions) > 0 {
 				s := is.Fix.Suggestions[0]

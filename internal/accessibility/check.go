@@ -739,6 +739,9 @@ func merge(checks []versionCheck, langs []AccessibilityLanguage) []Accessibility
 		if is.Kind == KindLinkText {
 			is.Detail = linkTextDetail(*is, langs)
 		}
+		if is.Kind == KindContrast && len(langs) < 2 {
+			is.Detail = "" // one version: nothing is shared
+		}
 		is.Short = ShortName(*is)
 		out = append(out, *is)
 	}
