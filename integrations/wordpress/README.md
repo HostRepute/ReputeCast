@@ -119,6 +119,13 @@ paste the key in Settings › ReputeCast with the address
 now" reaches a site on your own machine only when the instance allows private
 networks (`webhooks.allow_private_networks`).
 
+Release 1.3.0 was checked this way on WordPress 7.1.3 with PHP 8.1, with and
+without Polylang 3.8: Connect (and its errors), the forms list and the
+allowed-domain warning in the block, the language setting, both forms
+rendering on a page (and after Disconnect), a published post becoming a draft,
+its Spanish translation joining it as an up-to-date language version, and a
+signed "Check now".
+
 ## Publish
 
 The plugin directory slug is `reputecast`: ReputeCast's daily update check

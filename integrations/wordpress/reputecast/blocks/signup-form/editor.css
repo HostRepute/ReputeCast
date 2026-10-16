@@ -53,5 +53,6 @@
 }
 
 .reputecast-block-shortcode code {
-	word-break: break-all;
+	overflow-wrap: anywhere;
+	user-select: all;
 }

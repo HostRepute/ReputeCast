@@ -355,8 +355,8 @@ final class Settings_Page {
 
 	/** The connected site: health, forms, posts, the key and Disconnect. */
 	private static function render_connected(): void {
-		$c    = Options::connection();
-		$host = (string) wp_parse_url( $c['instance_url'], PHP_URL_HOST );
+		$c       = Options::connection();
+		$address = (string) preg_replace( '#^https?://#i', '', $c['instance_url'] );
 
 		echo '<table class="form-table" role="presentation"><tbody>';
 
@@ -364,9 +364,9 @@ final class Settings_Page {
 		echo '<span class="reputecast-badge is-ok">' . esc_html__( 'Connected', 'reputecast' ) . '</span> ';
 		printf(
 			/* translators: 1: the workspace's name, 2: a link to the instance. */
-			esc_html__( 'to %1$s at %2$s', 'reputecast' ),
+			esc_html__( '%1$s at %2$s', 'reputecast' ),
 			'<strong>' . esc_html( '' !== $c['workspace_name'] ? $c['workspace_name'] : $c['workspace'] ) . '</strong>',
-			'<a href="' . esc_url( $c['instance_url'] ) . '">' . esc_html( '' !== $host ? $host : $c['instance_url'] ) . '</a>'
+			'<a href="' . esc_url( $c['instance_url'] ) . '">' . esc_html( $address ) . '</a>'
 		);
 		if ( '' !== $c['site'] ) {
 			/* translators: %s: the site's address as ReputeCast lists it. */
@@ -465,9 +465,9 @@ final class Settings_Page {
 		foreach ( $forms as $form ) {
 			echo '<tr>';
 			echo '<td><strong>' . esc_html( (string) $form['name'] ) . '</strong></td>';
-			echo '<td>' . esc_html( $statuses[ $form['status'] ] ?? (string) $form['status'] ) . '</td>';
-			echo '<td><code>' . esc_html( '[reputecast_form id="' . $form['id'] . '"]' ) . '</code></td>';
-			echo '<td>';
+			echo '<td data-label="' . esc_attr__( 'Status', 'reputecast' ) . '">' . esc_html( $statuses[ $form['status'] ] ?? (string) $form['status'] ) . '</td>';
+			echo '<td data-label="' . esc_attr__( 'Shortcode', 'reputecast' ) . '"><code>' . esc_html( '[reputecast_form id="' . $form['id'] . '"]' ) . '</code></td>';
+			echo '<td data-label="' . esc_attr__( 'This site', 'reputecast' ) . '">';
 			if ( $form['siteAllowed'] ) {
 				echo '<span class="reputecast-badge is-ok">' . esc_html__( 'Allowed', 'reputecast' ) . '</span>';
 			} else {
@@ -510,7 +510,7 @@ final class Settings_Page {
 			$link = get_edit_post_link( (int) $entry['post'] );
 			echo '<tr><td>';
 			echo $link ? '<a href="' . esc_url( $link ) . '">' . esc_html( (string) $entry['title'] ) . '</a>' : esc_html( (string) $entry['title'] );
-			echo '</td><td>' . self::ago( (int) $entry['at'] ) . '</td><td>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- ago() escapes.
+			echo '</td><td data-label="' . esc_attr__( 'Sent', 'reputecast' ) . '">' . self::ago( (int) $entry['at'] ) . '</td><td data-label="' . esc_attr__( 'In ReputeCast', 'reputecast' ) . '">'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- ago() escapes.
 			echo wp_kses( self::outcome( $entry, $c ), array( 'a' => array( 'href' => array() ) ) );
 			echo '</td></tr>';
 		}
@@ -570,10 +570,11 @@ final class Settings_Page {
 	private static function render_disconnect(): void {
 		echo '<h2>' . esc_html__( 'Disconnect', 'reputecast' ) . '</h2>';
 		echo '<p>' . esc_html__( 'Signup forms keep working. Posts stop going to ReputeCast, and the site stops reporting in. ReputeCast keeps the site’s key until you disconnect the site there too.', 'reputecast' ) . '</p>';
-		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+		$confirm = __( 'Disconnect this site from ReputeCast? Signup forms keep working.', 'reputecast' );
+		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" onsubmit="return window.confirm(\'' . esc_js( $confirm ) . '\');">';
 		echo '<input type="hidden" name="action" value="reputecast_disconnect">';
 		wp_nonce_field( 'reputecast_disconnect' );
-		submit_button( __( 'Disconnect', 'reputecast' ), 'delete' );
+		submit_button( __( 'Disconnect', 'reputecast' ), 'secondary reputecast-disconnect' );
 		echo '</form>';
 	}
 

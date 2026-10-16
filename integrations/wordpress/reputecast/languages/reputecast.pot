@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-16T07:14:05+00:00\n"
+"POT-Creation-Date: 2026-10-16T07:32:30+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: reputecast\n"
@@ -170,7 +170,7 @@ msgstr ""
 #. translators: 1: the workspace's name, 2: a link to the instance.
 #: includes/class-settings-page.php:367
 #, php-format
-msgid "to %1$s at %2$s"
+msgid "%1$s at %2$s"
 msgstr ""
 
 #. translators: %s: the site's address as ReputeCast lists it.
@@ -282,14 +282,17 @@ msgid "Form"
 msgstr ""
 
 #: includes/class-settings-page.php:461
+#: includes/class-settings-page.php:468
 msgid "Status"
 msgstr ""
 
 #: includes/class-settings-page.php:462
+#: includes/class-settings-page.php:469
 msgid "Shortcode"
 msgstr ""
 
 #: includes/class-settings-page.php:463
+#: includes/class-settings-page.php:470
 msgid "This site"
 msgstr ""
 
@@ -334,10 +337,12 @@ msgid "Post"
 msgstr ""
 
 #: includes/class-settings-page.php:506
+#: includes/class-settings-page.php:513
 msgid "Sent"
 msgstr ""
 
 #: includes/class-settings-page.php:507
+#: includes/class-settings-page.php:513
 msgid "In ReputeCast"
 msgstr ""
 
@@ -396,7 +401,7 @@ msgid "Save the new key"
 msgstr ""
 
 #: includes/class-settings-page.php:571
-#: includes/class-settings-page.php:576
+#: includes/class-settings-page.php:577
 msgid "Disconnect"
 msgstr ""
 
@@ -404,11 +409,15 @@ msgstr ""
 msgid "Signup forms keep working. Posts stop going to ReputeCast, and the site stops reporting in. ReputeCast keeps the site’s key until you disconnect the site there too."
 msgstr ""
 
-#: includes/class-settings-page.php:582
-msgid "What the plugin sends"
+#: includes/class-settings-page.php:573
+msgid "Disconnect this site from ReputeCast? Signup forms keep working."
 msgstr ""
 
 #: includes/class-settings-page.php:583
+msgid "What the plugin sends"
+msgstr ""
+
+#: includes/class-settings-page.php:584
 msgid "The plugin talks only to the ReputeCast address above. It sends the site’s address and name, the plugin, WordPress and PHP versions, the feed URL, the post categories and where signup forms are used; and, for each post you publish, its title, excerpt, link, featured image, categories and language. It sends nothing about visitors or users. Signup forms load from ReputeCast in the visitor’s browser, as its embed code does."
 msgstr ""
 
