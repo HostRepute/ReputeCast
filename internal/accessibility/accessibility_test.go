@@ -148,7 +148,11 @@ func TestCampaignChecks(t *testing.T) {
 	if len(r.Issues) != 6 || r.Serious != 2 || r.Policy != "warn" || r.Counts.Images != 7 || r.Counts.LinksOK != 13 {
 		t.Fatalf("report: %d issues, %d serious, %+v", len(r.Issues), r.Serious, r.Counts)
 	}
-	if v := r.Issues[2].Versions; len(v) != 1 || v[0].Suggestion != "Scheduled rollouts · Acme Docs" {
+	// #143 goes out in English, Spanish and German (ComposerAccessibility):
+	// "Also “Haz clic aquí” and “Hier klicken”", whose words are to write.
+	if v := r.Issues[2].Versions; len(v) != 3 || v[0].Lang != "en" || v[0].Suggestion != "Scheduled rollouts · Acme Docs" ||
+		v[1].Lang != "es" || v[1].Text != "Haz clic aquí" || v[1].Suggestion != "" || v[2].Lang != "de" || v[2].Text != "Hier klicken" ||
+		!strings.HasPrefix(r.Issues[2].Detail, "Also “Haz clic aquí” and “Hier klicken”.") {
 		t.Fatalf("click here: %+v", r.Issues[2])
 	}
 
@@ -157,8 +161,9 @@ func TestCampaignChecks(t *testing.T) {
 	linh.Do("GET", ws+"/campaigns/"+id, nil).MustStatus(t, 200).JSON(t, &c)
 	fixed := strings.Replace(c.MJML, `width="552px" height="200px"`, `alt="A flag change scheduled for 2 a.m." width="552px" height="200px"`, 1)
 	linh.Do("POST", ws+"/campaigns/"+id+"/accessibility", map[string]any{"mjml": fixed}).MustStatus(t, 200).JSON(t, &r)
-	if len(r.Issues) != 5 || r.Serious != 1 {
-		t.Fatalf("after alt text: %d issues, %d serious", len(r.Issues), r.Serious)
+	// Spanish and German get their own alt text (AccessibilityStates).
+	if len(r.Issues) != 6 || r.Serious != 2 || r.Issues[0].Kind != accessibility.KindAltText || strings.Join(r.Issues[0].Languages, ",") != "es,de" {
+		t.Fatalf("after alt text: %d issues, %d serious, %+v", len(r.Issues), r.Serious, r.Issues[0].Languages)
 	}
 	// MJML that doesn't compile can't be checked; the edits are safe.
 	pr := linh.Do("POST", ws+"/campaigns/"+id+"/accessibility", map[string]any{"mjml": "<mjml><mj-body><mj-section></mj-body></mjml>"}).MustStatus(t, 422).Problem(t)
@@ -287,7 +292,8 @@ func TestReadinessFixes(t *testing.T) {
 			moderate = c.Title
 		}
 	}
-	if !strings.HasPrefix(fixedRow, "Card titles are Heading 2, and footer text is 12 px | Fixed by Linh Nguyen at ") || !strings.HasSuffix(fixedRow, "in English · recorded in the audit log") {
+	if !strings.HasPrefix(fixedRow, "Card titles are Heading 2, and footer text is 12 px | Fixed by Linh Nguyen at ") ||
+		!strings.HasSuffix(fixedRow, "in English, Spanish and German · recorded in the audit log") {
 		t.Fatalf("fixed row: %q", fixedRow)
 	}
 	if moderate != "2 moderate issues: “Click here” and a bare URL" {
@@ -404,7 +410,8 @@ func TestLanguageVersions(t *testing.T) {
 	linh.SignInDemo("linh@acme.io")
 	ctx := context.Background()
 	id := campaignID(t, linh, "Weekly Digest #143")
-	if resp := linh.Do("POST", ws+"/languages", map[string]any{"code": "es"}); resp.Status >= 300 {
+	// The sample speaks Spanish already (409); elsewhere it is added.
+	if resp := linh.Do("POST", ws+"/languages", map[string]any{"code": "es"}); resp.Status >= 300 && resp.Status != 409 {
 		t.Fatalf("add Spanish: %d %s", resp.Status, resp.Body)
 	}
 	// The Spanish version, added and marked translated through the content
@@ -420,6 +427,18 @@ func TestLanguageVersions(t *testing.T) {
 	p := &authz.Principal{Type: authz.ActorUser, ID: u.ID, UserID: u.ID, Name: u.Name, WorkspaceID: acme.ID, Permissions: authz.All()}
 	content := &languages.Service{Pool: env.App.Pool, Q: env.App.Q, Audit: env.App.Audit}
 	cid := uuid.MustParse(id)
+	// From #143 in English only: the sample's Spanish and German versions go.
+	for _, lang := range []string{"es", "de"} {
+		var n int
+		if err := env.App.Pool.QueryRow(ctx, `SELECT count(*) FROM content_translations WHERE owner_id = $1 AND language = $2`, id, lang).Scan(&n); err != nil {
+			t.Fatal(err)
+		}
+		if n > 0 {
+			if _, err := content.RemoveCampaignLanguage(ctx, &acme, p, cid, lang); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
 	if _, err := content.AddCampaignLanguage(ctx, &acme, p, cid, languages.AddLanguageInput{Language: "es"}); err != nil {
 		t.Fatal(err)
 	}
