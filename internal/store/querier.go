@@ -773,6 +773,8 @@ type Querier interface {
 	KeysFirstRejection(ctx context.Context, apiKeyID uuid.UUID) (time.Time, error)
 	KeysGet(ctx context.Context, arg KeysGetParams) (KeysGetRow, error)
 	// API keys and MCP agents. Both live in api_keys (kind api_key | mcp_agent).
+	// Expired keys last; the keys that send transactional mail (send-only
+	// and SMTP presets) first, as they were created; the rest by last use.
 	KeysList(ctx context.Context, arg KeysListParams) ([]KeysListRow, error)
 	KeysRecordRejection(ctx context.Context, arg KeysRecordRejectionParams) error
 	// Calls rejected in the last 7 days, with the busiest client address.
@@ -1703,6 +1705,11 @@ type Querier interface {
 	TxnIdemInsert(ctx context.Context, arg TxnIdemInsertParams) (string, error)
 	TxnIdemPurge(ctx context.Context, before time.Time) (int64, error)
 	TxnIdemSave(ctx context.Context, arg TxnIdemSaveParams) error
+	TxnImportForUpdate(ctx context.Context, arg TxnImportForUpdateParams) (TransactionalTemplateImport, error)
+	TxnImportGet(ctx context.Context, arg TxnImportGetParams) (TransactionalTemplateImport, error)
+	// Template imports (X03): one row per run of the Import templates dialog.
+	TxnImportInsert(ctx context.Context, arg TxnImportInsertParams) error
+	TxnImportSave(ctx context.Context, arg TxnImportSaveParams) error
 	TxnInsertContent(ctx context.Context, arg TxnInsertContentParams) error
 	TxnInsertMessage(ctx context.Context, arg TxnInsertMessageParams) error
 	TxnInsertMessageLog(ctx context.Context, arg TxnInsertMessageLogParams) error
@@ -1837,6 +1844,7 @@ type Querier interface {
 	TxnTemplateInsert(ctx context.Context, arg TxnTemplateInsertParams) error
 	TxnTemplateInsertDraftRevision(ctx context.Context, arg TxnTemplateInsertDraftRevisionParams) error
 	TxnTemplateKeyTaken(ctx context.Context, arg TxnTemplateKeyTakenParams) (bool, error)
+	TxnTemplateKeysInUse(ctx context.Context, workspaceID uuid.UUID) ([]string, error)
 	TxnTemplatePruneDrafts(ctx context.Context, arg TxnTemplatePruneDraftsParams) error
 	TxnTemplatePublish(ctx context.Context, arg TxnTemplatePublishParams) error
 	TxnTemplateSaveDraft(ctx context.Context, arg TxnTemplateSaveDraftParams) error

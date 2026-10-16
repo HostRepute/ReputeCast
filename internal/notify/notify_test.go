@@ -25,11 +25,13 @@ func TestDemoNotificationCenter(t *testing.T) {
 	c.Do("GET", "/workspaces/acme-newsletter/notifications", nil).MustStatus(t, 200).JSON(t, &list)
 	items := list["items"].([]any)
 	// The Notifications board, with staging.acme.io's "Integration needs
-	// attention" (integrations hub) after the unread ones.
-	if len(items) != 9 || list["unread"].(float64) != 3 || list["retentionDays"].(float64) != 90 {
+	// attention" (integrations hub) after the unread ones, and magic-link's
+	// bounce alert of 3 Oct (transactional) last.
+	if len(items) != 10 || list["unread"].(float64) != 3 || list["retentionDays"].(float64) != 90 {
 		t.Fatalf("center: %d items, %v unread", len(items), list["unread"])
 	}
-	want := []string{"Approval requested", "Send auto-paused", "Provider down", "Integration needs attention", "Approval given", "Webhooks silent", "Approval invalidated", "Invite accepted", "HostRepute alert"}
+	want := []string{"Approval requested", "Send auto-paused", "Provider down", "Integration needs attention", "Approval given", "Webhooks silent", "Approval invalidated",
+		"Invite accepted", "HostRepute alert", "Transactional delivery alert"}
 	for i, w := range want {
 		it := items[i].(map[string]any)
 		if it["title"] != w {
@@ -38,6 +40,10 @@ func TestDemoNotificationCenter(t *testing.T) {
 		if (i < 3) == it["read"].(bool) {
 			t.Fatalf("item %d read state: %v", i, it)
 		}
+	}
+	linhs := map[string]bool{}
+	for _, it := range items {
+		linhs[it.(map[string]any)["id"].(string)] = true
 	}
 	first := items[0].(map[string]any)
 	if first["category"] != "approvals" || first["categoryLabel"] != "Approvals" || first["severity"] != "warn" ||
@@ -71,8 +77,12 @@ func TestDemoNotificationCenter(t *testing.T) {
 	a := env.Client()
 	a.SignInDemo("aisha@acme.io")
 	a.Do("GET", "/workspaces/acme-newsletter/notifications", nil).MustStatus(t, 200).JSON(t, &list)
-	if len(list["items"].([]any)) != 0 {
-		t.Fatalf("Aisha sees Linh's notifications: %v", list)
+	// Her own: the 3 Oct transactional delivery alert (she holds transactional:view).
+	for _, it := range list["items"].([]any) {
+		m := it.(map[string]any)
+		if linhs[m["id"].(string)] || m["kind"] != "transactional_alert" {
+			t.Fatalf("Aisha sees Linh's notifications: %v", list)
+		}
 	}
 }
 

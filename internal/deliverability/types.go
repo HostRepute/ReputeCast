@@ -94,6 +94,10 @@ type DeliverabilityAssetHealth struct {
 	GmailReputation string                    `json:"gmailReputation,omitempty"`
 	ReverseDNS      *DeliverabilityReverseDNS `json:"reverseDns,omitempty"`
 	SNDS            *DeliverabilitySNDSBrief  `json:"snds,omitempty"`
+	// NotMonitored: HostRepute is connected but doesn't watch this asset
+	// yet (a new sending domain, such as a Transactional one). The card
+	// offers "Add to monitoring"; such cards come after the monitored ones.
+	NotMonitored bool `json:"notMonitored,omitempty"`
 }
 
 // DeliverabilityWarmupProgress is "day 9 of 21".

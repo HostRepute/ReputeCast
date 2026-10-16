@@ -46,11 +46,23 @@ func TestKeysAndAgents(t *testing.T) {
 	c.SignInDemo("linh@acme.io")
 	var keys keyList
 	c.Do("GET", ws+"/api-keys", nil).MustStatus(t, 200).JSON(t, &keys)
-	if len(keys.Items) != 3 || keys.Items[0].Name != "Website signup form" || keys.Items[0].Scope.Label != "Weekly Digest only" ||
-		strings.Join(keys.Items[1].Permissions, ",") != "reports:view,subscribers:view" || keys.Items[1].LastUsedClient != "nightly job" {
+	// The SettingsKeys board: Acme Cloud's transactional keys first, as
+	// they were created, then the others by last use, the expired one last.
+	names := []string{}
+	for _, k := range keys.Items {
+		names = append(names, k.Name)
+	}
+	if strings.Join(names, ", ") != "Acme Cloud · production, Acme Cloud · staging, Billing service (SMTP), Website signup form, Data warehouse sync, Old CI key" {
+		t.Fatalf("keys: %v", names)
+	}
+	if keys.Items[0].Masked != "rc_live_4c1e…d07b" || strings.Join(keys.Items[0].Permissions, ",") != "transactional:send" {
+		t.Fatalf("production key: %+v", keys.Items[0])
+	}
+	if keys.Items[3].Scope.Label != "Weekly Digest only" ||
+		strings.Join(keys.Items[4].Permissions, ",") != "reports:view,subscribers:view" || keys.Items[4].LastUsedClient != "nightly job" {
 		t.Fatalf("keys: %+v", keys.Items)
 	}
-	old := keys.Items[2]
+	old := keys.Items[5]
 	if old.Status != "expired" || old.Rejections == nil || old.Rejections.Calls != 212 || old.Rejections.Client != "GitHub Actions runner" {
 		t.Fatalf("expired key: %+v", old)
 	}
@@ -110,7 +122,7 @@ func TestKeysAndAgents(t *testing.T) {
 
 	var n int
 	_ = env.App.Pool.QueryRow(context.Background(), `SELECT count(*) FROM audit_events WHERE action IN ('apikey.created','apikey.rotated','apikey.revoked','apikey.replaced','agent.created')`).Scan(&n)
-	if n != 7 { // the seeded apikey.created, 2 created + rotated + revoked + replaced + agent
+	if n != 10 { // the seeded apikey.created and Acme Cloud's three, 2 created + rotated + revoked + replaced + agent
 		t.Fatalf("audit entries: %d", n)
 	}
 	var meta []byte

@@ -3,6 +3,7 @@ package demo
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/rand/v2"
 	"net/netip"
@@ -65,7 +66,6 @@ func transactionalDemoZone(z *dnscheck.Zone) {
 // of it. The numbers are the Transactional board's (last 7 days).
 type txnPlan struct {
 	key, name, category string
-	versions            []txnVersion
 	sent                int // accepted by a provider, the samples and the outage included
 	hard, soft          int // bounces
 	deferred            int // still deferred
@@ -79,66 +79,26 @@ type txnPlan struct {
 	opens               bool
 }
 
-type txnVersion struct {
-	days, hour, minute int
-	by                 string
-	change             string
-	subject            string // "" keeps the template's
-}
-
 var txnPlans = []txnPlan{
 	{key: "password-reset", name: "Password reset", category: "Account", sent: 3212, hard: 2, soft: 1, last24: 520,
-		quantiles: [][2]float64{{0, 0.9}, {0.25, 1.25}, {0.35, 1.3}, {0.5, 1.4}, {0.9, 2.0}, {1, 4.0}}, tags: []string{"auth"}, from: "no-reply@notify.acme.io",
-		versions: []txnVersion{
-			{43, 16, 30, "sofia@acme.io", "First version", "Reset your password"},
-			{27, 10, 5, "sofia@acme.io", "New subject · Reset your Acme Cloud password", ""},
-			{9, 14, 12, "sofia@acme.io", "expires_in required · shorter copy", ""},
-		}},
+		quantiles: [][2]float64{{0, 0.9}, {0.25, 1.25}, {0.35, 1.3}, {0.5, 1.4}, {0.9, 2.0}, {1, 4.0}}, tags: []string{"auth"}, from: "no-reply@notify.acme.io"},
 	{key: "magic-link", name: "Magic sign-in link", category: "Account", sent: 6881, hard: 9, soft: 3, deferred: 2, last24: 1067, bounced24: 2, deferred24: 2,
-		quantiles: [][2]float64{{0, 0.7}, {0.5, 1.2}, {0.9, 1.3}, {1, 3.0}}, tags: []string{"auth"}, from: "no-reply@notify.acme.io",
-		versions: []txnVersion{
-			{43, 16, 40, "sofia@acme.io", "First version", "Sign in to Acme Cloud"},
-			{20, 9, 30, "sofia@acme.io", "The link works for 15 minutes", ""},
-		}},
+		quantiles: [][2]float64{{0, 0.7}, {0.5, 1.2}, {0.9, 1.3}, {1, 3.0}}, tags: []string{"auth"}, from: "no-reply@notify.acme.io"},
 	{key: "welcome", name: "Welcome to Acme Cloud", category: "Account", sent: 1904, hard: 5, soft: 2, deferred: 1, last24: 297, bounced24: 1,
-		quantiles: [][2]float64{{0, 1.0}, {0.05, 1.3}, {0.5, 1.9}, {1, 4.5}}, tags: []string{"onboarding"}, from: "no-reply@notify.acme.io",
-		versions: []txnVersion{
-			{42, 11, 0, "sofia@acme.io", "First version", "Welcome to Acme Cloud"},
-			{37, 15, 20, "sofia@acme.io", "first_name in the subject", ""},
-			{29, 9, 45, "sofia@acme.io", "New dashboard link", ""},
-			{16, 16, 10, "sofia@acme.io", "Shorter intro", ""},
-			{7, 10, 30, "sofia@acme.io", "Reply line: a person reads every reply", ""},
-		}},
+		quantiles: [][2]float64{{0, 1.0}, {0.05, 1.3}, {0.5, 1.9}, {1, 4.5}}, tags: []string{"onboarding"}, from: "no-reply@notify.acme.io"},
 	{key: "invoice-paid", name: "Invoice paid", category: "Billing", sent: 412, last24: 62,
-		quantiles: [][2]float64{{0, 1.4}, {0.5, 2.3}, {1, 4.0}}, tags: []string{"billing"}, from: "billing@notify.acme.io",
-		versions: []txnVersion{
-			{30, 11, 40, "linh@acme.io", "First version", "Your Acme Cloud invoice"},
-			{26, 14, 0, "sofia@acme.io", "Amount in the subject", ""},
-			{15, 10, 20, "sofia@acme.io", "plan_name optional", ""},
-			{8, 9, 5, "sofia@acme.io", "PDF attached", ""},
-		}},
+		quantiles: [][2]float64{{0, 1.4}, {0.5, 2.3}, {1, 4.0}}, tags: []string{"billing"}, from: "billing@notify.acme.io"},
 	{key: "trial-ending", name: "Trial ends in 3 days", category: "Reminders", sent: 71, soft: 1, last24: 9, bounced24: 1,
-		quantiles: [][2]float64{{0, 1.2}, {0.5, 2.0}, {1, 3.5}}, tags: []string{"trial"}, from: "no-reply@notify.acme.io",
-		versions: []txnVersion{
-			{23, 13, 15, "sofia@acme.io", "First version", ""},
-		}},
+		quantiles: [][2]float64{{0, 1.2}, {0.5, 2.0}, {1, 3.5}}, tags: []string{"trial"}, from: "no-reply@notify.acme.io"},
 	{key: "usage-summary", name: "Weekly usage summary", category: "Product updates", sent: 1240, hard: 3, soft: 1, deferred: 3, complained: 1, last24: 1, opens: true,
-		quantiles: [][2]float64{{0, 0.9}, {0.1, 1.25}, {0.15, 1.3}, {0.5, 1.6}, {1, 3.5}}, tags: []string{"weekly"}, from: "no-reply@notify.acme.io",
-		versions: []txnVersion{
-			{38, 8, 0, "sofia@acme.io", "First version", "Your week at Acme Cloud"},
-			{31, 8, 0, "sofia@acme.io", "API requests per project", ""},
-			{24, 7, 40, "sofia@acme.io", "Shorter subject", ""},
-			{17, 7, 30, "sofia@acme.io", "Dashboard button", ""},
-			{10, 7, 45, "sofia@acme.io", "Week label", ""},
-			{6, 7, 50, "sofia@acme.io", "Turn-off link in the footer", ""},
-		}},
+		quantiles: [][2]float64{{0, 0.9}, {0.1, 1.25}, {0.15, 1.3}, {0.5, 1.6}, {1, 3.5}}, tags: []string{"weekly"}, from: "no-reply@notify.acme.io"},
 }
 
 var txnCategories = []struct{ name, kind, desc string }{
 	{"Account", transactional.KindEssential, "Sign-in, password and account emails"},
-	{"Billing", transactional.KindEssential, "Invoices and receipts"},
-	{"Reminders", transactional.KindOptional, "Trial and renewal reminders."},
-	{"Product updates", transactional.KindOptional, "Your weekly usage summary."},
+	{"Billing", transactional.KindEssential, "Receipts and invoices"},
+	{"Reminders", transactional.KindOptional, "Trial and renewal reminders"},
+	{"Product updates", transactional.KindOptional, "Weekly usage summaries"},
 }
 
 // txnSeed carries what the steps share.
@@ -155,7 +115,6 @@ type txnSeed struct {
 	live              map[string]int
 	keys              map[string]uuid.UUID
 	t0                time.Time // the newest message of the log
-	product, address  string
 	messages, txnRows [][]any
 	events            [][]any
 	contents          [][]any
@@ -169,13 +128,16 @@ func seedTransactionalImpl(ctx context.Context, s *Seeder) error {
 	t := &txnSeed{s: s, ws: ws, rng: rand.New(rand.NewPCG(15, 1026)), //nolint:gosec // deterministic sample data
 		postmark: s.Providers["postmark"], ses: s.Providers["ses"], senders: map[string]uuid.UUID{}, categories: map[string]uuid.UUID{},
 		templates: map[string]uuid.UUID{}, content: map[string]transactional.DemoTemplate{}, live: map[string]int{}, keys: map[string]uuid.UUID{},
-		t0: s.Ago(60 * time.Second), product: "Acme Cloud", address: SendersFooterAddress}
+		t0: s.Ago(60 * time.Second)}
 	for _, step := range []func(context.Context) error{t.domainAndSenders, t.settings, t.route, t.categoriesAndOptOuts, t.templatesAndVersions, t.keysAndRelay,
-		t.suppressions, t.week, t.samples, t.history, t.flush, t.incidents, t.webhooks, t.audit} {
+		t.week, t.samples, t.history, t.flush, t.incidents, t.webhooks, t.audit} {
 		if err := step(ctx); err != nil {
 			return err
 		}
 	}
+	// The suppressed addresses take the place of entries the audience
+	// seeder writes once every seeder has run.
+	s.After(func(ctx context.Context, _ *Seeder) error { return t.suppressions(ctx) })
 	return nil
 }
 
@@ -317,101 +279,78 @@ func (t *txnSeed) categoriesAndOptOuts(ctx context.Context) error {
 	return nil
 }
 
-// templatesAndVersions writes the six templates and their published
-// versions; trial-ending has an unpublished v2 draft (trial_end_date
-// replaces days_left) that Daniel Park saved.
+// templatesAndVersions writes the six templates (seed_transactional_templates.go)
+// with their published versions and drafts: only trial-ending's differs
+// from its live version (Daniel Park's v2).
 func (t *txnSeed) templatesAndVersions(ctx context.Context) error {
 	s := t.s
 	q := store.New(s.Tx)
-	for _, p := range txnPlans {
-		c, err := transactional.DemoTemplateContent(p.key, t.product, t.address)
+	for _, tpl := range txSeedTemplates() {
+		p := t.plan(tpl.key)
+		if p == nil {
+			return fmt.Errorf("no week planned for %s", tpl.key)
+		}
+		var sender *uuid.UUID
+		if tpl.sender != "" {
+			id := t.senders[tpl.sender]
+			sender = &id
+		}
+		last := tpl.versions[len(tpl.versions)-1]
+		draft := last.content
+		savedBy, savedAt := last.by, s.Ago(last.ago)
+		if tpl.draft != nil {
+			draft = *tpl.draft
+			savedBy, savedAt = tpl.draftBy, s.Ago(tpl.draftAgo)
+		}
+		dc, err := draft.demo()
 		if err != nil {
-			return err
+			return fmt.Errorf("%s: %w", tpl.key, err)
 		}
-		c.Name = p.name
-		t.content[p.key] = c
 		id := ID()
-		t.templates[p.key] = id
-		sender := t.senders[p.from]
-		replyTo := ""
-		hash := transactional.DemoHash(c, &sender, replyTo, p.opens, false)
-		first := p.versions[0]
-		created := s.designDay(first.days, first.hour, first.minute).Add(-20 * time.Minute)
-		cat := t.categories[p.category]
-		if err := q.TxnTemplateInsert(ctx, store.TxnTemplateInsertParams{ID: id, WorkspaceID: t.ws.ID, Key: p.key, Name: p.name, Description: c.Description, CategoryID: &cat,
-			Subject: c.Subject, Preheader: c.Preheader, EditorMode: "visual", Mjml: c.MJML, Html: c.HTML, PlainText: "", Variables: mustJSON(c.Variables), TestData: mustJSON(c.TestData),
-			SenderID: &sender, ReplyTo: replyTo, TrackOpens: p.opens, TrackClicks: false, DraftHash: hash, Now: created, CreatedBy: t.user(first.by), Origin: json.RawMessage(`{}`)}); err != nil {
+		t.templates[tpl.key] = id
+		cat := t.categories[tpl.category]
+		first := tpl.versions[0]
+		if err := q.TxnTemplateInsert(ctx, store.TxnTemplateInsertParams{ID: id, WorkspaceID: t.ws.ID, Key: tpl.key, Name: tpl.name, Description: tpl.description, CategoryID: &cat,
+			Subject: dc.Subject, Preheader: dc.Preheader, EditorMode: "visual", Mjml: dc.MJML, Html: dc.HTML, PlainText: "", Variables: mustJSON(dc.Variables),
+			TestData: mustJSON(tpl.testData), SenderID: sender, ReplyTo: "", TrackOpens: tpl.opens, TrackClicks: false,
+			DraftHash: transactional.DemoHash(dc, sender, "", tpl.opens, false), Now: s.Ago(first.ago + time.Hour), CreatedBy: t.user(first.by), Origin: json.RawMessage(`{}`)}); err != nil {
 			return err
 		}
-		for i, v := range p.versions {
-			vc := c
-			if v.subject != "" {
-				vc.Subject = v.subject
+		for i, v := range tpl.versions {
+			vc, err := v.content.demo()
+			if err != nil {
+				return fmt.Errorf("%s v%d: %w", tpl.key, i+1, err)
 			}
-			vh := hash
-			if i < len(p.versions)-1 {
-				vh = transactional.DemoHash(vc, &sender, replyTo, p.opens, false) + fmt.Sprint(i)
-			}
-			at := s.designDay(v.days, v.hour, v.minute)
-			if err := q.TxnVersionInsert(ctx, store.TxnVersionInsertParams{TemplateID: id, Version: int32(i + 1), Subject: vc.Subject, Preheader: vc.Preheader, EditorMode: "visual",
-				Mjml: vc.MJML, Html: vc.HTML, PlainText: "", Variables: mustJSON(vc.Variables), TestData: mustJSON(vc.TestData), SenderID: &sender, ReplyTo: replyTo,
-				TrackOpens: p.opens, TrackClicks: false, ContentHash: vh, SizeBytes: int32(len(vc.HTML)), Change: v.change, PublishedBy: t.user(v.by), PublishedAt: at}); err != nil {
+			at := s.Ago(v.ago)
+			version := int32(i + 1)
+			if err := q.TxnVersionInsert(ctx, store.TxnVersionInsertParams{TemplateID: id, Version: version, Subject: vc.Subject, Preheader: vc.Preheader, EditorMode: "visual",
+				Mjml: vc.MJML, Html: vc.HTML, PlainText: "", Variables: mustJSON(vc.Variables), TestData: mustJSON(tpl.testData), SenderID: sender, ReplyTo: "",
+				TrackOpens: tpl.opens, TrackClicks: false, ContentHash: transactional.DemoHash(vc, sender, "", tpl.opens, false), SizeBytes: int32(len(vc.HTML)),
+				Change: v.change, PublishedBy: t.user(v.by), PublishedAt: at}); err != nil {
 				return err
 			}
-			version := int32(i + 1)
 			if err := q.TxnTemplatePublish(ctx, store.TxnTemplatePublishParams{WorkspaceID: t.ws.ID, ID: id, Version: &version, Now: at, LiveBy: t.user(v.by), Variables: mustJSON(vc.Variables)}); err != nil {
 				return err
 			}
-			t.live[p.key] = i + 1
+			t.live[tpl.key] = i + 1
+			t.content[tpl.key] = vc
 		}
-		last := p.versions[len(p.versions)-1]
-		if _, err := s.Tx.Exec(ctx, `UPDATE transactional_templates SET draft_saved_at = $2, draft_saved_by = $3, updated_at = $2 WHERE id = $1`,
-			id, s.designDay(last.days, last.hour, last.minute).Add(-5*time.Minute), t.user(last.by)); err != nil {
+		// The draft: its variables (publishing sets the live ones), who
+		// saved it and when.
+		revision := int32(len(tpl.versions))
+		if tpl.draft != nil {
+			revision++
+		}
+		if _, err := s.Tx.Exec(ctx, `UPDATE transactional_templates SET variables = $2, draft_revision = $3, draft_saved_by = $4, draft_saved_at = $5 WHERE id = $1`,
+			id, mustJSON(dc.Variables), revision, t.user(savedBy), savedAt); err != nil {
 			return err
 		}
-		if err := q.TxnTemplateInsertDraftRevision(ctx, store.TxnTemplateInsertDraftRevisionParams{TemplateID: id, Revision: 1, Subject: c.Subject, Preheader: c.Preheader,
-			Mjml: c.MJML, Html: c.HTML, Variables: mustJSON(c.Variables), SavedBy: t.user(last.by), SavedAt: s.designDay(last.days, last.hour, last.minute).Add(-5 * time.Minute),
-			Label: "published", Source: "starter"}); err != nil {
+		if err := q.TxnTemplateInsertDraftRevision(ctx, store.TxnTemplateInsertDraftRevisionParams{TemplateID: id, Revision: revision, Subject: dc.Subject, Preheader: dc.Preheader,
+			Mjml: dc.MJML, Html: dc.HTML, Variables: mustJSON(dc.Variables), SavedBy: t.user(savedBy), SavedAt: savedAt, Label: "", Source: "manual"}); err != nil {
 			return err
 		}
 	}
-	return t.trialDraft(ctx)
-}
-
-// trialDraft is trial-ending's v2 draft: trial_end_date (required) replaces
-// days_left, which every one of the 71 calls of the week still sends.
-func (t *txnSeed) trialDraft(ctx context.Context) error {
-	s := t.s
-	c := t.content["trial-ending"]
-	vars := []transactional.TransactionalVariable{}
-	for _, v := range c.Variables {
-		if v.Name != "days_left" {
-			vars = append(vars, v)
-		}
-	}
-	vars = append(vars, transactional.TransactionalVariable{Name: "trial_end_date", Type: transactional.TypeDate, Required: true, Sample: "2026-10-18"})
-	draft := c
-	draft.Variables = vars
-	draft.Subject = "Your Acme Cloud trial ends on {{ trial_end_date }}"
-	draft.MJML = strings.ReplaceAll(c.MJML, "{{ days_left }} days", "on {{ trial_end_date }}")
-	if err := draft.Compile(); err != nil {
-		return err
-	}
-	testData := []transactional.TransactionalTestData{
-		{Name: "Trial user", Data: map[string]any{"first_name": "Sam", "trial_end_date": "2026-10-18", "upgrade_url": "https://app.acme.io/billing/plans"}},
-	}
-	sender := t.senders["no-reply@notify.acme.io"]
-	hash := transactional.DemoHash(draft, &sender, "", false, false)
-	saved := s.designDay(1, 16, 30)
-	daniel := t.user("daniel@acme.io")
-	if _, err := s.Tx.Exec(ctx, `UPDATE transactional_templates SET subject = $2, mjml = $3, html = $4, variables = $5, test_data = $6, draft_hash = $7,
-		draft_revision = 2, draft_saved_at = $8, draft_saved_by = $9, updated_at = $8 WHERE id = $1`,
-		t.templates["trial-ending"], draft.Subject, draft.MJML, draft.HTML, mustJSON(vars), mustJSON(testData), hash, saved, daniel); err != nil {
-		return err
-	}
-	return store.New(s.Tx).TxnTemplateInsertDraftRevision(ctx, store.TxnTemplateInsertDraftRevisionParams{TemplateID: t.templates["trial-ending"], Revision: 2,
-		Subject: draft.Subject, Preheader: draft.Preheader, Mjml: draft.MJML, Html: draft.HTML, Variables: mustJSON(vars), SavedBy: daniel, SavedAt: saved,
-		Label: "autosave", Source: "autosave"})
+	return nil
 }
 
 // keysAndRelay: the production and staging send-only keys, the Billing
@@ -477,34 +416,51 @@ func (t *txnSeed) keysAndRelay(ctx context.Context) error {
 
 // suppressions: jordan@example.org hard-bounced on 2 Oct (Postmark) and
 // nine other addresses stopped this week's sends; billing@northwind is a
-// role address, marketing only.
+// role address, marketing only. The ten bounces and complaints are among
+// the Suppressions board's 1,874: each takes the place of an older entry
+// Postmark reported for the same reason, so the board's numbers hold (the
+// role entry is the one more).
 func (t *txnSeed) suppressions(ctx context.Context) error {
 	s := t.s
-	add := func(email, reason, source string, provider *uuid.UUID, code, detail string, at time.Time, scope string) error {
-		_, err := s.Tx.Exec(ctx, `INSERT INTO suppressions (id, workspace_id, email, reason, source, source_provider_id, original_code, detail, created_at, scope, context)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'Transactional') ON CONFLICT (workspace_id, email) DO NOTHING`,
-			ID(), t.ws.ID, email, reason, source, provider, code, detail, at, scope)
-		return err
-	}
 	pm := t.postmark
-	if err := add("jordan@example.org", "hard_bounce", "webhook", &pm, "550 5.1.1", "mailbox does not exist", s.designDay(13, 8, 14), "all"); err != nil {
+	take := func(email, reason, code, detail string, at time.Time) error {
+		tag, err := s.Tx.Exec(ctx, `UPDATE suppressions SET email = $3, original_code = $4, detail = $5, created_at = $6, context = 'Transactional'
+			WHERE id = (SELECT id FROM suppressions WHERE workspace_id = $1 AND reason = $2 AND source_provider_id = $7 AND source = 'provider_sync' AND context = ''
+			            ORDER BY created_at, id LIMIT 1)`, t.ws.ID, reason, email, code, detail, at, pm)
+		if err != nil || tag.RowsAffected() == 1 {
+			return err
+		}
+		_, err = s.Tx.Exec(ctx, `INSERT INTO suppressions (id, workspace_id, email, reason, source, source_provider_id, original_code, detail, created_at, scope, context)
+			VALUES ($1, $2, $3, $4, 'webhook', $5, $6, $7, $8, 'all', 'Transactional') ON CONFLICT (workspace_id, email) DO NOTHING`,
+			ID(), t.ws.ID, email, reason, pm, code, detail, at)
 		return err
 	}
-	if err := add("billing@northwind.example", "role", "import", nil, "", "role address", s.designDay(60, 10, 0), "marketing"); err != nil {
+	if err := take("jordan@example.org", "hard_bounce", "550 5.1.1", "mailbox does not exist", s.designDay(13, 8, 14)); err != nil {
 		return err
 	}
 	for i, e := range txnSuppressed {
-		reason := "hard_bounce"
-		code, detail := "550 5.1.1", "user unknown"
-		if i%3 == 2 {
-			reason, code, detail = "complaint", "abuse", "Feedback loop report"
-		}
-		if err := add(e, reason, "webhook", &pm, code, detail, s.designDay(20+i, 9+i%6, 10+i), "all"); err != nil {
+		reason, code, detail := txnSuppressedReason(i)
+		if err := take(e, reason, code, detail, txnSuppressedAt(s, i)); err != nil {
 			return err
 		}
 	}
-	return nil
+	_, err := s.Tx.Exec(ctx, `INSERT INTO suppressions (id, workspace_id, email, reason, source, original_code, detail, created_at, scope, context)
+		VALUES ($1, $2, 'billing@northwind.example', 'role', 'import', '', 'role address', $3, 'marketing', '') ON CONFLICT (workspace_id, email) DO NOTHING`,
+		ID(), t.ws.ID, s.designDay(60, 10, 0))
+	return err
 }
+
+// txnSuppressedReason: every third address complained, the others bounced.
+func txnSuppressedReason(i int) (reason, code, detail string) {
+	if i%3 == 2 {
+		return "complaint", "abuse", "Feedback loop report"
+	}
+	return "hard_bounce", "550 5.1.1", "user unknown"
+}
+
+// txnSuppressedAt is when the address was suppressed: before the Brevo
+// import, so the Suppressions board's first page stays as drawn.
+func txnSuppressedAt(s *Seeder, i int) time.Time { return s.designDay(26+i, 9+i%6, 10+i) }
 
 // txnSuppressed are the other suppressed addresses this week's calls named.
 var txnSuppressed = []string{"old.user@hotmial.com", "nina.k@gmial.com", "ops-alerts@contoso.example", "ted@yaho.com", "r.patel@example.net",
@@ -618,7 +574,7 @@ func (t *txnSeed) dataFor(key, first string, at time.Time) map[string]any {
 	case "trial-ending":
 		d["days_left"], d["upgrade_url"] = 3, "https://app.acme.io/billing/plans"
 	case "usage-summary":
-		d["week_label"], d["projects"], d["api_requests"], d["dashboard_url"] = "5 to 11 Oct", 1+t.rng.IntN(9), 2000+t.rng.IntN(400000), "https://app.acme.io/usage"
+		d["projects"], d["deploys"], d["usage_url"] = 1+t.rng.IntN(9), t.rng.IntN(120), "https://app.acme.io/usage"
 	}
 	return d
 }
@@ -791,12 +747,9 @@ func (t *txnSeed) weekExtras(context.Context) error {
 		if i > 0 {
 			at = s.Ago(26*time.Hour + time.Duration(i-1)*17*time.Hour)
 		}
-		reason, code, detail := "hard_bounce", "550 5.1.1", "user unknown"
-		if i%3 == 2 {
-			reason, code, detail = "complaint", "abuse", "Feedback loop report"
-		}
+		reason, code, detail := txnSuppressedReason(i)
 		m := &txnMsg{id: ID(), plan: t.plan(key), key: key, email: e, mailbox: "other", status: "rejected", accepted: at, keyName: "Acme Cloud · production", ip: "198.51.100.24",
-			reject: "suppressed", rejectDetail: map[string]any{"reason": reason, "since": s.designDay(20+i, 9+i%6, 10+i), "source": "Postmark", "code": code, "detail": detail},
+			reject: "suppressed", rejectDetail: map[string]any{"reason": reason, "since": txnSuppressedAt(s, i), "source": "Postmark", "code": code, "detail": detail},
 			source: "api", fromEmail: "no-reply@notify.acme.io", tags: t.plan(key).tags, metadata: map[string]string{"user_id": fmt.Sprintf("u_%05d", 20000+i)}}
 		m.data = t.dataFor(key, "", at)
 		m.subject = subjectFor(key, m.data)
@@ -1053,7 +1006,7 @@ func (t *txnSeed) samples(ctx context.Context) error {
 	s := t.s
 	t0 := t.t0
 	var sam uuid.UUID
-	if err := s.Tx.QueryRow(ctx, `SELECT id FROM contacts WHERE workspace_id = $1 AND email = 'sam.rivera@outlook.com'`, t.ws.ID).Scan(&sam); err != nil && err != pgx.ErrNoRows {
+	if err := s.Tx.QueryRow(ctx, `SELECT id FROM contacts WHERE workspace_id = $1 AND email = 'sam.rivera@outlook.com'`, t.ws.ID).Scan(&sam); err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return err
 	}
 	var samRef *uuid.UUID
@@ -1090,7 +1043,7 @@ func (t *txnSeed) samples(ctx context.Context) error {
 		subject: "Your Acme Cloud trial ends in 3 days", keyName: "Acme Cloud · production", ip: "198.51.100.24", tags: []string{"trial"}, metadata: map[string]string{"user_id": "u_27731"},
 		source: "api", fromEmail: "no-reply@notify.acme.io", errorText: "452 4.2.2 mailbox full", keepContent: true})
 	rows = append(rows, &txnMsg{id: ID(), plan: t.plan("usage-summary"), key: "usage-summary", email: "kim.tran@example.com", name: "Kim Tran", mailbox: "other", status: "rejected",
-		accepted: t0.Add(-256 * time.Second), data: map[string]any{"first_name": "Kim", "week_label": "5 to 11 Oct", "projects": 2, "api_requests": 41210, "dashboard_url": "https://app.acme.io/usage"},
+		accepted: t0.Add(-256 * time.Second), data: map[string]any{"first_name": "Kim", "projects": 2, "deploys": 14, "usage_url": "https://app.acme.io/usage"},
 		subject: "Your week in Acme Cloud", keyName: "Acme Cloud · production", ip: "198.51.100.24", tags: []string{"weekly"}, metadata: map[string]string{"user_id": "u_38210"},
 		source: "api", fromEmail: "no-reply@notify.acme.io", reject: "opted_out",
 		rejectDetail: map[string]any{"category": "Product updates", "since": s.designDay(17, 19, 20), "source": "preference_center"}})
@@ -1110,7 +1063,7 @@ func (t *txnSeed) samples(ctx context.Context) error {
 	opened := alexAt.Add(3*time.Minute + 2*time.Second)
 	rows = append(rows, &txnMsg{id: ID(), plan: t.plan("usage-summary"), key: "usage-summary", email: "alex.morgan@example.com", name: "Alex Morgan", mailbox: "other", status: "delivered",
 		accepted: alexAt, deliverAfter: 1520 * time.Millisecond, opened: &opened,
-		data:    map[string]any{"first_name": "Alex", "week_label": "5 to 11 Oct", "projects": 4, "api_requests": 182400, "dashboard_url": "https://app.acme.io/usage"},
+		data:    map[string]any{"first_name": "Alex", "projects": 4, "deploys": 37, "usage_url": "https://app.acme.io/usage"},
 		subject: "Your week in Acme Cloud", keyName: "Acme Cloud · production", ip: "198.51.100.24", tags: []string{"weekly"}, metadata: map[string]string{"user_id": "u_29034"},
 		source: "api", fromEmail: "no-reply@notify.acme.io", keepContent: true})
 	// The raw SMTP receipt counts in the Billing category.
@@ -1336,7 +1289,7 @@ func (t *txnSeed) webhooks(ctx context.Context) error {
 	s := t.s
 	var hook uuid.UUID
 	err := s.Tx.QueryRow(ctx, `UPDATE webhooks SET events = events || ARRAY['message.bounced', 'message.failed'] WHERE workspace_id = $1 AND name = 'Product backend' RETURNING id`, t.ws.ID).Scan(&hook)
-	if err == pgx.ErrNoRows {
+	if errors.Is(err, pgx.ErrNoRows) {
 		return nil
 	}
 	if err != nil {
@@ -1374,11 +1327,11 @@ func (t *txnSeed) audit(ctx context.Context) error {
 			target: "Acme Cloud · staging", ip: "203.0.113.9", ua: uaChromeMac, meta: m("summary", "transactional:send · all templates · test mode", "permission", "apikeys:manage")},
 		{at: s.designDay(30, 11, 20), actorType: "user", actor: "linh@acme.io", action: "apikey.created", targetType: "api_key", targetID: t.keys["Billing service (SMTP)"].String(),
 			target: "Billing service (SMTP)", ip: "203.0.113.9", ua: uaChromeMac, meta: m("summary", "transactional:send · category Billing · SMTP credential", "permission", "apikeys:manage")},
-		{at: s.designDay(9, 14, 12), actorType: "user", actor: "sofia@acme.io", action: "transactional.template_published", targetType: "transactional_template", targetID: tpl("password-reset"),
-			target: "password-reset", ip: "203.0.113.14", ua: uaChromeMac, meta: m("summary", "v3 · expires_in required · shorter copy", "version", 3)},
-		{at: s.designDay(7, 10, 30), actorType: "user", actor: "sofia@acme.io", action: "transactional.template_published", targetType: "transactional_template", targetID: tpl("welcome"),
-			target: "welcome", ip: "203.0.113.14", ua: uaChromeMac, meta: m("summary", "v5 · Reply line: a person reads every reply", "version", 5)},
-		{at: s.designDay(1, 16, 30), actorType: "user", actor: "daniel@acme.io", action: "transactional.template_saved", targetType: "transactional_template", targetID: tpl("trial-ending"),
+		{at: s.Ago(9 * 24 * time.Hour), actorType: "user", actor: "linh@acme.io", action: "transactional.template_published", targetType: "transactional_template", targetID: tpl("password-reset"),
+			target: "password-reset", ip: "203.0.113.9", ua: uaChromeMac, meta: m("summary", "v3 · Footer address and the 30 minute expiry", "version", 3)},
+		{at: s.Ago(8 * 24 * time.Hour), actorType: "user", actor: "sofia@acme.io", action: "transactional.template_published", targetType: "transactional_template", targetID: tpl("invoice-paid"),
+			target: "invoice-paid", ip: "203.0.113.14", ua: uaChromeMac, meta: m("summary", "v4 · The PDF goes along", "version", 4)},
+		{at: s.Ago(25 * time.Minute), actorType: "user", actor: "daniel@acme.io", action: "transactional.template_saved", targetType: "transactional_template", targetID: tpl("trial-ending"),
 			target: "trial-ending", ip: "203.0.113.9", ua: uaChromeMac, meta: m("summary", "Draft v2 · trial_end_date replaces days_left")},
 		{at: s.Ago(3 * time.Hour), actorType: "user", actor: "linh@acme.io", action: "transactional.content_viewed", targetType: "transactional_message",
 			targetID: "0192f1c4-7b2e-7c51-9d0a-3f5e8b1a2c44", target: "Password reset to sam.rivera@outlook.com", ip: "203.0.113.9", ua: uaChromeMac,

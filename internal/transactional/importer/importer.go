@@ -212,9 +212,99 @@ func Convert(src Source, opt Options) Converted {
 	}
 	out.Variables = uses.declare(src.Sample)
 	out.TestData = sampleData(out.Variables, src.Sample)
+	if uses.has("view_in_browser_url") {
+		out.Notes = append(out.Notes, Note{Kind: NoteManual, Field: "body", Line: uses.get("view_in_browser_url").firstLine, Construct: "view_in_browser_url",
+			Message: "transactional mail has no web version, so `view_in_browser_url` prints nothing. Remove the link."})
+	}
+	out.Notes = append(out.Notes, out.renameInvalid()...)
 	out.Notes = dedupeNotes(out.Notes)
 	out.Status = statusOf(out.Notes)
 	return out
+}
+
+// apiName is a variable name the API accepts in data.
+var apiName = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
+
+// renameInvalid gives variables whose names the API can't take (first-name,
+// 2fa_code) a name it can, everywhere the template uses them.
+func (c *Converted) renameInvalid() []Note {
+	notes := []Note{}
+	taken := map[string]bool{}
+	for _, v := range c.Variables {
+		taken[v.Name] = true
+	}
+	for i, v := range c.Variables {
+		if apiName.MatchString(v.Name) {
+			continue
+		}
+		name := sanitizeName(v.Name)
+		for n := 2; taken[name]; n++ {
+			name = fmt.Sprintf("%s_%d", sanitizeName(v.Name), n)
+		}
+		taken[name] = true
+		c.Subject = renameVar(c.Subject, v.Name, name)
+		c.Preheader = renameVar(c.Preheader, v.Name, name)
+		c.Body = renameVar(c.Body, v.Name, name)
+		c.HTML = renameVar(c.HTML, v.Name, name)
+		c.Text = renameVar(c.Text, v.Name, name)
+		if val, ok := c.TestData[v.Name]; ok {
+			delete(c.TestData, v.Name)
+			c.TestData[name] = val
+		}
+		c.Variables[i].Name = name
+		notes = append(notes, Note{Kind: NoteChange, Field: "template", Construct: v.Name,
+			Message: fmt.Sprintf("`%s` became `%s`: variable names use letters, digits and underscores, so your app sends `%s` in data.", v.Name, name, name)})
+	}
+	return notes
+}
+
+var notName = regexp.MustCompile(`[^A-Za-z0-9_]+`)
+
+func sanitizeName(s string) string {
+	out := strings.Trim(notName.ReplaceAllString(s, "_"), "_")
+	if out == "" {
+		return "value"
+	}
+	if out[0] >= '0' && out[0] <= '9' {
+		out = "v_" + out
+	}
+	return out
+}
+
+var liquidBlock = regexp.MustCompile(`(?s)\{\{.*?\}\}|\{%.*?%\}`)
+
+// renameVar renames a variable in the Liquid tags and outputs of src, as a
+// whole name (not inside another name, a path or a quoted string).
+func renameVar(src, from, to string) string {
+	if !strings.Contains(src, from) {
+		return src
+	}
+	ident := func(b byte) bool {
+		return b == '_' || b == '-' || (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || (b >= '0' && b <= '9')
+	}
+	return liquidBlock.ReplaceAllStringFunc(src, func(b string) string {
+		var out strings.Builder
+		i := 0
+		for i < len(b) {
+			j := strings.Index(b[i:], from)
+			if j < 0 {
+				out.WriteString(b[i:])
+				break
+			}
+			j += i
+			end := j + len(from)
+			quotes := strings.Count(b[:j], `"`) + strings.Count(b[:j], `'`)
+			if (j > 0 && (ident(b[j-1]) || b[j-1] == '.')) || (end < len(b) && ident(b[end])) || quotes%2 == 1 {
+				out.WriteString(b[i : j+1])
+				i = j + 1
+				continue
+			}
+			out.WriteString(b[i:j])
+			out.WriteString(to)
+			i = end
+		}
+		return out.String()
+	})
 }
 
 func statusOf(notes []Note) Status {

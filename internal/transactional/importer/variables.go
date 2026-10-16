@@ -261,8 +261,10 @@ func sampleData(vars []Variable, src map[string]any) map[string]any {
 }
 
 // systemVars are filled in by ReputeCast at send time; templates use them
-// without declaring them.
+// without declaring them. to is the recipient (to.email, to.name);
+// view_in_browser_url has no transactional value (Convert notes it).
 var systemVars = map[string]bool{
+	"to":                  true,
 	"unsubscribe_url":     true,
 	"preferences_url":     true,
 	"view_in_browser_url": true,
