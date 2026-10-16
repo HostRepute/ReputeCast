@@ -136,7 +136,7 @@ export function AccessibilityPanel({ language }: { language?: string }) {
           ) : null}
         </div>
       ) : null}
-      <div className={a.checking ? 'a11y-list is-stale' : 'a11y-list'}>
+      <div className="a11y-list">
         {shown.map((i) => (
           <IssueRow key={i.id} issue={i} report={report} lang={lang} canFix={canFix} html={html} blocks={blocks} />
         ))}
@@ -151,10 +151,10 @@ export function AccessibilityPanel({ language }: { language?: string }) {
 /** A note of the panel: the board's note with its icon. */
 function PanelNote({ bad, children }: { bad?: boolean; children: ReactNode }) {
   return (
-    <div className={bad ? 'note b' : 'note n'} role="note">
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke={bad ? '#991B1B' : '#4B5563'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <div className={bad ? 'note b' : 'note n'} role={bad ? 'alert' : 'note'}>
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke={bad ? '#B91C1C' : '#4B5563'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <circle cx="8" cy="8" r="6.2" />
-        <path d="M8 7.2v3.8M8 5v.1" />
+        <path d={bad ? 'M8 4.8v3.6M8 10.9v.1' : 'M8 7.2v3.8M8 5v.1'} />
       </svg>
       <div className="min-w-0 flex-[1_1_160px]">{children}</div>
     </div>

@@ -22,9 +22,6 @@
     padding: 10px 14px;
     border-bottom: 1px solid var(--line-2);
   }
-  .a11y-list.is-stale {
-    opacity: 0.6;
-  }
   .a11y-empty {
     margin: 0;
     padding: 12px 14px;
