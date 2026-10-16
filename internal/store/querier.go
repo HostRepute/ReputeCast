@@ -422,6 +422,17 @@ type Querier interface {
 	FormChallengeLive(ctx context.Context, arg FormChallengeLiveParams) (bool, error)
 	FormChallengeTake(ctx context.Context, arg FormChallengeTakeParams) (FormChallenge, error)
 	FormChallengesPurge(ctx context.Context, at time.Time) (int64, error)
+	// The latest signup through a form whose consent was given in a language
+	// (the builder's "Consent evidence" example).
+	FormConsentEvidence(ctx context.Context, arg FormConsentEvidenceParams) (FormConsentEvidenceRow, error)
+	// "Spanish is still right": the translation now stands for the form's
+	// current consent text.
+	FormCopyConfirmConsent(ctx context.Context, arg FormCopyConfirmConsentParams) (int64, error)
+	// A form's copy in its other languages, with who wrote it last.
+	FormCopyList(ctx context.Context, formID uuid.UUID) ([]FormCopyListRow, error)
+	// The copy of several forms (the overview's statuses).
+	FormCopyListForms(ctx context.Context, formIds []uuid.UUID) ([]FormCopyListFormsRow, error)
+	FormCopyUpsert(ctx context.Context, arg FormCopyUpsertParams) error
 	FormDelete(ctx context.Context, arg FormDeleteParams) (int64, error)
 	FormDismissOrigin(ctx context.Context, arg FormDismissOriginParams) (int64, error)
 	FormGet(ctx context.Context, arg FormGetParams) (Form, error)
@@ -430,6 +441,10 @@ type Querier interface {
 	FormPublicIDTaken(ctx context.Context, arg FormPublicIDTakenParams) (bool, error)
 	FormRecordRejection(ctx context.Context, arg FormRecordRejectionParams) error
 	FormRename(ctx context.Context, arg FormRenameParams) (Form, error)
+	// Saves a form's own text from its language view: the copy, the field
+	// labels and the consent text, whose version moves when the words change.
+	FormSetCopy(ctx context.Context, arg FormSetCopyParams) (Form, error)
+	FormSetLanguage(ctx context.Context, arg FormSetLanguageParams) (Form, error)
 	FormSetStatus(ctx context.Context, arg FormSetStatusParams) (Form, error)
 	FormSlugTaken(ctx context.Context, arg FormSlugTakenParams) (bool, error)
 	// Per form: views, submissions, confirmations of those submissions and spam
@@ -437,6 +452,9 @@ type Querier interface {
 	FormStatsSince(ctx context.Context, arg FormStatsSinceParams) ([]FormStatsSinceRow, error)
 	FormSubmissionByID(ctx context.Context, arg FormSubmissionByIDParams) (FormSubmission, error)
 	FormSubmissionInsert(ctx context.Context, arg FormSubmissionInsertParams) error
+	// The language the contact's latest signup form was shown in (the
+	// confirmation page follows it).
+	FormSubmissionLatestLanguage(ctx context.Context, contactID uuid.UUID) (string, error)
 	FormSubmissionMarkAttempt(ctx context.Context, id uuid.UUID) error
 	FormSubmissionMarkReminded(ctx context.Context, arg FormSubmissionMarkRemindedParams) error
 	FormSubmissionMarkSent(ctx context.Context, arg FormSubmissionMarkSentParams) error
@@ -1022,6 +1040,14 @@ type Querier interface {
 	OverviewListChanges(ctx context.Context, arg OverviewListChangesParams) ([]OverviewListChangesRow, error)
 	// Overview (spec 7.1).
 	OverviewNextScheduled(ctx context.Context, arg OverviewNextScheduledParams) (OverviewNextScheduledRow, error)
+	// The page copy a workspace wrote, per language, with who wrote it.
+	PageCopyList(ctx context.Context, workspaceID uuid.UUID) ([]PageCopyListRow, error)
+	// Serializes changes to a workspace's page copy (the statuses are computed
+	// from all of it).
+	PageCopyLock(ctx context.Context, workspaceID uuid.UUID) error
+	PageCopySetLabels(ctx context.Context, arg PageCopySetLabelsParams) error
+	PageCopySetPages(ctx context.Context, arg PageCopySetPagesParams) error
+	PageCopyUserName(ctx context.Context, id uuid.UUID) (string, error)
 	PauseAutomation(ctx context.Context, arg PauseAutomationParams) error
 	ProvActiveFailovers(ctx context.Context, workspaceID uuid.UUID) ([]StreamFailover, error)
 	ProvAwaitingCampaigns(ctx context.Context, arg ProvAwaitingCampaignsParams) ([]ProvAwaitingCampaignsRow, error)

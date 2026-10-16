@@ -16,7 +16,7 @@ func init() { seedPageLanguages = seedPageLanguagesImpl }
 // examples").
 func seedPageLanguagesImpl(ctx context.Context, s *Seeder) error {
 	p := &pageLangSeed{s: s, ws: s.WS().ID}
-	for _, step := range []func(context.Context) error{p.contactSources, p.sampleContacts} {
+	for _, step := range []func(context.Context) error{p.contactSources, p.sampleContacts, p.pageCopy, p.formCopy} {
 		if err := step(ctx); err != nil {
 			return err
 		}

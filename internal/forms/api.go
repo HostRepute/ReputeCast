@@ -219,4 +219,5 @@ func Register(h huma.API, s *Service) {
 			out, err := s.RemoveTurnstile(ctx, api.WorkspaceFrom(ctx))
 			return api.OK(out), err
 		})
+	registerCopy(h, s)
 }

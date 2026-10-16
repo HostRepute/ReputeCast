@@ -325,7 +325,7 @@ func submissionFrom(r *http.Request) forms.Submission {
 		Email: f.Get("email"), FirstName: f.Get("first_name"), LastName: f.Get("last_name"), Company: f.Get("company"),
 		Lists: f["list"], Consent: f.Get("consent") != "", Honeypot: f.Get("website"), Token: f.Get("_t"), Plain: f.Get("_plain") == "1",
 		Origin: forms.OriginHost(r.Header.Get("Origin"), r.Header.Get("Referer")), IP: clientIP(r), UserAgent: r.UserAgent(),
-		Fields: map[string]string{},
+		Fields: map[string]string{}, Language: clipLang(f.Get("_lang")), BrowserLanguage: audience.BrowserLanguage(r.Header.Get("Accept-Language")),
 	}
 	if len(sub.Lists) > 50 {
 		sub.Lists = sub.Lists[:50]
@@ -338,6 +338,15 @@ func submissionFrom(r *http.Request) forms.Submission {
 		}
 	}
 	return sub
+}
+
+// clipLang keeps a posted language code to a sensible length; the forms
+// service checks it is one the form is Live in.
+func clipLang(v string) string {
+	if len(v) > 35 {
+		return ""
+	}
+	return v
 }
 
 func (h *Handler) parseForm(w http.ResponseWriter, r *http.Request, limit int64) bool {
@@ -501,7 +510,7 @@ func (h *Handler) challengePost(w http.ResponseWriter, r *http.Request) {
 		heldPage = s.set.HostedFormID() != nil && *s.set.HostedFormID() == f.ID
 		return held, nil
 	}
-	out := h.Forms.SolveChallenge(r.Context(), s.ws, s.set, id, answer, clientIP(r), formOf)
+	out := h.Forms.SolveChallenge(r.Context(), s.ws, s.set, id, answer, r.PostForm.Get("_lang"), clientIP(r), formOf)
 	if out.Status == forms.OutcomeInvalid && len(out.Errors) == 0 && held.ID == uuid.Nil && !held.Builtin {
 		h.message(w, r, s, http.StatusGone, "Check expired · "+s.set.Branding.PublisherName, messageBody{Heading: "This check expired",
 			Text: out.Message, Actions: []action{{Label: "Back to the form", Href: s.links.Subscribe("")}}}, true)
@@ -535,17 +544,11 @@ func (h *Handler) formScript(w http.ResponseWriter, r *http.Request) {
 		jsError(w, http.StatusNotFound, "This signup form doesn't exist or isn't published yet.")
 		return
 	}
-	lists, err := h.Audience.PublicLists(r.Context(), h.Q, s.ws)
+	js, err := h.Forms.Script(r.Context(), s.ws, s.set, c, s.links)
 	if err != nil {
 		jsError(w, http.StatusInternalServerError, "This signup form couldn't load. Reload the page.")
 		return
 	}
-	customs, err := h.Q.ListCustomFields(r.Context(), s.ws.ID)
-	if err != nil {
-		jsError(w, http.StatusInternalServerError, "This signup form couldn't load. Reload the page.")
-		return
-	}
-	js := forms.EmbedScript(c, s.links, s.set.Branding, lists, customs)
 	hd := w.Header()
 	hd.Set("Content-Type", "text/javascript; charset=utf-8")
 	hd.Set("X-Content-Type-Options", "nosniff")

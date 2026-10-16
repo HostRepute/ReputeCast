@@ -3,7 +3,6 @@ package forms
 import (
 	"context"
 	"errors"
-	"fmt"
 	"html"
 	"strings"
 	"time"
@@ -15,9 +14,12 @@ import (
 	"github.com/hostrepute/reputecast/internal/audience"
 	"github.com/hostrepute/reputecast/internal/automations"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/jobs"
+	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/linktoken"
 	"github.com/hostrepute/reputecast/internal/mailer"
+	"github.com/hostrepute/reputecast/internal/pagelabels"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -31,8 +33,9 @@ func (s *Service) ConfirmURL(ws *store.Workspace, contactID uuid.UUID) string {
 }
 
 // sendConfirmation emails the confirmation link of one submission on the
-// System stream and records it on the contact's consent history.
-func (s *Service) sendConfirmation(ctx context.Context, ws *store.Workspace, set *Settings, submissionID, contactID uuid.UUID, reminder bool) error {
+// System stream, in the language the form was shown in, and records it on
+// the contact's consent history.
+func (s *Service) sendConfirmation(ctx context.Context, ws *store.Workspace, set *Settings, submissionID, contactID uuid.UUID, reminder bool, language string) error {
 	m := s.mail()
 	if !m.SystemAvailable(ctx, &ws.ID) {
 		return errNoSystemMail
@@ -48,19 +51,29 @@ func (s *Service) sendConfirmation(ctx context.Context, ws *store.Workspace, set
 	if err != nil {
 		return err
 	}
+	pages, err := s.loadPagesCopy(ctx, s.Q, ws, set)
+	if err != nil {
+		return err
+	}
+	// The language the form was shown in; its pages may have gone back to
+	// Incomplete since, and then the email follows the pages' fallback.
+	code := languages.Base(language)
+	if code == "" || !pages.Live(code) {
+		code = pages.Fallback()
+	}
 	var pending []uuid.UUID
 	var names []string
 	for _, l := range lists {
 		if pc.Lists[l.ID] == "pending" {
 			pending = append(pending, l.ID)
-			names = append(names, l.Name)
+			names = append(names, pages.ListName(code, l))
 		}
 	}
 	if len(pending) == 0 {
 		// Confirmed some other way (a re-permission email, the team).
 		return s.Q.FormSubmissionSettle(ctx, store.FormSubmissionSettleParams{ID: submissionID, At: ptrTime(s.now())})
 	}
-	msg := ConfirmationEmail(set.Branding, pc.FirstName, names, s.ConfirmURL(ws, contactID), reminder)
+	msg := ConfirmationEmailIn(pages.Labels(code), set.Branding, pc.FirstName, names, s.ConfirmURL(ws, contactID), reminder)
 	msg.WorkspaceID, msg.To, msg.ToName = &ws.ID, pc.Email, pc.FirstName
 	provider, err := m.SendSystem(ctx, msg)
 	if err != nil {
@@ -91,49 +104,44 @@ func (s *Service) sendConfirmation(ctx context.Context, ws *store.Workspace, set
 	})
 }
 
-// ConfirmationEmail is the double opt-in email: plain text and a small
-// HTML version in the publisher's colours, no tracking.
+// ConfirmationEmail is the double opt-in email in English.
 func ConfirmationEmail(b Branding, firstName string, lists []string, link string, reminder bool) mailer.Message {
-	name := strings.TrimSpace(firstName)
-	if name == "" {
-		name = "there"
+	return ConfirmationEmailIn(pagelabels.English(), b, firstName, lists, link, reminder)
+}
+
+// ConfirmationEmailIn is the double opt-in email in a language: plain text
+// and a small HTML version in the publisher's colours, no tracking.
+func ConfirmationEmailIn(l pagelabels.Set, b Branding, firstName string, lists []string, link string, reminder bool) mailer.Message {
+	pub := i18n.Args{"publisher": b.PublisherName}
+	greeting := l.Text("email.greetingAnon", nil)
+	if name := strings.TrimSpace(firstName); name != "" {
+		greeting = l.Text("email.greeting", i18n.Args{"name": name})
 	}
-	what := "emails"
-	if len(lists) > 0 {
-		what = andList(lists)
-	}
-	subject := "Confirm your subscription to " + b.PublisherName
-	lead := fmt.Sprintf("Please confirm that you'd like %s from %s.", what, b.PublisherName)
+	subject := l.Text("email.subject", pub)
+	leadKey := "email.lead"
 	if reminder {
-		subject = "Reminder: confirm your subscription to " + b.PublisherName
-		lead = fmt.Sprintf("Yesterday you asked for %s from %s, but the subscription isn't confirmed yet.", what, b.PublisherName)
+		subject = l.Text("email.reminderSubject", pub)
+		leadKey = "email.reminderLead"
 	}
-	text := fmt.Sprintf("Hi %s,\n\n%s Open this link to confirm:\n\n%s\n\nIf you didn't ask for this, ignore this email and you won't hear from us.\n\n%s\n", name, lead, link, b.PublisherName)
+	if len(lists) == 0 {
+		leadKey += "Any"
+	}
+	lead := l.Text(leadKey, i18n.Args{"publisher": b.PublisherName, "lists": l.Join(lists)})
+	ignore := l.Text("email.ignore", nil)
+	text := greeting + "\n\n" + lead + " " + l.Text("email.open", nil) + "\n\n" + link + "\n\n" + ignore + "\n\n" + b.PublisherName + "\n"
 	accent, on := b.Palette.Accent, b.Palette.OnAccent
 	esc := html.EscapeString
-	body := `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>` + esc(subject) + `</title></head>` +
+	body := `<!doctype html><html lang="` + esc(l.Code()) + `" dir="` + pagelabels.Dir(l.Code()) + `"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>` + esc(subject) + `</title></head>` +
 		`<body style="margin:0;padding:0;background:` + esc(b.Palette.Background) + `;font-family:'IBM Plex Sans',Arial,sans-serif;color:#1F2937">` +
 		`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:` + esc(b.Palette.Background) + `"><tr><td align="center" style="padding:32px 16px">` +
 		`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border:1px solid #E3E6EB;border-radius:14px"><tr><td style="padding:28px">` +
 		`<p style="margin:0 0 16px;font-size:18px;font-weight:700;color:#0B1220">` + esc(b.PublisherName) + `</p>` +
-		`<p style="margin:0 0 12px;font-size:15px;line-height:1.5">Hi ` + esc(name) + `,</p>` +
+		`<p style="margin:0 0 12px;font-size:15px;line-height:1.5">` + esc(greeting) + `</p>` +
 		`<p style="margin:0 0 20px;font-size:15px;line-height:1.5">` + esc(lead) + `</p>` +
-		`<p style="margin:0 0 20px"><a href="` + esc(link) + `" style="display:inline-block;padding:12px 20px;border-radius:9px;background:` + esc(accent) + `;color:` + esc(on) + `;font-weight:700;font-size:15px;text-decoration:none">Confirm my subscription</a></p>` +
-		`<p style="margin:0;font-size:13px;line-height:1.5;color:#5B6472">If you didn't ask for this, ignore this email and you won't hear from us.</p>` +
+		`<p style="margin:0 0 20px"><a href="` + esc(link) + `" style="display:inline-block;padding:12px 20px;border-radius:9px;background:` + esc(accent) + `;color:` + esc(on) + `;font-weight:700;font-size:15px;text-decoration:none">` + esc(l.Text("email.button", nil)) + `</a></p>` +
+		`<p style="margin:0;font-size:13px;line-height:1.5;color:#5B6472">` + esc(ignore) + `</p>` +
 		`</td></tr></table></td></tr></table></body></html>`
 	return mailer.Message{Subject: subject, Text: text, HTML: body, Kind: "double_opt_in"}
-}
-
-func andList(xs []string) string {
-	switch len(xs) {
-	case 0:
-		return ""
-	case 1:
-		return xs[0]
-	case 2:
-		return xs[0] + " and " + xs[1]
-	}
-	return strings.Join(xs[:len(xs)-1], ", ") + " and " + xs[len(xs)-1]
 }
 
 // Confirm completes double opt-in for a contact from the confirmation
@@ -248,7 +256,7 @@ func (s *Service) RunConfirmations(ctx context.Context) error {
 		if st.off {
 			continue
 		}
-		if err := s.sendConfirmation(ctx, st.ws, st.set, r.ID, r.ContactID, false); err != nil {
+		if err := s.sendConfirmation(ctx, st.ws, st.set, r.ID, r.ContactID, false, r.Language); err != nil {
 			if errors.Is(err, errNoSystemMail) {
 				st.off = true
 				continue
@@ -271,7 +279,7 @@ func (s *Service) RunConfirmations(ctx context.Context) error {
 		if st.off {
 			continue
 		}
-		if err := s.sendConfirmation(ctx, st.ws, st.set, r.ID, r.ContactID, true); err != nil {
+		if err := s.sendConfirmation(ctx, st.ws, st.set, r.ID, r.ContactID, true, r.Language); err != nil {
 			if errors.Is(err, errNoSystemMail) {
 				st.off = true
 				continue
@@ -328,8 +336,14 @@ func RegisterJobs(reg *jobs.Registry, s *Service) {
 }
 
 // SendPreferenceLink emails a contact the link to their preference center
-// ("Send me a link" on the public preferences page).
+// ("Send me a link" on the public preferences page), in English.
 func (s *Service) SendPreferenceLink(ctx context.Context, ws *store.Workspace, set *Settings, contactID uuid.UUID) error {
+	return s.SendPreferenceLinkIn(ctx, ws, set, contactID, "")
+}
+
+// SendPreferenceLinkIn emails the link in the language the page asking for
+// it was shown in, when its pages are Live (else their fallback).
+func (s *Service) SendPreferenceLinkIn(ctx context.Context, ws *store.Workspace, set *Settings, contactID uuid.UUID, language string) error {
 	m := s.mail()
 	if !m.SystemAvailable(ctx, &ws.ID) {
 		return errNoSystemMail
@@ -339,22 +353,30 @@ func (s *Service) SendPreferenceLink(ctx context.Context, ws *store.Workspace, s
 		return err
 	}
 	link := s.URLs.Preferences(ws.Slug, s.Tokens.Sign(linktoken.Claims{Kind: linktoken.Preferences, WorkspaceID: ws.ID, ContactID: contactID}))
-	name := strings.TrimSpace(pc.FirstName)
-	if name == "" {
-		name = "there"
+	l := pagelabels.English()
+	if code := languages.Base(language); code != "" {
+		if pages, err := s.loadPagesCopy(ctx, s.Q, ws, set); err == nil && pages.Live(code) {
+			l = pages.Labels(code)
+		}
 	}
 	b := set.Branding
-	subject := "Your email preferences for " + b.PublisherName
-	text := fmt.Sprintf("Hi %s,\n\nHere's the link to your email preferences for %s. Pick your lists, how often you hear from us, or take a break:\n\n%s\n\nIf you didn't ask for this, ignore this email; nothing changes.\n\n%s\n", name, b.PublisherName, link, b.PublisherName)
+	greeting := l.Text("email.greetingAnon", nil)
+	if name := strings.TrimSpace(pc.FirstName); name != "" {
+		greeting = l.Text("email.greeting", i18n.Args{"name": name})
+	}
+	pub := i18n.Args{"publisher": b.PublisherName}
+	subject := l.Text("email.prefs.subject", pub)
+	ignore := l.Text("email.prefs.ignore", nil)
+	text := greeting + "\n\n" + l.Text("email.prefs.text", pub) + "\n\n" + link + "\n\n" + ignore + "\n\n" + b.PublisherName + "\n"
 	esc := html.EscapeString
-	body := `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>` + esc(subject) + `</title></head>` +
+	body := `<!doctype html><html lang="` + esc(l.Code()) + `" dir="` + pagelabels.Dir(l.Code()) + `"><head><meta charset="utf-8"><title>` + esc(subject) + `</title></head>` +
 		`<body style="margin:0;padding:24px 16px;background:` + esc(b.Palette.Background) + `;font-family:'IBM Plex Sans',Arial,sans-serif;color:#1F2937">` +
 		`<div style="max-width:520px;margin:0 auto;background:#ffffff;border:1px solid #E3E6EB;border-radius:14px;padding:28px">` +
 		`<p style="margin:0 0 16px;font-size:18px;font-weight:700;color:#0B1220">` + esc(b.PublisherName) + `</p>` +
-		`<p style="margin:0 0 12px;font-size:15px;line-height:1.5">Hi ` + esc(name) + `,</p>` +
-		`<p style="margin:0 0 20px;font-size:15px;line-height:1.5">Here's the link to your email preferences: pick your lists, how often you hear from us, or take a break.</p>` +
-		`<p style="margin:0 0 20px"><a href="` + esc(link) + `" style="display:inline-block;padding:12px 20px;border-radius:9px;background:` + esc(b.Palette.Accent) + `;color:` + esc(b.Palette.OnAccent) + `;font-weight:700;font-size:15px;text-decoration:none">Open my preferences</a></p>` +
-		`<p style="margin:0;font-size:13px;line-height:1.5;color:#5B6472">If you didn't ask for this, ignore this email; nothing changes.</p></div></body></html>`
+		`<p style="margin:0 0 12px;font-size:15px;line-height:1.5">` + esc(greeting) + `</p>` +
+		`<p style="margin:0 0 20px;font-size:15px;line-height:1.5">` + esc(l.Text("email.prefs.lead", nil)) + `</p>` +
+		`<p style="margin:0 0 20px"><a href="` + esc(link) + `" style="display:inline-block;padding:12px 20px;border-radius:9px;background:` + esc(b.Palette.Accent) + `;color:` + esc(b.Palette.OnAccent) + `;font-weight:700;font-size:15px;text-decoration:none">` + esc(l.Text("email.prefs.button", nil)) + `</a></p>` +
+		`<p style="margin:0;font-size:13px;line-height:1.5;color:#5B6472">` + esc(ignore) + `</p></div></body></html>`
 	msg := mailer.Message{WorkspaceID: &ws.ID, To: pc.Email, ToName: pc.FirstName, Subject: subject, Text: text, HTML: body, Kind: "preference_link"}
 	_, err = m.SendSystem(ctx, msg)
 	return err

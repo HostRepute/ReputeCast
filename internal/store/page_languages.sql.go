@@ -7,6 +7,7 @@ package store
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -114,4 +115,475 @@ func (q *Queries) ContactSetLanguageSource(ctx context.Context, arg ContactSetLa
 		arg.ID,
 	)
 	return err
+}
+
+const formConsentEvidence = `-- name: FormConsentEvidence :one
+SELECT c.id AS contact_id, coalesce(nullif(trim(concat_ws(' ', c.first_name, c.last_name)), ''), c.email)::text AS name,
+       ce.occurred_at, ce.consent_version
+FROM consent_events ce
+JOIN contacts c ON c.id = ce.contact_id AND c.workspace_id = $1
+WHERE ce.source = $2 AND ce.language = $3 AND ce.consent_text <> '' AND ce.action IN ('subscribed', 'resubscribed')
+ORDER BY ce.occurred_at DESC, ce.id DESC
+LIMIT 1
+`
+
+type FormConsentEvidenceParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Source      string    `json:"source"`
+	Language    string    `json:"language"`
+}
+
+type FormConsentEvidenceRow struct {
+	ContactID      uuid.UUID `json:"contactId"`
+	Name           string    `json:"name"`
+	OccurredAt     time.Time `json:"occurredAt"`
+	ConsentVersion string    `json:"consentVersion"`
+}
+
+// The latest signup through a form whose consent was given in a language
+// (the builder's "Consent evidence" example).
+func (q *Queries) FormConsentEvidence(ctx context.Context, arg FormConsentEvidenceParams) (FormConsentEvidenceRow, error) {
+	row := q.db.QueryRow(ctx, formConsentEvidence, arg.WorkspaceID, arg.Source, arg.Language)
+	var i FormConsentEvidenceRow
+	err := row.Scan(
+		&i.ContactID,
+		&i.Name,
+		&i.OccurredAt,
+		&i.ConsentVersion,
+	)
+	return i, err
+}
+
+const formCopyConfirmConsent = `-- name: FormCopyConfirmConsent :execrows
+UPDATE form_copy SET consent_for = $1, updated_by = $2, updated_at = $3::timestamptz
+WHERE form_id = $4 AND language = $5 AND consent_text <> '' AND consent_for < $1
+`
+
+type FormCopyConfirmConsentParams struct {
+	ConsentFor int32      `json:"consentFor"`
+	By         *uuid.UUID `json:"by"`
+	At         time.Time  `json:"at"`
+	FormID     uuid.UUID  `json:"formId"`
+	Language   string     `json:"language"`
+}
+
+// "Spanish is still right": the translation now stands for the form's
+// current consent text.
+func (q *Queries) FormCopyConfirmConsent(ctx context.Context, arg FormCopyConfirmConsentParams) (int64, error) {
+	result, err := q.db.Exec(ctx, formCopyConfirmConsent,
+		arg.ConsentFor,
+		arg.By,
+		arg.At,
+		arg.FormID,
+		arg.Language,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const formCopyList = `-- name: FormCopyList :many
+SELECT fc.language, fc.content, fc.consent_text, fc.consent_version, fc.consent_for, fc.updated_by, fc.updated_at,
+       coalesce(u.name, '')::text AS updated_by_name
+FROM form_copy fc
+LEFT JOIN users u ON u.id = fc.updated_by
+WHERE fc.form_id = $1
+ORDER BY fc.language
+`
+
+type FormCopyListRow struct {
+	Language       string          `json:"language"`
+	Content        json.RawMessage `json:"content"`
+	ConsentText    string          `json:"consentText"`
+	ConsentVersion int32           `json:"consentVersion"`
+	ConsentFor     int32           `json:"consentFor"`
+	UpdatedBy      *uuid.UUID      `json:"updatedBy"`
+	UpdatedAt      time.Time       `json:"updatedAt"`
+	UpdatedByName  string          `json:"updatedByName"`
+}
+
+// A form's copy in its other languages, with who wrote it last.
+func (q *Queries) FormCopyList(ctx context.Context, formID uuid.UUID) ([]FormCopyListRow, error) {
+	rows, err := q.db.Query(ctx, formCopyList, formID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []FormCopyListRow{}
+	for rows.Next() {
+		var i FormCopyListRow
+		if err := rows.Scan(
+			&i.Language,
+			&i.Content,
+			&i.ConsentText,
+			&i.ConsentVersion,
+			&i.ConsentFor,
+			&i.UpdatedBy,
+			&i.UpdatedAt,
+			&i.UpdatedByName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const formCopyListForms = `-- name: FormCopyListForms :many
+SELECT fc.form_id, fc.language, fc.content, fc.consent_text, fc.consent_version, fc.consent_for
+FROM form_copy fc
+WHERE fc.form_id = ANY ($1::uuid[])
+`
+
+type FormCopyListFormsRow struct {
+	FormID         uuid.UUID       `json:"formId"`
+	Language       string          `json:"language"`
+	Content        json.RawMessage `json:"content"`
+	ConsentText    string          `json:"consentText"`
+	ConsentVersion int32           `json:"consentVersion"`
+	ConsentFor     int32           `json:"consentFor"`
+}
+
+// The copy of several forms (the overview's statuses).
+func (q *Queries) FormCopyListForms(ctx context.Context, formIds []uuid.UUID) ([]FormCopyListFormsRow, error) {
+	rows, err := q.db.Query(ctx, formCopyListForms, formIds)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []FormCopyListFormsRow{}
+	for rows.Next() {
+		var i FormCopyListFormsRow
+		if err := rows.Scan(
+			&i.FormID,
+			&i.Language,
+			&i.Content,
+			&i.ConsentText,
+			&i.ConsentVersion,
+			&i.ConsentFor,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const formCopyUpsert = `-- name: FormCopyUpsert :exec
+INSERT INTO form_copy (form_id, language, content, consent_text, consent_version, consent_for, updated_by, updated_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8::timestamptz)
+ON CONFLICT (form_id, language) DO UPDATE
+SET content = EXCLUDED.content, consent_text = EXCLUDED.consent_text, consent_version = EXCLUDED.consent_version,
+    consent_for = EXCLUDED.consent_for, updated_by = EXCLUDED.updated_by, updated_at = EXCLUDED.updated_at
+`
+
+type FormCopyUpsertParams struct {
+	FormID         uuid.UUID       `json:"formId"`
+	Language       string          `json:"language"`
+	Content        json.RawMessage `json:"content"`
+	ConsentText    string          `json:"consentText"`
+	ConsentVersion int32           `json:"consentVersion"`
+	ConsentFor     int32           `json:"consentFor"`
+	By             *uuid.UUID      `json:"by"`
+	At             time.Time       `json:"at"`
+}
+
+func (q *Queries) FormCopyUpsert(ctx context.Context, arg FormCopyUpsertParams) error {
+	_, err := q.db.Exec(ctx, formCopyUpsert,
+		arg.FormID,
+		arg.Language,
+		arg.Content,
+		arg.ConsentText,
+		arg.ConsentVersion,
+		arg.ConsentFor,
+		arg.By,
+		arg.At,
+	)
+	return err
+}
+
+const formSetCopy = `-- name: FormSetCopy :one
+UPDATE forms
+SET content = $1, fields = $2, consent_text = $3, consent_version = $4,
+    consent_changed_by = CASE WHEN $4::int <> consent_version THEN $5::uuid ELSE consent_changed_by END,
+    consent_changed_at = CASE WHEN $4::int <> consent_version THEN $6::timestamptz ELSE consent_changed_at END,
+    updated_by = $5, updated_at = $6::timestamptz
+WHERE workspace_id = $7 AND id = $8
+RETURNING id, workspace_id, name, kind, slug, list_ids, double_opt_in, fields, content, spam_protection, status, views, submissions, confirmed, blocked, created_by, created_at, updated_at, public_id, default_list_ids, list_choice, consent_text, consent_version, allowed_origins, after_submit, redirect_url, published_at, updated_by, copy_language, language_mode, fixed_language, consent_changed_by, consent_changed_at
+`
+
+type FormSetCopyParams struct {
+	Content        json.RawMessage `json:"content"`
+	Fields         json.RawMessage `json:"fields"`
+	ConsentText    string          `json:"consentText"`
+	ConsentVersion int32           `json:"consentVersion"`
+	By             *uuid.UUID      `json:"by"`
+	At             time.Time       `json:"at"`
+	WorkspaceID    uuid.UUID       `json:"workspaceId"`
+	ID             uuid.UUID       `json:"id"`
+}
+
+// Saves a form's own text from its language view: the copy, the field
+// labels and the consent text, whose version moves when the words change.
+func (q *Queries) FormSetCopy(ctx context.Context, arg FormSetCopyParams) (Form, error) {
+	row := q.db.QueryRow(ctx, formSetCopy,
+		arg.Content,
+		arg.Fields,
+		arg.ConsentText,
+		arg.ConsentVersion,
+		arg.By,
+		arg.At,
+		arg.WorkspaceID,
+		arg.ID,
+	)
+	var i Form
+	err := row.Scan(
+		&i.ID,
+		&i.WorkspaceID,
+		&i.Name,
+		&i.Kind,
+		&i.Slug,
+		&i.ListIds,
+		&i.DoubleOptIn,
+		&i.Fields,
+		&i.Content,
+		&i.SpamProtection,
+		&i.Status,
+		&i.Views,
+		&i.Submissions,
+		&i.Confirmed,
+		&i.Blocked,
+		&i.CreatedBy,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.PublicID,
+		&i.DefaultListIds,
+		&i.ListChoice,
+		&i.ConsentText,
+		&i.ConsentVersion,
+		&i.AllowedOrigins,
+		&i.AfterSubmit,
+		&i.RedirectUrl,
+		&i.PublishedAt,
+		&i.UpdatedBy,
+		&i.CopyLanguage,
+		&i.LanguageMode,
+		&i.FixedLanguage,
+		&i.ConsentChangedBy,
+		&i.ConsentChangedAt,
+	)
+	return i, err
+}
+
+const formSetLanguage = `-- name: FormSetLanguage :one
+UPDATE forms SET language_mode = $1, fixed_language = $2, updated_by = $3, updated_at = $4::timestamptz
+WHERE workspace_id = $5 AND id = $6
+RETURNING id, workspace_id, name, kind, slug, list_ids, double_opt_in, fields, content, spam_protection, status, views, submissions, confirmed, blocked, created_by, created_at, updated_at, public_id, default_list_ids, list_choice, consent_text, consent_version, allowed_origins, after_submit, redirect_url, published_at, updated_by, copy_language, language_mode, fixed_language, consent_changed_by, consent_changed_at
+`
+
+type FormSetLanguageParams struct {
+	LanguageMode  string     `json:"languageMode"`
+	FixedLanguage string     `json:"fixedLanguage"`
+	By            *uuid.UUID `json:"by"`
+	At            time.Time  `json:"at"`
+	WorkspaceID   uuid.UUID  `json:"workspaceId"`
+	ID            uuid.UUID  `json:"id"`
+}
+
+func (q *Queries) FormSetLanguage(ctx context.Context, arg FormSetLanguageParams) (Form, error) {
+	row := q.db.QueryRow(ctx, formSetLanguage,
+		arg.LanguageMode,
+		arg.FixedLanguage,
+		arg.By,
+		arg.At,
+		arg.WorkspaceID,
+		arg.ID,
+	)
+	var i Form
+	err := row.Scan(
+		&i.ID,
+		&i.WorkspaceID,
+		&i.Name,
+		&i.Kind,
+		&i.Slug,
+		&i.ListIds,
+		&i.DoubleOptIn,
+		&i.Fields,
+		&i.Content,
+		&i.SpamProtection,
+		&i.Status,
+		&i.Views,
+		&i.Submissions,
+		&i.Confirmed,
+		&i.Blocked,
+		&i.CreatedBy,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.PublicID,
+		&i.DefaultListIds,
+		&i.ListChoice,
+		&i.ConsentText,
+		&i.ConsentVersion,
+		&i.AllowedOrigins,
+		&i.AfterSubmit,
+		&i.RedirectUrl,
+		&i.PublishedAt,
+		&i.UpdatedBy,
+		&i.CopyLanguage,
+		&i.LanguageMode,
+		&i.FixedLanguage,
+		&i.ConsentChangedBy,
+		&i.ConsentChangedAt,
+	)
+	return i, err
+}
+
+const formSubmissionLatestLanguage = `-- name: FormSubmissionLatestLanguage :one
+SELECT language FROM form_submissions
+WHERE contact_id = $1 AND language <> ''
+ORDER BY created_at DESC, id DESC
+LIMIT 1
+`
+
+// The language the contact's latest signup form was shown in (the
+// confirmation page follows it).
+func (q *Queries) FormSubmissionLatestLanguage(ctx context.Context, contactID uuid.UUID) (string, error) {
+	row := q.db.QueryRow(ctx, formSubmissionLatestLanguage, contactID)
+	var language string
+	err := row.Scan(&language)
+	return language, err
+}
+
+const pageCopyList = `-- name: PageCopyList :many
+SELECT pc.language, pc.pages, pc.pages_by, pc.pages_at, pc.labels, pc.labels_by, pc.labels_at,
+       coalesce(pu.name, '')::text AS pages_by_name, coalesce(lu.name, '')::text AS labels_by_name
+FROM page_copy pc
+LEFT JOIN users pu ON pu.id = pc.pages_by
+LEFT JOIN users lu ON lu.id = pc.labels_by
+WHERE pc.workspace_id = $1
+ORDER BY pc.language
+`
+
+type PageCopyListRow struct {
+	Language     string          `json:"language"`
+	Pages        json.RawMessage `json:"pages"`
+	PagesBy      *uuid.UUID      `json:"pagesBy"`
+	PagesAt      *time.Time      `json:"pagesAt"`
+	Labels       json.RawMessage `json:"labels"`
+	LabelsBy     *uuid.UUID      `json:"labelsBy"`
+	LabelsAt     *time.Time      `json:"labelsAt"`
+	PagesByName  string          `json:"pagesByName"`
+	LabelsByName string          `json:"labelsByName"`
+}
+
+// The page copy a workspace wrote, per language, with who wrote it.
+func (q *Queries) PageCopyList(ctx context.Context, workspaceID uuid.UUID) ([]PageCopyListRow, error) {
+	rows, err := q.db.Query(ctx, pageCopyList, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []PageCopyListRow{}
+	for rows.Next() {
+		var i PageCopyListRow
+		if err := rows.Scan(
+			&i.Language,
+			&i.Pages,
+			&i.PagesBy,
+			&i.PagesAt,
+			&i.Labels,
+			&i.LabelsBy,
+			&i.LabelsAt,
+			&i.PagesByName,
+			&i.LabelsByName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const pageCopyLock = `-- name: PageCopyLock :exec
+SELECT pg_advisory_xact_lock(hashtextextended('page_copy:' || ($1::uuid)::text, 0))
+`
+
+// Serializes changes to a workspace's page copy (the statuses are computed
+// from all of it).
+func (q *Queries) PageCopyLock(ctx context.Context, workspaceID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, pageCopyLock, workspaceID)
+	return err
+}
+
+const pageCopySetLabels = `-- name: PageCopySetLabels :exec
+INSERT INTO page_copy (workspace_id, language, labels, labels_by, labels_at)
+VALUES ($1, $2, $3, $4, $5::timestamptz)
+ON CONFLICT (workspace_id, language) DO UPDATE
+SET labels = EXCLUDED.labels, labels_by = EXCLUDED.labels_by, labels_at = EXCLUDED.labels_at
+`
+
+type PageCopySetLabelsParams struct {
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	Language    string          `json:"language"`
+	Labels      json.RawMessage `json:"labels"`
+	By          *uuid.UUID      `json:"by"`
+	At          time.Time       `json:"at"`
+}
+
+func (q *Queries) PageCopySetLabels(ctx context.Context, arg PageCopySetLabelsParams) error {
+	_, err := q.db.Exec(ctx, pageCopySetLabels,
+		arg.WorkspaceID,
+		arg.Language,
+		arg.Labels,
+		arg.By,
+		arg.At,
+	)
+	return err
+}
+
+const pageCopySetPages = `-- name: PageCopySetPages :exec
+INSERT INTO page_copy (workspace_id, language, pages, pages_by, pages_at)
+VALUES ($1, $2, $3, $4, $5::timestamptz)
+ON CONFLICT (workspace_id, language) DO UPDATE
+SET pages = EXCLUDED.pages, pages_by = EXCLUDED.pages_by, pages_at = EXCLUDED.pages_at
+`
+
+type PageCopySetPagesParams struct {
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	Language    string          `json:"language"`
+	Pages       json.RawMessage `json:"pages"`
+	By          *uuid.UUID      `json:"by"`
+	At          time.Time       `json:"at"`
+}
+
+func (q *Queries) PageCopySetPages(ctx context.Context, arg PageCopySetPagesParams) error {
+	_, err := q.db.Exec(ctx, pageCopySetPages,
+		arg.WorkspaceID,
+		arg.Language,
+		arg.Pages,
+		arg.By,
+		arg.At,
+	)
+	return err
+}
+
+const pageCopyUserName = `-- name: PageCopyUserName :one
+SELECT coalesce(name, '')::text FROM users WHERE id = $1
+`
+
+func (q *Queries) PageCopyUserName(ctx context.Context, id uuid.UUID) (string, error) {
+	row := q.db.QueryRow(ctx, pageCopyUserName, id)
+	var column_1 string
+	err := row.Scan(&column_1)
+	return column_1, err
 }

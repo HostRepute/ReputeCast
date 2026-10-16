@@ -43,6 +43,11 @@ var ErrContactGone = errors.New("audience: contact not found")
 type FieldError struct {
 	Field   string
 	Message string
+	// Code names the problem for pages that show it in another language:
+	// email, pick_list, list_gone, number, date, boolean, select (with
+	// Options), too_long, frequency, language.
+	Code    string
+	Options []string
 }
 
 func (e *FieldError) Error() string { return e.Field + ": " + e.Message }
@@ -142,16 +147,16 @@ func (r SignupResult) NeedsConfirmation() bool { return !r.Blocked && len(r.Pend
 func (s *Service) Signup(ctx context.Context, tx pgx.Tx, ws *store.Workspace, in SignupInput) (SignupResult, error) {
 	email, problem := emailaddr.Check(in.Email)
 	if problem != "" {
-		return SignupResult{}, &FieldError{Field: "email", Message: "That doesn't look like a complete email address."}
+		return SignupResult{}, &FieldError{Field: "email", Code: "email", Message: "That doesn't look like a complete email address."}
 	}
 	if len(in.Lists) == 0 {
-		return SignupResult{}, &FieldError{Field: "lists", Message: "Pick at least one newsletter."}
+		return SignupResult{}, &FieldError{Field: "lists", Code: "pick_list", Message: "Pick at least one newsletter."}
 	}
 	q := store.New(tx)
 	for _, l := range in.Lists {
 		if _, err := q.GetList(ctx, store.GetListParams{WorkspaceID: ws.ID, ID: l}); err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
-				return SignupResult{}, &FieldError{Field: "lists", Message: "One of those newsletters isn't available any more. Reload the page and pick again."}
+				return SignupResult{}, &FieldError{Field: "lists", Code: "list_gone", Message: "One of those newsletters isn't available any more. Reload the page and pick again."}
 			}
 			return SignupResult{}, err
 		}
@@ -297,7 +302,7 @@ func (s *Service) signupFields(ctx context.Context, q *store.Queries, ws *store.
 		}
 		val, err := customValue(f, v)
 		if err != nil {
-			return nil, &FieldError{Field: k, Message: publicFieldMessage(f)}
+			return nil, publicFieldError(k, f)
 		}
 		if val != nil {
 			attrs[k] = val
@@ -306,23 +311,23 @@ func (s *Service) signupFields(ctx context.Context, q *store.Queries, ws *store.
 	return json.Marshal(attrs)
 }
 
-// publicFieldMessage explains a custom field's format to a visitor.
-func publicFieldMessage(f store.CustomField) string {
+// publicFieldError explains a custom field's format to a visitor.
+func publicFieldError(key string, f store.CustomField) *FieldError {
 	switch f.Type {
 	case "number":
-		return "Enter a number."
+		return &FieldError{Field: key, Code: "number", Message: "Enter a number."}
 	case "date":
-		return "Enter a date like 2026-10-30."
+		return &FieldError{Field: key, Code: "date", Message: "Enter a date like 2026-10-30."}
 	case "boolean":
-		return "Answer yes or no."
+		return &FieldError{Field: key, Code: "boolean", Message: "Answer yes or no."}
 	case "select":
 		var opts []string
 		_ = json.Unmarshal(f.Options, &opts)
 		if len(opts) > 0 {
-			return "Pick one of: " + strings.Join(opts, ", ") + "."
+			return &FieldError{Field: key, Code: "select", Options: opts, Message: "Pick one of: " + strings.Join(opts, ", ") + "."}
 		}
 	}
-	return "Keep it under 500 characters."
+	return &FieldError{Field: key, Code: "too_long", Message: "Keep it under 500 characters."}
 }
 
 // RecordOptInSent notes that the confirmation email went out (or was sent
@@ -558,7 +563,7 @@ func (s *Service) SavePreferences(ctx context.Context, tx pgx.Tx, ws *store.Work
 	}
 	out := PreferencesResult{Joined: []uuid.UUID{}, Left: []uuid.UUID{}}
 	if in.Frequency != "" && !slices.Contains(Frequencies, in.Frequency) {
-		return out, &FieldError{Field: "frequency", Message: "Pick how often you'd like emails."}
+		return out, &FieldError{Field: "frequency", Code: "frequency", Message: "Pick how often you'd like emails."}
 	}
 	at := ev.at()
 	members, err := q.SignupMemberships(ctx, c.ID)
@@ -673,7 +678,7 @@ func (s *Service) SavePreferences(ctx context.Context, tx pgx.Tx, ws *store.Work
 			return out, err
 		}
 		if code != "" && !st.Offers(code) {
-			return out, &FieldError{Field: "language", Message: "Pick one of the languages listed."}
+			return out, &FieldError{Field: "language", Code: "language", Message: "Pick one of the languages listed."}
 		}
 		if code != "" && languages.Base(c.Language) != code {
 			if err := SetLanguageFrom(ctx, q, c.ID, code, LanguageFromPreferences, "", at); err != nil {
