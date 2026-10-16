@@ -354,10 +354,10 @@ function TransactionalParts({
           Failover: {sd.failover === 'pause_and_ask' ? 'pause and ask' : sd.failover === 'warm_only' ? 'warmed-up only' : 'automatic'}
         </Badge>
       </div>
-      <div className="flex flex-wrap items-center justify-between gap-2.5">
-        <span className="k">
-          Conditions by category or mailbox provider: {sd.conditions.length ? sd.conditions.length : 'none'} · bulk-marketing terms don&apos;t apply to this stream
-        </span>
+      <span className="k">
+        Conditions by category or mailbox provider: {sd.conditions.length ? sd.conditions.length : 'none'} · bulk-marketing terms don&apos;t apply to this stream
+      </span>
+      <div className="flex flex-wrap items-center justify-end gap-2.5">
         <span className="flex flex-wrap gap-2">
           <Button size="sm" disabledReason={readOnlyReason} onClick={onAddCondition}>
             Add condition
