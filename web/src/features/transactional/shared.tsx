@@ -2,18 +2,25 @@ import { useState, type ReactNode } from 'react'
 import type { Schemas } from '@/api/client'
 import { Icon } from '@/components/icons/Icon'
 import { Badge, type Tone } from '@/components/ui/Badge'
-import type { NavTab } from '@/components/ui/Tabs'
+import { NavTabs, type NavTab } from '@/components/ui/Tabs'
 import { toast } from '@/components/ui/Toast'
 import { useT } from '@/i18n'
 import { clock, count, dayMonthDate, shortDate } from '@/lib/format'
+import { useWorkspace } from '@/lib/session'
 import { mt } from './messages'
 import './transactional.css'
 
 export type TxCategoryRef = Schemas['TransactionalCategoryRef']
 export type TxPeriod = '24h' | '7d' | '30d'
 
-/** The Transactional section's tabs: Templates · Messages · Setup · Settings. */
-export function txTabs(workspace: string, t: ReturnType<typeof useT>): NavTab[] {
+/** The Transactional section's tabs, inline after the title: Templates · Messages · Setup · Settings. */
+export function TxTabs() {
+  const t = useT()
+  const { slug } = useWorkspace()
+  return <NavTabs label={t(mt.tabsLabel)} className="ml-3 max-md:ml-0" tabs={txTabs(slug, t)} />
+}
+
+function txTabs(workspace: string, t: ReturnType<typeof useT>): NavTab[] {
   const params = { workspace }
   return [
     { label: t(mt.tabTemplates), to: '/w/$workspace/transactional', params, exact: true },
@@ -113,10 +120,11 @@ export function useStatusLabel() {
   }
 }
 
-export function StatusBadge({ status }: { status: string }) {
+export function StatusBadge({ status, plain }: { status: string; plain?: boolean }) {
   const label = useStatusLabel()
   const tone = statusTone(status)
-  const dot = tone === 'ok' || tone === 'bad' || tone === 'warn' || tone === 'info'
+  // Lists of messages (the phone log, the detail's list) show the word only.
+  const dot = !plain && (tone === 'ok' || tone === 'bad' || tone === 'warn' || tone === 'info')
   return (
     <Badge tone={tone} dot={dot}>
       {label(status)}

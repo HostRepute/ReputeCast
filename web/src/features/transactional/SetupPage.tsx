@@ -9,6 +9,7 @@ import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Note } from '@/components/ui/Note'
 import { KeyActionDialog, type KeyAction } from '@/features/keys/KeyActionDialogs'
 import { KeySecretDialog } from '@/features/keys/KeySecretDialog'
+import { TableScroll } from '@/components/ui/Table'
 import { T, useT } from '@/i18n'
 import { ago, dayMonthYear } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
@@ -19,7 +20,7 @@ import { me } from './errors.messages'
 import { mt } from './messages'
 import { useTemplateVariables } from './OverviewPage'
 import { ms } from './setup.messages'
-import { CodeBox, KeyBadges, txTabs, type CodeLang } from './shared'
+import { CodeBox, KeyBadges, TxTabs, type CodeLang } from './shared'
 
 type Setup = Schemas['TransactionalSetup']
 type SendingKey = Schemas['TransactionalSendingKey']
@@ -40,8 +41,7 @@ export function TransactionalSetupPage() {
   return (
     <Page
       title={t(mt.title)}
-      tabs={txTabs(slug, t)}
-      tabsLabel={t(mt.tabsLabel)}
+      filters={<TxTabs />}
       actions={
         <ButtonLink to="/w/$workspace/transactional/guide" params={{ workspace: slug }}>
           {t(ms.guide)}
@@ -70,10 +70,12 @@ export function TransactionalSetupPage() {
           </div>
           <div className="grid items-start gap-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(460px, 100%), 1fr))' }}>
             <SamplesCard s={q.data} />
-            <RelayCard s={q.data} onCreate={() => setCreate('smtp')} />
-            <EventsCard />
-            <ErrorsCard s={q.data} />
+            <div className="flex min-w-0 flex-col gap-4">
+              <RelayCard s={q.data} onCreate={() => setCreate('smtp')} />
+              <EventsCard />
+            </div>
           </div>
+          <ErrorsCard s={q.data} />
           {create ? <CreateTransactionalKeyDialog preset={create} setup={q.data} onClose={() => setCreate(undefined)} /> : null}
         </>
       )}
@@ -117,15 +119,14 @@ function ApiCard({ s }: { s: Setup }) {
   return (
     <section className="card">
       <div className="sec">
-        <h2 className="h2">{t(ms.apiTitle)}</h2>
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <h2 className="h2">{t(ms.apiTitle)}</h2>
+          <span className="k">
+            {t(ms.baseUrl)} <span className="mono">{s.baseUrl}</span>
+          </span>
+        </div>
       </div>
-      <div className="pad flex flex-col gap-1.5" style={{ paddingBottom: 12 }}>
-        <span className="k">{t(ms.baseUrl)}</span>
-        <span className="mono" style={{ fontSize: 12.5, overflowWrap: 'anywhere' }}>
-          {s.baseUrl}
-        </span>
-      </div>
-      <div style={{ overflowX: 'auto' }}>
+      <TableScroll label={t(ms.endpointsLabel)}>
         <table className="tbl" aria-label={t(ms.endpointsLabel)}>
           <thead>
             <tr>
@@ -148,7 +149,7 @@ function ApiCard({ s }: { s: Setup }) {
             ))}
           </tbody>
         </table>
-      </div>
+      </TableScroll>
       <div className="pad flex flex-col gap-3.5" style={{ borderTop: '1px solid #EEF0F3' }}>
         <dl className="kv">
           <dt>{t(ms.auth)}</dt>
@@ -300,17 +301,20 @@ function SamplesCard({ s }: { s: Setup }) {
           <h2 className="h2">{t(ms.samplesTitle)}</h2>
           <span className="k">{t(ms.samplesCaption)}</span>
         </div>
-        {live.length ? (
-          <select className="in" aria-label={t(ms.sampleTemplate)} value={tpl} onChange={(e) => setKey(e.target.value)}>
-            {live.map((it) => (
-              <option key={it.key} value={it.key}>
-                {it.key}
-              </option>
-            ))}
-          </select>
-        ) : null}
       </div>
       <div className="pad flex flex-col gap-3">
+        {live.length ? (
+          <label className="lbl" style={{ maxWidth: 320 }}>
+            {t(ms.sampleTemplateLabel)}
+            <select className="in" aria-label={t(ms.sampleTemplate)} value={tpl} onChange={(e) => setKey(e.target.value)}>
+              {live.map((it) => (
+                <option key={it.key} value={it.key}>
+                  {it.key}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
         {tpl ? (
           <CodeBox lang={lang} onLang={setLang} code={code}>
             {highlight(code, lang)}
@@ -402,20 +406,20 @@ function RelayCard({ s, onCreate }: { s: Setup; onCreate: () => void }) {
                 </>
               ) : null}
               <dt>{t(ms.relayFrom)}</dt>
-              <dd>
-                {s.senders.map((sn, i) => (
-                  <span key={sn.id}>
-                    {i ? ' ' : ''}
-                    <span className="mono">{sn.email}</span>
-                  </span>
-                ))}
+              <dd className="flex flex-col">
+                {[...s.senders]
+                  .sort((a, b) => Number(b.email.startsWith('no-reply@')) - Number(a.email.startsWith('no-reply@')) || a.email.localeCompare(b.email))
+                  .map((sn) => (
+                    <span key={sn.id} className="mono">
+                      {sn.email}
+                    </span>
+                  ))}
               </dd>
               <dt>{t(ms.relayHeaders)}</dt>
-              <dd>
-                {s.headers.map((h, i) => (
-                  <span key={h}>
-                    {i ? ' ' : ''}
-                    <span className="mono">{h}</span>
+              <dd className="flex flex-col">
+                {s.headers.map((h) => (
+                  <span key={h} className="mono">
+                    {h}
                   </span>
                 ))}
               </dd>
@@ -430,23 +434,25 @@ function RelayCard({ s, onCreate }: { s: Setup; onCreate: () => void }) {
                 ))}
               </ul>
             ) : null}
-            <span className="k">
-              {r.enabledAt
-                ? r.enabledBy
-                  ? t(ms.relayTurnedOn, { name: r.enabledBy, date: dayMonthYear(r.enabledAt) })
-                  : t(ms.relayTurnedOnNoName, { date: dayMonthYear(r.enabledAt) })
-                : null}
-            </span>
-            {s.canManageKeys ? (
-              <div>
-                <Button size="sm" onClick={onCreate}>
-                  {t(ms.createCredential)}
-                </Button>
-              </div>
-            ) : null}
           </>
         )}
       </div>
+      {r.enabled ? (
+        <div className="tx-foot">
+          <span className="k">
+            {r.enabledAt
+              ? r.enabledBy
+                ? t(ms.relayTurnedOn, { name: r.enabledBy, date: dayMonthYear(r.enabledAt) })
+                : t(ms.relayTurnedOnNoName, { date: dayMonthYear(r.enabledAt) })
+              : null}
+          </span>
+          {s.canManageKeys ? (
+            <Button size="sm" variant="primary" onClick={onCreate}>
+              {t(ms.createCredential)}
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
     </section>
   )
 }
@@ -459,36 +465,38 @@ function EventsCard() {
   const canWebhooks = wme.permissions.includes('webhooks:manage')
   const q = $api.useQuery('get', '/api/v1/workspaces/{workspace}/webhooks', { params: { path: { workspace: slug } } }, { enabled: canWebhooks })
   const hook = (q.data?.items ?? []).find((w) => w.events.some((e) => e === 'message.*' || e.startsWith('message.')))
-  const events = hook ? (hook.events.includes('message.*') ? messageEvents : hook.events.filter((e) => e.startsWith('message.'))) : messageEvents
+  // The endpoint gets the whole group, or some of its events.
+  const some = hook && !hook.events.includes('message.*') ? hook.events.filter((e) => e.startsWith('message.')) : undefined
   return (
     <section className="card">
       <div className="sec">
         <h2 className="h2">{t(ms.eventsTitle)}</h2>
-        {canWebhooks ? (
-          <Link to="/w/$workspace/settings/webhooks" params={{ workspace: slug }} className="tx-lnk">
-            {t(ms.manageWebhooks)}
-          </Link>
-        ) : null}
       </div>
-      <div className="pad flex flex-col gap-3">
+      <div className="pad flex flex-col gap-2.5">
         {hook ? (
-          <span>
-            <span className="k">{t(ms.eventsEndpoint)} </span>
-            <span className="mono" style={{ fontSize: 12.5, overflowWrap: 'anywhere' }}>
-              {hook.url}
-            </span>{' '}
-            {t(ms.eventsBody)}
+          <span className="k" style={{ color: '#374151' }}>
+            {t(ms.eventsEndpoint)} <span className="mono">{hook.url}</span>{' '}
+            {some ? (
+              <T msg={ms.eventsSome} values={{ events: <>{some.map((e, i) => <span key={e}>{i ? (i === some.length - 1 ? t(ms.and) : ', ') : ''}<span className="mono">{e}</span></span>)}</> }} />
+            ) : (
+              t(ms.eventsBody)
+            )}
           </span>
         ) : (
           <span className="k">{t(ms.eventsNone)}</span>
         )}
         <div className="flex flex-wrap gap-1.5">
-          {events.map((e) => (
+          {messageEvents.map((e) => (
             <span key={e} className="tx-mk">
               {e}
             </span>
           ))}
         </div>
+        {canWebhooks ? (
+          <Link to="/w/$workspace/settings/webhooks" params={{ workspace: slug }} className="tx-lnk self-start">
+            {t(ms.manageWebhooks)}
+          </Link>
+        ) : null}
       </div>
     </section>
   )
@@ -509,7 +517,7 @@ function ErrorsCard({ s }: { s: Setup }) {
           </span>
         </div>
       </div>
-      <div style={{ overflowX: 'auto' }}>
+      <TableScroll label={t(ms.errorsLabel)}>
         <table className="tbl" aria-label={t(ms.errorsLabel)}>
           <thead>
             <tr>
@@ -534,7 +542,7 @@ function ErrorsCard({ s }: { s: Setup }) {
             })}
           </tbody>
         </table>
-      </div>
+      </TableScroll>
     </section>
   )
 }

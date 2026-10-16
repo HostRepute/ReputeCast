@@ -756,7 +756,18 @@ func (s *Service) Message(ctx context.Context, ws *store.Workspace, id uuid.UUID
 	for _, a := range tried {
 		out.Attempts = append(out.Attempts, TransactionalAttempt{Provider: a.Provider, At: a.At, OK: a.OK, Error: a.Error, Temporary: a.Temporary, GaveUp: a.GaveUp, Down: a.Down})
 	}
-	out.Request = requestOf(ws, r)
+	// The request lists the data in the template's order, as the app's call did.
+	var order []string
+	if r.TemplateID != nil && r.TemplateVersion != nil {
+		if v, err := s.Q.TxnVersion(ctx, store.TxnVersionParams{TemplateID: *r.TemplateID, Version: *r.TemplateVersion}); err == nil {
+			var vars []TransactionalVariable
+			_ = json.Unmarshal(v.Variables, &vars)
+			for _, x := range vars {
+				order = append(order, x.Name)
+			}
+		}
+	}
+	out.Request = requestOf(ws, r, order)
 
 	// The timeline: the call, the render, the route, each provider call,
 	// then the provider's events and the webhook deliveries.
@@ -918,8 +929,10 @@ func addrLine(name, email string) string {
 }
 
 // requestOf rebuilds the call as stored: sensitive values are ••••••, files
-// are listed without their content.
-func requestOf(ws *store.Workspace, r store.TxnMessageDetailRow) TransactionalRequest {
+// are listed without their content. Its fields come in the order an app
+// writes them (template, to, data in the template's order, tags,
+// metadata), not alphabetically.
+func requestOf(ws *store.Workspace, r store.TxnMessageDetailRow, order []string) TransactionalRequest {
 	out := TransactionalRequest{Method: http.MethodPost, Path: "/api/v1/workspaces/" + ws.Slug + "/transactional/messages", IdempotencyKey: r.IdempotencyKey}
 	if r.Source == "smtp" {
 		out.SMTP, out.Method, out.Path = true, "SMTP", ""
@@ -929,17 +942,12 @@ func requestOf(ws *store.Workspace, r store.TxnMessageDetailRow) TransactionalRe
 	if r.Source == "batch" {
 		out.Path += "/batch"
 	}
-	body := map[string]any{"template": r.TemplateKey}
-	to := map[string]any{"email": r.Email}
+	body := ordered{{"template", r.TemplateKey}}
+	to := ordered{{"email", r.Email}}
 	if r.ToName != "" {
-		to["name"] = r.ToName
+		to = append(to, orderedField{"name", r.ToName})
 	}
-	body["to"] = to
-	var data map[string]any
-	_ = json.Unmarshal(r.Data, &data)
-	if len(data) > 0 {
-		body["data"] = data
-	}
+	body = append(body, orderedField{"to", to})
 	addrs := func(list []string) []map[string]string {
 		out := []map[string]string{}
 		for _, a := range list {
@@ -948,21 +956,26 @@ func requestOf(ws *store.Workspace, r store.TxnMessageDetailRow) TransactionalRe
 		return out
 	}
 	if len(r.Cc) > 0 {
-		body["cc"] = addrs(r.Cc)
+		body = append(body, orderedField{"cc", addrs(r.Cc)})
 	}
 	if len(r.Bcc) > 0 {
-		body["bcc"] = addrs(r.Bcc)
+		body = append(body, orderedField{"bcc", addrs(r.Bcc)})
+	}
+	var data map[string]any
+	_ = json.Unmarshal(r.Data, &data)
+	if len(data) > 0 {
+		body = append(body, orderedField{"data", inOrder(data, order)})
 	}
 	if len(r.Tags) > 0 {
-		body["tags"] = r.Tags
+		body = append(body, orderedField{"tags", r.Tags})
 	}
-	var meta map[string]string
+	var meta map[string]any
 	_ = json.Unmarshal(r.Metadata, &meta)
 	if len(meta) > 0 {
-		body["metadata"] = meta
+		body = append(body, orderedField{"metadata", inOrder(meta, nil)})
 	}
 	if r.SendAt != nil {
-		body["send_at"] = r.SendAt.UTC().Format(time.RFC3339)
+		body = append(body, orderedField{"send_at", r.SendAt.UTC().Format(time.RFC3339)})
 	}
 	var files []map[string]any
 	_ = json.Unmarshal(r.Attachments, &files)
@@ -971,9 +984,64 @@ func requestOf(ws *store.Workspace, r store.TxnMessageDetailRow) TransactionalRe
 		for _, f := range files {
 			list = append(list, map[string]any{"filename": f["filename"], "content_type": f["content_type"], "content": "(not stored)"})
 		}
-		body["attachments"] = list
+		body = append(body, orderedField{"attachments", list})
 	}
 	out.Body = mustJSON(body)
+	return out
+}
+
+// ordered is a JSON object that keeps its fields in order.
+type ordered []orderedField
+
+type orderedField struct {
+	Key   string
+	Value any
+}
+
+func (o ordered) MarshalJSON() ([]byte, error) {
+	var b bytes.Buffer
+	b.WriteByte('{')
+	for i, f := range o {
+		if i > 0 {
+			b.WriteByte(',')
+		}
+		k, err := json.Marshal(f.Key)
+		if err != nil {
+			return nil, err
+		}
+		v, err := json.Marshal(f.Value)
+		if err != nil {
+			return nil, err
+		}
+		b.Write(k)
+		b.WriteByte(':')
+		b.Write(v)
+	}
+	b.WriteByte('}')
+	return b.Bytes(), nil
+}
+
+// inOrder lists a map's fields in the given order, then the others
+// alphabetically.
+func inOrder(m map[string]any, order []string) ordered {
+	out := make(ordered, 0, len(m))
+	seen := map[string]bool{}
+	for _, k := range order {
+		if v, ok := m[k]; ok && !seen[k] {
+			out = append(out, orderedField{k, v})
+			seen[k] = true
+		}
+	}
+	rest := make([]string, 0, len(m))
+	for k := range m {
+		if !seen[k] {
+			rest = append(rest, k)
+		}
+	}
+	sort.Strings(rest)
+	for _, k := range rest {
+		out = append(out, orderedField{k, m[k]})
+	}
 	return out
 }
 

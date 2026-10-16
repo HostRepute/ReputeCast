@@ -1,4 +1,4 @@
-import { useInfiniteQuery } from '@tanstack/react-query'
+import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { errorMessage, http, type Schemas } from '@/api/client'
@@ -8,13 +8,14 @@ import { ForbiddenState } from '@/components/shell/SystemScreens'
 import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
+import { TableScroll } from '@/components/ui/Table'
 import { useI18n, useT } from '@/i18n'
 import { languageLabel } from '@/features/languages/composerParts'
 import { clock, clockSeconds, count, dayMonthYear } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { ml } from './log.messages'
 import { mt } from './messages'
-import { secs, StatusBadge, txTabs } from './shared'
+import { secs, StatusBadge, TxTabs } from './shared'
 
 export type LogItem = Schemas['TransactionalLogItem']
 type Log = Schemas['TransactionalLog']
@@ -56,19 +57,49 @@ export function logQuery(slug: string, s: LogSearch, extra: { before?: string; a
   }
 }
 
-/** The log, 25 at a time, with live updates every 10 seconds unless paused. */
-export function useLog(s: LogSearch, live: boolean) {
+/** One page of the log, newest first; the first page updates every 10 seconds unless paused. */
+function useLogPage(s: LogSearch, before: string | undefined, live: boolean) {
+  const { slug } = useWorkspace()
+  return useQuery({
+    queryKey: ['transactional-log-page', slug, s, before ?? ''],
+    queryFn: async () => {
+      const { data } = await http.GET(`${API}/messages`, logQuery(slug, s, { before }))
+      return data as Log
+    },
+    refetchInterval: live && !before ? 10_000 : false,
+    placeholderData: keepPreviousData,
+  })
+}
+
+/** The log, `first` messages and then 25 at a time, with live updates every 10 seconds unless paused (the message detail's list). */
+export function useLog(s: LogSearch, live: boolean, first = 25) {
   const { slug } = useWorkspace()
   return useInfiniteQuery({
-    queryKey: ['transactional-log', slug, s],
+    queryKey: ['transactional-log', slug, s, first],
     initialPageParam: undefined as string | undefined,
     queryFn: async ({ pageParam }) => {
-      const { data } = await http.GET(`${API}/messages`, logQuery(slug, s, { before: pageParam }))
+      const { data } = await http.GET(`${API}/messages`, logQuery(slug, s, { before: pageParam, limit: pageParam ? 25 : first }))
       return data as Log
     },
     getNextPageParam: (last) => last.next || undefined,
     refetchInterval: live ? 10_000 : false,
   })
+}
+
+/** "in the last 24 hours", for the log's footer. */
+function useRangeIn(s: LogSearch): string {
+  const t = useT()
+  switch (s.range ?? '24h') {
+    case '1h':
+      return t(ml.in1h)
+    case '7d':
+      return t(ml.in7d)
+    case '30d':
+      return t(ml.in30d)
+    case 'custom':
+      return t(ml.inCustom, { from: s.from ?? '…', to: s.to ?? '…' })
+  }
+  return t(ml.in24h)
 }
 
 export function useRangeLabel() {
@@ -97,9 +128,12 @@ export function statusDetail(t: ReturnType<typeof useT>, it: LogItem): string {
       return it.deliveryMs !== undefined ? secs(it.deliveryMs) : ''
     case 'deferred':
       return t(ml.deferredTimes, { count: Math.max(1, it.deferrals) })
-    case 'bounced':
+    case 'bounced': {
       if (!it.bounce) return ''
-      return it.bounce.kind === 'soft' ? t(ml.soft, { detail: it.bounce.diagnostic || it.bounce.class || '' }) : t(ml.hard, { detail: it.bounce.diagnostic || it.bounce.class || '' })
+      // The row says what happened ("mailbox full"); the SMTP code is in the message's detail.
+      const detail = (it.bounce.diagnostic ?? '').replace(/^\d{3}(?:[ -]\d\.\d{1,3}\.\d{1,3})?\s+/, '') || it.bounce.class || ''
+      return it.bounce.kind === 'soft' ? t(ml.soft, { detail }) : t(ml.hard, { detail })
+    }
     case 'rejected':
       return it.rejection?.reason === 'opted_out' ? t(ml.optedOut) : it.rejection?.reason === 'suppressed' ? t(ml.suppressed) : it.error ?? ''
     case 'test':
@@ -211,10 +245,18 @@ export function TransactionalMessagesPage({ search, onSearch }: { search: LogSea
   const { slug, me } = useWorkspace()
   const canView = me.permissions.includes('transactional:view')
   const [live, setLive] = useState(true)
-  const q = useLog(search, live && canView)
-  const first = q.data?.pages[0]
-  const items = useMemo(() => q.data?.pages.flatMap((p) => p.items) ?? [], [q.data])
-  const newCount = useNewCount(items, live, search)
+  // The pages opened so far, as the cursors they start at: Previous goes
+  // back one. A new search starts again at the newest messages.
+  const searchKey = JSON.stringify(search)
+  const [pages, setPages] = useState<{ key: string; cursors: (string | undefined)[] }>({ key: searchKey, cursors: [undefined] })
+  if (pages.key !== searchKey) setPages({ key: searchKey, cursors: [undefined] })
+  const cursors = pages.key === searchKey ? pages.cursors : [undefined]
+  const page = cursors.length - 1
+  const q = useLogPage(search, cursors[page], live && canView)
+  const first = q.data
+  const items = useMemo(() => q.data?.items ?? [], [q.data])
+  const newCount = useNewCount(page === 0 ? items : [], live, search)
+  const rangeIn = useRangeIn(search)
   const exportHref = useMemo(() => {
     const qs = new URLSearchParams()
     const p = logQuery(slug, search).params.query
@@ -224,8 +266,7 @@ export function TransactionalMessagesPage({ search, onSearch }: { search: LogSea
   return (
     <Page
       title={t(mt.title)}
-      tabs={txTabs(slug, t)}
-      tabsLabel={t(mt.tabsLabel)}
+      filters={<TxTabs />}
       actions={
         first?.canExport ? (
           <a className="btn" href={exportHref} download>
@@ -271,14 +312,24 @@ export function TransactionalMessagesPage({ search, onSearch }: { search: LogSea
               <LogPhoneList items={items} />
               <div className="tx-foot">
                 <span className="k">
-                  {t(ml.showing, { shown: count(items.length), total: count(first.counts.all) })} ·{' '}
-                  {t(ml.retention, { metadata: first.metadataDays, content: first.contentDays })}
+                  {page === 0
+                    ? t(ml.showing, { shown: count(items.length), total: count(first.counts.all), range: rangeIn })
+                    : t(ml.showingPage, { from: count(page * 25 + 1), to: count(page * 25 + items.length), total: count(first.counts.all), range: rangeIn })}{' '}
+                  · {t(ml.retention, { metadata: first.metadataDays, content: first.contentDays })}
                 </span>
-                {q.hasNextPage ? (
-                  <Button size="sm" loading={q.isFetchingNextPage} onClick={() => void q.fetchNextPage()}>
-                    {t(ml.loadMore)}
+                <div className="flex gap-2">
+                  <Button size="sm" disabledReason={page > 0 ? undefined : t(ml.newestPage)} onClick={() => setPages({ key: searchKey, cursors: cursors.slice(0, -1) })}>
+                    {t(ml.previous)}
                   </Button>
-                ) : null}
+                  <Button
+                    size="sm"
+                    loading={q.isFetching && q.isPlaceholderData}
+                    disabledReason={first.next ? undefined : t(ml.oldestPage)}
+                    onClick={() => setPages({ key: searchKey, cursors: [...cursors, first.next] })}
+                  >
+                    {t(ml.next)}
+                  </Button>
+                </div>
               </div>
             </>
           )}
@@ -433,7 +484,7 @@ function LogTable({ items }: { items: LogItem[] }) {
   const go = (id: string) => void navigate({ to: '/w/$workspace/transactional/messages/$messageId', params: { workspace: slug, messageId: id } })
   return (
     <div className="tx-no-phone">
-      <div style={{ overflowX: 'auto' }}>
+      <TableScroll label={t(ml.tableLabel)}>
         <table className="tbl" aria-label={t(ml.tableLabel)}>
           <thead>
             <tr>
@@ -487,6 +538,8 @@ function LogTable({ items }: { items: LogItem[] }) {
                           >
                             {it.template.name}
                           </Link>
+                        ) : it.raw ? (
+                          <span className="tx-mk self-start">{t(mt.raw)}</span>
                         ) : (
                           <span style={{ fontWeight: 600 }}>{templateName(t, it)}</span>
                         )}
@@ -534,7 +587,7 @@ function LogTable({ items }: { items: LogItem[] }) {
             })}
           </tbody>
         </table>
-      </div>
+      </TableScroll>
     </div>
   )
 }
@@ -570,7 +623,7 @@ export function LogPhoneList({ items, current, compact }: { items: LogItem[]; cu
               </span>
             </span>
             <span className="flex-none">
-              <StatusBadge status={it.status} />
+              <StatusBadge status={it.status} plain />
             </span>
           </Link>
         )

@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { $api, ApiError, errorMessage, type Schemas } from '@/api/client'
 import { Icon, type IconName } from '@/components/icons/Icon'
 import { Page } from '@/components/shell/Page'
@@ -18,7 +18,7 @@ import { useWorkspace } from '@/lib/session'
 import { ml } from './log.messages'
 import { LogPhoneList, RejectionExplain, useLanguageName, useLog, useRangeLabel, type LogSearch } from './MessagesPage'
 import { mt } from './messages'
-import { CategoryCell, secs, StatusBadge, txTabs } from './shared'
+import { CategoryCell, secs, StatusBadge, TxTabs } from './shared'
 
 type Detail = Schemas['TransactionalMessageDetail']
 type Entry = Schemas['TransactionalTimelineEntry']
@@ -51,14 +51,12 @@ export function TransactionalMessagePage({ messageId, search }: { messageId: str
   return (
     <Page
       title={t(mt.title)}
-      tabs={txTabs(slug, t)}
-      tabsLabel={t(mt.tabsLabel)}
+      filters={<TxTabs />}
       documentTitle={q.data ? t(ml.titleTemplate, { template: q.data.raw ? t(mt.raw) : (q.data.template?.name ?? ''), email: q.data.email }) : t(mt.title)}
       actions={
-        <Link to="/w/$workspace/transactional/messages" params={{ workspace: slug }} search={search as never} className="tx-lnk">
-          <Icon name="chevronLeft" size={14} />
+        <ButtonLink to="/w/$workspace/transactional/messages" params={{ workspace: slug }} search={search as never} icon="chevronLeft">
           {t(ml.backToLog)}
-        </Link>
+        </ButtonLink>
       }
     >
       {!canView ? (
@@ -99,13 +97,38 @@ export function TransactionalMessagePage({ messageId, search }: { messageId: str
 
 function SideList({ current, search }: { current: string; search: LogSearch }) {
   const t = useT()
-  const q = useLog(search, true)
+  const { slug } = useWorkspace()
+  const navigate = useNavigate()
+  const q = useLog(search, true, 10)
   const items = useMemo(() => q.data?.pages.flatMap((p) => p.items) ?? [], [q.data])
   const first = q.data?.pages[0]
   const rangeLabel = useRangeLabel()
+  // The search narrows the list; the message stays open.
+  const [text, setText] = useState(search.q ?? '')
+  const [shownQ, setShownQ] = useState(search.q)
+  if (shownQ !== search.q) {
+    setShownQ(search.q)
+    if ((search.q ?? '') !== text.trim()) setText(search.q ?? '')
+  }
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      if ((search.q ?? '') !== text.trim())
+        void navigate({
+          to: '/w/$workspace/transactional/messages/$messageId',
+          params: { workspace: slug, messageId: current },
+          search: { ...search, q: text.trim() || undefined } as never,
+          replace: true,
+        })
+    }, 350)
+    return () => window.clearTimeout(id)
+  }, [text, search, navigate, slug, current])
   return (
     <section className="card self-start overflow-hidden" aria-label={t(ml.logLabel)} style={{ flex: '1 1 360px', maxWidth: 400 }}>
       <div className="flex flex-col gap-2.5 px-4 py-3">
+        <label className="tx-search" style={{ width: '100%' }}>
+          <Icon name="search" size={14} />
+          <input aria-label={t(ml.search)} placeholder={t(ml.searchList)} value={text} onChange={(e) => setText(e.target.value)} />
+        </label>
         <div className="row" style={{ justifyContent: 'space-between' }}>
           <span className="k">{t(ml.listSummary, { range: rangeLabel(search.range), count: first?.counts.all ?? 0 })}</span>
           <span className="tx-live">
@@ -136,12 +159,19 @@ function SideList({ current, search }: { current: string; search: LogSearch }) {
   )
 }
 
+/** The one sensitive value is a link the app made (reset_url → "reset"): the app sends a new one. */
+function sensitiveLink(d: Detail): string | undefined {
+  const names = d.resend.sensitive ?? []
+  return names.length === 1 ? /^(.+)_(?:url|link)$/.exec(names[0]!)?.[1]?.replace(/_/g, ' ') : undefined
+}
+
 function resendReason(t: ReturnType<typeof useT>, d: Detail): string | undefined {
   if (d.resend.available) return undefined
   switch (d.resend.reason) {
     case 'sensitive': {
       const names = d.resend.sensitive ?? []
-      return t(ml.resendSensitive, { names: names.join(', '), count: names.length })
+      const link = sensitiveLink(d)
+      return link ? t(ml.resendSensitiveLink, { names: names.join(', '), count: 1, link }) : t(ml.resendSensitive, { names: names.join(', '), count: names.length })
     }
     case 'attachments':
       return t(ml.resendAttachments)
@@ -236,7 +266,7 @@ function MessageDetail({ d }: { d: Detail }) {
       {why && d.resend.reason === 'sensitive' ? (
         <Note tone="neutral" style={{ margin: '14px 22px 0' }}>
           <T
-            msg={ml.resendSensitive}
+            msg={sensitiveLink(d) ? ml.resendSensitiveLink : ml.resendSensitive}
             values={{
               names: (
                 <>
@@ -249,6 +279,7 @@ function MessageDetail({ d }: { d: Detail }) {
                 </>
               ),
               count: d.resend.sensitive?.length ?? 0,
+              link: sensitiveLink(d) ?? '',
             }}
           />
         </Note>
@@ -526,34 +557,73 @@ function Timeline({ d }: { d: Detail }) {
   )
 }
 
+const primitive = (v: unknown) => v === null || typeof v !== 'object'
+
+/**
+ * JSON as the boards print a request: small objects and lists on one line
+ * ("to": { "email": …, "name": … }, "tags": ["auth"]), data always open.
+ */
+export function requestJson(v: unknown, pad = '', key?: string): string {
+  if (Array.isArray(v)) {
+    if (!v.length) return '[]'
+    const inline = `[${v.map((x) => requestJson(x, pad)).join(', ')}]`
+    if (v.every(primitive) && inline.length <= 60) return inline
+    return `[\n${v.map((x) => `${pad}  ${requestJson(x, `${pad}  `)}`).join(',\n')}\n${pad}]`
+  }
+  if (v && typeof v === 'object') {
+    const entries = Object.entries(v as Record<string, unknown>)
+    if (!entries.length) return '{}'
+    const inline = `{ ${entries.map(([k, x]) => `${JSON.stringify(k)}: ${requestJson(x, pad)}`).join(', ')} }`
+    if (key !== 'data' && entries.every(([, x]) => primitive(x)) && inline.length <= 70) return inline
+    return `{\n${entries.map(([k, x]) => `${pad}  ${JSON.stringify(k)}: ${requestJson(x, `${pad}  `, k)}`).join(',\n')}\n${pad}}`
+  }
+  return JSON.stringify(v)
+}
+
+const MASK = '"••••••"'
+
+/** A request line in the boards' colours: keys blue, strings green, numbers and masked values yellow. */
+function requestLine(line: string): ReactNode[] {
+  const out: ReactNode[] = []
+  let last = 0
+  let i = 0
+  for (const m of line.matchAll(/"(?:[^"\\]|\\.)*"|-?\b\d+(?:\.\d+)?\b|\b(?:true|false|null)\b/g)) {
+    const tok = m[0]
+    const at = m.index ?? 0
+    if (at > last) out.push(line.slice(last, at))
+    const cls = tok.startsWith('"') ? (/^\s*:/.test(line.slice(at + tok.length)) ? 'c1' : tok === MASK ? 'c3' : 'c2') : 'c3'
+    out.push(
+      <span key={i++} className={cls}>
+        {tok}
+      </span>,
+    )
+    last = at + tok.length
+  }
+  if (last < line.length) out.push(line.slice(last))
+  return out
+}
+
 /** The request as it was made, sensitive values masked: JSON with the boards' colours. */
 function Request({ d }: { d: Detail }) {
   const t = useT()
-  const body = JSON.stringify(d.request.body ?? {}, null, 2)
   const masked = new Set(d.sensitiveSent)
-  const lines = body.split('\n').map((line, i) => {
-    const m = /^(\s*)("[^"]+")(:\s*)(.*?)(,?)$/.exec(line)
-    if (!m) return <span key={i}>{line}</span>
-    const [, pad, k, colon, v, comma] = m
-    const name = JSON.parse(k!) as string
-    const isMask = masked.has(name) && v === '"••••••"'
-    const cls = /^"/.test(v ?? '') ? (isMask ? 'c3' : 'c2') : 'c3'
-    return (
-      <span key={i}>
-        {pad}
-        <span className="c1">{k}</span>
-        {colon}
-        {v && !/^[[{]/.test(v) ? <span className={cls}>{v}</span> : v}
-        {comma}
-        {isMask ? (
-          <>
-            {'  '}
-            <span className="cm">{`// ${t(ml.sensitiveNever)}`}</span>
-          </>
-        ) : null}
-      </span>
-    )
-  })
+  const lines = requestJson(d.request.body ?? {})
+    .split('\n')
+    .map((line, i) => {
+      const k = /^\s*"([^"]+)":/.exec(line)?.[1]
+      const isMask = Boolean(k && masked.has(k) && line.includes(MASK))
+      return (
+        <span key={i}>
+          {requestLine(line)}
+          {isMask ? (
+            <>
+              {'  '}
+              <span className="cm">{`// ${t(ml.sensitiveNever)}`}</span>
+            </>
+          ) : null}
+        </span>
+      )
+    })
   return (
     <div className="flex flex-col gap-2.5">
       <h3 className="h2">{t(ml.request)}</h3>
@@ -586,12 +656,62 @@ function Request({ d }: { d: Detail }) {
 
 type View = 'html' | 'text' | 'headers'
 
+const escapeRe = (v: string) => v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+/**
+ * The rendered email with the values the call filled in marked, as the
+ * boards' preview shows them ("Hi [Sam],"): each value of the request's data
+ * (sensitive ones are masked, so never found) wherever it is a whole word
+ * of the text, links and styles left alone. The frame runs no scripts.
+ */
+export function markValues(html: string, data: unknown): string {
+  if (!data || typeof data !== 'object' || typeof DOMParser === 'undefined') return html
+  const values = Object.entries(data as Record<string, unknown>)
+    .map(([name, v]): [string, string] => [name, typeof v === 'number' ? String(v) : typeof v === 'string' ? v : ''])
+    .filter(([, v]) => v.length >= 2 && v !== '••••••')
+    .sort((a, b) => b[1].length - a[1].length)
+  if (!values.length) return html
+  const re = new RegExp(`(?<![\\p{L}\\p{N}])(${values.map(([, v]) => escapeRe(v)).join('|')})(?![\\p{L}\\p{N}])`, 'gu')
+  const doc = new DOMParser().parseFromString(html, 'text/html')
+  const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT)
+  const nodes: Text[] = []
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) if (!n.parentElement?.closest('a, style, script, title')) nodes.push(n as Text)
+  let marked = 0
+  for (const node of nodes) {
+    const text = node.data
+    const parts: (string | HTMLElement)[] = []
+    let last = 0
+    for (const m of text.matchAll(re)) {
+      const at = m.index ?? 0
+      if (at > last) parts.push(text.slice(last, at))
+      const tok = doc.createElement('span')
+      tok.className = 'rc-tok'
+      tok.title = values.find(([, v]) => v === m[0])?.[0] ?? ''
+      tok.textContent = m[0]
+      parts.push(tok)
+      last = at + m[0].length
+      marked++
+    }
+    if (!parts.length) continue
+    if (last < text.length) parts.push(text.slice(last))
+    node.replaceWith(...parts)
+  }
+  if (!marked) return html
+  const style = doc.createElement('style')
+  style.textContent =
+    ".rc-tok{display:inline;padding:0 6px;border-radius:5px;background:#EDE9FE;color:#5B21B6;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:.86em;font-weight:500;white-space:nowrap}"
+  doc.head.append(style)
+  return `<!doctype html>${doc.documentElement.outerHTML}`
+}
+
 function ContentPanel({ d }: { d: Detail }) {
   const t = useT()
   const { slug } = useWorkspace()
   const [view, setView] = useState<View>('html')
   const c = d.content
   const q = $api.useQuery('get', `${API}/messages/{messageId}/content`, { params: { path: { workspace: slug, messageId: d.id } } }, { enabled: c.available && c.canView, staleTime: Infinity })
+  const html = q.data?.html
+  const marked = useMemo(() => (html ? markValues(html, (d.request.body as { data?: unknown } | undefined)?.data) : ''), [html, d.request.body])
   let body: ReactNode
   if (c.removedAt) body = <Note tone="neutral">{t(ml.contentRemoved, { date: dayMonthYear(c.removedAt), days: c.retentionDays, until: dayMonthYear(c.metadataUntil) })}</Note>
   else if (!c.available) body = <Note tone="neutral">{t(ml.contentNotKept, { until: dayMonthYear(c.metadataUntil) })}</Note>
@@ -612,7 +732,7 @@ function ContentPanel({ d }: { d: Detail }) {
         <iframe
           title={t(ml.renderedLabel)}
           sandbox=""
-          srcDoc={q.data.html}
+          srcDoc={marked}
           className="block rounded bg-white"
           style={{ width: 560, maxWidth: '100%', height: 620, border: 0, boxShadow: '0 1px 3px rgba(11,18,32,.12)' }}
         />

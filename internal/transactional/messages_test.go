@@ -1,6 +1,7 @@
 package transactional_test
 
 import (
+	"encoding/json"
 	"net/url"
 	"strings"
 	"testing"
@@ -170,6 +171,21 @@ func TestMessageLog(t *testing.T) {
 	}
 	if !d.Content.Available || !d.Content.CanView || d.Resend.Available || d.Resend.Reason != "sensitive" || len(d.Webhooks) != 2 {
 		t.Fatalf("content %+v resend %+v webhooks %+v", d.Content, d.Resend, d.Webhooks)
+	}
+	// The request reads as the app wrote it: template, to, data in the
+	// template's order, tags, metadata.
+	var raw struct {
+		Request struct{ Body json.RawMessage }
+	}
+	s.owner.Do("GET", base+"/messages/"+reset.ID, nil).MustStatus(t, 200).JSON(t, &raw)
+	order := []string{`"template"`, `"to"`, `"data"`, `"first_name"`, `"reset_url"`, `"expires_in"`, `"tags"`, `"metadata"`}
+	at := -1
+	for _, k := range order {
+		i := strings.Index(string(raw.Request.Body), k)
+		if i <= at {
+			t.Fatalf("request order at %s: %s", k, raw.Request.Body)
+		}
+		at = i
 	}
 	s.owner.Do("GET", base+"/messages/"+uuid.Must(uuid.NewV7()).String(), nil).MustStatus(t, 404)
 	s.owner.Do("GET", base+"/messages/not-an-id", nil).MustStatus(t, 404)

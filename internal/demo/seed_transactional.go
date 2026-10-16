@@ -285,7 +285,7 @@ func (t *txnSeed) categoriesAndOptOuts(ctx context.Context) error {
 func (t *txnSeed) templatesAndVersions(ctx context.Context) error {
 	s := t.s
 	q := store.New(s.Tx)
-	for _, tpl := range txSeedTemplates() {
+	for n, tpl := range txSeedTemplates() {
 		p := t.plan(tpl.key)
 		if p == nil {
 			return fmt.Errorf("no week planned for %s", tpl.key)
@@ -310,10 +310,13 @@ func (t *txnSeed) templatesAndVersions(ctx context.Context) error {
 		t.templates[tpl.key] = id
 		cat := t.categories[tpl.category]
 		first := tpl.versions[0]
+		// The list shows templates in the order they were created: the
+		// board's, password-reset first, all before the oldest v1.
+		created := s.Ago(201*24*time.Hour - time.Duration(n)*time.Minute)
 		if err := q.TxnTemplateInsert(ctx, store.TxnTemplateInsertParams{ID: id, WorkspaceID: t.ws.ID, Key: tpl.key, Name: tpl.name, Description: tpl.description, CategoryID: &cat,
 			Subject: dc.Subject, Preheader: dc.Preheader, EditorMode: "visual", Mjml: dc.MJML, Html: dc.HTML, PlainText: "", Variables: mustJSON(dc.Variables),
 			TestData: mustJSON(tpl.testData), SenderID: sender, ReplyTo: "", TrackOpens: tpl.opens, TrackClicks: false,
-			DraftHash: transactional.DemoHash(dc, sender, "", tpl.opens, false), Now: s.Ago(first.ago + time.Hour), CreatedBy: t.user(first.by), Origin: json.RawMessage(`{}`)}); err != nil {
+			DraftHash: transactional.DemoHash(dc, sender, "", tpl.opens, false), Now: created, CreatedBy: t.user(first.by), Origin: json.RawMessage(`{}`)}); err != nil {
 			return err
 		}
 		for i, v := range tpl.versions {

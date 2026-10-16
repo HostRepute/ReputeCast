@@ -11,12 +11,13 @@ import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Field, Input, OptionCard } from '@/components/ui/Field'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
+import { TableScroll } from '@/components/ui/Table'
 import { T, useT } from '@/i18n'
 import { count } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { mt } from './messages'
 import { mg } from './settings.messages'
-import { txTabs } from './shared'
+import { TxTabs } from './shared'
 
 type Settings = Schemas['TransactionalSettings']
 type Input = Schemas['TransactionalSettingsInput']
@@ -47,7 +48,7 @@ export function TransactionalSettingsPage() {
   const q = $api.useQuery('get', `${API}/settings`, path, { enabled: canView })
   const cats = $api.useQuery('get', `${API}/categories`, path, { enabled: canView })
   return (
-    <Page title={t(mt.title)} tabs={txTabs(slug, t)} tabsLabel={t(mt.tabsLabel)}>
+    <Page title={t(mt.title)} filters={<TxTabs />}>
       {!canView ? (
         <ForbiddenState permission="transactional:view" title={t(mt.forbiddenTitle)} />
       ) : q.error || cats.error ? (
@@ -108,7 +109,7 @@ function SettingsForm({ s, cats }: { s: Settings; cats: Schemas['TransactionalCa
             <span className="k">{t(mg.categoriesCaption)}</span>
           </div>
         </div>
-        <div style={{ overflowX: 'auto' }}>
+        <TableScroll label={t(mg.categoriesLabel)}>
           <table className="tbl" aria-label={t(mg.categoriesLabel)}>
             <thead>
               <tr>
@@ -149,11 +150,11 @@ function SettingsForm({ s, cats }: { s: Settings; cats: Schemas['TransactionalCa
               ))}
             </tbody>
           </table>
-        </div>
+        </TableScroll>
         <div className="tx-foot">
           <span className="k">{t(mg.kindFixed)}</span>
           {cats.canEdit ? (
-            <Button size="sm" onClick={() => setEditing('new')}>
+            <Button size="sm" icon="plus" onClick={() => setEditing('new')}>
               {t(mg.addCategory)}
             </Button>
           ) : null}

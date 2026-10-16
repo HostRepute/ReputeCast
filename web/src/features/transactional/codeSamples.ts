@@ -77,6 +77,8 @@ function lit(v: string | number, q: '"' | "'" = '"'): string {
 export function codeSample(lang: CodeLang, s: CodeInput): string {
   const vars = s.variables
   const key = idempotency(s.template)
+  // A reset or sign-in link is one per token; other mail one per event.
+  const ref = /reset|magic|sign-?in|verif/.test(s.template) ? 'token' : 'event'
   switch (lang) {
     case 'node': {
       const data = vars.map((v) => {
@@ -89,7 +91,7 @@ export function codeSample(lang: CodeLang, s: CodeInput): string {
         `  method: "POST",`,
         `  headers: {`,
         '    Authorization: `Bearer ${process.env.REPUTECAST_KEY}`,',
-        `    "Idempotency-Key": \`${key}-\${user.id}-\${event.id}\`,`,
+        `    "Idempotency-Key": \`${key}-\${user.id}-\${${ref}.id}\`,`,
         `    "Content-Type": "application/json",`,
         `  },`,
         `  body: JSON.stringify({`,
@@ -115,7 +117,7 @@ export function codeSample(lang: CodeLang, s: CodeInput): string {
         `    ${quote(s.endpoint)},`,
         `    headers={`,
         `        "Authorization": f"Bearer {os.environ['REPUTECAST_KEY']}",`,
-        `        "Idempotency-Key": f"${key}-{user.id}-{event.id}",`,
+        `        "Idempotency-Key": f"${key}-{user.id}-{${ref}.id}",`,
         `    },`,
         `    json={`,
         `        "template": ${quote(s.template)},`,
@@ -126,8 +128,7 @@ export function codeSample(lang: CodeLang, s: CodeInput): string {
         `    },`,
         `    timeout=10,`,
         `)`,
-        `r.raise_for_status()`,
-        `# 202 → {"id": "0192f1c4-…", "status": "queued"}`,
+        `r.raise_for_status()  # 202 → {"id": "0192f1c4-…", "status": "queued"}`,
       ].join('\n')
     }
     case 'go': {
@@ -147,7 +148,7 @@ export function codeSample(lang: CodeLang, s: CodeInput): string {
         `})`,
         `req, _ := http.NewRequest("POST", ${quote(s.endpoint)}, bytes.NewReader(body))`,
         `req.Header.Set("Authorization", "Bearer "+os.Getenv("REPUTECAST_KEY"))`,
-        `req.Header.Set("Idempotency-Key", "${key}-"+user.ID+"-"+event.ID)`,
+        `req.Header.Set("Idempotency-Key", "${key}-"+user.ID+"-"+${ref}.ID)`,
         `req.Header.Set("Content-Type", "application/json")`,
         `res, err := http.DefaultClient.Do(req)`,
         `// 202 Accepted → {"id": "0192f1c4-…", "status": "queued"}`,
@@ -162,7 +163,7 @@ export function codeSample(lang: CodeLang, s: CodeInput): string {
         `$res = (new GuzzleHttp\\Client())->post(${quote(s.endpoint, "'")}, [`,
         `    'headers' => [`,
         `        'Authorization' => 'Bearer ' . getenv('REPUTECAST_KEY'),`,
-        `        'Idempotency-Key' => "${key}-{$user->id}-{$event->id}",`,
+        `        'Idempotency-Key' => "${key}-{$user->id}-{$${ref}->id}",`,
         `    ],`,
         `    'json' => [`,
         `        'template' => ${quote(s.template, "'")},`,

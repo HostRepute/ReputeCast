@@ -15,6 +15,11 @@
     letter-spacing: -0.02em;
     line-height: 1.2;
   }
+  /* Essential / Optional next to a category name. */
+  .tx-kind {
+    height: 20px;
+    font-size: 11px;
+  }
   .tx-lead {
     margin: 0;
     color: var(--ink-2);
@@ -139,7 +144,8 @@
     border: 1px solid var(--line-input);
     border-radius: 8px;
     background: var(--surface);
-    width: 240px;
+    /* The boards' 240 px content box plus padding and border. */
+    width: 262px;
     max-width: 100%;
     box-sizing: border-box;
   }
@@ -401,9 +407,6 @@
     }
     .tx-cbx pre {
       font-size: 11.5px;
-    }
-    .tx-search {
-      width: 100%;
     }
   }
 }
