@@ -1,0 +1,20 @@
+[
+  {
+    "name": "email",
+    "type": "email",
+    "label": "Email",
+    "required": true,
+    "help": "The contact to tag."
+  },
+  {
+    "name": "tags",
+    "type": "array",
+    "label": "Tags",
+    "required": true,
+    "spec": {
+      "type": "text",
+      "label": "Tag"
+    },
+    "help": "Tags to add, such as customer. Tags they already have stay."
+  }
+]

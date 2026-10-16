@@ -1,0 +1,11 @@
+{
+  "url": "/workspaces/{{connection.workspace}}/integration/templates",
+  "method": "GET",
+  "response": {
+    "iterate": "{{body.items}}",
+    "output": {
+      "label": "{{item.name}} ({{item.key}})",
+      "value": "{{item.key}}"
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "url": "/workspaces/{{connection.workspace}}/contacts/upsert",
+  "method": "POST",
+  "body": "{{parameters}}",
+  "response": {
+    "output": "{{body}}"
+  }
+}

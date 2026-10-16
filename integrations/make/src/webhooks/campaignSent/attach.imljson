@@ -1,0 +1,13 @@
+{
+  "url": "/workspaces/{{connection.workspace}}/integration/hooks",
+  "method": "POST",
+  "body": {
+    "event": "campaign.completed",
+    "url": "{{webhook.url}}"
+  },
+  "response": {
+    "data": {
+      "externalHookId": "{{body.id}}"
+    }
+  }
+}

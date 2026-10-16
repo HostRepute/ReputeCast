@@ -1,0 +1,32 @@
+[
+  {
+    "name": "list",
+    "type": "select",
+    "label": "List",
+    "required": true,
+    "options": "rpc://listLists"
+  },
+  {
+    "name": "email",
+    "type": "email",
+    "label": "Email",
+    "required": true,
+    "help": "The contact to add. To create them first, use Create or Update a Contact."
+  },
+  {
+    "name": "consent",
+    "type": "select",
+    "label": "Opt-in",
+    "options": [
+      {
+        "label": "Single opt-in: add them to the list now",
+        "value": "single"
+      },
+      {
+        "label": "Double opt-in: send the confirmation email first",
+        "value": "double"
+      }
+    ],
+    "help": "Leave it empty to use each list's own setting. ReputeCast never adds someone back to a list they left, and never adds a suppressed address."
+  }
+]
