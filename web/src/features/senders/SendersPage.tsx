@@ -21,7 +21,7 @@ export type Sender = Schemas['SenderIdentity']
 
 export const sendersPath = '/api/v1/workspaces/{workspace}/senders' as const
 
-const STREAM_NAMES: Record<string, string> = { broadcast: 'Broadcasts', automation: 'Automations', system: 'System' }
+const STREAM_NAMES: Record<string, string> = { broadcast: 'Broadcasts', automation: 'Automations', system: 'System', transactional: 'Transactional' }
 
 const VERIFICATION_TONE: Record<Schemas['SenderVerification']['status'], Tone> = {
   verified: 'ok',
@@ -85,7 +85,10 @@ export function SendersPage() {
                 <h2 className="h2" id="domains-h">
                   Domains
                 </h2>
-                <span className="k">DNS checked every 30 minutes; a change here shows up in Send Readiness within the hour.</span>
+                <span className="k">
+                  DNS checked every 30 minutes; a change here shows up in Send Readiness within the hour.{' '}
+                  {data ? <TransactionalHint data={data} /> : null}
+                </span>
               </div>
               <Button onClick={() => setAddingDomain(true)} disabledReason={data ? reason : 'Loading…'}>
                 Add domain
@@ -143,14 +146,16 @@ function SendersTable({ data, onEdit }: { data: Overview; onEdit: (s: Sender) =>
                 <div className="k mono">{s.email}</div>
               </td>
               <td className="mono">{s.replyTo || s.email}</td>
-              {s.defaultFor.length ? (
+              {s.defaultFor.length || s.transactional ? (
                 <td>
-                  <span className="flex gap-1.5">
-                    {s.defaultFor.map((d) => (
+                  <span className="flex flex-wrap items-center gap-1.5">
+                    {/* A sender on a Transactional domain sends transactional mail, default or not. */}
+                    {[...s.defaultFor.filter((d) => d !== 'transactional'), ...(s.transactional ? ['transactional'] : [])].map((d) => (
                       <Badge key={d} tone="purple">
                         {STREAM_NAMES[d] ?? d}
                       </Badge>
                     ))}
+                    {s.smtpRelay ? <span className="k">SMTP relay</span> : null}
                   </span>
                 </td>
               ) : (
@@ -231,6 +236,8 @@ function DefaultsCard({ data, reason }: { data: Overview; reason?: string }) {
   const qc = useQueryClient()
   const d = data.defaults
   const [senderId, setSenderId] = useState(d.defaultSenderId)
+  const [txSenderId, setTxSenderId] = useState(d.transactionalSenderId ?? '')
+  const txSenders = data.senders.filter((x) => x.transactional)
   // Where replies go: one address for every sender, or "" for each sender's own reply-to.
   const [reply, setReply] = useState(d.replyTo)
   const [footer, setFooter] = useState(d.footerAddress)
@@ -242,6 +249,7 @@ function DefaultsCard({ data, reason }: { data: Overview; reason?: string }) {
         params: { path: { workspace: slug } },
         body: {
           defaultSenderId: senderId || undefined,
+          transactionalSenderId: txSenderId || undefined,
           replyHandling: 'forward',
           replyTo: reply || undefined,
           footerAddress: footer.trim(),
@@ -271,6 +279,17 @@ function DefaultsCard({ data, reason }: { data: Overview; reason?: string }) {
             ))}
           </select>
         </label>
+        {txSenders.length ? (
+          <label className="lbl">
+            Default From for transactional templates
+            <select className="in" value={txSenderId} onChange={(e) => setTxSenderId(e.target.value)} disabled={Boolean(reason)}>
+              {txSenderId ? null : <option value="">Choose a sender</option>}
+              {txSenders.map((x) => (
+                <option key={x.id} value={x.id}>{`${x.name} · ${x.email}`}</option>
+              ))}
+            </select>
+          </label>
+        ) : null}
         <label className="lbl">
           Reply handling
           <select className="in" value={reply} onChange={(e) => setReply(e.target.value)} disabled={Boolean(reason)}>
@@ -300,6 +319,18 @@ function DefaultsCard({ data, reason }: { data: Overview; reason?: string }) {
         </Button>
       </div>
     </section>
+  )
+}
+
+/** The hint for transactional mail: its own subdomain keeps its reputation apart (SettingsSenders). */
+function TransactionalHint({ data }: { data: Overview }) {
+  const tx = data.domains.find((d) => d.transactional)
+  return tx ? (
+    <>
+      Transactional mail has a subdomain of its own, <span className="mono">{tx.domain}</span>, so its reputation stays apart from newsletters.
+    </>
+  ) : (
+    <>Give transactional mail a subdomain of its own, like notify.example.com, so its reputation stays apart from newsletters.</>
   )
 }
 
