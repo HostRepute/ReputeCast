@@ -38,6 +38,13 @@ var (
 	mInviteNoEmails       = msgs.M("invite.noEmails")
 	mRolePick             = msgs.M("role.pick")
 	mRoleUnknown          = msgs.M("role.unknown")
+
+	// Changing, deactivating and removing members.
+	mLastOwner      = msgs.M("problem.lastOwner")
+	mOutrank        = msgs.M("problem.outrank")
+	mOwnerOnly      = msgs.M("problem.ownerOnly")
+	mOwnerTwoFactor = msgs.M("problem.ownerTwoFactor")
+	mScopeWithin    = msgs.M("problem.scopeWithin")
 )
 
 // readOnlyReason explains what a caller without team:invite or

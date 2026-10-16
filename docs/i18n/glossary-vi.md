@@ -219,6 +219,21 @@ samples, CLI output, "MCP", "2FA", "TOTP", "IdP", "SSO", "JIT", "A/B",
 "payload", "Liquid", "MJML", "Mustachio", "Handlebars", "cURL" and "JSON"
 stay as they are.
 
+## Accessibility
+
+| English | Tiếng Việt |
+|---|---|
+| Accessibility | Khả năng tiếp cận |
+| issue · serious · moderate | lỗi · nghiêm trọng · trung bình |
+| alt text · decorative image | văn bản thay thế · hình trang trí |
+| contrast · Passes AA · Fails AA | độ tương phản · Đạt AA · Không đạt AA |
+| Heading 1 · Paragraph · Text role | Đề mục 1 · Đoạn văn · Vai trò văn bản |
+| layout table | bảng bố cục |
+| screen reader | trình đọc màn hình |
+| Warn · Block (the policy) | Cảnh báo · Chặn |
+
+"Heading" is "Đề mục", never "Tiêu đề", which is an email's subject.
+
 ## Team
 
 | English | Tiếng Việt |

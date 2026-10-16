@@ -36,7 +36,7 @@ func lastOwner(ctx context.Context, q *store.Queries, ws *store.Workspace, name 
 			}
 		}
 	}
-	p := api.Err(http.StatusConflict, api.CodeLastOwner, fmt.Sprintf("%s is the last Owner. A workspace always keeps at least one Owner, so this role can't be changed and the member can't be removed or deactivated. Transfer ownership to another member first.", name))
+	p := api.Err(http.StatusConflict, api.CodeLastOwner, mLastOwner.Text(i18n.LangFrom(ctx), i18n.Args{"name": name}))
 	if suggest != "" {
 		p = p.WithMeta("suggest", suggest)
 	}
@@ -50,12 +50,12 @@ func outranks(p *authz.Principal, roleKey string, builtin bool, perms []string) 
 	return len(missing) == 0, missing
 }
 
-func outrankError(name string, missing []authz.Permission) *api.Problem {
+func outrankError(ctx context.Context, name string, missing []authz.Permission) *api.Problem {
 	keys := make([]string, len(missing))
 	for i, m := range missing {
 		keys[i] = string(m)
 	}
-	pr := api.Err(http.StatusForbidden, api.CodeEscalation, fmt.Sprintf("You can't change %s's access: their role holds %s, which you don't.", name, strings.Join(keys, ", ")))
+	pr := api.Err(http.StatusForbidden, api.CodeEscalation, mOutrank.Text(i18n.LangFrom(ctx), i18n.Args{"name": name, "permissions": strings.Join(keys, ", ")}))
 	if len(missing) > 0 {
 		pr.Permission = string(missing[0])
 	}
@@ -100,11 +100,11 @@ func (s *Service) changeRole(ctx context.Context, q *store.Queries, tx pgx.Tx, w
 	}
 	if toOwner && !wasOwner {
 		if !p.Can(authz.WorkspaceTransfer) {
-			return api.Err(http.StatusForbidden, api.CodeEscalation, "Only an Owner can make someone an Owner. Use Transfer ownership in Settings › General.")
+			return api.Err(http.StatusForbidden, api.CodeEscalation, mOwnerOnly.Text(i18n.LangFrom(ctx), nil))
 		}
 		if m.TotpEnabledAt == nil && m.PasskeyCount == 0 {
 			if ids, _ := s.identities(ctx, []uuid.UUID{m.UserID}); !hasSSO(ids[m.UserID]) {
-				return api.Conflict(fmt.Sprintf("%s needs two-factor before becoming an Owner.", name))
+				return api.Conflict(mOwnerTwoFactor.Text(i18n.LangFrom(ctx), i18n.Args{"name": name}))
 			}
 		}
 	}
@@ -118,7 +118,7 @@ func (s *Service) changeRole(ctx context.Context, q *store.Queries, tx pgx.Tx, w
 		}
 	}
 	if ok, missing := outranks(p, m.RoleKey, m.RoleBuiltin, m.RolePermissions); !ok {
-		return outrankError(name, missing)
+		return outrankError(ctx, name, missing)
 	}
 	lists, err := access.ListNames(ctx, q, ws.ID)
 	if err != nil {
@@ -135,7 +135,7 @@ func (s *Service) changeRole(ctx context.Context, q *store.Queries, tx pgx.Tx, w
 		}
 	}
 	if !scope.Within(p.Scope) {
-		return api.Err(http.StatusForbidden, api.CodeEscalation, "You can only give a scope within your own.")
+		return api.Err(http.StatusForbidden, api.CodeEscalation, mScopeWithin.Text(i18n.LangFrom(ctx), nil))
 	}
 	before := access.View(access.ParseScope(m.Scope), lists, true)
 	after := access.View(scope, lists, true)
@@ -226,7 +226,7 @@ func (s *Service) deactivate(ctx context.Context, q *store.Queries, ws *store.Wo
 		}
 	}
 	if ok, missing := outranks(p, m.RoleKey, m.RoleBuiltin, m.RolePermissions); !ok {
-		return res, outrankError(name, missing)
+		return res, outrankError(ctx, name, missing)
 	}
 	if err := q.TeamSetMemberStatus(ctx, store.TeamSetMemberStatusParams{ID: m.ID, WorkspaceID: ws.ID, Status: "deactivated"}); err != nil {
 		return res, err
@@ -301,7 +301,7 @@ func (s *Service) Reactivate(ctx context.Context, ws *store.Workspace, p *authz.
 			return api.Conflict(name + " is already active.")
 		}
 		if ok, missing := outranks(p, m.RoleKey, m.RoleBuiltin, m.RolePermissions); !ok {
-			return outrankError(name, missing)
+			return outrankError(ctx, name, missing)
 		}
 		if m.UserStatus != "active" {
 			if !p.IsInstanceAdmin {
@@ -346,7 +346,7 @@ func (s *Service) Remove(ctx context.Context, ws *store.Workspace, p *authz.Prin
 			}
 		}
 		if ok, missing := outranks(p, m.RoleKey, m.RoleBuiltin, m.RolePermissions); !ok {
-			return outrankError(name, missing)
+			return outrankError(ctx, name, missing)
 		}
 		revoked, err := q.TeamRevokeKeysCreatedBy(ctx, store.TeamRevokeKeysCreatedByParams{WorkspaceID: ws.ID, UserID: &m.UserID})
 		if err != nil {
@@ -382,7 +382,7 @@ func (s *Service) SignOut(ctx context.Context, ws *store.Workspace, p *authz.Pri
 		}
 		name := displayName(m.UserName, m.Email)
 		if ok, missing := outranks(p, m.RoleKey, m.RoleBuiltin, m.RolePermissions); !ok && m.UserID != p.UserID {
-			return outrankError(name, missing)
+			return outrankError(ctx, name, missing)
 		}
 		if res.SessionsRevoked, err = q.TeamRevokeUserSessions(ctx, m.UserID); err != nil {
 			return err

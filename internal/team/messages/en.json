@@ -18,5 +18,10 @@
   "invite.noEmails": "Add at least one email address.",
   "role.pick": "Pick a role.",
   "role.unknown": "That role doesn't exist in this workspace.",
+  "problem.lastOwner": "{name} is the last Owner. A workspace always keeps at least one Owner, so this role can't be changed and the member can't be removed or deactivated. Transfer ownership to another member first.",
+  "problem.outrank": { "message": "You can't change {name}'s access: their role holds {permissions}, which you don't.", "note": "permissions: keys such as team:manage, joined with commas" },
+  "problem.ownerOnly": "Only an Owner can make someone an Owner. Use Transfer ownership in Settings › General.",
+  "problem.ownerTwoFactor": "{name} needs two-factor before becoming an Owner.",
+  "problem.scopeWithin": "You can only give a scope within your own.",
   "hint.role": { "message": "{kind, select, all {{role}s can do everything} team {{role}s can manage the team and every setting} send {{role}s can send} edit {{role}s can edit campaigns and request approval} other {{role}s can view everything, never secrets}}{twoFactor, select, yes {; two-factor becomes required{grace, plural, =0 {} other { (#-day grace)}}} other {}}.", "note": "under the invite dialog's role select; role: a role's name (Editor, Content Writer); grace: days" }
 }

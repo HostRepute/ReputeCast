@@ -18,5 +18,10 @@
   "invite.noEmails": "Hãy thêm ít nhất một địa chỉ email.",
   "role.pick": "Hãy chọn một vai trò.",
   "role.unknown": "Vai trò đó không có trong không gian làm việc này.",
+  "problem.lastOwner": "{name} là Chủ sở hữu cuối cùng. Một không gian làm việc luôn cần ít nhất một Chủ sở hữu, nên không thể đổi vai trò này, cũng không thể xóa hay vô hiệu hóa thành viên này. Hãy chuyển quyền sở hữu cho một thành viên khác trước.",
+  "problem.outrank": "Bạn không thay đổi được quyền truy cập của {name}: vai trò của họ có {permissions}, còn bạn thì không.",
+  "problem.ownerOnly": "Chỉ Chủ sở hữu mới đưa được người khác thành Chủ sở hữu. Hãy dùng Chuyển quyền sở hữu trong Cài đặt › Chung.",
+  "problem.ownerTwoFactor": "{name} cần bật xác thực hai lớp trước khi trở thành Chủ sở hữu.",
+  "problem.scopeWithin": "Bạn chỉ cấp được phạm vi nằm trong phạm vi của chính bạn.",
   "hint.role": "{kind, select, all {{role} có toàn quyền} team {{role} quản lý được nhóm và mọi cài đặt} send {{role} gửi được chiến dịch} edit {{role} sửa được chiến dịch và yêu cầu phê duyệt} other {{role} xem được mọi thứ, trừ thông tin bí mật}}{twoFactor, select, yes {; bắt buộc xác thực hai lớp{grace, plural, =0 {} other { (gia hạn # ngày)}}} other {}}."
 }
