@@ -4,8 +4,9 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Field, Select } from '@/components/ui/Field'
 import { Grid } from '@/components/ui/Layout'
+import { formatList, getI18n, useT } from '@/i18n'
 import { cn } from '@/lib/cn'
-import { clock, count } from '@/lib/format'
+import { clock, count, decimal } from '@/lib/format'
 import {
   defaultScheduleAt,
   dollars,
@@ -25,15 +26,17 @@ import {
   type ThresholdField,
   type Thresholds,
 } from './logic'
+import { m } from './messages'
 import { whenText } from './parts'
 import { EACH, TestLanguageSelect, testLanguages, type SentVersion } from '@/features/languages/review'
 
 /** Audience: the lists, what's excluded and the final count. */
 export function AudienceCard({ audience, children }: { audience: Run['estimates']['audience']; children?: ReactNode }) {
+  const t = useT()
   return (
     <section className="card rv-card" aria-labelledby="rv-audience">
       <h2 className="h2" id="rv-audience">
-        Audience
+        {t(m.audience)}
       </h2>
       {audience.rows.map((r, i) => (
         <div key={i} className={cn('rv-sum', r.kind !== 'base' && 's-minus')}>
@@ -42,7 +45,7 @@ export function AudienceCard({ audience, children }: { audience: Run['estimates'
         </div>
       ))}
       <div className="rv-sum s-final">
-        <span className="font-semibold">Final recipients</span>
+        <span className="font-semibold">{t(m.finalRecipients)}</span>
         <span className="n text-[20px]">{count(audience.final)}</span>
       </div>
       {children}
@@ -52,6 +55,7 @@ export function AudienceCard({ audience, children }: { audience: Run['estimates'
 
 /** Route breakdown: recipients, cost and duration per sending provider. */
 export function RouteCard({ route, startAt }: { route: Run['estimates']['route']; startAt?: string | null }) {
+  const t = useT()
   const shares = route.shares
   const held = shares.filter((s) => !s.available)
   return (
@@ -59,15 +63,13 @@ export function RouteCard({ route, startAt }: { route: Run['estimates']['route']
       {held.length ? (
         <div className="flex items-center justify-between">
           <h2 className="h2" id="rv-route">
-            Route breakdown
+            {t(m.routeBreakdown)}
           </h2>
-          <span className="badge bad">
-            {held.length} {held.length === 1 ? 'route' : 'routes'} down
-          </span>
+          <span className="badge bad">{t(m.routesDown, { count: held.length })}</span>
         </div>
       ) : (
         <h2 className="h2" id="rv-route">
-          Route breakdown
+          {t(m.routeBreakdown)}
         </h2>
       )}
       <div className="flex flex-col gap-1.5">
@@ -78,7 +80,7 @@ export function RouteCard({ route, startAt }: { route: Run['estimates']['route']
               <div className="rv-sum">
                 <span className="rv-who">
                   <span className="dot" style={{ color }} aria-hidden="true" />
-                  {s.name} · {Number(s.percent.toFixed(1))}%{held.length ? ` · ${s.statusLabel}` : ''}
+                  {s.name} · {decimal(Number(s.percent.toFixed(1)), Number.isInteger(Number(s.percent.toFixed(1))) ? 0 : 1)}%{held.length ? ` · ${s.statusLabel}` : ''}
                 </span>
                 <span className="n">{count(s.recipients)}</span>
               </div>
@@ -103,16 +105,13 @@ export function RouteCard({ route, startAt }: { route: Run['estimates']['route']
               </div>
             ) : (
               <div key={s.providerId} className="rv-sum text-bad-fg">
-                <span>{s.short} · unavailable</span>
-                <span className="n">held</span>
+                <span>{t(m.unavailable, { name: s.short })}</span>
+                <span className="n">{t(m.held)}</span>
               </div>
             ),
           )}
           {route.move ? (
-            <span className="k">
-              Moving the {route.move.from} share to {route.move.to} adds {dollars(route.move.addCost)} and {route.move.addMinutes}{' '}
-              {route.move.addMinutes === 1 ? 'minute' : 'minutes'}.
-            </span>
+            <span className="k">{t(m.moveShare, { from: route.move.from, to: route.move.to, cost: dollars(route.move.addCost), minutes: route.move.addMinutes })}</span>
           ) : null}
         </>
       ) : (
@@ -122,13 +121,13 @@ export function RouteCard({ route, startAt }: { route: Run['estimates']['route']
               <thead>
                 <tr>
                   <th scope="col" className="k">
-                    Sending provider
+                    {t(m.sendingProvider)}
                   </th>
                   <th scope="col" className="k r">
-                    Cost
+                    {t(m.cost)}
                   </th>
                   <th scope="col" className="k r">
-                    Duration
+                    {t(m.duration)}
                   </th>
                 </tr>
               </thead>
@@ -143,7 +142,7 @@ export function RouteCard({ route, startAt }: { route: Run['estimates']['route']
                   </tr>
                 ))}
                 <tr className="t-total">
-                  <td>{shares.length > 1 ? 'Total, routes run in parallel' : 'Total'}</td>
+                  <td>{shares.length > 1 ? t(m.totalParallel) : t(m.total)}</td>
                   <td className="n r">{dollars(route.totalCost)}</td>
                   <td className="n r">{minutes(route.totalMinutes)}</td>
                 </tr>
@@ -158,40 +157,35 @@ export function RouteCard({ route, startAt }: { route: Run['estimates']['route']
 }
 
 function FinishLine({ total, startAt }: { total: number; startAt?: string | null }) {
+  const t = useT()
   const start = startAt ? new Date(startAt) : null
   if (!start || Number.isNaN(start.getTime())) {
-    return <span className="k">Takes about {minutes(total)} once it starts.</span>
+    return <span className="k">{t(m.takesAbout, { duration: minutes(total) })}</span>
   }
   const end = new Date(start.getTime() + total * 60_000)
-  return (
-    <span className="k">
-      Finishes about {clock(end)} if started at {clock(start)}.
-    </span>
-  )
+  return <span className="k">{t(m.finishesAbout, { end: clock(end), start: clock(start) })}</span>
 }
 
 /** Throttling per mailbox provider. */
 export function ThrottlingCard({ throttling, note }: { throttling: Run['estimates']['throttling']; note: boolean }) {
-  const slow = throttling.filter((t) => t.rate > 0).map((t) => t.name)
+  const t = useT()
+  const slow = throttling.filter((x) => x.rate > 0).map((x) => x.name)
+  const rate = (r: number) => decimal(Number(r.toFixed(1)), Number.isInteger(Number(r.toFixed(1))) ? 0 : 1)
   return (
     <section className="card rv-card c-tight" aria-labelledby="rv-throttle">
       <h2 className="h2" id="rv-throttle">
-        Throttling per mailbox provider
+        {t(m.throttling)}
       </h2>
-      {throttling.map((t) => (
-        <div key={t.key} className="rv-sum">
+      {throttling.map((x) => (
+        <div key={x.key} className="rv-sum">
           <span className="rv-who">
-            <span className="dot" style={{ color: mailboxColor[t.key] }} aria-hidden="true" />
-            {t.name} · {count(t.recipients)}
+            <span className="dot" style={{ color: mailboxColor[x.key] }} aria-hidden="true" />
+            {x.name} · {count(x.recipients)}
           </span>
-          <span className="n">{t.rate > 0 ? `${Number(t.rate.toFixed(1))} /s` : 'full rate'}</span>
+          <span className="n">{x.rate > 0 ? t(m.perSecond, { rate: rate(x.rate) }) : t(m.fullRate)}</span>
         </div>
       ))}
-      {note && slow.length ? (
-        <span className="k">
-          {slow.length === 1 ? slow[0] : `${slow.slice(0, -1).join(', ')} and ${slow[slow.length - 1]}`} accept slower streams more reliably. Limits adapt if deferrals rise.
-        </span>
-      ) : null}
+      {note && slow.length ? <span className="k">{t(m.slowerStreams, { providers: formatList(slow) })}</span> : null}
     </section>
   )
 }
@@ -210,6 +204,10 @@ export function ThresholdsCard({
   scope?: boolean
   onSave: (t: Thresholds) => Promise<boolean>
 }) {
+  const t = useT()
+  // A choice whose label can pass about 32 characters is a radio card,
+  // not a select, outside English (StressReviewVi, rule 1).
+  const cards = getI18n().locale !== 'en'
   const [text, setText] = useState<Record<ThresholdField, string>>(() => textOf(thresholds))
   const [errors, setErrors] = useState<Partial<Record<ThresholdField, string>>>({})
   // Saved values reset the fields; refetches of the same values don't.
@@ -238,7 +236,7 @@ export function ThresholdsCard({
   return (
     <section className="card rv-card" aria-labelledby="rv-thresholds">
       <h2 className="h2" id="rv-thresholds">
-        Auto-pause thresholds
+        {t(m.thresholdsTitle)}
       </h2>
       <Grid cols={2} gap={10}>
         {fields.map((f) => (
@@ -249,7 +247,7 @@ export function ThresholdsCard({
               value={text[f]}
               readOnly={Boolean(disabledReason)}
               title={disabledReason}
-              onChange={(e) => setText((t) => ({ ...t, [f]: e.target.value }))}
+              onChange={(e) => setText((v) => ({ ...v, [f]: e.target.value }))}
               onBlur={() => void commit(f)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
@@ -258,16 +256,32 @@ export function ThresholdsCard({
           </Field>
         ))}
       </Grid>
-      {scope ? (
-        <Field label="When a threshold trips">
+      {scope && cards ? (
+        <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
+          <legend className="mb-1.5 p-0 text-[12px] font-semibold text-ink-2">{t(m.whenTrips)}</legend>
+          {(['route', 'campaign'] as const).map((v) => (
+            <label key={v} className="rv-rad">
+              <input
+                type="radio"
+                name="rv-trips"
+                checked={thresholds.scope === v}
+                disabled={Boolean(disabledReason)}
+                onChange={() => void onSave({ ...thresholds, scope: v })}
+              />
+              <span>{v === 'route' ? t(m.pauseRoute) : t(m.pauseCampaign)}</span>
+            </label>
+          ))}
+        </fieldset>
+      ) : scope ? (
+        <Field label={t(m.whenTrips)}>
           <Select
             value={thresholds.scope}
             disabled={Boolean(disabledReason)}
             title={disabledReason}
             onChange={(e) => void onSave({ ...thresholds, scope: e.target.value as Thresholds['scope'] })}
           >
-            <option value="route">Pause only the affected route or mailbox provider</option>
-            <option value="campaign">Pause the whole campaign</option>
+            <option value="route">{t(m.pauseRoute)}</option>
+            <option value="campaign">{t(m.pauseCampaign)}</option>
           </Select>
         </Field>
       ) : null}
@@ -299,6 +313,7 @@ export function SchedulingCard({
   hint?: ReactNode
   onSave: (s: Schedule) => Promise<boolean>
 }) {
+  const t = useT()
   const name = useId()
   const [draft, setDraft] = useState<Schedule>(schedule)
   const key = JSON.stringify(schedule)
@@ -327,9 +342,9 @@ export function SchedulingCard({
   const off = Boolean(disabledReason)
   const when = (
     <span className="rv-when">
-      <input className="in" type="date" value={draft.date ?? ''} aria-label="Date" disabled={off} onChange={(e) => change({ date: e.target.value })} />
-      <input className="in" type="time" value={draft.time ?? ''} aria-label="Time" disabled={off} onChange={(e) => change({ time: e.target.value })} />
-      <select className="in" aria-label="Timezone" value={tz} disabled={off} onChange={(e) => change({ timezone: e.target.value })}>
+      <input className="in" type="date" value={draft.date ?? ''} aria-label={t(m.date)} disabled={off} onChange={(e) => change({ date: e.target.value })} />
+      <input className="in" type="time" value={draft.time ?? ''} aria-label={t(m.time)} disabled={off} onChange={(e) => change({ time: e.target.value })} />
+      <select className="in" aria-label={t(m.timezone)} value={tz} disabled={off} onChange={(e) => change({ timezone: e.target.value })}>
         {zoneOptions(tz).map((z) => (
           <option key={z} value={z}>
             {zoneLabel(z)}
@@ -339,18 +354,18 @@ export function SchedulingCard({
     </span>
   )
   const options: { mode: Schedule['mode']; title: string; caption: string }[] = [
-    { mode: 'now', title: 'Send now', caption: 'Starts within a minute of confirming' },
-    { mode: 'at', title: 'Schedule', caption: draft.mode === 'at' ? scheduleCaption({ ...draft, timezone: tz }) : 'A date and time in any time zone' },
+    { mode: 'now', title: t(m.modeNow), caption: t(m.modeNowCaption) },
+    { mode: 'at', title: t(m.modeAt), caption: draft.mode === 'at' ? scheduleCaption({ ...draft, timezone: tz }) : t(m.modeAtCaption) },
     {
       mode: 'best_time',
-      title: 'Best time per recipient',
-      caption: `Each contact gets it at their usual open time, within 24 h of ${draft.mode === 'best_time' && draft.time ? draft.time : '09:00'}`,
+      title: t(m.modeBest),
+      caption: t(m.modeBestCaption, { time: draft.mode === 'best_time' && draft.time ? draft.time : '09:00' }),
     },
   ]
   return (
     <section className="card rv-card c-tight" aria-labelledby="rv-schedule">
       <h2 className="h2" id="rv-schedule">
-        Scheduling
+        {t(m.scheduling)}
       </h2>
       {options.map((o) => (
         <label key={o.mode} className="rv-rad">
@@ -375,10 +390,11 @@ export function SchedulingCard({
  * through the fade (in ink-3 it would drop to 2.6:1).
  */
 export function ScheduleNote({ text }: { text: string }) {
+  const t = useT()
   return (
     <section className="card rv-card c-tight opacity-60" aria-labelledby="rv-schedule">
       <h2 className="h2" id="rv-schedule">
-        Scheduling
+        {t(m.scheduling)}
       </h2>
       <span className="k text-ink">{text}</span>
     </section>
@@ -402,6 +418,7 @@ export function TestSendsCard({
   /** The email's language versions: the test sends one, or one of each. */
   versions?: SentVersion[]
 }) {
+  const t = useT()
   const id = useId()
   const [to, setTo] = useState(me)
   const [busy, setBusy] = useState(false)
@@ -416,11 +433,11 @@ export function TestSendsCard({
   return (
     <section className="card rv-card c-tight" aria-labelledby="rv-tests">
       <h2 className="h2" id="rv-tests">
-        Test sends
+        {t(m.testSends)}
       </h2>
       <div className="flex gap-2 max-md:flex-wrap">
         <label className="vh" htmlFor={id}>
-          Test address
+          {t(m.testAddress)}
         </label>
         <input
           id={id}
@@ -436,23 +453,23 @@ export function TestSendsCard({
         {versions.length > 1 ? <TestLanguageSelect versions={versions} value={language} onChange={setLanguage} /> : null}
         {versions.length > 1 ? null : (
           <Button disabledReason={disabledReason} loading={busy} onClick={() => void send()}>
-            Send test
+            {t(m.sendTestButton)}
           </Button>
         )}
       </div>
       {versions.length > 1 ? (
         <Button className="self-start" disabledReason={disabledReason} loading={busy} onClick={() => void send()}>
-          Send test
+          {t(m.sendTestButton)}
         </Button>
       ) : null}
-      {!toOthers ? <span className="k">Test emails go to your own address. Sending them to others needs campaigns:send.</span> : null}
+      {!toOthers ? <span className="k">{t(m.testOwnOnly)}</span> : null}
       {sends.map((s, i) => (
         <div key={i} className="rv-sum">
           <span className="k">
             {s.to} · {whenText(s.at)}
-            {testLanguages(s.languages, versions) ? ` · ${testLanguages(s.languages, versions)}` : s.provider ? ` · via ${s.provider}` : ''}
+            {testLanguages(s.languages, versions) ? ` · ${testLanguages(s.languages, versions)}` : s.provider ? ` · ${t(m.via, { provider: s.provider })}` : ''}
           </span>
-          {s.delivered ? <Badge tone="ok">Delivered to {s.delivered}</Badge> : <Badge tone="neutral">Sent</Badge>}
+          {s.delivered ? <Badge tone="ok">{t(m.deliveredTo, { mailbox: s.delivered })}</Badge> : <Badge tone="neutral">{t(m.sent)}</Badge>}
         </div>
       ))}
     </section>

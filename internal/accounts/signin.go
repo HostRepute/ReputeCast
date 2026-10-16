@@ -3,7 +3,6 @@ package accounts
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -15,6 +14,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authn"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -94,7 +94,7 @@ func (s *Service) PasswordSignIn(ctx context.Context, email, password string, re
 	failedBefore := int32(0)
 	if th, err := s.Q.GetSignInThrottle(ctx, email); err == nil {
 		if th.LockedUntil != nil && th.LockedUntil.After(s.now()) {
-			return SignInResult{}, nil, lockMessage(*th.LockedUntil, th.Failures)
+			return SignInResult{}, nil, lockMessage(ctx, *th.LockedUntil, th.Failures)
 		}
 		failedBefore = th.Failures
 	}
@@ -110,13 +110,13 @@ func (s *Service) PasswordSignIn(ctx context.Context, email, password string, re
 	var extra map[string]any
 	if p, _ := s.enforcingProvider(ctx, email); p != nil {
 		if !breakGlass {
-			return SignInResult{}, nil, api.Err(http.StatusForbidden, "sso_required", email[strings.Index(email, "@")+1:]+" signs in with "+p.Name+". Password sign-in is turned off for this domain.").
+			return SignInResult{}, nil, api.Err(http.StatusForbidden, "sso_required", say(ctx, mSSORequired, "domain", email[strings.Index(email, "@")+1:], "provider", p.Name)).
 				WithMeta("providerId", p.ID.String(), "provider", p.Name, "preset", p.Preset)
 		}
 		extra = map[string]any{"break_glass": true, "enforced_by": p.Name}
 	}
 	if !methodAllowed(pol, "password") && !breakGlass {
-		return SignInResult{}, nil, api.Err(http.StatusForbidden, "method_disabled", "Password sign-in is turned off on this instance. Use a passkey or single sign-on.")
+		return SignInResult{}, nil, api.Err(http.StatusForbidden, "method_disabled", say(ctx, mPasswordOff))
 	}
 	ok := false
 	if exists && u.PasswordHash != nil {
@@ -139,16 +139,15 @@ func (s *Service) PasswordSignIn(ctx context.Context, email, password string, re
 		_ = s.Audit.Log(ctx, audit.Event{Action: "signin.failed", Result: audit.Denied, Reason: "wrong password or unknown email", TargetType: "user", TargetName: email, Actor: anonActor(email),
 			Metadata: map[string]any{"method": "password", "failures": th.Failures, "max_attempts": pol.LockoutAttempts}})
 		if th.LockedUntil != nil && th.LockedUntil.After(s.now()) {
-			return SignInResult{}, nil, lockMessage(*th.LockedUntil, th.Failures)
+			return SignInResult{}, nil, lockMessage(ctx, *th.LockedUntil, th.Failures)
 		}
 		left := pol.LockoutAttempts - th.Failures
-		return SignInResult{}, nil, api.Err(http.StatusUnauthorized, api.CodeInvalidCredentials,
-			fmt.Sprintf("The email or password is incorrect. %d %s left before a %d-minute lock.", left, plural(int(left), "attempt", "attempts"), pol.LockoutMinutes)).
+		return SignInResult{}, nil, api.Err(http.StatusUnauthorized, api.CodeInvalidCredentials, say(ctx, mWrongPassword, "left", left, "minutes", pol.LockoutMinutes)).
 			WithMeta("attemptsLeft", left, "lockMinutes", pol.LockoutMinutes)
 	}
 	// A deactivated account says so only to someone who knows its password.
 	if u.Status == "deactivated" {
-		return SignInResult{}, nil, api.Err(http.StatusForbidden, "account_deactivated", "This account was deactivated. Ask your instance admin to reactivate it; nothing was deleted.").
+		return SignInResult{}, nil, api.Err(http.StatusForbidden, "account_deactivated", say(ctx, mDeactivated)).
 			WithMeta("deactivatedAt", u.DeactivatedAt)
 	}
 	_ = s.Q.ClearSignInThrottle(ctx, email)
@@ -256,7 +255,7 @@ func (s *Service) completeSignInWith(ctx context.Context, u store.User, method s
 
 // loadTwoFactor finds a pending two-factor sign-in.
 func (s *Service) loadTwoFactor(ctx context.Context, challenge string) (store.AuthChallenge, store.User, twoFactorChallenge, error) {
-	expired := api.Err(http.StatusUnauthorized, "challenge_expired", "This sign-in expired. Start again with your email.")
+	expired := api.Err(http.StatusUnauthorized, "challenge_expired", say(ctx, mSignInExpired))
 	ch, err := s.Q.GetChallenge(ctx, store.GetChallengeParams{TokenHash: authn.HashToken(challenge), Kind: "two_factor"})
 	if err != nil || ch.UserID == nil {
 		return store.AuthChallenge{}, store.User{}, twoFactorChallenge{}, expired
@@ -273,15 +272,15 @@ func (s *Service) loadTwoFactor(ctx context.Context, challenge string) (store.Au
 const maxTwoFactorAttempts = 5
 
 // failTwoFactor counts a wrong second factor; after five the sign-in ends.
-func (s *Service) failTwoFactor(ctx context.Context, ch store.AuthChallenge, u store.User, detail string) error {
+func (s *Service) failTwoFactor(ctx context.Context, ch store.AuthChallenge, u store.User, wrong i18n.Msg) error {
 	n, _ := s.Q.BumpChallengeAttempts(ctx, ch.ID)
 	left := maxTwoFactorAttempts - int(n)
 	if left <= 0 {
 		_ = s.Q.DeleteChallenge(ctx, ch.ID)
 		_ = s.Audit.Log(ctx, audit.Event{Action: "auth.two_factor", Result: audit.Denied, Reason: "too many wrong codes", TargetType: "user", TargetID: u.ID.String(), TargetName: u.Email, Actor: actorFor(u)})
-		return api.Err(http.StatusUnauthorized, "challenge_expired", "Too many wrong codes. Start again with your email.")
+		return api.Err(http.StatusUnauthorized, "challenge_expired", say(ctx, mTooManyCodes))
 	}
-	return api.Err(http.StatusUnauthorized, "invalid_code", fmt.Sprintf("%s %d %s left.", detail, left, plural(left, "attempt", "attempts"))).WithMeta("attemptsLeft", left)
+	return api.Err(http.StatusUnauthorized, "invalid_code", say(ctx, wrong, "left", left)).WithMeta("attemptsLeft", left)
 }
 
 // TwoFactor completes a sign-in with an authenticator code or a recovery code.
@@ -294,18 +293,18 @@ func (s *Service) TwoFactor(ctx context.Context, challenge, method, code string)
 	switch method {
 	case "totp":
 		if u.TotpSecretEnc == nil {
-			return SignInResult{}, nil, s.failTwoFactor(ctx, ch, u, "That code didn't work.")
+			return SignInResult{}, nil, s.failTwoFactor(ctx, ch, u, mWrongCode)
 		}
 		secret, err := s.Box.OpenString(u.TotpSecretEnc, totpAD(u.ID))
 		if err != nil {
 			return SignInResult{}, nil, err
 		}
 		if !authn.VerifyTOTP(secret, code, s.now()) {
-			return SignInResult{}, nil, s.failTwoFactor(ctx, ch, u, "That code didn't work. Codes change every 30 seconds; check that your phone's clock is set automatically.")
+			return SignInResult{}, nil, s.failTwoFactor(ctx, ch, u, mWrongTOTP)
 		}
 	case "recovery":
 		if _, err := s.Q.UseRecoveryCode(ctx, store.UseRecoveryCodeParams{UserID: u.ID, CodeHash: hashRecovery(code)}); err != nil {
-			return SignInResult{}, nil, s.failTwoFactor(ctx, ch, u, "That recovery code isn't valid or was already used.")
+			return SignInResult{}, nil, s.failTwoFactor(ctx, ch, u, mWrongRecovery)
 		}
 		rc, _ := s.Q.RecoveryCodeStats(ctx, u.ID)
 		v, tot := int(rc.Remaining), int(rc.Total)
@@ -333,13 +332,6 @@ func (s *Service) SignOut(ctx context.Context) http.Cookie {
 
 func anonActor(email string) *audit.Actor {
 	return &audit.Actor{Type: "user", Name: email}
-}
-
-func plural(n int, one, many string) string {
-	if n == 1 {
-		return one
-	}
-	return many
 }
 
 func urlEscape(s string) string {

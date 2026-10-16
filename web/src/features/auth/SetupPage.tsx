@@ -9,6 +9,8 @@ import { Button, ButtonLink } from '@/components/ui/Button'
 import { Skeleton } from '@/components/ui/Feedback'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
+import { InstanceLanguageFields } from '@/features/language/InstanceLanguageFields'
+import { useMemberLanguage } from '@/features/language/useLanguage'
 import { cn } from '@/lib/cn'
 import { useDocumentTitle } from '@/lib/hooks'
 import { meQueryKey } from '@/lib/session'
@@ -515,6 +517,8 @@ function InstanceStep({ s, header, onBack, onDone }: { s: State; header: Header;
   const [tz, setTz] = useState(() => (!saved && (!s.instance.timezone || s.instance.timezone === 'UTC') ? browserTimezone() : s.instance.timezone) || 'UTC')
   const [url, setUrl] = useState(s.instance.publicUrl)
   const [updateCheck, setUpdateCheck] = useState(s.instance.updateCheck)
+  const { inst } = useMemberLanguage()
+  const [language, setLanguage] = useState(inst.defaultLanguage)
   const [check, setCheck] = useState<Schemas['URLCheck']>()
   const [checking, setChecking] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -555,7 +559,9 @@ function InstanceStep({ s, header, onBack, onDone }: { s: State; header: Header;
     if (errs.name || errs.url) return
     setBusy(true)
     try {
-      await http.PUT('/api/v1/setup/instance', { body: { name: name.trim(), publicUrl: url.trim(), timezone: tz, updateCheck } })
+      await http.PUT('/api/v1/setup/instance', {
+        body: { name: name.trim(), publicUrl: url.trim(), timezone: tz, updateCheck, defaultLanguage: language as Schemas['InstanceBasics']['defaultLanguage'] },
+      })
       await onDone()
     } catch (err) {
       const f = err instanceof ApiError ? err.problem.errors?.[0] : undefined
@@ -599,6 +605,8 @@ function InstanceStep({ s, header, onBack, onDone }: { s: State; header: Header;
           <span className="k font-medium">New workspaces start with this timezone.</span>
         </div>
       </div>
+      {/* The first sign-in asks for the default language (connect-and-reach brief §6). */}
+      <InstanceLanguageFields language={language} region="" onLanguage={setLanguage} onRegion={() => {}} showRegion={false} />
       <div className="lbl">
         <label htmlFor={ids.url}>Public URL</label>
         <div className="flex gap-2">

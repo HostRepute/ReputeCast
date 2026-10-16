@@ -17,6 +17,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/apikeys"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/mailer"
 	"github.com/hostrepute/reputecast/internal/secrets"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -137,7 +138,7 @@ func (s *Service) identities(ctx context.Context, userIDs []uuid.UUID) (map[uuid
 	return out, nil
 }
 
-func (s *Service) toMember(r memberRow, ids []access.Identity, lists map[uuid.UUID]string, pol store.InstanceSetting, caller uuid.UUID, owners int64) TeamMember {
+func (s *Service) toMember(l i18n.Lang, r memberRow, ids []access.Identity, lists map[uuid.UUID]string, pol store.InstanceSetting, caller uuid.UUID, owners int64) TeamMember {
 	perms := authz.Effective(r.RoleKey, r.RoleBuiltin, r.RolePermissions)
 	ssoOnly := false
 	if !r.HasPassword && r.PasskeyCount == 0 {
@@ -173,10 +174,10 @@ func (s *Service) toMember(r memberRow, ids []access.Identity, lists map[uuid.UU
 		m.LastActiveAt = r.UserLastActiveAt
 	}
 	if r.IsInstanceAdmin {
-		m.Notes = append(m.Notes, "instance admin")
+		m.Notes = append(m.Notes, mNoteInstanceAdmin.Text(l, nil))
 	}
 	if r.BreakGlass {
-		m.Notes = append(m.Notes, "break-glass")
+		m.Notes = append(m.Notes, mNoteBreakGlass.Text(l, nil))
 	}
 	if m.Status != "active" {
 		m.SignIn = []access.MemberSignInMethod{}
@@ -223,7 +224,7 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, p *authz.Princi
 	out := TeamMemberList{Items: []TeamMember{}, Roles: []TeamRoleRef{}, Helpers: access.Helpers(ctx, s.Q, ws.ID, authz.TeamManage)}
 	q := strings.ToLower(strings.TrimSpace(f.Query))
 	for _, r := range rows {
-		m := s.toMember(fromListRow(r), idents[r.UserID], lists, pol, p.UserID, owners)
+		m := s.toMember(i18n.LangFrom(ctx), fromListRow(r), idents[r.UserID], lists, pol, p.UserID, owners)
 		out.Counts.Members++
 		if m.Status == "active" {
 			out.Counts.Active++
@@ -258,16 +259,8 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, p *authz.Princi
 	}
 	out.CanInvite = p.Can(authz.TeamInvite)
 	out.CanManage = p.Can(authz.TeamManage)
-	if !out.CanInvite {
-		out.Reason = "You can view the team. Inviting needs the team:invite permission and changing roles needs team:manage."
-		if len(out.Helpers) > 0 {
-			out.Reason += " Ask " + access.OrList(out.Helpers) + "."
-		}
-	} else if !out.CanManage {
-		out.Reason = "You can invite people with roles you hold. Changing roles needs team:manage."
-		if len(out.Helpers) > 0 {
-			out.Reason += " Ask " + access.OrList(out.Helpers) + "."
-		}
+	if !out.CanInvite || !out.CanManage {
+		out.Reason = readOnlyReason(i18n.LangFrom(ctx), out.CanInvite, out.Helpers)
 	}
 	return out, nil
 }
@@ -362,7 +355,7 @@ func (s *Service) Get(ctx context.Context, ws *store.Workspace, p *authz.Princip
 		return TeamMemberDetail{}, err
 	}
 	pol := s.policy(ctx)
-	m := s.toMember(memberRow{r}, idents[r.UserID], lists, pol, p.UserID, owners)
+	m := s.toMember(i18n.LangFrom(ctx), memberRow{r}, idents[r.UserID], lists, pol, p.UserID, owners)
 	perms := authz.Effective(r.RoleKey, r.RoleBuiltin, r.RolePermissions)
 	scope := access.ParseScope(r.Scope)
 	scopeLabel := "all lists"

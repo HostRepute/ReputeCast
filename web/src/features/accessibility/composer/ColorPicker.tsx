@@ -90,6 +90,7 @@ export function ContrastChip({ value, spec }: { value: string; spec: ContrastSpe
 }
 
 function HexInput({ value, label, onCommit, className }: { value: string; label: string; onCommit: (v: string) => void; className?: string }) {
+  const t = useT()
   const [draft, setDraft] = useState(value)
   const focused = useRef(false)
   useEffect(() => {
@@ -103,7 +104,7 @@ function HexInput({ value, label, onCommit, className }: { value: string; label:
       className={`in mono ${className ?? ''}`}
       aria-label={label}
       value={/^#[0-9a-f]{3,8}$/i.test(draft) ? draft.toUpperCase() : draft}
-      placeholder="none"
+      placeholder={t(m.noColor)}
       onFocus={() => (focused.current = true)}
       onBlur={() => {
         focused.current = false
@@ -397,7 +398,8 @@ function ContrastSection({ evaluation: e, spec, sugs, onPick }: { evaluation: Ev
                 style={spec.field === 'background' ? { background: s.color, color: e.against } : { background: e.against, color: s.color }}
                 aria-hidden="true"
               >
-                Aa
+                {/* A sample of the letters, the same in every language. */}
+                {'Aa'}
               </span>
               <span className="flex min-w-0 flex-1 flex-col">
                 <b className="mono text-[12px]">{s.color}</b>

@@ -1,11 +1,14 @@
 import { useBlocker } from '@tanstack/react-router'
 import { useId, useState, type ReactNode } from 'react'
 import { errorMessage } from '@/api/client'
+import { useT } from '@/i18n'
+import { common } from '@/i18n/common'
 import { cn } from '@/lib/cn'
 import { count } from '@/lib/format'
 import { Badge, type Tone } from './Badge'
 import { Button } from './Button'
 import { Dialog } from './Dialog'
+import { m } from './messages'
 import { Note } from './Note'
 
 /**
@@ -101,11 +104,12 @@ export function ConfirmDialog({
   busyLabel,
   confirmVariant = tone === 'bad' ? 'danger' : 'primary',
   onConfirm,
-  cancelLabel = 'Cancel',
+  cancelLabel,
   secondary,
   typedConfirmation,
   reason,
 }: ConfirmDialogProps) {
+  const t = useT()
   const id = useId()
   const [typed, setTyped] = useState('')
   const [why, setWhy] = useState('')
@@ -115,9 +119,9 @@ export function ConfirmDialog({
   const minReason = reason?.minLength ?? 10
   const blocked =
     typedConfirmation && typed.trim() !== typedConfirmation.expected
-      ? `Type ${typedConfirmation.expected} to confirm.`
+      ? t(m.typeToConfirm, { name: typedConfirmation.expected })
       : reason && why.trim().length < minReason
-        ? `Give a reason of at least ${minReason} characters.`
+        ? t(m.reasonTooShort, { min: minReason })
         : undefined
 
   const close = (next: boolean) => {
@@ -158,7 +162,7 @@ export function ConfirmDialog({
         <>
           {secondary}
           <Button onClick={() => close(false)} disabled={busy}>
-            {cancelLabel}
+            {cancelLabel ?? t(common.cancel)}
           </Button>
           <Button variant={confirmVariant === 'danger' ? 'danger-primary' : 'primary'} onClick={confirm} loading={busy} busyLabel={busyLabel} disabledReason={blocked}>
             {confirmLabel}
@@ -232,6 +236,7 @@ export function BulkResultDialog({
   onUndo?: () => void | Promise<unknown>
   undoLabel?: ReactNode
 }) {
+  const t = useT()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string>()
   const partial = Boolean(skipped && skipped.count > 0)
@@ -253,18 +258,18 @@ export function BulkResultDialog({
       open={open}
       onOpenChange={onOpenChange}
       layout="confirm"
-      eyebrow={<Badge tone={partial ? 'info' : 'ok'}>{partial ? 'Bulk action · partial result' : 'Bulk action · done'}</Badge>}
+      eyebrow={<Badge tone={partial ? 'info' : 'ok'}>{partial ? t(m.bulkPartial) : t(m.bulkDone)}</Badge>}
       title={title}
       description={description}
       footer={
         <>
           {onUndo ? (
             <Button onClick={undo} loading={busy}>
-              {undoLabel ?? `Undo for the ${count(done.count)}`}
+              {undoLabel ?? t(m.undoFor, { count: count(done.count) })}
             </Button>
           ) : null}
           <Button variant="primary" onClick={() => onOpenChange(false)} disabled={busy}>
-            Done
+            {t(common.done)}
           </Button>
         </>
       }
@@ -289,9 +294,9 @@ export function BulkResultDialog({
  */
 export function UnsavedChangesGuard({
   dirty,
-  title = 'Leave without saving?',
+  title,
   description,
-  saveLabel = 'Save and leave',
+  saveLabel,
   onSave,
 }: {
   dirty: boolean
@@ -301,6 +306,7 @@ export function UnsavedChangesGuard({
   saveLabel?: ReactNode
   onSave?: () => Promise<unknown>
 }) {
+  const t = useT()
   const blocker = useBlocker({ shouldBlockFn: () => dirty, enableBeforeUnload: dirty, withResolver: true })
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string>()
@@ -323,20 +329,20 @@ export function UnsavedChangesGuard({
       open
       onOpenChange={(o) => !o && !busy && blocker.reset()}
       layout="confirm"
-      eyebrow={<Badge tone="warn">Unsaved changes</Badge>}
-      title={title}
+      eyebrow={<Badge tone="warn">{t(m.unsavedChanges)}</Badge>}
+      title={title ?? t(m.leaveTitle)}
       description={description}
       footer={
         <>
           <Button onClick={() => blocker.reset()} disabled={busy}>
-            Stay
+            {t(m.stay)}
           </Button>
           <Button onClick={() => blocker.proceed()} disabled={busy}>
-            Leave without saving
+            {t(m.leaveWithoutSaving)}
           </Button>
           {onSave ? (
             <Button variant="primary" onClick={save} loading={busy}>
-              {saveLabel}
+              {saveLabel ?? t(m.saveAndLeave)}
             </Button>
           ) : null}
         </>

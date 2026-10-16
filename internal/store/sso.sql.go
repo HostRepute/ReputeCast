@@ -154,7 +154,7 @@ func (q *Queries) SSOCreateProvider(ctx context.Context, arg SSOCreateProviderPa
 const sSOCreateUser = `-- name: SSOCreateUser :one
 INSERT INTO users (id, email, name, timezone, avatar_color, twofa_grace_until)
 VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING id, email, name, avatar_color, timezone, password_hash, password_set_at, must_change_password, is_instance_admin, break_glass, status, deactivated_at, totp_secret_enc, totp_enabled_at, twofa_grace_until, failed_attempts, locked_until, last_sign_in_at, last_active_at, created_at, updated_at, webauthn_id, totp_label, recovery_codes_saved_at, avatar_updated_at
+RETURNING id, email, name, avatar_color, timezone, password_hash, password_set_at, must_change_password, is_instance_admin, break_glass, status, deactivated_at, totp_secret_enc, totp_enabled_at, twofa_grace_until, failed_attempts, locked_until, last_sign_in_at, last_active_at, created_at, updated_at, webauthn_id, totp_label, recovery_codes_saved_at, avatar_updated_at, language, region_format, hour_cycle, week_start, language_prompted_at
 `
 
 type SSOCreateUserParams struct {
@@ -202,6 +202,11 @@ func (q *Queries) SSOCreateUser(ctx context.Context, arg SSOCreateUserParams) (U
 		&i.TotpLabel,
 		&i.RecoveryCodesSavedAt,
 		&i.AvatarUpdatedAt,
+		&i.Language,
+		&i.RegionFormat,
+		&i.HourCycle,
+		&i.WeekStart,
+		&i.LanguagePromptedAt,
 	)
 	return i, err
 }

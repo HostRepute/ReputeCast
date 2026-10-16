@@ -942,6 +942,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/language": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Change your app language and region format
+         * @description Sets the language of ReputeCast's interface and of the emails it sends you, and how dates, times and numbers are written. "default" follows the instance default; "auto" follows the language (region format) or the region format (clock, first day of the week). Times stay in each workspace's timezone.
+         */
+        put: operations["update-my-language"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/language/suggestion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Answer the browser's language suggestion
+         * @description Records that you answered "Your browser prefers …", so it isn't offered again on any device.
+         */
+        put: operations["answer-language-suggestion"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/notification-preferences": {
         parameters: {
             query?: never;
@@ -12497,6 +12537,8 @@ export interface components {
             settings: components["schemas"]["InstanceAuditSettings"];
         };
         InstanceBasics: {
+            /** @enum {string} */
+            defaultLanguage?: "en" | "vi";
             name: string;
             /** Format: uri */
             publicUrl: string;
@@ -12527,8 +12569,13 @@ export interface components {
             until: string;
         };
         InstanceInfo: {
+            /** @example en */
+            defaultLanguage?: string;
+            /** @example standard */
+            defaultRegionFormat?: string;
             /** @example Acme ReputeCast */
             instanceName: string;
+            languages?: components["schemas"]["LanguageOption"][];
             logoSvg?: string;
             passkeys: boolean;
             password: boolean;
@@ -12636,6 +12683,10 @@ export interface components {
         };
         InstanceSettings: {
             configPublicUrl?: string;
+            /** @example en */
+            defaultLanguage?: string;
+            /** @example standard */
+            defaultRegionFormat?: string;
             defaultTimezone: string;
             logoSvg?: string;
             name: string;
@@ -12644,6 +12695,10 @@ export interface components {
             webhooks?: components["schemas"]["PublicURLWebhooks"];
         };
         InstanceSettingsInput: {
+            /** @enum {string} */
+            defaultLanguage?: "en" | "vi";
+            /** @enum {string} */
+            defaultRegionFormat?: "standard" | "en-US" | "vi-VN" | "de-DE" | "en-GB" | "es-ES" | "fr-FR" | "pt-BR";
             defaultTimezone: string;
             name: string;
             publicUrl: string;
@@ -13543,6 +13598,9 @@ export interface components {
             /** Format: date-time */
             expiresAt: string;
             inviterName: string;
+            inviterUnknown?: boolean;
+            /** @example en */
+            language?: string;
             /** @description Personal message from the inviter */
             message?: string;
             passwordAllowed: boolean;
@@ -13602,6 +13660,12 @@ export interface components {
         LanguageDefaults: {
             default: string;
             fallback: string;
+        };
+        LanguageOption: {
+            /** @example vi */
+            code: string;
+            /** @example Tiếng Việt */
+            name: string;
         };
         LanguagePageCopy: {
             /** Format: date-time */
@@ -14169,6 +14233,11 @@ export interface components {
             workspaces: components["schemas"]["MeWorkspace"][];
         };
         MeInstance: {
+            /** @example en */
+            defaultLanguage?: string;
+            /** @example standard */
+            defaultRegionFormat?: string;
+            languages?: components["schemas"]["LanguageOption"][];
             latestVersion?: string;
             name: string;
             publicUrl: string;
@@ -14183,9 +14252,11 @@ export interface components {
             hasPassword: boolean;
             id: string;
             isInstanceAdmin: boolean;
+            languageSuggestionAnswered?: boolean;
             name: string;
             /** Format: int64 */
             passkeys: number;
+            preferences?: components["schemas"]["MemberLanguage"];
             /**
              * Format: int64
              * @description Unused recovery codes
@@ -14228,6 +14299,28 @@ export interface components {
         };
         MediaAssetList: {
             items: components["schemas"]["MediaAsset"][];
+        };
+        MemberLanguage: {
+            /**
+             * @description auto follows the region format
+             * @enum {string}
+             */
+            hourCycle: "auto" | "h23" | "h12";
+            /**
+             * @description default follows the instance default
+             * @enum {string}
+             */
+            language: "default" | "en" | "vi" | "en-XA";
+            /**
+             * @description auto follows the app language
+             * @enum {string}
+             */
+            regionFormat: "auto" | "standard" | "en-US" | "vi-VN" | "de-DE" | "en-GB" | "es-ES" | "fr-FR" | "pt-BR";
+            /**
+             * @description auto follows the region format
+             * @enum {string}
+             */
+            weekStart: "auto" | "monday" | "sunday";
         };
         MemberSignInMethod: {
             /** @enum {string} */
@@ -17531,6 +17624,18 @@ export interface components {
                 [key: string]: string;
             };
         };
+        SuggestionAnswer: {
+            /**
+             * @description use switched to the language; keep and dismiss didn't
+             * @enum {string}
+             */
+            answer: "use" | "keep" | "dismiss";
+            /**
+             * @description The language the browser suggested
+             * @enum {string}
+             */
+            language: "en" | "vi";
+        };
         SunsetPolicy: {
             /** Format: int64 */
             activeDays: number;
@@ -17804,6 +17909,8 @@ export interface components {
              * @description Defaults to 7
              */
             expiresInDays?: number;
+            /** @enum {string} */
+            language?: "en" | "vi";
             message?: string;
             /** Format: uuid */
             roleId: string;
@@ -17819,9 +17926,12 @@ export interface components {
             canEmail: boolean;
             /** Format: int64 */
             defaultDays: number;
+            /** @example en */
+            defaultLanguage?: string;
             defaultRoleId: string;
             expiryOptions: number[];
             jit: components["schemas"]["TeamJITHint"][];
+            languages?: components["schemas"]["LanguageOption"][];
             lists: components["schemas"]["ScopedList"][];
             roles: components["schemas"]["TeamInviteRole"][];
             senderDomains: string[];
@@ -21599,6 +21709,70 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-my-language": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MemberLanguage"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberLanguage"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "answer-language-suggestion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SuggestionAnswer"];
+            };
+        };
         responses: {
             /** @description No Content */
             204: {

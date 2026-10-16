@@ -2,6 +2,7 @@ import { isPluralElement, isSelectElement, isTagElement, type MessageFormatEleme
 import { IntlMessageFormat, type Formatters, type PrimitiveType } from 'intl-messageformat'
 import { Fragment, cloneElement, isValidElement, type ReactNode } from 'react'
 import type { MessageDescriptor } from './define'
+import { PSEUDO_LOCALE, pseudoSource, pseudoWrap } from './pseudo'
 import type { I18nState } from './store'
 
 /** Values for a plain-text message. */
@@ -78,14 +79,14 @@ function compile(text: string, locale: string, region: string): Compiled | null 
   return c
 }
 
-function resolve(state: I18nState, d: MessageDescriptor): { text: string; locale: string } {
+function resolve(state: I18nState, d: MessageDescriptor): { text: string; locale: string; pseudo?: boolean } {
+  // The pseudo-locale accents the English source; formatting brackets it.
+  if (state.locale === PSEUDO_LOCALE) return { text: pseudoSource(d.message), locale: 'en', pseudo: true }
   const translated = state.catalog[d.id]
   return translated === undefined ? { text: d.message, locale: 'en' } : { text: translated, locale: state.locale }
 }
 
-/** Formats a message as plain text. Tags keep their text and lose their markup. */
-export function formatText(state: I18nState, d: MessageDescriptor, values?: Values): string {
-  const { text, locale } = resolve(state, d)
+function plain(state: I18nState, d: MessageDescriptor, text: string, locale: string, values?: Values): string {
   const c = compile(text, locale, state.region)
   if (!c) return text
   try {
@@ -97,13 +98,32 @@ export function formatText(state: I18nState, d: MessageDescriptor, values?: Valu
   }
 }
 
+/** Formats a message as plain text. Tags keep their text and lose their markup. */
+export function formatText(state: I18nState, d: MessageDescriptor, values?: Values): string {
+  const { text, locale, pseudo } = resolve(state, d)
+  const out = plain(state, d, text, locale, values)
+  if (!pseudo) return out
+  const [open, close] = pseudoWrap(out)
+  return open + out + close
+}
+
+/** Rich values as text, to measure a pseudo-locale string: React nodes count as nothing. */
+function textValues(values?: RichValues): Values {
+  const out: Values = {}
+  for (const [k, v] of Object.entries(values ?? {})) {
+    if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean' || v === null || v === undefined || v instanceof Date) out[k] = v
+    else if (typeof v !== 'function') out[k] = ''
+  }
+  return out
+}
+
 function keyed(nodes: ReactNode[]): ReactNode[] {
   return nodes.map((n, i) => (isValidElement(n) && n.key == null ? cloneElement(n, { key: i }) : n))
 }
 
 /** Formats a message with React nodes and tag functions. */
 export function formatRich(state: I18nState, d: MessageDescriptor, values?: RichValues): ReactNode {
-  const { text, locale } = resolve(state, d)
+  const { text, locale, pseudo } = resolve(state, d)
   const c = compile(text, locale, state.region)
   if (!c) return text
   const vals: Record<string, unknown> = { ...c.tags }
@@ -112,8 +132,14 @@ export function formatRich(state: I18nState, d: MessageDescriptor, values?: Rich
   }
   try {
     const out = c.mf.format<ReactNode>(vals as Record<string, PrimitiveType | ReactNode>)
-    if (!Array.isArray(out)) return out
-    return out.map((part, i) => <Fragment key={i}>{part}</Fragment>)
+    const parts = Array.isArray(out) ? out : [out]
+    if (pseudo) {
+      const [open, close] = pseudoWrap(plain(state, d, text, locale, textValues(values)))
+      parts.unshift(open)
+      parts.push(close)
+    }
+    if (parts.length === 1) return parts[0]
+    return parts.map((part, i) => <Fragment key={i}>{part}</Fragment>)
   } catch (err) {
     if (import.meta.env.DEV) console.error(`i18n: can't format ${d.id}`, err)
     return text

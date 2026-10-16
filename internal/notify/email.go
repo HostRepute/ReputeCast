@@ -3,8 +3,6 @@ package notify
 import (
 	"context"
 	"errors"
-	"fmt"
-	"html"
 	"log/slog"
 	"sort"
 	"strings"
@@ -15,8 +13,10 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/riverqueue/river"
 
+	"github.com/hostrepute/reputecast/internal/applang"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/mailer"
+	"github.com/hostrepute/reputecast/internal/membermail"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -177,61 +177,32 @@ func (w *EmailWorker) base(ctx context.Context) string {
 }
 
 func (w *EmailWorker) sendOne(ctx context.Context, q *store.Queries, u store.User, n store.ListPendingEmailNotificationsRow) {
-	base := w.base(ctx)
-	subject := n.Title
-	if n.WorkspaceName != "" {
-		subject = "[" + n.WorkspaceName + "] " + n.Title
-	}
-	var text, body strings.Builder
-	fmt.Fprintf(&text, "%s\n\n%s\n", n.Title, n.Body)
-	fmt.Fprintf(&body, "<p style=\"font:600 16px sans-serif;margin:0 0 8px\">%s</p><p style=\"font:14px/1.5 sans-serif;margin:0 0 16px\">%s</p>", html.EscapeString(n.Title), html.EscapeString(n.Body))
-	if n.Link != "" {
-		fmt.Fprintf(&text, "\nOpen: %s%s\n", base, n.Link)
-		fmt.Fprintf(&body, "<p style=\"font:14px sans-serif\"><a href=\"%s%s\">Open in ReputeCast</a></p>", html.EscapeString(base), html.EscapeString(n.Link))
-	}
-	w.footer(&text, &body, base, n.WorkspaceSlug)
-	w.send(ctx, q, u, n.WorkspaceID, subject, text.String(), body.String(), []uuid.UUID{n.ID})
+	w.sendDigest(ctx, q, u, []store.ListPendingEmailNotificationsRow{n})
 }
 
+// sendDigest emails one notification in full, or several of one workspace
+// together, in the member's app language.
 func (w *EmailWorker) sendDigest(ctx context.Context, q *store.Queries, u store.User, rows []store.ListPendingEmailNotificationsRow) {
 	base := w.base(ctx)
-	ws := rows[0].WorkspaceName
-	subject := fmt.Sprintf("%d notifications", len(rows))
-	if len(rows) == 1 {
-		subject = rows[0].Title
-	}
-	if ws != "" {
-		subject = "[" + ws + "] " + subject
-	}
-	var text, body strings.Builder
-	for _, n := range rows {
-		fmt.Fprintf(&text, "• %s: %s\n", n.Title, n.Body)
-		fmt.Fprintf(&body, "<p style=\"font:14px/1.5 sans-serif;margin:0 0 12px\"><b>%s</b><br>%s", html.EscapeString(n.Title), html.EscapeString(n.Body))
-		if n.Link != "" {
-			fmt.Fprintf(&text, "  %s%s\n", base, n.Link)
-			fmt.Fprintf(&body, "<br><a href=\"%s%s\">Open</a>", html.EscapeString(base), html.EscapeString(n.Link))
-		}
-		body.WriteString("</p>")
-	}
-	w.footer(&text, &body, base, rows[0].WorkspaceSlug)
-	w.send(ctx, q, u, rows[0].WorkspaceID, subject, text.String(), body.String(), ids(rows))
-}
-
-func (w *EmailWorker) footer(text, body *strings.Builder, base, slug string) {
 	prefs := base + "/"
-	if slug != "" {
+	if slug := rows[0].WorkspaceSlug; slug != "" {
 		prefs = base + "/w/" + slug + "/notifications#preferences"
 	}
-	fmt.Fprintf(text, "\n—\nYou get this email because of your notification preferences: %s\n", prefs)
-	fmt.Fprintf(body, "<p style=\"font:12px sans-serif;color:#5B6472;margin-top:24px\">You get this email because of your <a href=\"%s\">notification preferences</a>.</p>", html.EscapeString(prefs))
+	d := membermail.NotificationEmail{Workspace: rows[0].WorkspaceName, Base: base, Preferences: prefs}
+	for _, n := range rows {
+		d.Items = append(d.Items, membermail.NotificationLine{Title: n.Title, Body: n.Body, Link: n.Link})
+	}
+	msg := membermail.Notification(applang.ForUser(ctx, q, u), d)
+	msg.WorkspaceID, msg.To, msg.ToName = rows[0].WorkspaceID, u.Email, u.Name
+	w.send(ctx, q, u, msg, ids(rows))
 }
 
-func (w *EmailWorker) send(ctx context.Context, q *store.Queries, u store.User, wsID *uuid.UUID, subject, text, htmlBody string, ids []uuid.UUID) {
+func (w *EmailWorker) send(ctx context.Context, q *store.Queries, u store.User, msg mailer.Message, ids []uuid.UUID) {
 	var m mailer.Sender = mailer.Unavailable{}
 	if w.Mail != nil {
 		m = w.Mail()
 	}
-	_, err := m.SendSystem(ctx, mailer.Message{WorkspaceID: wsID, To: u.Email, ToName: u.Name, Subject: subject, Text: text, HTML: htmlBody, Kind: "notification"})
+	_, err := m.SendSystem(ctx, msg)
 	status := "sent"
 	switch {
 	case errors.Is(err, mailer.ErrNoSystemProvider):

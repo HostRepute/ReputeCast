@@ -1,6 +1,8 @@
 import type { CSSProperties, ReactNode } from 'react'
+import { T } from '@/i18n'
 import { cn } from '@/lib/cn'
 import { Icon } from '../icons/Icon'
+import { m } from './messages'
 
 /** Grey block shaped like the content it stands in for. */
 export function Skeleton({ w, h = 12, r, className, style }: { w?: number | string; h?: number | string; r?: number; className?: string; style?: CSSProperties }) {
@@ -82,7 +84,11 @@ export function ErrorPanel({
       <div className="flex min-w-0 flex-1 flex-col gap-1.5">
         <h2 className="m-0 text-[15px] font-semibold text-bad-fg">{title}</h2>
         {children ? <div className="text-[13px] text-ink-2">{children}</div> : null}
-        {reference ? <span className="k">Reference <span className="mono">{reference}</span></span> : null}
+        {reference ? (
+          <span className="k">
+            <T msg={m.reference} values={{ reference, mono: (c) => <span className="mono">{c}</span> }} />
+          </span>
+        ) : null}
         {actions ? <div className="mt-1.5 flex flex-wrap gap-2">{actions}</div> : null}
       </div>
     </section>

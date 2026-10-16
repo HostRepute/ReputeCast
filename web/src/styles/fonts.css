@@ -1,6 +1,8 @@
 /* IBM Plex is self-hosted (no requests to Google Fonts): ReputeCast never
    sends visitor data to third parties. Each file covers every subset with
-   unicode-range, so browsers download only what a page uses. */
+   unicode-range (Latin, Latin Extended, Vietnamese, Cyrillic and, for Plex
+   Sans, Greek), so browsers download only what a page uses: Tiếng Việt
+   loads the Vietnamese subset, English doesn't. */
 @import '@fontsource/ibm-plex-sans/400.css';
 @import '@fontsource/ibm-plex-sans/500.css';
 @import '@fontsource/ibm-plex-sans/600.css';

@@ -17,6 +17,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authn"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -96,13 +97,15 @@ type caller struct {
 func (a *Authenticator) Middleware(hapi huma.API) func(huma.Context, func(huma.Context)) {
 	return func(hctx huma.Context, next func(huma.Context)) {
 		access := accessOf(hctx.Operation())
-		ctx := hctx.Context()
+		// The language the response reads in (i18n.LangFrom).
+		ctx := i18n.WithLang(hctx.Context(), RequestLang(hctx.Header("Accept-Language"), nil))
 		if access.Kind == AccessPublic {
 			// Public operations still see a signed-in user when there is one
 			// (accepting an invite while signed in as someone else).
 			if u, s, _ := a.sessionUser(ctx, hctx); u != nil {
 				ctx = context.WithValue(ctx, userKey, u)
 				ctx = context.WithValue(ctx, sessionKey, s)
+				ctx = i18n.WithLang(ctx, RequestLang(hctx.Header("Accept-Language"), u))
 			}
 			next(huma.WithContext(hctx, ctx))
 			return
@@ -114,6 +117,11 @@ func (a *Authenticator) Middleware(hapi huma.API) func(huma.Context, func(huma.C
 			return
 		}
 		p, u, s := c.p, c.u, c.s
+		if u != nil {
+			// Problems from here on read in the member's language too.
+			ctx = i18n.WithLang(ctx, RequestLang(hctx.Header("Accept-Language"), u))
+			hctx = huma.WithContext(hctx, ctx)
+		}
 		// refuse answers with a problem, logging the call when an
 		// integration key made it.
 		refuse := func(perr *Problem) {

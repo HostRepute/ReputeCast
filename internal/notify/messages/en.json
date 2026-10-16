@@ -1,0 +1,16 @@
+{
+  "summary.all": {"message": "All events", "note": "Account & security › Notification preferences: what notifies you in-app or by email"},
+  "summary.off": {"message": "Off", "note": "no event notifies you on this channel; quiet hours are off"},
+  "summary.approvals": {"message": "approvals", "note": "the three approval events at once; a summary starts with it: Approvals, auto-pauses, provider down"},
+  "summary.quietHours": {"message": "{start}–{end} {timezone}, email only", "note": "start, end: 22:00, 07:00; timezone: America/New_York"},
+  "short.approval_requested": {"message": "approval requests", "note": "event types in a summary, joined with commas; the first one gets a capital"},
+  "short.approval_decided": "approval decisions",
+  "short.approval_invalidated": "invalidated approvals",
+  "short.send_paused": "auto-pauses",
+  "short.provider_down": "provider down",
+  "short.webhooks_silent": "silent webhooks",
+  "short.invite_accepted": "invites",
+  "short.hostrepute_alert": "HostRepute alerts",
+  "short.integration_attention": "integration problems",
+  "short.post_draft_created": "post drafts"
+}

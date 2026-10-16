@@ -47,7 +47,7 @@ func (s *Service) webAuthn(ctx context.Context) (*webauthn.WebAuthn, error) {
 	pub := s.publicURL(ctx)
 	u, err := url.Parse(pub)
 	if err != nil || u.Host == "" {
-		return nil, api.Err(http.StatusConflict, "public_url_invalid", "Passkeys need the instance's public URL. Set it in Instance admin › Instance settings.")
+		return nil, api.Err(http.StatusConflict, "public_url_invalid", say(ctx, mPublicURL))
 	}
 	name := st.Name
 	if name == "" {
@@ -63,7 +63,7 @@ func (s *Service) webAuthn(ctx context.Context) (*webauthn.WebAuthn, error) {
 		},
 	})
 	if err != nil {
-		return nil, api.Err(http.StatusConflict, "public_url_invalid", "Passkeys need a public URL with a domain name (not an IP address). Set it in Instance admin › Instance settings.")
+		return nil, api.Err(http.StatusConflict, "public_url_invalid", say(ctx, mPublicURLDomain))
 	}
 	return wa, nil
 }
@@ -143,8 +143,8 @@ func (s *Service) storeCeremony(ctx context.Context, kind string, userID *uuid.U
 	return token, err
 }
 
-func passkeyExpired() *api.Problem {
-	return api.Err(http.StatusBadRequest, "challenge_expired", "The passkey request expired. Try again.")
+func passkeyExpired(ctx context.Context) *api.Problem {
+	return api.Err(http.StatusBadRequest, "challenge_expired", say(ctx, mPasskeyExpired))
 }
 
 // BeginPasskeyRegistration starts adding a passkey to the signed-in account.
@@ -198,12 +198,12 @@ func (s *Service) FinishPasskeyRegistration(ctx context.Context, challenge strin
 	}
 	ch, err := s.Q.GetChallenge(ctx, store.GetChallengeParams{TokenHash: authn.HashToken(challenge), Kind: "webauthn_register"})
 	if err != nil || ch.UserID == nil || *ch.UserID != cu.ID {
-		return AccountPasskey{}, passkeyExpired()
+		return AccountPasskey{}, passkeyExpired(ctx)
 	}
 	_ = s.Q.DeleteChallenge(ctx, ch.ID)
 	var session webauthn.SessionData
 	if err := json.Unmarshal(ch.Data, &session); err != nil {
-		return AccountPasskey{}, passkeyExpired()
+		return AccountPasskey{}, passkeyExpired(ctx)
 	}
 	wa, err := s.webAuthn(ctx)
 	if err != nil {
@@ -219,12 +219,12 @@ func (s *Service) FinishPasskeyRegistration(ctx context.Context, challenge strin
 	}
 	parsed, err := protocol.ParseCredentialCreationResponseBytes(credential)
 	if err != nil {
-		return AccountPasskey{}, api.Invalid("body.credential", "Your browser's answer couldn't be read. Try again.")
+		return AccountPasskey{}, api.Invalid("body.credential", say(ctx, mPasskeyUnreadable))
 	}
 	cred, err := wa.CreateCredential(w, session, parsed)
 	if err != nil {
 		s.Log.InfoContext(ctx, "passkey registration rejected", "user", u.ID, "err", err)
-		return AccountPasskey{}, api.Err(http.StatusUnprocessableEntity, "passkey_rejected", "The passkey couldn't be verified. Try again, or use another device or security key.")
+		return AccountPasskey{}, api.Err(http.StatusUnprocessableEntity, "passkey_rejected", say(ctx, mPasskeyRejected))
 	}
 	attachment := string(cred.Authenticator.Attachment)
 	if attachment != "platform" && attachment != "cross-platform" {
@@ -261,7 +261,7 @@ func (s *Service) FinishPasskeyRegistration(ctx context.Context, challenge strin
 	if err != nil {
 		var pgErr interface{ SQLState() string }
 		if errors.As(err, &pgErr) && pgErr.SQLState() == "23505" {
-			return AccountPasskey{}, api.Conflict("This passkey is already registered.")
+			return AccountPasskey{}, api.Conflict(say(ctx, mPasskeyTaken))
 		}
 		return AccountPasskey{}, err
 	}
@@ -275,7 +275,7 @@ func (s *Service) BeginPasskeySignIn(ctx context.Context) (PasskeyOptions, error
 		return PasskeyOptions{}, err
 	}
 	if !methodAllowed(st, "passkey") {
-		return PasskeyOptions{}, api.Err(http.StatusForbidden, "method_disabled", "Passkey sign-in is turned off on this instance.")
+		return PasskeyOptions{}, api.Err(http.StatusForbidden, "method_disabled", say(ctx, mPasskeyOff))
 	}
 	wa, err := s.webAuthn(ctx)
 	if err != nil {
@@ -292,20 +292,20 @@ func (s *Service) BeginPasskeySignIn(ctx context.Context) (PasskeyOptions, error
 	return PasskeyOptions{Challenge: token, Options: mustJSON(assertion.Response)}, nil
 }
 
-func passkeyFailed() *api.Problem {
-	return api.Err(http.StatusUnauthorized, "passkey_failed", "That passkey didn't work here. Try again, or sign in with your email and password.")
+func passkeyFailed(ctx context.Context) *api.Problem {
+	return api.Err(http.StatusUnauthorized, "passkey_failed", say(ctx, mPasskeyFailed))
 }
 
 // PasskeySignIn verifies a discoverable passkey and signs the person in.
 func (s *Service) PasskeySignIn(ctx context.Context, challenge string, credential json.RawMessage, remember bool) (SignInResult, *http.Cookie, error) {
 	ch, err := s.Q.GetChallenge(ctx, store.GetChallengeParams{TokenHash: authn.HashToken(challenge), Kind: "webauthn_login"})
 	if err != nil {
-		return SignInResult{}, nil, passkeyExpired()
+		return SignInResult{}, nil, passkeyExpired(ctx)
 	}
 	_ = s.Q.DeleteChallenge(ctx, ch.ID)
 	var session webauthn.SessionData
 	if err := json.Unmarshal(ch.Data, &session); err != nil {
-		return SignInResult{}, nil, passkeyExpired()
+		return SignInResult{}, nil, passkeyExpired(ctx)
 	}
 	wa, err := s.webAuthn(ctx)
 	if err != nil {
@@ -313,7 +313,7 @@ func (s *Service) PasskeySignIn(ctx context.Context, challenge string, credentia
 	}
 	parsed, err := protocol.ParseCredentialRequestResponseBytes(credential)
 	if err != nil {
-		return SignInResult{}, nil, api.Invalid("body.credential", "Your browser's answer couldn't be read. Try again.")
+		return SignInResult{}, nil, api.Invalid("body.credential", say(ctx, mPasskeyUnreadable))
 	}
 	var found *waUser
 	handler := func(_, userHandle []byte) (webauthn.User, error) {
@@ -336,21 +336,21 @@ func (s *Service) PasskeySignIn(ctx context.Context, challenge string, credentia
 			ev.Actor, ev.TargetID, ev.TargetName = actorFor(found.u), found.u.ID.String(), found.u.Email
 		}
 		_ = s.Audit.Log(ctx, ev)
-		return SignInResult{}, nil, passkeyFailed()
+		return SignInResult{}, nil, passkeyFailed(ctx)
 	}
 	u := found.u
 	if u.Status == "deactivated" {
-		return SignInResult{}, nil, api.Err(http.StatusForbidden, "account_deactivated", "This account was deactivated. Ask your instance admin to reactivate it; nothing was deleted.").
+		return SignInResult{}, nil, api.Err(http.StatusForbidden, "account_deactivated", say(ctx, mDeactivated)).
 			WithMeta("deactivatedAt", u.DeactivatedAt)
 	}
 	// Domain enforcement turns passkeys off too, except for break-glass Owners.
 	if p, _ := s.enforcingProvider(ctx, u.Email); p != nil && !u.BreakGlass {
-		return SignInResult{}, nil, api.Err(http.StatusForbidden, "sso_required", emailDomain(u.Email)+" signs in with "+p.Name+". Passkey sign-in is turned off for this domain.").
+		return SignInResult{}, nil, api.Err(http.StatusForbidden, "sso_required", say(ctx, mSSORequiredPasskey, "domain", emailDomain(u.Email), "provider", p.Name)).
 			WithMeta("providerId", p.ID.String(), "provider", p.Name, "preset", p.Preset)
 	}
 	pk, ok := found.key(cred.ID)
 	if !ok {
-		return SignInResult{}, nil, passkeyFailed()
+		return SignInResult{}, nil, passkeyFailed(ctx)
 	}
 	if err := s.Q.UpdatePasskeyAfterUse(ctx, store.UpdatePasskeyAfterUseParams{ID: pk.ID, Credential: mustJSON(cred), SignCount: int64(cred.Authenticator.SignCount), BackupState: cred.Flags.BackupState}); err != nil {
 		return SignInResult{}, nil, err
@@ -384,7 +384,7 @@ func (s *Service) BeginTwoFactorPasskey(ctx context.Context, challenge string) (
 		return PasskeyOptions{}, err
 	}
 	if len(w.creds) == 0 || len(u.WebauthnID) == 0 {
-		return PasskeyOptions{}, api.Conflict("This account has no passkey. Use your authenticator app or a recovery code.")
+		return PasskeyOptions{}, api.Conflict(say(ctx, mNoPasskey))
 	}
 	assertion, session, err := wa.BeginLogin(w, webauthn.WithUserVerification(protocol.VerificationPreferred))
 	if err != nil {
@@ -406,12 +406,12 @@ func (s *Service) TwoFactorPasskey(ctx context.Context, challenge, passkeyChalle
 	}
 	pch, err := s.Q.GetChallenge(ctx, store.GetChallengeParams{TokenHash: authn.HashToken(passkeyChallenge), Kind: "webauthn_2fa"})
 	if err != nil || pch.UserID == nil || *pch.UserID != u.ID {
-		return SignInResult{}, nil, passkeyExpired()
+		return SignInResult{}, nil, passkeyExpired(ctx)
 	}
 	_ = s.Q.DeleteChallenge(ctx, pch.ID)
 	var cer twoFactorPasskeyCeremony
 	if err := json.Unmarshal(pch.Data, &cer); err != nil || cer.TwoFactor != ch.ID {
-		return SignInResult{}, nil, passkeyExpired()
+		return SignInResult{}, nil, passkeyExpired(ctx)
 	}
 	wa, err := s.webAuthn(ctx)
 	if err != nil {
@@ -423,15 +423,15 @@ func (s *Service) TwoFactorPasskey(ctx context.Context, challenge, passkeyChalle
 	}
 	parsed, err := protocol.ParseCredentialRequestResponseBytes(credential)
 	if err != nil {
-		return SignInResult{}, nil, s.failTwoFactor(ctx, ch, u, "Your browser's answer couldn't be read.")
+		return SignInResult{}, nil, s.failTwoFactor(ctx, ch, u, mPasskeyUnreadableLeft)
 	}
 	cred, err := wa.ValidateLogin(w, cer.Session, parsed)
 	if err != nil {
-		return SignInResult{}, nil, s.failTwoFactor(ctx, ch, u, "That passkey didn't work.")
+		return SignInResult{}, nil, s.failTwoFactor(ctx, ch, u, mPasskeyWrongLeft)
 	}
 	pk, ok := w.key(cred.ID)
 	if !ok {
-		return SignInResult{}, nil, s.failTwoFactor(ctx, ch, u, "That passkey didn't work.")
+		return SignInResult{}, nil, s.failTwoFactor(ctx, ch, u, mPasskeyWrongLeft)
 	}
 	if err := s.Q.UpdatePasskeyAfterUse(ctx, store.UpdatePasskeyAfterUseParams{ID: pk.ID, Credential: mustJSON(cred), SignCount: int64(cred.Authenticator.SignCount), BackupState: cred.Flags.BackupState}); err != nil {
 		return SignInResult{}, nil, err
@@ -452,7 +452,7 @@ func (s *Service) RenamePasskey(ctx context.Context, id uuid.UUID, name string) 
 	}
 	name = strings.TrimSpace(name)
 	if name == "" {
-		return api.Invalid("body.name", "Give the passkey a name, like “MacBook Pro · Touch ID”.")
+		return api.Invalid("body.name", say(ctx, mPasskeyName))
 	}
 	pk, err := s.Q.GetUserPasskey(ctx, store.GetUserPasskeyParams{ID: id, UserID: u.ID})
 	if err != nil {
@@ -481,12 +481,12 @@ func (s *Service) RemovePasskey(ctx context.Context, id uuid.UUID) error {
 	}
 	m := s.methodsOf(ctx, *u)
 	if m.total() <= 1 {
-		return api.Err(http.StatusConflict, "last_method", "This passkey is your only way to sign in. Add another passkey or a password first.")
+		return api.Err(http.StatusConflict, "last_method", say(ctx, mLastMethod))
 	}
 	if m.passkeys == 1 && !m.totp && m.password {
 		st, _ := s.policy(ctx)
 		if req, _ := s.twoFactorRequired(ctx, *u, st); req {
-			return api.Err(http.StatusConflict, "last_second_factor", "Two-factor is required for your account. Set up an authenticator app or add another passkey before removing this one.")
+			return api.Err(http.StatusConflict, "last_second_factor", say(ctx, mLastSecondFactor))
 		}
 	}
 	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {

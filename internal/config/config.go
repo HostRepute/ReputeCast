@@ -52,7 +52,20 @@ type Config struct {
 	DNS        DNSConfig        `koanf:"dns"`
 	Mail       MailConfig       `koanf:"mail"`
 	Connect    ConnectConfig    `koanf:"connect"`
+	I18n       I18nConfig       `koanf:"i18n"`
 }
+
+// I18nConfig configures the app languages.
+type I18nConfig struct {
+	// PseudoLocale offers "Pseudo (+40%)" in Language & region outside
+	// development, to check layouts on a staging instance: every string
+	// accented, about 40% longer and wrapped in ⟦ ⟧.
+	PseudoLocale bool `koanf:"pseudo_locale"`
+}
+
+// PseudoLocale reports whether members can pick the pseudo-locale: always
+// in development, elsewhere when i18n.pseudo_locale is on.
+func (c *Config) PseudoLocale() bool { return c.IsDevelopment() || c.I18n.PseudoLocale }
 
 // MailConfig configures system mail (password resets, invitations,
 // notifications), which goes out through the System stream's provider.

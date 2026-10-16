@@ -11,14 +11,17 @@ import { toast } from '@/components/ui/Toast'
 import { passkeyErrorMessage, registerPasskey } from '@/features/auth/passkey'
 import { RecoveryCodesPanel } from '@/features/auth/RecoveryCodes'
 import { TotpSetupForm } from '@/features/auth/TotpSetup'
+import { t as tr, useT } from '@/i18n'
 import { ago, usDate } from '@/lib/format'
 import { useRefreshAccount } from './AccountPage'
+import { m } from './messages'
 
 type Account = Schemas['AccountOverview']
 type Passkey = Schemas['AccountPasskey']
 
 /** Password: hidden for people who only sign in through SSO. */
 export function PasswordCard({ a }: { a: Account }) {
+  const t = useT()
   const refresh = useRefreshAccount()
   const [current, setCurrent] = useState('')
   const [next, setNext] = useState('')
@@ -30,9 +33,9 @@ export function PasswordCard({ a }: { a: Account }) {
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     const errs: typeof errors = {}
-    if (pw.set && !current) errs.current = 'Enter your current password.'
-    if ([...next].length < pw.minLength) errs.password = `Use at least ${pw.minLength} characters. Passphrases are fine.`
-    if (confirm !== next) errs.confirm = "The two passwords don't match."
+    if (pw.set && !current) errs.current = t(m.currentRequired)
+    if ([...next].length < pw.minLength) errs.password = t(m.tooShort, { min: pw.minLength })
+    if (confirm !== next) errs.confirm = t(m.mismatch)
     setErrors(errs)
     if (Object.keys(errs).length) return
     setBusy(true)
@@ -42,7 +45,7 @@ export function PasswordCard({ a }: { a: Account }) {
       setNext('')
       setConfirm('')
       await refresh()
-      toast({ kind: 'success', title: 'Password changed', detail: 'Your other sessions were signed out.' })
+      toast({ kind: 'success', title: t(m.passwordChanged), detail: t(m.othersSignedOut) })
     } catch (err) {
       const f = err instanceof ApiError ? err.problem.errors?.[0] : undefined
       if (f?.location === 'body.current') setErrors({ current: f.message })
@@ -54,23 +57,23 @@ export function PasswordCard({ a }: { a: Account }) {
   }
   return (
     <section className="card" aria-labelledby="h-password">
-      <CardSection id="h-password" title="Password" caption="Hidden for members who sign in only through SSO" />
+      <CardSection id="h-password" title={t(m.password)} caption={t(m.passwordCaption)} />
       <form className="pad col" onSubmit={submit} noValidate>
         <KeyValues
           items={[
-            ['Last changed', pw.changedAt ? usDate(pw.changedAt) : pw.set ? 'Unknown' : 'No password yet'],
-            ['Policy', `${pw.minLength} characters minimum · ${pw.breachedCheck ? 'checked against known breaches' : 'passphrases are fine'}`],
+            [t(m.lastChanged), pw.changedAt ? usDate(pw.changedAt) : pw.set ? t(m.unknown) : t(m.noPasswordYet)],
+            [t(m.policy), t(m.policyValue, { min: pw.minLength, breached: pw.breachedCheck ? 'yes' : 'no' })],
           ]}
         />
         <input type="email" name="email" autoComplete="username" value={a.profile.email} readOnly hidden />
         {errors.form ? (
-          <Note tone="bad" label="Not changed">
+          <Note tone="bad" label={t(m.notChanged)}>
             {errors.form}
           </Note>
         ) : null}
         {pw.set ? (
           <div className="lbl">
-            <label htmlFor={ids.cur}>Current password</label>
+            <label htmlFor={ids.cur}>{t(m.currentPassword)}</label>
             <input id={ids.cur} className={errors.current ? 'in err' : 'in'} type="password" value={current} onChange={(e) => setCurrent(e.target.value)} autoComplete="current-password" aria-invalid={errors.current ? true : undefined} />
             {errors.current ? (
               <span className="err" role="alert">
@@ -81,7 +84,7 @@ export function PasswordCard({ a }: { a: Account }) {
         ) : null}
         <div className="grid grid-cols-2 gap-3.5 max-md:grid-cols-1">
           <div className="lbl">
-            <label htmlFor={ids.pw}>New password</label>
+            <label htmlFor={ids.pw}>{t(m.newPassword)}</label>
             <input id={ids.pw} className={errors.password ? 'in err' : 'in'} type="password" value={next} onChange={(e) => setNext(e.target.value)} autoComplete="new-password" aria-invalid={errors.password ? true : undefined} />
             {errors.password ? (
               <span className="err" role="alert">
@@ -90,7 +93,7 @@ export function PasswordCard({ a }: { a: Account }) {
             ) : null}
           </div>
           <div className="lbl">
-            <label htmlFor={ids.cf}>Confirm new password</label>
+            <label htmlFor={ids.cf}>{t(m.confirmPassword)}</label>
             <input id={ids.cf} className={errors.confirm ? 'in err' : 'in'} type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" aria-invalid={errors.confirm ? true : undefined} />
             {errors.confirm ? (
               <span className="err" role="alert">
@@ -100,9 +103,9 @@ export function PasswordCard({ a }: { a: Account }) {
           </div>
         </div>
         <div className="row justify-between">
-          <span className="k">Changing it signs out your other sessions.</span>
+          <span className="k">{t(m.signsOutOthers)}</span>
           <Button type="submit" variant="primary" size="sm" loading={busy}>
-            Change password
+            {t(m.changePassword)}
           </Button>
         </div>
       </form>
@@ -111,20 +114,21 @@ export function PasswordCard({ a }: { a: Account }) {
 }
 
 function passkeyKind(p: Passkey) {
-  if (p.kind === 'security_key') return 'Security key'
-  const base = p.kind === 'platform' ? 'Platform passkey' : 'Passkey'
+  if (p.kind === 'security_key') return tr(m.securityKey)
+  const base = p.kind === 'platform' ? tr(m.platformPasskey) : tr(m.passkey)
   return p.provider ? `${base} · ${p.provider}` : base
 }
 
 function lastUsed(p: Passkey) {
-  if (p.thisSession) return 'used now · this session'
-  if (!p.lastUsedAt) return 'never used'
+  if (p.thisSession) return tr(m.usedNow)
+  if (!p.lastUsedAt) return tr(m.neverUsed)
   const minutes = (Date.now() - new Date(p.lastUsedAt).getTime()) / 60000
-  return `used ${minutes < 24 * 60 ? ago(p.lastUsedAt) : usDate(p.lastUsedAt)}`
+  return minutes < 24 * 60 ? tr(m.usedAgo, { ago: ago(p.lastUsedAt) }) : tr(m.usedOn, { date: usDate(p.lastUsedAt) })
 }
 
 /** Passkeys: add, rename, remove; created and last used. */
 export function PasskeysCard({ a }: { a: Account }) {
+  const t = useT()
   const refresh = useRefreshAccount()
   const [adding, setAdding] = useState(false)
   const [rename, setRename] = useState<Passkey>()
@@ -134,9 +138,9 @@ export function PasskeysCard({ a }: { a: Account }) {
     try {
       const pk = await registerPasskey()
       await refresh()
-      toast({ kind: 'success', title: 'Passkey added', detail: `${pk.name}. Rename it so you recognise it later.` })
+      toast({ kind: 'success', title: t(m.passkeyAdded), detail: t(m.renameHint, { name: pk.name }) })
     } catch (e) {
-      toast({ kind: 'error', title: 'No passkey added', detail: passkeyErrorMessage(e, 'add') })
+      toast({ kind: 'error', title: t(m.noPasskeyAdded), detail: passkeyErrorMessage(e, 'add') })
     } finally {
       setAdding(false)
     }
@@ -145,21 +149,21 @@ export function PasskeysCard({ a }: { a: Account }) {
     <section className="card" aria-labelledby="h-passkeys">
       <CardSection
         id="h-passkeys"
-        title="Passkeys"
-        caption="Passkeys sign you in on their own and count as a second factor"
+        title={t(m.passkeys)}
+        caption={t(m.passkeysCaption)}
         actions={
           <Button size="sm" variant="primary" loading={adding} onClick={add}>
-            Add a passkey
+            {t(m.addPasskey)}
           </Button>
         }
       />
-      <Table density="compact" className="[&_td]:whitespace-normal" caption="Passkeys">
+      <Table density="compact" className="[&_td]:whitespace-normal" caption={t(m.passkeys)}>
         <thead>
           <tr>
-            <Th>Passkey</Th>
-            <Th>Created · last used</Th>
+            <Th>{t(m.passkey)}</Th>
+            <Th>{t(m.colCreated)}</Th>
             <Th>
-              <span className="vh">Actions</span>
+              <span className="vh">{t(m.actions)}</span>
             </Th>
           </tr>
         </thead>
@@ -167,7 +171,7 @@ export function PasskeysCard({ a }: { a: Account }) {
           {a.passkeys.length === 0 ? (
             <tr>
               <Td colSpan={3}>
-                <span className="k">No passkeys yet. Add one to sign in with Touch ID, Face ID, Windows Hello or a security key.</span>
+                <span className="k">{t(m.noPasskeys)}</span>
               </Td>
             </tr>
           ) : (
@@ -187,11 +191,11 @@ export function PasskeysCard({ a }: { a: Account }) {
                 </Td>
                 <Td>
                   <div className="row flex-nowrap" style={{ gap: 6 }}>
-                    <Button size="sm" onClick={() => setRename(p)} aria-label={`Rename ${p.name}`}>
-                      Rename
+                    <Button size="sm" onClick={() => setRename(p)} aria-label={t(m.renameNamed, { name: p.name })}>
+                      {t(m.rename)}
                     </Button>
-                    <Button size="sm" onClick={() => setRemove(p)} aria-label={`Remove ${p.name}`}>
-                      Remove
+                    <Button size="sm" onClick={() => setRemove(p)} aria-label={t(m.removeNamed, { name: p.name })}>
+                      {t(m.remove)}
                     </Button>
                   </div>
                 </Td>
@@ -207,6 +211,7 @@ export function PasskeysCard({ a }: { a: Account }) {
 }
 
 function RenamePasskeyDialog({ passkey, onClose, onDone }: { passkey?: Passkey; onClose: () => void; onDone: () => Promise<void> }) {
+  const t = useT()
   // The draft belongs to one passkey; opening another starts from its name.
   const [draft, setDraft] = useState<{ id: string; name: string }>()
   const name = draft && draft.id === passkey?.id ? draft.name : (passkey?.name ?? '')
@@ -218,7 +223,7 @@ function RenamePasskeyDialog({ passkey, onClose, onDone }: { passkey?: Passkey; 
     e.preventDefault()
     if (!passkey) return
     if (!name.trim()) {
-      setError('Give the passkey a name, like “MacBook Pro · Touch ID”.')
+      setError(t(m.passkeyNameRequired))
       return
     }
     setBusy(true)
@@ -240,21 +245,21 @@ function RenamePasskeyDialog({ passkey, onClose, onDone }: { passkey?: Passkey; 
         setError(undefined)
         onClose()
       }}
-      title="Rename passkey"
-      description="Name it after the device or app that holds it."
+      title={t(m.renamePasskey)}
+      description={t(m.renameDescription)}
       size="sm"
       footer={
         <>
-          <Button onClick={onClose}>Cancel</Button>
+          <Button onClick={onClose}>{t(m.cancel)}</Button>
           <Button type="submit" form="rename-passkey" variant="primary" loading={busy}>
-            Save name
+            {t(m.saveName)}
           </Button>
         </>
       }
     >
       <form id="rename-passkey" onSubmit={submit} noValidate>
         <div className="lbl">
-          <label htmlFor={id}>Name</label>
+          <label htmlFor={id}>{t(m.name)}</label>
           <input
             id={id}
             className={error ? 'in err' : 'in'}
@@ -276,6 +281,7 @@ function RenamePasskeyDialog({ passkey, onClose, onDone }: { passkey?: Passkey; 
 }
 
 function RemovePasskeyDialog({ passkey, onClose, onDone }: { passkey?: Passkey; onClose: () => void; onDone: () => Promise<void> }) {
+  const t = useT()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string>()
   return (
@@ -286,11 +292,11 @@ function RemovePasskeyDialog({ passkey, onClose, onDone }: { passkey?: Passkey; 
         setError(undefined)
         onClose()
       }}
-      title={`Remove “${passkey?.name ?? ''}”?`}
+      title={t(m.removeTitle, { name: passkey?.name ?? '' })}
       size="sm"
       footer={
         <>
-          <Button onClick={onClose}>Keep it</Button>
+          <Button onClick={onClose}>{t(m.keepIt)}</Button>
           <Button
             variant="danger-primary"
             loading={busy}
@@ -301,7 +307,7 @@ function RemovePasskeyDialog({ passkey, onClose, onDone }: { passkey?: Passkey; 
               try {
                 await http.DELETE('/api/v1/me/passkeys/{id}', { params: { path: { id: passkey.id } } })
                 await onDone()
-                toast({ kind: 'deleted', title: 'Passkey removed', detail: passkey.name })
+                toast({ kind: 'deleted', title: t(m.passkeyRemoved), detail: passkey.name })
                 onClose()
               } catch (err) {
                 setError(errorMessage(err))
@@ -310,14 +316,14 @@ function RemovePasskeyDialog({ passkey, onClose, onDone }: { passkey?: Passkey; 
               }
             }}
           >
-            Remove passkey
+            {t(m.removePasskey)}
           </Button>
         </>
       }
     >
-      <p className="text-ink-2">You won't be able to sign in or confirm sign-ins with this passkey. Sessions it already signed in stay signed in until they end.</p>
+      <p className="text-ink-2">{t(m.removeBody)}</p>
       {error ? (
-        <Note tone="bad" label="Not removed">
+        <Note tone="bad" label={t(m.notRemoved)}>
           {error}
         </Note>
       ) : null}
@@ -327,70 +333,66 @@ function RemovePasskeyDialog({ passkey, onClose, onDone }: { passkey?: Passkey; 
 
 /** Authenticator app (TOTP) and recovery codes. */
 export function AuthenticatorCard({ a }: { a: Account }) {
+  const t = useT()
   const refresh = useRefreshAccount()
   const [setup, setSetup] = useState(false)
   const [regen, setRegen] = useState(false)
-  const t = a.twoFactor
-  const caption =
-    t.requiredBy === 'everyone'
-      ? 'Required for everyone on this instance'
-      : t.requiredBy === 'sensitive'
-        ? 'Required for your role: you hold sensitive permissions'
-        : 'Optional: asks for a code after your password'
-  const hasSecond = t.totp || a.passkeys.length > 0
+  const tf = a.twoFactor
+  const caption = tf.requiredBy === 'everyone' ? t(m.requiredEveryone) : tf.requiredBy === 'sensitive' ? t(m.requiredSensitive) : t(m.optional)
+  const hasSecond = tf.totp || a.passkeys.length > 0
+  const recovery = [tf.recoveryTotal > 0 ? t(m.codesRemain, { remaining: tf.recoveryRemaining, total: tf.recoveryTotal }) : t(m.noneYet)]
+  if (tf.recoveryLastUsedAt) recovery.push(t(m.lastUsedOn, { date: usDate(tf.recoveryLastUsedAt) }))
   return (
     <section className="card" aria-labelledby="h-totp">
-      <CardSection id="h-totp" title="Authenticator app" caption={caption} />
+      <CardSection id="h-totp" title={t(m.authenticatorApp)} caption={caption} />
       <div className="pad col" style={{ gap: 14 }}>
         <div className="row justify-between">
           <div className="row">
-            {t.totp ? (
+            {tf.totp ? (
               <Badge tone="ok" dot>
-                On
+                {t(m.on)}
               </Badge>
             ) : (
               <Badge tone="neutral" dot>
-                Off
+                {t(m.off)}
               </Badge>
             )}
             <div className="col" style={{ gap: 0 }}>
-              <span className="font-semibold">Time-based codes (TOTP)</span>
+              <span className="font-semibold">{t(m.totp)}</span>
               <span className="k">
-                {t.totp && t.totpSetAt
-                  ? `Set up ${usDate(t.totpSetAt)}${t.totpLabel ? ` · ${t.totpLabel}` : ''}`
-                  : t.graceUntil
-                    ? `Not set up · required by ${usDate(t.graceUntil)}`
-                    : 'Not set up'}
+                {tf.totp && tf.totpSetAt
+                  ? [t(m.setUpOn, { date: usDate(tf.totpSetAt) }), tf.totpLabel].filter(Boolean).join(' · ')
+                  : tf.graceUntil
+                    ? t(m.notSetUpBy, { date: usDate(tf.graceUntil) })
+                    : t(m.notSetUp)}
               </span>
             </div>
           </div>
-          <Button size="sm" variant={t.totp ? 'default' : 'primary'} onClick={() => setSetup(true)}>
-            {t.totp ? 'Replace app' : 'Set up'}
+          <Button size="sm" variant={tf.totp ? 'default' : 'primary'} onClick={() => setSetup(true)}>
+            {tf.totp ? t(m.replaceApp) : t(m.setUp)}
           </Button>
         </div>
         {hasSecond ? (
           <div className="row justify-between rounded-lg border border-line px-3.5 py-3">
             <div className="col" style={{ gap: 0 }}>
-              <span className="font-semibold">Recovery codes</span>
-              <span className="k">
-                {t.recoveryTotal > 0 ? `${t.recoveryRemaining} of ${t.recoveryTotal} remain` : 'None yet'}
-                {t.recoveryLastUsedAt ? ` · last used ${usDate(t.recoveryLastUsedAt)}` : ''}
-              </span>
+              <span className="font-semibold">{t(m.recoveryCodes)}</span>
+              <span className="k">{recovery.join(' · ')}</span>
             </div>
             <Button size="sm" onClick={() => setRegen(true)}>
-              {t.recoveryTotal > 0 ? 'Regenerate codes' : 'Generate codes'}
+              {tf.recoveryTotal > 0 ? t(m.regenerateCodes) : t(m.generateCodes)}
             </Button>
           </div>
         ) : null}
-        <span className="k">Regenerating replaces all unused codes. New codes are shown once, with download and print.</span>
+        <span className="k">{t(m.regenerateNote)}</span>
       </div>
-      <TotpDialog open={setup} replacing={t.totp} email={a.profile.email} onClose={() => setSetup(false)} onDone={refresh} />
-      <RegenerateDialog open={regen} remaining={t.recoveryRemaining} email={a.profile.email} onClose={() => setRegen(false)} onDone={refresh} />
+      <TotpDialog open={setup} replacing={tf.totp} email={a.profile.email} onClose={() => setSetup(false)} onDone={refresh} />
+      <RegenerateDialog open={regen} remaining={tf.recoveryRemaining} email={a.profile.email} onClose={() => setRegen(false)} onDone={refresh} />
     </section>
   )
 }
 
 function TotpDialog({ open, replacing, email, onClose, onDone }: { open: boolean; replacing: boolean; email: string; onClose: () => void; onDone: () => Promise<void> }) {
+  const t = useT()
   const [codes, setCodes] = useState<string[]>()
   const close = () => {
     setCodes(undefined)
@@ -406,12 +408,12 @@ function TotpDialog({ open, replacing, email, onClose, onDone }: { open: boolean
         }
       }}
       dismissible={!codes}
-      title={codes ? 'Save your recovery codes' : replacing ? 'Replace your authenticator app' : 'Set up an authenticator app'}
-      description={codes ? 'Step 2 of 2 · shown once' : `Step 1 of 2${replacing ? ' · the old app stops working once you confirm' : ''}`}
+      title={codes ? t(m.saveCodesTitle) : replacing ? t(m.replaceTitle) : t(m.setUpTitle)}
+      description={codes ? t(m.stepTwo) : replacing ? t(m.stepOneReplacing) : t(m.stepOne)}
       eyebrow={
         codes ? (
           <Badge tone="ok" dot>
-            Authenticator on
+            {t(m.authenticatorOn)}
           </Badge>
         ) : undefined
       }
@@ -422,7 +424,7 @@ function TotpDialog({ open, replacing, email, onClose, onDone }: { open: boolean
           email={email}
           onFinish={async () => {
             await onDone()
-            toast({ kind: 'success', title: 'Authenticator app on', detail: 'Sign-ins with your password now ask for a code.' })
+            toast({ kind: 'success', title: t(m.authenticatorAppOn), detail: t(m.codeAsked) })
             close()
           }}
         />
@@ -440,6 +442,7 @@ function TotpDialog({ open, replacing, email, onClose, onDone }: { open: boolean
 }
 
 function RegenerateDialog({ open, remaining, email, onClose, onDone }: { open: boolean; remaining: number; email: string; onClose: () => void; onDone: () => Promise<void> }) {
+  const t = useT()
   const [codes, setCodes] = useState<string[]>()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string>()
@@ -455,13 +458,13 @@ function RegenerateDialog({ open, remaining, email, onClose, onDone }: { open: b
         if (!o) close()
       }}
       dismissible={!codes}
-      title={codes ? 'Save your recovery codes' : 'Regenerate recovery codes?'}
-      description={codes ? 'Shown once' : undefined}
+      title={codes ? t(m.saveCodesTitle) : t(m.regenerateTitle)}
+      description={codes ? t(m.shownOnce) : undefined}
       size={codes ? 'md' : 'sm'}
       footer={
         codes ? undefined : (
           <>
-            <Button onClick={close}>Cancel</Button>
+            <Button onClick={close}>{t(m.cancel)}</Button>
             <Button
               variant="primary"
               loading={busy}
@@ -479,7 +482,7 @@ function RegenerateDialog({ open, remaining, email, onClose, onDone }: { open: b
                 }
               }}
             >
-              Generate new codes
+              {t(m.generateNew)}
             </Button>
           </>
         )
@@ -490,18 +493,15 @@ function RegenerateDialog({ open, remaining, email, onClose, onDone }: { open: b
           codes={codes}
           email={email}
           onFinish={() => {
-            toast({ kind: 'success', title: 'New recovery codes saved', detail: 'The old codes no longer work.' })
+            toast({ kind: 'success', title: t(m.newCodesSaved), detail: t(m.oldCodesGone) })
             close()
           }}
         />
       ) : (
         <>
-          <p className="text-ink-2">
-            {remaining > 0 ? `Your ${remaining} unused ${remaining === 1 ? 'code stops' : 'codes stop'} working right away.` : 'You get 10 new codes.'} The new codes are shown once, with
-            download and print.
-          </p>
+          <p className="text-ink-2">{t(m.regenerateBody, { remaining })}</p>
           {error ? (
-            <Note tone="bad" label="Not generated">
+            <Note tone="bad" label={t(m.notGenerated)}>
               {error}
             </Note>
           ) : null}

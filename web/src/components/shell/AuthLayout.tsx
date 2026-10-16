@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 import { http } from '@/api/client'
+import { AuthLanguageMenu } from '@/features/language/AuthLanguageMenu'
 import { useT } from '@/i18n'
 import { useDocumentTitle } from '@/lib/hooks'
 import { LogoMark } from '../icons/Icon'
@@ -18,6 +19,7 @@ export function useInstanceMeta() {
 export function AuthLayout({ title, children, labelledBy, wide }: { title: string; children: ReactNode; labelledBy: string; wide?: boolean }) {
   const t = useT()
   useDocumentTitle(t(m.docTitle, { title }))
+  const { data } = useInstanceMeta()
   return (
     <div className="auth-page rc-app">
       <main id="main" className="w-full" style={{ maxWidth: wide ? 560 : 440 }}>
@@ -25,6 +27,7 @@ export function AuthLayout({ title, children, labelledBy, wide }: { title: strin
           <InstanceBrand />
           {children}
         </section>
+        <AuthLanguageMenu languages={data?.languages} />
       </main>
     </div>
   )
@@ -33,7 +36,6 @@ export function AuthLayout({ title, children, labelledBy, wide }: { title: strin
 /** Instance name and host, as set by the instance admin. */
 export function InstanceBrand() {
   const { data } = useInstanceMeta()
-  const t = useT()
   const host = data?.publicUrl ? safeHost(data.publicUrl) : ''
   return (
     <div className="brand">
@@ -44,7 +46,7 @@ export function InstanceBrand() {
         <LogoMark size={28} />
       )}
       <span>
-        {data?.instanceName ?? t(m.brandName)} {host ? <small>{host}</small> : null}
+        {data?.instanceName ?? 'ReputeCast'} {host ? <small>{host}</small> : null}
       </span>
     </div>
   )

@@ -1,11 +1,30 @@
-import { useCallback, useSyncExternalStore, type ReactNode } from 'react'
-import type { MessageDescriptor } from './define'
+import { useCallback, useEffect, useState, useSyncExternalStore, type ReactNode } from 'react'
+import type { Catalog, MessageDescriptor } from './define'
 import { formatRich, formatText, type RichValues, type Values } from './format'
-import { getI18n, subscribeI18n, type I18nState } from './store'
+import { defaultRegionFor } from './languages'
+import { regionLocale } from './regions'
+import { getI18n, loadCatalog, subscribeI18n, type AppLocale, type I18nState } from './store'
 
 export { defineMessages, sourceMessages, translate, type Catalog, type MessageDescriptor, type Messages } from './define'
 export type { RichValues, Values } from './format'
-export { getI18n, setCatalogLoader, setLocale, setRegion, subscribeI18n, type AppLocale, type I18nState } from './store'
+export { getI18n, i18nKey, setCatalogLoader, setLocale, setPreferences, setRegion, subscribeI18n, type AppLocale, type I18nState, type Preferences } from './store'
+export { PSEUDO_LOCALE } from './pseudo'
+export { REGION_FORMATS, regionName, type HourCycle, type RegionFormat, type WeekStart } from './regions'
+export {
+  APP_LANGUAGES,
+  PSEUDO_LANGUAGE,
+  browserLanguage,
+  defaultRegionFor,
+  isAppLocale,
+  languageName,
+  pickableLanguages,
+  regionOptions,
+  resolvePreferences,
+  resolveVisitor,
+  type AppLanguage,
+  type InstanceDefaults,
+  type MemberChoices,
+} from './languages'
 
 /** The current language, region format and translations. */
 export function useI18n(): I18nState {
@@ -32,6 +51,29 @@ export function t(d: MessageDescriptor, values?: Values): string {
   return formatText(getI18n(), d, values)
 }
 
+/**
+ * Formats messages in another language than the app's, once its
+ * translations have loaded: a question in the language it offers ("Dùng
+ * ReputeCast bằng Tiếng Việt?"). Until then, and for messages that language
+ * lacks, the text is the app's language.
+ */
+export function useTIn(locale: AppLocale | undefined): (d: MessageDescriptor, values?: Values) => string {
+  const state = useI18n()
+  const [catalog, setCatalog] = useState<Catalog>()
+  useEffect(() => {
+    let live = true
+    if (locale) void loadCatalog(locale).then((c) => live && setCatalog(c))
+    return () => {
+      live = false
+    }
+  }, [locale])
+  return useCallback(
+    (d: MessageDescriptor, values?: Values) =>
+      formatText(locale && catalog ? { ...state, locale, catalog, region: regionLocale(defaultRegionFor(locale)) } : state, d, values),
+    [state, locale, catalog],
+  )
+}
+
 const collators = new Map<string, Intl.Collator>()
 
 /** Compares text by the app language's sorting rules. */
@@ -52,8 +94,8 @@ export function formatList(items: readonly string[], type: 'conjunction' | 'disj
   const key = `${getI18n().locale}|${type}`
   let f = listFormats.get(key)
   if (!f) {
-    // English lists follow the house style, without the serial comma.
-    f = new Intl.ListFormat(getI18n().locale === 'en' ? 'en-GB' : getI18n().locale, { style: 'long', type })
+    // English lists (and the pseudo-locale's) follow the house style, without the serial comma.
+    f = new Intl.ListFormat(getI18n().locale.startsWith('en') ? 'en-GB' : getI18n().locale, { style: 'long', type })
     listFormats.set(key, f)
   }
   return f.format(items)

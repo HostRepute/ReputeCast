@@ -15,6 +15,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/mailer"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -305,8 +306,13 @@ type NotificationSummary struct {
 	QuietHours string `json:"quietHours" example:"22:00–07:00 America/New_York, email only"`
 }
 
-// Summarize describes preferences in one line per channel.
+// Summarize describes preferences in one line per channel, in English.
 func Summarize(p NotificationPreferences) NotificationSummary {
+	return SummarizeIn(i18n.Default, p)
+}
+
+// SummarizeIn describes preferences in one line per channel, in a language.
+func SummarizeIn(l i18n.Lang, p NotificationPreferences) NotificationSummary {
 	pick := func(on func(NotificationEventPreference) bool) string {
 		var all, approvals = true, 0
 		var parts []string
@@ -321,10 +327,10 @@ func Summarize(p NotificationPreferences) NotificationSummary {
 			}
 		}
 		if all {
-			return "All events"
+			return mSummaryAll.Text(l, nil)
 		}
 		if approvals == 3 {
-			parts = append(parts, "approvals")
+			parts = append(parts, mSummaryApprovals.Text(l, nil))
 		}
 		for _, e := range p.Events {
 			if !on(e) {
@@ -334,22 +340,21 @@ func Summarize(p NotificationPreferences) NotificationSummary {
 			if isApproval && approvals == 3 {
 				continue
 			}
-			parts = append(parts, EventFor(e.Type).Short)
+			parts = append(parts, shortName(l, EventFor(e.Type)))
 		}
 		if len(parts) == 0 {
-			return "Off"
+			return mSummaryOff.Text(l, nil)
 		}
-		s := strings.Join(parts, ", ")
-		return strings.ToUpper(s[:1]) + s[1:]
+		return capitalize(strings.Join(parts, ", "))
 	}
 	out := NotificationSummary{
 		InApp: pick(func(e NotificationEventPreference) bool { return e.InApp }),
 		Email: pick(func(e NotificationEventPreference) bool { return e.Email }),
 	}
 	if p.QuietHours != nil {
-		out.QuietHours = fmt.Sprintf("%s–%s %s, email only", p.QuietHours.Start, p.QuietHours.End, p.Timezone)
+		out.QuietHours = mSummaryQuietHours.Text(l, i18n.Args{"start": p.QuietHours.Start, "end": p.QuietHours.End, "timezone": p.Timezone})
 	} else {
-		out.QuietHours = "Off"
+		out.QuietHours = mSummaryOff.Text(l, nil)
 	}
 	return out
 }

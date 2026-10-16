@@ -5,6 +5,8 @@ import { ApiError, errorMessage, http, type Schemas } from '@/api/client'
 import { Button } from '@/components/ui/Button'
 import { Skeleton } from '@/components/ui/Feedback'
 import { toast } from '@/components/ui/Toast'
+import { useT } from '@/i18n'
+import { m } from './parts.messages'
 
 /** "ABCD EFGH IJKL MNOP QRST UVWX YZ23 4567" as two lines of four groups. */
 function keyLines(secret: string): string[] {
@@ -43,14 +45,15 @@ export function QrCode({ value, size = 132, label }: { value: string; size?: num
 export function TotpSetupForm({
   onConfirmed,
   onCancel,
-  confirmLabel = 'Confirm and continue',
-  cancelLabel = 'Cancel',
+  confirmLabel,
+  cancelLabel,
 }: {
   onConfirmed: (codes: string[]) => void
   onCancel?: () => void
   confirmLabel?: string
   cancelLabel?: string
 }) {
+  const t = useT()
   const begin = useMutation({ mutationFn: async () => (await http.POST('/api/v1/me/totp')).data! })
   const started = useRef(false)
   useEffect(() => {
@@ -71,7 +74,7 @@ export function TotpSetupForm({
     if (!setup) return
     const digits = code.replace(/\D/g, '')
     if (digits.length !== 6) {
-      setError('Enter the 6 digits the app shows.')
+      setError(t(m.totpEnterDigits))
       return
     }
     setBusy(true)
@@ -97,9 +100,9 @@ export function TotpSetupForm({
           {errorMessage(begin.error)}
         </span>
         <div className="flex justify-end gap-2.5">
-          {onCancel ? <Button onClick={onCancel}>{cancelLabel}</Button> : null}
+          {onCancel ? <Button onClick={onCancel}>{cancelLabel ?? t(m.cancel)}</Button> : null}
           <Button variant="primary" onClick={() => begin.mutate()}>
-            Try again
+            {t(m.tryAgain)}
           </Button>
         </div>
       </div>
@@ -110,10 +113,10 @@ export function TotpSetupForm({
     <form className="flex flex-col gap-3.5" onSubmit={submit}>
       <div className="row items-start" style={{ gap: 18 }}>
         <div className="rounded-lg border border-line bg-white p-2">
-          {setup ? <QrCode value={setup.url} label="QR code for the authenticator app" /> : <Skeleton w={132} h={132} r={4} />}
+          {setup ? <QrCode value={setup.url} label={t(m.qrLabel)} /> : <Skeleton w={132} h={132} r={4} />}
         </div>
         <div className="col" style={{ gap: 8, flex: '1 1 220px' }}>
-          <span className="text-[13.5px]">Scan with 1Password, Google Authenticator, Authy or any TOTP app. Can't scan? Enter the key by hand:</span>
+          <span className="text-[13.5px]">{t(m.scanHelp)}</span>
           {/* A 160-bit key is eight groups: two lines of four keep Copy beside
               the box, as on the board's one-line key. */}
           <div className="row flex-nowrap" style={{ gap: 8 }}>
@@ -131,20 +134,20 @@ export function TotpSetupForm({
                 if (!setup) return
                 try {
                   await navigator.clipboard.writeText(setup.secret.replace(/\s/g, ''))
-                  toast({ kind: 'success', title: 'Key copied' })
+                  toast({ kind: 'success', title: t(m.keyCopied) })
                 } catch {
-                  toast({ kind: 'error', title: "Couldn't copy", detail: 'Select the key and copy it by hand.' })
+                  toast({ kind: 'error', title: t(m.copyFailed), detail: t(m.copyKeyByHand) })
                 }
               }}
             >
-              Copy
+              {t(m.copy)}
             </Button>
           </div>
-          <span className="k">{setup ? `Account ${setup.account} · issuer ${setup.issuer} · 30-second codes` : 'Preparing a key…'}</span>
+          <span className="k">{setup ? t(m.keyFacts, { account: setup.account, issuer: setup.issuer }) : t(m.preparingKey)}</span>
         </div>
       </div>
       <div className="lbl">
-        <label htmlFor={codeId}>Enter the 6-digit code the app shows</label>
+        <label htmlFor={codeId}>{t(m.codeLabel)}</label>
         <input
           id={codeId}
           className={error ? 'in mono err' : 'in mono'}
@@ -164,9 +167,9 @@ export function TotpSetupForm({
         ) : null}
       </div>
       <div className="row justify-end" style={{ gap: 10 }}>
-        {onCancel ? <Button onClick={onCancel}>{cancelLabel}</Button> : null}
+        {onCancel ? <Button onClick={onCancel}>{cancelLabel ?? t(m.cancel)}</Button> : null}
         <Button type="submit" variant="primary" loading={busy} disabled={!setup}>
-          {confirmLabel}
+          {confirmLabel ?? t(m.confirmContinue)}
         </Button>
       </div>
     </form>

@@ -1,0 +1,95 @@
+/*
+ * Text expansion (connect-and-reach brief §5.10 and §7; the rules are in
+ * docs/dev/CONVENTIONS.md, "Text expansion"). Translations run longer than
+ * English: Vietnamese about 20–30%, the pseudo-locale 40%.
+ *
+ * Rules that change a layout for longer text apply only when the app isn't
+ * in English (:root:not([lang='en'])), so English keeps the boards' layout
+ * value for value. They are unlayered on purpose: they win over a screen's
+ * own utilities (a table's first-column width, its nowrap cells).
+ */
+
+/* Rule 2: user content in a table cell (components/ui/Truncate) ends in an
+   ellipsis. The padding keeps stacked diacritics (ệ, ở, Ữ) inside the
+   clipped box without changing the line's height. */
+@layer components {
+  .ellipsis {
+    display: block;
+    max-width: var(--ellipsis-max, 220px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding-block: 0.2em;
+    margin-block: -0.2em;
+  }
+}
+
+/* Rule 3: table headers take at most two lines, on the cell's bottom edge.
+   Th sets --th-line to the longer line of its best split into two lines,
+   so a column never gets narrower than that and doesn't squeeze its
+   numbers. */
+:root:not([lang='en']) .tbl th {
+  white-space: normal;
+  overflow-wrap: normal;
+  vertical-align: bottom;
+  line-height: 1.35;
+}
+:root:not([lang='en']) .tbl th[style*='--th-line'] {
+  min-width: var(--th-line);
+}
+
+/* Rule 1: a filter row's selects size to their longest option (their old
+   width is the least, set by the screen); on phones they keep that width
+   instead of taking the row (StressTeamPseudoPhone). */
+@media (max-width: 767px) {
+  :root:not([lang='en']) .filters select.in {
+    width: auto;
+    min-width: 0;
+    max-width: 100%;
+  }
+}
+
+/* Rule 4: buttons don't wrap, so a Send Readiness row's fixes move to their
+   own row when they'd squeeze the finding, as StressReviewVi and
+   StressReviewPseudo draw it: the row wraps and the finding keeps 320 px. */
+:root:not([lang='en']) .rv-row {
+  flex-wrap: wrap;
+  row-gap: 8px;
+}
+:root:not([lang='en']) .rv-rt {
+  flex-basis: 320px;
+}
+
+/* Rule 5: badges don't wrap, on phones too (where English lets a phone-wrap
+   table's badges wrap); the cell wraps around them. */
+:root:not([lang='en']) .tbl td .badge,
+:root:not([lang='en']) .tbl.phone-wrap td .badge {
+  white-space: nowrap;
+}
+
+/* Rule 7: Vietnamese stacks diacritics, so text keeps a line height of at
+   least 1.4, in tables too. */
+:root:lang(vi) .tscroll {
+  line-height: 1.4;
+}
+
+/* Proposed for text 40% longer than English (StressCampaignsPseudo): cell
+   padding of 10 px instead of 12, a name column of 160 px at least whose
+   names end in an ellipsis at 170 px, and a list's row actions
+   (.row-actions) stacked in their cell. It applies to the pseudo-locale
+   until a language that long (German, Finnish) is added. */
+:root[lang='en-XA'] .tbl th,
+:root[lang='en-XA'] .tbl td {
+  padding-left: 10px;
+  padding-right: 10px;
+}
+:root[lang='en-XA'] .tbl td:first-child {
+  min-width: 160px;
+}
+:root[lang='en-XA'] .tbl td:first-child .ellipsis {
+  max-width: 170px;
+}
+:root[lang='en-XA'] .tbl td .row-actions {
+  flex-direction: column;
+  align-items: flex-end;
+}

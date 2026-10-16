@@ -1,22 +1,25 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { useId, useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useId, useState, type FormEvent, type ReactNode } from 'react'
 import { ApiError, errorMessage, http, type Schemas } from '@/api/client'
 import { AuthLayout } from '@/components/shell/AuthLayout'
 import { Button } from '@/components/ui/Button'
 import { Skeleton } from '@/components/ui/Feedback'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
+import { T, t as tt, useI18n, useT } from '@/i18n'
+import { setPageLanguage } from '@/i18n/sync'
+import { monthDay, usDate } from '@/lib/format'
 import { meQueryKey } from '@/lib/session'
 import { AuthHeading, PasskeyGlyph, SocialButtons, SocialMark } from './AuthParts'
+import { m } from './invite.messages'
 import { passkeyErrorMessage, registerPasskey } from './passkey'
 import { RecoveryCodesPanel } from './RecoveryCodes'
 import { TotpSetupForm } from './TotpSetup'
 
 type View = Schemas['InvitationView']
 
-const monthDay = (d: string) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-const fullDate = (d: string) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+const bold = (c: ReactNode) => <b>{c}</b>
 
 function daysUntil(d: string) {
   return Math.max(0, Math.ceil((new Date(d).getTime() - Date.now()) / 86_400_000))
@@ -24,42 +27,35 @@ function daysUntil(d: string) {
 
 function expiresIn(d: string) {
   const days = daysUntil(d)
-  if (days >= 1) return `expires in ${days} ${days === 1 ? 'day' : 'days'}`
-  const h = Math.max(1, Math.round((new Date(d).getTime() - Date.now()) / 3_600_000))
-  return `expires in ${h} h`
+  if (days >= 1) return tt(m.expiresInDays, { days })
+  return tt(m.expiresInHours, { hours: Math.max(1, Math.round((new Date(d).getTime() - Date.now()) / 3_600_000)) })
 }
 
-/** A5 §5.4: accept an invitation, with the expired, revoked and wrong-account states. */
+/**
+ * A5 §5.4: accept an invitation, with the expired, revoked and wrong-account
+ * states. The page reads in the invitation's language unless the visitor
+ * picked another in the menu; the server writes the role's description in
+ * the language asked for, so the invitation is fetched again when it changes.
+ */
 export function InvitePage({ token }: { token: string }) {
   const qc = useQueryClient()
+  const { locale } = useI18n()
   const inv = useQuery({
-    queryKey: ['invitation', token],
+    queryKey: ['invitation', token, locale],
     queryFn: async () => (await http.GET('/api/v1/invitations/{token}', { params: { path: { token } } })).data!,
     retry: false,
+    // While the page switches language, keep showing the invitation in the previous one.
+    placeholderData: () => qc.getQueriesData<View>({ queryKey: ['invitation', token] }).find(([, d]) => d)?.[1],
   })
   const [joined, setJoined] = useState<Schemas['InvitationAccepted']>()
+  const language = inv.data?.language
+  useEffect(() => {
+    if (language) void setPageLanguage(language)
+  }, [language])
 
   if (joined) return <ProtectAccount joined={joined} />
   if (inv.isPending) return <InviteSkeleton />
-  if (inv.isError) {
-    const notFound = inv.error instanceof ApiError && inv.error.status === 404
-    return (
-      <AuthLayout title={notFound ? "This invitation link isn't valid" : "The invitation couldn't load"} labelledBy="h-inv-err">
-        <AuthHeading id="h-inv-err" title={notFound ? "This invitation link isn't valid" : "The invitation couldn't load"} />
-        <Note tone={notFound ? 'neutral' : 'bad'} label={notFound ? undefined : 'Error'}>
-          {notFound ? 'Check that you copied the whole link from the email, or ask the person who invited you for a new one.' : `${errorMessage(inv.error)} Nothing was created.`}
-        </Note>
-        {notFound ? null : (
-          <Button variant="primary" onClick={() => inv.refetch()}>
-            Try again
-          </Button>
-        )}
-        <Link className="btn" to="/sign-in">
-          Back to sign in
-        </Link>
-      </AuthLayout>
-    )
-  }
+  if (inv.isError) return <InviteError error={inv.error} onRetry={() => inv.refetch()} />
   const v = inv.data
   const refresh = async () => {
     await qc.invalidateQueries({ queryKey: meQueryKey })
@@ -77,12 +73,35 @@ export function InvitePage({ token }: { token: string }) {
   return <Accept v={v} token={token} onJoined={setJoined} />
 }
 
-function InviteSkeleton() {
+function InviteError({ error, onRetry }: { error: Error; onRetry: () => void }) {
+  const t = useT()
+  const notFound = error instanceof ApiError && error.status === 404
+  const title = notFound ? t(m.invalidTitle) : t(m.loadFailedTitle)
   return (
-    <AuthLayout title="Invitation" labelledBy="h-inv-load">
+    <AuthLayout title={title} labelledBy="h-inv-err">
+      <AuthHeading id="h-inv-err" title={title} />
+      <Note tone={notFound ? 'neutral' : 'bad'} label={notFound ? undefined : t(m.errorLabel)}>
+        {notFound ? t(m.invalidBody) : `${errorMessage(error)} ${t(m.nothingCreated)}`}
+      </Note>
+      {notFound ? null : (
+        <Button variant="primary" onClick={onRetry}>
+          {t(m.tryAgain)}
+        </Button>
+      )}
+      <Link className="btn" to="/sign-in">
+        {t(m.backToSignIn)}
+      </Link>
+    </AuthLayout>
+  )
+}
+
+function InviteSkeleton() {
+  const t = useT()
+  return (
+    <AuthLayout title={t(m.docTitle)} labelledBy="h-inv-load">
       <div className="flex flex-col gap-4" aria-busy="true">
         <h1 id="h-inv-load" className="vh">
-          Loading the invitation
+          {t(m.loading)}
         </h1>
         <Skeleton w="85%" h={22} />
         <Skeleton w="60%" h={12} />
@@ -90,37 +109,19 @@ function InviteSkeleton() {
         <Skeleton w="100%" h={40} r={8} />
         <Skeleton w="100%" h={40} r={8} />
         <span className="vh" role="status">
-          Loading the invitation…
+          {t(m.loadingStatus)}
         </span>
       </div>
     </AuthLayout>
   )
 }
 
-function Title({ v }: { v: View }) {
-  return (
-    <>
-      {v.inviterName} invited you to {v.workspaceName}
-    </>
-  )
-}
-
 function Meta({ v }: { v: View }) {
-  return (
-    <>
-      Role <b>{v.roleName}</b>
-      {v.scope ? (
-        <>
-          {' '}
-          · scope <b>{v.scope}</b>
-        </>
-      ) : null}{' '}
-      · {expiresIn(v.expiresAt)}
-    </>
-  )
+  return <T msg={v.scope ? m.metaRoleScope : m.metaRole} values={{ role: v.roleName, scope: v.scope ?? '', expires: expiresIn(v.expiresAt), b: bold }} />
 }
 
 function Accept({ v, token, onJoined }: { v: View; token: string; onJoined: (j: Schemas['InvitationAccepted']) => void }) {
+  const t = useT()
   const navigate = useNavigate()
   const qc = useQueryClient()
   const [name, setName] = useState('')
@@ -130,15 +131,16 @@ function Accept({ v, token, onJoined }: { v: View; token: string; onJoined: (j: 
   const nameErr = useId()
   const pwErr = useId()
   const pwHint = useId()
-  const title = `${v.inviterName} invited you to ${v.workspaceName}`
+  const title = t(m.title, { inviter: v.inviterName, workspace: v.workspaceName })
   const signedIn = Boolean(v.signedInAs)
+  const min = v.passwordPolicy.minLength
 
   const join = async (e?: FormEvent) => {
     e?.preventDefault()
     const next: typeof errors = {}
     if (!signedIn) {
-      if (!name.trim()) next.name = 'Enter your name as the team should see it.'
-      if ([...password].length < v.passwordPolicy.minLength) next.password = `Use at least ${v.passwordPolicy.minLength} characters. Passphrases are fine.`
+      if (!name.trim()) next.name = t(m.nameRequired)
+      if ([...password].length < min) next.password = t(m.tooShort, { min })
     }
     setErrors(next)
     if (next.name || next.password) return
@@ -148,7 +150,7 @@ function Accept({ v, token, onJoined }: { v: View; token: string; onJoined: (j: 
       await qc.invalidateQueries({ queryKey: meQueryKey })
       if (!data) return
       if (data.hasSecondFactor) {
-        toast({ kind: 'success', title: `You joined ${data.workspaceName}`, detail: `as ${data.roleName}` })
+        toast({ kind: 'success', title: t(m.joinedToast, { workspace: data.workspaceName }), detail: t(m.joinedDetail, { role: data.roleName }) })
         void navigate({ to: '/w/$workspace', params: { workspace: data.workspace } })
       } else onJoined(data)
     } catch (err) {
@@ -171,15 +173,15 @@ function Accept({ v, token, onJoined }: { v: View; token: string; onJoined: (j: 
 
   const header = (
     <>
-      <AuthHeading id="h-inv" title={<Title v={v} />} sub={<Meta v={v} />} />
+      <AuthHeading id="h-inv" title={title} sub={<Meta v={v} />} />
       <Note tone="neutral">{v.description}</Note>
       {v.message ? (
-        <Note tone="info" label={`From ${v.inviterName}`}>
+        <Note tone="info" label={t(m.fromInviter, { name: v.inviterName })}>
           {v.message}
         </Note>
       ) : null}
       {errors.form ? (
-        <Note tone="bad" label="Not joined">
+        <Note tone="bad" label={t(m.notJoinedLabel)}>
           {errors.form}
         </Note>
       ) : null}
@@ -193,14 +195,14 @@ function Accept({ v, token, onJoined }: { v: View; token: string; onJoined: (j: 
         {header}
         {signedIn ? (
           <Button variant="primary" loading={busy} onClick={() => join()}>
-            Join {v.workspaceName}
+            {t(m.join, { workspace: v.workspaceName })}
           </Button>
         ) : (
           <Link className="btn pri" to="/sign-in" search={{ email: v.email, next: `/invite/${token}` }}>
-            Sign in to accept
+            {t(m.signInToAccept)}
           </Link>
         )}
-        <span className="foot">{signedIn ? `You're signed in as ${v.signedInAs}.` : `${v.email} already has an account here. Sign in and the invitation opens again.`}</span>
+        <span className="foot">{signedIn ? t(m.signedInAs, { email: v.signedInAs ?? '' }) : t(m.accountExists, { email: v.email })}</span>
       </AuthLayout>
     )
   }
@@ -212,7 +214,7 @@ function Accept({ v, token, onJoined }: { v: View; token: string; onJoined: (j: 
       {v.passwordAllowed ? (
         <form className="flex flex-col gap-4" onSubmit={join} noValidate>
           <label className="lbl">
-            Your name
+            {t(m.yourName)}
             <input
               className={errors.name ? 'in err' : 'in'}
               type="text"
@@ -230,11 +232,11 @@ function Accept({ v, token, onJoined }: { v: View; token: string; onJoined: (j: 
             ) : null}
           </label>
           <label className="lbl">
-            Email
+            {t(m.email)}
             <input className="in" type="email" autoComplete="username" value={v.email} readOnly />
           </label>
           <label className="lbl">
-            Create a password
+            {t(m.createPassword)}
             <input
               className={errors.password ? 'in err' : 'in'}
               type="password"
@@ -250,33 +252,34 @@ function Accept({ v, token, onJoined }: { v: View; token: string; onJoined: (j: 
               </span>
             ) : null}
             <span className="k font-medium" id={pwHint}>
-              At least {v.passwordPolicy.minLength} characters. {v.passwordPolicy.breachedCheck ? 'Checked against known breaches.' : 'Passphrases are fine.'}
+              {v.passwordPolicy.breachedCheck ? t(m.hintBreached, { min }) : t(m.hintPassphrase, { min })}
             </span>
           </label>
           <Button type="submit" variant="primary" loading={busy}>
-            Join {v.workspaceName}
+            {t(m.join, { workspace: v.workspaceName })}
           </Button>
         </form>
       ) : null}
       {v.sso ? (
         <a className={v.passwordAllowed ? 'btn' : 'btn pri'} href={v.sso.startUrl}>
           <SocialMark provider={v.sso.preset === 'google' ? 'google' : 'sso'} />
-          Continue with {v.sso.name}
+          {t(m.continueWith, { name: v.sso.name })}
         </a>
       ) : null}
       {v.social.length > 0 ? (
         <>
-          <div className="sep">or join with</div>
+          <div className="sep">{t(m.orJoinWith)}</div>
           <SocialButtons providers={v.social} href={socialHref} />
         </>
       ) : null}
-      <span className="foot">Next you can add a passkey and set up two-factor.</span>
+      <span className="foot">{t(m.nextPasskey)}</span>
     </AuthLayout>
   )
 }
 
 /** After joining: offer a passkey and two-factor; show the grace period when required. */
 function ProtectAccount({ joined }: { joined: Schemas['InvitationAccepted'] }) {
+  const t = useT()
   const navigate = useNavigate()
   const [mode, setMode] = useState<'choose' | 'totp' | 'codes'>('choose')
   const [codes, setCodes] = useState<string[]>([])
@@ -295,7 +298,7 @@ function ProtectAccount({ joined }: { joined: Schemas['InvitationAccepted'] }) {
           setMode('codes')
         }}
         onCancel={() => setMode('choose')}
-        cancelLabel="Back"
+        cancelLabel={t(m.back)}
       />
     )
   } else if (mode === 'codes') {
@@ -304,7 +307,7 @@ function ProtectAccount({ joined }: { joined: Schemas['InvitationAccepted'] }) {
         codes={codes}
         email={joined.email}
         busy={busy}
-        finishLabel={`Continue to ${joined.workspaceName}`}
+        finishLabel={t(m.continueTo, { workspace: joined.workspaceName })}
         onFinish={async () => {
           setBusy(true)
           try {
@@ -320,17 +323,15 @@ function ProtectAccount({ joined }: { joined: Schemas['InvitationAccepted'] }) {
     body = (
       <>
         {tf.required ? (
-          <Note tone="warn" label="Required">
-            {tf.reason} Grace period: {tf.graceDays} days{tf.graceUntil ? (
-              <>
-                , ends <b>{fullDate(tf.graceUntil)}</b>
-              </>
-            ) : null}
-            . After that you'll have to set it up before continuing.
+          <Note tone="warn" label={t(m.requiredLabel)}>
+            <T
+              msg={tf.graceUntil ? m.requiredGrace : m.requiredGraceNoDate}
+              values={{ reason: tf.reason ?? '', days: tf.graceDays, date: tf.graceUntil ? usDate(tf.graceUntil) : '', b: bold }}
+            />
           </Note>
         ) : (
-          <Note tone="info" label="Recommended">
-            Add a passkey or an authenticator app so a stolen password isn't enough to get in. You can also do it later from Account &amp; security.
+          <Note tone="info" label={t(m.recommendedLabel)}>
+            {t(m.recommended)}
           </Note>
         )}
         {error ? (
@@ -346,7 +347,7 @@ function ProtectAccount({ joined }: { joined: Schemas['InvitationAccepted'] }) {
             setError(undefined)
             try {
               const pk = await registerPasskey()
-              toast({ kind: 'success', title: 'Passkey added', detail: pk.name })
+              toast({ kind: 'success', title: t(m.passkeyAdded), detail: pk.name })
               void go()
             } catch (e) {
               setError(passkeyErrorMessage(e, 'add'))
@@ -356,99 +357,110 @@ function ProtectAccount({ joined }: { joined: Schemas['InvitationAccepted'] }) {
           }}
         >
           {busy ? null : <PasskeyGlyph />}
-          Add a passkey (recommended)
+          {t(m.addPasskey)}
         </Button>
-        <Button onClick={() => setMode('totp')}>Set up an authenticator app</Button>
+        <Button onClick={() => setMode('totp')}>{t(m.setupAuthenticator)}</Button>
         <Button className="quiet" onClick={() => go()}>
-          {tf.required ? `Skip for now · ${graceDays} ${graceDays === 1 ? 'day' : 'days'} left` : 'Skip for now'}
+          {tf.required ? t(m.skipLeft, { days: graceDays }) : t(m.skip)}
         </Button>
       </>
     )
   }
   return (
-    <AuthLayout title="Protect your new account" labelledBy="h-inv-2fa">
-      <AuthHeading id="h-inv-2fa" title={mode === 'codes' ? 'Save your recovery codes' : mode === 'totp' ? 'Set up an authenticator app' : 'Protect your new account'} sub={`${joined.email} · ${joined.roleName} in ${joined.workspaceName}`} />
+    <AuthLayout title={t(m.protectTitle)} labelledBy="h-inv-2fa">
+      <AuthHeading
+        id="h-inv-2fa"
+        title={mode === 'codes' ? t(m.saveCodesTitle) : mode === 'totp' ? t(m.setupAuthenticator) : t(m.protectTitle)}
+        sub={t(m.protectSub, { email: joined.email, role: joined.roleName, workspace: joined.workspaceName })}
+      />
       {body}
     </AuthLayout>
   )
 }
 
-function Expired({ v, token }: { v: View; token: string }) {
+/** Asks the inviter for a new invitation (once a day per invitation). */
+function useRequestNewInvite(token: string) {
   const [sent, setSent] = useState<Schemas['InvitationRequestResult']>()
-  const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string>()
-  const inviter = v.inviterName.startsWith('An admin of') ? 'an admin' : v.inviterName
+  const [busy, setBusy] = useState(false)
+  const ask = async () => {
+    setBusy(true)
+    setError(undefined)
+    try {
+      const { data } = await http.POST('/api/v1/invitations/{token}/request', { params: { path: { token } } })
+      setSent(data)
+    } catch (e) {
+      setError(errorMessage(e))
+    } finally {
+      setBusy(false)
+    }
+  }
+  return { sent, error, setError, busy, ask }
+}
+
+function Expired({ v, token }: { v: View; token: string }) {
+  const t = useT()
+  const req = useRequestNewInvite(token)
+  const title = t(m.expiredTitle)
   return (
-    <AuthLayout title="This invitation has expired" labelledBy="h-inv-exp">
-      <AuthHeading id="h-inv-exp" title="This invitation has expired" sub={`${v.email} · sent ${monthDay(v.sentAt)}, expired ${monthDay(v.expiresAt)}`} />
-      <Note tone="neutral">Invitations work for 7 days by default. Nothing was created for you.</Note>
-      {sent ? (
-        <Note tone="ok" label="Sent">
-          {sent.status === 'already_sent' ? `${sent.inviter} was already asked today.` : `${sent.inviter} got your request and can send a new invitation.`}
+    <AuthLayout title={title} labelledBy="h-inv-exp">
+      <AuthHeading id="h-inv-exp" title={title} sub={t(m.expiredSub, { email: v.email, sent: monthDay(v.sentAt), expired: monthDay(v.expiresAt) })} />
+      <Note tone="neutral">{t(m.expiredNote)}</Note>
+      {req.sent ? (
+        <Note tone="ok" label={t(m.sentLabel)}>
+          {req.sent.status === 'already_sent' ? t(m.alreadyAsked, { inviter: req.sent.inviter }) : t(m.requestSent, { inviter: req.sent.inviter })}
         </Note>
       ) : (
         <>
-          {error ? (
+          {req.error ? (
             <span className="err" role="alert">
-              {error}
+              {req.error}
             </span>
           ) : null}
-          <Button
-            variant="primary"
-            loading={busy}
-            onClick={async () => {
-              setBusy(true)
-              setError(undefined)
-              try {
-                const { data } = await http.POST('/api/v1/invitations/{token}/request', { params: { path: { token } } })
-                setSent(data)
-              } catch (e) {
-                setError(errorMessage(e))
-              } finally {
-                setBusy(false)
-              }
-            }}
-          >
-            Ask {inviter} for a new invite
+          <Button variant="primary" loading={req.busy} onClick={req.ask}>
+            {t(m.askInviter, { inviter: v.inviterUnknown ? t(m.anAdmin) : v.inviterName })}
           </Button>
         </>
       )}
       <span className="foot">
-        Sends a short note to the inviter. Already have an account? <Link to="/sign-in">Sign in</Link>.
+        <T msg={m.expiredFoot} values={{ link: (c) => <Link to="/sign-in">{c}</Link> }} />
       </span>
     </AuthLayout>
   )
 }
 
 function Revoked({ v }: { v: View }) {
+  const t = useT()
+  const title = t(m.revokedTitle)
   return (
-    <AuthLayout title="This invitation was revoked" labelledBy="h-inv-rev">
-      <AuthHeading id="h-inv-rev" title="This invitation was revoked" sub={v.email} />
-      <Note tone="bad" label="Revoked">
-        An admin of {v.workspaceName} withdrew this invitation{v.revokedAt ? ` on ${monthDay(v.revokedAt)}` : ''}. The link no longer works.
+    <AuthLayout title={title} labelledBy="h-inv-rev">
+      <AuthHeading id="h-inv-rev" title={title} sub={v.email} />
+      <Note tone="bad" label={t(m.revokedLabel)}>
+        {v.revokedAt ? t(m.revokedOn, { workspace: v.workspaceName, date: monthDay(v.revokedAt) }) : t(m.revoked, { workspace: v.workspaceName })}
       </Note>
       <Link className="btn" to="/sign-in">
-        Back to sign in
+        {t(m.backToSignIn)}
       </Link>
     </AuthLayout>
   )
 }
 
 function Accepted({ v }: { v: View }) {
+  const t = useT()
+  const title = t(m.usedTitle)
   return (
-    <AuthLayout title="This invitation was already used" labelledBy="h-inv-used">
-      <AuthHeading id="h-inv-used" title="This invitation was already used" sub={v.email} />
+    <AuthLayout title={title} labelledBy="h-inv-used">
+      <AuthHeading id="h-inv-used" title={title} sub={v.email} />
       <Note tone="neutral">
-        {v.email} joined {v.workspaceName}
-        {v.acceptedAt ? ` on ${monthDay(v.acceptedAt)}` : ''}. Sign in to open it.
+        {v.acceptedAt ? t(m.joinedOn, { email: v.email, workspace: v.workspaceName, date: monthDay(v.acceptedAt) }) : t(m.joined, { email: v.email, workspace: v.workspaceName })}
       </Note>
       {v.signedInAs === v.email ? (
         <Link className="btn pri" to="/w/$workspace" params={{ workspace: v.workspaceSlug }}>
-          Open {v.workspaceName}
+          {t(m.open, { workspace: v.workspaceName })}
         </Link>
       ) : (
         <Link className="btn pri" to="/sign-in" search={{ email: v.email }}>
-          Sign in
+          {t(m.signIn)}
         </Link>
       )}
     </AuthLayout>
@@ -456,70 +468,48 @@ function Accepted({ v }: { v: View }) {
 }
 
 function WrongAccount({ v, token, onSignedOut }: { v: View; token: string; onSignedOut: () => Promise<void> }) {
+  const t = useT()
   const qc = useQueryClient()
-  const [busy, setBusy] = useState<'out' | 'ask'>()
-  const [sent, setSent] = useState<Schemas['InvitationRequestResult']>()
-  const [error, setError] = useState<string>()
+  const [signingOut, setSigningOut] = useState(false)
+  const req = useRequestNewInvite(token)
+  const title = t(m.wrongTitle)
+  const current = v.signedInAs ?? ''
   return (
-    <AuthLayout title="This invite isn't for the account you're using" labelledBy="h-inv-diff">
-      <AuthHeading
-        id="h-inv-diff"
-        title="This invite isn't for the account you're using"
-        sub={
-          <>
-            Invite for <b>{v.email}</b> · signed in as <b>{v.signedInAs}</b>
-          </>
-        }
-      />
-      <p className="body">
-        Invitations are tied to the email they were sent to. Sign out and continue as {v.email}, or ask {v.inviterName} to invite {v.signedInAs} instead.
-      </p>
-      {sent ? (
-        <Note tone="ok" label="Sent">
-          {sent.status === 'already_sent' ? `${sent.inviter} was already asked today.` : `${sent.inviter} got your request to invite ${v.signedInAs}.`}
+    <AuthLayout title={title} labelledBy="h-inv-diff">
+      <AuthHeading id="h-inv-diff" title={title} sub={<T msg={m.wrongSub} values={{ email: v.email, current, b: bold }} />} />
+      <p className="body">{t(m.wrongBody, { email: v.email, inviter: v.inviterUnknown ? t(m.anAdmin) : v.inviterName, current })}</p>
+      {req.sent ? (
+        <Note tone="ok" label={t(m.sentLabel)}>
+          {req.sent.status === 'already_sent' ? t(m.alreadyAsked, { inviter: req.sent.inviter }) : t(m.requestSentFor, { inviter: req.sent.inviter, current })}
         </Note>
       ) : null}
-      {error ? (
+      {req.error ? (
         <span className="err" role="alert">
-          {error}
+          {req.error}
         </span>
       ) : null}
       <div className="tiles">
         <Button
           variant="primary"
-          loading={busy === 'out'}
+          loading={signingOut}
           onClick={async () => {
-            setBusy('out')
+            setSigningOut(true)
             try {
               await http.POST('/api/v1/auth/sign-out')
               qc.clear()
               await onSignedOut()
             } catch (e) {
-              setError(errorMessage(e))
+              req.setError(errorMessage(e))
             } finally {
-              setBusy(undefined)
+              setSigningOut(false)
             }
           }}
         >
-          Sign out and continue
+          {t(m.signOutContinue)}
         </Button>
-        {sent ? null : (
-          <Button
-            loading={busy === 'ask'}
-            onClick={async () => {
-              setBusy('ask')
-              setError(undefined)
-              try {
-                const { data } = await http.POST('/api/v1/invitations/{token}/request', { params: { path: { token } } })
-                setSent(data)
-              } catch (e) {
-                setError(errorMessage(e))
-              } finally {
-                setBusy(undefined)
-              }
-            }}
-          >
-            Ask for an invite instead
+        {req.sent ? null : (
+          <Button loading={req.busy} onClick={req.ask}>
+            {t(m.askInstead)}
           </Button>
         )}
       </div>

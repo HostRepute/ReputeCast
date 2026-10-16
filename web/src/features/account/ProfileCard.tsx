@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import { useId, useRef, useState, type FormEvent } from 'react'
+import { useId, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { ApiError, errorMessage, http, type Schemas } from '@/api/client'
 import { Avatar } from '@/components/ui/Avatar'
 import { Button } from '@/components/ui/Button'
@@ -10,25 +10,30 @@ import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
 import { InlineAction } from '@/features/auth/AuthParts'
 import { timezoneLabel, timezoneOptions } from '@/features/auth/timezones'
+import { T, t as tr, useT } from '@/i18n'
 import { clock, usDate } from '@/lib/format'
 import { meQueryKey, useWorkspace } from '@/lib/session'
 import { useRefreshAccount } from './AccountPage'
+import { m } from './messages'
 
 type Account = Schemas['AccountOverview']
 
 const MAX_PHOTO = 2 * 1024 * 1024
 
+const bold = (c: ReactNode) => <b>{c}</b>
+
 function toBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const r = new FileReader()
     r.onload = () => resolve(String(r.result).replace(/^data:[^,]*,/, ''))
-    r.onerror = () => reject(r.error ?? new Error("The file couldn't be read."))
+    r.onerror = () => reject(r.error ?? new Error(tr(m.fileUnreadable)))
     r.readAsDataURL(file)
   })
 }
 
 /** Profile: photo, name, timezone and email (changed with a verification link). */
 export function ProfileCard({ a }: { a: Account }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const refresh = useRefreshAccount()
   const qc = useQueryClient()
@@ -40,14 +45,15 @@ export function ProfileCard({ a }: { a: Account }) {
   const [saved, setSaved] = useState<string>()
   const [errors, setErrors] = useState<{ name?: string; timezone?: string; photo?: string; form?: string }>({})
   const [emailOpen, setEmailOpen] = useState(false)
-  const [emailError, setEmailError] = useState<{ email: string; message: string }>()
+  // The address whose verification email couldn't go out (no healthy System provider).
+  const [unsent, setUnsent] = useState<string>()
   const file = useRef<HTMLInputElement>(null)
   const ids = { name: useId(), tz: useId(), email: useId(), emailHint: useId(), photoHint: useId() }
 
   const save = async (e: FormEvent) => {
     e.preventDefault()
     if (!name.trim()) {
-      setErrors({ name: 'Enter your name as the team should see it.' })
+      setErrors({ name: t(m.nameRequired) })
       return
     }
     setBusy(true)
@@ -68,11 +74,11 @@ export function ProfileCard({ a }: { a: Account }) {
 
   const upload = async (f: File) => {
     if (!/^image\/(png|jpeg)$/.test(f.type)) {
-      setErrors({ photo: 'Use a PNG or JPG photo.' })
+      setErrors({ photo: t(m.photoType) })
       return
     }
     if (f.size > MAX_PHOTO) {
-      setErrors({ photo: 'The photo is larger than 2 MB. Choose a smaller one.' })
+      setErrors({ photo: t(m.photoSize) })
       return
     }
     setPhotoBusy(true)
@@ -80,7 +86,7 @@ export function ProfileCard({ a }: { a: Account }) {
     try {
       await http.PUT('/api/v1/me/avatar', { body: { data: await toBase64(f) } })
       await refresh()
-      toast({ kind: 'success', title: 'Photo updated' })
+      toast({ kind: 'success', title: t(m.photoUpdated) })
     } catch (err) {
       setErrors({ photo: errorMessage(err) })
     } finally {
@@ -92,37 +98,37 @@ export function ProfileCard({ a }: { a: Account }) {
     try {
       await http.DELETE('/api/v1/me/email')
       await refresh()
-      toast({ kind: 'deleted', title: 'Email change cancelled', detail: `${p.email} stays your email.` })
+      toast({ kind: 'deleted', title: t(m.emailChangeCancelled), detail: t(m.emailStays, { email: p.email }) })
     } catch (err) {
-      toast({ kind: 'error', title: "Couldn't cancel", detail: errorMessage(err) })
+      toast({ kind: 'error', title: t(m.cancelFailed), detail: errorMessage(err) })
     }
   }
 
   return (
     <section className="card" aria-labelledby="h-profile">
-      <CardSection id="h-profile" title="Profile" caption="How you appear to the team" />
+      <CardSection id="h-profile" title={t(m.profile)} caption={t(m.profileCaption)} />
       <form className="pad col" style={{ gap: 14 }} onSubmit={save} noValidate>
         <div className="row" style={{ gap: 16 }}>
           <Avatar name={p.name || p.email} color={p.avatarColor} size={56} fontSize={13} src={p.avatarUrl} />
           <div className="col" style={{ gap: 6 }}>
             <div className="row" style={{ gap: 8 }}>
               <Button size="sm" loading={photoBusy} onClick={() => file.current?.click()} aria-describedby={ids.photoHint}>
-                Upload photo
+                {t(m.uploadPhoto)}
               </Button>
               <Button
                 size="sm"
-                disabledReason={p.avatarUrl ? undefined : 'No photo to remove: your initials show instead'}
+                disabledReason={p.avatarUrl ? undefined : t(m.noPhoto)}
                 onClick={async () => {
                   try {
                     await http.DELETE('/api/v1/me/avatar')
                     await refresh()
-                    toast({ kind: 'deleted', title: 'Photo removed', detail: 'Your initials show instead.' })
+                    toast({ kind: 'deleted', title: t(m.photoRemoved), detail: t(m.initialsShow) })
                   } catch (err) {
                     setErrors({ photo: errorMessage(err) })
                   }
                 }}
               >
-                Remove
+                {t(m.remove)}
               </Button>
               <input
                 ref={file}
@@ -144,14 +150,14 @@ export function ProfileCard({ a }: { a: Account }) {
               </span>
             ) : (
               <span className="k" id={ids.photoHint}>
-                PNG or JPG, square, up to 2 MB
+                {t(m.photoHint)}
               </span>
             )}
           </div>
         </div>
         <div className="grid grid-cols-2 gap-3.5 max-md:grid-cols-1">
           <div className="lbl">
-            <label htmlFor={ids.name}>Full name</label>
+            <label htmlFor={ids.name}>{t(m.fullName)}</label>
             <input id={ids.name} className={errors.name ? 'in err' : 'in'} value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" aria-invalid={errors.name ? true : undefined} />
             {errors.name ? (
               <span className="err" role="alert">
@@ -160,7 +166,7 @@ export function ProfileCard({ a }: { a: Account }) {
             ) : null}
           </div>
           <div className="lbl">
-            <label htmlFor={ids.tz}>Timezone</label>
+            <label htmlFor={ids.tz}>{t(m.timezone)}</label>
             <select id={ids.tz} className={errors.timezone ? 'in err' : 'in'} value={tz} onChange={(e) => setTz(e.target.value)}>
               {timezoneOptions(tz).map((z) => (
                 <option key={z} value={z}>
@@ -176,44 +182,59 @@ export function ProfileCard({ a }: { a: Account }) {
           </div>
         </div>
         <div className="lbl">
-          <label htmlFor={ids.email}>Email</label>
+          <label htmlFor={ids.email}>{t(m.email)}</label>
           <div className="flex gap-2 max-md:flex-wrap">
             <input id={ids.email} className="in flex-1 max-md:min-w-full" value={p.email} readOnly aria-describedby={ids.emailHint} />
-            <Button onClick={() => setEmailOpen(true)}>Change email</Button>
+            <Button onClick={() => setEmailOpen(true)}>{t(m.changeEmail)}</Button>
           </div>
           <span className="k font-medium" id={ids.emailHint}>
-            A verification link goes to the new address; the change applies after you click it. SSO and invites keep working during the switch.
+            {t(m.emailHint)}
           </span>
         </div>
         {p.pendingEmail ? (
-          <Note tone="info" label="Pending">
-            Waiting for you to confirm <b>{p.pendingEmail.email}</b>: the link works until {usDate(p.pendingEmail.expiresAt)}, {clock(p.pendingEmail.expiresAt)}.{' '}
-            <InlineAction onClick={cancelChange}>Cancel the change</InlineAction>
+          <Note tone="info" label={t(m.pending)}>
+            <T
+              msg={m.pendingNote}
+              values={{
+                email: p.pendingEmail.email,
+                date: usDate(p.pendingEmail.expiresAt),
+                time: clock(p.pendingEmail.expiresAt),
+                b: bold,
+                action: (c) => <InlineAction onClick={cancelChange}>{c}</InlineAction>,
+              }}
+            />
           </Note>
         ) : null}
-        {emailError ? (
-          <Note tone="bad" label="Not sent">
-            The verification email for <b>{emailError.email}</b> couldn't be sent: {emailError.message} Your current email stays active.{' '}
-            <InlineAction onClick={() => setEmailOpen(true)}>Try again</InlineAction> or check{' '}
-            <Link to="/w/$workspace/providers" params={{ workspace: slug }}>
-              Sending providers
-            </Link>
-            .
+        {unsent ? (
+          <Note tone="bad" label={t(m.notSent)}>
+            <T
+              msg={m.unsentNote}
+              values={{
+                email: unsent,
+                b: bold,
+                retry: (c) => <InlineAction onClick={() => setEmailOpen(true)}>{c}</InlineAction>,
+                link: (c) => (
+                  <Link to="/w/$workspace/providers" params={{ workspace: slug }}>
+                    {c}
+                  </Link>
+                ),
+              }}
+            />
           </Note>
         ) : null}
         {saved ? (
-          <Note tone="ok" label="Saved">
-            Profile updated. Your name shows as “{saved}” in the audit log from now on; older entries keep the name they were recorded with.
+          <Note tone="ok" label={t(m.saved)}>
+            {t(m.savedNote, { name: saved })}
           </Note>
         ) : null}
         {errors.form ? (
-          <Note tone="bad" label="Not saved">
+          <Note tone="bad" label={t(m.notSaved)}>
             {errors.form}
           </Note>
         ) : null}
         <div className="row justify-end">
           <Button type="submit" variant="primary" size="sm" loading={busy}>
-            Save profile
+            {t(m.saveProfile)}
           </Button>
         </div>
       </form>
@@ -222,14 +243,14 @@ export function ProfileCard({ a }: { a: Account }) {
         onOpenChange={setEmailOpen}
         current={p.email}
         hasPassword={a.password.set}
-        initial={emailError?.email}
+        initial={unsent}
         onSent={async (email) => {
-          setEmailError(undefined)
+          setUnsent(undefined)
           await refresh()
           await qc.invalidateQueries({ queryKey: meQueryKey })
-          toast({ kind: 'info', title: 'Verification link sent', detail: `Open it from ${email} to finish.` })
+          toast({ kind: 'info', title: t(m.linkSent), detail: t(m.openToFinish, { email }) })
         }}
-        onUnsent={(email, message) => setEmailError({ email, message })}
+        onUnsent={setUnsent}
       />
     </section>
   )
@@ -250,8 +271,9 @@ function ChangeEmailDialog({
   hasPassword: boolean
   initial?: string
   onSent: (email: string) => Promise<void>
-  onUnsent: (email: string, message: string) => void
+  onUnsent: (email: string) => void
 }) {
+  const t = useT()
   const [email, setEmail] = useState(initial ?? '')
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
@@ -261,11 +283,11 @@ function ChangeEmailDialog({
     e.preventDefault()
     const next = email.trim().toLowerCase()
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(next)) {
-      setErrors({ email: 'Enter the new address, like you@company.com.' })
+      setErrors({ email: t(m.emailInvalid) })
       return
     }
     if (hasPassword && !password) {
-      setErrors({ password: 'Enter your current password to confirm.' })
+      setErrors({ password: t(m.passwordToConfirm) })
       return
     }
     setBusy(true)
@@ -279,7 +301,7 @@ function ChangeEmailDialog({
       if (err instanceof ApiError && err.code === 'provider_unavailable') {
         setPassword('')
         onOpenChange(false)
-        onUnsent(next, 'the System stream has no healthy provider right now.')
+        onUnsent(next)
         return
       }
       const f = err instanceof ApiError ? err.problem.errors?.[0] : undefined
@@ -298,26 +320,26 @@ function ChangeEmailDialog({
         setErrors({})
         onOpenChange(o)
       }}
-      title="Change email"
-      description={`You sign in with ${current} until you open the link sent to the new address.`}
+      title={t(m.changeEmail)}
+      description={t(m.changeEmailDescription, { email: current })}
       size="sm"
       footer={
         <>
-          <Button onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={() => onOpenChange(false)}>{t(m.cancel)}</Button>
           <Button type="submit" form="change-email" variant="primary" loading={busy}>
-            Send verification link
+            {t(m.sendLink)}
           </Button>
         </>
       }
     >
       <form id="change-email" className="flex flex-col gap-3" onSubmit={submit} noValidate>
         {errors.form ? (
-          <Note tone="bad" label="Not sent">
+          <Note tone="bad" label={t(m.notSent)}>
             {errors.form}
           </Note>
         ) : null}
         <div className="lbl">
-          <label htmlFor={ids.email}>New email</label>
+          <label htmlFor={ids.email}>{t(m.newEmail)}</label>
           <input id={ids.email} className={errors.email ? 'in err' : 'in'} type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" autoFocus aria-invalid={errors.email ? true : undefined} />
           {errors.email ? (
             <span className="err" role="alert">
@@ -327,7 +349,7 @@ function ChangeEmailDialog({
         </div>
         {hasPassword ? (
           <div className="lbl">
-            <label htmlFor={ids.pw}>Current password</label>
+            <label htmlFor={ids.pw}>{t(m.currentPassword)}</label>
             <input id={ids.pw} className={errors.password ? 'in err' : 'in'} type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" aria-invalid={errors.password ? true : undefined} />
             {errors.password ? (
               <span className="err" role="alert">

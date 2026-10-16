@@ -209,4 +209,21 @@ export const entries: Entry[] = [
   { board: 'ComposerCompare', path: `${ws}/campaigns/{campaign:Weekly Digest #143}/edit?language=de&view=compare`, widths: [1440] },
   { board: 'ReportLanguages', manual: true },
   { board: 'AutomationLanguages', manual: true },
+  // X07 · app languages. Language & region sits under Profile; its states (picked and not saved,
+  // saved in Tiếng Việt with Undo, the browser's suggestion, the pseudo-locale) come from picking.
+  { board: 'LanguageRegion', path: `${ws}/account`, viewportOnly: true, height: 1000 },
+  { board: 'LanguageRegionPhone', path: `${ws}/account`, widths: [390], viewportOnly: true, height: 844 },
+  { board: 'ShellUserMenu', manual: true },
+  { board: 'TeamInvite', manual: true },
+  // The stress tests: pick Tiếng Việt or Pseudo (+40%) in Account & security › Language & region,
+  // then compare Campaigns, Settings › Team and Weekly Digest #142's Review & send.
+  { board: 'StressCampaignsVi', manual: true },
+  { board: 'StressCampaignsPseudo', manual: true },
+  { board: 'StressCampaignsPseudoPhone', manual: true },
+  { board: 'StressTeamVi', manual: true },
+  { board: 'StressTeamPseudo', manual: true },
+  { board: 'StressTeamPseudoPhone', manual: true },
+  { board: 'StressReviewVi', manual: true },
+  { board: 'StressReviewPseudo', manual: true },
+  { board: 'StressReviewPseudoPhone', manual: true },
 ]
