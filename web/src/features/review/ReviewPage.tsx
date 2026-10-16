@@ -9,19 +9,20 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { EmptyState, ErrorPanel, Loading, Skeleton } from '@/components/ui/Feedback'
 import { Banner } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
-import { count, monthDayTime, shortDate } from '@/lib/format'
+import { monthDayTime, shortDate } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
 import { deniedReason, useMe, useWorkspace } from '@/lib/session'
-import { statusWord as campaignWord } from '@/features/composer/format'
 import { approverNames, deciderFirst } from '@/features/approvals/parts'
 import { m as am } from '@/features/accessibility/messages'
 import { accessibilityBlock, OneClickDialog } from '@/features/accessibility/review'
-import { useT } from '@/i18n'
+import { t as tx, useT } from '@/i18n'
+import { common } from '@/i18n/common'
 import { approvalMode, ApprovedCard, BypassDialog, canRestore, HeldActions, HeldCard, InvalidatedCard, RequiredCard, WaitingCard } from './ApprovalCard'
 import { AudienceCard, finalCount, RouteCard, ScheduleNote, SchedulingCard, TestSendsCard, ThresholdsCard, ThrottlingCard } from './Aside'
 import { Checklist, RunningList, UnknownList } from './Checklist'
 import { ConfirmSend, type SendIntent } from './ConfirmSend'
-import { confirmNote, fixAllLabel, plural, primaryFix, scheduleSentence, sendLabel, type Check, type Fix, type Review, type Schedule, type Thresholds } from './logic'
+import { campaignWord, confirmNote, fixAllLabel, primaryFix, scheduleSentence, sendLabel, type Check, type Fix, type Review, type Schedule, type Thresholds } from './logic'
+import { m } from './messages'
 import { fixReason, whenText } from './parts'
 import { IncompleteBanner, RunningBanner, ScheduledBanner, ScheduledTiles, StaleBanner, VerdictBanner } from './Verdict'
 import { ByVersion, EACH, languageRows, sentVersions } from '@/features/languages/review'
@@ -32,6 +33,7 @@ const reviewPath = '/api/v1/workspaces/{workspace}/campaigns/{campaignId}/review
 
 /** 7.5 Review & send: Send Readiness, estimates, settings, approvals and the send. */
 export function ReviewPage({ campaignId }: { campaignId: string }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const qc = useQueryClient()
   const [running, setRunning] = useState(false)
@@ -56,7 +58,7 @@ export function ReviewPage({ campaignId }: { campaignId: string }) {
       await http.POST('/api/v1/workspaces/{workspace}/campaigns/{campaignId}/readiness', { params: { path: { workspace: slug, campaignId } } })
     } catch (e) {
       if (!(e instanceof ApiError && e.code === 'readiness_running')) {
-        toast({ kind: 'error', title: "Couldn't run the checks", detail: errorMessage(e) })
+        toast({ kind: 'error', title: tx(m.runFailed), detail: errorMessage(e) })
       }
     } finally {
       setRunning(false)
@@ -64,15 +66,15 @@ export function ReviewPage({ campaignId }: { campaignId: string }) {
     }
   }, [slug, campaignId, refresh])
   const d = review.data
-  const name = d?.campaign.name ?? 'Campaign'
+  const name = d?.campaign.name ?? t(m.campaignFallback)
   return (
     <Page
-      title="Review & send"
-      documentTitle={d ? `Review & send · ${d.campaign.name}` : 'Review & send'}
+      title={t(m.pageTitle)}
+      documentTitle={d ? t(m.documentTitle, { name: d.campaign.name }) : t(m.pageTitle)}
       breadcrumb={[
-        { label: 'Campaigns', to: '/w/$workspace/campaigns', params: { workspace: slug } },
+        { label: t(m.campaignsCrumb), to: '/w/$workspace/campaigns', params: { workspace: slug } },
         { label: name, to: '/w/$workspace/campaigns/$campaignId/edit', params: { workspace: slug, campaignId } },
-        { label: 'Review & send' },
+        { label: t(m.pageTitle) },
       ]}
       actions={d ? <HeaderActions review={d} running={running || Boolean(d.running)} onRun={() => void runChecks()} /> : null}
     >
@@ -80,12 +82,19 @@ export function ReviewPage({ campaignId }: { campaignId: string }) {
         <ReviewSkeleton />
       ) : review.isError ? (
         review.error instanceof ApiError && review.error.status === 404 ? (
-          <EmptyState title="This campaign doesn't exist" action={<ButtonLink to="/w/$workspace/campaigns" params={{ workspace: slug }}>Back to campaigns</ButtonLink>}>
-            It may have been deleted, or the link is from another workspace.
+          <EmptyState
+            title={t(m.notFoundTitle)}
+            action={
+              <ButtonLink to="/w/$workspace/campaigns" params={{ workspace: slug }}>
+                {t(m.backToCampaigns)}
+              </ButtonLink>
+            }
+          >
+            {t(m.notFoundBody)}
           </EmptyState>
         ) : (
-          <ErrorPanel title="Couldn't load Review & send" actions={<Button onClick={() => review.refetch()}>Retry</Button>}>
-            {errorMessage(review.error)} Nothing was changed.
+          <ErrorPanel title={t(m.loadFailed)} actions={<Button onClick={() => review.refetch()}>{t(common.retry)}</Button>}>
+            {errorMessage(review.error)} {t(m.nothingChanged)}
           </ErrorPanel>
         )
       ) : (
@@ -96,24 +105,22 @@ export function ReviewPage({ campaignId }: { campaignId: string }) {
 }
 
 function HeaderActions({ review, running, onRun }: { review: Review; running: boolean; onRun: () => void }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const now = useNow()
   const c = review.campaign
   const at = c.autosavedAt ?? c.updatedAt
-  const reason = !review.access.canEdit ? deniedReason('campaigns:edit', review.access.sendHelpers) : !c.editable ? 'This campaign already started sending.' : undefined
+  const reason = !review.access.canEdit ? deniedReason('campaigns:edit', review.access.sendHelpers) : !c.editable ? t(m.alreadySending) : undefined
   return (
     <>
-      <Badge tone="neutral">
-        {campaignWord(c.status)}
-        {c.editable && at ? ` · autosaved ${relative(at, now)}` : ''}
-      </Badge>
+      <Badge tone="neutral">{c.editable && at ? t(m.statusAutosaved, { status: campaignWord(c.status), when: relative(at, now) }) : campaignWord(c.status)}</Badge>
       {c.editable ? (
         <ButtonLink to="/w/$workspace/campaigns/$campaignId/edit" params={{ workspace: slug, campaignId: c.id }}>
-          Back to editor
+          {t(m.backToEditor)}
         </ButtonLink>
       ) : null}
       <Button disabledReason={reason} loading={running} onClick={onRun}>
-        Re-run checks
+        {t(m.rerun)}
       </Button>
     </>
   )
@@ -121,12 +128,12 @@ function HeaderActions({ review, running, onRun }: { review: Review; running: bo
 
 /** "2 min ago", "yesterday" as the composer writes it. */
 function relative(d: string, now: Date): string {
-  const m = Math.round((now.getTime() - new Date(d).getTime()) / 60_000)
-  if (m < 1) return 'just now'
-  if (m < 60) return `${m} min ago`
-  const h = Math.round(m / 60)
-  if (h < 24) return `${h} h ago`
-  return Math.round(h / 24) === 1 ? 'yesterday' : `${Math.round(h / 24)} days ago`
+  const mins = Math.round((now.getTime() - new Date(d).getTime()) / 60_000)
+  if (mins < 1) return tx(m.relJustNow)
+  if (mins < 60) return tx(m.relMinutes, { n: mins })
+  const h = Math.round(mins / 60)
+  if (h < 24) return tx(m.relHours, { n: h })
+  return Math.round(h / 24) === 1 ? tx(m.relYesterday) : tx(m.relDays, { n: Math.round(h / 24) })
 }
 
 type Busy = string | undefined
@@ -155,7 +162,6 @@ function ReviewBody({
   const [unschedule, setUnschedule] = useState(false)
   // "Fix 2 in one click" shows what it changes first.
   const [oneClick, setOneClick] = useState<{ check: Check; fix: Fix }>()
-  const tr = useT()
 
   // The checks run on their own when the campaign changed since the last
   // run (or never ran): once per visit, for people who may run them.
@@ -182,24 +188,25 @@ function ReviewBody({
       const applied = data?.applied ?? []
       toast({
         kind: 'success',
-        title: applied.length === 1 ? applied[0]! : `${applied.length} fixes applied`,
-        detail: applied.length > 1 ? applied.join(' · ') : 'Send Readiness ran again.',
+        // The applied fixes are named by the server.
+        title: applied.length === 1 ? applied[0]! : t(m.fixesApplied, { count: applied.length }),
+        detail: applied.length > 1 ? applied.join(' · ') : t(m.readinessRanAgain),
       })
     } catch (e) {
-      fail(items.length === 1 ? "Couldn't apply the fix" : "Couldn't apply the fixes")(e)
+      fail(items.length === 1 ? t(m.fixFailed) : t(m.fixesFailed))(e)
     } finally {
       setBusy(undefined)
       await refresh()
     }
   }
 
-  const saveSettings = async (body: Schemas['ReadinessSendSettings'], what: string): Promise<boolean> => {
+  const saveSettings = async (body: Schemas['ReadinessSendSettings'], what: 'thresholds' | 'schedule'): Promise<boolean> => {
     try {
       await http.PATCH('/api/v1/workspaces/{workspace}/campaigns/{campaignId}/send-settings', { params: { path }, body })
       await refresh()
       return true
     } catch (e) {
-      fail(`Couldn't save the ${what}`)(e)
+      fail(t(m.saveFailed, { what }))(e)
       return false
     }
   }
@@ -208,11 +215,11 @@ function ReviewBody({
     try {
       const lang = language === EACH ? { eachLanguage: true } : language ? { language } : {}
       const { data } = await http.POST('/api/v1/workspaces/{workspace}/campaigns/{campaignId}/test', { params: { path }, body: { to: [to], ...lang } })
-      toast({ kind: 'success', title: `Test sent to ${data?.sent.join(', ') ?? to}`, detail: data?.provider ? `via ${data.provider}` : undefined })
+      toast({ kind: 'success', title: t(m.testSent, { to: data?.sent.join(', ') ?? to }), detail: data?.provider ? t(m.via, { provider: data.provider }) : undefined })
       await refresh()
       return true
     } catch (e) {
-      fail("Couldn't send the test")(e)
+      fail(t(m.testFailed))(e)
       return false
     }
   }
@@ -231,15 +238,19 @@ function ReviewBody({
   const afterSend = async (r?: Schemas['ReviewSendResult']) => {
     await refresh()
     if (r?.status === 'sending') {
-      toast({ kind: 'success', title: 'Sending started', detail: `${count(r.recipients)} recipients · follow it on the live monitor` })
+      toast({ kind: 'success', title: t(m.sendingStarted), detail: t(m.sendingDetail, { recipients: r.recipients }) })
       void navigate({ to: '/w/$workspace/campaigns/$campaignId/live', params: { workspace: slug, campaignId } })
     } else if (r) {
-      toast({ kind: 'success', title: `${d.campaign.name} is scheduled`, detail: `${count(r.recipients)} recipients · ${scheduleSentence(d.schedule) || 'at the scheduled time'}` })
+      toast({
+        kind: 'success',
+        title: t(m.scheduledToast, { name: d.campaign.name }),
+        detail: t(m.scheduledDetail, { recipients: r.recipients, when: scheduleSentence(d.schedule) || t(m.atScheduledTime) }),
+      })
     }
   }
 
   const doBypass = async (input: { reason: string; password?: string; acknowledged: string[] }) => {
-    if (!run) return 'Run the checks first.'
+    if (!run) return t(m.runFirst)
     try {
       const { data } = await http.POST('/api/v1/workspaces/{workspace}/campaigns/{campaignId}/bypass', {
         params: { path },
@@ -262,9 +273,9 @@ function ReviewBody({
         // Storage may be unavailable; nothing to clear then.
       }
       const asked = d.approval.approvers.filter((p) => p.name !== me?.user.name)
-      toast({ kind: 'success', title: 'Approval requested', detail: asked.length ? `${approverNames(asked, 'and')} ${asked.length === 1 ? 'was' : 'were'} notified in-app and by email.` : undefined })
+      toast({ kind: 'success', title: t(m.approvalRequested), detail: asked.length ? t(m.approversNotified, { count: asked.length, names: approverNames(asked, 'and') }) : undefined })
     } catch (e) {
-      fail("Couldn't request approval")(e)
+      fail(t(m.requestFailed))(e)
     } finally {
       setBusy(undefined)
       await refresh()
@@ -279,11 +290,11 @@ function ReviewBody({
       if (kind === 'restore') await http.POST('/api/v1/workspaces/{workspace}/approvals/{approvalId}/restore', { params: { path: { workspace: slug, approvalId: id } } })
       toast({
         kind: 'success',
-        title: kind === 'remind' ? 'Approvers reminded' : kind === 'cancel' ? 'Request cancelled' : `v${d.approval.request?.version ?? ''} restored`,
-        detail: kind === 'remind' ? 'They get another notification and email.' : kind === 'cancel' ? 'The campaign is a draft again.' : 'The approval covers the campaign again.',
+        title: kind === 'remind' ? t(m.reminded) : kind === 'cancel' ? t(m.requestCancelled) : t(m.restored, { version: d.approval.request?.version ?? '' }),
+        detail: kind === 'remind' ? t(m.remindedDetail) : kind === 'cancel' ? t(m.requestCancelledDetail) : t(m.restoredDetail),
       })
     } catch (e) {
-      fail(kind === 'remind' ? "Couldn't remind the approvers" : kind === 'cancel' ? "Couldn't cancel the request" : "Couldn't restore the approved version")(e)
+      fail(kind === 'remind' ? t(m.remindFailed) : kind === 'cancel' ? t(m.cancelFailed) : t(m.restoreFailed))(e)
     } finally {
       setBusy(undefined)
       await refresh()
@@ -295,9 +306,9 @@ function ReviewBody({
     setBusy('accept')
     try {
       await http.POST('/api/v1/workspaces/{workspace}/campaigns/{campaignId}/readiness/{runId}/accept-unknown', { params: { path: { ...path, runId: run.id } } })
-      toast({ kind: 'success', title: 'Continuing with provider data only', detail: 'The skipped checks are in the audit log and run again during the send.' })
+      toast({ kind: 'success', title: t(m.continuing), detail: t(m.continuingDetail) })
     } catch (e) {
-      fail("Couldn't continue without those checks")(e)
+      fail(t(m.continueFailed))(e)
     } finally {
       setBusy(undefined)
       await refresh()
@@ -306,7 +317,7 @@ function ReviewBody({
 
   const doUnschedule = async () => {
     await http.POST('/api/v1/workspaces/{workspace}/campaigns/{campaignId}/unschedule', { params: { path } })
-    toast({ kind: 'success', title: `${d.campaign.name} is unscheduled`, detail: 'Nothing goes out until you schedule it again.' })
+    toast({ kind: 'success', title: t(m.unscheduled, { name: d.campaign.name }), detail: t(m.unscheduledDetail) })
     await refresh()
   }
 
@@ -317,15 +328,15 @@ function ReviewBody({
         <RunningBanner
           progress={progress}
           action={
-            <Button className="rv-off min-h-10" disabledReason="Wait for the checks to finish.">
-              {d.schedule.mode === 'now' ? 'Send' : 'Schedule send'}
+            <Button className="rv-off min-h-10" disabledReason={t(m.waitForChecks)}>
+              {d.schedule.mode === 'now' ? t(m.send) : t(m.scheduleSend)}
             </Button>
           }
         />
         {progress ? (
           <RunningList progress={progress} />
         ) : (
-          <Loading label="Starting the checks" className="card flex flex-col gap-3 p-4">
+          <Loading label={t(m.startingChecks)} className="card flex flex-col gap-3 p-4">
             <Skeleton w="60%" />
             <Skeleton w="45%" />
             <Skeleton w="52%" />
@@ -338,16 +349,16 @@ function ReviewBody({
   if (!run) {
     return (
       <EmptyState
-        title="Send Readiness hasn't run on this campaign yet"
+        title={t(m.neverRanTitle)}
         action={
           d.access.canEdit && d.campaign.editable ? (
             <Button variant="primary" onClick={() => void runChecks()}>
-              Run the checks
+              {t(m.runChecks)}
             </Button>
           ) : null
         }
       >
-        The checks cover sender reputation, authentication, content, links, compliance, audience quality and routing. The verdict, the estimates and the send appear here once they ran.
+        {t(m.neverRanBody)}
       </EmptyState>
     )
   }
@@ -378,11 +389,11 @@ function ReviewBody({
   const sendReason = !a.canSend
     ? deniedReason('campaigns:send', helpers)
     : blocked
-      ? `Fix the blocking ${plural(run.counts.blocks, 'issue', 'issues')} first.`
+      ? t(m.fixBlocksFirst, { count: run.counts.blocks })
       : incomplete
-        ? "Some checks couldn't run. Retry them, or continue with provider data only."
+        ? t(m.someChecksFailed)
         : d.stale
-          ? 'The campaign changed since the checks ran. Run them again first.'
+          ? t(m.changedRunAgain)
           : undefined
   const label = sendLabel(d.schedule.mode, recipients)
   const openSend = () => setConfirm('send')
@@ -392,8 +403,8 @@ function ReviewBody({
   if (d.held) {
     const req = d.approval.request
     const people = [
-      req ? `${req.requestedBy.name} (author)` : '',
-      d.approval.approvers.length ? `${approverNames(deciderFirst(d.approval.approvers, req?.decidedBy), 'and')} (approvers)` : '',
+      req ? t(m.heldAuthor, { name: req.requestedBy.name }) : '',
+      d.approval.approvers.length ? t(m.heldApprovers, { names: approverNames(deciderFirst(d.approval.approvers, req?.decidedBy), 'and') }) : '',
     ]
       .filter(Boolean)
       .join(', ')
@@ -403,10 +414,10 @@ function ReviewBody({
         scheduledAt={c.scheduledAt}
         approved={
           req && req.status === 'approved' && req.decidedAt
-            ? `v${req.version} by ${req.decidedBy}, ${monthDayTime(req.decidedAt)} · ${d.approval.valid ? 'still valid: nothing in the snapshot changed' : 'no longer valid'}`
+            ? t(m.heldApproved, { version: req.version, name: req.decidedBy ?? '', when: monthDayTime(req.decidedAt), valid: d.approval.valid ? 'yes' : 'no' })
             : undefined
         }
-        notified={people ? `${people} · in-app and email at ${whenText(d.held.since)}` : undefined}
+        notified={people ? t(m.heldNotified, { people, time: whenText(d.held.since) }) : undefined}
       >
         <HeldActions held={d.held} busy={busy} onApply={apply} onCancel={a.canEdit ? () => setUnschedule(true) : undefined} />
       </HeldCard>
@@ -419,10 +430,10 @@ function ReviewBody({
           actions={
             <>
               <Button disabledReason={a.canEdit ? undefined : deniedReason('campaigns:edit', helpers)} onClick={() => setUnschedule(true)}>
-                Unschedule
+                {t(m.unschedule)}
               </Button>
               <ButtonLink variant="primary" to="/w/$workspace/campaigns/$campaignId/live" params={{ workspace: slug, campaignId }}>
-                Open live monitor
+                {t(m.openLive)}
               </ButtonLink>
             </>
           }
@@ -435,20 +446,20 @@ function ReviewBody({
     top = (
       <Banner
         tone={c.status === 'paused' || c.status === 'failed' ? 'bad' : 'info'}
-        title={sending ? `${c.name} is ${c.status === 'paused' ? 'paused' : 'sending'}` : `${c.name} ${c.status === 'sent' ? 'was sent' : `is ${c.status}`}`}
+        title={sending ? t(m.bannerSending, { status: c.status, name: c.name }) : t(m.bannerDone, { status: c.status, name: c.name })}
         actions={
           sending ? (
             <ButtonLink variant="primary" to="/w/$workspace/campaigns/$campaignId/live" params={{ workspace: slug, campaignId }}>
-              Open live monitor
+              {t(m.openLive)}
             </ButtonLink>
           ) : (
             <ButtonLink to="/w/$workspace/campaigns/$campaignId/report" params={{ workspace: slug, campaignId }}>
-              Open report
+              {t(m.openReport)}
             </ButtonLink>
           )
         }
       >
-        These are the checks it went out with{c.startedAt ? ` on ${shortDate(c.startedAt)}` : ''}. Nothing here can change any more.
+        {t(m.wentOutWith, { hasDate: c.startedAt ? 'yes' : 'no', date: c.startedAt ? shortDate(c.startedAt) : '' })}
       </Banner>
     )
   } else if (incomplete) {
@@ -459,16 +470,16 @@ function ReviewBody({
           actions={
             <>
               <Button disabledReason={a.canEdit ? undefined : deniedReason('campaigns:edit', helpers)} onClick={() => void runChecks()}>
-                {run.checks.some((x) => x.status === 'unknown' && x.group === 'reputation') ? 'Retry blocklist checks' : 'Retry the checks'}
+                {run.checks.some((x) => x.status === 'unknown' && x.group === 'reputation') ? t(m.retryBlocklist) : t(m.retryChecks)}
               </Button>
               <Button variant="primary" loading={busy === 'accept'} disabledReason={a.canEdit ? undefined : deniedReason('campaigns:edit', helpers)} onClick={() => void acceptUnknown()}>
-                Continue with provider data only
+                {t(m.continueProvider)}
               </Button>
             </>
           }
         />
         <UnknownList run={run} />
-        <span className="k">"Continue with provider data only" records the skipped checks in the campaign's audit trail and re-tries them during the send.</span>
+        <span className="k">{t(m.continueNote)}</span>
       </div>
     )
   } else if (d.stale) {
@@ -477,7 +488,7 @@ function ReviewBody({
         run={run}
         action={
           <Button variant="primary" className="rv-big" disabledReason={a.canEdit ? undefined : deniedReason('campaigns:edit', helpers)} onClick={() => void runChecks()}>
-            Run the checks again
+            {t(m.runChecksAgain)}
           </Button>
         }
       />
@@ -493,7 +504,7 @@ function ReviewBody({
               {accessibilityBlock(run) ? (
                 // Alt text and colors are fixed in the composer, where the issues are listed.
                 <ButtonLink to="/w/$workspace/campaigns/$campaignId/edit" params={{ workspace: slug, campaignId }} search={{ panel: 'accessibility' }}>
-                  {tr(am.openInComposer)}
+                  {t(am.openInComposer)}
                 </ButtonLink>
               ) : blockFixes.length ? (
                 <Button variant="danger-primary" loading={busy === 'all'} onClick={() => void applyFixes(blockFixes, 'all')}>
@@ -531,7 +542,7 @@ function ReviewBody({
         onRequest={(note) => void requestApproval(note)}
         onBypass={d.approval.canBypass ? () => setBypass(true) : undefined}
         onSaveDraft={() => {
-          toast({ kind: 'success', title: `${c.name} is saved as a draft`, detail: 'Request approval from Review & send when it is ready.' })
+          toast({ kind: 'success', title: t(m.savedDraft, { name: c.name }), detail: t(m.savedDraftDetail) })
           void navigate({ to: '/w/$workspace/campaigns', params: { workspace: slug } })
         }}
       />
@@ -556,11 +567,11 @@ function ReviewBody({
       />
     ) : null
 
-  const editReason = !a.canEdit ? deniedReason('campaigns:edit', helpers) : !c.editable ? 'This campaign already started sending.' : undefined
+  const editReason = !a.canEdit ? deniedReason('campaigns:edit', helpers) : !c.editable ? t(m.alreadySending) : undefined
   const startAt = d.schedule.mode === 'now' ? null : (d.schedule.at ?? null)
   const showCTA = c.editable && !scheduled && !d.held && !approvalCard && !incomplete
   const scheduleHint =
-    mode === 'waiting' ? 'Changing the time restarts the approval request.' : mode === 'approved' ? 'Changing the time invalidates the approval.' : undefined
+    mode === 'waiting' ? t(m.timeRestarts) : mode === 'approved' ? t(m.timeInvalidates) : undefined
 
   return (
     <>
@@ -577,7 +588,7 @@ function ReviewBody({
             />
           ) : null}
         </div>
-        <aside className="rv-aside" aria-label="Audience, route and send settings">
+        <aside className="rv-aside" aria-label={t(m.asideLabel)}>
           <AudienceCard audience={run.estimates.audience}>
             <ByVersion checks={run.checks} />
           </AudienceCard>
@@ -587,12 +598,12 @@ function ReviewBody({
             thresholds={d.thresholds}
             scope={!blocked}
             disabledReason={editReason}
-            onSave={(t: Thresholds) => saveSettings({ thresholds: t }, 'thresholds')}
+            onSave={(th: Thresholds) => saveSettings({ thresholds: th }, 'thresholds')}
           />
           {blocked && !scheduled ? (
-            <ScheduleNote text="Available once the blocking issues are fixed." />
+            <ScheduleNote text={t(m.availableOnceFixed)} />
           ) : scheduled ? (
-            <ScheduleNote text={`${d.schedule.mode === 'now' ? 'Sends' : 'Scheduled for'} ${scheduleSentence(d.schedule) || 'the saved time'}. Unschedule to change when it goes out.`} />
+            <ScheduleNote text={t(m.scheduledNote, { mode: d.schedule.mode === 'now' ? 'now' : 'at', when: scheduleSentence(d.schedule) || t(m.savedTime) })} />
           ) : (
             <SchedulingCard
               schedule={d.schedule}
@@ -607,7 +618,7 @@ function ReviewBody({
               sends={d.testSends}
               me={a.email}
               toOthers={a.canSendTestToOthers}
-              disabledReason={c.editable ? undefined : 'This campaign already went out.'}
+              disabledReason={c.editable ? undefined : t(m.wentOut)}
               onSend={sendTest}
               versions={versions}
             />
@@ -618,9 +629,7 @@ function ReviewBody({
                 <Button variant="primary" className="rv-cta rv-off" disabledReason={sendReason}>
                   {label}
                 </Button>
-                <span className="k text-center">
-                  Disabled: {run.counts.blocks} blocking {plural(run.counts.blocks, 'issue', 'issues')}.
-                </span>
+                <span className="k text-center">{t(m.disabledBlocks, { count: run.counts.blocks })}</span>
               </>
             ) : (
               <>
@@ -641,7 +650,7 @@ function ReviewBody({
           onOpenChange={(v) => !v && setConfirm(null)}
           review={d}
           run={run}
-          action={confirm === 'approved' ? (d.schedule.mode === 'now' ? 'Send now' : 'Schedule as approved') : d.schedule.mode === 'now' ? 'Send now' : 'Schedule send'}
+          action={confirm === 'approved' ? (d.schedule.mode === 'now' ? t(m.actionSendNow) : t(m.actionApproved)) : d.schedule.mode === 'now' ? t(m.actionSendNow) : t(m.actionSchedule)}
           onConfirm={sendOrSchedule}
           onExclude={
             a.canEdit
@@ -659,16 +668,16 @@ function ReviewBody({
         open={unschedule}
         onOpenChange={setUnschedule}
         tone="warn"
-        badge="Unschedule"
-        title={`Unschedule “${c.name}”?`}
-        description={`It won't go out ${d.schedule.mode === 'now' ? 'now' : `on ${scheduleSentence(d.schedule)}`}. The checks, the settings and any approval stay as they are; schedule it again from here.`}
-        confirmLabel="Unschedule"
-        busyLabel="Unscheduling…"
+        badge={t(m.unschedule)}
+        title={t(m.unscheduleTitle, { name: c.name })}
+        description={d.schedule.mode === 'now' ? t(m.unscheduleNow) : t(m.unscheduleAt, { when: scheduleSentence(d.schedule) })}
+        confirmLabel={t(m.unschedule)}
+        busyLabel={t(m.unscheduling)}
         onConfirm={async () => {
           try {
             await doUnschedule()
           } catch (e) {
-            fail("Couldn't unschedule the campaign")(e)
+            fail(t(m.unscheduleFailed))(e)
             throw e
           }
         }}
@@ -679,8 +688,9 @@ function ReviewBody({
 
 /** Loading: the verdict banner, the checklist and the aside as grey blocks. */
 function ReviewSkeleton() {
+  const t = useT()
   return (
-    <Loading label="Loading Review & send" className="flex flex-col gap-5">
+    <Loading label={t(m.loadingReview)} className="flex flex-col gap-5">
       <div className="rv-verdict v-plain">
         <Skeleton w={40} h={40} r={20} />
         <div className="rv-vtext gap-2!">

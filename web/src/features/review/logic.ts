@@ -23,6 +23,23 @@ export function verdictTitle(v: Verdict): string {
   return v === 'blocked' ? t(m.verdictBlocked) : v === 'warnings' ? t(m.verdictWarnings) : t(m.verdictReady)
 }
 
+/** A campaign's status in the header badge: "Draft", "Waiting for approval", "Scheduled". */
+export function campaignWord(status: string): string {
+  const words: Record<string, Parameters<typeof t>[0]> = {
+    draft: m.campaignDraft,
+    approval: m.campaignApproval,
+    approved: m.campaignApproved,
+    scheduled: m.campaignScheduled,
+    sending: m.campaignSending,
+    paused: m.campaignPaused,
+    sent: m.campaignSent,
+    cancelled: m.campaignCancelled,
+    failed: m.campaignFailed,
+  }
+  const d = words[status]
+  return d ? t(d) : status
+}
+
 /** The badge word of a check row. */
 export function statusWord(s: CheckStatus): string {
   return s === 'pass' ? t(m.statusPass) : s === 'warn' ? t(m.statusWarn) : s === 'block' ? t(m.statusBlock) : t(m.statusUnknown)
