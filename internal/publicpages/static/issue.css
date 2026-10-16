@@ -16,4 +16,11 @@
 .rcia a.rcia-sub:hover { background: var(--rcia-hover, #3730a3); color: var(--rcia-on, #fff); }
 .rcia a:focus-visible { outline: 2px solid var(--rcia-accent, #4338ca); outline-offset: 2px; }
 .rcia-meta { max-width: 640px; margin: 0 auto; padding: 0 16px 12px; }
+.rcia-also { max-width: 640px; margin: -4px auto 0; padding: 0 16px 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-size: 13.5px; }
+.rcia-also a, .rcia-langs a { color: #3730a3; text-decoration: underline; text-underline-offset: 2px; }
+.rcia-also a:hover, .rcia-langs a:hover { color: #0b1220; }
+.rcia-foot { border-bottom: 0; border-top: 1px solid #e3e6eb; }
+.rcia-langs { max-width: 640px; margin: 0 auto; padding: 14px 16px; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 10px; font-size: 12.5px; }
+.rcia-langs svg { flex: none; }
+.rcia-langs a[aria-current] { color: #1f2937; font-weight: 700; text-decoration: none; }
 @media (max-width: 767px) { .rcia-in { padding-top: 10px; } }

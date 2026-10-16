@@ -185,7 +185,7 @@ func TestArchiveSummary(t *testing.T) {
 		{[]string{"Weekly Digest"}, 0, "Issues appear here as they're sent."},
 	}
 	for _, tc := range cases {
-		if got := archiveSummary(tc.names, first, tc.n); got != tc.want {
+		if got := archiveSummary(pagelabels.English(), tc.names, first, tc.n); got != tc.want {
 			t.Errorf("archiveSummary(%v, %d) = %q, want %q", tc.names, tc.n, got, tc.want)
 		}
 	}
@@ -330,9 +330,6 @@ func TestListNames(t *testing.T) {
 	for _, tc := range cases {
 		if got := pagelabels.English().Join(tc.in); got != tc.want {
 			t.Errorf("Join(%v) = %q", tc.in, got)
-		}
-		if got := andNames(tc.in); got != tc.want {
-			t.Errorf("andNames(%v) = %q", tc.in, got)
 		}
 	}
 }

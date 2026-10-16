@@ -165,6 +165,7 @@
 
   "archive.heading": "Newsletter archive",
   "archive.title": "{publisher} newsletter archive",
+  "archive.titlePage": {"message": "{publisher} newsletter archive · page {page}", "note": "the browser tab's title on the archive's later pages"},
   "archive.summary": {"message": "Every issue of the {lists} since {year}. {count, plural, one {# issue.} other {# issues.}}", "note": "lists: the newsletters' names, joined (Weekly Digest and Product Updates); year: 2024"},
   "archive.summaryAll": "Every issue since {year}. {count, plural, one {# issue.} other {# issues.}}",
   "archive.summaryEmpty": "Issues appear here as they're sent.",
@@ -173,7 +174,7 @@
   "archive.next": "Get the next one in your inbox",
   "archive.search": "Search issues",
   "archive.searchButton": "Search",
-  "archive.every": {"message": "Every issue", "note": "the archive's filter that shows the issues of every newsletter"},
+  "archive.every": {"message": "All", "note": "the archive's filter chip that shows the issues of every newsletter, before one chip per newsletter"},
   "archive.range": {"message": "{from} to {to} of {total}", "note": "which issues the page shows: 1 to 12 of 142"},
   "archive.newer": "Newer issues",
   "archive.older": "Older issues",

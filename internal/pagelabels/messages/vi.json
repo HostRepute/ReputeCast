@@ -165,6 +165,7 @@
 
   "archive.heading": "Lưu trữ bản tin",
   "archive.title": "Lưu trữ bản tin {publisher}",
+  "archive.titlePage": "Lưu trữ bản tin {publisher} · trang {page}",
   "archive.summary": "Mọi số của {lists} từ năm {year}. {count, plural, other {# số.}}",
   "archive.summaryAll": "Mọi số từ năm {year}. {count, plural, other {# số.}}",
   "archive.summaryEmpty": "Các số sẽ xuất hiện ở đây khi được gửi.",
@@ -173,7 +174,7 @@
   "archive.next": "Nhận số tiếp theo trong hộp thư",
   "archive.search": "Tìm các số",
   "archive.searchButton": "Tìm",
-  "archive.every": "Mọi số",
+  "archive.every": "Tất cả",
   "archive.range": "{from} đến {to} trên {total}",
   "archive.newer": "Các số mới hơn",
   "archive.older": "Các số cũ hơn",

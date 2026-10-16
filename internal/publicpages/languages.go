@@ -179,6 +179,53 @@ func (h *Handler) menu(r *http.Request, s *site, current string, live func(strin
 	return out
 }
 
+// globe is the language menu's icon.
+const globe = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">` +
+	`<circle cx="8" cy="8" r="6.2"></circle><path d="M1.8 8h12.4M8 1.8c1.8 1.7 2.7 3.8 2.7 6.2S9.8 12.5 8 14.2C6.2 12.5 5.3 10.4 5.3 8S6.2 3.5 8 1.8z"></path></svg>`
+
+// alternates are a page's addresses in each Live language for search
+// engines (hreflang): the page with ?lang=, and the page itself as
+// x-default. None with fewer than two.
+func (h *Handler) alternates(ctx context.Context, s *site, href string, live func(string) bool) []alternate {
+	pc := h.copyOf(ctx, s)
+	if pc == nil || s.preview || href == "" {
+		return nil
+	}
+	if live == nil {
+		live = pc.Live
+	}
+	var out []alternate
+	for _, code := range pc.LiveLanguages() {
+		if live(code) {
+			out = append(out, alternate{Lang: code, Href: withParam(href, langParam, code)})
+		}
+	}
+	if len(out) < 2 {
+		return nil
+	}
+	return append(out, alternate{Lang: "x-default", Href: href})
+}
+
+// withParam is an address with one query parameter set.
+func withParam(href, key, value string) string {
+	u, err := url.Parse(href)
+	if err != nil {
+		return href
+	}
+	q := u.Query()
+	q.Set(key, value)
+	u.RawQuery = q.Encode()
+	return u.String()
+}
+
+// defaultLang is the workspace's default language.
+func (h *Handler) defaultLang(ctx context.Context, s *site) string {
+	if pc := h.copyOf(ctx, s); pc != nil && pc.Languages.Default != "" {
+		return pc.Languages.Default
+	}
+	return s.set.CopyLanguage()
+}
+
 // withLang is the request's own address with ?lang= set: the same page in
 // another language.
 func withLang(r *http.Request, code string) string {

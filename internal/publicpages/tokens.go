@@ -807,8 +807,20 @@ func (h *Handler) viewOnline(w http.ResponseWriter, r *http.Request) {
 		"view_in_browser_url": s.links.View(token),
 	}
 	subj, html := variantContent(cp.Subject, cp.Html, cp.AbTest, m.Variant)
+	// The version the message delivered: its language's, when it wasn't
+	// the campaign's own.
+	lang := ""
+	if mv, err := h.Q.PublicMessageVersion(r.Context(), store.PublicMessageVersionParams{ID: m.ID, WorkspaceID: s.ws.ID}); err == nil {
+		lang = mv.Language
+		if lang == "" {
+			lang = mv.Source
+		}
+		if mv.Translated && strings.TrimSpace(mv.Html) != "" {
+			subj, html = variantContent(mv.Subject, mv.Html, mv.AbTest, m.Variant)
+		}
+	}
 	subject, body := renderEmail(subj, html, pc.Email, pc.FirstName, pc.LastName, pc.Attributes, links, h.URLs.Base())
-	doc := injectHead(body, emailHead{Title: subject, Robots: "noindex, nofollow"})
+	doc := setDocLang(injectHead(body, emailHead{Title: subject, Robots: "noindex, nofollow"}), lang)
 	emailHeaders(w, true)
 	_, _ = w.Write([]byte(doc))
 }

@@ -6,7 +6,7 @@
 //	/p/{workspace}/preferences[/{token}]   preference center (or ask for a link)
 //	/p/{workspace}/unsubscribe/{token}     unsubscribe page; POST is RFC 8058 one-click
 //	/p/{workspace}/view/{token}            an email in the browser
-//	/p/{workspace}/archive[/{issue}]       public archive, archive.rss, sitemap.xml
+//	/p/{workspace}/archive[/{issue}[/{lang}]] public archive, archive.rss, sitemap.xml
 //	/p/{workspace}/forms/{id}.js           embed script, /session and /submit
 //	/p/_/…                                 stylesheet, fonts, scripts
 //
@@ -168,6 +168,7 @@ func (h *Handler) pageRoutes(r chi.Router) {
 	r.Get("/archive", h.archive)
 	r.Get("/archive.rss", h.feed)
 	r.Get("/archive/{issue}", h.issue)
+	r.Get("/archive/{issue}/{lang}", h.issue)
 	r.Get("/sitemap.xml", h.sitemap)
 	r.Get("/forms/{script}", h.formScript)
 	r.Get("/forms/{id}/session", h.formSession)
@@ -449,14 +450,6 @@ type messageBody struct {
 type action struct {
 	Label string
 	Href  string
-}
-
-func (h *Handler) message(w http.ResponseWriter, r *http.Request, s *site, status int, title string, body messageBody, private bool) {
-	v := h.view(s, title, body)
-	if !private && status == http.StatusOK {
-		v.Robots = "noindex, follow"
-	}
-	h.render(w, r, s, "message", status, v, csp{}, private)
 }
 
 // messageIn is a message page in a language: its words are pl's labels.

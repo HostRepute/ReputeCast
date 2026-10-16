@@ -119,3 +119,37 @@ RETURNING *;
 
 -- name: PageCopyUserName :one
 SELECT coalesce(name, '')::text FROM users WHERE id = @id;
+
+-- name: ArchiveIssueVersions :many
+-- The language versions of a sent campaign readers can see in the archive:
+-- translated and not held, besides the language it's written in.
+SELECT ct.language, ct.subject, ct.preheader, ct.html, ct.plain_text, ct.ab_test
+FROM content_translations ct
+JOIN content_sources cs ON cs.owner_kind = ct.owner_kind AND cs.owner_id = ct.owner_id AND cs.owner_version = ct.owner_version
+WHERE ct.workspace_id = @workspace_id AND ct.owner_kind = 'campaign' AND ct.owner_id = @campaign_id AND ct.owner_version = 0
+  AND ct.status = 'translated' AND NOT ct.held AND ct.language <> cs.language
+ORDER BY ct.language;
+
+-- name: ArchiveListVersions :many
+-- The archive's list in a reader's language: for each issue, the language
+-- it's written in and its versions in the languages asked for (none when
+-- it has none).
+SELECT cs.owner_id AS campaign_id, cs.language AS source, coalesce(ct.language, '')::text AS language,
+       coalesce(ct.subject, '')::text AS subject, coalesce(ct.preheader, '')::text AS preheader,
+       coalesce(ct.plain_text, '')::text AS plain_text
+FROM content_sources cs
+LEFT JOIN content_translations ct ON ct.owner_kind = cs.owner_kind AND ct.owner_id = cs.owner_id AND ct.owner_version = cs.owner_version
+     AND ct.status = 'translated' AND NOT ct.held AND ct.language <> cs.language AND ct.language = ANY (@languages::text[])
+WHERE cs.workspace_id = @workspace_id AND cs.owner_kind = 'campaign' AND cs.owner_version = 0
+  AND cs.owner_id = ANY (@campaigns::uuid[]);
+
+-- name: PublicMessageVersion :one
+-- The language a campaign message was delivered in and, when that wasn't
+-- the campaign's own language, the version's content (view online).
+SELECT m.language, coalesce(cs.language, '')::text AS source, (ct.id IS NOT NULL)::boolean AS translated,
+       coalesce(ct.subject, '')::text AS subject, coalesce(ct.html, '')::text AS html, ct.ab_test
+FROM messages m
+LEFT JOIN content_sources cs ON cs.owner_kind = 'campaign' AND cs.owner_id = m.campaign_id AND cs.owner_version = 0
+LEFT JOIN content_translations ct ON ct.owner_kind = 'campaign' AND ct.owner_id = m.campaign_id AND ct.owner_version = 0
+     AND ct.language = m.language AND m.language <> coalesce(cs.language, '')
+WHERE m.id = @id AND m.workspace_id = @workspace_id;

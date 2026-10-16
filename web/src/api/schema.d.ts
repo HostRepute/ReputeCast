@@ -34884,6 +34884,8 @@ export interface operations {
                 draft?: string;
                 /** @description Preview the pages of this subscriber */
                 contact?: string;
+                /** @description Preview the page in this language */
+                language?: string;
             };
             header?: never;
             path: {

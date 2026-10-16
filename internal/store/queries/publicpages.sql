@@ -38,7 +38,10 @@ WHERE ai.workspace_id = @workspace_id
   AND ai.list_id = ANY (@lists::uuid[])
   AND (@include_hidden::boolean OR NOT ai.hidden)
   AND (sqlc.narg(list_id)::uuid IS NULL OR ai.list_id = sqlc.narg(list_id)::uuid)
-  AND (@q::text = '' OR ai.title ILIKE @q OR c.subject ILIKE @q OR ai.excerpt ILIKE @q OR c.preheader ILIKE @q)
+  AND (@q::text = '' OR ai.title ILIKE @q OR c.subject ILIKE @q OR ai.excerpt ILIKE @q OR c.preheader ILIKE @q
+       OR EXISTS (SELECT 1 FROM content_translations ct
+                  WHERE ct.owner_kind = 'campaign' AND ct.owner_id = c.id AND ct.owner_version = 0 AND ct.status = 'translated' AND NOT ct.held
+                    AND (ct.subject ILIKE @q OR ct.preheader ILIKE @q)))
 ORDER BY sent_at DESC, c.id DESC
 LIMIT @lim OFFSET @off;
 
@@ -61,7 +64,10 @@ WHERE ai.workspace_id = @workspace_id
   AND ai.list_id = ANY (@lists::uuid[])
   AND (@include_hidden::boolean OR NOT ai.hidden)
   AND (sqlc.narg(list_id)::uuid IS NULL OR ai.list_id = sqlc.narg(list_id)::uuid)
-  AND (@q::text = '' OR ai.title ILIKE @q OR c.subject ILIKE @q OR ai.excerpt ILIKE @q OR c.preheader ILIKE @q);
+  AND (@q::text = '' OR ai.title ILIKE @q OR c.subject ILIKE @q OR ai.excerpt ILIKE @q OR c.preheader ILIKE @q
+       OR EXISTS (SELECT 1 FROM content_translations ct
+                  WHERE ct.owner_kind = 'campaign' AND ct.owner_id = c.id AND ct.owner_version = 0 AND ct.status = 'translated' AND NOT ct.held
+                    AND (ct.subject ILIKE @q OR ct.preheader ILIKE @q)));
 
 -- name: ArchiveSummary :one
 -- Every published issue: how many and since when.

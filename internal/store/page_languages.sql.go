@@ -13,6 +13,114 @@ import (
 	"github.com/google/uuid"
 )
 
+const archiveIssueVersions = `-- name: ArchiveIssueVersions :many
+SELECT ct.language, ct.subject, ct.preheader, ct.html, ct.plain_text, ct.ab_test
+FROM content_translations ct
+JOIN content_sources cs ON cs.owner_kind = ct.owner_kind AND cs.owner_id = ct.owner_id AND cs.owner_version = ct.owner_version
+WHERE ct.workspace_id = $1 AND ct.owner_kind = 'campaign' AND ct.owner_id = $2 AND ct.owner_version = 0
+  AND ct.status = 'translated' AND NOT ct.held AND ct.language <> cs.language
+ORDER BY ct.language
+`
+
+type ArchiveIssueVersionsParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	CampaignID  uuid.UUID `json:"campaignId"`
+}
+
+type ArchiveIssueVersionsRow struct {
+	Language  string          `json:"language"`
+	Subject   string          `json:"subject"`
+	Preheader string          `json:"preheader"`
+	Html      string          `json:"html"`
+	PlainText string          `json:"plainText"`
+	AbTest    json.RawMessage `json:"abTest"`
+}
+
+// The language versions of a sent campaign readers can see in the archive:
+// translated and not held, besides the language it's written in.
+func (q *Queries) ArchiveIssueVersions(ctx context.Context, arg ArchiveIssueVersionsParams) ([]ArchiveIssueVersionsRow, error) {
+	rows, err := q.db.Query(ctx, archiveIssueVersions, arg.WorkspaceID, arg.CampaignID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ArchiveIssueVersionsRow{}
+	for rows.Next() {
+		var i ArchiveIssueVersionsRow
+		if err := rows.Scan(
+			&i.Language,
+			&i.Subject,
+			&i.Preheader,
+			&i.Html,
+			&i.PlainText,
+			&i.AbTest,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const archiveListVersions = `-- name: ArchiveListVersions :many
+SELECT cs.owner_id AS campaign_id, cs.language AS source, coalesce(ct.language, '')::text AS language,
+       coalesce(ct.subject, '')::text AS subject, coalesce(ct.preheader, '')::text AS preheader,
+       coalesce(ct.plain_text, '')::text AS plain_text
+FROM content_sources cs
+LEFT JOIN content_translations ct ON ct.owner_kind = cs.owner_kind AND ct.owner_id = cs.owner_id AND ct.owner_version = cs.owner_version
+     AND ct.status = 'translated' AND NOT ct.held AND ct.language <> cs.language AND ct.language = ANY ($1::text[])
+WHERE cs.workspace_id = $2 AND cs.owner_kind = 'campaign' AND cs.owner_version = 0
+  AND cs.owner_id = ANY ($3::uuid[])
+`
+
+type ArchiveListVersionsParams struct {
+	Languages   []string    `json:"languages"`
+	WorkspaceID uuid.UUID   `json:"workspaceId"`
+	Campaigns   []uuid.UUID `json:"campaigns"`
+}
+
+type ArchiveListVersionsRow struct {
+	CampaignID uuid.UUID `json:"campaignId"`
+	Source     string    `json:"source"`
+	Language   string    `json:"language"`
+	Subject    string    `json:"subject"`
+	Preheader  string    `json:"preheader"`
+	PlainText  string    `json:"plainText"`
+}
+
+// The archive's list in a reader's language: for each issue, the language
+// it's written in and its versions in the languages asked for (none when
+// it has none).
+func (q *Queries) ArchiveListVersions(ctx context.Context, arg ArchiveListVersionsParams) ([]ArchiveListVersionsRow, error) {
+	rows, err := q.db.Query(ctx, archiveListVersions, arg.Languages, arg.WorkspaceID, arg.Campaigns)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ArchiveListVersionsRow{}
+	for rows.Next() {
+		var i ArchiveListVersionsRow
+		if err := rows.Scan(
+			&i.CampaignID,
+			&i.Source,
+			&i.Language,
+			&i.Subject,
+			&i.Preheader,
+			&i.PlainText,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const contactFillLanguage = `-- name: ContactFillLanguage :execrows
 UPDATE contacts
 SET language = $1, language_source = 'form', language_source_name = $2, language_browser = true,
@@ -586,4 +694,44 @@ func (q *Queries) PageCopyUserName(ctx context.Context, id uuid.UUID) (string, e
 	var column_1 string
 	err := row.Scan(&column_1)
 	return column_1, err
+}
+
+const publicMessageVersion = `-- name: PublicMessageVersion :one
+SELECT m.language, coalesce(cs.language, '')::text AS source, (ct.id IS NOT NULL)::boolean AS translated,
+       coalesce(ct.subject, '')::text AS subject, coalesce(ct.html, '')::text AS html, ct.ab_test
+FROM messages m
+LEFT JOIN content_sources cs ON cs.owner_kind = 'campaign' AND cs.owner_id = m.campaign_id AND cs.owner_version = 0
+LEFT JOIN content_translations ct ON ct.owner_kind = 'campaign' AND ct.owner_id = m.campaign_id AND ct.owner_version = 0
+     AND ct.language = m.language AND m.language <> coalesce(cs.language, '')
+WHERE m.id = $1 AND m.workspace_id = $2
+`
+
+type PublicMessageVersionParams struct {
+	ID          uuid.UUID `json:"id"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+}
+
+type PublicMessageVersionRow struct {
+	Language   string          `json:"language"`
+	Source     string          `json:"source"`
+	Translated bool            `json:"translated"`
+	Subject    string          `json:"subject"`
+	Html       string          `json:"html"`
+	AbTest     json.RawMessage `json:"abTest"`
+}
+
+// The language a campaign message was delivered in and, when that wasn't
+// the campaign's own language, the version's content (view online).
+func (q *Queries) PublicMessageVersion(ctx context.Context, arg PublicMessageVersionParams) (PublicMessageVersionRow, error) {
+	row := q.db.QueryRow(ctx, publicMessageVersion, arg.ID, arg.WorkspaceID)
+	var i PublicMessageVersionRow
+	err := row.Scan(
+		&i.Language,
+		&i.Source,
+		&i.Translated,
+		&i.Subject,
+		&i.Html,
+		&i.AbTest,
+	)
+	return i, err
 }

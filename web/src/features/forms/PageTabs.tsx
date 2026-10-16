@@ -117,7 +117,7 @@ function PageEditor(props: EditorProps) {
         extraBar={extraBar}
         preview={(device) => (
           <div className={cn('fb-stage wide', device === 'mobile' && 'phone')}>
-            <PagePreview page={preview} draft={body} form={form} label={previewLabel} />
+            <PagePreview page={preview} draft={body} form={form} label={previewLabel} language={language} />
           </div>
         )}
       />
@@ -193,8 +193,11 @@ function BaseEditor({ settings, pick, preview, previewLabel, previewURL, extraBa
   )
 }
 
-/** The page as the server renders it, inert, in a frame sized to its content. */
-function PagePreview({ page, draft, form, label }: { page: PreviewPage; draft: PageInput; form?: string; label: string }) {
+/**
+ * The page as the server renders it, inert, in a frame sized to its content:
+ * in a language once its copy is Live there, else as its visitors see it.
+ */
+function PagePreview({ page, draft, form, label, language }: { page: PreviewPage; draft: PageInput; form?: string; label: string; language?: string }) {
   const { slug } = useWorkspace()
   const json = JSON.stringify(draft)
   const [settled, setSettled] = useState(json)
@@ -205,7 +208,7 @@ function PagePreview({ page, draft, form, label }: { page: PreviewPage; draft: P
   const q = $api.useQuery(
     'get',
     '/api/v1/workspaces/{workspace}/public-pages/preview/{page}',
-    { params: { path: { workspace: slug, page }, query: { draft: settled, form } } },
+    { params: { path: { workspace: slug, page }, query: { draft: settled, form, language } } },
     { placeholderData: keepPreviousData },
   )
   const frame = useRef<HTMLIFrameElement>(null)

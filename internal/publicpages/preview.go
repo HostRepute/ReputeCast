@@ -96,9 +96,11 @@ func (h *Handler) Preview(ctx context.Context, ws *store.Workspace, page, form, 
 		h.setLangCtx(v, ctx, s, fl.pageLang)
 		out.URL = s.canon.Subscribe(slugOf(fl.form, hosted))
 	case "archive":
-		if v, _, err = h.archiveView(ctx, s, url.Values{}, true); err != nil {
+		pl := h.fixedLang(ctx, s, language, nil)
+		if v, _, err = h.archiveView(ctx, s, url.Values{}, pl, pl.Code, true); err != nil {
 			return out, err
 		}
+		h.setLangCtx(v, ctx, s, pl)
 		out.URL = s.canon.Archive()
 	default:
 		pc, err := h.previewContact(ctx, s, contact)

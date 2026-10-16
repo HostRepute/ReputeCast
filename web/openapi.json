@@ -70883,6 +70883,17 @@
               "maxLength": 320,
               "type": "string"
             }
+          },
+          {
+            "description": "Preview the page in this language",
+            "explode": false,
+            "in": "query",
+            "name": "language",
+            "schema": {
+              "description": "Preview the page in this language",
+              "maxLength": 35,
+              "type": "string"
+            }
           }
         ],
         "responses": {

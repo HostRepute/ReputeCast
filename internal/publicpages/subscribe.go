@@ -332,6 +332,14 @@ func (h *Handler) renderSubscribe(w http.ResponseWriter, r *http.Request, s *sit
 	if s.set.Pages.Subscribe.Index && !preview && status == http.StatusOK {
 		v.Robots = "index, follow"
 	}
+	if !preview && status == http.StatusOK {
+		// The page in each language it's Live in, for search engines; a
+		// language picked by address is the page's own address.
+		v.Alternates = h.alternates(r.Context(), s, v.Canonical, fl.live)
+		if r.URL.Query().Get(langParam) != "" && fl.picked {
+			v.Canonical = withParam(v.Canonical, langParam, fl.Code)
+		}
+	}
 	v.OG = &og{Type: "website", SiteName: s.set.Branding.PublisherName, Title: v.Title, Description: v.Description, URL: v.Canonical}
 	if s.set.Pages.Archive.Enabled {
 		v.Feed, v.FeedTitle = s.links.Feed(), fl.Labels.Text("archive.title", i18n.Args{"publisher": s.set.Branding.PublisherName})

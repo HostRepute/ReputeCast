@@ -100,8 +100,15 @@ type Querier interface {
 	ArchiveIssueGet(ctx context.Context, arg ArchiveIssueGetParams) (ArchiveIssue, error)
 	// One issue of the Archive tab, as ArchiveIssues lists it.
 	ArchiveIssueOne(ctx context.Context, arg ArchiveIssueOneParams) (ArchiveIssueOneRow, error)
+	// The language versions of a sent campaign readers can see in the archive:
+	// translated and not held, besides the language it's written in.
+	ArchiveIssueVersions(ctx context.Context, arg ArchiveIssueVersionsParams) ([]ArchiveIssueVersionsRow, error)
 	ArchiveIssues(ctx context.Context, arg ArchiveIssuesParams) ([]ArchiveIssuesRow, error)
 	ArchiveListCounts(ctx context.Context, arg ArchiveListCountsParams) ([]ArchiveListCountsRow, error)
+	// The archive's list in a reader's language: for each issue, the language
+	// it's written in and its versions in the languages asked for (none when
+	// it has none).
+	ArchiveListVersions(ctx context.Context, arg ArchiveListVersionsParams) ([]ArchiveListVersionsRow, error)
 	// Serializes archive syncs of a workspace, so two requests never hand out
 	// the same slug.
 	ArchiveLock(ctx context.Context, workspaceID uuid.UUID) error
@@ -1120,6 +1127,9 @@ type Querier interface {
 	PublicInsertUnsubscribeEvent(ctx context.Context, arg PublicInsertUnsubscribeEventParams) error
 	PublicLatestIssueSlug(ctx context.Context, arg PublicLatestIssueSlugParams) (string, error)
 	PublicMessage(ctx context.Context, id uuid.UUID) (PublicMessageRow, error)
+	// The language a campaign message was delivered in and, when that wasn't
+	// the campaign's own language, the version's content (view online).
+	PublicMessageVersion(ctx context.Context, arg PublicMessageVersionParams) (PublicMessageVersionRow, error)
 	// Upcoming sends, for "Next issue: Tuesday 14 October" on the confirmation page.
 	PublicScheduledCampaigns(ctx context.Context, arg PublicScheduledCampaignsParams) ([]PublicScheduledCampaignsRow, error)
 	PublicSettingsByDomain(ctx context.Context, domain *string) (PublicSettingsByDomainRow, error)
