@@ -1,0 +1,87 @@
+{
+  "tier.active": {
+    "message": "Active",
+    "note": "an engagement tier"
+  },
+  "tier.cooling": {
+    "message": "Cooling",
+    "note": "an engagement tier"
+  },
+  "tier.atRisk": {
+    "message": "At risk",
+    "note": "an engagement tier"
+  },
+  "tier.sunset": {
+    "message": "Sunset",
+    "note": "an engagement tier"
+  },
+  "describe.list": {
+    "message": "{list} list",
+    "note": "a Visibility badge: contacts on the list see the block"
+  },
+  "describe.notList": "not on {list}",
+  "describe.segment": "{segment} segment",
+  "describe.notSegment": "not in {segment}",
+  "describe.tag": "tag {tag}",
+  "describe.notTag": "no tag {tag}",
+  "describe.field": {
+    "message": "{field} {op, select, is_empty {is empty} is_not_empty {is set} equals {is {value}} not_equals {isn’t {value}} contains {contains {value}} gt {is over {value}} lt {is under {value}} before {is before {value}} after {is after {value}} is_true {is true} is_false {is false} other {{value}}}",
+    "note": "field is the custom field's key, plan"
+  },
+  "describe.language": "{language} readers",
+  "describe.notLanguage": "not {language} readers",
+  "describe.tier": "{tier} tier",
+  "describe.notTier": "not {tier}",
+  "describe.deletedSegment": "Deleted segment",
+  "describe.deletedList": "Deleted list",
+  "describe.deletedField": "Deleted field",
+  "describe.moreAll": {
+    "message": "{first} and {count, plural, other {# more}}",
+    "note": "a rule with several conditions, all must match"
+  },
+  "describe.moreAny": {
+    "message": "{first} or {count, plural, other {# more}}",
+    "note": "a rule with several conditions, any may match"
+  },
+  "describe.except": "Except {words}",
+  "describe.nobody": "Hidden for everyone",
+  "why.onList": "{name} is on {list}",
+  "why.notOnList": "{name} isn’t on {list}",
+  "why.inSegment": "{name} is in {segment}",
+  "why.notInSegment": "{name} isn’t in {segment}",
+  "why.hasTag": "{name} has the tag {tag}",
+  "why.noTag": "{name} doesn’t have the tag {tag}",
+  "why.field": {
+    "message": "{name}’s {field} is {value}",
+    "note": "Sam Rivera’s plan is team"
+  },
+  "why.noField": "{name} has no {field}",
+  "why.language": "{name} reads {language}",
+  "why.noLanguage": "{name} has no language set",
+  "why.tierNot": {
+    "message": "{name} is {actual}, not {tier}",
+    "note": "Sam Rivera is Active, not At risk"
+  },
+  "why.tier": "{name} is {tier}",
+  "why.nobody": "the block is hidden for everyone",
+  "why.hidden": {
+    "message": "Hidden: {block} · {why}",
+    "note": "a line in the preview where a block was left out"
+  },
+  "why.empty": {
+    "message": "Nothing between the header and the footer",
+    "note": "the preview of a version with no content"
+  },
+  "problem.noContact": "Pick a contact of this campaign’s audience to preview as.",
+  "trait.field": {
+    "message": "{field} {value}",
+    "note": "what a rule reads about a contact: plan team"
+  },
+  "trait.noField": "no {field}",
+  "trait.onList": "on {list}",
+  "trait.notOnList": "not on {list}",
+  "trait.inSegment": "in {segment}",
+  "trait.notInSegment": "not in {segment}",
+  "trait.tag": "tag {tag}",
+  "trait.noTag": "no tag {tag}"
+}
