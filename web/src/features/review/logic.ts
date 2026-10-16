@@ -322,6 +322,7 @@ export const groupWords: Record<string, string> = {
   compliance: 'compliance',
   audience: 'audience quality',
   routing: 'routing',
+  accessibility: 'accessibility',
 }
 
 /** Group headings: "Sender reputation", "Audience quality". */
@@ -333,6 +334,7 @@ export const groupTitles: Record<string, string> = {
   compliance: 'Compliance',
   audience: 'Audience quality',
   routing: 'Routing',
+  accessibility: 'Accessibility',
 }
 
 /** Group names that start a one-line row: "Audience: 0 recently bounced, …". */
@@ -342,7 +344,7 @@ export const flatGroupLabels: Record<string, string> = { ...groupTitles, audienc
  * The order of blocks and warnings when they're listed by severity: legal
  * requirements and what filters every recipient first, then the rest.
  */
-export const severityOrder = ['compliance', 'links', 'content', 'authentication', 'reputation', 'audience', 'routing']
+export const severityOrder = ['compliance', 'links', 'content', 'accessibility', 'authentication', 'reputation', 'audience', 'routing']
 
 export function bySeverity(a: Check, b: Check): number {
   return severityOrder.indexOf(a.group) - severityOrder.indexOf(b.group)
