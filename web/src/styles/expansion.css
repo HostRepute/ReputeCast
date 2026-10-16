@@ -38,8 +38,21 @@
   min-width: var(--th-line);
 }
 
-/* Rule 5: badges don't wrap, on phones too; the cell wraps around them. */
-:root:not([lang='en']) .tbl td .badge {
+/* Rule 1: a filter row's selects size to their longest option (their old
+   width is the least, set by the screen); on phones they keep that width
+   instead of taking the row (StressTeamPseudoPhone). */
+@media (max-width: 767px) {
+  :root:not([lang='en']) .filters select.in {
+    width: auto;
+    min-width: 0;
+    max-width: 100%;
+  }
+}
+
+/* Rule 5: badges don't wrap, on phones too (where English lets a phone-wrap
+   table's badges wrap); the cell wraps around them. */
+:root:not([lang='en']) .tbl td .badge,
+:root:not([lang='en']) .tbl.phone-wrap td .badge {
   white-space: nowrap;
 }
 

@@ -266,7 +266,7 @@ function Filters({ list, search }: { list: Schemas['TeamMemberList']; search: Te
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q])
   return (
-    <div className="row gap-2">
+    <div className="filters row gap-2">
       <label className="vh" htmlFor="team-q">
         {t(tm.searchLabel)}
       </label>
