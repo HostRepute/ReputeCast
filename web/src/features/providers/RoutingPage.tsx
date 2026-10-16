@@ -4,7 +4,7 @@ import { useId, useState, type ReactNode } from 'react'
 import { $api, ApiError, errorMessage, http, type Schemas } from '@/api/client'
 import { Page } from '@/components/shell/Page'
 import { Badge } from '@/components/ui/Badge'
-import { Button } from '@/components/ui/Button'
+import { Button, ButtonLink } from '@/components/ui/Button'
 import { Dialog } from '@/components/ui/Dialog'
 import { ErrorPanel, Loading, Skeleton } from '@/components/ui/Feedback'
 import { Checkbox, Field, Input, Select } from '@/components/ui/Field'
@@ -13,7 +13,7 @@ import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
 import { ago, clock, count } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
-import { onProviderColor, providerColor, ProvidersTabs, streamName, throwIfForbidden, type FailoverPolicy, type Stream } from './common'
+import { onProviderColor, perSec, providerColor, ProvidersTabs, streamName, throwIfForbidden, type FailoverPolicy, type Stream } from './common'
 import { BulkWarningView } from './BulkWarning'
 import { RouteTester } from './RouteTester'
 import {
@@ -145,6 +145,14 @@ function RoutingEditor({ cfg }: { cfg: RoutingConfig }) {
           <StreamCard stream="broadcast" cfg={cfg} sd={draft.broadcast} onChange={(fn) => update('broadcast', fn)} onAddCondition={() => setConditionFor('broadcast')} readOnlyReason={reason} />
           <StreamCard stream="automation" cfg={cfg} sd={draft.automation} onChange={(fn) => update('automation', fn)} onAddCondition={() => setConditionFor('automation')} readOnlyReason={reason} />
           <StreamCard stream="system" cfg={cfg} sd={draft.system} onChange={(fn) => update('system', fn)} onAddCondition={() => setConditionFor('system')} readOnlyReason={reason} />
+          <StreamCard
+            stream="transactional"
+            cfg={cfg}
+            sd={draft.transactional}
+            onChange={(fn) => update('transactional', fn)}
+            onAddCondition={() => setConditionFor('transactional')}
+            readOnlyReason={reason}
+          />
         </div>
         <aside className="flex max-w-[460px] min-w-0 flex-[1_1_360px] flex-col gap-4" aria-label="Route tester and shared settings">
           <RouteTester cfg={cfg} draft={dirty ? draft : undefined} />
@@ -170,6 +178,7 @@ const streamTag: Record<Stream, string> = {
   broadcast: 'campaigns',
   automation: 'emails sent by flows',
   system: 'opt-in confirmations, preference links, invites',
+  transactional: 'password resets, receipts and alerts from your product',
 }
 
 function volumeText(v?: Schemas['RoutingVolume']) {
@@ -193,6 +202,15 @@ function StreamCard({
   readOnlyReason?: string
 }) {
   const view = cfg.streams.find((s) => s.stream === stream)
+  const { slug, me } = useWorkspace()
+  // Transactional mail is "from Acme Cloud": the product name in its settings.
+  const settings = $api.useQuery(
+    'get',
+    '/api/v1/workspaces/{workspace}/transactional/settings',
+    { params: { path: { workspace: slug } } },
+    { enabled: stream === 'transactional' && me.permissions.includes('transactional:view') },
+  )
+  const tag = stream === 'transactional' && settings.data?.productName ? `password resets, receipts and alerts from ${settings.data.productName}` : streamTag[stream]
   const byId = new Map(cfg.providers.map((p) => [p.id, p]))
   const primary = sd.splits[0] ? byId.get(sd.splits[0].providerId) : undefined
   const ro = Boolean(readOnlyReason)
@@ -209,9 +227,12 @@ function StreamCard({
           <h2 className="h2" id={titleId}>
             {streamName[stream]}
           </h2>
-          <Badge>{streamTag[stream]}</Badge>
+          <Badge>{tag}</Badge>
         </div>
-        <span className="k">{volumeText(view?.volume)}</span>
+        <span className="k">
+          {volumeText(view?.volume)}
+          {stream === 'transactional' && view?.senderDomains?.length ? ` · ${view.senderDomains.join(', ')}` : ''}
+        </span>
       </div>
       <div className="flex flex-col gap-3.5 px-5 py-[18px]">
         <Grid min={240} gap={14}>
@@ -244,7 +265,9 @@ function StreamCard({
             {stream === 'broadcast' ? addBroadcastCondition : null}
           </Conditions>
         ) : null}
-        {stream === 'broadcast' ? (
+        {stream === 'transactional' ? (
+          <TransactionalParts cfg={cfg} sd={sd} onChange={onChange} onAddCondition={onAddCondition} readOnlyReason={readOnlyReason} />
+        ) : stream === 'broadcast' ? (
           <>
             {sd.conditions.length ? null : addBroadcastCondition}
             <FailoverPolicy sd={sd} cfg={cfg} onChange={onChange} readOnly={ro} />
@@ -270,6 +293,81 @@ function StreamCard({
         )}
       </div>
     </section>
+  )
+}
+
+/**
+ * The Transactional stream (ProvidersRouting): first in line on providers
+ * that also send campaigns, automatic failover, and conditions by category
+ * or mailbox provider; bulk-marketing terms don't apply to it.
+ */
+function TransactionalParts({
+  cfg,
+  sd,
+  onChange,
+  onAddCondition,
+  readOnlyReason,
+}: {
+  cfg: RoutingConfig
+  sd: StreamDraft
+  onChange: (fn: (sd: StreamDraft) => StreamDraft) => void
+  onAddCondition: () => void
+  readOnlyReason?: string
+}) {
+  const { slug } = useWorkspace()
+  const ro = Boolean(readOnlyReason)
+  const cards = $api.useQuery('get', '/api/v1/workspaces/{workspace}/providers', { params: { path: { workspace: slug } } })
+  const byId = new Map(cfg.providers.map((p) => [p.id, p]))
+  const broadcast = cfg.streams.find((s) => s.stream === 'broadcast')
+  // The provider of this route that also carries campaigns, and its rate.
+  const shared = [sd.splits[0]?.providerId, sd.fallback]
+    .filter(Boolean)
+    .map((id) => byId.get(id!))
+    .find((p) => p && broadcast?.splits.some((x) => x.providerId === p.id))
+  const rate = shared ? cards.data?.providers.find((c) => c.id === shared.id)?.rate.max : undefined
+  const id = useId()
+  return (
+    <>
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-[10px] border border-line px-3.5 py-3">
+        <span className="flex min-w-0 flex-[1_1_300px] flex-col">
+          <span className="font-semibold" id={`${id}-p`}>
+            First in line on shared providers
+          </span>
+          <span className="k">
+            {shared
+              ? `When ${shared.short} also sends a campaign, transactional messages go first${rate ? ` within its ${perSec(rate)} per second` : ''}`
+              : 'When a provider also sends a campaign, transactional messages go first within its rate'}
+          </span>
+        </span>
+        <input
+          type="checkbox"
+          role="switch"
+          className="tg"
+          aria-labelledby={`${id}-p`}
+          checked={sd.priority}
+          disabled={ro}
+          onChange={(e) => onChange((s) => ({ ...s, priority: e.target.checked }))}
+        />
+      </div>
+      <div className="flex flex-wrap items-center gap-2.5">
+        <Badge tone={sd.failover === 'pause_and_ask' ? 'warn' : 'ok'} dot>
+          Failover: {sd.failover === 'pause_and_ask' ? 'pause and ask' : sd.failover === 'warm_only' ? 'warmed-up only' : 'automatic'}
+        </Badge>
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-2.5">
+        <span className="k">
+          Conditions by category or mailbox provider: {sd.conditions.length ? sd.conditions.length : 'none'} · bulk-marketing terms don&apos;t apply to this stream
+        </span>
+        <span className="flex flex-wrap gap-2">
+          <Button size="sm" disabledReason={readOnlyReason} onClick={onAddCondition}>
+            Add condition
+          </Button>
+          <ButtonLink size="sm" to="/w/$workspace/transactional" params={{ workspace: slug }}>
+            Templates and log
+          </ButtonLink>
+        </span>
+      </div>
+    </>
   )
 }
 
@@ -469,7 +567,7 @@ function SharedCard({ cfg }: { cfg: RoutingConfig }) {
 
 /** Adds a condition: when a field matches, send only through one provider. */
 function ConditionDialog({ stream, cfg, onClose, onAdd }: { stream: Stream; cfg: RoutingConfig; onClose: () => void; onAdd: (c: Condition) => void }) {
-  const [field, setField] = useState<Condition['field']>('mailbox_provider')
+  const [field, setField] = useState<Condition['field']>(stream === 'transactional' ? 'category' : 'mailbox_provider')
   const [values, setValues] = useState<string[]>([])
   const [providerId, setProviderId] = useState(cfg.providers.find((p) => !p.warmingUp)?.id ?? cfg.providers[0]?.id ?? '')
   const [note, setNote] = useState('')
@@ -479,7 +577,9 @@ function ConditionDialog({ stream, cfg, onClose, onAdd }: { stream: Stream; cfg:
       ? Object.entries(mailboxName).map(([value, label]) => ({ value, label }))
       : field === 'list'
         ? cfg.lists.map((l) => ({ value: l.id, label: l.name }))
-        : cfg.senderDomains.map((d) => ({ value: d, label: d }))
+        : field === 'category'
+          ? cfg.categories.map((c) => ({ value: c.id, label: c.name }))
+          : cfg.senderDomains.map((d) => ({ value: d, label: d }))
   const toggle = (v: string) => setValues((cur) => (cur.includes(v) ? cur.filter((x) => x !== v) : [...cur, v]))
   return (
     <Dialog
@@ -516,9 +616,14 @@ function ConditionDialog({ stream, cfg, onClose, onAdd }: { stream: Stream; cfg:
               setError('')
             }}
           >
+            {stream === 'transactional' ? <option value="category">Category</option> : null}
             <option value="mailbox_provider">Recipient mailbox provider</option>
-            <option value="list">List</option>
-            <option value="sender_domain">Sender domain</option>
+            {stream === 'transactional' ? null : (
+              <>
+                <option value="list">List</option>
+                <option value="sender_domain">Sender domain</option>
+              </>
+            )}
           </Select>
         </Field>
         <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
@@ -554,7 +659,7 @@ function ConditionDialog({ stream, cfg, onClose, onAdd }: { stream: Stream; cfg:
   )
 }
 
-/** Loading: the three stream cards and the tester, as skeletons. */
+/** Loading: the stream cards and the tester, as skeletons. */
 function RoutingSkeleton() {
   const card = (h: number) => (
     <div className="card flex flex-col gap-3.5 px-5 py-[18px]">
