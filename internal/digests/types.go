@@ -199,6 +199,8 @@ type DigestRuleMatch struct {
 	Short string `json:"short"`
 	// Until is when a rule stops matching (a provider's warm-up ends).
 	Until *time.Time `json:"until,omitempty"`
+	// Threshold is the audience rule's number of recipients (audience_min).
+	Threshold int64 `json:"threshold,omitempty"`
 }
 
 // DigestApprovals is what the approval policy does to each issue.

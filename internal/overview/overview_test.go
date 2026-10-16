@@ -138,8 +138,9 @@ func TestOverviewCards(t *testing.T) {
 	}
 	c.Do("GET", base+"/recent-campaigns", nil).MustStatus(t, 200).JSON(t, &r)
 	// The approval inbox's history adds the Beta Program launch invite (sent
-	// Oct 6), which the Main board doesn't list.
-	if len(r.Items) != 4 || r.Items[0].Name != "October Product Update" || r.Items[2].Name != "Beta Program · launch invite" || r.Items[3].Name != "Feature flags preview" {
+	// Oct 6), which the Main board doesn't list, and the recurring digest its
+	// issue #2 (sent Oct 10): recent campaigns include sent issues.
+	if len(r.Items) != 4 || r.Items[0].Name != "October Product Update" || r.Items[2].Name != "Engineering blog roundup #2" || r.Items[3].Name != "Beta Program · launch invite" {
 		t.Fatalf("recent: %+v", r.Items)
 	}
 

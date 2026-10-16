@@ -158,6 +158,27 @@ func (s *Service) materialize(ctx context.Context, ws *store.Workspace, d store.
 	return id, b, err
 }
 
+// IssueContent is an issue's content as a preparation builds it.
+type IssueContent struct {
+	Name, Subject, Preheader, MJML, HTML string
+	// Items are the posts it shows, in its order.
+	Items []BlockItem
+	// Basis is what it was built on (digest_issues.basis).
+	Basis json.RawMessage
+}
+
+// BuildIssue builds an issue from a template and its posts, as a
+// preparation does (the demo seeds its sample issues with it).
+func BuildIssue(d store.Digest, tpl store.DigestCampaignTemplateRow, posts []BlockItem, number int, sendAt *time.Time, tz string) (IssueContent, error) {
+	loc := location(ParseSchedule(d.Schedule, tz).Timezone)
+	b, err := build(d, tpl, posts, number, sendAt, loc)
+	if err != nil {
+		return IssueContent{}, err
+	}
+	basis, _ := json.Marshal(basisOf(d, tpl, tz))
+	return IssueContent{Name: b.Name, Subject: b.Subject, Preheader: b.Preheader, MJML: b.MJML, HTML: b.HTML, Items: b.Items, Basis: basis}, nil
+}
+
 // issueBasis is what an issue was built on: the template's version, its
 // audience, route, sender and the schedule. An approver sees what changed
 // since the last approved issue.

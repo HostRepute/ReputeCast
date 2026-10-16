@@ -7,6 +7,7 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/demo"
 	"github.com/hostrepute/reputecast/internal/digests"
 	"github.com/hostrepute/reputecast/internal/digests/feed"
 	"github.com/hostrepute/reputecast/internal/netguard"
@@ -84,6 +85,8 @@ func init() {
 	jobRegistrars = append(jobRegistrars, func(a *App) {
 		digests.RegisterJobs(a.JobReg, digestsService(a))
 	})
+	// The demo's blog answers offline in development and tests.
+	digestFeedOverlay = demo.DigestFeedOverlay
 	// A post a connected WordPress site reports is read into its digests at once.
 	integrationPostReported = func(a *App) func(ctx context.Context, siteID uuid.UUID) {
 		return func(ctx context.Context, siteID uuid.UUID) { digestsService(a).PostReported(ctx, siteID) }

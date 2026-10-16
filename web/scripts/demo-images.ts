@@ -46,6 +46,19 @@ const sets: { out: string; images: Img[] }[] = [
     ],
   },
   {
+    // The Acme engineering blog's post images (the recurring digest sample),
+    // served by the demo's offline blog and copied into the library.
+    out: resolve('../internal/demo/assets/digests'),
+    images: [
+      { file: 'on-call-2025.png', w: 552, h: 240, label: 'on-call-2025.png · 552×240' },
+      { file: 'migration-pipeline.png', w: 552, h: 240, label: 'migration-pipeline.png · 552×240' },
+      { file: 'ingest-throughput.png', w: 552, h: 240, label: 'ingest-throughput.png · 552×240' },
+      { file: 'flag-latency.png', w: 552, h: 240, label: 'flag-latency.png · 552×240' },
+      { file: 'services-postgres.png', w: 552, h: 240, label: 'services-postgres.png · 552×240' },
+      { file: 'blog-fallback.png', w: 552, h: 240, label: 'blog-fallback.png · fallback image' },
+    ],
+  },
+  {
     out: resolve('../internal/templates/starters'),
     images: [
       { file: 'logo.png', w: 120, h: 32, label: 'Your logo', transparent: true },

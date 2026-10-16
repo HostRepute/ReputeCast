@@ -114,7 +114,7 @@ type CampaignDigestRef struct {
 	Name string `json:"name"`
 	// IssueStatus is the issue's: prepared, waiting (for approval), held,
 	// draft, sending, sent…
-	IssueStatus string     `json:"issueStatus"`
+	IssueStatus string     `json:"issueStatus" enum:"collecting,preparing,prepared,waiting,held,draft,sending,sent,skipped,not_sent"`
 	Posts       int        `json:"posts"`
 	PreparedAt  *time.Time `json:"preparedAt,omitempty"`
 	SendAt      *time.Time `json:"sendAt,omitempty"`

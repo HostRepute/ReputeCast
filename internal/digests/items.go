@@ -54,16 +54,16 @@ func classify(d store.Digest, rows []store.DigestItemsRow, now time.Time, firstI
 			it.Status, it.LeftOutBy = "left_out", "category"
 		case len(d.Tags) > 0 && !hasAny(r.Tags, d.Tags):
 			it.Status, it.LeftOutBy = "left_out", "tag"
-		case d.MaxAgeDays != nil && it.when().Before(now.AddDate(0, 0, -int(*d.MaxAgeDays))):
-			it.Status, it.LeftOutBy = "left_out", "age"
 		case it.when().Before(start):
 			// The back catalogue: only the latest N go in a first issue that
-			// asks for them.
-			if d.StartMode == "latest" && firstIssue && latest < int(d.StartLatest) {
+			// asks for them (and are young enough).
+			if d.StartMode == "latest" && firstIssue && latest < int(d.StartLatest) && (d.MaxAgeDays == nil || !it.when().Before(now.AddDate(0, 0, -int(*d.MaxAgeDays)))) {
 				latest++
 			} else {
 				it.Status = "before_start"
 			}
+		case d.MaxAgeDays != nil && it.when().Before(now.AddDate(0, 0, -int(*d.MaxAgeDays))):
+			it.Status, it.LeftOutBy = "left_out", "age"
 		}
 		out = append(out, it)
 	}

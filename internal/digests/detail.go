@@ -312,6 +312,9 @@ func (s *Service) approvalsPreview(ctx context.Context, ws *store.Workspace, d s
 	facts := approvals.IssueRulesFacts(a.Final, shares, canSend, ownerName, ownerRole, s.now())
 	for _, m := range policy.Evaluate(facts) {
 		rm := DigestRuleMatch{Key: m.Key, Label: m.Label, Short: m.Short}
+		if m.Key == approvals.RuleAudienceMin {
+			rm.Threshold = policy.AudienceMin.N
+		}
 		if m.Key == approvals.RuleWarmingProvider {
 			for short, t := range until {
 				if strings.Contains(m.Label, short) {

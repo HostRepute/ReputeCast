@@ -503,7 +503,7 @@ func TestPublicPagePreviewAPI(t *testing.T) {
 			}
 		}
 	}
-	if p = get("archive", nil); !strings.Contains(p.HTML, "44 issues") {
+	if p = get("archive", nil); !strings.Contains(p.HTML, "46 issues") {
 		t.Fatal("archive preview")
 	}
 	c.Do("GET", api+"/public-pages/preview/preferences?contact=nobody@example.com", nil).MustStatus(t, 422)
@@ -525,7 +525,7 @@ func TestArchiveIssuesAPI(t *testing.T) {
 		PageSize  int     `json:"pageSize"`
 	}
 	c.Do("GET", api+"/public-pages/archive/issues", nil).MustStatus(t, 200).JSON(t, &page)
-	if page.Total != 44 || page.Published != 44 || page.PageSize != 10 || len(page.Issues) != 10 {
+	if page.Total != 46 || page.Published != 46 || page.PageSize != 10 || len(page.Issues) != 10 {
 		t.Fatalf("archive: total %d published %d page %d (%d)", page.Total, page.Published, page.PageSize, len(page.Issues))
 	}
 	first := page.Issues[0]
@@ -551,11 +551,11 @@ func TestArchiveIssuesAPI(t *testing.T) {
 	if r := c.Do("GET", "/p/acme-newsletter/archive/"+digest.Slug, nil); r.Status != 404 {
 		t.Fatalf("hidden issue page: %d", r.Status)
 	}
-	if r := c.Do("GET", "/p/acme-newsletter/archive", nil).MustStatus(t, 200); !strings.Contains(string(r.Body), "43 issues") {
+	if r := c.Do("GET", "/p/acme-newsletter/archive", nil).MustStatus(t, 200); !strings.Contains(string(r.Body), "45 issues") {
 		t.Fatal("the archive still counts the hidden issue")
 	}
 	c.Do("GET", api+"/public-pages/archive/issues", nil).MustStatus(t, 200).JSON(t, &page)
-	if page.Total != 44 || page.Published != 43 {
+	if page.Total != 46 || page.Published != 45 {
 		t.Fatalf("tab: total %d published %d", page.Total, page.Published)
 	}
 	body["listId"] = uuid.NewString()

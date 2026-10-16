@@ -147,6 +147,17 @@ func (c counter) notes(email, kind string) int {
 	return n
 }
 
+// notesFor counts a member's notifications of a kind about one digest.
+func (c counter) notesFor(email, kind, digestID string) int {
+	c.t.Helper()
+	var n int
+	if err := c.env.App.Pool.QueryRow(context.Background(), `SELECT count(*) FROM notifications n JOIN users u ON u.id = n.user_id WHERE u.email = $1 AND n.kind = $2 AND n.data ->> 'digest_id' = $3`,
+		email, kind, digestID).Scan(&n); err != nil {
+		c.t.Fatal(err)
+	}
+	return n
+}
+
 func (c counter) exec(sql string, args ...any) {
 	c.t.Helper()
 	if _, err := c.env.App.Pool.Exec(context.Background(), sql, args...); err != nil {
@@ -596,7 +607,8 @@ func TestDigestHoldAndOwner(t *testing.T) {
 	if d.State != "paused" || d.Pause == nil || d.Pause.Reason != "owner" || d.Pause.From != "Editor" || d.Pause.To != "Content Writer" || d.Next != nil {
 		t.Fatalf("after the role change: %+v %+v", d.State, d.Pause)
 	}
-	if n.notes("marcus@acme.io", "digest_paused") != 1 || n.notes("sofia@acme.io", "digest_paused") != 1 {
+	// (The demo's own digest, also Sofia's, pauses too: count this one's.)
+	if n.notesFor("marcus@acme.io", "digest_paused", d.ID) != 1 || n.notesFor("sofia@acme.io", "digest_paused", d.ID) != 1 {
 		t.Fatal("the automatic pause isn't notified")
 	}
 	// Sofia can't turn it back on; Linh can, and becomes its owner.
