@@ -519,9 +519,10 @@ func (s *Service) providerOption(ctx context.Context, ws *store.Workspace, p sto
 // providerDetail is the line under a provider's name: its region or host.
 func providerDetail(p store.Provider) string {
 	var c struct {
-		Region string `json:"region"`
-		Host   string `json:"host"`
-		URL    string `json:"url"`
+		Region    string `json:"region"`
+		Host      string `json:"host"`
+		URL       string `json:"url"`
+		ServerURL string `json:"server_url"`
 	}
 	_ = json.Unmarshal(p.Config, &c)
 	switch {
@@ -529,12 +530,13 @@ func providerDetail(p store.Provider) string {
 		return c.Region
 	case c.Host != "":
 		return c.Host
-	case c.URL != "":
-		if u, err := url.Parse(c.URL); err == nil && u.Host != "" {
+	case c.URL != "" || c.ServerURL != "":
+		if u, err := url.Parse(firstNonEmpty(c.ServerURL, c.URL)); err == nil && u.Host != "" {
 			return u.Hostname()
 		}
 	}
-	return ""
+	// Postmark's stream ("Transactional stream").
+	return p.Label
 }
 
 // planned is a plan with what Start needs: the chosen seeds, the seeds
@@ -1054,7 +1056,9 @@ func testLabel(c content) string {
 	if c.view.Kind == "transactional" {
 		return c.view.Key + " test"
 	}
-	return c.view.Name + " test"
+	// "Flash sale: 48 hours only" reads as "Flash sale test".
+	name, _, _ := strings.Cut(c.view.Name, ": ")
+	return name + " test"
 }
 
 // SendArgs hands a test's due copies to their providers.

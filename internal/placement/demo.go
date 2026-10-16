@@ -123,7 +123,7 @@ func (b *demoBox) Find(ctx context.Context, tokens []string, _ time.Time) ([]see
 		if at.After(now) {
 			continue
 		}
-		raw := DemoHeaders(c.SeedProvider, ps.Detail, ps.IP, t.FromEmail, c.ID.String(), c.Token, at)
+		raw := DemoHeaders(DemoMail{SeedProvider: c.SeedProvider, Host: ps.Detail, IP: ps.IP, From: t.FromEmail, MessageID: c.ID.String(), Token: c.Token, At: at})
 		out = append(out, seedbox.Found{Token: c.Token, Role: o.Role, Folder: o.Folder, Tab: o.Tab, ReceivedAt: at,
 			Header: seedbox.ParseHeader([]byte(raw)), Ref: seedbox.Ref{Folder: o.Folder}})
 	}
@@ -143,52 +143,67 @@ func providerKey(id *uuid.UUID) string {
 	return id.String()
 }
 
+// DemoMail describes a demo copy for its headers.
+type DemoMail struct {
+	SeedProvider string
+	// Host and IP are the sending server's.
+	Host, IP string
+	From     string
+	// MessageID is the Message-ID's left part (the copy's id by default).
+	MessageID string
+	Token     string
+	// Selector and SPFDomain are the DKIM selector and the Return-Path
+	// domain ("7kq2n3x", "bounce.news.acme.io").
+	Selector, SPFDomain string
+	At                  time.Time
+}
+
 // DemoHeaders writes the headers a mailbox provider would show for a demo
 // copy: its Authentication-Results (all passing), the Received line of the
 // hand-over, the Message-ID and the test token.
-func DemoHeaders(seedProvider, host, ip, from, copyID, token string, at time.Time) string {
+func DemoHeaders(m DemoMail) string {
 	domain := "example.com"
-	if i := strings.LastIndexByte(from, '@'); i >= 0 {
-		domain = from[i+1:]
+	if i := strings.LastIndexByte(m.From, '@'); i >= 0 {
+		domain = m.From[i+1:]
 	}
+	host, ip := m.Host, m.IP
 	if host == "" || !strings.Contains(host, ".") {
 		host = "mail." + domain
 	}
 	if ip == "" {
 		ip = "198.51.100.24"
 	}
-	selector := "rc2026"
-	spf := "bounce." + domain
-	date := at.UTC().Format(time.RFC1123Z)
-	var auth, by string
+	selector, spf := firstNonEmpty(m.Selector, "rc2026"), firstNonEmpty(m.SPFDomain, "bounce."+domain)
+	date := m.At.UTC().Format(time.RFC1123Z)
+	var auth, received string
 	switch {
-	case seedbox.IsGoogle(seedProvider):
-		by = "mx.google.com"
-		auth = fmt.Sprintf("mx.google.com;\r\n       dkim=pass header.i=@%s header.s=%s;\r\n       spf=pass (google.com: domain of %s designates %s as permitted sender) smtp.mailfrom=%s;\r\n       dmarc=pass (p=QUARANTINE sp=QUARANTINE dis=NONE) header.from=%s",
+	case seedbox.IsGoogle(m.SeedProvider):
+		auth = fmt.Sprintf("mx.google.com;\r\n       dkim=pass header.i=@%s header.s=%s;\r\n       spf=pass (google.com: domain of bounce@%s designates %s as permitted sender) smtp.mailfrom=bounce@%s;\r\n       dmarc=pass (p=QUARANTINE sp=QUARANTINE dis=NONE) header.from=%s",
 			domain, selector, spf, ip, spf, domain)
-	case seedbox.IsMicrosoft(seedProvider):
-		by = "AM4PEPF00027A6C.mail.protection.outlook.com"
-		auth = fmt.Sprintf("spf=pass (sender IP is %s)\r\n smtp.mailfrom=%s; dkim=pass (signature was verified)\r\n header.d=%s;dmarc=pass action=none header.from=%s;\r\n compauth=pass reason=100",
-			ip, spf, domain, domain)
-	case seedProvider == seedbox.Yahoo || seedProvider == seedbox.AOL:
-		by = "atlas220.free.mail.ne1.yahoo.com"
+		received = fmt.Sprintf("from %s (%s. [%s])\r\n        by mx.google.com with ESMTPS id 6a1803df08f44-6f5d3e2b9b1si1144906d6.112;\r\n        %s", host, host, ip, date)
+	case seedbox.IsMicrosoft(m.SeedProvider):
+		auth = fmt.Sprintf("spf=pass (sender IP is %s)\r\n smtp.mailfrom=%s; dkim=pass (signature was verified)\r\n header.d=%s;dmarc=pass action=none header.from=%s;\r\n compauth=pass reason=100", ip, spf, domain, domain)
+		received = fmt.Sprintf("from %s (%s) by\r\n AM4PEPF00027A6C.mail.protection.outlook.com\r\n (10.167.16.90) with Microsoft SMTP Server\r\n (version=TLS1_3); %s", host, ip, date)
+	case m.SeedProvider == seedbox.Yahoo || m.SeedProvider == seedbox.AOL:
 		auth = fmt.Sprintf("atlas220.free.mail.ne1.yahoo.com;\r\n dkim=pass header.i=@%s header.s=%s;\r\n spf=pass smtp.mailfrom=%s;\r\n dmarc=pass(p=QUARANTINE) header.from=%s;", domain, selector, spf, domain)
-	case seedProvider == seedbox.ICloud:
-		by = "mx6.mail.icloud.com"
+		received = fmt.Sprintf("from %s (EHLO %s) (%s)\r\n by atlas220.free.mail.ne1.yahoo.com with ESMTPS; %s", host, host, ip, date)
+	case m.SeedProvider == seedbox.ICloud:
 		auth = fmt.Sprintf("dmarc.icloud.com; dmarc=pass header.from=%s;\r\n dkim=pass header.d=%s header.s=%s; spf=pass smtp.mailfrom=%s", domain, domain, selector, spf)
+		received = fmt.Sprintf("from %s ([%s]) by mx6.mail.icloud.com with ESMTPS; %s", host, ip, date)
 	default:
-		by = "mx.gmx.net"
-		if seedProvider == seedbox.WebDE {
+		by := "mx.gmx.net"
+		if m.SeedProvider == seedbox.WebDE {
 			by = "mx.web.de"
 		}
 		auth = fmt.Sprintf("%s; dkim=pass header.d=%s header.s=%s;\r\n spf=pass smtp.mailfrom=%s; dmarc=pass header.from=%s", by, domain, selector, spf, domain)
+		received = fmt.Sprintf("from %s ([%s]) by %s with ESMTPS; %s", host, ip, by, date)
 	}
+	id := firstNonEmpty(m.MessageID, m.Token)
 	return "Authentication-Results: " + auth + "\r\n" +
-		fmt.Sprintf("Received: from %s (%s [%s]) by\r\n %s with ESMTPS; %s\r\n", host, host, ip, by, date) +
+		"Received: " + received + "\r\n" +
 		fmt.Sprintf("DKIM-Signature: v=1; a=rsa-sha256; d=%s; s=%s; c=relaxed/relaxed\r\n", domain, selector) +
-		fmt.Sprintf("Message-ID: <%s@%s>\r\n", copyID, domain) +
-		seedbox.TestHeader + ": " + token + "\r\n" +
-		"X-ReputeCast-Message: " + copyID + "\r\n"
+		fmt.Sprintf("Message-ID:\r\n <%s@%s>\r\n", id, domain) +
+		seedbox.TestHeader + ": " + m.Token + "\r\n"
 }
 
 // DemoAuth is a demo copy's parsed authentication results (the seeder

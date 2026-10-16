@@ -71815,6 +71815,31 @@
     "/api/v1/workspaces/{workspace}/placement/seeds/{seed}/reconnect": {
       "post": {
         "operationId": "reconnect-seed-mailbox",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "seed",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -72117,6 +72142,29 @@
       "get": {
         "operationId": "get-placement-copy",
         "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "test",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
           {
             "in": "path",
             "name": "copy",
@@ -79898,6 +79946,31 @@
     "/api/v1/workspaces/{workspace}/verification/contacts/{contact}/verify": {
       "post": {
         "operationId": "verify-contact",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "contact",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -80083,6 +80156,31 @@
       "put": {
         "operationId": "set-form-address-check",
         "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "A form's id, or subscribe_page",
+            "in": "path",
+            "name": "form",
+            "required": true,
+            "schema": {
+              "description": "A form's id, or subscribe_page",
+              "pattern": "^[a-z0-9_-]{1,64}$",
+              "type": "string"
+            }
+          },
           {
             "description": "The form's name, for the audit log",
             "explode": false,
@@ -80681,6 +80779,35 @@
         "operationId": "disconnect-verification-service",
         "parameters": [
           {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "service",
+            "required": true,
+            "schema": {
+              "enum": [
+                "zerobounce",
+                "kickbox",
+                "neverbounce",
+                "bouncer",
+                "emailable"
+              ],
+              "type": "string"
+            }
+          },
+          {
             "description": "The forms that stop checking, as the dialog listed them",
             "explode": false,
             "in": "query",
@@ -80804,6 +80931,37 @@
       },
       "patch": {
         "operationId": "update-verification-service",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "service",
+            "required": true,
+            "schema": {
+              "enum": [
+                "zerobounce",
+                "kickbox",
+                "neverbounce",
+                "bouncer",
+                "emailable"
+              ],
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -80855,6 +81013,37 @@
     "/api/v1/workspaces/{workspace}/verification/services/{service}/key": {
       "put": {
         "operationId": "replace-verification-key",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "service",
+            "required": true,
+            "schema": {
+              "enum": [
+                "zerobounce",
+                "kickbox",
+                "neverbounce",
+                "bouncer",
+                "emailable"
+              ],
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {

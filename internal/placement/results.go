@@ -497,7 +497,14 @@ func mxHost(diag string) string {
 }
 
 func eventView(e store.DeliveryEvent) *PlacementEvent {
-	return &PlacementEvent{Type: e.Type, At: e.OccurredAt, Code: e.OriginalCode, Diagnostic: e.Diagnostic, Host: mxHost(e.Diagnostic)}
+	host := mxHost(e.Diagnostic)
+	diag := e.Diagnostic
+	if host != "" {
+		// The host shows on its own ("Deferred by mx-ha03.web.de").
+		diag = strings.NewReplacer("("+host+")", "", "· "+host, "", host+":", "", host, "").Replace(diag)
+		diag = strings.Trim(strings.Join(strings.Fields(diag), " "), " ·:-")
+	}
+	return &PlacementEvent{Type: e.Type, At: e.OccurredAt, Code: e.OriginalCode, Diagnostic: diag, Host: host}
 }
 
 // PlacementResultSeed is a row of the matrix.
@@ -733,7 +740,7 @@ func (s *Service) guidance(ctx context.Context, ws *store.Workspace, t store.Pla
 		}
 		for _, o := range results {
 			if o.ID != r.ID {
-				g.Other = &PlacementOther{ProviderID: o.ID, Name: o.Name, Inbox: o.Counts.Inbox + o.Counts.Tab, Spam: o.Counts.Spam, Copies: o.Counts.Copies}
+				g.Other = &PlacementOther{ProviderID: o.ID, Name: o.Name, Inbox: o.Counts.Inbox, Spam: o.Counts.Spam, Copies: o.Counts.Copies}
 				break
 			}
 		}
@@ -767,7 +774,7 @@ func (s *Service) earlier(ctx context.Context, ws *store.Workspace, t store.Plac
 		return nil
 	}
 	c := countCopies(copies, &pid)
-	return &PlacementEarlier{TestID: best.ID.String(), ContentName: best.ContentName, Inbox: c.Inbox + c.Tab, Copies: c.Copies, StartedAt: best.StartedAt}
+	return &PlacementEarlier{TestID: best.ID.String(), ContentName: best.ContentName, Inbox: c.Inbox, Copies: c.Copies, StartedAt: best.StartedAt}
 }
 
 // PlacementAuthCheck is one authentication result of a copy, in full.
@@ -828,8 +835,14 @@ func (s *Service) CopyDetail(ctx context.Context, ws *store.Workspace, testID, c
 	}
 	out := PlacementCopyDetail{Copy: copyView(c, t, seeds, evs), Events: []PlacementEvent{}, ProviderMessageID: c.ProviderMessageID,
 		WaitUntil: t.WaitUntil, TestStatus: t.Status, Headers: c.Headers, ReadVia: "imap"}
+	oauth := strings.Contains(string(c.Ref), "graphId")
+	if c.SeedID != nil {
+		if sd, ok := seeds[*c.SeedID]; ok {
+			oauth = sd.Auth == seedbox.AuthOAuth
+		}
+	}
 	switch {
-	case seedbox.IsMicrosoft(c.SeedProvider) && strings.Contains(string(c.Ref), "graphId"):
+	case seedbox.IsMicrosoft(c.SeedProvider) && oauth:
 		out.ReadVia = "graph"
 	case seedbox.IsGoogle(c.SeedProvider):
 		out.ReadVia = "gmail"

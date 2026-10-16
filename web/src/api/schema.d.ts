@@ -35185,7 +35185,11 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                seed: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -35356,6 +35360,9 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Workspace slug */
+                workspace: string;
+                test: string;
                 copy: string;
             };
             cookie?: never;
@@ -39246,7 +39253,11 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                contact: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -39352,7 +39363,12 @@ export interface operations {
                 name?: string;
             };
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description A form's id, or subscribe_page */
+                form: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -39695,7 +39711,11 @@ export interface operations {
                 forms?: string[];
             };
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                service: "zerobounce" | "kickbox" | "neverbounce" | "bouncer" | "emailable";
+            };
             cookie?: never;
         };
         requestBody?: never;
@@ -39724,7 +39744,11 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                service: "zerobounce" | "kickbox" | "neverbounce" | "bouncer" | "emailable";
+            };
             cookie?: never;
         };
         requestBody: {
@@ -39757,7 +39781,11 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                service: "zerobounce" | "kickbox" | "neverbounce" | "bouncer" | "emailable";
+            };
             cookie?: never;
         };
         requestBody: {

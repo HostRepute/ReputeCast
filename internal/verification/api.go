@@ -29,19 +29,24 @@ type testKeyInput struct {
 	Body VerificationKeyInput
 }
 
+// Inputs list their path parameters themselves: Huma can't set the fields
+// of an unexported embedded struct.
 type settingsInput struct {
-	serviceInput
-	Body VerificationSettingsInput
+	api.WorkspaceInput
+	Service string `path:"service" enum:"zerobounce,kickbox,neverbounce,bouncer,emailable"`
+	Body    VerificationSettingsInput
 }
 
 type replaceKeyInput struct {
-	serviceInput
-	Body VerificationReplaceKeyInput
+	api.WorkspaceInput
+	Service string `path:"service" enum:"zerobounce,kickbox,neverbounce,bouncer,emailable"`
+	Body    VerificationReplaceKeyInput
 }
 
 type disconnectInput struct {
-	serviceInput
-	Forms []string `query:"forms" maxItems:"50" doc:"The forms that stop checking, as the dialog listed them"`
+	api.WorkspaceInput
+	Service string   `path:"service" enum:"zerobounce,kickbox,neverbounce,bouncer,emailable"`
+	Forms   []string `query:"forms" maxItems:"50" doc:"The forms that stop checking, as the dialog listed them"`
 }
 
 type estimateInput struct {
@@ -65,8 +70,9 @@ type contactInput struct {
 }
 
 type verifyContactInput struct {
-	contactInput
-	Body VerifyContactInput
+	api.WorkspaceInput
+	Contact string `path:"contact" format:"uuid"`
+	Body    VerifyContactInput
 }
 
 type formInput struct {
@@ -75,7 +81,8 @@ type formInput struct {
 }
 
 type setFormInput struct {
-	formInput
+	api.WorkspaceInput
+	Form string `path:"form" pattern:"^[a-z0-9_-]{1,64}$" doc:"A form's id, or subscribe_page"`
 	Name string `query:"name" maxLength:"200" doc:"The form's name, for the audit log"`
 	Body VerificationFormInput
 }

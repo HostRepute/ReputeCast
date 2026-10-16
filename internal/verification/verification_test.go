@@ -483,4 +483,19 @@ func TestPermissionsOverHTTP(t *testing.T) {
 	viewer.Do("POST", "/workspaces/acme-newsletter/verification/jobs", body).MustStatus(t, http.StatusForbidden)
 	viewer.Do("POST", "/workspaces/acme-newsletter/verification/services", map[string]any{"service": "neverbounce", "apiKey": "nb-test-key-123456"}).MustStatus(t, http.StatusForbidden)
 	viewer.Do("GET", "/workspaces/acme-newsletter/verification/services", nil).MustStatus(t, http.StatusOK)
+
+	// Path parameters reach the handlers (the demo's Kickbox checks the forms).
+	owner := env.Client()
+	owner.SignInDemo("linh@acme.io")
+	var form verification.VerificationFormSetting
+	owner.Do("PUT", "/workspaces/acme-newsletter/verification/forms/subscribe_page?name=Subscribe%20page", map[string]any{"enabled": false}).
+		MustStatus(t, http.StatusOK).JSON(t, &form)
+	if form.FormKey != "subscribe_page" || form.Enabled || form.Service != "kickbox" {
+		t.Fatalf("form setting = %+v", form)
+	}
+	var svc verification.VerificationServiceView
+	owner.Do("GET", "/workspaces/acme-newsletter/verification/services/zerobounce", nil).MustStatus(t, http.StatusOK).JSON(t, &svc)
+	if svc.Key != "zerobounce" || !svc.Connected || svc.Balance == nil || *svc.Balance != 36656 {
+		t.Fatalf("ZeroBounce = %+v", svc)
+	}
 }

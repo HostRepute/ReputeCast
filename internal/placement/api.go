@@ -22,7 +22,8 @@ type testInput struct {
 }
 
 type copyInput struct {
-	testInput
+	api.WorkspaceInput
+	Test string `path:"test" format:"uuid"`
 	Copy string `path:"copy" format:"uuid"`
 }
 
@@ -46,8 +47,11 @@ type addSeedInput struct {
 	Body PlacementSeedInput
 }
 
+// Inputs list their path parameters themselves: Huma can't set the fields
+// of an unexported embedded struct.
 type reconnectInput struct {
-	seedInput
+	api.WorkspaceInput
+	Seed string `path:"seed" format:"uuid"`
 	Body PlacementReconnectInput
 }
 
