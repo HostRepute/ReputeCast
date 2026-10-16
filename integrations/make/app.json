@@ -1,0 +1,150 @@
+{
+  "name": "reputecast",
+  "label": "ReputeCast",
+  "description": "Start scenarios from ReputeCast events, and create contacts, tag them, record events and send transactional email from your other apps. ReputeCast is the open-source, self-hosted newsletter platform.",
+  "version": 1,
+  "release": "1.0.4",
+  "theme": "#0F766E",
+  "language": "en",
+  "audience": "global",
+  "connections": {
+    "reputecast": {
+      "label": "ReputeCast",
+      "type": "basic"
+    }
+  },
+  "webhooks": {
+    "contactSubscribed": {
+      "label": "Contact subscribed",
+      "type": "web",
+      "connection": "reputecast",
+      "event": "contact.subscribed"
+    },
+    "contactUnsubscribed": {
+      "label": "Contact unsubscribed",
+      "type": "web",
+      "connection": "reputecast",
+      "event": "contact.unsubscribed"
+    },
+    "contactUpdated": {
+      "label": "Contact updated",
+      "type": "web",
+      "connection": "reputecast",
+      "event": "contact.updated"
+    },
+    "formSubmitted": {
+      "label": "Form submitted",
+      "type": "web",
+      "connection": "reputecast",
+      "event": "form.submitted"
+    },
+    "campaignSent": {
+      "label": "Campaign sent",
+      "type": "web",
+      "connection": "reputecast",
+      "event": "campaign.completed"
+    },
+    "transactionalBounced": {
+      "label": "Transactional message bounced",
+      "type": "web",
+      "connection": "reputecast",
+      "event": "message.bounced"
+    }
+  },
+  "rpcs": {
+    "listLists": {
+      "label": "List lists",
+      "connection": "reputecast"
+    },
+    "listTemplates": {
+      "label": "List published transactional templates",
+      "connection": "reputecast"
+    },
+    "listForms": {
+      "label": "List signup forms",
+      "connection": "reputecast"
+    },
+    "listFields": {
+      "label": "Custom fields",
+      "connection": "reputecast"
+    },
+    "templateVariables": {
+      "label": "A template's variables",
+      "connection": "reputecast"
+    }
+  },
+  "modules": {
+    "watchSubscribedContacts": {
+      "label": "Watch Subscribed Contacts",
+      "description": "Triggers when a contact subscribes to a list: through a form, an import, the API or the app.",
+      "typeId": 10,
+      "connection": "reputecast",
+      "webhook": "contactSubscribed"
+    },
+    "watchUnsubscribedContacts": {
+      "label": "Watch Unsubscribed Contacts",
+      "description": "Triggers when a contact unsubscribes from a list.",
+      "typeId": 10,
+      "connection": "reputecast",
+      "webhook": "contactUnsubscribed"
+    },
+    "watchUpdatedContacts": {
+      "label": "Watch Updated Contacts",
+      "description": "Triggers when a contact's names, fields, language, tags or lists change.",
+      "typeId": 10,
+      "connection": "reputecast",
+      "webhook": "contactUpdated"
+    },
+    "watchFormSubmissions": {
+      "label": "Watch Form Submissions",
+      "description": "Triggers when a signup through a form is confirmed: at once for single opt-in, after the confirmation click for double opt-in.",
+      "typeId": 10,
+      "connection": "reputecast",
+      "webhook": "formSubmitted"
+    },
+    "watchSentCampaigns": {
+      "label": "Watch Sent Campaigns",
+      "description": "Triggers when a campaign finishes sending, with its totals.",
+      "typeId": 10,
+      "connection": "reputecast",
+      "webhook": "campaignSent"
+    },
+    "watchTransactionalBounces": {
+      "label": "Watch Transactional Bounces",
+      "description": "Triggers when a transactional email bounces.",
+      "typeId": 10,
+      "connection": "reputecast",
+      "webhook": "transactionalBounced"
+    },
+    "createOrUpdateContact": {
+      "label": "Create or Update a Contact",
+      "description": "Creates a contact, or updates the one with the same email, and adds them to lists with single or double opt-in.",
+      "typeId": 4,
+      "connection": "reputecast"
+    },
+    "addContactToList": {
+      "label": "Add a Contact to a List",
+      "description": "Adds an existing contact to a list, with single or double opt-in.",
+      "typeId": 4,
+      "connection": "reputecast"
+    },
+    "addTagToContact": {
+      "label": "Add a Tag to a Contact",
+      "description": "Adds one or more tags to an existing contact.",
+      "typeId": 4,
+      "connection": "reputecast"
+    },
+    "recordEvent": {
+      "label": "Record an Event",
+      "description": "Records an event for a contact, which starts the automations that listen for it.",
+      "typeId": 4,
+      "connection": "reputecast"
+    },
+    "sendTransactionalEmail": {
+      "label": "Send a Transactional Email",
+      "description": "Sends a published transactional template to one recipient, with its variables.",
+      "typeId": 4,
+      "connection": "reputecast"
+    }
+  }
+}

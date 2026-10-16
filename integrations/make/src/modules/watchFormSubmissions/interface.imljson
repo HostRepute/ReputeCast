@@ -1,0 +1,87 @@
+[
+  {
+    "name": "id",
+    "type": "text",
+    "label": "Event ID"
+  },
+  {
+    "name": "type",
+    "type": "text",
+    "label": "Event"
+  },
+  {
+    "name": "created_at",
+    "type": "date",
+    "label": "Event time"
+  },
+  {
+    "name": "workspace",
+    "type": "text",
+    "label": "Workspace"
+  },
+  {
+    "name": "data",
+    "type": "collection",
+    "label": "Data",
+    "spec": [
+      {
+        "name": "form_id",
+        "type": "text",
+        "label": "Form ID"
+      },
+      {
+        "name": "form_name",
+        "type": "text",
+        "label": "Form name"
+      },
+      {
+        "name": "contact_id",
+        "type": "text",
+        "label": "Contact ID"
+      },
+      {
+        "name": "email",
+        "type": "email",
+        "label": "Email"
+      },
+      {
+        "name": "answers",
+        "type": "any",
+        "label": "Answers"
+      },
+      {
+        "name": "lists",
+        "type": "array",
+        "label": "Lists",
+        "spec": {
+          "type": "text"
+        }
+      },
+      {
+        "name": "consent_text",
+        "type": "text",
+        "label": "Consent text"
+      },
+      {
+        "name": "language",
+        "type": "text",
+        "label": "Language"
+      },
+      {
+        "name": "double_opt_in",
+        "type": "boolean",
+        "label": "Double opt-in"
+      },
+      {
+        "name": "submitted_at",
+        "type": "date",
+        "label": "Submitted at"
+      },
+      {
+        "name": "confirmed_at",
+        "type": "date",
+        "label": "Confirmed at"
+      }
+    ]
+  }
+]

@@ -1,0 +1,11 @@
+{
+  "url": "/workspaces/{{connection.workspace}}/integration/lists",
+  "method": "GET",
+  "response": {
+    "iterate": "{{body.items}}",
+    "output": {
+      "label": "{{item.name}}{{if(item.doubleOptIn, ' (double opt-in)', '')}}",
+      "value": "{{item.id}}"
+    }
+  }
+}

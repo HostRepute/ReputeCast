@@ -1,0 +1,18 @@
+{
+  "id": "evt_sample",
+  "type": "campaign.completed",
+  "created_at": "2026-10-14T13:41:00Z",
+  "workspace": "acme-newsletter",
+  "data": {
+    "campaign_id": "0192a4c1-0000-7000-8000-0000000c0142",
+    "name": "Weekly Digest #142",
+    "subject": "Three launches, one deprecation, and the roadmap for Q4",
+    "status": "sent",
+    "sent": 31604,
+    "delivered": 31352,
+    "bounced": 189,
+    "complained": 4,
+    "started_at": "2026-10-14T13:00:00Z",
+    "completed_at": "2026-10-14T13:41:00Z"
+  }
+}

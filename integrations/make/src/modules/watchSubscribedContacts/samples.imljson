@@ -1,0 +1,33 @@
+{
+  "id": "evt_sample",
+  "type": "contact.subscribed",
+  "created_at": "2026-10-15T14:02:11Z",
+  "workspace": "acme-newsletter",
+  "data": {
+    "contact_id": "0192a4c1-7d4e-7c1e-9a40-3f1b2c8d5e01",
+    "email": "lucia.fernandez@example.com",
+    "first_name": "Lucía",
+    "last_name": "Fernández",
+    "company": "",
+    "country": "MX",
+    "timezone": "America/Mexico_City",
+    "language": "es-MX",
+    "tags": [
+      "beta-applicant"
+    ],
+    "fields": {
+      "plan": "Team"
+    },
+    "status": "active",
+    "lists": [
+      {
+        "id": "0192a4c1-0000-7000-8000-00000000b3a1",
+        "name": "Weekly Digest",
+        "status": "subscribed"
+      }
+    ],
+    "list_id": "0192a4c1-0000-7000-8000-00000000b3a1",
+    "list_name": "Weekly Digest",
+    "source": "form"
+  }
+}

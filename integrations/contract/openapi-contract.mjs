@@ -216,10 +216,18 @@ export function checkResponse(operationId, status, body, { spec = loadSpec() } =
   return { ok: errors.length === 0, errors }
 }
 
-/** The operations the apps may call: what the hub gives integration keys. */
+// The actions' operations (docs/integrations/hub.md › Actions): general
+// workspace operations an integration key may call when the action is on.
+export const ACTION_OPERATIONS = ['upsert-contact', 'add-contact-to-list', 'tag-contact', 'send-automation-event', 'send-transactional-message']
+
+/**
+ * The operations the apps may call: the Integration API's (marked
+ * x-integration, or the key's own GET /integration) and the actions'.
+ */
 export function integrationOperations(spec = loadSpec()) {
-  const out = []
-  for (const [id, o] of operations(spec)) {
+  const all = operations(spec)
+  const out = ACTION_OPERATIONS.filter((id) => all.has(id))
+  for (const [id, o] of all) {
     if (o.op['x-integration'] || o.op['x-access'] === 'key') out.push(id)
   }
   return out.sort()
