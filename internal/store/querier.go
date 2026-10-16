@@ -281,7 +281,9 @@ type Querier interface {
 	ContentTranslationVersion(ctx context.Context, arg ContentTranslationVersionParams) (ContentTranslationVersionRow, error)
 	ContentTranslationVersionInsert(ctx context.Context, arg ContentTranslationVersionInsertParams) error
 	ContentTranslationVersions(ctx context.Context, arg ContentTranslationVersionsParams) ([]ContentTranslationVersionsRow, error)
-	// The language versions of an email, with who translated and last saved them.
+	// The language versions of an email, in the order of the workspace's
+	// languages ("English, Spanish and German"), with who translated and last
+	// saved them.
 	ContentTranslations(ctx context.Context, arg ContentTranslationsParams) ([]ContentTranslationsRow, error)
 	// Carries an automation email's or template's language versions to its
 	// next version (their versions are immutable), with ids made in Go: one

@@ -103,15 +103,18 @@ UPDATE content_sources SET language = @language, updated_at = @at
 WHERE owner_kind = @owner_kind AND owner_id = @owner_id AND owner_version = @owner_version;
 
 -- name: ContentTranslations :many
--- The language versions of an email, with who translated and last saved them.
+-- The language versions of an email, in the order of the workspace's
+-- languages ("English, Spanish and German"), with who translated and last
+-- saved them.
 SELECT t.*,
        coalesce(tu.name, '')::text AS translated_by_name,
        coalesce(uu.name, '')::text AS updated_by_name
 FROM content_translations t
 LEFT JOIN users tu ON tu.id = t.translated_by
 LEFT JOIN users uu ON uu.id = t.updated_by
+LEFT JOIN workspace_languages wl ON wl.workspace_id = t.workspace_id AND wl.code = t.language
 WHERE t.owner_kind = @owner_kind AND t.owner_id = @owner_id AND t.owner_version = @owner_version
-ORDER BY t.created_at, t.language;
+ORDER BY wl.is_default DESC NULLS LAST, wl.added_at NULLS LAST, t.language;
 
 -- name: ContentTranslation :one
 SELECT t.*,
