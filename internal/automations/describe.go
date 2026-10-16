@@ -55,6 +55,8 @@ func TriggerKindLabel(kind string) string {
 		return "API event"
 	case TriggerDateField:
 		return "Date field"
+	case TriggerScoreCrosses:
+		return "Score crosses…"
 	}
 	return "Trigger"
 }
@@ -85,6 +87,8 @@ func TriggerRef(t *AutomationTrigger, refs *Refs) string {
 		return t.Event
 	case TriggerDateField:
 		return t.Field
+	case TriggerScoreCrosses:
+		return scoreTriggerRef(t)
 	}
 	return ""
 }

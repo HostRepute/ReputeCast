@@ -67,6 +67,13 @@ func (s *Service) Catalog(ctx context.Context, ws *store.Workspace) (SegmentCata
 	for _, key := range builtinOrder {
 		spec := builtinFields[key]
 		f := SegmentCatalogField{Key: key, Label: spec.Label, Kind: string(spec.Kind), Ops: ops(spec.Ops), Options: []SegmentOption{}}
+		if o, ok := extraOptions[key]; ok {
+			if f.Options, err = o(ctx, s.Q, ws.ID); err != nil {
+				return SegmentCatalog{}, err
+			}
+			out.Fields = append(out.Fields, f)
+			continue
+		}
 		switch key {
 		case "list":
 			for _, l := range lists {

@@ -27,6 +27,8 @@ type ContactFilter struct {
 	Segment string `json:"segment,omitempty" doc:"Segment id"`
 	// JoinedAfter is a date (2026-09-01).
 	JoinedAfter string `json:"joinedAfter,omitempty" maxLength:"10"`
+	// Score, band and growth source (scoregrowth.go).
+	ScoreGrowthFilter
 }
 
 // Empty reports whether the filter matches everyone.
@@ -95,6 +97,9 @@ func (s *Service) applyFilter(ctx context.Context, wsID uuid.UUID, out *filterSQ
 			return api.Invalid("joinedAfter", "Use a date like 2026-09-01.")
 		}
 		out.add("c.created_at >= ?", d)
+	}
+	if err := s.scoreGrowthFilter(ctx, wsID, out, f.ScoreGrowthFilter); err != nil {
+		return err
 	}
 	if f.Segment != "" {
 		id, err := uuid.Parse(f.Segment)

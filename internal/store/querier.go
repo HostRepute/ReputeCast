@@ -179,6 +179,8 @@ type Querier interface {
 	AutomationRunExists(ctx context.Context, arg AutomationRunExistsParams) (bool, error)
 	// The message a run's email step queued (for branch checks).
 	AutomationRunMessage(ctx context.Context, arg AutomationRunMessageParams) (AutomationRunMessageRow, error)
+	// Whether a contact entered a "Score crosses…" automation recently, or is in it.
+	AutomationScoreRunSince(ctx context.Context, arg AutomationScoreRunSinceParams) (bool, error)
 	// The latest alert per webhook step, open or resolved (for the publish diff).
 	AutomationStepFailures(ctx context.Context, automationID uuid.UUID) ([]AutomationStepFailuresRow, error)
 	// Paths taken out of branches and splits.
@@ -1303,6 +1305,78 @@ type Querier interface {
 	SaveComposerContent(ctx context.Context, arg SaveComposerContentParams) error
 	// 30-day sums per list or followed view.
 	ScopeTotalsSince(ctx context.Context, arg ScopeTotalsSinceParams) ([]ScopeTotalsSinceRow, error)
+	// API events sent in the last 30 days, with how many: the rule editor
+	// suggests them.
+	ScoringAPIEventNames(ctx context.Context, arg ScoringAPIEventNamesParams) ([]ScoringAPIEventNamesRow, error)
+	// The same from the scorer's own copy (automation events are purged sooner).
+	ScoringAPIEventNamesFromScores(ctx context.Context, arg ScoringAPIEventNamesFromScoresParams) ([]ScoringAPIEventNamesFromScoresRow, error)
+	ScoringBandsByTier(ctx context.Context, arg ScoringBandsByTierParams) ([]ScoringBandsByTierRow, error)
+	ScoringConfigCreate(ctx context.Context, arg ScoringConfigCreateParams) (ScoringConfig, error)
+	// Contact scoring (audience-insights brief §3.1).
+	ScoringConfigGet(ctx context.Context, workspaceID uuid.UUID) (ScoringConfig, error)
+	ScoringConfigGetForUpdate(ctx context.Context, workspaceID uuid.UUID) (ScoringConfig, error)
+	ScoringConfigSetApplied(ctx context.Context, arg ScoringConfigSetAppliedParams) error
+	ScoringConfigSetIngested(ctx context.Context, arg ScoringConfigSetIngestedParams) error
+	ScoringConfigSetNightly(ctx context.Context, arg ScoringConfigSetNightlyParams) error
+	ScoringConfigSetVersion(ctx context.Context, arg ScoringConfigSetVersionParams) error
+	ScoringContactBasics(ctx context.Context, id uuid.UUID) (ScoringContactBasicsRow, error)
+	ScoringContactScore(ctx context.Context, contactID uuid.UUID) (ContactScore, error)
+	// The next batch of contacts a recalculation scores, in id order.
+	ScoringContactsAfter(ctx context.Context, arg ScoringContactsAfterParams) ([]uuid.UUID, error)
+	ScoringCountContacts(ctx context.Context, workspaceID uuid.UUID) (int64, error)
+	// Contacts with new events since a recalculation started: score them again.
+	ScoringDirtyMarkSince(ctx context.Context, arg ScoringDirtyMarkSinceParams) error
+	ScoringDirtyTake(ctx context.Context, arg ScoringDirtyTakeParams) ([]uuid.UUID, error)
+	// Contacts whose score changes on its own by now: a decay step or an
+	// event leaving the look-back.
+	ScoringDueChecks(ctx context.Context, arg ScoringDueChecksParams) ([]uuid.UUID, error)
+	// One contact's events for the profile (the kept window, oldest first).
+	ScoringEventsByContact(ctx context.Context, arg ScoringEventsByContactParams) ([]ScoringEventsByContactRow, error)
+	// Score events of some contacts within the kept window, in time order.
+	ScoringEventsOf(ctx context.Context, arg ScoringEventsOfParams) ([]ScoringEventsOfRow, error)
+	ScoringFieldsOf(ctx context.Context, workspaceID uuid.UUID) ([]ScoringFieldsOfRow, error)
+	// The sites a workspace's forms are on (the suggested pricing rule names one).
+	ScoringFormOrigins(ctx context.Context, workspaceID uuid.UUID) ([]string, error)
+	ScoringFormsOf(ctx context.Context, workspaceID uuid.UUID) ([]ScoringFormsOfRow, error)
+	// "Score crosses…" trigger events for contacts whose score crossed a live
+	// automation's threshold.
+	ScoringInsertTriggerEvents(ctx context.Context, arg ScoringInsertTriggerEventsParams) error
+	ScoringLinkLabels(ctx context.Context, campaignIds []uuid.UUID) ([]ScoringLinkLabelsRow, error)
+	ScoringListsOf(ctx context.Context, workspaceID uuid.UUID) ([]ScoringListsOfRow, error)
+	// Automations that start on "Score crosses…", live or not.
+	ScoringLiveTriggers(ctx context.Context, workspaceID uuid.UUID) ([]ScoringLiveTriggersRow, error)
+	// What a message was: the campaign or the automation and step.
+	ScoringMessageLabels(ctx context.Context, ids []uuid.UUID) ([]ScoringMessageLabelsRow, error)
+	ScoringPruneEvents(ctx context.Context, arg ScoringPruneEventsParams) (int64, error)
+	ScoringRecalcClearStage(ctx context.Context, recalcID uuid.UUID) error
+	ScoringRecalcFail(ctx context.Context, arg ScoringRecalcFailParams) error
+	ScoringRecalcFinish(ctx context.Context, arg ScoringRecalcFinishParams) error
+	ScoringRecalcGet(ctx context.Context, id uuid.UUID) (ScoringRecalc, error)
+	ScoringRecalcInsert(ctx context.Context, arg ScoringRecalcInsertParams) (ScoringRecalc, error)
+	ScoringRecalcLatest(ctx context.Context, workspaceID uuid.UUID) (ScoringRecalcLatestRow, error)
+	ScoringRecalcProgress(ctx context.Context, arg ScoringRecalcProgressParams) error
+	ScoringRecalcRestart(ctx context.Context, arg ScoringRecalcRestartParams) error
+	ScoringRecalcRunning(ctx context.Context, workspaceID uuid.UUID) (ScoringRecalc, error)
+	ScoringRecalcStatus(ctx context.Context, id uuid.UUID) (string, error)
+	ScoringRecalcSupersede(ctx context.Context, arg ScoringRecalcSupersedeParams) error
+	// Contacts per exact score: the impact preview re-buckets these when only
+	// the thresholds move.
+	ScoringScoreCounts(ctx context.Context, workspaceID uuid.UUID) ([]ScoringScoreCountsRow, error)
+	ScoringScoresOf(ctx context.Context, contactIds []uuid.UUID) ([]ScoringScoresOfRow, error)
+	// Segments with a score or score-band condition.
+	ScoringSegmentsUsingScore(ctx context.Context, workspaceID uuid.UUID) ([]ScoringSegmentsUsingScoreRow, error)
+	// Contacts per bucket of 10 points (90–100 is the last); contacts without
+	// a score row count as 0.
+	ScoringSpread(ctx context.Context, workspaceID uuid.UUID) ([]ScoringSpreadRow, error)
+	// Batches of computed scores are written by internal/scoring itself
+	// (upsertScoresSQL, stageScoresSQL): their nullable times don't fit
+	// sqlc's array parameters.
+	// The next batch of staged scores to apply, with the score each contact has now.
+	ScoringStagedAfter(ctx context.Context, arg ScoringStagedAfterParams) ([]ScoringStagedAfterRow, error)
+	ScoringVersionGet(ctx context.Context, arg ScoringVersionGetParams) (ScoringVersion, error)
+	ScoringVersionInsert(ctx context.Context, arg ScoringVersionInsertParams) error
+	// Workspaces that set up scoring, with what the jobs need.
+	ScoringWorkspaces(ctx context.Context) ([]ScoringWorkspacesRow, error)
 	SegmentMemberIDs(ctx context.Context, segmentID uuid.UUID) ([]uuid.UUID, error)
 	// Campaigns that are not sent yet and use the sender (deleting it clears them).
 	SenderCampaignCount(ctx context.Context, senderID *uuid.UUID) (int64, error)

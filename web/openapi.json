@@ -6826,6 +6826,13 @@
           "confirmedOnly": {
             "type": "boolean"
           },
+          "direction": {
+            "enum": [
+              "rises",
+              "falls"
+            ],
+            "type": "string"
+          },
           "event": {
             "maxLength": 100,
             "type": "string"
@@ -6847,7 +6854,8 @@
               "form_submitted",
               "tag_added",
               "api_event",
-              "date_field"
+              "date_field",
+              "score_crosses"
             ],
             "type": "string"
           },
@@ -6861,6 +6869,12 @@
             "minimum": -365,
             "type": "integer"
           },
+          "onceInDays": {
+            "format": "int64",
+            "maximum": 3650,
+            "minimum": 0,
+            "type": "integer"
+          },
           "reentry": {
             "maxLength": 8,
             "type": "string"
@@ -6868,6 +6882,12 @@
           "tag": {
             "maxLength": 64,
             "type": "string"
+          },
+          "threshold": {
+            "format": "int64",
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
           },
           "yearly": {
             "type": "boolean"
@@ -11403,12 +11423,24 @@
       "ContactFilter": {
         "additionalProperties": false,
         "properties": {
+          "band": {
+            "enum": [
+              "cold",
+              "warm",
+              "hot"
+            ],
+            "type": "string"
+          },
           "consent": {
             "enum": [
               "double",
               "single",
               "pending"
             ],
+            "type": "string"
+          },
+          "growthSource": {
+            "maxLength": 200,
             "type": "string"
           },
           "joinedAfter": {
@@ -11434,8 +11466,27 @@
             "maxLength": 200,
             "type": "string"
           },
+          "referringDomain": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "scoreFrom": {
+            "maxLength": 3,
+            "type": "string"
+          },
+          "scoreTo": {
+            "maxLength": 3,
+            "type": "string"
+          },
           "segment": {
             "description": "Segment id",
+            "type": "string"
+          },
+          "sort": {
+            "enum": [
+              "activity",
+              "score"
+            ],
             "type": "string"
           },
           "source": {
@@ -11453,6 +11504,18 @@
               "at_risk",
               "sunset"
             ],
+            "type": "string"
+          },
+          "utmCampaign": {
+            "maxLength": 200,
+            "type": "string"
+          },
+          "utmMedium": {
+            "maxLength": 200,
+            "type": "string"
+          },
+          "utmSource": {
+            "maxLength": 200,
             "type": "string"
           }
         },
@@ -11590,6 +11653,10 @@
           },
           "name": {
             "type": "string"
+          },
+          "score": {
+            "format": "int64",
+            "type": "integer"
           },
           "source": {
             "type": "string"
@@ -11940,6 +12007,313 @@
         "required": [
           "all",
           "items"
+        ],
+        "type": "object"
+      },
+      "ContactScore": {
+        "additionalProperties": false,
+        "properties": {
+          "band": {
+            "enum": [
+              "cold",
+              "warm",
+              "hot"
+            ],
+            "type": "string"
+          },
+          "bandSince": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "bands": {
+            "$ref": "#/components/schemas/ScoringBands"
+          },
+          "breakdown": {
+            "items": {
+              "$ref": "#/components/schemas/ContactScoreRule"
+            },
+            "type": "array"
+          },
+          "configured": {
+            "type": "boolean"
+          },
+          "decay": {
+            "$ref": "#/components/schemas/ContactScoreDecay"
+          },
+          "joinedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "lastChange": {
+            "$ref": "#/components/schemas/ContactScoreChange"
+          },
+          "line": {
+            "items": {
+              "$ref": "#/components/schemas/ContactScorePoint"
+            },
+            "type": "array"
+          },
+          "recalculating": {
+            "type": "boolean"
+          },
+          "score": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "uses": {
+            "items": {
+              "$ref": "#/components/schemas/ContactScoreUse"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "configured",
+          "score",
+          "band",
+          "bands",
+          "recalculating",
+          "breakdown",
+          "decay",
+          "joinedAt",
+          "line",
+          "uses"
+        ],
+        "type": "object"
+      },
+      "ContactScoreCause": {
+        "additionalProperties": false,
+        "properties": {
+          "emailName": {
+            "type": "string"
+          },
+          "eventName": {
+            "type": "string"
+          },
+          "formName": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "open",
+              "click",
+              "form",
+              "api_event",
+              "soft_bounce",
+              "unsubscribe",
+              "decay"
+            ],
+            "type": "string"
+          },
+          "linkLabel": {
+            "type": "string"
+          },
+          "listName": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "type": "object"
+      },
+      "ContactScoreChange": {
+        "additionalProperties": false,
+        "properties": {
+          "after": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "afterBand": {
+            "enum": [
+              "cold",
+              "warm",
+              "hot"
+            ],
+            "type": "string"
+          },
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "before": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "beforeBand": {
+            "enum": [
+              "cold",
+              "warm",
+              "hot"
+            ],
+            "type": "string"
+          },
+          "cause": {
+            "$ref": "#/components/schemas/ContactScoreCause"
+          },
+          "delta": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "at",
+          "delta",
+          "before",
+          "after",
+          "beforeBand",
+          "afterBand",
+          "cause"
+        ],
+        "type": "object"
+      },
+      "ContactScoreDecay": {
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "lastActivity": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "lastActivityKind": {
+            "description": "open or click",
+            "type": "string"
+          },
+          "lost": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "quietWeeks": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "enabled",
+          "lost",
+          "quietWeeks"
+        ],
+        "type": "object"
+      },
+      "ContactScorePoint": {
+        "additionalProperties": false,
+        "properties": {
+          "day": {
+            "description": "YYYY-MM-DD in the workspace timezone",
+            "type": "string"
+          },
+          "score": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "day"
+        ],
+        "type": "object"
+      },
+      "ContactScoreRule": {
+        "additionalProperties": false,
+        "properties": {
+          "atMax": {
+            "type": "boolean"
+          },
+          "capReached": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "formName": {
+            "type": "string"
+          },
+          "latest": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "listName": {
+            "type": "string"
+          },
+          "number": {
+            "description": "The rule's number on Scoring",
+            "format": "int64",
+            "type": "integer"
+          },
+          "points": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "rule": {
+            "$ref": "#/components/schemas/ScoringRule"
+          },
+          "zeroAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "zeroEmail": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "number",
+          "rule",
+          "points",
+          "count",
+          "atMax"
+        ],
+        "type": "object"
+      },
+      "ContactScoreUse": {
+        "additionalProperties": false,
+        "properties": {
+          "crossedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "direction": {
+            "type": "string"
+          },
+          "href": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "in": {
+            "type": "boolean"
+          },
+          "kind": {
+            "enum": [
+              "segment",
+              "automation",
+              "block"
+            ],
+            "type": "string"
+          },
+          "liveSince": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "threshold": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "kind",
+          "id",
+          "name",
+          "in"
         ],
         "type": "object"
       },
@@ -32165,6 +32539,840 @@
         ],
         "type": "object"
       },
+      "ScoringBandCounts": {
+        "additionalProperties": false,
+        "properties": {
+          "cold": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "hot": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "warm": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "cold",
+          "warm",
+          "hot"
+        ],
+        "type": "object"
+      },
+      "ScoringBandMove": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "from": {
+            "enum": [
+              "cold",
+              "warm",
+              "hot"
+            ],
+            "type": "string"
+          },
+          "to": {
+            "enum": [
+              "cold",
+              "warm",
+              "hot"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "from",
+          "to",
+          "count"
+        ],
+        "type": "object"
+      },
+      "ScoringBands": {
+        "additionalProperties": false,
+        "properties": {
+          "hotFrom": {
+            "format": "int64",
+            "maximum": 100,
+            "minimum": 2,
+            "type": "integer"
+          },
+          "warmFrom": {
+            "format": "int64",
+            "maximum": 99,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "warmFrom",
+          "hotFrom"
+        ],
+        "type": "object"
+      },
+      "ScoringBucket": {
+        "additionalProperties": false,
+        "properties": {
+          "contacts": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "from": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "to": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "from",
+          "to",
+          "contacts"
+        ],
+        "type": "object"
+      },
+      "ScoringChanges": {
+        "additionalProperties": false,
+        "properties": {
+          "bands": {
+            "type": "boolean"
+          },
+          "decay": {
+            "type": "boolean"
+          },
+          "rules": {
+            "items": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "setup": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "setup",
+          "rules",
+          "decay",
+          "bands"
+        ],
+        "type": "object"
+      },
+      "ScoringConfig": {
+        "additionalProperties": false,
+        "properties": {
+          "bands": {
+            "$ref": "#/components/schemas/ScoringBands"
+          },
+          "decay": {
+            "$ref": "#/components/schemas/ScoringDecay"
+          },
+          "rules": {
+            "items": {
+              "$ref": "#/components/schemas/ScoringRule"
+            },
+            "maxItems": 50,
+            "type": "array"
+          }
+        },
+        "required": [
+          "rules",
+          "decay",
+          "bands"
+        ],
+        "type": "object"
+      },
+      "ScoringDecay": {
+        "additionalProperties": false,
+        "properties": {
+          "afterWeeks": {
+            "format": "int64",
+            "maximum": 52,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "percent": {
+            "format": "int64",
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "enabled",
+          "afterWeeks",
+          "percent"
+        ],
+        "type": "object"
+      },
+      "ScoringEventOption": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "count"
+        ],
+        "type": "object"
+      },
+      "ScoringFieldOption": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "options": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "type",
+          "options"
+        ],
+        "type": "object"
+      },
+      "ScoringFlowImpact": {
+        "additionalProperties": false,
+        "properties": {
+          "crossed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "direction": {
+            "enum": [
+              "rises",
+              "falls"
+            ],
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "started": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "threshold": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "direction",
+          "threshold",
+          "crossed",
+          "started"
+        ],
+        "type": "object"
+      },
+      "ScoringFormOption": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "embedded",
+              "popup",
+              "hosted"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind"
+        ],
+        "type": "object"
+      },
+      "ScoringImpact": {
+        "additionalProperties": false,
+        "properties": {
+          "automations": {
+            "items": {
+              "$ref": "#/components/schemas/ScoringFlowImpact"
+            },
+            "type": "array"
+          },
+          "bandsAfter": {
+            "$ref": "#/components/schemas/ScoringBandCounts"
+          },
+          "bandsBefore": {
+            "$ref": "#/components/schemas/ScoringBandCounts"
+          },
+          "changed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "contacts": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "current": {
+            "items": {
+              "$ref": "#/components/schemas/ScoringBucket"
+            },
+            "type": "array"
+          },
+          "durationMs": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "estimated": {
+            "type": "boolean"
+          },
+          "moves": {
+            "items": {
+              "$ref": "#/components/schemas/ScoringBandMove"
+            },
+            "type": "array"
+          },
+          "rescored": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "spread": {
+            "items": {
+              "$ref": "#/components/schemas/ScoringBucket"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "contacts",
+          "current",
+          "spread",
+          "bandsBefore",
+          "bandsAfter",
+          "changed",
+          "moves",
+          "automations",
+          "rescored",
+          "estimated",
+          "durationMs"
+        ],
+        "type": "object"
+      },
+      "ScoringListOption": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
+      "ScoringOptions": {
+        "additionalProperties": false,
+        "properties": {
+          "apiEvents": {
+            "items": {
+              "$ref": "#/components/schemas/ScoringEventOption"
+            },
+            "type": "array"
+          },
+          "fields": {
+            "items": {
+              "$ref": "#/components/schemas/ScoringFieldOption"
+            },
+            "type": "array"
+          },
+          "forms": {
+            "items": {
+              "$ref": "#/components/schemas/ScoringFormOption"
+            },
+            "type": "array"
+          },
+          "lists": {
+            "items": {
+              "$ref": "#/components/schemas/ScoringListOption"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "lists",
+          "forms",
+          "fields",
+          "apiEvents"
+        ],
+        "type": "object"
+      },
+      "ScoringPage": {
+        "additionalProperties": false,
+        "properties": {
+          "appliedVersion": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "bands": {
+            "$ref": "#/components/schemas/ScoringBandCounts"
+          },
+          "byTier": {
+            "items": {
+              "$ref": "#/components/schemas/ScoringTierRow"
+            },
+            "type": "array"
+          },
+          "config": {
+            "$ref": "#/components/schemas/ScoringConfig"
+          },
+          "configured": {
+            "type": "boolean"
+          },
+          "contacts": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "options": {
+            "$ref": "#/components/schemas/ScoringOptions"
+          },
+          "recalculation": {
+            "$ref": "#/components/schemas/ScoringRecalcInfo"
+          },
+          "setUpAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "setUpBy": {
+            "type": "string"
+          },
+          "spread": {
+            "items": {
+              "$ref": "#/components/schemas/ScoringBucket"
+            },
+            "type": "array"
+          },
+          "suggested": {
+            "items": {
+              "$ref": "#/components/schemas/ScoringRule"
+            },
+            "type": "array"
+          },
+          "usedBy": {
+            "items": {
+              "$ref": "#/components/schemas/ScoringUse"
+            },
+            "type": "array"
+          },
+          "version": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "configured",
+          "version",
+          "appliedVersion",
+          "config",
+          "setUpBy",
+          "contacts",
+          "spread",
+          "bands",
+          "byTier",
+          "usedBy",
+          "options",
+          "suggested"
+        ],
+        "type": "object"
+      },
+      "ScoringPreviewInput": {
+        "additionalProperties": false,
+        "properties": {
+          "config": {
+            "$ref": "#/components/schemas/ScoringConfig"
+          }
+        },
+        "required": [
+          "config"
+        ],
+        "type": "object"
+      },
+      "ScoringRecalcInfo": {
+        "additionalProperties": false,
+        "properties": {
+          "changes": {
+            "$ref": "#/components/schemas/ScoringChanges"
+          },
+          "done": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "failedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "finishedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "reason": {
+            "enum": [
+              "setup",
+              "rules",
+              "retry"
+            ],
+            "type": "string"
+          },
+          "remainingSeconds": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "startAutomations": {
+            "type": "boolean"
+          },
+          "startedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "startedBy": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "running",
+              "finished",
+              "failed",
+              "superseded"
+            ],
+            "type": "string"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/ScoringRecalcSummary"
+          },
+          "total": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "reason",
+          "total",
+          "done",
+          "startAutomations",
+          "startedAt",
+          "startedBy",
+          "label",
+          "changes"
+        ],
+        "type": "object"
+      },
+      "ScoringRecalcSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "automations": {
+            "items": {
+              "$ref": "#/components/schemas/ScoringFlowImpact"
+            },
+            "type": "array"
+          },
+          "bands": {
+            "$ref": "#/components/schemas/ScoringBandCounts"
+          },
+          "changed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "moves": {
+            "items": {
+              "$ref": "#/components/schemas/ScoringBandMove"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "changed",
+          "moves",
+          "bands",
+          "automations"
+        ],
+        "type": "object"
+      },
+      "ScoringRule": {
+        "additionalProperties": false,
+        "properties": {
+          "cap": {
+            "$ref": "#/components/schemas/ScoringRuleCap"
+          },
+          "contains": {
+            "maxLength": 200,
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "event": {
+            "maxLength": 100,
+            "type": "string"
+          },
+          "field": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "formId": {
+            "maxLength": 40,
+            "type": "string"
+          },
+          "id": {
+            "description": "Kept across versions; new rules get one when saved",
+            "maxLength": 40,
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "open",
+              "click",
+              "form",
+              "api_event",
+              "soft_bounce",
+              "unsubscribe",
+              "field"
+            ],
+            "type": "string"
+          },
+          "listId": {
+            "maxLength": 40,
+            "type": "string"
+          },
+          "op": {
+            "enum": [
+              "is_one_of",
+              "is_not",
+              "is_set"
+            ],
+            "type": "string"
+          },
+          "points": {
+            "format": "int64",
+            "maximum": 50,
+            "minimum": -50,
+            "type": "integer"
+          },
+          "values": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "points",
+          "cap",
+          "enabled"
+        ],
+        "type": "object"
+      },
+      "ScoringRuleCap": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "enum": [
+              "none",
+              "once",
+              "once_day",
+              "once_week",
+              "once_month",
+              "points_day",
+              "points_week",
+              "points_month",
+              "while_true"
+            ],
+            "type": "string"
+          },
+          "points": {
+            "format": "int64",
+            "maximum": 1000,
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "type": "object"
+      },
+      "ScoringSaveInput": {
+        "additionalProperties": false,
+        "properties": {
+          "baseVersion": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "config": {
+            "$ref": "#/components/schemas/ScoringConfig"
+          },
+          "startAutomations": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "config",
+          "baseVersion"
+        ],
+        "type": "object"
+      },
+      "ScoringTierRow": {
+        "additionalProperties": false,
+        "properties": {
+          "cold": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "contacts": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "hot": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "tier": {
+            "enum": [
+              "active",
+              "cooling",
+              "at_risk",
+              "sunset"
+            ],
+            "type": "string"
+          },
+          "warm": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "tier",
+          "contacts",
+          "hot",
+          "warm",
+          "cold"
+        ],
+        "type": "object"
+      },
+      "ScoringUse": {
+        "additionalProperties": false,
+        "properties": {
+          "by": {
+            "type": "string"
+          },
+          "conditions": {},
+          "contacts": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "direction": {
+            "type": "string"
+          },
+          "entered": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "href": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "automation",
+              "segment",
+              "block"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "of": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "onceInDays": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "since": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "threshold": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "where": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "id",
+          "name",
+          "entered"
+        ],
+        "type": "object"
+      },
       "SegmentCatalog": {
         "additionalProperties": false,
         "properties": {
@@ -32249,6 +33457,10 @@
             "type": "string"
           },
           "op": {
+            "maxLength": 20,
+            "type": "string"
+          },
+          "to": {
             "maxLength": 20,
             "type": "string"
           },
@@ -57146,6 +58358,96 @@
           {
             "explode": false,
             "in": "query",
+            "name": "band",
+            "schema": {
+              "enum": [
+                "cold",
+                "warm",
+                "hot",
+                ""
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "scoreFrom",
+            "schema": {
+              "maxLength": 3,
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "scoreTo",
+            "schema": {
+              "maxLength": 3,
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "growthSource",
+            "schema": {
+              "maxLength": 200,
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "utmSource",
+            "schema": {
+              "maxLength": 200,
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "utmMedium",
+            "schema": {
+              "maxLength": 200,
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "utmCampaign",
+            "schema": {
+              "maxLength": 200,
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "referringDomain",
+            "schema": {
+              "maxLength": 255,
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "enum": [
+                "activity",
+                "score",
+                ""
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
             "name": "page",
             "schema": {
               "default": 1,
@@ -58262,6 +59564,72 @@
         ],
         "x-access": "workspace",
         "x-permission": "subscribers:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/contacts/{contact}/score": {
+      "get": {
+        "operationId": "get-contact-score",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "contact",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactScore"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A contact's score: its band, the breakdown by rule, the last change, the 90-day line and where it counts",
+        "tags": [
+          "Scoring"
+        ],
+        "x-access": "workspace",
+        "x-permission": "subscribers:view"
       }
     },
     "/api/v1/workspaces/{workspace}/contacts/{contact}/suppress": {
@@ -69988,6 +71356,252 @@
         ],
         "x-access": "workspace",
         "x-permission": "providers:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/scoring": {
+      "get": {
+        "operationId": "get-scoring",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScoringPage"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Scoring rules, decay and bands, how contacts spread, bands by tier, what uses the score and the latest recalculation",
+        "tags": [
+          "Scoring"
+        ],
+        "x-access": "workspace",
+        "x-permission": "subscribers:view"
+      },
+      "put": {
+        "operationId": "save-scoring",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScoringSaveInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScoringPage"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Save the rules, decay and bands (recalculates every contact in the background when the rules change)",
+        "tags": [
+          "Scoring"
+        ],
+        "x-access": "workspace",
+        "x-permission": "scoring:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/scoring/preview": {
+      "post": {
+        "operationId": "preview-scoring",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScoringPreviewInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScoringImpact"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "How an edited, unsaved set-up would move contacts between bands (nothing is saved)",
+        "tags": [
+          "Scoring"
+        ],
+        "x-access": "workspace",
+        "x-permission": "scoring:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/scoring/recalculate": {
+      "post": {
+        "operationId": "retry-scoring-recalculation",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScoringPage"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Start a stopped recalculation again where it stopped",
+        "tags": [
+          "Scoring"
+        ],
+        "x-access": "workspace",
+        "x-permission": "scoring:edit"
       }
     },
     "/api/v1/workspaces/{workspace}/segments": {

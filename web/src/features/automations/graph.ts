@@ -1,4 +1,5 @@
 import type { Schemas } from '@/api/client'
+import { scoreTriggerDetail, scoreTriggerName, scoreTriggerRef } from '@/features/scoring/triggerText'
 
 /*
  * Flow graph helpers shared by the canvas, the step panel and the tests:
@@ -58,6 +59,9 @@ export const triggerKindLabels: Record<TriggerConfig['kind'], string> = {
   tag_added: 'Tag added',
   api_event: 'API event',
   date_field: 'Date field',
+  get score_crosses() {
+    return scoreTriggerName()
+  },
 }
 
 /** Colour of a step type: the palette swatch and the node header. */
@@ -191,6 +195,8 @@ export function triggerRef(t: TriggerConfig | undefined, refs: Refs): string {
       return t.event ?? ''
     case 'date_field':
       return refs.fields.get(t.field ?? '')?.label ?? t.field ?? ''
+    case 'score_crosses':
+      return scoreTriggerRef(t)
   }
 }
 
@@ -311,6 +317,7 @@ export function nodeDetail(n: FlowNode): string {
         const when = off === 0 ? 'on the date' : off < 0 ? `${-off} days before` : `${off} days after`
         return `${when}${d.trigger.yearly ? ', every year' : ''} at ${d.trigger.at || '09:00'}`
       }
+      if (d.trigger?.kind === 'score_crosses') return scoreTriggerDetail(d.trigger)
       return ''
     case 'branch':
       if (d.condition?.kind === 'opened' && d.condition.humanOnly) return 'human opens only'

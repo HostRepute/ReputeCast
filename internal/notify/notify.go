@@ -32,6 +32,8 @@ const (
 	// Integrations hub (design expansion, phase 2).
 	KindIntegrationAttention = "integration_attention" // an integration needs attention
 	KindPostDraftCreated     = "post_draft_created"    // a WordPress post became a campaign draft
+	// Contact scoring (design expansion, phase 4).
+	KindScoreRecalculated = "score_recalculated" // every contact was scored again after a rule change
 )
 
 // Notification is what appears in the notification center.

@@ -3927,6 +3927,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/contacts/{contact}/score": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A contact's score: its band, the breakdown by rule, the last change, the 90-day line and where it counts */
+        get: operations["get-contact-score"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/contacts/{contact}/suppress": {
         parameters: {
             query?: never;
@@ -6489,6 +6506,58 @@ export interface paths {
         put?: never;
         /** Which provider would send this email? */
         post: operations["test-route"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/scoring": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Scoring rules, decay and bands, how contacts spread, bands by tier, what uses the score and the latest recalculation */
+        get: operations["get-scoring"];
+        /** Save the rules, decay and bands (recalculates every contact in the background when the rules change) */
+        put: operations["save-scoring"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/scoring/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** How an edited, unsaved set-up would move contacts between bands (nothing is saved) */
+        post: operations["preview-scoring"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/scoring/recalculate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start a stopped recalculation again where it stopped */
+        post: operations["retry-scoring-recalculation"];
         delete?: never;
         options?: never;
         head?: never;
@@ -9744,17 +9813,23 @@ export interface components {
         AutomationTrigger: {
             at?: string;
             confirmedOnly?: boolean;
+            /** @enum {string} */
+            direction?: "rises" | "falls";
             event?: string;
             field?: string;
             formId?: string;
             includeImports?: boolean;
             /** @enum {string} */
-            kind: "joined_list" | "form_submitted" | "tag_added" | "api_event" | "date_field";
+            kind: "joined_list" | "form_submitted" | "tag_added" | "api_event" | "date_field" | "score_crosses";
             listId?: string;
             /** Format: int64 */
             offsetDays?: number;
+            /** Format: int64 */
+            onceInDays?: number;
             reentry?: string;
             tag?: string;
+            /** Format: int64 */
+            threshold?: number;
             yearly?: boolean;
         };
         AutomationVersionGraph: {
@@ -10987,7 +11062,10 @@ export interface components {
         };
         ContactFilter: {
             /** @enum {string} */
+            band?: "cold" | "warm" | "hot";
+            /** @enum {string} */
             consent?: "double" | "single" | "pending";
+            growthSource?: string;
             joinedAfter?: string;
             /** @description List id */
             list?: string;
@@ -10995,12 +11073,20 @@ export interface components {
             mailbox?: "gmail" | "outlook" | "yahoo" | "icloud" | "other";
             /** @description Email, name or tag */
             q?: string;
+            referringDomain?: string;
+            scoreFrom?: string;
+            scoreTo?: string;
             /** @description Segment id */
             segment?: string;
+            /** @enum {string} */
+            sort?: "activity" | "score";
             source?: string;
             tag?: string;
             /** @enum {string} */
             tier?: "active" | "cooling" | "at_risk" | "sunset";
+            utmCampaign?: string;
+            utmMedium?: string;
+            utmSource?: string;
         };
         ContactList: {
             items: components["schemas"]["ContactListItem"][];
@@ -11040,6 +11126,8 @@ export interface components {
             mailboxLabel: string;
             mailboxProvider: string;
             name: string;
+            /** Format: int64 */
+            score?: number;
             source: string;
             sourceLabel: string;
             suppressed: boolean;
@@ -11131,6 +11219,103 @@ export interface components {
             /** Format: int64 */
             all: number;
             items: components["schemas"]["ContactSavedView"][];
+        };
+        ContactScore: {
+            /** @enum {string} */
+            band: "cold" | "warm" | "hot";
+            /** Format: date-time */
+            bandSince?: string;
+            bands: components["schemas"]["ScoringBands"];
+            breakdown: components["schemas"]["ContactScoreRule"][];
+            configured: boolean;
+            decay: components["schemas"]["ContactScoreDecay"];
+            /** Format: date-time */
+            joinedAt: string;
+            lastChange?: components["schemas"]["ContactScoreChange"];
+            line: components["schemas"]["ContactScorePoint"][];
+            recalculating: boolean;
+            /** Format: int64 */
+            score: number;
+            uses: components["schemas"]["ContactScoreUse"][];
+        };
+        ContactScoreCause: {
+            emailName?: string;
+            eventName?: string;
+            formName?: string;
+            /** @enum {string} */
+            kind: "open" | "click" | "form" | "api_event" | "soft_bounce" | "unsubscribe" | "decay";
+            linkLabel?: string;
+            listName?: string;
+            url?: string;
+        };
+        ContactScoreChange: {
+            /** Format: int64 */
+            after: number;
+            /** @enum {string} */
+            afterBand: "cold" | "warm" | "hot";
+            /** Format: date-time */
+            at: string;
+            /** Format: int64 */
+            before: number;
+            /** @enum {string} */
+            beforeBand: "cold" | "warm" | "hot";
+            cause: components["schemas"]["ContactScoreCause"];
+            /** Format: int64 */
+            delta: number;
+        };
+        ContactScoreDecay: {
+            enabled: boolean;
+            /** Format: date-time */
+            lastActivity?: string;
+            /** @description open or click */
+            lastActivityKind?: string;
+            /** Format: int64 */
+            lost: number;
+            /** Format: int64 */
+            quietWeeks: number;
+        };
+        ContactScorePoint: {
+            /** @description YYYY-MM-DD in the workspace timezone */
+            day: string;
+            /** Format: int64 */
+            score?: number;
+        };
+        ContactScoreRule: {
+            atMax: boolean;
+            /** Format: date-time */
+            capReached?: string;
+            /** Format: int64 */
+            count: number;
+            formName?: string;
+            /** Format: date-time */
+            latest?: string;
+            listName?: string;
+            /**
+             * Format: int64
+             * @description The rule's number on Scoring
+             */
+            number: number;
+            /** Format: int64 */
+            points: number;
+            rule: components["schemas"]["ScoringRule"];
+            /** Format: date-time */
+            zeroAt?: string;
+            zeroEmail?: string;
+        };
+        ContactScoreUse: {
+            /** Format: date-time */
+            crossedAt?: string;
+            direction?: string;
+            href?: string;
+            id: string;
+            in: boolean;
+            /** @enum {string} */
+            kind: "segment" | "automation" | "block";
+            /** Format: date-time */
+            liveSince?: string;
+            name: string;
+            /** Format: int64 */
+            threshold?: number;
         };
         ContactSuppressInput: {
             /** @description Why, for the audit log and the list */
@@ -16879,6 +17064,230 @@ export interface components {
             id: string;
             name: string;
         };
+        ScoringBandCounts: {
+            /** Format: int64 */
+            cold: number;
+            /** Format: int64 */
+            hot: number;
+            /** Format: int64 */
+            warm: number;
+        };
+        ScoringBandMove: {
+            /** Format: int64 */
+            count: number;
+            /** @enum {string} */
+            from: "cold" | "warm" | "hot";
+            /** @enum {string} */
+            to: "cold" | "warm" | "hot";
+        };
+        ScoringBands: {
+            /** Format: int64 */
+            hotFrom: number;
+            /** Format: int64 */
+            warmFrom: number;
+        };
+        ScoringBucket: {
+            /** Format: int64 */
+            contacts: number;
+            /** Format: int64 */
+            from: number;
+            /** Format: int64 */
+            to: number;
+        };
+        ScoringChanges: {
+            bands: boolean;
+            decay: boolean;
+            rules: number[];
+            setup: boolean;
+        };
+        ScoringConfig: {
+            bands: components["schemas"]["ScoringBands"];
+            decay: components["schemas"]["ScoringDecay"];
+            rules: components["schemas"]["ScoringRule"][];
+        };
+        ScoringDecay: {
+            /** Format: int64 */
+            afterWeeks: number;
+            enabled: boolean;
+            /** Format: int64 */
+            percent: number;
+        };
+        ScoringEventOption: {
+            /** Format: int64 */
+            count: number;
+            name: string;
+        };
+        ScoringFieldOption: {
+            key: string;
+            label: string;
+            options: string[];
+            type: string;
+        };
+        ScoringFlowImpact: {
+            /** Format: int64 */
+            crossed: number;
+            /** @enum {string} */
+            direction: "rises" | "falls";
+            id: string;
+            name: string;
+            /** Format: int64 */
+            started: number;
+            /** Format: int64 */
+            threshold: number;
+        };
+        ScoringFormOption: {
+            id: string;
+            /** @enum {string} */
+            kind: "embedded" | "popup" | "hosted";
+            name: string;
+        };
+        ScoringImpact: {
+            automations: components["schemas"]["ScoringFlowImpact"][];
+            bandsAfter: components["schemas"]["ScoringBandCounts"];
+            bandsBefore: components["schemas"]["ScoringBandCounts"];
+            /** Format: int64 */
+            changed: number;
+            /** Format: int64 */
+            contacts: number;
+            current: components["schemas"]["ScoringBucket"][];
+            /** Format: int64 */
+            durationMs: number;
+            estimated: boolean;
+            moves: components["schemas"]["ScoringBandMove"][];
+            /** Format: int64 */
+            rescored: number;
+            spread: components["schemas"]["ScoringBucket"][];
+        };
+        ScoringListOption: {
+            id: string;
+            name: string;
+        };
+        ScoringOptions: {
+            apiEvents: components["schemas"]["ScoringEventOption"][];
+            fields: components["schemas"]["ScoringFieldOption"][];
+            forms: components["schemas"]["ScoringFormOption"][];
+            lists: components["schemas"]["ScoringListOption"][];
+        };
+        ScoringPage: {
+            /** Format: int64 */
+            appliedVersion: number;
+            bands: components["schemas"]["ScoringBandCounts"];
+            byTier: components["schemas"]["ScoringTierRow"][];
+            config: components["schemas"]["ScoringConfig"];
+            configured: boolean;
+            /** Format: int64 */
+            contacts: number;
+            options: components["schemas"]["ScoringOptions"];
+            recalculation?: components["schemas"]["ScoringRecalcInfo"];
+            /** Format: date-time */
+            setUpAt?: string;
+            setUpBy: string;
+            spread: components["schemas"]["ScoringBucket"][];
+            suggested: components["schemas"]["ScoringRule"][];
+            usedBy: components["schemas"]["ScoringUse"][];
+            /** Format: int64 */
+            version: number;
+        };
+        ScoringPreviewInput: {
+            config: components["schemas"]["ScoringConfig"];
+        };
+        ScoringRecalcInfo: {
+            changes: components["schemas"]["ScoringChanges"];
+            /** Format: int64 */
+            done: number;
+            /** Format: date-time */
+            failedAt?: string;
+            /** Format: date-time */
+            finishedAt?: string;
+            id: string;
+            label: string;
+            /** @enum {string} */
+            reason: "setup" | "rules" | "retry";
+            /** Format: int64 */
+            remainingSeconds?: number;
+            startAutomations: boolean;
+            /** Format: date-time */
+            startedAt: string;
+            startedBy: string;
+            /** @enum {string} */
+            status: "running" | "finished" | "failed" | "superseded";
+            summary?: components["schemas"]["ScoringRecalcSummary"];
+            /** Format: int64 */
+            total: number;
+        };
+        ScoringRecalcSummary: {
+            automations: components["schemas"]["ScoringFlowImpact"][];
+            bands: components["schemas"]["ScoringBandCounts"];
+            /** Format: int64 */
+            changed: number;
+            moves: components["schemas"]["ScoringBandMove"][];
+        };
+        ScoringRule: {
+            cap: components["schemas"]["ScoringRuleCap"];
+            contains?: string;
+            enabled: boolean;
+            event?: string;
+            field?: string;
+            formId?: string;
+            /** @description Kept across versions; new rules get one when saved */
+            id: string;
+            /** @enum {string} */
+            kind: "open" | "click" | "form" | "api_event" | "soft_bounce" | "unsubscribe" | "field";
+            listId?: string;
+            /** @enum {string} */
+            op?: "is_one_of" | "is_not" | "is_set";
+            /** Format: int64 */
+            points: number;
+            values?: string[];
+        };
+        ScoringRuleCap: {
+            /** @enum {string} */
+            kind: "none" | "once" | "once_day" | "once_week" | "once_month" | "points_day" | "points_week" | "points_month" | "while_true";
+            /** Format: int64 */
+            points?: number;
+        };
+        ScoringSaveInput: {
+            /** Format: int64 */
+            baseVersion: number;
+            config: components["schemas"]["ScoringConfig"];
+            startAutomations?: boolean;
+        };
+        ScoringTierRow: {
+            /** Format: int64 */
+            cold: number;
+            /** Format: int64 */
+            contacts: number;
+            /** Format: int64 */
+            hot: number;
+            /** @enum {string} */
+            tier: "active" | "cooling" | "at_risk" | "sunset";
+            /** Format: int64 */
+            warm: number;
+        };
+        ScoringUse: {
+            by?: string;
+            conditions?: unknown;
+            /** Format: int64 */
+            contacts?: number;
+            direction?: string;
+            /** Format: int64 */
+            entered: number;
+            href?: string;
+            id: string;
+            /** @enum {string} */
+            kind: "automation" | "segment" | "block";
+            name: string;
+            /** Format: int64 */
+            of?: number;
+            /** Format: int64 */
+            onceInDays?: number;
+            /** Format: date-time */
+            since?: string;
+            status?: string;
+            /** Format: int64 */
+            threshold?: number;
+            where?: string;
+        };
         SegmentCatalog: {
             fields: components["schemas"]["SegmentCatalogField"][];
             sqlEnabled: boolean;
@@ -16897,6 +17306,7 @@ export interface components {
             amount?: number;
             field: string;
             op: string;
+            to?: string;
             /** @enum {string} */
             unit?: "days" | "weeks";
             value?: string;
@@ -27937,6 +28347,15 @@ export interface operations {
                 /** @description Segment id */
                 segment?: string;
                 joinedAfter?: string;
+                band?: "cold" | "warm" | "hot" | "";
+                scoreFrom?: string;
+                scoreTo?: string;
+                growthSource?: string;
+                utmSource?: string;
+                utmMedium?: string;
+                utmCampaign?: string;
+                referringDomain?: string;
+                sort?: "activity" | "score" | "";
                 page?: number;
                 pageSize?: number;
             };
@@ -28483,6 +28902,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OptInResendResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-contact-score": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                contact: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactScore"];
                 };
             };
             /** @description Error */
@@ -34488,6 +34940,142 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RouteTestResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-scoring": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScoringPage"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-scoring": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScoringSaveInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScoringPage"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "preview-scoring": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScoringPreviewInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScoringImpact"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "retry-scoring-recalculation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScoringPage"];
                 };
             };
             /** @description Error */

@@ -12,5 +12,6 @@
   "short.invite_accepted": "invites",
   "short.hostrepute_alert": "HostRepute alerts",
   "short.integration_attention": "integration problems",
-  "short.post_draft_created": "post drafts"
+  "short.post_draft_created": "post drafts",
+  "short.score_recalculated": "score recalculations"
 }

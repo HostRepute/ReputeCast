@@ -33,6 +33,8 @@ type SegmentCondition struct {
 	// Amount and Unit are used by "in the last N days/weeks".
 	Amount int    `json:"amount,omitempty" minimum:"0" maximum:"3650"`
 	Unit   string `json:"unit,omitempty" enum:"days,weeks"`
+	// To ends a range ("Score is between Value and To").
+	To string `json:"to,omitempty" maxLength:"20"`
 }
 
 // Operator keys and their labels in the builder.
@@ -169,6 +171,9 @@ func (c SegmentCondition) validate(custom map[string]CustomField, lists map[uuid
 	}
 	if !contains(ops, c.Op) {
 		return problemf("%s can't use the operator %q.", label, c.Op)
+	}
+	if v, ok := extraValidate[c.Field]; ok {
+		return v(c)
 	}
 	switch {
 	case c.Op == "never" || c.Op == "is_empty" || c.Op == "is_not_empty" || c.Op == "is_true" || c.Op == "is_false":
