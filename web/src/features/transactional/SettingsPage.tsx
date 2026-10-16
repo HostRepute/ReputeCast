@@ -245,7 +245,7 @@ function SettingsForm({ s, cats }: { s: Settings; cats: Schemas['TransactionalCa
               <h2 className="h2">{t(mg.previewTitle)}</h2>
             </div>
             <div className="pad flex flex-col gap-2.5">
-              <span className="k" style={{ color: '#374151' }}>
+              <span className="k" style={{ color: 'var(--ink-nav)' }}>
                 {t(mg.previewCaption)}
               </span>
               <div className="flex flex-col gap-3 rounded-[10px] border border-line px-4 py-3.5" style={{ background: '#FBFBFC' }} aria-hidden="true">

@@ -57,13 +57,16 @@ export function logQuery(slug: string, s: LogSearch, extra: { before?: string; a
   }
 }
 
+/** Messages on a page of the log, as the boards draw it. */
+const PAGE = 10
+
 /** One page of the log, newest first; the first page updates every 10 seconds unless paused. */
 function useLogPage(s: LogSearch, before: string | undefined, live: boolean) {
   const { slug } = useWorkspace()
   return useQuery({
     queryKey: ['transactional-log-page', slug, s, before ?? ''],
     queryFn: async () => {
-      const { data } = await http.GET(`${API}/messages`, logQuery(slug, s, { before }))
+      const { data } = await http.GET(`${API}/messages`, logQuery(slug, s, { before, limit: PAGE }))
       return data as Log
     },
     refetchInterval: live && !before ? 10_000 : false,
@@ -223,7 +226,7 @@ export function RejectionExplain({ it, actions }: { it: Pick<LogItem, 'rejection
     <div className="flex flex-wrap items-start gap-3.5 rounded-lg border border-line bg-white px-3.5 py-3">
       <div className="flex min-w-0 flex-[1_1_420px] flex-col gap-1">
         <span className="font-semibold">{title}</span>
-        <span className="k" style={{ color: '#374151' }}>
+        <span className="k" style={{ color: 'var(--ink-nav)' }}>
           {detail}
         </span>
       </div>
@@ -314,7 +317,7 @@ export function TransactionalMessagesPage({ search, onSearch }: { search: LogSea
                 <span className="k">
                   {page === 0
                     ? t(ml.showing, { shown: count(items.length), total: count(first.counts.all), range: rangeIn })
-                    : t(ml.showingPage, { from: count(page * 25 + 1), to: count(page * 25 + items.length), total: count(first.counts.all), range: rangeIn })}{' '}
+                    : t(ml.showingPage, { from: count(page * PAGE + 1), to: count(page * PAGE + items.length), total: count(first.counts.all), range: rangeIn })}{' '}
                   · {t(ml.retention, { metadata: first.metadataDays, content: first.contentDays })}
                 </span>
                 <div className="flex gap-2">

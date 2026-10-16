@@ -714,7 +714,13 @@ function ContentPanel({ d }: { d: Detail }) {
   const marked = useMemo(() => (html ? markValues(html, (d.request.body as { data?: unknown } | undefined)?.data) : ''), [html, d.request.body])
   let body: ReactNode
   if (c.removedAt) body = <Note tone="neutral">{t(ml.contentRemoved, { date: dayMonthYear(c.removedAt), days: c.retentionDays, until: dayMonthYear(c.metadataUntil) })}</Note>
-  else if (!c.available) body = <Note tone="neutral">{t(ml.contentNotKept, { until: dayMonthYear(c.metadataUntil) })}</Note>
+  else if (!c.available) {
+    // Stopped before sending, a workspace that keeps no content, or a
+    // message sent while it kept none.
+    const stopped = d.rejection?.reason === 'suppressed' || d.rejection?.reason === 'opted_out'
+    const msg = stopped ? ml.contentNotSent : c.retentionDays === 0 ? ml.contentNotKept : ml.contentNotStored
+    body = <Note tone="neutral">{t(msg, { until: dayMonthYear(c.metadataUntil) })}</Note>
+  }
   else if (!c.canView)
     body = (
       <Note tone="neutral">
@@ -776,7 +782,7 @@ function ContentPanel({ d }: { d: Detail }) {
             <>
               {' '}
               <T
-                msg={ml.contentMasked}
+                msg={c.masked.length === 1 && /_(?:url|link)$/.test(c.masked[0]!) ? ml.contentMaskedLink : ml.contentMasked}
                 values={{
                   names: (
                     <>

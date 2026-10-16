@@ -1115,7 +1115,7 @@ function WatchStep({
           <h3 className="h2" id="tx-guide-call">
             {t(mu.firstCall)}
           </h3>
-          <span className="k" style={{ color: '#374151' }}>
+          <span className="k" style={{ color: 'var(--ink-nav)' }}>
             {t(mu.firstCallBody)}
           </span>
           <CodeBox lang={lang} onLang={setLang} code={code}>
