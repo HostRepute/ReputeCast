@@ -55,7 +55,8 @@ type ContactActivityItem struct {
 	Actor          string `json:"actor,omitempty"`
 	ConsentVersion string `json:"consentVersion,omitempty"`
 	// Language is the language version delivered ("en"), set on deliveries
-	// when the workspace has several languages. LanguageReason says why a
+	// the send recorded a version for, when the workspace has several
+	// languages. LanguageReason says why a
 	// contact got another language than theirs, whose name is
 	// ContactLanguageName ("Portuguese").
 	Language            string `json:"language,omitempty"`
@@ -112,7 +113,7 @@ func (s *Service) Activity(ctx context.Context, ws *store.Workspace, contactID u
 		       de.original_code, de.diagnostic, de.machine, de.url, de.user_agent,
 		       coalesce((SELECT l.label FROM campaign_links l WHERE l.campaign_id = cp.id AND l.url = de.url ORDER BY l.position LIMIT 1), '') AS link_label,
 		       ''::text AS list, ''::text AS source, ''::text AS detail, ''::text AS note, NULL::inet AS ip, ''::text AS actor, ''::text AS version,
-		       coalesce(nullif(m.language, ''), (SELECT cs.language FROM content_sources cs WHERE cs.owner_kind = 'campaign' AND cs.owner_id = cp.id AND cs.owner_version = 0), '') AS language,
+		       coalesce(m.language, '') AS language,
 		       coalesce(m.language_reason, '') AS language_reason, coalesce(m.contact_language, '') AS contact_language
 		FROM delivery_events de
 		LEFT JOIN messages m ON m.id = de.message_id
@@ -160,11 +161,10 @@ func (s *Service) Activity(ctx context.Context, ws *store.Workspace, contactID u
 		it.ID = id.String()
 		if src == "consent" {
 			it.ConsentLanguage = lang
-		} else if multilingual && provider != "" {
+		} else if multilingual && provider != "" && lang != "" {
+			// Sends record the version each message went out in; messages
+			// from before content languages have none.
 			it.Language = lang
-			if it.Language == "" {
-				it.Language = st.Default
-			}
 			if reason != languages.ReasonMatch {
 				it.LanguageReason = reason
 			}

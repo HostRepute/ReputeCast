@@ -1,0 +1,40 @@
+/* Content languages of forms, public pages and contacts (X08). */
+@layer components {
+  /* Contact profile: the language select of the Fields card (ContactProfile). */
+  .cp-lang {
+    height: 30px;
+    padding: 0 8px;
+    border: 1px solid var(--line-input);
+    border-radius: 7px;
+    background: #fff;
+    font: inherit;
+    font-size: 13px;
+    color: var(--ink);
+    max-width: 100%;
+  }
+  .cp-lang[aria-disabled='true'] {
+    background: var(--ground-3);
+    color: var(--ink-2);
+    cursor: not-allowed;
+  }
+  .cp-lang-note {
+    margin: 4px 0 6px;
+  }
+
+  /* Import › Map fields: what a language column's values become. */
+  .tbl tr:has(+ tr.imp-lang) td {
+    border-bottom: 0;
+  }
+  .tbl tr.imp-lang td {
+    padding-top: 0;
+    white-space: normal;
+  }
+  .imp-lang-unknown {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    font-size: 12px;
+    font-weight: 500;
+    color: #78350f;
+  }
+}

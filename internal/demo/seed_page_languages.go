@@ -92,10 +92,44 @@ func (p *pageLangSeed) sampleContacts(ctx context.Context) error {
 			return fmt.Errorf("language of %s: %w", c.email, err)
 		}
 	}
-	// Rafael's latest email went out in English, the fallback: Portuguese
-	// isn't one of Acme's languages (LanguageStates).
-	_, err := s.Tx.Exec(ctx, `UPDATE messages SET language = 'en', language_reason = 'not_offered', contact_language = 'pt'
-		WHERE id = (SELECT m.id FROM messages m JOIN contacts c ON c.id = m.contact_id
-			WHERE c.workspace_id = $1 AND c.email = 'rafael.souza@example.com.br' AND m.campaign_id IS NOT NULL ORDER BY m.queued_at DESC LIMIT 1)`, p.ws)
-	return err
+	// The audience seeder writes the sample contacts' deliveries last.
+	s.After(func(ctx context.Context, s *Seeder) error { return p.messageLanguages(ctx) })
+	return nil
+}
+
+// messageLanguages names the version each sample delivery sent.
+func (p *pageLangSeed) messageLanguages(ctx context.Context) error {
+	s := p.s
+	// Rafael got Weekly Digest #141 like Sam (the demo's sends left him out).
+	if _, err := s.Tx.Exec(ctx, `WITH sam AS (
+			SELECT m.* FROM messages m JOIN contacts c ON c.id = m.contact_id JOIN campaigns cp ON cp.id = m.campaign_id
+			WHERE c.workspace_id = $1 AND c.email = 'sam.rivera@outlook.com' AND cp.name = 'Weekly Digest #141' AND m.delivered_at IS NOT NULL LIMIT 1),
+		rafael AS (SELECT id FROM contacts WHERE workspace_id = $1 AND email = 'rafael.souza@example.com.br'
+			AND NOT EXISTS (SELECT 1 FROM messages m WHERE m.contact_id = contacts.id)),
+		msg AS (
+			INSERT INTO messages (id, workspace_id, stream, campaign_id, contact_id, email, provider_id, mailbox_provider, status, queued_at, sent_at, delivered_at)
+			SELECT $2::uuid, sam.workspace_id, sam.stream, sam.campaign_id, rafael.id, 'rafael.souza@example.com.br', sam.provider_id, 'other', 'delivered',
+				sam.queued_at, sam.sent_at, sam.delivered_at - interval '1 minute'
+			FROM sam, rafael RETURNING *)
+		INSERT INTO delivery_events (id, workspace_id, message_id, campaign_id, contact_id, provider_id, type, occurred_at, mailbox_provider, original_type, original_code)
+		SELECT $3::uuid, msg.workspace_id, msg.id, msg.campaign_id, msg.contact_id, msg.provider_id, 'delivered', msg.delivered_at, 'other', 'Delivery', '250 2.6.0'
+		FROM msg`, p.ws, ID(), ID()); err != nil {
+		return fmt.Errorf("rafael's delivery: %w", err)
+	}
+	// The sends name the version each reader got: Sam's Weekly Digest #141
+	// went out in English (ContactProfile), and Rafael's latest email in
+	// English, the fallback, because Portuguese isn't one of Acme's
+	// languages (LanguageStates).
+	for _, m := range []struct{ email, campaign, reason, contact string }{
+		{"sam.rivera@outlook.com", "Weekly Digest #141", "match", "en"},
+		{"rafael.souza@example.com.br", "", "not_offered", "pt"},
+	} {
+		if _, err := s.Tx.Exec(ctx, `UPDATE messages SET language = 'en', language_reason = $3, contact_language = $4
+			WHERE id = (SELECT m.id FROM messages m JOIN contacts c ON c.id = m.contact_id JOIN campaigns cp ON cp.id = m.campaign_id
+				WHERE c.workspace_id = $1 AND c.email = $2 AND ($5::text = '' OR cp.name = $5::text) ORDER BY m.queued_at DESC LIMIT 1)`,
+			p.ws, m.email, m.reason, m.contact, m.campaign); err != nil {
+			return err
+		}
+	}
+	return nil
 }
