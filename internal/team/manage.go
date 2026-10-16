@@ -14,6 +14,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/workspaces"
 )
@@ -76,11 +77,11 @@ func (s *Service) changeRole(ctx context.Context, q *store.Queries, tx pgx.Tx, w
 	name := displayName(m.UserName, m.Email)
 	roleID, err := uuid.Parse(in.RoleID)
 	if err != nil {
-		return api.Invalid("body.roleId", "Pick a role.")
+		return api.Invalid("body.roleId", mRolePick.Text(i18n.LangFrom(ctx), nil))
 	}
 	role, err := q.GetRole(ctx, roleID)
 	if err != nil || role.WorkspaceID != ws.ID {
-		return api.Invalid("body.roleId", "That role doesn't exist in this workspace.")
+		return api.Invalid("body.roleId", mRoleUnknown.Text(i18n.LangFrom(ctx), nil))
 	}
 	newPerms := authz.Effective(role.Key, role.Builtin, role.Permissions)
 	wasOwner := m.RoleBuiltin && m.RoleKey == authz.RoleOwner
@@ -108,7 +109,7 @@ func (s *Service) changeRole(ctx context.Context, q *store.Queries, tx pgx.Tx, w
 		}
 	}
 	if !toOwner {
-		if ok, reason := canGrantRole(p.Permissions, role.Key, role.Builtin, newPerms); !ok {
+		if ok, reason := canGrantRole(i18n.LangFrom(ctx), p.Permissions, role.Key, role.Builtin, newPerms); !ok {
 			pr := api.Err(http.StatusForbidden, api.CodeEscalation, reason)
 			if mm := p.Permissions.Missing(newPerms); len(mm) > 0 {
 				pr.Permission = string(mm[0])

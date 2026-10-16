@@ -5,5 +5,18 @@
   "reason.viewOnly": "Bạn có thể xem nhóm. Mời thành viên cần quyền team:invite và đổi vai trò cần team:manage.",
   "reason.viewOnlyAsk": "Bạn có thể xem nhóm. Mời thành viên cần quyền team:invite và đổi vai trò cần team:manage. Hãy nhờ {helpers}.",
   "reason.invite": "Bạn có thể mời người khác với những vai trò bạn có. Đổi vai trò cần team:manage.",
-  "reason.inviteAsk": "Bạn có thể mời người khác với những vai trò bạn có. Đổi vai trò cần team:manage. Hãy nhờ {helpers}."
+  "reason.inviteAsk": "Bạn có thể mời người khác với những vai trò bạn có. Đổi vai trò cần team:manage. Hãy nhờ {helpers}.",
+
+  "invite.signIn": "Người được mời tự đặt mật khẩu và có thể thêm khóa truy cập.",
+  "invite.signInSocial": "Người được mời tự đặt mật khẩu hoặc tiếp tục với {providers}.",
+  "grant.owner": "Chỉ việc chuyển quyền sở hữu mới đưa một người thành Chủ sở hữu.",
+  "grant.missing": "Bạn không cấp được vai trò này vì bạn không có {permissions}.",
+  "invite.ownScope": "Bạn chỉ mời được người trong phạm vi của chính bạn.",
+  "invite.alreadyMember": "{count, plural, other {{emails} đã là thành viên của {workspace}.}}",
+  "invite.alreadyPending": "{count, plural, =1 {{emails} đã có lời mời đang chờ. Hãy gửi lại lời mời đó.} other {{emails} đã có lời mời đang chờ. Hãy gửi lại các lời mời đó.}}",
+  "invite.notEmail": "“{value}” không phải là địa chỉ email.",
+  "invite.noEmails": "Hãy thêm ít nhất một địa chỉ email.",
+  "role.pick": "Hãy chọn một vai trò.",
+  "role.unknown": "Vai trò đó không có trong không gian làm việc này.",
+  "hint.role": "{kind, select, all {{role} có toàn quyền} team {{role} quản lý được nhóm và mọi cài đặt} send {{role} gửi được chiến dịch} edit {{role} sửa được chiến dịch và yêu cầu phê duyệt} other {{role} xem được mọi thứ, trừ thông tin bí mật}}{twoFactor, select, yes {; bắt buộc xác thực hai lớp{grace, plural, =0 {} other { (gia hạn # ngày)}}} other {}}."
 }

@@ -22,6 +22,22 @@ var (
 	mReasonViewOnlyAsk = msgs.M("reason.viewOnlyAsk")
 	mReasonInvite      = msgs.M("reason.invite")
 	mReasonInviteAsk   = msgs.M("reason.inviteAsk")
+
+	// The invite dialog: how invitees sign in, what a role can do, and why
+	// a role can't be granted (also the problem inviting it answers).
+	mInviteSignIn       = msgs.M("invite.signIn")
+	mInviteSignInSocial = msgs.M("invite.signInSocial")
+	mGrantOwner         = msgs.M("grant.owner")
+	mGrantMissing       = msgs.M("grant.missing")
+	mRoleHint           = msgs.M("hint.role")
+
+	mInviteOwnScope       = msgs.M("invite.ownScope")
+	mInviteAlreadyMember  = msgs.M("invite.alreadyMember")
+	mInviteAlreadyPending = msgs.M("invite.alreadyPending")
+	mInviteNotEmail       = msgs.M("invite.notEmail")
+	mInviteNoEmails       = msgs.M("invite.noEmails")
+	mRolePick             = msgs.M("role.pick")
+	mRoleUnknown          = msgs.M("role.unknown")
 )
 
 // readOnlyReason explains what a caller without team:invite or

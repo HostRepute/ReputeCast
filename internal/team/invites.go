@@ -3,7 +3,6 @@ package team
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"net/mail"
 	"slices"
@@ -170,8 +169,8 @@ func (s *Service) Options(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	for _, r := range roles {
 		perms := authz.Effective(r.Key, r.Builtin, r.Permissions)
 		ir := TeamInviteRole{ID: r.ID.String(), Key: r.Key, Name: r.Name, Builtin: r.Builtin, Sensitive: perms.HasSensitive()}
-		ir.Grantable, ir.Reason = canGrantRole(p.Permissions, r.Key, r.Builtin, perms)
-		ir.Hint = roleHint(r.Name, perms, pol)
+		ir.Grantable, ir.Reason = canGrantRole(i18n.LangFrom(ctx), p.Permissions, r.Key, r.Builtin, perms)
+		ir.Hint = roleHint(i18n.LangFrom(ctx), api.RoleName(i18n.LangFrom(ctx), r.Key, r.Name), perms, pol)
 		out.Roles = append(out.Roles, ir)
 		if r.Key == authz.RoleEditor && ir.Grantable {
 			out.DefaultRoleID = ir.ID
@@ -212,7 +211,7 @@ func (s *Service) Options(ctx context.Context, ws *store.Workspace, p *authz.Pri
 			out.SystemProvider = name
 		}
 	}
-	out.SignInSummary = signInSummary(pol)
+	out.SignInSummary = signInSummary(i18n.LangFrom(ctx), pol)
 	out.Languages, out.DefaultLanguage = []applang.LanguageOption{}, pol.DefaultLanguage
 	for _, l := range applang.Languages() {
 		if l.Code != string(i18n.Pseudo) {
@@ -223,47 +222,42 @@ func (s *Service) Options(ctx context.Context, ws *store.Workspace, p *authz.Pri
 }
 
 // canGrantRole applies "nobody can grant what they don't hold" to a role.
-func canGrantRole(granter authz.Set, key string, builtin bool, perms authz.Set) (bool, string) {
+func canGrantRole(l i18n.Lang, granter authz.Set, key string, builtin bool, perms authz.Set) (bool, string) {
 	if builtin && key == authz.RoleOwner {
-		return false, "Only a transfer of ownership makes someone the Owner."
+		return false, mGrantOwner.Text(l, nil)
 	}
 	if missing := granter.Missing(perms); len(missing) > 0 {
 		keys := make([]string, len(missing))
 		for i, m := range missing {
 			keys[i] = string(m)
 		}
-		return false, fmt.Sprintf("You can't grant this role because you don't hold %s.", strings.Join(keys, ", "))
+		return false, mGrantMissing.Text(l, i18n.Args{"permissions": strings.Join(keys, ", ")})
 	}
 	return true, ""
 }
 
-// roleHint is the one-line explanation under the role select.
-func roleHint(name string, perms authz.Set, pol store.InstanceSetting) string {
-	var parts []string
+// roleHint is the one-line explanation under the role select: "Editors
+// can send; two-factor becomes required (7-day grace)."
+func roleHint(l i18n.Lang, name string, perms authz.Set, pol store.InstanceSetting) string {
+	kind := "view"
 	switch {
 	case perms.Has(authz.WorkspaceDelete):
-		parts = append(parts, name+"s can do everything")
+		kind = "all"
 	case perms.Has(authz.TeamManage):
-		parts = append(parts, name+"s can manage the team and every setting")
+		kind = "team"
 	case perms.Has(authz.CampaignsSend):
-		parts = append(parts, name+"s can send")
+		kind = "send"
 	case perms.Has(authz.CampaignsEdit):
-		parts = append(parts, name+"s can edit campaigns and request approval")
-	default:
-		parts = append(parts, name+"s can view everything, never secrets")
+		kind = "edit"
 	}
-	required := pol.TwofaEnforcement == "everyone" || (pol.TwofaEnforcement == "sensitive" && perms.HasSensitive())
-	if required {
-		grace := ""
-		if pol.TwofaGraceDays > 0 {
-			grace = fmt.Sprintf(" (%d-day grace)", pol.TwofaGraceDays)
-		}
-		parts = append(parts, "two-factor becomes required"+grace)
+	twoFactor := "no"
+	if pol.TwofaEnforcement == "everyone" || (pol.TwofaEnforcement == "sensitive" && perms.HasSensitive()) {
+		twoFactor = "yes"
 	}
-	return strings.Join(parts, "; ") + "."
+	return mRoleHint.Text(l, i18n.Args{"kind": kind, "role": name, "twoFactor": twoFactor, "grace": max(int(pol.TwofaGraceDays), 0)})
 }
 
-func signInSummary(pol store.InstanceSetting) string {
+func signInSummary(l i18n.Lang, pol store.InstanceSetting) string {
 	var social []string
 	var soc map[string]struct {
 		Enabled bool `json:"enabled"`
@@ -275,9 +269,9 @@ func signInSummary(pol store.InstanceSetting) string {
 		}
 	}
 	if len(social) == 0 {
-		return "Invitees pick a password and can add a passkey."
+		return mInviteSignIn.Text(l, nil)
 	}
-	return "Invitees pick a password or continue with " + access.OrList(social) + "."
+	return mInviteSignInSocial.Text(l, i18n.Args{"providers": i18n.OrList(l.Locale, social)})
 }
 
 // TeamInviteInput creates invitations.
@@ -320,14 +314,14 @@ var errNoMail = errors.New("no mailer")
 func (s *Service) Invite(ctx context.Context, ws *store.Workspace, p *authz.Principal, in TeamInviteInput) (TeamInviteResult, error) {
 	roleID, err := uuid.Parse(in.RoleID)
 	if err != nil {
-		return TeamInviteResult{}, api.Invalid("body.roleId", "Pick a role.")
+		return TeamInviteResult{}, api.Invalid("body.roleId", mRolePick.Text(i18n.LangFrom(ctx), nil))
 	}
 	role, err := s.Q.GetRole(ctx, roleID)
 	if err != nil || role.WorkspaceID != ws.ID {
-		return TeamInviteResult{}, api.Invalid("body.roleId", "That role doesn't exist in this workspace.")
+		return TeamInviteResult{}, api.Invalid("body.roleId", mRoleUnknown.Text(i18n.LangFrom(ctx), nil))
 	}
 	perms := authz.Effective(role.Key, role.Builtin, role.Permissions)
-	if ok, reason := canGrantRole(p.Permissions, role.Key, role.Builtin, perms); !ok {
+	if ok, reason := canGrantRole(i18n.LangFrom(ctx), p.Permissions, role.Key, role.Builtin, perms); !ok {
 		pr := api.Err(http.StatusForbidden, api.CodeEscalation, reason)
 		if m := p.Permissions.Missing(perms); len(m) > 0 {
 			pr.Permission = string(m[0])
@@ -347,9 +341,9 @@ func (s *Service) Invite(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		return TeamInviteResult{}, api.Invalid("body.scope", capitalize(err.Error())+".")
 	}
 	if !scope.Within(p.Scope) {
-		return TeamInviteResult{}, api.Err(http.StatusForbidden, api.CodeEscalation, "You can only invite people within your own scope.")
+		return TeamInviteResult{}, api.Err(http.StatusForbidden, api.CodeEscalation, mInviteOwnScope.Text(i18n.LangFrom(ctx), nil))
 	}
-	emails, err := normalizeEmails(in.Emails)
+	emails, err := normalizeEmails(i18n.LangFrom(ctx), in.Emails)
 	if err != nil {
 		return TeamInviteResult{}, err
 	}
@@ -358,14 +352,16 @@ func (s *Service) Invite(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		return TeamInviteResult{}, err
 	}
 	if len(members) > 0 {
-		return TeamInviteResult{}, api.Invalid("body.emails", fmt.Sprintf("%s already %s a member of %s.", access.AndList(members), plural(len(members), "is", "are"), ws.Name))
+		l := i18n.LangFrom(ctx)
+		return TeamInviteResult{}, api.Invalid("body.emails", mInviteAlreadyMember.Text(l, i18n.Args{"count": len(members), "emails": i18n.AndList(l.Locale, members), "workspace": ws.Name}))
 	}
 	pending, err := s.Q.TeamPendingInviteEmails(ctx, store.TeamPendingInviteEmailsParams{WorkspaceID: ws.ID, Emails: emails})
 	if err != nil {
 		return TeamInviteResult{}, err
 	}
 	if len(pending) > 0 {
-		return TeamInviteResult{}, api.Invalid("body.emails", fmt.Sprintf("%s already %s a pending invitation. Resend it instead.", access.AndList(pending), plural(len(pending), "has", "have")))
+		l := i18n.LangFrom(ctx)
+		return TeamInviteResult{}, api.Invalid("body.emails", mInviteAlreadyPending.Text(l, i18n.Args{"count": len(pending), "emails": i18n.AndList(l.Locale, pending)}))
 	}
 	days := in.ExpiresInDays
 	if days == 0 {
@@ -536,7 +532,7 @@ func (s *Service) Resend(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		return TeamResendResult{}, api.MapError(err, "Invitation")
 	}
 	perms := authz.Effective(inv.RoleKey, inv.RoleBuiltin, inv.RolePermissions)
-	if ok, reason := canGrantRole(p.Permissions, inv.RoleKey, inv.RoleBuiltin, perms); !ok {
+	if ok, reason := canGrantRole(i18n.LangFrom(ctx), p.Permissions, inv.RoleKey, inv.RoleBuiltin, perms); !ok {
 		return TeamResendResult{}, api.Err(http.StatusForbidden, api.CodeEscalation, reason)
 	}
 	var token string
@@ -603,7 +599,7 @@ func (s *Service) Revoke(ctx context.Context, ws *store.Workspace, id uuid.UUID)
 	})
 }
 
-func normalizeEmails(in []string) ([]string, error) {
+func normalizeEmails(l i18n.Lang, in []string) ([]string, error) {
 	var out []string
 	for _, raw := range in {
 		for _, part := range strings.FieldsFunc(raw, func(r rune) bool { return r == ',' || r == ';' || r == ' ' || r == '\n' || r == '\t' }) {
@@ -613,7 +609,7 @@ func normalizeEmails(in []string) ([]string, error) {
 			}
 			a, err := mail.ParseAddress(e)
 			if err != nil || a.Address != e || !strings.Contains(e[strings.LastIndexByte(e, '@')+1:], ".") {
-				return nil, api.Invalid("body.emails", fmt.Sprintf("“%s” isn't an email address.", part))
+				return nil, api.Invalid("body.emails", mInviteNotEmail.Text(l, i18n.Args{"value": part}))
 			}
 			if !slices.Contains(out, e) {
 				out = append(out, e)
@@ -621,19 +617,12 @@ func normalizeEmails(in []string) ([]string, error) {
 		}
 	}
 	if len(out) == 0 {
-		return nil, api.Invalid("body.emails", "Add at least one email address.")
+		return nil, api.Invalid("body.emails", mInviteNoEmails.Text(l, nil))
 	}
 	if len(out) > 50 {
 		return nil, api.Invalid("body.emails", "Invite up to 50 people at a time.")
 	}
 	return out, nil
-}
-
-func plural(n int, one, many string) string {
-	if n == 1 {
-		return one
-	}
-	return many
 }
 
 func capitalize(s string) string {
