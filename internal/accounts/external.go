@@ -3,7 +3,6 @@ package accounts
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -54,7 +53,7 @@ type ExternalResult struct {
 func (s *Service) CompleteExternalSignIn(ctx context.Context, in ExternalSignIn) (ExternalResult, error) {
 	u := in.User
 	if u.Status != "active" {
-		return ExternalResult{}, api.Err(http.StatusForbidden, "account_deactivated", "This account was deactivated. Ask your instance admin to reactivate it; nothing was deleted.")
+		return ExternalResult{}, api.Err(http.StatusForbidden, "account_deactivated", say(ctx, mDeactivated))
 	}
 	_ = s.Q.ClearSignInThrottle(ctx, u.Email)
 	if !in.MFA {
@@ -112,7 +111,7 @@ func (s *Service) AcceptInvitationExternal(ctx context.Context, token string, id
 	}
 	if !strings.EqualFold(strings.TrimSpace(id.Email), inv.Email) {
 		return ExternalResult{}, api.Err(http.StatusConflict, "invite_wrong_account",
-			fmt.Sprintf("This invite is for %s, but your %s account is %s. Continue with the invited account, or ask for an invite for %s.", inv.Email, id.ProviderName, id.Email, id.Email)).
+			say(ctx, mInviteWrongIdentity, "invited", inv.Email, "provider", id.ProviderName, "current", id.Email)).
 			WithMeta("invited", inv.Email, "signedInAs", id.Email)
 	}
 	st, err := s.policy(ctx)
@@ -127,13 +126,13 @@ func (s *Service) AcceptInvitationExternal(ctx context.Context, token string, id
 	}
 	if !newAccount {
 		if user.Status != "active" {
-			return ExternalResult{}, api.Err(http.StatusForbidden, "account_deactivated", "This account was deactivated. Ask your instance admin to reactivate it; nothing was deleted.")
+			return ExternalResult{}, api.Err(http.StatusForbidden, "account_deactivated", say(ctx, mDeactivated))
 		}
 		if m, err := s.Q.GetMembership(ctx, store.GetMembershipParams{WorkspaceID: inv.WorkspaceID, UserID: user.ID}); err == nil {
 			if m.Status == "active" {
-				return ExternalResult{}, api.Conflict("You're already a member of " + inv.WorkspaceName + ".")
+				return ExternalResult{}, api.Conflict(say(ctx, mAlreadyMember, "workspace", inv.WorkspaceName))
 			}
-			return ExternalResult{}, api.Conflict("Your membership in " + inv.WorkspaceName + " was deactivated. Ask an admin to reactivate it.")
+			return ExternalResult{}, api.Conflict(say(ctx, mMembershipDeactivated, "workspace", inv.WorkspaceName))
 		}
 	}
 	details := id.Details

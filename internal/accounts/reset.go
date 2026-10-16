@@ -169,15 +169,15 @@ type PasswordResetInfo struct {
 	Breached  bool      `json:"breachedCheck" doc:"New passwords are checked against known breaches"`
 }
 
-func resetExpired() *api.Problem {
-	return api.Err(http.StatusGone, "reset_expired", "This reset link is older than 15 minutes or was already used. Request a new one; your current password still works until you change it.")
+func resetExpired(ctx context.Context) *api.Problem {
+	return api.Err(http.StatusGone, "reset_expired", say(ctx, mResetExpired))
 }
 
 // CheckPasswordReset tells whether a reset link still works.
 func (s *Service) CheckPasswordReset(ctx context.Context, token string) (PasswordResetInfo, error) {
 	r, err := s.Q.GetUsablePasswordReset(ctx, authn.HashToken(token))
 	if err != nil || r.UserStatus != "active" {
-		return PasswordResetInfo{}, resetExpired()
+		return PasswordResetInfo{}, resetExpired(ctx)
 	}
 	st, err := s.policy(ctx)
 	if err != nil {
@@ -197,7 +197,7 @@ type PasswordResetDone struct {
 func (s *Service) ResetPassword(ctx context.Context, token, password string) (PasswordResetDone, error) {
 	r, err := s.Q.GetUsablePasswordReset(ctx, authn.HashToken(token))
 	if err != nil || r.UserStatus != "active" {
-		return PasswordResetDone{}, resetExpired()
+		return PasswordResetDone{}, resetExpired(ctx)
 	}
 	st, err := s.policy(ctx)
 	if err != nil {
@@ -208,7 +208,7 @@ func (s *Service) ResetPassword(ctx context.Context, token, password string) (Pa
 	}
 	if st.BreachedCheck {
 		if hit, err := s.Breach.Breached(ctx, password); err == nil && hit {
-			return PasswordResetDone{}, api.Invalid("body.password", "This password appears in known data breaches. Choose another one.")
+			return PasswordResetDone{}, api.Invalid("body.password", say(ctx, mBreached))
 		}
 	}
 	hash, err := authn.HashPassword(password)
@@ -227,7 +227,7 @@ func (s *Service) ResetPassword(ctx context.Context, token, password string) (Pa
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		if _, err := q.ConsumePasswordReset(ctx, authn.HashToken(token)); err != nil {
-			return resetExpired()
+			return resetExpired(ctx)
 		}
 		if err := q.SetUserPassword(ctx, store.SetUserPasswordParams{ID: u.ID, PasswordHash: &hash, MustChangePassword: false}); err != nil {
 			return err

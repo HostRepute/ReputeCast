@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -81,5 +82,27 @@ func TestInvitationInVietnamese(t *testing.T) {
 	vi.Do("POST", "/invitations/"+orphan+"/request", nil).MustStatus(t, 200).JSON(t, &req)
 	if req["inviter"] != "một quản trị viên của Acme Newsletter" {
 		t.Fatalf("request: %v", req)
+	}
+}
+
+// The sign-in pages show the server's problems in the page's language.
+func TestSignInProblemsInVietnamese(t *testing.T) {
+	env := apptest.New(t)
+	env.CreateUser(apptest.UserOpts{Email: "aisha@acme.io", Name: "Aisha Bello"})
+	vi := env.Client()
+	vi.Header = http.Header{"Accept-Language": {"vi"}}
+	p := vi.Do("POST", "/auth/password", map[string]any{"email": "aisha@acme.io", "password": "nope"}).MustStatus(t, 401).Problem(t)
+	detail, _ := p["detail"].(string)
+	if p["code"] != "invalid_credentials" || !strings.HasPrefix(detail, "Email hoặc mật khẩu không đúng. Còn ") || !strings.HasSuffix(detail, " lần thử trước khi bị khóa 15 phút.") {
+		t.Fatalf("wrong password, in Vietnamese: %v", p)
+	}
+	if p := vi.Do("GET", "/invitations/not-a-real-token-0000", nil).MustStatus(t, 404).Problem(t); p["detail"] != "Liên kết mời này không hợp lệ. Hãy kiểm tra bạn đã sao chép đủ liên kết, hoặc xin lời mời mới." {
+		t.Fatalf("unknown invitation, in Vietnamese: %v", p)
+	}
+	// English stays as it was.
+	p = env.Client().Do("POST", "/auth/password", map[string]any{"email": "aisha@acme.io", "password": "nope"}).MustStatus(t, 401).Problem(t)
+	detail, _ = p["detail"].(string)
+	if !strings.HasPrefix(detail, "The email or password is incorrect. ") || !strings.HasSuffix(detail, " left before a 15-minute lock.") {
+		t.Fatalf("wrong password, in English: %v", p)
 	}
 }

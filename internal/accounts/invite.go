@@ -76,15 +76,15 @@ type InvitationTwoFactor struct {
 	GraceUntil *time.Time `json:"graceUntil,omitempty"`
 }
 
-func inviteNotFound() *api.Problem {
-	return api.Err(http.StatusNotFound, "invite_not_found", "This invitation link isn't valid. Check that you copied the whole link, or ask for a new invite.")
+func inviteNotFound(ctx context.Context) *api.Problem {
+	return api.Err(http.StatusNotFound, "invite_not_found", say(ctx, mInviteNotFound))
 }
 
 func (s *Service) loadInvitation(ctx context.Context, token string) (store.GetInvitationViewRow, error) {
 	inv, err := s.Q.GetInvitationView(ctx, authn.HashToken(token))
 	if err != nil {
 		if isNoRows(err) {
-			return inv, inviteNotFound()
+			return inv, inviteNotFound(ctx)
 		}
 		return inv, err
 	}
@@ -258,30 +258,30 @@ func (s *Service) AcceptInvitation(ctx context.Context, token string, in Invitat
 	signedIn := api.UserFrom(ctx)
 	switch {
 	case signedIn != nil && signedIn.Email != inv.Email:
-		return InvitationAccepted{}, nil, api.Err(http.StatusConflict, "invite_wrong_account", "This invite is for "+inv.Email+", but you're signed in as "+signedIn.Email+". Sign out and continue, or ask for an invite for "+signedIn.Email+".").
+		return InvitationAccepted{}, nil, api.Err(http.StatusConflict, "invite_wrong_account", say(ctx, mInviteWrongAccount, "invited", inv.Email, "current", signedIn.Email)).
 			WithMeta("invited", inv.Email, "signedInAs", signedIn.Email)
 	case signedIn != nil:
 		user = *signedIn
 	default:
 		if _, err := s.Q.GetUserByEmail(ctx, inv.Email); err == nil {
-			return InvitationAccepted{}, nil, api.Err(http.StatusConflict, "invite_sign_in", inv.Email+" already has an account. Sign in to accept the invitation.").WithMeta("email", inv.Email)
+			return InvitationAccepted{}, nil, api.Err(http.StatusConflict, "invite_sign_in", say(ctx, mInviteSignIn, "email", inv.Email)).WithMeta("email", inv.Email)
 		}
 		if p, _ := s.enforcingProvider(ctx, inv.Email); p != nil {
-			return InvitationAccepted{}, nil, api.Err(http.StatusForbidden, "sso_required", emailDomain(inv.Email)+" signs in with "+p.Name+". Join with "+p.Name+" instead of a password.")
+			return InvitationAccepted{}, nil, api.Err(http.StatusForbidden, "sso_required", say(ctx, mSSORequiredJoin, "domain", emailDomain(inv.Email), "provider", p.Name))
 		}
 		if !methodAllowed(st, "password") {
-			return InvitationAccepted{}, nil, api.Err(http.StatusForbidden, "method_disabled", "Password sign-in is turned off on this instance. Join with single sign-on or a social account.")
+			return InvitationAccepted{}, nil, api.Err(http.StatusForbidden, "method_disabled", say(ctx, mPasswordOffJoin))
 		}
 		name := strings.TrimSpace(in.Name)
 		if name == "" {
-			return InvitationAccepted{}, nil, api.Invalid("body.name", "Enter your name as the team should see it.")
+			return InvitationAccepted{}, nil, api.Invalid("body.name", say(ctx, mInviteName))
 		}
 		if p := authn.PasswordProblem(in.Password, int(st.PasswordMinLength)); p != "" {
 			return InvitationAccepted{}, nil, api.Invalid("body.password", p)
 		}
 		if st.BreachedCheck {
 			if hit, err := s.Breach.Breached(ctx, in.Password); err == nil && hit {
-				return InvitationAccepted{}, nil, api.Invalid("body.password", "This password appears in known data breaches. Choose another one.")
+				return InvitationAccepted{}, nil, api.Invalid("body.password", say(ctx, mBreached))
 			}
 		}
 		hash, err := authn.HashPassword(in.Password)
@@ -297,9 +297,9 @@ func (s *Service) AcceptInvitation(ctx context.Context, token string, in Invitat
 	}
 	if m, err := s.Q.GetMembership(ctx, store.GetMembershipParams{WorkspaceID: inv.WorkspaceID, UserID: user.ID}); err == nil {
 		if m.Status == "active" {
-			return InvitationAccepted{}, nil, api.Conflict("You're already a member of " + inv.WorkspaceName + ".")
+			return InvitationAccepted{}, nil, api.Conflict(say(ctx, mAlreadyMember, "workspace", inv.WorkspaceName))
 		}
-		return InvitationAccepted{}, nil, api.Conflict("Your membership in " + inv.WorkspaceName + " was deactivated. Ask an admin to reactivate it.")
+		return InvitationAccepted{}, nil, api.Conflict(say(ctx, mMembershipDeactivated, "workspace", inv.WorkspaceName))
 	}
 
 	var cookie *http.Cookie
@@ -400,7 +400,7 @@ func (s *Service) RequestNewInvite(ctx context.Context, token string) (Invitatio
 	signedIn := api.UserFrom(ctx)
 	other := signedIn != nil && signedIn.Email != inv.Email
 	if status != "expired" && (status != "pending" || !other) {
-		return InvitationRequestResult{}, api.Conflict("This invitation doesn't need a new one.")
+		return InvitationRequestResult{}, api.Conflict(say(ctx, mInviteNoNeed))
 	}
 	res := InvitationRequestResult{Status: "sent", Inviter: orAdmin(langOf(ctx), inv)}
 	wsID := inv.WorkspaceID

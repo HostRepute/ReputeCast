@@ -220,8 +220,8 @@ func mustJSON(v any) json.RawMessage {
 }
 
 // lockMessage formats the lockout explanation.
-func lockMessage(until time.Time, failures int32) *api.Problem {
-	return api.Err(http.StatusTooManyRequests, api.CodeLocked, "Sign-in is locked after too many attempts. Try again after "+until.Format("15:04")+", reset your password, or use a passkey.").
+func lockMessage(ctx context.Context, until time.Time, failures int32) *api.Problem {
+	return api.Err(http.StatusTooManyRequests, api.CodeLocked, say(ctx, mLocked, "time", until.Format("15:04"))).
 		WithMeta("lockedUntil", until, "failures", failures)
 }
 

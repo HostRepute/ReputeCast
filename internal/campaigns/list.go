@@ -187,7 +187,7 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, p ListParams) (
 		if in.Kind != "threshold" {
 			continue
 		}
-		notes[in.CampaignID] = append(notes[in.CampaignID], autoPausedNote(l, int64(in.N), in.MailboxProvider, in.Metric))
+		notes[in.CampaignID] = append(notes[in.CampaignID], autoPausedNote(l, in.N, in.MailboxProvider, in.Metric))
 	}
 	out := CampaignList{Items: make([]CampaignListItem, 0, len(rows)), Total: total, Page: p.Page, PageSize: p.PageSize, Counts: counts}
 	for _, r := range rows {

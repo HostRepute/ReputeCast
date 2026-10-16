@@ -42,7 +42,59 @@ var (
 	mClosedExpired  = msgs.M("closed.expired")
 	mClosedRevoked  = msgs.M("closed.revoked")
 	mClosedAccepted = msgs.M("closed.accepted")
+
+	// Problems the sign-in, two-factor, password, passkey and invitation
+	// pages show (the rest of the package's problems are still English).
+	mSSORequired           = msgs.M("problem.ssoRequired")
+	mSSORequiredPasskey    = msgs.M("problem.ssoRequiredPasskey")
+	mSSORequiredJoin       = msgs.M("problem.ssoRequiredJoin")
+	mPasswordOff           = msgs.M("problem.passwordOff")
+	mPasswordOffJoin       = msgs.M("problem.passwordOffJoin")
+	mPasskeyOff            = msgs.M("problem.passkeyOff")
+	mWrongPassword         = msgs.M("problem.wrongPassword")
+	mLocked                = msgs.M("problem.locked")
+	mDeactivated           = msgs.M("problem.deactivated")
+	mSignInExpired         = msgs.M("problem.signInExpired")
+	mTooManyCodes          = msgs.M("problem.tooManyCodes")
+	mWrongCode             = msgs.M("problem.wrongCode")
+	mWrongTOTP             = msgs.M("problem.wrongTotp")
+	mWrongRecovery         = msgs.M("problem.wrongRecovery")
+	mResetExpired          = msgs.M("problem.resetExpired")
+	mBreached              = msgs.M("problem.breached")
+	mPasskeyExpired        = msgs.M("problem.passkeyExpired")
+	mPasskeyFailed         = msgs.M("problem.passkeyFailed")
+	mPasskeyUnreadable     = msgs.M("problem.passkeyUnreadable")
+	mPasskeyRejected       = msgs.M("problem.passkeyRejected")
+	mPasskeyTaken          = msgs.M("problem.passkeyTaken")
+	mNoPasskey             = msgs.M("problem.noPasskey")
+	mPasskeyName           = msgs.M("problem.passkeyName")
+	mLastMethod            = msgs.M("problem.lastMethod")
+	mLastSecondFactor      = msgs.M("problem.lastSecondFactor")
+	mPublicURL             = msgs.M("problem.publicURL")
+	mPublicURLDomain       = msgs.M("problem.publicURLDomain")
+	mInviteNotFound        = msgs.M("problem.inviteNotFound")
+	mInviteWrongAccount    = msgs.M("problem.inviteWrongAccount")
+	mInviteWrongIdentity   = msgs.M("problem.inviteWrongIdentity")
+	mInviteSignIn          = msgs.M("problem.inviteSignIn")
+	mInviteName            = msgs.M("problem.inviteName")
+	mAlreadyMember         = msgs.M("problem.alreadyMember")
+	mMembershipDeactivated = msgs.M("problem.membershipDeactivated")
+	mInviteNoNeed          = msgs.M("problem.inviteNoNeed")
+	mPasskeyUnreadableLeft = msgs.M("problem.passkeyUnreadableLeft")
+	mPasskeyWrongLeft      = msgs.M("problem.passkeyWrongLeft")
 )
+
+// say writes one of the package's messages in the request's language.
+func say(ctx context.Context, m i18n.Msg, kv ...any) string {
+	var args i18n.Args
+	if len(kv) > 0 {
+		args = i18n.Args{}
+		for i := 0; i+1 < len(kv); i += 2 {
+			args[kv[i].(string)] = kv[i+1]
+		}
+	}
+	return m.Text(langOf(ctx), args)
+}
 
 // sensitivePerms are the sensitive permissions people know best, in the
 // order "why two-factor" names them.
