@@ -13,6 +13,8 @@ import (
 	"unicode/utf8"
 
 	"github.com/google/uuid"
+
+	"github.com/hostrepute/reputecast/internal/pagelabels"
 )
 
 var jsonLDBlock = regexp.MustCompile(`(?s)<script type="application/ld\+json">(.*?)</script>`)
@@ -261,19 +263,19 @@ func TestVariantContent(t *testing.T) {
 }
 
 func TestSplitConsent(t *testing.T) {
-	c := splitConsent("I agree to receive emails from Acme. See the privacy policy.", "https://acme.io/privacy")
+	c := splitConsent("I agree to receive emails from Acme. See the privacy policy.", "https://acme.io/privacy", "privacy policy")
 	if c.Before != "I agree to receive emails from Acme. See the " || c.Link != "privacy policy" || c.After != "." || c.Href != "https://acme.io/privacy" {
 		t.Errorf("split %+v", c)
 	}
-	c = splitConsent("Read our Privacy Policy first", "https://acme.io/privacy")
+	c = splitConsent("Read our Privacy Policy first", "https://acme.io/privacy", "privacy policy")
 	if c.Link != "Privacy Policy" || c.Before != "Read our " || c.After != " first" {
 		t.Errorf("the link keeps the sentence's case: %+v", c)
 	}
-	c = splitConsent("I agree. See the privacy policy.", "")
+	c = splitConsent("I agree. See the privacy policy.", "", "privacy policy")
 	if c.Before != "I agree. See the privacy policy." || c.Href != "" || c.Link != "" {
 		t.Errorf("no privacy URL, no link: %+v", c)
 	}
-	c = splitConsent("I agree to emails.", "https://acme.io/privacy")
+	c = splitConsent("I agree to emails.", "https://acme.io/privacy", "privacy policy")
 	if c.Before != "I agree to emails." || c.Href != "" {
 		t.Errorf("no privacy policy in the sentence: %+v", c)
 	}
@@ -289,7 +291,7 @@ func TestSplitConsentNonASCII(t *testing.T) {
 					t.Errorf("splitConsent(%q) panicked: %v (subscribe.go splitConsent slices text with an index of strings.ToLower(text))", text, r)
 				}
 			}()
-			c := splitConsent(text, "https://acme.io/privacy")
+			c := splitConsent(text, "https://acme.io/privacy", "privacy policy")
 			if c.Link != "privacy policy" || c.Before+c.Link+c.After != text {
 				t.Errorf("splitConsent(%q) = %q | %q | %q (subscribe.go splitConsent slices text with an index of strings.ToLower(text))", text, c.Before, c.Link, c.After)
 			}
@@ -312,7 +314,7 @@ func TestSubscribeTitle(t *testing.T) {
 		"Acme Weekly":         "Subscribe to Acme Weekly",
 	}
 	for in, want := range cases {
-		if got := subscribeTitle(in); got != want {
+		if got := subscribeTitle(pagelabels.English(), in); got != want {
 			t.Errorf("subscribeTitle(%q) = %q, want %q", in, got, want)
 		}
 	}
@@ -326,8 +328,8 @@ func TestListNames(t *testing.T) {
 		{nil, ""}, {[]string{"A"}, "A"}, {[]string{"A", "B"}, "A and B"}, {[]string{"A", "B", "C"}, "A, B and C"},
 	}
 	for _, tc := range cases {
-		if got := listNames(tc.in); got != tc.want {
-			t.Errorf("listNames(%v) = %q", tc.in, got)
+		if got := pagelabels.English().Join(tc.in); got != tc.want {
+			t.Errorf("Join(%v) = %q", tc.in, got)
 		}
 		if got := andNames(tc.in); got != tc.want {
 			t.Errorf("andNames(%v) = %q", tc.in, got)

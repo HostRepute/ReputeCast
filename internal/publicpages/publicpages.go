@@ -41,7 +41,9 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/audience"
 	"github.com/hostrepute/reputecast/internal/forms"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/linktoken"
+	"github.com/hostrepute/reputecast/internal/pagelabels"
 	"github.com/hostrepute/reputecast/internal/publicurl"
 	"github.com/hostrepute/reputecast/internal/server"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -185,6 +187,8 @@ type site struct {
 	canon forms.PageLinks
 	// preview renders a page for the app: its links carry no working token.
 	preview bool
+	// copy is the pages' copy in every language (copyOf).
+	copy *forms.PagesCopy
 }
 
 var errNoSite = errors.New("publicpages: no such workspace")
@@ -285,6 +289,19 @@ type view struct {
 	// Preview renders an in-app preview: forms don't submit.
 	Preview bool
 	Body    any
+	// Lang and Dir are the language the page shows (setLang), Menu the
+	// footer's language menu and Alternates the page in other languages
+	// (hreflang).
+	Lang       string
+	Dir        string
+	Menu       []langLink
+	Alternates []alternate
+	labels     pagelabels.Set
+}
+
+// alternate is the same page in another language, for <link rel="alternate">.
+type alternate struct {
+	Lang, Href string
 }
 
 type brandView struct {
@@ -299,6 +316,8 @@ func (h *Handler) view(s *site, title string, body any) *view {
 		Title: title, Robots: "noindex, nofollow", CSS: s.links.Static("public.css?v=" + h.version),
 		Theme: s.links.Theme(themeVersion(s.set)), Brand: brandView{Name: b.PublisherName, Initial: b.Initial()},
 		Links: s.links, Landing: h.LandingURL, PoweredBy: b.PoweredBy, Privacy: b.PrivacyURL, Body: body,
+		// Until setLang picks one, a page is in the pages' own language.
+		Lang: s.set.CopyLanguage(), Dir: pagelabels.Dir(s.set.CopyLanguage()), labels: pagelabels.For(s.set.CopyLanguage(), nil),
 	}
 	if b.Logo != nil {
 		v.Brand.Logo = s.links.Logo(b.Logo.Hash)
@@ -400,6 +419,9 @@ func (h *Handler) render(w http.ResponseWriter, r *http.Request, s *site, page s
 	}
 	buf := bytes.NewBuffer(out)
 	pageHeaders(w, policy, private)
+	// The language a page shows follows the browser and the menu's pick.
+	w.Header().Add("Vary", "Accept-Language")
+	w.Header().Add("Vary", "Cookie")
 	if !private && w.Header().Get("Cache-Control") == "" {
 		w.Header().Set("Cache-Control", "no-cache")
 	}
@@ -419,6 +441,9 @@ type messageBody struct {
 	// Actions are buttons; the first is primary.
 	Actions []action
 	Footer  string
+	// Lead is the lead paragraph as HTML, in place of Text, Email and
+	// TextAfter (a built-in label with the address in bold).
+	Lead template.HTML
 }
 
 type action struct {
@@ -434,6 +459,21 @@ func (h *Handler) message(w http.ResponseWriter, r *http.Request, s *site, statu
 	h.render(w, r, s, "message", status, v, csp{}, private)
 }
 
+// messageIn is a message page in a language: its words are pl's labels.
+func (h *Handler) messageIn(w http.ResponseWriter, r *http.Request, s *site, pl pageLang, status int, title string, body messageBody, private bool) {
+	v := h.view(s, title, body)
+	h.setLang(v, r, s, pl, nil)
+	if !private && status == http.StatusOK {
+		v.Robots = "noindex, follow"
+	}
+	h.render(w, r, s, "message", status, v, csp{}, private)
+}
+
+// pageTitle is a page's title in the browser tab: "Check your inbox · Acme".
+func pageTitle(pl pageLang, s *site, headingKey string) string {
+	return pl.Labels.Text("page.title", i18n.Args{"heading": pl.Labels.Text(headingKey, nil), "publisher": s.set.Branding.PublisherName})
+}
+
 // notFound answers a broken or forged link without saying who it was for.
 func (h *Handler) notFound(w http.ResponseWriter, r *http.Request, s *site) {
 	if s == nil {
@@ -443,10 +483,12 @@ func (h *Handler) notFound(w http.ResponseWriter, r *http.Request, s *site) {
 		_, _ = w.Write([]byte("This page doesn't exist.\n"))
 		return
 	}
-	h.message(w, r, s, http.StatusNotFound, "Link not valid · "+s.set.Branding.PublisherName, messageBody{
-		Heading: "This link doesn't work",
-		Text:    "It may be cut short or out of date. Copy the whole link from the email, or manage your subscription from any recent issue.",
-		Actions: []action{{Label: "Subscribe page", Href: s.links.Subscribe("")}},
+	pl := h.visitorLang(w, r, s, nil)
+	l := pl.Labels
+	h.messageIn(w, r, s, pl, http.StatusNotFound, pageTitle(pl, s, "page.notFound.title"), messageBody{
+		Heading: l.Text("page.notFound.heading", nil),
+		Text:    l.Text("page.notFound.text", nil),
+		Actions: []action{{Label: l.Text("page.subscribePage", nil), Href: s.links.Subscribe("")}},
 	}, true)
 }
 
@@ -456,9 +498,11 @@ func (h *Handler) serverError(w http.ResponseWriter, r *http.Request, s *site, e
 		http.Error(w, "Something went wrong on our side. Nothing was changed; try again in a minute.", http.StatusInternalServerError)
 		return
 	}
-	h.message(w, r, s, http.StatusInternalServerError, "Something went wrong · "+s.set.Branding.PublisherName, messageBody{
-		Heading: "Something went wrong on our side",
-		Text:    "Nothing was changed. Try again in a minute; if it keeps happening, reply to any email from " + s.set.Branding.PublisherName + ".",
+	pl := h.visitorLang(w, r, s, nil)
+	l := pl.Labels
+	h.messageIn(w, r, s, pl, http.StatusInternalServerError, pageTitle(pl, s, "page.error.title"), messageBody{
+		Heading: l.Text("page.error.heading", nil),
+		Text:    l.Text("page.error.reply", i18n.Args{"publisher": s.set.Branding.PublisherName}),
 	}, true)
 }
 

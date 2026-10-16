@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"html/template"
 	"net/http"
 	"slices"
 	"strings"
@@ -15,7 +16,10 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/audience"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
+	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/linktoken"
+	"github.com/hostrepute/reputecast/internal/pagelabels"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -54,29 +58,50 @@ func (h *Handler) confirm(w http.ResponseWriter, r *http.Request) {
 		h.serverError(w, r, s, err)
 		return
 	}
-	if res.Blocked {
-		h.message(w, r, s, http.StatusOK, "Can't subscribe · "+s.set.Branding.PublisherName, messageBody{Heading: "This address can't be subscribed",
-			Text: "Emails to it bounced or were reported as spam, so " + s.set.Branding.PublisherName + " stopped sending to it. If that was a mistake, reply to any of their emails."}, true)
-		return
-	}
 	pc, err := h.Audience.LoadPublicContact(r.Context(), h.Q, s.ws, c.ContactID)
 	if err != nil {
 		h.serverError(w, r, s, err)
 		return
 	}
-	body, err := h.confirmBody(r.Context(), s, pc)
+	pl := h.confirmLang(w, r, s, pc)
+	if res.Blocked {
+		h.messageIn(w, r, s, pl, http.StatusOK, pageTitle(pl, s, "confirm.blocked.title"), messageBody{Heading: pl.Labels.Text("confirm.blocked.heading", nil),
+			Text: pl.Labels.Text("confirm.blocked.text", i18n.Args{"publisher": s.set.Branding.PublisherName})}, true)
+		return
+	}
+	body, err := h.confirmBody(r.Context(), s, pc, pl)
 	if err != nil {
 		h.serverError(w, r, s, err)
 		return
 	}
-	v := h.view(s, "You're in · "+s.set.Branding.PublisherName, body)
+	v := h.view(s, pageTitle(pl, s, "confirm.title"), body)
+	h.setLang(v, r, s, pl, nil)
 	h.render(w, r, s, "confirm", http.StatusOK, v, csp{}, true)
 }
 
-func (h *Handler) confirmBody(ctx context.Context, s *site, pc audience.PublicContact) (confirmBody, error) {
-	b := confirmBody{Heading: "You're in", Email: pc.Email, Lists: []gotView{}}
+// confirmLang is the confirmation page's language: the one the signup form
+// was shown in (the confirmation email's), else the contact's.
+func (h *Handler) confirmLang(w http.ResponseWriter, r *http.Request, s *site, pc audience.PublicContact) pageLang {
+	if picked(r) == "" {
+		if code, err := h.Q.FormSubmissionLatestLanguage(r.Context(), pc.ID); err == nil {
+			if cp := h.copyOf(r.Context(), s); cp != nil && cp.Live(code) {
+				return pageLang{Code: code, Labels: cp.Labels(code)}
+			}
+		}
+	}
+	return h.contactLang(w, r, s, pc.Language)
+}
+
+func (h *Handler) confirmBody(ctx context.Context, s *site, pc audience.PublicContact, pl pageLang) (confirmBody, error) {
+	l := pl.Labels
+	b := confirmBody{Heading: l.Text("confirm.heading", nil), Email: pc.Email, Lists: []gotView{}}
 	if pc.FirstName != "" {
-		b.Heading = "You're in, " + pc.FirstName
+		b.Heading = l.Text("confirm.headingName", i18n.Args{"name": pc.FirstName})
+	}
+	cp := h.copyOf(ctx, s)
+	pages := s.set.Pages
+	if cp != nil {
+		pages = cp.Pages(pl.Code, pages)
 	}
 	lists, err := h.Audience.PublicLists(ctx, h.Q, s.ws)
 	if err != nil {
@@ -111,23 +136,22 @@ func (h *Handler) confirmBody(ctx context.Context, s *site, pc audience.PublicCo
 		return b, err
 	}
 	prefs := s.links.Preferences(h.sign(s, linktoken.Preferences, pc.ID, uuid.Nil))
-	for _, l := range lists {
-		on := pc.Subscribed(l.ID)
-		if !on && !slices.Contains(offered, l.ID) {
+	for _, pl2 := range lists {
+		on := pc.Subscribed(pl2.ID)
+		if !on && !slices.Contains(offered, pl2.ID) {
 			continue
 		}
-		text := l.Description
-		if t := s.set.Pages.Confirm.ListText[l.ID.String()]; t != "" {
+		text, name := pl2.Description, pl2.Name
+		if cp != nil {
+			text, name = cp.ListDescription(pl.Code, pl2), cp.ListName(pl.Code, pl2)
+		}
+		if t := pages.Confirm.ListText[pl2.ID.String()]; t != "" {
 			text = t
 		}
-		if at, ok := next[l.ID]; ok && on {
-			text = strings.TrimSpace(text + " Next issue: " + at.In(location(s.ws)).Format("Monday 2 January") + ".")
+		if at, ok := next[pl2.ID]; ok && on {
+			text = strings.TrimSpace(text + " " + l.Text("confirm.nextIssue", i18n.Args{"date": l.NextDate(at.In(location(s.ws)))}))
 		}
-		offer := s.set.Pages.Confirm.OfferText[l.ID.String()]
-		if offer == "" {
-			offer = "it"
-		}
-		b.Lists = append(b.Lists, gotView{Name: l.Name, Text: text, On: on, AddHref: prefs, Offer: offer})
+		b.Lists = append(b.Lists, gotView{Name: name, Text: text, On: on, AddHref: prefs, Offer: pages.Confirm.OfferText[pl2.ID.String()]})
 	}
 	if s.set.Pages.Confirm.InboxTip {
 		if sender, err := h.Q.FormsDefaultSender(ctx, s.ws.ID); err == nil {
@@ -141,11 +165,12 @@ func (h *Handler) confirmBody(ctx context.Context, s *site, pc audience.PublicCo
 	}
 	b.PrefsHref = prefs
 	if pc.Confirmed != nil {
-		b.Proof = "Confirmed " + pc.Confirmed.At.In(location(s.ws)).Format("2 Jan 2006, 15:04")
+		at := l.Stamp(pc.Confirmed.At.In(location(s.ws)))
 		if pc.Confirmed.IP != nil {
-			b.Proof += " from " + pc.Confirmed.IP.String()
+			b.Proof = l.Text("confirm.proofIp", i18n.Args{"date": at, "ip": pc.Confirmed.IP.String()})
+		} else {
+			b.Proof = l.Text("confirm.proof", i18n.Args{"date": at})
 		}
-		b.Proof += " · kept as proof of consent"
 	}
 	return b, nil
 }
@@ -181,6 +206,8 @@ func location(ws *store.Workspace) *time.Location {
 type choiceView struct {
 	Value, Label string
 	Checked      bool
+	// Lang is the language a choice is written in (Email language).
+	Lang string
 }
 
 type preferencesBody struct {
@@ -189,6 +216,10 @@ type preferencesBody struct {
 	Frequencies                                                                []choiceView
 	Pauses                                                                     []choiceView
 	AskName                                                                    bool
+	// Languages is "Email language": every workspace language, in its own
+	// name, the contact's checked.
+	Languages    []choiceView
+	LanguageNote string
 }
 
 func (h *Handler) preferencesPage(w http.ResponseWriter, r *http.Request) {
@@ -211,20 +242,27 @@ func (h *Handler) preferencesPage(w http.ResponseWriter, r *http.Request) {
 		h.serverError(w, r, s, err)
 		return
 	}
-	body, err := h.preferencesBody(r.Context(), s, pc, s.links.Preferences(token), c)
+	pl := h.contactLang(w, r, s, pc.Language)
+	body, err := h.preferencesBody(r.Context(), s, pc, s.links.Preferences(token), c, pl)
 	if err != nil {
 		h.serverError(w, r, s, err)
 		return
 	}
 	if r.URL.Query().Get("saved") == "1" {
-		body.Saved = "Saved. Changes apply to the next send."
+		body.Saved = pl.Labels.Text("prefs.saved", nil)
 	}
-	v := h.view(s, "Email preferences · "+s.set.Branding.PublisherName, body)
+	v := h.view(s, pageTitle(pl, s, "prefs.heading"), body)
+	h.setLang(v, r, s, pl, nil)
 	h.render(w, r, s, "preferences", http.StatusOK, v, csp{}, true)
 }
 
-func (h *Handler) preferencesBody(ctx context.Context, s *site, pc audience.PublicContact, action string, c linktoken.Claims) (preferencesBody, error) {
+func (h *Handler) preferencesBody(ctx context.Context, s *site, pc audience.PublicContact, action string, c linktoken.Claims, pl pageLang) (preferencesBody, error) {
+	l := pl.Labels
+	cp := h.copyOf(ctx, s)
 	p := s.set.Pages.Preferences
+	if cp != nil {
+		p = cp.Pages(pl.Code, s.set.Pages).Preferences
+	}
 	b := preferencesBody{Email: pc.Email, FirstName: pc.FirstName, Action: action, NotYouHref: s.links.Subscribe(""), AskName: p.FirstName,
 		UnsubscribeHref: s.links.Unsubscribe(h.sign(s, linktoken.Unsubscribe, pc.ID, c.MessageID))}
 	lists, err := h.Audience.PublicLists(ctx, h.Q, s.ws)
@@ -232,37 +270,52 @@ func (h *Handler) preferencesBody(ctx context.Context, s *site, pc audience.Publ
 		return b, err
 	}
 	shown := []string{}
-	for _, l := range lists {
-		offered := l.Public
+	for _, pl2 := range lists {
+		offered := pl2.Public
 		if len(p.Lists) > 0 {
-			offered = slices.Contains(p.Lists, l.ID.String())
+			offered = slices.Contains(p.Lists, pl2.ID.String())
 		}
-		st := pc.Lists[l.ID]
+		st := pc.Lists[pl2.ID]
 		if !offered && st != "subscribed" && st != "pending" {
 			continue
 		}
-		text := l.Description
-		if t := p.ListText[l.ID.String()]; t != "" {
+		text, name := pl2.Description, pl2.Name
+		if cp != nil {
+			text, name = cp.ListDescription(pl.Code, pl2), cp.ListName(pl.Code, pl2)
+		}
+		if t := p.ListText[pl2.ID.String()]; t != "" {
 			text = t
 		}
-		b.Lists = append(b.Lists, listView{ID: l.ID.String(), Name: l.Name, Text: text, Checked: (st == "subscribed" && pc.Status == "active") || st == "pending"})
-		shown = append(shown, l.ID.String())
+		b.Lists = append(b.Lists, listView{ID: pl2.ID.String(), Name: name, Text: text, Checked: (st == "subscribed" && pc.Status == "active") || st == "pending"})
+		shown = append(shown, pl2.ID.String())
 	}
 	b.Shown = strings.Join(shown, ",")
 	if p.Frequency {
-		for _, f := range []struct{ v, l string }{{"all", "Every issue"}, {"weekly", "Weekly roundup"}, {"monthly", "Monthly best-of"}} {
-			b.Frequencies = append(b.Frequencies, choiceView{Value: f.v, Label: f.l, Checked: pc.Frequency == f.v})
+		for _, f := range []struct{ v, key string }{{"all", "prefs.all"}, {"weekly", "prefs.weekly"}, {"monthly", "prefs.monthly"}} {
+			b.Frequencies = append(b.Frequencies, choiceView{Value: f.v, Label: l.Text(f.key, nil), Checked: pc.Frequency == f.v})
 		}
 	}
 	if p.Pause {
 		if pc.PausedUntil != nil && pc.PausedUntil.After(h.now()) {
 			b.Pauses = []choiceView{
-				{Value: "keep", Label: "Paused until " + pc.PausedUntil.In(location(s.ws)).Format("2 Jan"), Checked: true},
-				{Value: "0", Label: "Resume now"}, {Value: "30", Label: "Pause 30 days"}, {Value: "90", Label: "Pause 90 days"},
+				{Value: "keep", Label: l.Text("prefs.pausedUntil", i18n.Args{"date": l.DayMonth(pc.PausedUntil.In(location(s.ws)))}), Checked: true},
+				{Value: "0", Label: l.Text("prefs.resume", nil)}, {Value: "30", Label: l.Text("prefs.pause30", nil)}, {Value: "90", Label: l.Text("prefs.pause90", nil)},
 			}
 		} else {
-			b.Pauses = []choiceView{{Value: "0", Label: "Don't pause", Checked: true}, {Value: "30", Label: "Pause 30 days"}, {Value: "90", Label: "Pause 90 days"}}
+			b.Pauses = []choiceView{{Value: "0", Label: l.Text("prefs.noPause", nil), Checked: true}, {Value: "30", Label: l.Text("prefs.pause30", nil)},
+				{Value: "90", Label: l.Text("prefs.pause90", nil)}}
 		}
+	}
+	// "Email language": every workspace language, even one whose pages
+	// aren't Live yet.
+	if cp != nil && len(cp.Languages.Languages) > 1 {
+		mine := languages.Base(pc.Language)
+		for _, code := range cp.Languages.Languages {
+			meta, _ := languages.Lookup(code)
+			b.Languages = append(b.Languages, choiceView{Value: code, Label: meta.Native, Checked: code == mine, Lang: code})
+		}
+		fallback, _ := languages.Lookup(cp.Languages.Fallback)
+		b.LanguageNote = l.Text("prefs.languageNote", i18n.Args{"publisher": s.set.Branding.PublisherName, "fallback": fallback.Native})
 	}
 	return b, nil
 }
@@ -279,11 +332,15 @@ func (h *Handler) preferencesPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !h.parseForm(w, r, 16<<10) {
-		http.Error(w, "That form couldn't be read. Go back and send it again.", http.StatusBadRequest)
+		http.Error(w, h.visitorLang(nil, r, s, nil).Labels.Text("page.unreadable", nil), http.StatusBadRequest)
 		return
 	}
 	f := r.PostForm
 	in := audience.PreferencesInput{Frequency: f.Get("frequency"), PauseDays: -1}
+	if f.Has("language") {
+		lang := f.Get("language")
+		in.Language = &lang
+	}
 	for _, raw := range strings.Split(f.Get("shown"), ",") {
 		if id, err := uuid.Parse(strings.TrimSpace(raw)); err == nil {
 			in.Shown = append(in.Shown, id)
@@ -321,13 +378,16 @@ func (h *Handler) preferencesPost(w http.ResponseWriter, r *http.Request) {
 			h.serverError(w, r, s, lerr)
 			return
 		}
-		body, berr := h.preferencesBody(r.Context(), s, pc, s.links.Preferences(token), c)
+		pl := h.contactLang(w, r, s, pc.Language)
+		body, berr := h.preferencesBody(r.Context(), s, pc, s.links.Preferences(token), c, pl)
 		if berr != nil {
 			h.serverError(w, r, s, berr)
 			return
 		}
-		body.Alert = fe.Message
-		h.render(w, r, s, "preferences", http.StatusUnprocessableEntity, h.view(s, "Email preferences · "+s.set.Branding.PublisherName, body), csp{}, true)
+		body.Alert = fieldProblem(fe, pl.Labels)
+		v := h.view(s, pageTitle(pl, s, "prefs.heading"), body)
+		h.setLang(v, r, s, pl, nil)
+		h.render(w, r, s, "preferences", http.StatusUnprocessableEntity, v, csp{}, true)
 		return
 	case err != nil:
 		h.serverError(w, r, s, err)
@@ -346,7 +406,9 @@ func (h *Handler) requestPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	body := requestBody{Action: s.links.PreferencesRequest(), Token: h.Forms.FormToken("prefs:"+s.ws.ID.String(), h.now())}
-	v := h.view(s, "Email preferences · "+s.set.Branding.PublisherName, body)
+	pl := h.visitorLang(w, r, s, nil)
+	v := h.view(s, pageTitle(pl, s, "prefs.heading"), body)
+	h.setLang(v, r, s, pl, nil)
 	v.Robots = "noindex, follow"
 	v.Canonical = s.canon.PreferencesRequest()
 	h.render(w, r, s, "request", http.StatusOK, v, csp{}, false)
@@ -358,10 +420,12 @@ func (h *Handler) requestPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !h.parseForm(w, r, 8<<10) {
-		http.Error(w, "That form couldn't be read. Go back and send it again.", http.StatusBadRequest)
+		http.Error(w, h.visitorLang(nil, r, s, nil).Labels.Text("page.unreadable", nil), http.StatusBadRequest)
 		return
 	}
 	f := r.PostForm
+	pl := h.langOf(w, r, s, languages.Base(f.Get("_lang")))
+	l := pl.Labels
 	email := strings.TrimSpace(f.Get("email"))
 	ip := "unknown"
 	if a := clientIP(r); a != nil {
@@ -370,20 +434,22 @@ func (h *Handler) requestPost(w http.ResponseWriter, r *http.Request) {
 	publisher := s.set.Branding.PublisherName
 	retry := func(status int, emailErr, alert string) {
 		body := requestBody{Action: s.links.PreferencesRequest(), Token: h.Forms.FormToken("prefs:"+s.ws.ID.String(), h.now()), Email: email, EmailError: emailErr, Alert: alert}
-		h.render(w, r, s, "request", status, h.view(s, "Email preferences · "+publisher, body), csp{}, true)
+		v := h.view(s, pageTitle(pl, s, "prefs.heading"), body)
+		h.setLang(v, r, s, pl, nil)
+		h.render(w, r, s, "request", status, v, csp{}, true)
 	}
 	if !h.Forms.AllowPerMinute("prefs-ip:"+ip, 3) {
 		w.Header().Set("Retry-After", "60")
-		retry(http.StatusTooManyRequests, "", "Too many tries from your network. Wait a minute and try again.")
+		retry(http.StatusTooManyRequests, "", l.Text("error.rateLimited", nil))
 		return
 	}
 	if email == "" || !strings.Contains(email, "@") {
-		retry(http.StatusUnprocessableEntity, "Enter the address you get our emails at.", "")
+		retry(http.StatusUnprocessableEntity, l.Text("prefs.request.missing", nil), "")
 		return
 	}
 	sent := func() {
-		h.message(w, r, s, http.StatusOK, "Check your inbox · "+publisher, messageBody{Icon: "mail", Heading: "Check your inbox",
-			Text: "If", Email: email, TextAfter: " gets emails from " + publisher + ", a link to your preferences is on its way. It works for this address only."}, true)
+		h.messageIn(w, r, s, pl, http.StatusOK, pageTitle(pl, s, "form.confirm.heading"), messageBody{Icon: "mail", Heading: l.Text("form.confirm.heading", nil),
+			Lead: labelHTML(l, "prefs.request.sent", i18n.Args{"email": email, "publisher": publisher}, "")}, true)
 	}
 	// Bots fill the invisible field; they see the same answer and nothing is sent.
 	if f.Get("website") != "" {
@@ -393,7 +459,7 @@ func (h *Handler) requestPost(w http.ResponseWriter, r *http.Request) {
 	// Whether mail can go out is the same for every address, so saying so
 	// reveals nothing; after that, every address gets the same answer.
 	if !h.Forms.SystemMailAvailable(r.Context(), s.ws) {
-		retry(http.StatusServiceUnavailable, "", publisher+" can't send emails right now. Use the preferences link at the bottom of any of their emails instead.")
+		retry(http.StatusServiceUnavailable, "", l.Text("prefs.request.unavailable", i18n.Args{"publisher": publisher}))
 		return
 	}
 	id, found, err := h.Audience.FindPublicContact(r.Context(), h.Q, s.ws, email)
@@ -402,7 +468,7 @@ func (h *Handler) requestPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if found && h.Forms.Allow("prefs-contact:"+id.String(), 10*time.Minute) {
-		if err := h.Forms.SendPreferenceLink(r.Context(), s.ws, s.set, id); err != nil {
+		if err := h.Forms.SendPreferenceLinkIn(r.Context(), s.ws, s.set, id, pl.Code); err != nil {
 			h.log().WarnContext(r.Context(), "send preference link", "err", err)
 		}
 	}
@@ -431,18 +497,19 @@ type unsubscribeBody struct {
 type doneBody struct {
 	Heading, Before, Email, After, Status, Action, PrefsHref, ArchiveHref, Proof string
 	Resubscribe                                                                  bool
+	// Lead is the lead paragraph as HTML, in place of Before, Email and After.
+	Lead template.HTML
 }
 
-func listNames(names []string) string {
-	switch len(names) {
-	case 0:
-		return ""
-	case 1:
-		return names[0]
-	case 2:
-		return names[0] + " and " + names[1]
+// fieldProblem is a preference change's problem in the page's language.
+func fieldProblem(fe *audience.FieldError, l pagelabels.Set) string {
+	switch fe.Code {
+	case "frequency":
+		return l.Text("error.frequency", nil)
+	case "language":
+		return l.Text("error.language", nil)
 	}
-	return strings.Join(names[:len(names)-1], ", ") + " and " + names[len(names)-1]
+	return fe.Message
 }
 
 func (h *Handler) unsubscribePage(w http.ResponseWriter, r *http.Request) {
@@ -465,55 +532,71 @@ func (h *Handler) unsubscribePage(w http.ResponseWriter, r *http.Request) {
 		h.serverError(w, r, s, err)
 		return
 	}
+	pl := h.contactLang(w, r, s, pc.Language)
 	if pc.Status == "unsubscribed" {
-		h.renderUnsubscribed(w, r, s, pc, c, token, "")
+		h.renderUnsubscribed(w, r, s, pc, c, token, "", pl)
 		return
 	}
-	body, err := h.unsubscribeBody(r.Context(), s, pc, c, token)
+	body, err := h.unsubscribeBody(r.Context(), s, pc, c, token, pl)
 	if err != nil {
 		h.serverError(w, r, s, err)
 		return
 	}
-	v := h.view(s, "Unsubscribe · "+s.set.Branding.PublisherName, body)
+	v := h.view(s, pageTitle(pl, s, "unsub.title"), body)
+	h.setLang(v, r, s, pl, nil)
 	h.render(w, r, s, "unsubscribe", http.StatusOK, v, csp{}, true)
 }
 
-func (h *Handler) unsubscribeBody(ctx context.Context, s *site, pc audience.PublicContact, c linktoken.Claims, token string) (unsubscribeBody, error) {
+func (h *Handler) unsubscribeBody(ctx context.Context, s *site, pc audience.PublicContact, c linktoken.Claims, token string, pl pageLang) (unsubscribeBody, error) {
+	l := pl.Labels
+	cp := h.copyOf(ctx, s)
 	p := s.set.Pages.Unsubscribe
+	if cp != nil {
+		p = cp.Pages(pl.Code, s.set.Pages).Unsubscribe
+	}
 	b := unsubscribeBody{Email: pc.Email, FirstName: pc.FirstName, Action: s.links.Unsubscribe(token), NotYouHref: s.links.Subscribe(""),
 		PrefsHref: s.links.Preferences(h.sign(s, linktoken.Preferences, pc.ID, c.MessageID)),
 		Fewer:     p.Fewer && pc.Frequency != "monthly", FewerTitle: p.FewerTitle, FewerText: p.FewerText, FewerButton: p.FewerButton}
 	if p.Reasons {
-		b.Reasons = unsubscribeReasons
+		for _, rv := range unsubscribeReasons {
+			b.Reasons = append(b.Reasons, reasonView{Value: rv.Value, Label: l.Text("unsub.reason."+rv.Value, nil)})
+		}
 	}
 	lists, err := h.Audience.PublicLists(ctx, h.Q, s.ws)
 	if err != nil {
 		return b, err
 	}
 	var on []string
-	for _, l := range lists {
-		if pc.Subscribed(l.ID) {
-			on = append(on, l.Name)
+	for _, pl2 := range lists {
+		if pc.Subscribed(pl2.ID) {
+			name := pl2.Name
+			if cp != nil {
+				name = cp.ListName(pl.Code, pl2)
+			}
+			on = append(on, name)
 		}
 	}
 	if len(on) == 0 {
-		b.OnLists = "You're not on any list right now."
+		b.OnLists = l.Text("unsub.onNone", nil)
 	} else {
-		b.OnLists = "You're on " + listNames(on) + "."
+		b.OnLists = l.Text("unsub.on", i18n.Args{"lists": l.Join(on)})
 	}
 	return b, nil
 }
 
-func (h *Handler) renderUnsubscribed(w http.ResponseWriter, r *http.Request, s *site, pc audience.PublicContact, c linktoken.Claims, token, status string) {
+func (h *Handler) renderUnsubscribed(w http.ResponseWriter, r *http.Request, s *site, pc audience.PublicContact, c linktoken.Claims, token, status string, pl pageLang) {
 	publisher := s.set.Branding.PublisherName
-	b := doneBody{Heading: "You're unsubscribed", Email: pc.Email,
-		After:  " won't get newsletters or automated emails from " + publisher + " any more. Account emails like password resets still arrive.",
+	l := pl.Labels
+	b := doneBody{Heading: l.Text("unsub.done.heading", nil), Email: pc.Email,
+		Lead:   labelHTML(l, "unsub.done.text", i18n.Args{"email": pc.Email, "publisher": publisher}, ""),
 		Status: status, Action: s.links.Unsubscribe(token), Resubscribe: true}
 	if s.set.Pages.Archive.Enabled {
 		b.ArchiveHref = s.links.Archive()
 	}
-	b.Proof = "Recorded so you don't get emails again, even after an import"
-	h.render(w, r, s, "done", http.StatusOK, h.view(s, "Unsubscribed · "+publisher, b), csp{}, true)
+	b.Proof = l.Text("unsub.done.proof", nil)
+	v := h.view(s, pageTitle(pl, s, "unsub.done.title"), b)
+	h.setLang(v, r, s, pl, nil)
+	h.render(w, r, s, "done", http.StatusOK, v, csp{}, true)
 }
 
 // unsubscribePost is the page's buttons and RFC 8058 one-click: mail apps
@@ -532,7 +615,7 @@ func (h *Handler) unsubscribePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !h.parseForm(w, r, 16<<10) {
-		http.Error(w, "The request couldn't be read.", http.StatusBadRequest)
+		http.Error(w, h.visitorLang(nil, r, s, nil).Labels.Text("unsub.unreadable", nil), http.StatusBadRequest)
 		return
 	}
 	f := r.PostForm
@@ -558,6 +641,8 @@ func (h *Handler) unsubscribePost(w http.ResponseWriter, r *http.Request) {
 		h.serverError(w, r, s, err)
 		return
 	}
+	pl := h.contactLang(w, r, s, pc.Language)
+	l := pl.Labels
 	switch f.Get("action") {
 	case "fewer":
 		if err := h.chooseFewer(r, s, c); err != nil {
@@ -565,12 +650,14 @@ func (h *Handler) unsubscribePost(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		publisher := s.set.Branding.PublisherName
-		b := doneBody{Heading: "Done: one email a month", Email: pc.Email, After: " gets the monthly best-of from " + publisher + " and nothing else. Change it any time in your preferences.",
+		b := doneBody{Heading: l.Text("unsub.fewer.heading", nil), Email: pc.Email, Lead: labelHTML(l, "unsub.fewer.text", i18n.Args{"email": pc.Email, "publisher": publisher}, ""),
 			PrefsHref: s.links.Preferences(h.sign(s, linktoken.Preferences, pc.ID, c.MessageID))}
 		if s.set.Pages.Archive.Enabled {
 			b.ArchiveHref = s.links.Archive()
 		}
-		h.render(w, r, s, "done", http.StatusOK, h.view(s, "Fewer emails · "+publisher, b), csp{}, true)
+		v := h.view(s, pageTitle(pl, s, "unsub.fewer.title"), b)
+		h.setLang(v, r, s, pl, nil)
+		h.render(w, r, s, "done", http.StatusOK, v, csp{}, true)
 	case "resubscribe":
 		var back []uuid.UUID
 		err := db.Tx(r.Context(), h.Pool, func(tx pgx.Tx) error {
@@ -583,15 +670,18 @@ func (h *Handler) unsubscribePost(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		publisher := s.set.Branding.PublisherName
-		b := doneBody{Heading: "Welcome back", Email: pc.Email, After: " is subscribed to " + publisher + " again.",
-			PrefsHref: s.links.Preferences(h.sign(s, linktoken.Preferences, pc.ID, c.MessageID))}
+		key := "unsub.back.text"
 		if len(back) == 0 {
-			b.After = " is subscribed to " + publisher + " again. Pick your lists in your preferences."
+			key = "unsub.back.textPick"
 		}
+		b := doneBody{Heading: l.Text("unsub.back.heading", nil), Email: pc.Email, Lead: labelHTML(l, key, i18n.Args{"email": pc.Email, "publisher": publisher}, ""),
+			PrefsHref: s.links.Preferences(h.sign(s, linktoken.Preferences, pc.ID, c.MessageID))}
 		if s.set.Pages.Archive.Enabled {
 			b.ArchiveHref = s.links.Archive()
 		}
-		h.render(w, r, s, "done", http.StatusOK, h.view(s, "Welcome back · "+publisher, b), csp{}, true)
+		v := h.view(s, pageTitle(pl, s, "unsub.back.title"), b)
+		h.setLang(v, r, s, pl, nil)
+		h.render(w, r, s, "done", http.StatusOK, v, csp{}, true)
 	default:
 		reason, comment := "", ""
 		switch v := f.Get("reason"); v {

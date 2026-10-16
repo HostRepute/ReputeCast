@@ -42,14 +42,14 @@ type filterView struct {
 }
 
 type issueView struct {
-	List, Date, ISO, Label, Title, Excerpt, Href string
+	List, Date, ISO, Label, Title, Excerpt, Href, Lang string
 }
 
 type archiveBody struct {
 	Summary, FeedHref, Action, Query, FilterList, SubscribeAction string
 	Filters                                                       []filterView
 	Issues                                                        []issueView
-	Range, NewerHref, OlderHref, Empty, PrefsHref                 string
+	Range, NewerHref, OlderHref, Empty, PrefsHref, Lang           string
 }
 
 // andNames joins list names: "the Weekly Digest and Product Updates".

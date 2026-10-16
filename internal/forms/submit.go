@@ -76,6 +76,9 @@ type Outcome struct {
 	Email     string      `json:"-"`
 	FirstName string      `json:"-"`
 	Lists     []uuid.UUID `json:"-"`
+	// Language is the language the form was shown in: the result page
+	// follows it.
+	Language string `json:"-"`
 }
 
 // Messages a visitor sees are built-in labels (internal/pagelabels), in
@@ -159,6 +162,12 @@ func (s *Service) RecordView(ctx context.Context, ws *store.Workspace, c Config,
 // when Turnstile is set up.
 func (s *Service) Submit(ctx context.Context, ws *store.Workspace, set *Settings, c Config, sub Submission) Outcome {
 	c = s.localize(ctx, ws, set, c, sub.Language)
+	out := s.submit(ctx, ws, set, c, sub)
+	out.Language = c.ShownLanguage()
+	return out
+}
+
+func (s *Service) submit(ctx context.Context, ws *store.Workspace, set *Settings, c Config, sub Submission) Outcome {
 	l := c.Labels
 	if c.Status != StatusLive {
 		return Outcome{Status: OutcomeClosed, Message: l.Text("error.closed", nil)}
@@ -453,6 +462,12 @@ type ChallengeForm func(ctx context.Context, formID string, builtin bool) (Confi
 // SolveChallenge verifies a Turnstile answer for a held submission and,
 // when Cloudflare agrees, completes it.
 func (s *Service) SolveChallenge(ctx context.Context, ws *store.Workspace, set *Settings, challengeID, answer, requested string, ip *netip.Addr, formOf ChallengeForm) Outcome {
+	out, lang := s.solveChallenge(ctx, ws, set, challengeID, answer, requested, ip, formOf)
+	out.Language = lang
+	return out
+}
+
+func (s *Service) solveChallenge(ctx context.Context, ws *store.Workspace, set *Settings, challengeID, answer, requested string, ip *netip.Addr, formOf ChallengeForm) (Outcome, string) {
 	// Until the held submission is open, messages follow the language the
 	// challenge page is shown in (requested).
 	pl := pagelabels.English()
@@ -463,32 +478,32 @@ func (s *Service) SolveChallenge(ctx context.Context, ws *store.Workspace, set *
 	}
 	id, err := uuid.Parse(challengeID)
 	if err != nil {
-		return Outcome{Status: OutcomeInvalid, Message: pl.Text("error.challengeExpired", nil)}
+		return Outcome{Status: OutcomeInvalid, Message: pl.Text("error.challengeExpired", nil)}, pl.Code()
 	}
 	row, err := s.Q.FormChallengeTake(ctx, store.FormChallengeTakeParams{ID: id, WorkspaceID: ws.ID, At: s.now()})
 	if err != nil {
-		return Outcome{Status: OutcomeInvalid, Message: pl.Text("error.challengeExpired", nil)}
+		return Outcome{Status: OutcomeInvalid, Message: pl.Text("error.challengeExpired", nil)}, pl.Code()
 	}
 	raw, err := s.Box.Open(row.PayloadEnc, "form_challenge:"+row.ID.String())
 	if err != nil {
-		return Outcome{Status: OutcomeError, Message: pl.Text("error.saveFailed", nil)}
+		return Outcome{Status: OutcomeError, Message: pl.Text("error.saveFailed", nil)}, pl.Code()
 	}
 	var h heldSubmission
 	if err := json.Unmarshal(raw, &h); err != nil {
-		return Outcome{Status: OutcomeError, Message: pl.Text("error.saveFailed", nil)}
+		return Outcome{Status: OutcomeError, Message: pl.Text("error.saveFailed", nil)}, pl.Code()
 	}
 	c, err := formOf(ctx, h.FormID, h.Builtin)
 	if err != nil {
-		return Outcome{Status: OutcomeClosed, Message: pl.Text("error.closed", nil)}
+		return Outcome{Status: OutcomeClosed, Message: pl.Text("error.closed", nil)}, pl.Code()
 	}
 	c = s.localize(ctx, ws, set, c, h.Sub.Language)
 	l := c.Labels
 	if c.Status != StatusLive {
-		return Outcome{Status: OutcomeClosed, Message: l.Text("error.closed", nil)}
+		return Outcome{Status: OutcomeClosed, Message: l.Text("error.closed", nil)}, c.ShownLanguage()
 	}
 	secret, ok := s.turnstileSecret(set)
 	if !ok {
-		return Outcome{Status: OutcomeError, Message: l.Text("error.saveFailed", nil)}
+		return Outcome{Status: OutcomeError, Message: l.Text("error.saveFailed", nil)}, c.ShownLanguage()
 	}
 	remote := ""
 	if ip != nil {
@@ -497,7 +512,7 @@ func (s *Service) SolveChallenge(ctx context.Context, ws *store.Workspace, set *
 	res, err := s.Turnstile.Verify(ctx, secret, answer, remote, row.ID.String())
 	if err != nil {
 		s.log().WarnContext(ctx, "turnstile verify", "err", err)
-		return Outcome{Status: OutcomeError, Message: l.Text("error.verifyUnreachable", nil)}
+		return Outcome{Status: OutcomeError, Message: l.Text("error.verifyUnreachable", nil)}, c.ShownLanguage()
 	}
 	if !res.Success {
 		if res.SecretRejected() {
@@ -506,7 +521,7 @@ func (s *Service) SolveChallenge(ctx context.Context, ws *store.Workspace, set *
 			}
 		}
 		s.recordReject(ctx, ws, c, "turnstile", h.Origin)
-		return Outcome{Status: OutcomeRejected, Message: l.Text("error.verifyFailed", nil)}
+		return Outcome{Status: OutcomeRejected, Message: l.Text("error.verifyFailed", nil)}, c.ShownLanguage()
 	}
 	sub := h.Sub
 	if h.IP != "" {
@@ -517,7 +532,7 @@ func (s *Service) SolveChallenge(ctx context.Context, ws *store.Workspace, set *
 	sub.UserAgent, sub.Origin = h.UserAgent, h.Origin
 	lists, errs := s.check(c, &sub)
 	if len(errs) > 0 {
-		return Outcome{Status: OutcomeInvalid, Errors: errs, Message: firstMessage(errs)}
+		return Outcome{Status: OutcomeInvalid, Errors: errs, Message: firstMessage(errs)}, c.ShownLanguage()
 	}
-	return s.accept(ctx, ws, set, c, sub, lists)
+	return s.accept(ctx, ws, set, c, sub, lists), c.ShownLanguage()
 }

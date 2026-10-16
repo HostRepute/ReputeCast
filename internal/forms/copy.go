@@ -321,10 +321,11 @@ func (pc *PagesCopy) Fallback() string {
 
 // Choose picks the language to show for a visitor's languages, in order of
 // preference: the first that's a workspace language decides, its pages when
-// they're Live, else the fallback's; with none of them, the default's.
-// live says whether a language can be shown (the pages and, on a page with
-// a form, the form too).
+// they're Live, else the fallback's; with none of them, the default's (the
+// fallback's when the default isn't Live). live says whether a language can
+// be shown (the pages and, on a page with a form, the form too).
 func (pc *PagesCopy) Choose(live func(string) bool, wants ...string) string {
+	order := []string{pc.Languages.Default, pc.Languages.Fallback, pc.CopyLanguage}
 	for _, w := range wants {
 		code := languages.Base(w)
 		if code == "" || !pc.Languages.Offers(code) {
@@ -333,9 +334,10 @@ func (pc *PagesCopy) Choose(live func(string) bool, wants ...string) string {
 		if live(code) {
 			return code
 		}
+		order = []string{pc.Languages.Fallback, pc.Languages.Default, pc.CopyLanguage}
 		break
 	}
-	for _, c := range []string{pc.Languages.Fallback, pc.Languages.Default, pc.CopyLanguage} {
+	for _, c := range order {
 		if c != "" && live(c) {
 			return c
 		}
@@ -639,6 +641,19 @@ func (s *Service) LocalizedForm(ctx context.Context, ws *store.Workspace, set *S
 	}
 	fc.listNamesIn(&out, lists)
 	return out, fc, nil
+}
+
+// FormCopyFor reads a form's copy in every language (the hosted pages pick
+// the language with it).
+func (s *Service) FormCopyFor(ctx context.Context, ws *store.Workspace, set *Settings, c Config) (*FormCopy, error) {
+	return s.loadFormCopy(ctx, s.Q, ws, set, c)
+}
+
+// Localized is the form in a language, with its lists' names in it.
+func (fc *FormCopy) Localized(code string, lists []audience.PublicList) Config {
+	c := fc.In(code)
+	fc.listNamesIn(&c, lists)
+	return c
 }
 
 // PagesCopyOf reads the public pages' copy in every language.
