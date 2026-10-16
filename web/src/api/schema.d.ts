@@ -161,6 +161,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/smtp-relay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The SMTP relay: on or off, hostname, ports, certificate and the last status check */
+        get: operations["get-smtp-relay"];
+        /**
+         * Turn the SMTP relay on or off, or change its hostname, ports or certificate
+         * @description Audited. Web processes start or stop the listeners within 30 seconds.
+         */
+        put: operations["save-smtp-relay"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/smtp-relay/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run the status checks: DNS, both ports and the certificate
+         * @description The ports are checked from this server by connecting to the hostname's address.
+         */
+        post: operations["check-smtp-relay"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/social": {
         parameters: {
             query?: never;
@@ -6313,6 +6354,23 @@ export interface paths {
         get: operations["get-transactional-settings"];
         /** Save Settings › Transactional */
         put: operations["save-transactional-settings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The API's base URL, limits and errors, the keys that can send, and the SMTP relay */
+        get: operations["get-transactional-setup"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -14425,6 +14483,80 @@ export interface components {
             /** Format: int64 */
             smallest?: number;
         };
+        SMTPRelayCertificate: {
+            /** @example Let's Encrypt */
+            issuer: string;
+            /** Format: date-time */
+            notAfter: string;
+        };
+        SMTPRelayCheck: {
+            /** @example reputecast.acme.io points to 203.0.113.40 */
+            detail: string;
+            /** @enum {string} */
+            key: "dns" | "starttls" | "tls" | "certificate";
+            ok: boolean;
+            /** Format: int64 */
+            port?: number;
+        };
+        SMTPRelayInput: {
+            /** @description PEM certificate chain (files) */
+            certFile?: string;
+            /**
+             * @default acme
+             * @enum {string}
+             */
+            certSource: "acme" | "files";
+            enabled: boolean;
+            hostname: string;
+            /** @description PEM private key (files) */
+            keyFile?: string;
+            /**
+             * Format: int64
+             * @default 587
+             */
+            starttlsPort: number;
+            /**
+             * Format: int64
+             * @default 465
+             */
+            tlsPort: number;
+        };
+        SMTPRelaySettings: {
+            certFile: string;
+            /** @enum {string} */
+            certSource: "acme" | "files";
+            certificate?: components["schemas"]["SMTPRelayCertificate"];
+            enabled: boolean;
+            /** Format: date-time */
+            enabledAt?: string;
+            enabledBy?: string;
+            /** @example reputecast.acme.io */
+            hostname: string;
+            keyFile: string;
+            renewError?: string;
+            /** Format: date-time */
+            renewFailedAt?: string;
+            /**
+             * Format: int64
+             * @example 587
+             */
+            starttlsPort: number;
+            status: components["schemas"]["SMTPRelayStatus"];
+            suggestedHostname: string;
+            /**
+             * Format: int64
+             * @example 465
+             */
+            tlsPort: number;
+            /** Format: date-time */
+            unreachableSince?: string;
+        };
+        SMTPRelayStatus: {
+            /** Format: date-time */
+            checkedAt?: string;
+            checks: components["schemas"]["SMTPRelayCheck"][];
+            from?: string;
+        };
         SSOBreakGlassOwner: {
             email: string;
             keeps: string;
@@ -16254,6 +16386,11 @@ export interface components {
             /** Format: int64 */
             sizeBytes: number;
         };
+        TransactionalErrorCode: {
+            code: string;
+            /** Format: int64 */
+            status: number;
+        };
         TransactionalFailover: {
             /** Format: date-time */
             at?: string;
@@ -16303,6 +16440,21 @@ export interface components {
             medianMs?: number;
             /** Format: int64 */
             sent: number;
+        };
+        TransactionalLimits: {
+            /** Format: int64 */
+            idempotencyHours: number;
+            /** Format: int64 */
+            maxBatch: number;
+            /** Format: int64 */
+            ratePerSecond: number;
+            /** Format: int64 */
+            routeLimitBytes: number;
+            routeLimitProvider?: string;
+            /** Format: int64 */
+            scheduleHours: number;
+            /** Format: int64 */
+            smtpRecipients: number;
         };
         TransactionalLog: {
             canExport: boolean;
@@ -16670,6 +16822,32 @@ export interface components {
             reason: "suppressed" | "opted_out" | "test_not_allowed" | "provider";
             suppression?: components["schemas"]["TransactionalSuppressionInfo"];
         };
+        TransactionalRelay: {
+            admins: string[];
+            canManage: boolean;
+            /** Format: date-time */
+            certNotAfter?: string;
+            checks: components["schemas"]["TransactionalRelayCheck"][];
+            enabled: boolean;
+            /** Format: date-time */
+            enabledAt?: string;
+            enabledBy?: string;
+            hostname?: string;
+            /** Format: int64 */
+            starttlsPort: number;
+            /** @enum {string} */
+            state: "off" | "ok" | "unreachable" | "certificate" | "unchecked";
+            /** Format: int64 */
+            tlsPort: number;
+            /** Format: date-time */
+            unreachableSince?: string;
+        };
+        TransactionalRelayCheck: {
+            detail: string;
+            /** @enum {string} */
+            key: "dns" | "starttls" | "tls" | "certificate";
+            ok: boolean;
+        };
         TransactionalRenderInput: {
             /** @description The template's variables */
             data?: {
@@ -16859,6 +17037,18 @@ export interface components {
             defaultTrackClicks: boolean;
             defaultTrackOpens: boolean;
             linkContacts: boolean;
+        };
+        TransactionalSetup: {
+            baseUrl: string;
+            canManageKeys: boolean;
+            errors: components["schemas"]["TransactionalErrorCode"][];
+            headers: string[];
+            keyHelpers: string[];
+            keys: components["schemas"]["TransactionalSendingKey"][];
+            limits: components["schemas"]["TransactionalLimits"];
+            openapiUrl: string;
+            relay: components["schemas"]["TransactionalRelay"];
+            senders: components["schemas"]["TransactionalSenderOption"][];
         };
         TransactionalStarter: {
             /** @description Usually sent with an attachment (a PDF invoice) */
@@ -18025,6 +18215,97 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["InstanceSignInList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-smtp-relay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SMTPRelaySettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-smtp-relay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SMTPRelayInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SMTPRelaySettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "check-smtp-relay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SMTPRelaySettings"];
                 };
             };
             /** @description Error */
@@ -32528,6 +32809,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TransactionalSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-transactional-setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionalSetup"];
                 };
             };
             /** @description Error */

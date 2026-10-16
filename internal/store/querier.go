@@ -997,6 +997,16 @@ type Querier interface {
 	RecordSignInThrottleFailure(ctx context.Context, arg RecordSignInThrottleFailureParams) (SignInThrottle, error)
 	RecoveryCodeStats(ctx context.Context, userID uuid.UUID) (RecoveryCodeStatsRow, error)
 	RefreshInvitation(ctx context.Context, arg RefreshInvitationParams) (Invitation, error)
+	RelayACMEDelete(ctx context.Context, key string) error
+	RelayACMEGet(ctx context.Context, key string) ([]byte, error)
+	RelayACMEPut(ctx context.Context, arg RelayACMEPutParams) error
+	// The certificate the relay serves, or why getting one failed.
+	RelaySetCert(ctx context.Context, arg RelaySetCertParams) error
+	RelaySetStatus(ctx context.Context, arg RelaySetStatusParams) error
+	// The SMTP relay (Instance admin › Instance settings) and its Let's Encrypt
+	// cache.
+	RelaySettings(ctx context.Context) (RelaySettingsRow, error)
+	RelayUpdate(ctx context.Context, arg RelayUpdateParams) error
 	ReleaseAutomationHeldMessages(ctx context.Context, arg ReleaseAutomationHeldMessagesParams) (int64, error)
 	RemoteAdapterConnected(ctx context.Context, adapter string) (int64, error)
 	RemoteAdapterDelete(ctx context.Context, id uuid.UUID) (int64, error)

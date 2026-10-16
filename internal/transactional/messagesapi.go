@@ -144,6 +144,12 @@ func RegisterMessages(h huma.API, s *Service) {
 			out, err := s.Overview(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Period, in.IncludeTest)
 			return api.OK(out), err
 		})
+	api.Get(h, api.Op{ID: "get-transactional-setup", Path: Base + "/setup", Summary: "The API's base URL, limits and errors, the keys that can send, and the SMTP relay",
+		Tags: tagLog, Access: view},
+		func(ctx context.Context, _ *api.WorkspaceInput) (*api.Body[TransactionalSetup], error) {
+			out, err := s.Setup(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx))
+			return api.OK(out), err
+		})
 	api.Post(h, api.Op{ID: "mark-transactional-alert-seen", Path: Base + "/alerts/{alertId}/seen", Summary: "Mark a delivery alert as seen (it stays open until the numbers recover)",
 		Tags: tagLog, Access: view},
 		func(ctx context.Context, in *alertPath) (*api.Empty, error) {
