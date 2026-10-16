@@ -556,7 +556,10 @@ export const m = defineMessages('integrations', {
   privateTitle: 'Webhooks to private addresses need an instance admin',
   privateBody:
     '{host} resolves to {ip}, a private address. n8n can call ReputeCast, so actions work. Triggers need ReputeCast to call n8n, and webhooks to private addresses stay blocked until an instance admin allows them. {count, plural, =0 {} one {{admins} is this instance’s admin.} other {{admins} are this instance’s admins.}}',
+  privateBodyName:
+    '{host} is a private address. n8n can call ReputeCast, so actions work. Triggers need ReputeCast to call n8n, and webhooks to private addresses stay blocked until an instance admin allows them. {count, plural, =0 {} one {{admins} is this instance’s admin.} other {{admins} are this instance’s admins.}}',
   privateAllowed: '{host} resolves to {ip}, a private address. Webhooks to private addresses are allowed on this instance, so triggers work too.',
+  privateAllowedName: '{host} is a private address. Webhooks to private addresses are allowed on this instance, so triggers work too.',
   askAdmin: 'Ask {name}',
   askAdminDone: 'Asked {name}',
   wpEyebrow: 'Connect a WordPress site',

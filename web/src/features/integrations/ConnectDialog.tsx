@@ -711,13 +711,17 @@ function PrivateNote({ check }: { check: AddressCheck }) {
   const t = useT()
   const navigate = useNavigate()
   const [asked, setAsked] = useState(false)
-  if (check.allowed) return <Note tone="ok">{t(m.privateAllowed, { host: check.host, ip: check.resolves ?? '' })}</Note>
+  // A name that doesn't resolve here (n8n.acme.internal) is private by its name alone.
+  const ip = check.resolves && check.resolves !== check.host ? check.resolves : undefined
+  if (check.allowed) return <Note tone="ok">{ip ? t(m.privateAllowed, { host: check.host, ip }) : t(m.privateAllowedName, { host: check.host })}</Note>
   const admin = check.admins[0]
   return (
     <Note tone="warn">
       <span className="font-semibold">{t(m.privateTitle)}</span>
       <div>
-        {t(m.privateBody, { host: check.host, ip: check.resolves ?? '', count: check.admins.length, admins: formatList(check.admins) })}
+        {ip
+          ? t(m.privateBody, { host: check.host, ip, count: check.admins.length, admins: formatList(check.admins) })
+          : t(m.privateBodyName, { host: check.host, count: check.admins.length, admins: formatList(check.admins) })}
         <div className="row mt-2 gap-2">
           <Button size="sm" onClick={() => void navigate({ to: '/w/$workspace/admin/instance', params: { workspace: slug } })}>
             {t(m.instanceSettings)}
