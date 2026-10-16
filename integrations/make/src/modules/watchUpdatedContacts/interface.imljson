@@ -1,0 +1,120 @@
+[
+  {
+    "name": "id",
+    "type": "text",
+    "label": "Event ID"
+  },
+  {
+    "name": "type",
+    "type": "text",
+    "label": "Event"
+  },
+  {
+    "name": "created_at",
+    "type": "date",
+    "label": "Event time"
+  },
+  {
+    "name": "workspace",
+    "type": "text",
+    "label": "Workspace"
+  },
+  {
+    "name": "data",
+    "type": "collection",
+    "label": "Data",
+    "spec": [
+      {
+        "name": "contact_id",
+        "type": "text",
+        "label": "Contact ID"
+      },
+      {
+        "name": "email",
+        "type": "email",
+        "label": "Email"
+      },
+      {
+        "name": "first_name",
+        "type": "text",
+        "label": "First name"
+      },
+      {
+        "name": "last_name",
+        "type": "text",
+        "label": "Last name"
+      },
+      {
+        "name": "company",
+        "type": "text",
+        "label": "Company"
+      },
+      {
+        "name": "country",
+        "type": "text",
+        "label": "Country"
+      },
+      {
+        "name": "timezone",
+        "type": "text",
+        "label": "Timezone"
+      },
+      {
+        "name": "language",
+        "type": "text",
+        "label": "Language"
+      },
+      {
+        "name": "tags",
+        "type": "array",
+        "label": "Tags",
+        "spec": {
+          "type": "text"
+        }
+      },
+      {
+        "name": "fields",
+        "type": "any",
+        "label": "Custom fields"
+      },
+      {
+        "name": "status",
+        "type": "text",
+        "label": "Contact status"
+      },
+      {
+        "name": "lists",
+        "type": "array",
+        "label": "Lists",
+        "spec": {
+          "type": "collection",
+          "spec": [
+            {
+              "name": "id",
+              "type": "text",
+              "label": "List ID"
+            },
+            {
+              "name": "name",
+              "type": "text",
+              "label": "Name"
+            },
+            {
+              "name": "status",
+              "type": "text",
+              "label": "Status"
+            }
+          ]
+        }
+      },
+      {
+        "name": "changed",
+        "type": "array",
+        "label": "Changed",
+        "spec": {
+          "type": "text"
+        }
+      }
+    ]
+  }
+]

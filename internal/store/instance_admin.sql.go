@@ -423,7 +423,7 @@ SET allowed_methods = $1, password_min_length = $2, password_reuse = $3,
     lockout_minutes = $10, jit_domain_allowlist = $11, social_providers = $12,
     updated_at = now()
 WHERE id
-RETURNING id, name, logo_svg, public_url, default_timezone, update_check, setup_completed_at, allowed_methods, password_min_length, breached_check, twofa_enforcement, twofa_grace_days, session_lifetime, session_idle, lockout_attempts, lockout_minutes, jit_domain_allowlist, social_providers, social_secrets_enc, audit_retention_days, latest_release, latest_release_at, updated_at, basics_confirmed_at, password_reuse, public_url_check, public_url_checked_at, update_checked_at, update_check_error, audit_stream_enabled, audit_stream_url, audit_stream_secret_enc, audit_stream_cursor_at, audit_stream_cursor_id, audit_stream_status
+RETURNING id, name, logo_svg, public_url, default_timezone, update_check, setup_completed_at, allowed_methods, password_min_length, breached_check, twofa_enforcement, twofa_grace_days, session_lifetime, session_idle, lockout_attempts, lockout_minutes, jit_domain_allowlist, social_providers, social_secrets_enc, audit_retention_days, latest_release, latest_release_at, updated_at, basics_confirmed_at, password_reuse, public_url_check, public_url_checked_at, update_checked_at, update_check_error, audit_stream_enabled, audit_stream_url, audit_stream_secret_enc, audit_stream_cursor_at, audit_stream_cursor_id, audit_stream_status, default_language, default_region_format
 `
 
 type InstanceAdminSavePolicyParams struct {
@@ -493,6 +493,8 @@ func (q *Queries) InstanceAdminSavePolicy(ctx context.Context, arg InstanceAdmin
 		&i.AuditStreamCursorAt,
 		&i.AuditStreamCursorID,
 		&i.AuditStreamStatus,
+		&i.DefaultLanguage,
+		&i.DefaultRegionFormat,
 	)
 	return i, err
 }
@@ -503,7 +505,7 @@ SET name = $1, public_url = $2, default_timezone = $3, updated_at = now(),
     public_url_check = CASE WHEN public_url = $2 THEN public_url_check END,
     public_url_checked_at = CASE WHEN public_url = $2 THEN public_url_checked_at END
 WHERE id
-RETURNING id, name, logo_svg, public_url, default_timezone, update_check, setup_completed_at, allowed_methods, password_min_length, breached_check, twofa_enforcement, twofa_grace_days, session_lifetime, session_idle, lockout_attempts, lockout_minutes, jit_domain_allowlist, social_providers, social_secrets_enc, audit_retention_days, latest_release, latest_release_at, updated_at, basics_confirmed_at, password_reuse, public_url_check, public_url_checked_at, update_checked_at, update_check_error, audit_stream_enabled, audit_stream_url, audit_stream_secret_enc, audit_stream_cursor_at, audit_stream_cursor_id, audit_stream_status
+RETURNING id, name, logo_svg, public_url, default_timezone, update_check, setup_completed_at, allowed_methods, password_min_length, breached_check, twofa_enforcement, twofa_grace_days, session_lifetime, session_idle, lockout_attempts, lockout_minutes, jit_domain_allowlist, social_providers, social_secrets_enc, audit_retention_days, latest_release, latest_release_at, updated_at, basics_confirmed_at, password_reuse, public_url_check, public_url_checked_at, update_checked_at, update_check_error, audit_stream_enabled, audit_stream_url, audit_stream_secret_enc, audit_stream_cursor_at, audit_stream_cursor_id, audit_stream_status, default_language, default_region_format
 `
 
 type InstanceAdminSaveSettingsParams struct {
@@ -552,6 +554,8 @@ func (q *Queries) InstanceAdminSaveSettings(ctx context.Context, arg InstanceAdm
 		&i.AuditStreamCursorAt,
 		&i.AuditStreamCursorID,
 		&i.AuditStreamStatus,
+		&i.DefaultLanguage,
+		&i.DefaultRegionFormat,
 	)
 	return i, err
 }

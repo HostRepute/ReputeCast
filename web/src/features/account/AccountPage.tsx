@@ -8,11 +8,15 @@ import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Grid } from '@/components/ui/Layout'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
+import { LanguageRegionCard } from '@/features/language/LanguageRegionCard'
+import { t as tr, useT } from '@/i18n'
+import { roleName } from '@/lib/roles'
 import { meQueryKey, useWorkspace } from '@/lib/session'
 import { ConnectedSignInsCard } from './ConnectedSignInsCard'
 import { NotificationPreferencesCard, WorkspacesCard } from './OtherCards'
 import { ProfileCard } from './ProfileCard'
 import { AuthenticatorCard, PasskeysCard, PasswordCard } from './SecurityCards'
+import { m } from './messages'
 import { SessionsCard } from './SessionsCard'
 
 export const accountKey = ['get', '/api/v1/me/account'] as const
@@ -27,16 +31,20 @@ export function useRefreshAccount() {
 
 /** A5 §5.6 Account & security (AccountSecurity and AccountStates boards). */
 export function AccountPage({ verifyEmail }: { verifyEmail?: string }) {
+  const t = useT()
   const { me: ws } = useWorkspace()
   const account = $api.useQuery('get', '/api/v1/me/account')
   const a = account.data
-  const subtitle = a ? [a.profile.email, `${ws.workspace.roleName} of ${ws.workspace.name}`, a.profile.isInstanceAdmin ? 'instance admin' : null].filter(Boolean).join(' · ') : undefined
+  const role = roleName({ key: ws.workspace.roleKey, name: ws.workspace.roleName })
+  const subtitle = a
+    ? [a.profile.email, t(m.roleIn, { role, workspace: ws.workspace.name }), a.profile.isInstanceAdmin ? t(m.instanceAdmin) : null].filter(Boolean).join(' · ')
+    : undefined
   return (
-    <Page title="Account & security" subtitle={subtitle}>
+    <Page title={t(m.title)} subtitle={subtitle}>
       <VerifyEmail token={verifyEmail} />
       {account.isError ? (
-        <ErrorPanel title="Couldn't load your account" actions={<Button onClick={() => account.refetch()}>Retry</Button>}>
-          {errorMessage(account.error)} Nothing was changed.
+        <ErrorPanel title={t(m.loadFailed)} actions={<Button onClick={() => account.refetch()}>{t(m.retry)}</Button>}>
+          {errorMessage(account.error)} {t(m.nothingChanged)}
         </ErrorPanel>
       ) : !a ? (
         <AccountSkeleton />
@@ -48,6 +56,7 @@ export function AccountPage({ verifyEmail }: { verifyEmail?: string }) {
                   (which explains SSO) sits beside the profile and passkeys. */}
               <div className="col min-w-0" style={{ gap: 20 }}>
                 <ProfileCard a={a} />
+                <LanguageRegionCard />
                 <PasskeysCard a={a} />
                 {a.twoFactor.totp ? <AuthenticatorCard a={a} /> : null}
               </div>
@@ -56,6 +65,8 @@ export function AccountPage({ verifyEmail }: { verifyEmail?: string }) {
           ) : (
             <>
               <ProfileCard a={a} />
+              {/* Language & region follows Profile (LanguageRegion board). */}
+              <LanguageRegionCard />
               <PasswordCard a={a} />
               <PasskeysCard a={a} />
               {a.password.set || a.twoFactor.totp ? <AuthenticatorCard a={a} /> : null}
@@ -73,6 +84,7 @@ export function AccountPage({ verifyEmail }: { verifyEmail?: string }) {
 
 /** Confirms an email change from the verification link (…/account?verifyEmail=…). */
 function VerifyEmail({ token }: { token?: string }) {
+  const t = useT()
   const navigate = useNavigate()
   const refresh = useRefreshAccount()
   const qc = useQueryClient()
@@ -85,7 +97,7 @@ function VerifyEmail({ token }: { token?: string }) {
       try {
         const { data } = await http.POST('/api/v1/me/email/verify', { body: { token } })
         setState({ ok: data?.email })
-        toast({ kind: 'success', title: 'Email changed', detail: `You sign in with ${data?.email} now.` })
+        toast({ kind: 'success', title: tr(m.emailChanged), detail: tr(m.signInWith, { email: data?.email ?? '' }) })
         await refresh()
         await qc.invalidateQueries({ queryKey: meQueryKey })
       } catch (e) {
@@ -97,13 +109,13 @@ function VerifyEmail({ token }: { token?: string }) {
   }, [token, navigate, refresh, qc])
   if (state.ok)
     return (
-      <Note tone="ok" label="Email changed">
-        You sign in with {state.ok} now. Your old address got a note about the change.
+      <Note tone="ok" label={t(m.emailChanged)}>
+        {t(m.emailChangedNote, { email: state.ok })}
       </Note>
     )
   if (state.error)
     return (
-      <Note tone="bad" label="Not changed">
+      <Note tone="bad" label={t(m.notChanged)}>
         {state.error}
       </Note>
     )
@@ -129,10 +141,11 @@ function CardSkeleton({ rows = 3, wide }: { rows?: number; wide?: boolean }) {
 }
 
 function AccountSkeleton() {
+  const t = useT()
   return (
     <Grid min={420} gap={20} className="items-start" aria-busy="true">
       <span className="vh" role="status">
-        Loading your account…
+        {t(m.loading)}
       </span>
       <CardSkeleton rows={5} />
       <CardSkeleton rows={4} />

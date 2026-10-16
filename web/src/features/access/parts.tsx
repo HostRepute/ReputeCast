@@ -4,7 +4,11 @@ import { GitHubMark, GoogleMark, MicrosoftMark } from '@/components/icons/Icon'
 import { Avatar } from '@/components/ui/Avatar'
 import { Badge, SensitiveFlag, type Tone } from '@/components/ui/Badge'
 import { Table } from '@/components/ui/Table'
+import { t, useT } from '@/i18n'
 import { cn } from '@/lib/cn'
+import { andList } from '@/lib/format'
+import { roleName } from '@/lib/roles'
+import { m } from './messages'
 
 /**
  * The avatar + name + mono email cell of the team and keys tables. On phones
@@ -41,24 +45,45 @@ export function roleTone(role: { key: string; builtin: boolean }): Tone {
   return role.builtin ? 'neutral' : 'info'
 }
 
+/** A role in its badge, the built-in roles' names translated (lib/roles). */
 export function RoleBadge({ role }: { role: { key: string; name: string; builtin: boolean } }) {
-  return <Badge tone={roleTone(role)}>{role.name}</Badge>
+  return <Badge tone={roleTone(role)}>{roleName(role)}</Badge>
+}
+
+/**
+ * A member's or a key's scope in words: "Beta Program list only" (members
+ * say "list"), "Weekly Digest only" (keys), "2 lists · news.acme.io only".
+ * Empty for full access.
+ */
+export function scopeLabel(scope: Schemas['ScopeSummary'], { listWord = true }: { listWord?: boolean } = {}): string {
+  if (scope.all) return ''
+  const lists = scope.lists.map((l) => l.name)
+  const domains = scope.senderDomains
+  if (lists.length === 1 && domains.length === 0) return listWord ? t(m.scopeList, { list: lists[0]! }) : t(m.scopeOnly, { name: lists[0]! })
+  if (lists.length === 0 && domains.length === 1) return t(m.scopeOnly, { name: domains[0]! })
+  const parts: string[] = []
+  if (lists.length > 0) parts.push(lists.length <= 2 ? andList(lists) : t(m.scopeLists, { count: lists.length }))
+  parts.push(...domains)
+  return t(m.scopeParts, { parts: parts.join(' · ') })
 }
 
 /** Sign-in methods: "Password · passkey" or the provider mark and "Google Workspace SSO". */
 export function SignInText({ methods }: { methods: Schemas['MemberSignInMethod'][] }) {
+  const tr = useT()
   if (methods.length === 0) return <span className="k">–</span>
   return (
     <>
-      {methods.map((m, i) => (
+      {methods.map((s, i) => (
         <span key={i}>
           {i > 0 ? ' · ' : null}
-          {m.kind === 'sso' || m.kind === 'google' || m.kind === 'microsoft' || m.kind === 'github' ? (
+          {s.kind === 'sso' || s.kind === 'google' || s.kind === 'microsoft' || s.kind === 'github' ? (
             <>
-              <ProviderMark preset={m.preset ?? m.kind} /> {m.label}
+              <ProviderMark preset={s.preset ?? s.kind} /> {s.label}
             </>
+          ) : s.kind === 'password' ? (
+            tr(m.signInPassword)
           ) : (
-            m.label
+            tr(i === 0 ? m.signInPasskeyFirst : m.signInPasskey)
           )}
         </span>
       ))}
@@ -90,24 +115,25 @@ export function ProviderMark({ preset, size = 14 }: { preset: string; size?: num
 
 /** Two-factor badge: On · TOTP, Via IdP, Required · off with the grace period, Off. */
 export function TwoFABadge({ twoFA }: { twoFA: Schemas['MemberTwoFA'] }) {
+  const tr = useT()
   switch (twoFA.state) {
     case 'on':
-      return <Badge tone="ok">On · {twoFA.method === 'passkey' ? 'passkey' : 'TOTP'}</Badge>
+      return <Badge tone="ok">{tr(m.twoFAOn, { method: twoFA.method === 'passkey' ? 'passkey' : 'totp' })}</Badge>
     case 'idp':
-      return <Badge tone="ok">Via IdP</Badge>
+      return <Badge tone="ok">{tr(m.twoFAIdp)}</Badge>
     case 'required':
       return (
         <span className="col gap-0.5">
-          <Badge tone="warn">Required · off</Badge>
+          <Badge tone="warn">{tr(m.twoFARequired)}</Badge>
           {twoFA.graceDays !== undefined ? (
-            <span className="k">{twoFA.graceDays === 0 ? 'grace ends today' : `grace ends in ${twoFA.graceDays} ${twoFA.graceDays === 1 ? 'day' : 'days'}`}</span>
+            <span className="k">{twoFA.graceDays === 0 ? tr(m.graceToday) : tr(m.graceDays, { days: twoFA.graceDays })}</span>
           ) : (
-            <span className="k">grace period over</span>
+            <span className="k">{tr(m.graceOver)}</span>
           )}
         </span>
       )
   }
-  return <Badge tone="neutral">Off</Badge>
+  return <Badge tone="neutral">{tr(m.twoFAOff)}</Badge>
 }
 
 /** A permission key in mono with its ⚑ flag when sensitive. */
@@ -150,19 +176,20 @@ export function GroupRow({ label, cells }: { label: string; cells: number }) {
 
 /** ✓ or – in the compare-roles matrix, with words for screen readers. */
 export function HasMark({ on }: { on: boolean }) {
+  const tr = useT()
   return on ? (
     <>
       <span className="font-bold text-accent" aria-hidden="true">
         ✓
       </span>
-      <span className="vh">Granted</span>
+      <span className="vh">{tr(m.granted)}</span>
     </>
   ) : (
     <>
       <span className="k" aria-hidden="true">
         –
       </span>
-      <span className="vh">Not granted</span>
+      <span className="vh">{tr(m.notGranted)}</span>
     </>
   )
 }

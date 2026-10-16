@@ -1,0 +1,71 @@
+[
+  {
+    "name": "email",
+    "type": "email",
+    "label": "Email",
+    "required": true,
+    "help": "The contact is matched by this address: an existing contact is updated, otherwise one is created."
+  },
+  {
+    "name": "firstName",
+    "type": "text",
+    "label": "First name"
+  },
+  {
+    "name": "lastName",
+    "type": "text",
+    "label": "Last name"
+  },
+  {
+    "name": "company",
+    "type": "text",
+    "label": "Company"
+  },
+  {
+    "name": "language",
+    "type": "text",
+    "label": "Language",
+    "help": "A language code such as es or es-MX. Names like Spanish and codes like es_MX work too."
+  },
+  {
+    "name": "tags",
+    "type": "array",
+    "label": "Tags",
+    "spec": {
+      "type": "text",
+      "label": "Tag"
+    },
+    "help": "Added to the contact's tags. Tags they already have stay."
+  },
+  {
+    "name": "lists",
+    "type": "select",
+    "label": "Lists",
+    "multiple": true,
+    "options": "rpc://listLists",
+    "help": "Lists to add the contact to."
+  },
+  {
+    "name": "consent",
+    "type": "select",
+    "label": "Opt-in",
+    "options": [
+      {
+        "label": "Single opt-in: add them to the list now",
+        "value": "single"
+      },
+      {
+        "label": "Double opt-in: send the confirmation email first",
+        "value": "double"
+      }
+    ],
+    "help": "Leave it empty to use each list's own setting. ReputeCast never adds someone back to a list they left, and never adds a suppressed address."
+  },
+  {
+    "name": "fields",
+    "type": "collection",
+    "label": "Custom fields",
+    "spec": "rpc://listFields",
+    "help": "The workspace's custom fields (Audience › Fields)."
+  }
+]

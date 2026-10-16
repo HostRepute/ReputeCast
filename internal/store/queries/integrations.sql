@@ -257,7 +257,7 @@ WHERE iw.integration_id = @integration_id
 ORDER BY h.created_at;
 
 -- name: IntegrationWebhookOf :one
-SELECT iw.webhook_id, iw.event, h.url FROM integration_webhooks iw
+SELECT iw.webhook_id, iw.event, h.url, h.created_at FROM integration_webhooks iw
 JOIN webhooks h ON h.id = iw.webhook_id
 WHERE iw.webhook_id = @webhook_id AND iw.integration_id = @integration_id;
 
@@ -330,6 +330,14 @@ WHERE integration_id = @integration_id;
 -- name: WordPressSiteChecked :exec
 UPDATE wordpress_sites SET last_check_at = @at::timestamptz, last_check = @last_check
 WHERE integration_id = @integration_id;
+
+-- name: WordPressSiteKeyHashes :many
+-- The hashes of a site's live keys, newest first (a rotated key keeps
+-- working for 24 hours): "Check now" signs its call with them, so the
+-- plugin answers only the workspace it's connected to.
+SELECT token_hash FROM api_keys
+WHERE integration_id = @integration_id AND (revoked_at IS NULL OR grace_until > now())
+ORDER BY created_at DESC;
 
 -- name: WordPressSiteSetRule :exec
 UPDATE wordpress_sites SET rule_enabled = @enabled, rule = @rule, rule_updated_by = @by, rule_updated_at = @at::timestamptz

@@ -1,0 +1,8 @@
+{
+  "url": "/workspaces/{{connection.workspace}}/lists/{{parameters.list}}/contacts",
+  "method": "POST",
+  "body": "{{omit(parameters, 'list')}}",
+  "response": {
+    "output": "{{body}}"
+  }
+}

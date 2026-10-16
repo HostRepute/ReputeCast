@@ -3,18 +3,12 @@ import { useInstanceMeta } from '@/components/shell/AuthLayout'
 import { Button } from '@/components/ui/Button'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
+import { t, useT } from '@/i18n'
+import { m } from './parts.messages'
 
 function codesText(codes: string[], email: string, instance: string) {
   const when = new Date().toISOString().slice(0, 10)
-  return [
-    `${instance} recovery codes for ${email}`,
-    `Generated ${when}. Each code signs you in once if you lose your authenticator or passkey.`,
-    '',
-    ...codes,
-    '',
-    'Keep them somewhere safe, like a password manager. Generating new codes replaces these.',
-    '',
-  ].join('\n')
+  return [t(m.codesFileTitle, { instance, email }), t(m.codesFileGenerated, { date: when }), '', ...codes, '', t(m.codesFileKeep), ''].join('\n')
 }
 
 function fileName(instance: string) {
@@ -23,6 +17,7 @@ function fileName(instance: string) {
 
 /** Download .txt · Print · Copy all for a set of recovery codes. */
 export function RecoveryCodeActions({ codes, email }: { codes: string[]; email: string }) {
+  const tr = useT()
   const { data: meta } = useInstanceMeta()
   const instance = meta?.instanceName ?? 'ReputeCast'
   const text = codesText(codes, email, instance)
@@ -41,7 +36,7 @@ export function RecoveryCodeActions({ codes, email }: { codes: string[]; email: 
           window.setTimeout(() => URL.revokeObjectURL(url), 1000)
         }}
       >
-        Download .txt
+        {tr(m.download)}
       </Button>
       <Button
         size="sm"
@@ -65,20 +60,20 @@ export function RecoveryCodeActions({ codes, email }: { codes: string[]; email: 
           window.setTimeout(() => frame.remove(), 1000)
         }}
       >
-        Print
+        {tr(m.print)}
       </Button>
       <Button
         size="sm"
         onClick={async () => {
           try {
             await navigator.clipboard.writeText(codes.join('\n'))
-            toast({ kind: 'success', title: 'Recovery codes copied' })
+            toast({ kind: 'success', title: tr(m.codesCopied) })
           } catch {
-            toast({ kind: 'error', title: "Couldn't copy", detail: 'Select the codes and copy them by hand.' })
+            toast({ kind: 'error', title: tr(m.copyFailed), detail: tr(m.copyCodesByHand) })
           }
         }}
       >
-        Copy all
+        {tr(m.copyAll)}
       </Button>
     </div>
   )
@@ -86,8 +81,9 @@ export function RecoveryCodeActions({ codes, email }: { codes: string[]; email: 
 
 /** The codes grid (`.rc` on the boards). */
 export function RecoveryCodeList({ codes }: { codes: string[] }) {
+  const tr = useT()
   return (
-    <div className="rc-box" role="list" aria-label="Recovery codes">
+    <div className="rc-box" role="list" aria-label={tr(m.codesList)}>
       {codes.map((c) => (
         <span role="listitem" key={c}>
           {c}
@@ -105,7 +101,7 @@ export function RecoveryCodesPanel({
   codes,
   email,
   onFinish,
-  finishLabel = 'Finish',
+  finishLabel,
   busy,
 }: {
   codes: string[]
@@ -114,21 +110,23 @@ export function RecoveryCodesPanel({
   finishLabel?: string
   busy?: boolean
 }) {
+  const tr = useT()
   const [saved, setSaved] = useState(false)
   const id = useId()
   return (
     <>
-      <Note tone="warn" label="Shown once">
-        Each code signs you in once if you lose your authenticator. Store them somewhere safe; you won't see them again.
+      <Note tone="warn" label={tr(m.shownOnce)}>
+        {tr(m.shownOnceBody)}
       </Note>
       <RecoveryCodeList codes={codes} />
       <RecoveryCodeActions codes={codes} email={email} />
       <label className="flex items-center gap-2.5 text-[13.5px]" htmlFor={id}>
-        <input type="checkbox" id={id} className="m-[3px_3px_3px_4px]" checked={saved} onChange={(e) => setSaved(e.target.checked)} />I have saved these codes
+        <input type="checkbox" id={id} className="m-[3px_3px_3px_4px]" checked={saved} onChange={(e) => setSaved(e.target.checked)} />
+        {tr(m.savedCodes)}
       </label>
       <div className="flex justify-end">
-        <Button variant="primary" loading={busy} disabledReason={saved ? undefined : 'Confirm that you saved the codes first'} onClick={onFinish}>
-          {finishLabel}
+        <Button variant="primary" loading={busy} disabledReason={saved ? undefined : tr(m.confirmSavedFirst)} onClick={onFinish}>
+          {finishLabel ?? tr(m.finish)}
         </Button>
       </div>
     </>

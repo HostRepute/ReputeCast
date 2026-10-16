@@ -663,8 +663,9 @@ SELECT t.id, t.workspace_id, t.owner_kind, t.owner_id, t.owner_version, t.langua
 FROM content_translations t
 LEFT JOIN users tu ON tu.id = t.translated_by
 LEFT JOIN users uu ON uu.id = t.updated_by
+LEFT JOIN workspace_languages wl ON wl.workspace_id = t.workspace_id AND wl.code = t.language
 WHERE t.owner_kind = $1 AND t.owner_id = $2 AND t.owner_version = $3
-ORDER BY t.created_at, t.language
+ORDER BY wl.is_default DESC NULLS LAST, wl.added_at NULLS LAST, t.language
 `
 
 type ContentTranslationsParams struct {
@@ -703,7 +704,9 @@ type ContentTranslationsRow struct {
 	UpdatedByName    string          `json:"updatedByName"`
 }
 
-// The language versions of an email, with who translated and last saved them.
+// The language versions of an email, in the order of the workspace's
+// languages ("English, Spanish and German"), with who translated and last
+// saved them.
 func (q *Queries) ContentTranslations(ctx context.Context, arg ContentTranslationsParams) ([]ContentTranslationsRow, error) {
 	rows, err := q.db.Query(ctx, contentTranslations, arg.OwnerKind, arg.OwnerID, arg.OwnerVersion)
 	if err != nil {

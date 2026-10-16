@@ -1,5 +1,6 @@
 import { Link, type LinkProps } from '@tanstack/react-router'
 import { Fragment, useEffect, useRef, type ReactNode } from 'react'
+import { LanguageSuggestion } from '@/features/language/LanguageSuggestion'
 import { useT } from '@/i18n'
 import { cn } from '@/lib/cn'
 import { useDocumentTitle } from '@/lib/hooks'
@@ -101,6 +102,8 @@ export function Page({
         {toolsAfterTabs ? acts : null}
       </header>
       <main className={cn('content', contentClassName)} id="main" tabIndex={-1}>
+        {/* "Your browser prefers …": offered once, until answered (X07). */}
+        <LanguageSuggestion />
         {children}
       </main>
     </>

@@ -2,6 +2,9 @@ package integrations
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,6 +14,7 @@ import (
 	"net/url"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -28,6 +32,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/netguard"
 	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/store"
+	"github.com/hostrepute/reputecast/internal/webhooks"
 )
 
 // KnownPluginVersion is the WordPress plugin release this version of
@@ -278,6 +283,19 @@ type WordPressPost struct {
 	Categories  []string   `json:"categories,omitempty" maxItems:"100" doc:"Category slugs"`
 	PublishedAt *time.Time `json:"publishedAt,omitempty"`
 	Language    string     `json:"language,omitempty" maxLength:"40"`
+	// Translations (plugin 1.3.0, with WPML or Polylang) become the draft's
+	// language versions, marked up to date.
+	Translations []WordPressPostTranslation `json:"translations,omitempty" maxItems:"20" doc:"The post's translations (plugin 1.3.0, WPML or Polylang): they become the draft's language versions"`
+}
+
+// WordPressPostTranslation is one of a post's translations.
+type WordPressPostTranslation struct {
+	ID       string `json:"id" maxLength:"64"`
+	Language string `json:"language" minLength:"2" maxLength:"40" example:"es"`
+	URL      string `json:"url,omitempty" maxLength:"1000"`
+	Title    string `json:"title" minLength:"1" maxLength:"300"`
+	Excerpt  string `json:"excerpt,omitempty" maxLength:"2000"`
+	ImageURL string `json:"imageUrl,omitempty" maxLength:"1000"`
 }
 
 // WordPressDraftInput asks for a campaign draft from a post.
@@ -293,6 +311,9 @@ type WordPressDraftResult struct {
 	Reason     string `json:"reason,omitempty" enum:"no_rule,rule_off,category,exists,"`
 	CampaignID string `json:"campaignId,omitempty"`
 	Name       string `json:"name,omitempty"`
+	// Languages are the language versions the post's translations added:
+	// to the new draft, or to the post's draft when it exists.
+	Languages []string `json:"languages,omitempty"`
 }
 
 // WordPressRule is a site's post-draft rule.
@@ -330,18 +351,23 @@ func (s *Service) CreateDraft(ctx context.Context, ws *store.Workspace, p *authz
 		return WordPressDraftResult{}, api.Invalid("body.post.id", "Send the post's id.")
 	}
 	noteTargetJSON(ctx, CallTarget{Kind: "draft", Title: post.Title})
-	if d, err := s.Q.WordPressDraftByPost(ctx, store.WordPressDraftByPostParams{IntegrationID: ik.ID, PostID: post.ID}); err == nil {
-		out := WordPressDraftResult{Reason: "exists"}
-		if d.CampaignID != nil {
-			out.CampaignID = d.CampaignID.String()
-		}
-		return out, nil
-	}
 	site, err := s.Q.WordPressSite(ctx, ik.ID)
 	if err != nil {
 		return WordPressDraftResult{}, api.MapError(err, "Site")
 	}
 	rule := parseRule(site.Rule)
+	host := siteBareHost(firstNonEmpty(site.SiteUrl, site.Address))
+	if d, ok := s.postDraft(ctx, ik.ID, post); ok {
+		out := WordPressDraftResult{Reason: "exists"}
+		if d.CampaignID != nil {
+			out.CampaignID = d.CampaignID.String()
+			if len(post.Translations) > 0 {
+				// A translation published after the post joins its draft.
+				out.Languages = s.draftLanguages(ctx, ws, p, rule, *d.CampaignID, post, host, true)
+			}
+		}
+		return out, nil
+	}
 	switch {
 	case len(rule.ListIDs) == 0:
 		return WordPressDraftResult{Reason: "no_rule"}, nil
@@ -369,7 +395,6 @@ func (s *Service) CreateDraft(ctx context.Context, ws *store.Workspace, p *authz
 	if id, err := uuid.Parse(rule.NotifyUserID); err == nil {
 		notifyUser = &id
 	}
-	host := siteBareHost(firstNonEmpty(site.SiteUrl, site.Address))
 	campaignID := uuid.Must(uuid.NewV7())
 	owner := p.UserID
 	var creator *uuid.UUID
@@ -431,7 +456,77 @@ func (s *Service) CreateDraft(ctx context.Context, ws *store.Workspace, p *authz
 	if err != nil {
 		return WordPressDraftResult{}, err
 	}
-	return WordPressDraftResult{Created: true, CampaignID: campaignID.String(), Name: clip(post.Title, 200)}, nil
+	return WordPressDraftResult{Created: true, CampaignID: campaignID.String(), Name: clip(post.Title, 200),
+		Languages: s.draftLanguages(ctx, ws, p, rule, campaignID, post, host, false)}, nil
+}
+
+// postDraft finds the draft of a post, or of one of its translations: a
+// translation published first made the draft its post now joins.
+func (s *Service) postDraft(ctx context.Context, site uuid.UUID, post WordPressPost) (store.WordpressDraft, bool) {
+	ids := []string{post.ID}
+	for _, t := range post.Translations {
+		if id := strings.TrimSpace(t.ID); id != "" && !slices.Contains(ids, id) {
+			ids = append(ids, id)
+		}
+	}
+	for _, id := range ids {
+		if d, err := s.Q.WordPressDraftByPost(ctx, store.WordPressDraftByPostParams{IntegrationID: site, PostID: id}); err == nil {
+			return d, true
+		}
+	}
+	return store.WordpressDraft{}, false
+}
+
+// DraftVersion is a language version of a post's draft: a translation's
+// subject, preheader and content.
+type DraftVersion struct {
+	Language  string
+	Subject   string
+	Preheader string
+	MJML      string
+	HTML      string
+	Label     string
+}
+
+// DraftLanguages writes a post draft's languages (plugin 1.3.0). The
+// content-languages domain implements it; without it a draft has one
+// language.
+type DraftLanguages interface {
+	// Add writes the draft in the post's language (source), when the
+	// workspace offers it and the draft has no versions yet, then adds the
+	// versions the workspace offers that the draft doesn't have, marked up
+	// to date. It returns the languages added.
+	Add(ctx context.Context, ws *store.Workspace, p *authz.Principal, campaignID uuid.UUID, source string, versions []DraftVersion) ([]string, error)
+}
+
+// draftLanguages turns a post's translations into its draft's language
+// versions. Joining (the draft exists), the post itself is one more
+// version and the draft's language stays. A failure leaves the draft as
+// it is: it is logged, and the result lists what was added.
+func (s *Service) draftLanguages(ctx context.Context, ws *store.Workspace, p *authz.Principal, rule WordPressRule, campaignID uuid.UUID, post WordPressPost, host string, joining bool) []string {
+	if s.Languages == nil || (len(post.Translations) == 0 && post.Language == "") {
+		return nil
+	}
+	version := func(lang string, t WordPressPost) DraftVersion {
+		src, subject, preheader := s.postContent(ctx, ws, rule, t)
+		return DraftVersion{Language: lang, Subject: subject, Preheader: preheader, MJML: src, HTML: mjml.Compile(src).HTML,
+			Label: "translation of the post on " + host}
+	}
+	versions := []DraftVersion{}
+	source := post.Language
+	if joining {
+		versions = append(versions, version(post.Language, post))
+		source = ""
+	}
+	for _, t := range post.Translations {
+		// A translation without its own featured image shows the post's.
+		versions = append(versions, version(t.Language, WordPressPost{ID: t.ID, URL: t.URL, Title: t.Title, Excerpt: t.Excerpt, ImageURL: firstNonEmpty(t.ImageURL, post.ImageURL)}))
+	}
+	added, err := s.Languages.Add(ctx, ws, p, campaignID, source, versions)
+	if err != nil && s.Log != nil {
+		s.Log.WarnContext(ctx, "wordpress: the post's translations didn't become language versions", "campaign", campaignID, "err", err)
+	}
+	return added
 }
 
 func publishedWords(t *time.Time, ws *store.Workspace) string {
@@ -460,6 +555,10 @@ func categoryNames(raw json.RawMessage, slugs []string) []string {
 
 var postPlaceholder = regexp.MustCompile(`\{\{\s*post\.(title|excerpt|image_url|url)\s*\}\}`)
 
+// postImage is a template's image of the post, left out for a post
+// without a featured image (an mj-image needs a src).
+var postImage = regexp.MustCompile(`<mj-image\b[^>]*\{\{\s*post\.image_url\s*\}\}[^>]*?(?:/>|>\s*</mj-image>)`)
+
 // postContent fills the template's post section with the post: the
 // featured image, the title, the excerpt and a "Read more" button. A
 // template without {{ post.… }} placeholders gets the section at the top.
@@ -480,6 +579,9 @@ func (s *Service) postContent(ctx context.Context, ws *store.Workspace, rule Wor
 		src = `<mjml><mj-body background-color="#F3F4F6"></mj-body></mjml>`
 	}
 	if postPlaceholder.MatchString(src) {
+		if post.ImageURL == "" {
+			src = postImage.ReplaceAllString(src, "")
+		}
 		return postPlaceholder.ReplaceAllStringFunc(src, func(m string) string {
 			return values[postPlaceholder.FindStringSubmatch(m)[1]]
 		}), subject, preheader
@@ -633,7 +735,11 @@ func (s *Service) CheckSite(ctx context.Context, ws *store.Workspace, id uuid.UU
 	if base == "" {
 		base = siteBase(site.Address)
 	}
-	out := s.probe(ctx, strings.TrimRight(base, "/")+"/wp-json/reputecast/v1/status")
+	hashes, err := s.Q.WordPressSiteKeyHashes(ctx, &conn.ID)
+	if err != nil {
+		return WordPressCheck{}, err
+	}
+	out := s.probe(ctx, strings.TrimRight(base, "/")+"/wp-json/reputecast/v1/status", statusHeaders(hashes, s.now()))
 	out.CheckedAt = s.now()
 	b, _ := json.Marshal(out)
 	if err := s.Q.WordPressSiteChecked(ctx, store.WordPressSiteCheckedParams{IntegrationID: conn.ID, At: out.CheckedAt, LastCheck: b}); err != nil {
@@ -642,8 +748,34 @@ func (s *Service) CheckSite(ctx context.Context, ws *store.Workspace, id uuid.UU
 	return out, nil
 }
 
+// StatusSignature signs a "Check now" call with one of a site's keys: the
+// hex HMAC-SHA256 of "{timestamp}.status", keyed with the key's SHA-256.
+// ReputeCast keeps only that hash; the plugin computes it from the key it
+// holds, so it answers only the workspace it's connected to.
+func StatusSignature(keyHash []byte, ts int64) string {
+	m := hmac.New(sha256.New, keyHash)
+	m.Write([]byte(strconv.FormatInt(ts, 10) + ".status"))
+	return hex.EncodeToString(m.Sum(nil))
+}
+
+// statusHeaders sign a "Check now" call with every live key of the site
+// (a rotated key keeps working for 24 hours, and the plugin may still hold
+// it): X-ReputeCast-Timestamp, and the signatures comma-separated in
+// X-ReputeCast-Signature.
+func statusHeaders(hashes [][]byte, now time.Time) map[string]string {
+	if len(hashes) == 0 {
+		return nil
+	}
+	ts := now.Unix()
+	sigs := make([]string, 0, len(hashes))
+	for _, h := range hashes {
+		sigs = append(sigs, StatusSignature(h, ts))
+	}
+	return map[string]string{webhooks.HeaderTimestamp: strconv.FormatInt(ts, 10), webhooks.HeaderSignature: strings.Join(sigs, ",")}
+}
+
 // probe GETs a site's status endpoint and describes the answer.
-func (s *Service) probe(ctx context.Context, target string) WordPressCheck {
+func (s *Service) probe(ctx context.Context, target string, headers map[string]string) WordPressCheck {
 	u, err := s.policy().ValidateURL(target)
 	if err != nil {
 		return WordPressCheck{Outcome: "blocked", Detail: "Blocked: " + err.Error()}
@@ -656,6 +788,10 @@ func (s *Service) probe(ctx context.Context, target string) WordPressCheck {
 		return WordPressCheck{Outcome: "unreachable", Detail: "Invalid address"}
 	}
 	req.Header.Set("User-Agent", "ReputeCast-Check")
+	req.Header.Set("Accept", "application/json")
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
 	start := s.now()
 	resp, err := s.client(timeout).Do(req)
 	if err != nil {

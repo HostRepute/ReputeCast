@@ -2,8 +2,6 @@ package accounts
 
 import (
 	"context"
-	"fmt"
-	"html"
 	"net/http"
 	"strings"
 	"time"
@@ -12,10 +10,11 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/api"
+	"github.com/hostrepute/reputecast/internal/applang"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authn"
 	"github.com/hostrepute/reputecast/internal/db"
-	"github.com/hostrepute/reputecast/internal/mailer"
+	"github.com/hostrepute/reputecast/internal/membermail"
 	"github.com/hostrepute/reputecast/internal/passwordreuse"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -111,14 +110,8 @@ func (s *Service) RequestPasswordReset(ctx context.Context, email string) (Passw
 	}
 	link := ResetLink(s.publicURL(ctx), token)
 	st, _ := s.policy(ctx)
-	msg := mailer.Message{
-		To: u.Email, ToName: u.Name, Kind: "password_reset",
-		Subject: "Reset your " + st.Name + " password",
-		Text: fmt.Sprintf("Someone asked to reset the password of %s on %s.\n\nSet a new password: %s\n\nThe link works once and expires in 15 minutes. If it wasn't you, ignore this email; your password stays the same.\n",
-			u.Email, st.Name, link),
-		HTML: fmt.Sprintf(`<p style="font:14px/1.5 sans-serif">Someone asked to reset the password of <b>%s</b> on %s.</p><p style="font:14px sans-serif"><a href="%s">Set a new password</a></p><p style="font:13px/1.5 sans-serif;color:#5B6472">The link works once and expires in 15 minutes. If it wasn't you, ignore this email; your password stays the same.</p>`,
-			html.EscapeString(u.Email), html.EscapeString(st.Name), html.EscapeString(link)),
-	}
+	msg := membermail.PasswordReset(applang.ForUser(ctx, s.Q, u), st.Name, u.Email, link)
+	msg.To, msg.ToName = u.Email, u.Name
 	provider, err := s.mail().SendSystem(ctx, msg)
 	if err != nil {
 		// The answer stays "sent" so a failing provider doesn't reveal which
@@ -142,14 +135,8 @@ func (s *Service) ssoReminder(ctx context.Context, u store.User, p *store.SsoPro
 	}
 	st, _ := s.policy(ctx)
 	link := s.publicURL(ctx) + "/sign-in"
-	msg := mailer.Message{
-		To: u.Email, ToName: u.Name, Kind: "password_reset_sso",
-		Subject: "How you sign in to " + st.Name,
-		Text: fmt.Sprintf("Someone asked to reset the password of %s on %s. This account has no password: it signs in with %s.\n\nSign in: %s\n\nIf it wasn't you, ignore this email.\n",
-			u.Email, st.Name, p.Name, link),
-		HTML: fmt.Sprintf(`<p style="font:14px/1.5 sans-serif">Someone asked to reset the password of <b>%s</b> on %s. This account has no password: it signs in with %s.</p><p style="font:14px sans-serif"><a href="%s">Sign in</a></p><p style="font:13px/1.5 sans-serif;color:#5B6472">If it wasn't you, ignore this email.</p>`,
-			html.EscapeString(u.Email), html.EscapeString(st.Name), html.EscapeString(p.Name), html.EscapeString(link)),
-	}
+	msg := membermail.SignInReminder(applang.ForUser(ctx, s.Q, u), st.Name, u.Email, p.Name, link)
+	msg.To, msg.ToName = u.Email, u.Name
 	provider, err := s.mail().SendSystem(ctx, msg)
 	if err != nil {
 		s.Log.WarnContext(ctx, "sign-in reminder not sent", "user", u.ID, "err", err)
@@ -182,15 +169,15 @@ type PasswordResetInfo struct {
 	Breached  bool      `json:"breachedCheck" doc:"New passwords are checked against known breaches"`
 }
 
-func resetExpired() *api.Problem {
-	return api.Err(http.StatusGone, "reset_expired", "This reset link is older than 15 minutes or was already used. Request a new one; your current password still works until you change it.")
+func resetExpired(ctx context.Context) *api.Problem {
+	return api.Err(http.StatusGone, "reset_expired", say(ctx, mResetExpired))
 }
 
 // CheckPasswordReset tells whether a reset link still works.
 func (s *Service) CheckPasswordReset(ctx context.Context, token string) (PasswordResetInfo, error) {
 	r, err := s.Q.GetUsablePasswordReset(ctx, authn.HashToken(token))
 	if err != nil || r.UserStatus != "active" {
-		return PasswordResetInfo{}, resetExpired()
+		return PasswordResetInfo{}, resetExpired(ctx)
 	}
 	st, err := s.policy(ctx)
 	if err != nil {
@@ -210,7 +197,7 @@ type PasswordResetDone struct {
 func (s *Service) ResetPassword(ctx context.Context, token, password string) (PasswordResetDone, error) {
 	r, err := s.Q.GetUsablePasswordReset(ctx, authn.HashToken(token))
 	if err != nil || r.UserStatus != "active" {
-		return PasswordResetDone{}, resetExpired()
+		return PasswordResetDone{}, resetExpired(ctx)
 	}
 	st, err := s.policy(ctx)
 	if err != nil {
@@ -221,7 +208,7 @@ func (s *Service) ResetPassword(ctx context.Context, token, password string) (Pa
 	}
 	if st.BreachedCheck {
 		if hit, err := s.Breach.Breached(ctx, password); err == nil && hit {
-			return PasswordResetDone{}, api.Invalid("body.password", "This password appears in known data breaches. Choose another one.")
+			return PasswordResetDone{}, api.Invalid("body.password", say(ctx, mBreached))
 		}
 	}
 	hash, err := authn.HashPassword(password)
@@ -240,7 +227,7 @@ func (s *Service) ResetPassword(ctx context.Context, token, password string) (Pa
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		if _, err := q.ConsumePasswordReset(ctx, authn.HashToken(token)); err != nil {
-			return resetExpired()
+			return resetExpired(ctx)
 		}
 		if err := q.SetUserPassword(ctx, store.SetUserPasswordParams{ID: u.ID, PasswordHash: &hash, MustChangePassword: false}); err != nil {
 			return err

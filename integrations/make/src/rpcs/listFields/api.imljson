@@ -1,0 +1,13 @@
+{
+  "url": "/workspaces/{{connection.workspace}}/integration/fields",
+  "method": "GET",
+  "response": {
+    "iterate": "{{body.items}}",
+    "output": {
+      "name": "{{item.key}}",
+      "label": "{{ifempty(item.label, item.key)}}",
+      "type": "{{if(item.type = 'number', 'number', if(item.type = 'boolean', 'boolean', 'text'))}}",
+      "help": "{{if(item.type = 'date', 'A date like 2026-10-30.', if(item.type = 'select', 'One of the field options in ReputeCast.', ''))}}"
+    }
+  }
+}

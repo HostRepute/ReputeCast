@@ -8,15 +8,22 @@ import { Button } from '@/components/ui/Button'
 import { Dialog } from '@/components/ui/Dialog'
 import { Skeleton } from '@/components/ui/Feedback'
 import { Menu, MenuItem, MenuLabel } from '@/components/ui/Menu'
+import { m as ui } from '@/components/ui/messages'
 import { toast } from '@/components/ui/Toast'
+import { InvitationLanguageField } from '@/features/language/InvitationLanguageField'
+import { T, useT } from '@/i18n'
+import { common } from '@/i18n/common'
 import { andList } from '@/lib/format'
+import { roleName } from '@/lib/roles'
 import { useWorkspace } from '@/lib/session'
 import { copyText } from '../access/parts'
+import { m } from './invite.messages'
 
 const EMAIL = /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/
 
 /** The invite dialog (TeamInvite, TeamInviteNoProvider). */
 export function InviteDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const opts = $api.useQuery('get', '/api/v1/workspaces/{workspace}/invitations/options', { params: { path: { workspace: slug } } })
   if (opts.data) return <InviteForm opts={opts.data} open={open} close={() => onOpenChange(false)} />
@@ -24,11 +31,11 @@ export function InviteDialog({ open, onOpenChange }: { open: boolean; onOpenChan
     <Dialog
       open={open}
       onOpenChange={onOpenChange}
-      eyebrow={<span className="k">Team · invite</span>}
-      title="Invite members"
+      eyebrow={<span className="k">{t(m.eyebrow)}</span>}
+      title={t(m.titleLoading)}
       className="card max-w-[680px]"
       hideClose
-      footer={<Button onClick={() => onOpenChange(false)}>Cancel</Button>}
+      footer={<Button onClick={() => onOpenChange(false)}>{t(common.cancel)}</Button>}
     >
       {opts.isError ? (
         <div className="note b" role="alert">
@@ -37,7 +44,7 @@ export function InviteDialog({ open, onOpenChange }: { open: boolean; onOpenChan
       ) : (
         <div className="flex flex-col gap-3" aria-busy="true">
           <span className="vh" role="status">
-            Loading
+            {t(common.loading)}
           </span>
           <Skeleton h={40} />
           <Skeleton h={36} />
@@ -51,6 +58,7 @@ export function InviteDialog({ open, onOpenChange }: { open: boolean; onOpenChan
 type Created = Schemas['TeamInviteResult']
 
 function InviteForm({ opts, open, close }: { opts: Schemas['TeamInviteOptions']; open: boolean; close: () => void }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const qc = useQueryClient()
   const roles = useMemo(() => orderRoles(opts.roles), [opts.roles])
@@ -61,6 +69,7 @@ function InviteForm({ opts, open, close }: { opts: Schemas['TeamInviteOptions'];
   const [lists, setLists] = useState<string[]>([])
   const [domains, setDomains] = useState<string[]>([])
   const [message, setMessage] = useState('')
+  const [language, setLanguage] = useState(opts.defaultLanguage ?? 'en')
   const [error, setError] = useState<string>()
   const [created, setCreated] = useState<Created>()
   const inputRef = useRef<HTMLInputElement>(null)
@@ -75,7 +84,7 @@ function InviteForm({ opts, open, close }: { opts: Schemas['TeamInviteOptions'];
     if (parts.length === 0) return
     const bad = parts.filter((p) => !EMAIL.test(p))
     setEmails((cur) => [...cur, ...parts.filter((p) => EMAIL.test(p) && !cur.includes(p))])
-    setError(bad.length ? `“${bad[0]}” isn't an email address.` : undefined)
+    setError(bad.length ? t(m.notEmail, { value: bad[0] }) : undefined)
     setDraft(bad.join(' '))
   }
   const onKey = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -91,7 +100,7 @@ function InviteForm({ opts, open, close }: { opts: Schemas['TeamInviteOptions'];
   const submit = () => {
     const all = draft.trim() ? [...emails, ...draft.split(/[\s,;]+/).filter(Boolean)] : emails
     if (all.length === 0) {
-      setError('Add at least one email address.')
+      setError(t(m.addOne))
       inputRef.current?.focus()
       return
     }
@@ -105,6 +114,7 @@ function InviteForm({ opts, open, close }: { opts: Schemas['TeamInviteOptions'];
           message: message.trim() || undefined,
           scope: lists.length || domains.length ? { lists, senderDomains: domains } : undefined,
           sendEmail: opts.canEmail,
+          language: language as Schemas['TeamInviteInput']['language'],
         },
       },
       {
@@ -112,13 +122,13 @@ function InviteForm({ opts, open, close }: { opts: Schemas['TeamInviteOptions'];
           void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/invitations'] })
           void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/members'] })
           if (res.emailed) {
-            toast({ title: `${res.invitations.length} ${res.invitations.length === 1 ? 'invitation' : 'invitations'} sent`, detail: res.sentVia ? `via ${res.sentVia}` : undefined })
+            toast({ title: t(m.sent, { count: res.invitations.length }), detail: res.sentVia ? t(m.via, { provider: res.sentVia }) : undefined })
             close()
             return
           }
           setCreated(res)
           const ok = await copyText(res.invitations.map((i) => `${i.email}: ${i.link}`).join('\n'))
-          toast({ title: `${res.invitations.length} ${res.invitations.length === 1 ? 'invite' : 'invites'} created`, detail: ok ? 'links copied' : 'copy the links below' })
+          toast({ title: t(m.created, { count: res.invitations.length }), detail: ok ? t(m.linksCopiedDetail) : t(m.copyBelow) })
         },
         onError: (e) => setError(e instanceof ApiError ? e.message : errorMessage(e)),
       },
@@ -135,12 +145,13 @@ function InviteForm({ opts, open, close }: { opts: Schemas['TeamInviteOptions'];
     <Dialog
       open={open}
       onOpenChange={(o) => !o && close()}
-      eyebrow={<span className="k">Team · invite</span>}
-      title={`Invite members to ${opts.workspace}`}
+      eyebrow={<span className="k">{t(m.eyebrow)}</span>}
+      title={t(m.title, { workspace: opts.workspace })}
       description={
         <span className="text-[13.5px]">
+          {/* The server writes how invitees sign in, in the reader's language. */}
           {opts.signInSummary}
-          {opts.jit[0] ? ` SSO users join through ${opts.jit[0].provider}.` : ''}
+          {opts.jit[0] ? ` ${t(m.ssoJoin, { provider: opts.jit[0].provider })}` : ''}
         </span>
       }
       className="card max-w-[680px]"
@@ -161,7 +172,7 @@ function InviteForm({ opts, open, close }: { opts: Schemas['TeamInviteOptions'];
     >
       <div className="col gap-1.5">
         <span className="text-[12px] font-semibold text-ink-2" id="inv-emails">
-          Email addresses
+          {t(m.emails)}
         </span>
         {/* A label, so a click anywhere in the box focuses the input. */}
         <label
@@ -172,7 +183,7 @@ function InviteForm({ opts, open, close }: { opts: Schemas['TeamInviteOptions'];
           {emails.map((e) => (
             <span key={e} className="chip">
               {e}
-              <button type="button" aria-label={`Remove ${e}`} onClick={() => setEmails((cur) => cur.filter((x) => x !== e))}>
+              <button type="button" aria-label={t(m.removeEmail, { email: e })} onClick={() => setEmails((cur) => cur.filter((x) => x !== e))}>
                 ×
               </button>
             </span>
@@ -183,7 +194,7 @@ function InviteForm({ opts, open, close }: { opts: Schemas['TeamInviteOptions'];
             aria-labelledby="inv-emails"
             aria-describedby={error ? 'inv-err' : undefined}
             className="in h-[26px] min-w-[160px] flex-1 border-0 px-1 focus:outline-none"
-            placeholder={emails.length ? 'Add another, comma or Enter' : 'name@example.com, comma or Enter'}
+            placeholder={emails.length ? t(m.addAnother) : t(m.emailPlaceholder)}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={onKey}
@@ -206,44 +217,41 @@ function InviteForm({ opts, open, close }: { opts: Schemas['TeamInviteOptions'];
         {jitHits.length > 0 ? (
           <span className="note i px-2.5 py-2 text-[12.5px]">
             <GoogleMark size={14} />
-            <span>
-              {andList(jitHits.map((h) => h.email))} can also join automatically with {jitHits[0]!.jit.provider} (as {jitHits[0]!.jit.roleName}). This invite gives the role below
-              instead.
-            </span>
+            <span>{t(m.jitNote, { emails: andList(jitHits.map((h) => h.email)), provider: jitHits[0]!.jit.provider, role: jitHits[0]!.jit.roleName })}</span>
           </span>
         ) : null}
       </div>
       <div className="grid grid-cols-2 gap-3.5 max-md:grid-cols-1">
         <label className="lbl">
-          Role
+          {t(m.role)}
           <select className="in" value={roleId} onChange={(e) => setRoleId(e.target.value)} disabled={Boolean(created)}>
             {roles.map((r) => (
               <option key={r.id} value={r.id} disabled={!r.grantable}>
-                {r.name}
-                {r.grantable ? '' : ' (you can’t grant it)'}
+                {r.grantable ? roleName(r) : t(m.cantGrant, { role: roleName(r) })}
               </option>
             ))}
           </select>
           <span className="k font-medium">{role?.hint}</span>
         </label>
         <label className="lbl">
-          Invitation expires
+          {t(m.expires)}
           <select className="in" value={days} onChange={(e) => setDays(Number(e.target.value))} disabled={Boolean(created)}>
-            <option value={opts.defaultDays}>In {opts.defaultDays} days (default)</option>
-            <option value={1}>In 24 hours</option>
-            <option value={30}>In 30 days</option>
+            <option value={opts.defaultDays}>{t(m.inDaysDefault, { days: opts.defaultDays })}</option>
+            <option value={1}>{t(m.in24Hours)}</option>
+            <option value={30}>{t(m.in30Days)}</option>
           </select>
         </label>
       </div>
+      <InvitationLanguageField value={language} onChange={setLanguage} languages={opts.languages} defaultLanguage={opts.defaultLanguage} disabled={Boolean(created)} />
       <div className="lbl">
         <span>
-          Scope <span className="k font-medium">· optional</span>
+          {t(m.scope)} <span className="k font-medium">· {t(ui.optional)}</span>
         </span>
         <div className="row gap-1.5">
           {chosenLists.map((l) => (
             <span key={l.id} className="chip">
-              {l.name} list
-              <button type="button" aria-label={`Remove scope ${l.name}`} onClick={() => setLists((cur) => cur.filter((x) => x !== l.id))}>
+              {t(m.listChip, { name: l.name })}
+              <button type="button" aria-label={t(m.removeScope, { name: l.name })} onClick={() => setLists((cur) => cur.filter((x) => x !== l.id))}>
                 ×
               </button>
             </span>
@@ -251,20 +259,20 @@ function InviteForm({ opts, open, close }: { opts: Schemas['TeamInviteOptions'];
           {domains.map((d) => (
             <span key={d} className="chip">
               {d}
-              <button type="button" aria-label={`Remove scope ${d}`} onClick={() => setDomains((cur) => cur.filter((x) => x !== d))}>
+              <button type="button" aria-label={t(m.removeScope, { name: d })} onClick={() => setDomains((cur) => cur.filter((x) => x !== d))}>
                 ×
               </button>
             </span>
           ))}
           {freeLists.length + freeDomains.length > 0 && !created ? (
-            <Menu trigger={<Button size="sm">Add list or sender domain</Button>} align="start" label="Add to scope">
-              {freeLists.length ? <MenuLabel>Lists</MenuLabel> : null}
+            <Menu trigger={<Button size="sm">{t(m.addScope)}</Button>} align="start" label={t(m.addToScope)}>
+              {freeLists.length ? <MenuLabel>{t(m.lists)}</MenuLabel> : null}
               {freeLists.map((l) => (
                 <MenuItem key={l.id} onSelect={() => setLists((cur) => [...cur, l.id])}>
                   {l.name}
                 </MenuItem>
               ))}
-              {freeDomains.length ? <MenuLabel>Sender domains</MenuLabel> : null}
+              {freeDomains.length ? <MenuLabel>{t(m.senderDomains)}</MenuLabel> : null}
               {freeDomains.map((d) => (
                 <MenuItem key={d} onSelect={() => setDomains((cur) => [...cur, d])}>
                   {d}
@@ -273,24 +281,29 @@ function InviteForm({ opts, open, close }: { opts: Schemas['TeamInviteOptions'];
             </Menu>
           ) : null}
         </div>
-        <span className="k font-medium">Scoped members only see and act on the selected lists or sender domains.</span>
+        <span className="k font-medium">{t(m.scopeHint)}</span>
       </div>
       <label className="lbl">
         <span>
-          Personal message <span className="k font-medium">· optional</span>
+          {t(m.personalMessage)} <span className="k font-medium">· {t(ui.optional)}</span>
         </span>
         <textarea className="in h-auto px-2.5 py-2" rows={3} value={message} onChange={(e) => setMessage(e.target.value)} maxLength={1000} disabled={Boolean(created)} />
       </label>
       {!opts.canEmail ? (
         <div className="note w" role="status">
-          <Badge tone="warn">No System provider</Badge>
+          <Badge tone="warn">{t(m.noProvider)}</Badge>
           <span className="col gap-1.5">
             <span>
-              Email can&apos;t be sent yet: no sending provider is assigned to the System stream. Create the invites and copy the links instead, or{' '}
-              <Link to="/w/$workspace/providers/connect" params={{ workspace: slug }}>
-                connect a provider
-              </Link>
-              .
+              <T
+                msg={m.noProviderBody}
+                values={{
+                  link: (c) => (
+                    <Link to="/w/$workspace/providers/connect" params={{ workspace: slug }}>
+                      {c}
+                    </Link>
+                  ),
+                }}
+              />
             </span>
             <span className="row gap-1.5">
               <span className="mono rounded-[6px] border border-dashed border-muted-line bg-white px-2 py-1.5 text-[12px] text-ink [overflow-wrap:anywhere]">
@@ -306,10 +319,10 @@ function InviteForm({ opts, open, close }: { opts: Schemas['TeamInviteOptions'];
                     return
                   }
                   const ok = await copyText(created.invitations.map((i) => `${i.email}: ${i.link}`).join('\n'))
-                  toast({ title: ok ? 'Invite links copied' : 'Copy failed', detail: ok ? `${created.invitations.length} ${created.invitations.length === 1 ? 'link' : 'links'}` : 'select the links and copy them' })
+                  toast({ title: ok ? t(m.linksCopied) : t(m.copyFailed), detail: ok ? t(m.linkCount, { count: created.invitations.length }) : t(m.selectLinks) })
                 }}
               >
-                Copy links
+                {t(m.copyLinks)}
               </Button>
             </span>
           </span>
@@ -338,18 +351,19 @@ function InviteFooter({
   onCancel: () => void
   onSubmit: () => void
 }) {
+  const t = useT()
   return (
     <>
-      {canEmail ? <span className="k mr-auto">Sent on the System stream{provider ? ` via ${provider}` : ''}</span> : null}
+      {canEmail ? <span className="k mr-auto">{provider ? t(m.sentOnVia, { provider }) : t(m.sentOn)}</span> : null}
       {created ? (
         <Button variant="primary" onClick={onCancel}>
-          Done
+          {t(common.done)}
         </Button>
       ) : (
         <>
-          <Button onClick={onCancel}>Cancel</Button>
+          <Button onClick={onCancel}>{t(common.cancel)}</Button>
           <Button variant="primary" loading={busy} disabledReason={roleBlocked} onClick={onSubmit}>
-            {canEmail ? `Send ${n || ''} ${n === 1 ? 'invitation' : 'invitations'}`.replace('  ', ' ') : 'Create invites and copy links'}
+            {canEmail ? t(m.send, { count: n }) : t(m.createAndCopy)}
           </Button>
         </>
       )}

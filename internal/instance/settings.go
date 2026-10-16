@@ -20,6 +20,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/accounts"
 	"github.com/hostrepute/reputecast/internal/api"
+	"github.com/hostrepute/reputecast/internal/applang"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -30,6 +31,10 @@ type InstanceSettings struct {
 	Name            string `json:"name"`
 	PublicURL       string `json:"publicUrl"`
 	DefaultTimezone string `json:"defaultTimezone"`
+	// DefaultLanguage and DefaultRegionFormat are used for the sign-in page,
+	// members who haven't chosen, and invitations.
+	DefaultLanguage     string `json:"defaultLanguage,omitempty" example:"en"`
+	DefaultRegionFormat string `json:"defaultRegionFormat,omitempty" example:"standard"`
 	// LogoSVG is the instance logo (PNG uploads are wrapped in an SVG);
 	// empty means the ReputeCast mark.
 	LogoSVG string `json:"logoSvg,omitempty"`
@@ -62,7 +67,8 @@ func (s *Service) Settings(ctx context.Context) (InstanceSettings, error) {
 	if err != nil {
 		return InstanceSettings{}, err
 	}
-	out := InstanceSettings{Name: st.Name, PublicURL: st.PublicUrl, DefaultTimezone: st.DefaultTimezone}
+	out := InstanceSettings{Name: st.Name, PublicURL: st.PublicUrl, DefaultTimezone: st.DefaultTimezone,
+		DefaultLanguage: st.DefaultLanguage, DefaultRegionFormat: st.DefaultRegionFormat}
 	if s.Cfg != nil {
 		out.ConfigPublicURL = s.Cfg.HTTP.PublicURL
 	}
@@ -86,6 +92,9 @@ type InstanceSettingsInput struct {
 	Name            string `json:"name" minLength:"1" maxLength:"80"`
 	PublicURL       string `json:"publicUrl" maxLength:"300"`
 	DefaultTimezone string `json:"defaultTimezone" maxLength:"64"`
+	// DefaultLanguage and DefaultRegionFormat stay as they are when omitted.
+	DefaultLanguage     string `json:"defaultLanguage,omitempty" enum:"en,vi"`
+	DefaultRegionFormat string `json:"defaultRegionFormat,omitempty" enum:"standard,en-US,vi-VN,de-DE,en-GB,es-ES,fr-FR,pt-BR"`
 }
 
 // SaveSettings stores the name, public URL and default timezone.
@@ -106,6 +115,16 @@ func (s *Service) SaveSettings(ctx context.Context, in InstanceSettingsInput) (I
 	if _, err := time.LoadLocation(tz); err != nil || tz == "" {
 		return InstanceSettings{}, api.Invalid("body.defaultTimezone", "Use a timezone like America/New_York.")
 	}
+	lang, region := before.DefaultLanguage, before.DefaultRegionFormat
+	if in.DefaultLanguage != "" {
+		lang = in.DefaultLanguage
+	}
+	if in.DefaultRegionFormat != "" {
+		region = in.DefaultRegionFormat
+	}
+	if err := applang.CheckDefault(lang, region); err != nil {
+		return InstanceSettings{}, api.Invalid("body.defaultLanguage", "Pick a language ReputeCast is translated into, and one of the region formats.")
+	}
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		// A new URL also drops the last URL check, which describes the old one.
@@ -113,6 +132,10 @@ func (s *Service) SaveSettings(ctx context.Context, in InstanceSettingsInput) (I
 		if err != nil {
 			return err
 		}
+		if err := q.AppLangSetInstanceDefaults(ctx, store.AppLangSetInstanceDefaultsParams{DefaultLanguage: lang, DefaultRegionFormat: region}); err != nil {
+			return err
+		}
+		after.DefaultLanguage, after.DefaultRegionFormat = lang, region
 		var changes []string
 		if before.Name != after.Name {
 			changes = append(changes, "name "+after.Name)
@@ -123,12 +146,20 @@ func (s *Service) SaveSettings(ctx context.Context, in InstanceSettingsInput) (I
 		if before.DefaultTimezone != after.DefaultTimezone {
 			changes = append(changes, "timezone "+after.DefaultTimezone)
 		}
+		if before.DefaultLanguage != after.DefaultLanguage {
+			changes = append(changes, "default language "+after.DefaultLanguage)
+		}
+		if before.DefaultRegionFormat != after.DefaultRegionFormat {
+			changes = append(changes, "default region format "+after.DefaultRegionFormat)
+		}
 		if len(changes) == 0 {
 			return nil
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{Action: "instance.settings_updated", TargetType: "instance", TargetName: after.Name,
-			Before:   map[string]any{"name": before.Name, "public_url": before.PublicUrl, "default_timezone": before.DefaultTimezone},
-			After:    map[string]any{"name": after.Name, "public_url": after.PublicUrl, "default_timezone": after.DefaultTimezone},
+			Before: map[string]any{"name": before.Name, "public_url": before.PublicUrl, "default_timezone": before.DefaultTimezone,
+				"default_language": before.DefaultLanguage, "default_region_format": before.DefaultRegionFormat},
+			After: map[string]any{"name": after.Name, "public_url": after.PublicUrl, "default_timezone": after.DefaultTimezone,
+				"default_language": after.DefaultLanguage, "default_region_format": after.DefaultRegionFormat},
 			Metadata: map[string]any{"summary": strings.Join(changes, " · ")}})
 	})
 	if err != nil {

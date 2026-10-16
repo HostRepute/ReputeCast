@@ -7,6 +7,7 @@ import { NewBadge, newGroups } from '@/features/accessibility/review'
 import { useT } from '@/i18n'
 import { cn } from '@/lib/cn'
 import { bySeverity, checksByGroup, flatGroupLabels, flatTitle, groupTitles, type Check, type Fix, type Run } from './logic'
+import { m } from './messages'
 import { CheckBadge, CheckRow, FixButtons } from './parts'
 
 type Actions = {
@@ -23,8 +24,9 @@ type Actions = {
  * collapsed list of what passed (SendReadinessBlocked).
  */
 export function Checklist({ run, ...actions }: { run: Run } & Actions) {
+  const t = useT()
   return (
-    <section className="card flex min-w-0 flex-col" aria-label="Send Readiness checklist">
+    <section className="card flex min-w-0 flex-col" aria-label={t(m.checklistLabel)}>
       {run.verdict === 'blocked' ? <BySeverity run={run} {...actions} /> : <ByGroup run={run} {...actions} />}
     </section>
   )
@@ -34,7 +36,7 @@ function ByGroup({ run, ...actions }: { run: Run } & Actions) {
   return (
     <>
       {checksByGroup(run).map(({ group, checks }) => (
-        <GroupRows key={group.key} group={group.key} title={group.title} caption={group.caption} checks={checks} {...actions} />
+        <GroupRows key={group.key} group={group.key} title={groupTitles[group.key] ?? group.title} caption={group.caption} checks={checks} {...actions} />
       ))}
     </>
   )
@@ -74,6 +76,7 @@ function RerunButton({ onRerun }: { onRerun: () => void }) {
 }
 
 function BySeverity({ run, ...actions }: { run: Run } & Actions) {
+  const t = useT()
   const [all, setAll] = useState(false)
   const blocks = run.checks.filter((c) => c.status === 'block').sort(bySeverity)
   const warns = run.checks.filter((c) => c.status === 'warn').sort(bySeverity)
@@ -83,8 +86,8 @@ function BySeverity({ run, ...actions }: { run: Run } & Actions) {
   return (
     <>
       <div className="rv-grp g-bad">
-        <h2 className="h2">Blocking issues · {blocks.length}</h2>
-        <span className="k">Fix these first</span>
+        <h2 className="h2">{t(m.blockingIssues, { count: blocks.length })}</h2>
+        <span className="k">{t(m.fixFirst)}</span>
       </div>
       {blocks.map((c) => (
         <CheckRow key={c.key} check={c} title={flatTitle(c)}>
@@ -94,7 +97,7 @@ function BySeverity({ run, ...actions }: { run: Run } & Actions) {
       {warns.length ? (
         <>
           <div className="rv-grp">
-            <h2 className="h2">Warnings · {warns.length}</h2>
+            <h2 className="h2">{t(m.warningsTitle, { count: warns.length })}</h2>
           </div>
           {warns.map((c) => (
             <CheckRow key={c.key} check={c} title={flatTitle(c)}>
@@ -106,8 +109,8 @@ function BySeverity({ run, ...actions }: { run: Run } & Actions) {
       {unknown.length ? (
         <>
           <div className="rv-grp">
-            <h2 className="h2">Not checked · {unknown.length}</h2>
-            <span className="k">Run the checks again</span>
+            <h2 className="h2">{t(m.notChecked, { count: unknown.length })}</h2>
+            <span className="k">{t(m.runChecksAgain)}</span>
           </div>
           {unknown.map((c) => (
             <CheckRow key={c.key} check={c} title={flatTitle(c)}>
@@ -119,15 +122,15 @@ function BySeverity({ run, ...actions }: { run: Run } & Actions) {
       {passes.length ? (
         <>
           <div className="rv-grp">
-            <h2 className="h2">Passed · {passes.length}</h2>
-            <span className="k">{all ? 'Expanded' : 'Collapsed'}</span>
+            <h2 className="h2">{t(m.passedTitle, { count: passes.length })}</h2>
+            <span className="k">{all ? t(m.expanded) : t(m.collapsed)}</span>
           </div>
           {all
             ? passes.map((c, i) => (
                 <CheckRow key={c.key} check={c} title={flatTitle(c)}>
                   {i === passes.length - 1 ? (
                     <Button size="sm" onClick={() => setAll(false)} aria-expanded="true">
-                      Collapse
+                      {t(m.collapse)}
                     </Button>
                   ) : null}
                 </CheckRow>
@@ -136,13 +139,11 @@ function BySeverity({ run, ...actions }: { run: Run } & Actions) {
                 <div key={g.key} className="rv-row">
                   <CheckBadge status="pass" />
                   <div className="rv-rt">
-                    <span className="rv-t">
-                      {flatGroupLabels[g.key] ?? g.title}: {g.summary}
-                    </span>
+                    <span className="rv-t">{t(m.groupSummary, { group: flatGroupLabels[g.key] ?? g.title, summary: g.summary })}</span>
                   </div>
                   {i === summaries.length - 1 ? (
                     <Button size="sm" onClick={() => setAll(true)} aria-expanded="false">
-                      Show all {passes.length}
+                      {t(m.showAll, { count: passes.length })}
                     </Button>
                   ) : null}
                 </div>
@@ -155,6 +156,7 @@ function BySeverity({ run, ...actions }: { run: Run } & Actions) {
 
 /** "Loading · checks running": one line per group as it ticks in. */
 export function RunningList({ progress }: { progress: Schemas['ReadinessProgress'] }) {
+  const t = useT()
   const rank = (s: string) => (s === 'running' ? 1 : s === 'queued' ? 2 : 0)
   const groups = [...progress.groups].sort((a, b) => rank(a.status) - rank(b.status))
   return (
@@ -164,20 +166,18 @@ export function RunningList({ progress }: { progress: Schemas['ReadinessProgress
           {g.status === 'running' ? (
             <span className="spin" aria-hidden="true" />
           ) : g.status === 'queued' ? (
-            <Badge tone="neutral">Queued</Badge>
+            <Badge tone="neutral">{t(m.queued)}</Badge>
           ) : (
             <CheckBadge status={g.status} className="pop" />
           )}
           <span>
-            {g.title}
+            {groupTitles[g.key] ?? g.title}
             {g.text ? ` · ${g.text}` : ''}
           </span>
           {g.status === 'running' && g.checked > 0 && g.total > 0 ? (
-            <span className="k ml-auto">
-              {g.checked} of {g.total}
-            </span>
+            <span className="k ml-auto">{t(m.ofTotal, { checked: g.checked, total: g.total })}</span>
           ) : null}
-          {g.status === 'running' ? <span className="vh">running</span> : null}
+          {g.status === 'running' ? <span className="vh">{t(m.runningNow)}</span> : null}
         </div>
       ))}
     </div>
@@ -189,6 +189,7 @@ export function RunningList({ progress }: { progress: Schemas['ReadinessProgress
  * other checks of their groups, which still have answers.
  */
 export function UnknownList({ run }: { run: Run }) {
+  const t = useT()
   const groups = new Set(run.checks.filter((c) => c.status === 'unknown').map((c) => c.group))
   const rows = run.checks
     .filter((c) => groups.has(c.group))
@@ -199,8 +200,9 @@ export function UnknownList({ run }: { run: Run }) {
     const id = c.key.startsWith('reputation.provider.') ? c.key.slice('reputation.provider.'.length) : ''
     const share = id ? shares.find((s) => s.providerId === id) : undefined
     if (c.status === 'pass' && share && c.short) {
-      const from = share.priceLabel === 'self-hosted' ? share.short : `the ${share.short} API`
-      return `${groupTitles[c.group]} · ${c.short.replace(', complaints ', ' and complaint ')} (from ${from}, unaffected)`
+      const from = share.priceLabel === 'self-hosted' ? share.short : t(m.fromApi, { name: share.short })
+      // The short finding is the server's, in English.
+      return t(m.unaffected, { group: groupTitles[c.group] ?? c.group, short: c.short.replace(', complaints ', ' and complaint '), source: from })
     }
     return (c.flatTitle || c.title).replace(/^([^:]+): /, '$1 · ')
   }

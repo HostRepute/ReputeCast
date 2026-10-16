@@ -1,0 +1,14 @@
+{
+  "url": "/workspaces/{{connection.workspace}}/integration/templates",
+  "method": "GET",
+  "response": {
+    "iterate": "{{first(map(body.items, 'variables', 'key', parameters.template))}}",
+    "output": {
+      "name": "{{item.name}}",
+      "label": "{{item.name}}",
+      "type": "{{if(item.type = 'number', 'number', if(item.type = 'boolean', 'boolean', if(item.type = 'url', 'url', if(item.type = 'list', 'any', if(item.type = 'object', 'any', 'text')))))}}",
+      "required": "{{item.required}}",
+      "help": "{{ifempty(item.description, '')}}{{if(item.sensitive, ' Sensitive: ReputeCast masks it in its call log and does not store it.', '')}}"
+    }
+  }
+}

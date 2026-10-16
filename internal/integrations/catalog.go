@@ -30,7 +30,9 @@ const (
 	OpMe            = "get-integration"
 	OpSubscribe     = "subscribe-integration-hook"
 	OpUnsubscribe   = "unsubscribe-integration-hook"
+	OpGetHook       = "get-integration-hook"
 	OpSample        = "get-integration-trigger-sample"
+	OpForms         = "list-integration-forms"
 	OpLists         = "list-integration-lists"
 	OpFields        = "list-integration-fields"
 	OpUpsert        = "upsert-contact"
@@ -75,7 +77,10 @@ const (
 	ItemAction  = "action"
 )
 
-var hookOps = []string{OpSubscribe, OpUnsubscribe, OpSample}
+// hookOps are what every trigger calls: subscribe, unsubscribe, check that
+// its webhook still exists (n8n does when a workflow is turned on), and a
+// sample for field mapping.
+var hookOps = []string{OpSubscribe, OpUnsubscribe, OpGetHook, OpSample}
 
 // platformItems are the triggers and actions of Zapier, Make and n8n
 // (brief 3.2), in the order of the boards.
@@ -83,7 +88,9 @@ var platformItems = []Item{
 	{Key: "contact.subscribed", Kind: ItemTrigger, Event: "contact.subscribed", Permissions: []authz.Permission{authz.SubscribersView}, Operations: hookOps},
 	{Key: "contact.unsubscribed", Kind: ItemTrigger, Event: "contact.unsubscribed", Permissions: []authz.Permission{authz.SubscribersView}, Operations: hookOps},
 	{Key: "contact.updated", Kind: ItemTrigger, Event: "contact.updated", Permissions: []authz.Permission{authz.SubscribersView}, Operations: hookOps},
-	{Key: "form.submitted", Kind: ItemTrigger, Event: "form.submitted", Permissions: []authz.Permission{authz.SubscribersView}, Operations: hookOps, New: true},
+	// The forms list fills the apps' "Form" filter of this trigger.
+	{Key: "form.submitted", Kind: ItemTrigger, Event: "form.submitted", Permissions: []authz.Permission{authz.SubscribersView},
+		Operations: []string{OpSubscribe, OpUnsubscribe, OpGetHook, OpSample, OpForms}, New: true},
 	{Key: "campaign.completed", Kind: ItemTrigger, Event: "campaign.completed", Permissions: []authz.Permission{authz.CampaignsView}, Operations: hookOps},
 	{Key: "message.bounced", Kind: ItemTrigger, Event: "message.bounced", Permissions: []authz.Permission{authz.TransactionalView}, Operations: hookOps},
 	{Key: "upsert_contact", Kind: ItemAction, Permissions: []authz.Permission{authz.SubscribersCreate, authz.SubscribersEdit}, Operations: []string{OpUpsert, OpLists, OpFields}},

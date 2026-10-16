@@ -10,6 +10,9 @@ import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
 import { timezoneOptions } from '@/features/workspace/timezones'
 import { copyText } from '@/features/access/parts'
+import { InstanceLanguageFields } from '@/features/language/InstanceLanguageFields'
+import { m as lm } from '@/features/language/messages'
+import { useT } from '@/i18n'
 import { ago, usDate } from '@/lib/format'
 import { AdminPage } from '../AdminPage'
 import { WorkspacesCard } from './WorkspacesCard'
@@ -30,13 +33,14 @@ export function InstancePage() {
 }
 
 function InstanceCard() {
+  const t = useT()
   const q = $api.useQuery('get', '/api/v1/admin/instance')
   // What the last save that moved the public URL did to provider webhooks
   // (the form remounts after a save, so it lives here).
   const [moved, setMoved] = useState<Schemas['PublicURLWebhooks']>()
   return (
     <section className="card" aria-labelledby="inst-h">
-      <CardSection title={<span id="inst-h">Instance</span>} caption="Name, logo, public URL and timezone" />
+      <CardSection title={<span id="inst-h">Instance</span>} caption={t(lm.instanceCaption)} />
       {q.isError ? (
         <div className="pad">
           <ErrorPanel title="Couldn't load the instance settings" actions={<Button onClick={() => q.refetch()}>Retry</Button>}>
@@ -51,7 +55,12 @@ function InstanceCard() {
           <Skeleton w="100%" h={110} r={10} />
         </div>
       ) : (
-        <InstanceForm key={`${q.data.name}|${q.data.publicUrl}|${q.data.defaultTimezone}`} s={q.data} moved={moved} onMoved={setMoved} />
+        <InstanceForm
+          key={`${q.data.name}|${q.data.publicUrl}|${q.data.defaultTimezone}|${q.data.defaultLanguage}|${q.data.defaultRegionFormat}`}
+          s={q.data}
+          moved={moved}
+          onMoved={setMoved}
+        />
       )}
     </section>
   )
@@ -70,6 +79,8 @@ function InstanceForm({
   const [name, setName] = useState(s.name)
   const [url, setUrl] = useState(s.publicUrl || s.configPublicUrl || '')
   const [tz, setTz] = useState(s.defaultTimezone)
+  const [language, setLanguage] = useState(s.defaultLanguage ?? 'en')
+  const [region, setRegion] = useState(s.defaultRegionFormat ?? 'standard')
   const [error, setError] = useState<{ field?: 'name' | 'url' | 'tz'; message: string }>()
   const [check, setCheck] = useState(s.urlCheck)
   const zones = useMemo(() => timezoneOptions(tz), [tz])
@@ -104,6 +115,7 @@ function InstanceForm({
           </select>
         </label>
       </div>
+      <InstanceLanguageFields language={language} region={region} onLanguage={setLanguage} onRegion={setRegion} />
       <label className="lbl">
         Public URL
         <div className="row flex-nowrap gap-2">
@@ -158,7 +170,15 @@ function InstanceForm({
           onClick={async () => {
             setError(undefined)
             try {
-              const r = await save.mutateAsync({ body: { name: name.trim(), publicUrl: url.trim(), defaultTimezone: tz } })
+              const r = await save.mutateAsync({
+                body: {
+                  name: name.trim(),
+                  publicUrl: url.trim(),
+                  defaultTimezone: tz,
+                  defaultLanguage: language as Schemas['InstanceSettingsInput']['defaultLanguage'],
+                  defaultRegionFormat: region as Schemas['InstanceSettingsInput']['defaultRegionFormat'],
+                },
+              })
               // A save that moved nothing clears the last move's notice.
               onMoved(r.webhooks)
               await refresh()

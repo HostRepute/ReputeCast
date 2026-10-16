@@ -1,6 +1,7 @@
 import { Link, useNavigate } from '@tanstack/react-router'
 import { DropdownMenu } from 'radix-ui'
 import { useT } from '@/i18n'
+import { roleName } from '@/lib/roles'
 import { useMe, useWorkspace } from '@/lib/session'
 import { Icon } from '../icons/Icon'
 import { Avatar } from '../ui/Avatar'
@@ -25,7 +26,7 @@ export function WorkspaceSwitcher({ variant = 'sidebar' }: { variant?: 'sidebar'
   const t = useT()
   const list = me?.workspaces ?? []
   const idx = Math.max(0, list.findIndex((w) => w.slug === slug))
-  const role = ws.workspace.roleName
+  const role = roleName({ key: ws.workspace.roleKey, name: ws.workspace.roleName })
   return (
     <DropdownMenu.Root modal={false}>
       <DropdownMenu.Trigger asChild>
@@ -66,7 +67,7 @@ export function WorkspaceSwitcher({ variant = 'sidebar' }: { variant?: 'sidebar'
                 </span>
                 <span className="col min-w-0 flex-1" style={{ gap: 0 }}>
                   <b className="text-[13px]">{w.name}</b>
-                  <span className="k">{t(m.switcherWorkspaceLine, { role: w.roleName, count: w.subscribers })}</span>
+                  <span className="k">{t(m.switcherWorkspaceLine, { role: roleName({ key: w.roleKey, name: w.roleName }), count: w.subscribers })}</span>
                 </span>
                 {w.slug === slug ? <span className="badge ok">✓</span> : null}
               </Link>

@@ -1,0 +1,11 @@
+{
+  "url": "/workspaces/{{connection.workspace}}/transactional/messages",
+  "method": "POST",
+  "headers": {
+    "Idempotency-Key": "{{if(parameters.idempotencyKey, 'make-' + ifempty(scenario.id, '0') + '-' + parameters.idempotencyKey, '')}}"
+  },
+  "body": "{{omit(parameters, 'idempotencyKey')}}",
+  "response": {
+    "output": "{{body}}"
+  }
+}

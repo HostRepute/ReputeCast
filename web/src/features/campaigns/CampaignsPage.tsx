@@ -8,8 +8,12 @@ import { EmptyState, ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Grid } from '@/components/ui/Layout'
 import { Table, Td, Th } from '@/components/ui/Table'
 import { FilterTabs } from '@/components/ui/Tabs'
+import { Truncate } from '@/components/ui/Truncate'
+import { t as tt, useT } from '@/i18n'
+import { common } from '@/i18n/common'
 import { clock, count, money, pct, rate, shortDate } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
+import { m } from './messages'
 import { RouteBadges } from './RouteBadges'
 import { CampaignStatusBadge } from './StatusBadge'
 
@@ -25,6 +29,7 @@ const PAGE_SIZE = 25
 
 /** 7.7 Campaigns list: KPIs for the last 30 days, filters and the table. */
 export function CampaignsPage({ search }: { search: CampaignsSearch }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const status = search.status ?? 'all'
   const page = search.page ?? 1
@@ -38,18 +43,18 @@ export function CampaignsPage({ search }: { search: CampaignsSearch }) {
   const counts = list.data?.counts
   return (
     <Page
-      title="Campaigns"
+      title={t(m.title)}
       filters={<CampaignFilters status={status} counts={counts} q={search.q} />}
       actions={
         <>
           <SearchBox initial={search.q ?? ''} status={status} />
           {newReason ? (
             <Button variant="primary" disabledReason={newReason}>
-              New campaign
+              {t(m.newCampaign)}
             </Button>
           ) : (
             <ButtonLink variant="primary" to="/w/$workspace/campaigns/new" params={{ workspace: slug }}>
-              New campaign
+              {t(m.newCampaign)}
             </ButtonLink>
           )}
         </>
@@ -57,35 +62,35 @@ export function CampaignsPage({ search }: { search: CampaignsSearch }) {
     >
       <SummaryCards />
       {list.isError ? (
-        <ErrorPanel title="Couldn't load campaigns" actions={<Button onClick={() => list.refetch()}>Retry</Button>}>
-          {errorMessage(list.error)} Nothing was changed.
+        <ErrorPanel title={t(m.loadFailed)} actions={<Button onClick={() => list.refetch()}>{t(common.retry)}</Button>}>
+          {errorMessage(list.error)} {t(m.nothingChanged)}
         </ErrorPanel>
       ) : list.isPending ? (
         <TableSkeleton />
       ) : list.data.total === 0 ? (
         search.q || status !== 'all' ? (
           <EmptyState
-            title={search.q ? `No campaigns match “${search.q}”` : `No ${status} campaigns`}
+            title={search.q ? t(m.noMatch, { query: search.q }) : t(m.noStatus, { status })}
             action={
               <Link className="btn" to="/w/$workspace/campaigns" params={{ workspace: slug }}>
-                Show all campaigns
+                {t(m.showAll)}
               </Link>
             }
           >
-            {list.data.counts.all} campaigns in this workspace. Clear the search or pick another filter.
+            {t(m.noMatchBody, { count: list.data.counts.all })}
           </EmptyState>
         ) : (
           <EmptyState
-            title="No campaigns yet"
+            title={t(m.emptyTitle)}
             action={
               newReason ? null : (
                 <ButtonLink variant="primary" to="/w/$workspace/campaigns/new" params={{ workspace: slug }}>
-                  New campaign
+                  {t(m.newCampaign)}
                 </ButtonLink>
               )
             }
           >
-            Your campaigns appear here with their audience, sending route and results. Start from a template or a blank MJML canvas.
+            {t(m.emptyBody)}
           </EmptyState>
         )
       ) : (
@@ -96,29 +101,31 @@ export function CampaignsPage({ search }: { search: CampaignsSearch }) {
 }
 
 function CampaignFilters({ status, counts, q }: { status: CampaignFilter; counts?: Schemas['CampaignStatusCounts']; q?: string }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const navigate = useNavigate()
-  const n = (v?: number) => (v !== undefined ? ` · ${count(v)}` : '')
+  const label = (filter: CampaignFilter, v?: number) => (v !== undefined ? t(m.filterCount, { filter, count: count(v) }) : t(m.filter, { filter }))
   return (
     <FilterTabs
-      label="Filter"
+      label={t(m.filterLabel)}
       className="ml-3 max-md:ml-0"
       value={status}
       onChange={(next) =>
         void navigate({ to: '/w/$workspace/campaigns', params: { workspace: slug }, search: { status: next === 'all' ? undefined : next, q: q || undefined } })
       }
       items={[
-        { value: 'all', label: `All${n(counts?.all)}` },
-        { value: 'drafts', label: `Drafts${n(counts?.drafts)}` },
-        { value: 'scheduled', label: `Scheduled${n(counts?.scheduled)}` },
-        { value: 'sending', label: `Sending${n(counts?.sending)}` },
-        { value: 'sent', label: `Sent${n(counts?.sent)}` },
+        { value: 'all', label: label('all', counts?.all) },
+        { value: 'drafts', label: label('drafts', counts?.drafts) },
+        { value: 'scheduled', label: label('scheduled', counts?.scheduled) },
+        { value: 'sending', label: label('sending', counts?.sending) },
+        { value: 'sent', label: label('sent', counts?.sent) },
       ]}
     />
   )
 }
 
 function SearchBox({ initial, status }: { initial: string; status: CampaignFilter }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const navigate = useNavigate()
   const [value, setValue] = useState(initial)
@@ -137,14 +144,15 @@ function SearchBox({ initial, status }: { initial: string; status: CampaignFilte
   return (
     <>
       <label className="vh" htmlFor="campaign-search">
-        Search campaigns
+        {t(m.search)}
       </label>
-      <input id="campaign-search" type="search" className="in w-[220px] max-md:w-full" placeholder="Search campaigns" value={value} onChange={(e) => setValue(e.target.value)} />
+      <input id="campaign-search" type="search" className="in w-[220px] max-md:w-full" placeholder={t(m.search)} value={value} onChange={(e) => setValue(e.target.value)} />
     </>
   )
 }
 
 function SummaryCards() {
+  const t = useT()
   const { slug } = useWorkspace()
   const q = $api.useQuery('get', '/api/v1/workspaces/{workspace}/campaigns/summary', { params: { path: { workspace: slug }, query: { days: 30 } } })
   if (q.isPending || q.isError) {
@@ -162,23 +170,35 @@ function SummaryCards() {
   }
   const s = q.data
   const cards = [
-    { label: `Sent · last ${s.days} days`, value: count(s.sent), sub: `${s.campaigns} ${s.campaigns === 1 ? 'campaign' : 'campaigns'}` },
-    { label: 'Delivered', value: pct(s.delivered), sub: `bounces ${pct(s.bounces)} · complaints ${rate(s.complaints)}` },
-    { label: 'Human opens', value: pct(s.humanOpens), sub: 'machine opens shown separately' },
-    { label: 'Clicks', value: pct(s.clicks), sub: `click-to-open ${pct(s.clickToOpen)}` },
-    { label: `Cost · last ${s.days} days`, value: money(s.cost), sub: s.costBy.map((c) => `${c.short} ${money(c.cost, c.cost % 1 === 0 ? 0 : 2)}`).join(' · ') || 'no sends' },
+    { key: 'sent', label: t(m.sentLast, { days: s.days }), value: count(s.sent), sub: t(m.campaignCount, { count: s.campaigns }) },
+    { key: 'delivered', label: t(m.delivered), value: pct(s.delivered), sub: t(m.deliveredSub, { bounces: pct(s.bounces), complaints: rate(s.complaints) }) },
+    { key: 'opens', label: t(m.humanOpens), value: pct(s.humanOpens), sub: t(m.humanOpensSub) },
+    { key: 'clicks', label: t(m.clicks), value: pct(s.clicks), sub: t(m.clicksSub, { rate: pct(s.clickToOpen) }) },
+    {
+      key: 'cost',
+      label: t(m.costLast, { days: s.days }),
+      value: money(s.cost),
+      sub: s.costBy.map((c) => `${c.short} ${money(c.cost, c.cost % 1 === 0 ? 0 : 2)}`).join(' · ') || t(m.noSends),
+    },
   ]
   return (
     <Grid min={200} gap={16}>
       {cards.map((c) => (
-        <div key={c.label} className="card flex flex-col gap-0.5 px-4.5 py-3.5">
-          <span className="k">{c.label}</span>
+        <div key={c.key} className="card flex flex-col gap-0.5 px-4.5 py-3.5">
+          <span className="k line-clamp-2" title={c.label}>
+            {c.label}
+          </span>
           <span className="n text-[22px]">{c.value}</span>
           <span className="k">{c.sub}</span>
         </div>
       ))}
     </Grid>
   )
+}
+
+/** "brevo" → "Brevo": the platform a campaign was imported from. */
+function originName(origin: string) {
+  return origin[0]!.toUpperCase() + origin.slice(1)
 }
 
 function subtitle(c: Schemas['CampaignListItem']) {
@@ -188,22 +208,23 @@ function subtitle(c: Schemas['CampaignListItem']) {
   } else if (c.startedAt) {
     parts.push(`${shortDate(c.startedAt)} · ${clock(c.startedAt)}`)
   } else if (c.updatedAt !== c.createdAt && c.updatedBy) {
-    parts.push(`edited ${clock(c.updatedAt)} by ${c.updatedBy}`)
+    parts.push(tt(m.edited, { time: clock(c.updatedAt), name: c.updatedBy }))
   } else {
-    parts.push(`created ${clock(c.createdAt)}`)
+    parts.push(tt(m.created, { time: clock(c.createdAt) }))
   }
-  if (c.origin) parts.push(`imported from ${c.origin[0]!.toUpperCase()}${c.origin.slice(1)}`)
+  if (c.origin) parts.push(tt(m.importedFrom, { origin: originName(c.origin) }))
   parts.push(...c.notes)
   return parts.join(' · ')
 }
 
 function CampaignTable({ data, page, status, q }: { data: Schemas['CampaignList']; page: number; status: CampaignFilter; q?: string }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const from = (page - 1) * data.pageSize
   const shown = from + data.items.length
   const params = (id: string) => ({ workspace: slug, campaignId: id })
   return (
-    <section className="card" aria-label="Campaigns">
+    <section className="card" aria-label={t(m.title)}>
       {/* The board's key and provider cells wrap; a long audience ("Weekly Digest + Product
           Updates") wraps too, so the actions stay in view at 1440 as on the board. */}
       <Table
@@ -212,16 +233,16 @@ function CampaignTable({ data, page, status, q }: { data: Schemas['CampaignList'
       >
         <thead>
           <tr>
-            <Th>Campaign</Th>
-            <Th>Status</Th>
-            <Th>Audience</Th>
-            <Th align="right">Recipients</Th>
-            <Th align="right">Delivered</Th>
-            <Th align="right">Human opens</Th>
-            <Th align="right">Clicks</Th>
-            <Th>Sending providers</Th>
+            <Th>{t(m.campaign)}</Th>
+            <Th>{t(m.status)}</Th>
+            <Th>{t(m.audience)}</Th>
+            <Th align="right">{t(m.recipients)}</Th>
+            <Th align="right">{t(m.delivered)}</Th>
+            <Th align="right">{t(m.humanOpens)}</Th>
+            <Th align="right">{t(m.clicks)}</Th>
+            <Th>{t(m.sendingProviders)}</Th>
             <Th>
-              <span className="vh">Actions</span>
+              <span className="vh">{t(m.actions)}</span>
             </Th>
           </tr>
         </thead>
@@ -232,25 +253,28 @@ function CampaignTable({ data, page, status, q }: { data: Schemas['CampaignList'
             return (
               <tr key={c.id}>
                 <Td>
-                  {editable ? (
-                    <Link to="/w/$workspace/campaigns/$campaignId/edit" params={params(c.id)} className="font-semibold text-ink no-underline">
-                      {c.name}
-                    </Link>
-                  ) : c.status === 'sending' || c.status === 'paused' ? (
-                    <Link to="/w/$workspace/campaigns/$campaignId/live" params={params(c.id)} className="font-semibold text-ink no-underline">
-                      {c.name}
-                    </Link>
-                  ) : (
-                    <Link to="/w/$workspace/campaigns/$campaignId/report" params={params(c.id)} className="font-semibold text-ink no-underline">
-                      {c.name}
-                    </Link>
-                  )}
+                  {/* A name too long for the column ends in an ellipsis, whole on hover and focus. */}
+                  <Truncate text={c.name}>
+                    {editable ? (
+                      <Link to="/w/$workspace/campaigns/$campaignId/edit" params={params(c.id)} className="font-semibold text-ink no-underline">
+                        {c.name}
+                      </Link>
+                    ) : c.status === 'sending' || c.status === 'paused' ? (
+                      <Link to="/w/$workspace/campaigns/$campaignId/live" params={params(c.id)} className="font-semibold text-ink no-underline">
+                        {c.name}
+                      </Link>
+                    ) : (
+                      <Link to="/w/$workspace/campaigns/$campaignId/report" params={params(c.id)} className="font-semibold text-ink no-underline">
+                        {c.name}
+                      </Link>
+                    )}
+                  </Truncate>
                   <div className="k">{subtitle(c)}</div>
                 </Td>
                 <Td>
                   <CampaignStatusBadge status={c.status} blocked={c.blocked} />
                 </Td>
-                <Td className={c.audience ? undefined : 'k'}>{c.audience || 'not set'}</Td>
+                <Td className={c.audience ? undefined : 'k'}>{c.audience || t(m.notSet)}</Td>
                 <Td align="right" num={c.recipients != null} className={c.recipients == null ? 'k' : undefined}>
                   {c.recipients != null ? count(c.recipients) : '–'}
                 </Td>
@@ -263,9 +287,9 @@ function CampaignTable({ data, page, status, q }: { data: Schemas['CampaignList'
                 <Td align="right" num={c.clicks != null} className={c.clicks == null ? 'k' : undefined}>
                   {c.clicks != null ? pct(c.clicks) : '–'}
                 </Td>
-                <Td>{c.origin ? <span className="k">{c.origin[0]!.toUpperCase() + c.origin.slice(1)} · imported</span> : <RouteBadges routes={c.routes} sent={sent} />}</Td>
+                <Td>{c.origin ? <span className="k">{t(m.imported, { origin: originName(c.origin) })}</span> : <RouteBadges routes={c.routes} sent={sent} />}</Td>
                 <Td>
-                  <div className="flex flex-wrap justify-end gap-1.5">
+                  <div className="row-actions flex flex-wrap justify-end gap-1.5">
                     <RowActions c={c} />
                   </div>
                 </Td>
@@ -276,14 +300,14 @@ function CampaignTable({ data, page, status, q }: { data: Schemas['CampaignList'
       </Table>
       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line-2 px-5 py-2.5">
         <span className="k" role="status">
-          Showing {data.items.length === data.total ? count(data.total) : `${count(from + 1)}–${count(shown)}`} of {count(data.total)}
+          {t(m.showing, { range: data.items.length === data.total ? count(data.total) : `${count(from + 1)}–${count(shown)}`, total: count(data.total) })}
         </span>
         <div className="flex gap-1.5">
           <PageLink page={page - 1} disabled={page <= 1} status={status} q={q}>
-            Previous
+            {t(m.previous)}
           </PageLink>
           <PageLink page={page + 1} disabled={shown >= data.total} status={status} q={q}>
-            Next
+            {t(m.next)}
           </PageLink>
         </div>
       </div>
@@ -313,6 +337,7 @@ function PageLink({ page, disabled, status, q, children }: { page: number; disab
 }
 
 function RowActions({ c }: { c: Schemas['CampaignListItem'] }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const params = { workspace: slug, campaignId: c.id }
   switch (c.status) {
@@ -325,11 +350,11 @@ function RowActions({ c }: { c: Schemas['CampaignListItem'] }) {
         <>
           {r && r.verdict !== 'ready' ? (
             <ButtonLink size="sm" to="/w/$workspace/campaigns/$campaignId/review" params={params}>
-              {r.verdict === 'blocked' ? `${r.issues} blocking ${r.issues === 1 ? 'issue' : 'issues'}` : `Readiness · ${r.issues}`}
+              {r.verdict === 'blocked' ? t(m.blockingIssues, { count: r.issues }) : t(m.readiness, { count: r.issues })}
             </ButtonLink>
           ) : null}
           <ButtonLink size="sm" to="/w/$workspace/campaigns/$campaignId/edit" params={params}>
-            Edit
+            {t(m.edit)}
           </ButtonLink>
         </>
       )
@@ -338,26 +363,27 @@ function RowActions({ c }: { c: Schemas['CampaignListItem'] }) {
     case 'paused':
       return (
         <ButtonLink size="sm" to="/w/$workspace/campaigns/$campaignId/live" params={params}>
-          Live monitor
+          {t(m.liveMonitor)}
         </ButtonLink>
       )
     default:
       return (
         <>
           <ButtonLink size="sm" to="/w/$workspace/campaigns/$campaignId/report" params={params}>
-            Report
+            {t(m.report)}
           </ButtonLink>
-          <Button size="sm">Duplicate</Button>
+          <Button size="sm">{t(m.duplicate)}</Button>
         </>
       )
   }
 }
 
 function TableSkeleton() {
+  const t = useT()
   return (
     <section className="card" aria-busy="true">
       <span className="vh" role="status">
-        Loading campaigns
+        {t(m.loading)}
       </span>
       <div className="flex flex-col">
         {Array.from({ length: 8 }, (_, i) => (

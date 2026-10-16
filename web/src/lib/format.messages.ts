@@ -1,0 +1,33 @@
+import { defineMessages } from '@/i18n/define'
+
+/** Words in dates, times and durations (lib/format). Numbers come formatted. */
+export const m = defineMessages('format', {
+  never: 'never',
+  neverTitle: 'Never',
+  now: 'now',
+  minutesAgo: '{n} min ago',
+  hoursAgo: '{n} h ago',
+  yesterday: 'yesterday',
+  daysAgo: '{n, plural, one {# day ago} other {# days ago}}',
+  inMinutes: 'in {n} min',
+  inHoursMinutes: 'in {h} h {m} min',
+  inDaysHours: '{days, plural, one {in # day {h} h} other {in # days {h} h}}',
+  inHours: 'in {n} h',
+  inDays: '{n, plural, one {in # day} other {in # days}}',
+  expired: 'expired',
+  minutes: '{n} min',
+  hours: '{h} h',
+  hoursMinutes: '{h} h {m} min',
+  perSecond: '{n} /s',
+  spanHours: '{n, plural, one {# hour} other {# hours}}',
+  spanMinutes: '{n, plural, one {# minute} other {# minutes}}',
+  countdownMinutes: 'in {n} minutes',
+  countdownOneMinute: 'in 1 minute',
+  countdownSeconds: '{n, plural, one {in # second} other {in # seconds}}',
+  todayAt: 'Today {time}',
+  yesterdayAt: 'yesterday, {time}',
+  thisMorning: 'this morning',
+  thisAfternoon: 'this afternoon',
+  thisEvening: 'this evening',
+  onDate: 'on {date}',
+})

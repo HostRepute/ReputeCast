@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"log/slog"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -11,6 +12,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/apptest"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/mailer"
 	"github.com/hostrepute/reputecast/internal/notify"
 )
@@ -182,6 +184,37 @@ func TestSummarize(t *testing.T) {
 	s := notify.Summarize(p)
 	if s.InApp != "All events" || s.Email != "Approvals, auto-pauses, provider down, integration problems, post drafts, transactional delivery alerts, SMTP relay outages" || s.QuietHours != "22:00–07:00 America/New_York, email only" {
 		t.Fatalf("summary: %+v", s)
+	}
+
+	// In the member's app language, starting with a capital in any script.
+	vi := i18n.For(i18n.Vietnamese)
+	s = notify.SummarizeIn(vi, p)
+	if s.InApp != "Tất cả sự kiện" || s.Email != "Phê duyệt, tự tạm dừng, nhà cung cấp gặp sự cố, sự cố tích hợp, bản nháp bài viết, cảnh báo gửi email giao dịch, sự cố SMTP relay" ||
+		s.QuietHours != "22:00–07:00 America/New_York, chỉ email" {
+		t.Fatalf("Vietnamese summary: %+v", s)
+	}
+	p.QuietHours = nil
+	for i := range p.Events {
+		p.Events[i].Email = p.Events[i].Type == notify.KindWebhooksSilent
+	}
+	if s = notify.SummarizeIn(vi, p); s.Email != "Webhook im lặng" || s.QuietHours != "Tắt" {
+		t.Fatalf("Vietnamese summary, one event: %+v", s)
+	}
+}
+
+// Every event type's English short name is the catalog's short.<key>, so
+// the summary reads the same whichever one it takes.
+func TestEventShortNamesMatchTheCatalog(t *testing.T) {
+	for _, e := range notify.Events {
+		p := notify.NotificationPreferences{}
+		for _, x := range notify.Events {
+			p.Events = append(p.Events, notify.NotificationEventPreference{Type: x.Key, Email: x.Key == e.Key})
+		}
+		got := notify.SummarizeIn(i18n.Default, p).Email
+		want := strings.ToUpper(e.Short[:1]) + e.Short[1:]
+		if got != want {
+			t.Errorf("%s: the summary says %q, the event type %q", e.Key, got, want)
+		}
 	}
 }
 

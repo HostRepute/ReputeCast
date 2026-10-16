@@ -1,6 +1,6 @@
 import { keepPreviousData, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { $api, errorMessage, type Schemas } from '@/api/client'
 import { Page } from '@/components/shell/Page'
 import { GoogleMark } from '@/components/icons/Icon'
@@ -10,13 +10,17 @@ import { BulkResultDialog } from '@/components/ui/ConfirmDialog'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { EmptyRow, Td, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
+import { Truncate } from '@/components/ui/Truncate'
 import { settingsTabs } from '@/features/settings/SettingsTabs'
-import { ago, andList, inDays, monthDay, usDate } from '@/lib/format'
+import { T, t as tt, useT } from '@/i18n'
+import { ago, andList, inDays, monthDay, orList, usDate } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
 import { useWorkspace } from '@/lib/session'
-import { AccessTable, copyText, PersonCell, RoleBadge, SignInText, TwoFABadge } from '../access/parts'
+import { roleName } from '@/lib/roles'
+import { AccessTable, copyText, PersonCell, RoleBadge, scopeLabel, SignInText, TwoFABadge } from '../access/parts'
 import { DeactivateDialog } from './DeactivateDialog'
 import { InviteDialog } from './InviteDialog'
+import { m as tm } from './messages'
 
 export interface TeamSearch {
   q?: string
@@ -29,6 +33,7 @@ type Member = Schemas['TeamMember']
 
 /** A5 §5.8 Team: members with role, scope, sign-in, two-factor and status; pending invitations. */
 export function TeamPage({ search }: { search: TeamSearch }) {
+  const t = useT()
   const { slug, me } = useWorkspace()
   const [inviteOpen, setInviteOpen] = useState(false)
   const members = $api.useQuery(
@@ -46,20 +51,20 @@ export function TeamPage({ search }: { search: TeamSearch }) {
   const canInvite = members.data?.canInvite ?? me.permissions.includes('team:invite')
   return (
     <Page
-      title="Settings"
+      title={t(tm.title)}
       tabs={settingsTabs(slug)}
       actions={
         canInvite ? (
           <Button variant="primary" onClick={() => setInviteOpen(true)}>
-            Invite member
+            {t(tm.inviteMember)}
           </Button>
         ) : null
       }
     >
-      {members.data && !members.data.canInvite ? <ReadOnlyNote helpers={members.data.reason} /> : null}
+      {members.data && !members.data.canInvite ? <ReadOnlyNote helpers={members.data.helpers} /> : null}
       {members.isError ? (
-        <ErrorPanel title="Couldn't load the team" actions={<Button onClick={() => members.refetch()}>Retry</Button>}>
-          {errorMessage(members.error)} Nothing was changed.
+        <ErrorPanel title={t(tm.loadFailed)} actions={<Button onClick={() => members.refetch()}>{t(tm.retry)}</Button>}>
+          {errorMessage(members.error)} {t(tm.nothingChanged)}
         </ErrorPanel>
       ) : members.isPending ? (
         <TeamSkeleton />
@@ -67,7 +72,7 @@ export function TeamPage({ search }: { search: TeamSearch }) {
         <MembersCard list={members.data} search={search} hideMembers={search.status === 'invited'} />
       )}
       {invitations.isError ? (
-        <ErrorPanel title="Couldn't load the invitations" actions={<Button onClick={() => invitations.refetch()}>Retry</Button>}>
+        <ErrorPanel title={t(tm.invitationsFailed)} actions={<Button onClick={() => invitations.refetch()}>{t(tm.retry)}</Button>}>
           {errorMessage(invitations.error)}
         </ErrorPanel>
       ) : invitations.data ? (
@@ -78,21 +83,20 @@ export function TeamPage({ search }: { search: TeamSearch }) {
   )
 }
 
-/** "You can view the team. Inviting needs the team:invite permission…" */
-function ReadOnlyNote({ helpers }: { helpers?: string }) {
-  const ask = helpers?.match(/Ask (.+)\.$/)?.[1]
+/** "You can view the team. Inviting needs the team:invite permission…", and who can help. */
+function ReadOnlyNote({ helpers }: { helpers: string[] }) {
+  const t = useT()
+  const mono = (c: ReactNode) => <span className="mono">{c}</span>
   return (
     <div className="note n" role="status">
-      <Badge tone="neutral">Read-only</Badge>
-      <span>
-        You can view the team. Inviting needs the <span className="mono">team:invite</span> permission and changing roles needs{' '}
-        <span className="mono">team:manage</span>.{ask ? ` Ask ${ask}.` : ''}
-      </span>
+      <Badge tone="neutral">{t(tm.readOnly)}</Badge>
+      <span>{helpers.length ? <T msg={tm.readOnlyNoteAsk} values={{ helpers: orList(helpers), mono }} /> : <T msg={tm.readOnlyNote} values={{ mono }} />}</span>
     </div>
   )
 }
 
 function MembersCard({ list, search, hideMembers }: { list: Schemas['TeamMemberList']; search: TeamSearch; hideMembers: boolean }) {
+  const t = useT()
   const { slug, me } = useWorkspace()
   const now = useNow()
   const [selected, setSelected] = useState<string[]>([])
@@ -104,37 +108,35 @@ function MembersCard({ list, search, hideMembers }: { list: Schemas['TeamMemberL
       <div className="sec">
         <div className="flex min-w-0 flex-col gap-0.5">
           <h2 className="h2" id="members-h">
-            Members
+            {t(tm.members)}
           </h2>
-          <span className="k">Everyone with access to {me.workspace.name}</span>
+          <span className="k">{t(tm.membersCaption, { workspace: me.workspace.name })}</span>
         </div>
         {manage ? (
           <Filters list={list} search={search} />
         ) : (
-          <span className="k">
-            {list.counts.members} {list.counts.members === 1 ? 'member' : 'members'} · {list.counts.invited} invited
-          </span>
+          <span className="k">{t(tm.counts, { members: list.counts.members, invited: list.counts.invited })}</span>
         )}
       </div>
       {manage ? <BulkBar list={list} selected={selected} setSelected={setSelected} /> : null}
-      <AccessTable caption="Members">
+      <AccessTable caption={t(tm.members)}>
         <thead>
           <tr>
-            <Th>Member</Th>
-            <Th>Role · scope</Th>
-            <Th>Sign-in</Th>
-            <Th>2FA</Th>
-            <Th>Last active</Th>
-            <Th>Status</Th>
+            <Th>{t(tm.member)}</Th>
+            <Th>{t(tm.roleScope)}</Th>
+            <Th>{t(tm.signIn)}</Th>
+            <Th>{t(tm.twoFA)}</Th>
+            <Th>{t(tm.lastActive)}</Th>
+            <Th>{t(tm.status)}</Th>
             <Th>
-              <span className="vh">Actions</span>
+              <span className="vh">{t(tm.actions)}</span>
             </Th>
           </tr>
         </thead>
         <tbody>
           {items.length === 0 ? (
             <EmptyRow colSpan={7}>
-              {hideMembers ? 'Invited people appear under Pending invitations below.' : filtered ? 'No members match these filters.' : 'No members yet.'}
+              {hideMembers ? t(tm.invitedBelow) : filtered ? t(tm.noMatch) : t(tm.noMembers)}
             </EmptyRow>
           ) : (
             items.map((m) => (
@@ -170,6 +172,7 @@ function MemberRow({
   onSelect: (on: boolean) => void
   slug: string
 }) {
+  const t = useT()
   const active = m.status === 'active'
   const reactivate = useReactivate()
   return (
@@ -177,9 +180,9 @@ function MemberRow({
       <Td>
         <div className="flex min-w-0 items-center gap-2.5">
           {manage ? (
-            <input type="checkbox" checked={selected} onChange={(e) => onSelect(e.target.checked)} aria-label={`Select ${m.name}`} />
+            <input type="checkbox" checked={selected} onChange={(e) => onSelect(e.target.checked)} aria-label={t(tm.select, { name: m.name })} />
           ) : null}
-          <PersonCell name={m.name} sub={m.email} color={active ? m.avatarColor : 'muted'} />
+          <PersonCell name={m.name} sub={<Truncate text={m.email} />} color={active ? m.avatarColor : 'muted'} />
         </div>
       </Td>
       <Td>
@@ -188,15 +191,15 @@ function MemberRow({
         {!m.role.builtin ? (
           <>
             {' '}
-            <span className="k">custom</span>
+            <span className="k">{t(tm.custom)}</span>
           </>
         ) : null}
-        {m.scope.label ? (
+        {m.scope.all ? null : (
           <>
             {' '}
-            <span className="k">· {m.scope.label}</span>
+            <span className="k">· {scopeLabel(m.scope)}</span>
           </>
-        ) : null}
+        )}
         {m.notes.length > 0 ? (
           <>
             {' '}
@@ -208,20 +211,20 @@ function MemberRow({
         <SignInText methods={m.signIn} />
       </Td>
       <Td>{active ? <TwoFABadge twoFA={m.twoFA} /> : <span className="k">–</span>}</Td>
-      <Td>{active ? ago(m.lastActiveAt, now) : m.deactivatedAt ? `deactivated ${usDate(m.deactivatedAt)}` : 'deactivated'}</Td>
+      <Td>{active ? ago(m.lastActiveAt, now) : m.deactivatedAt ? t(tm.deactivatedOn, { date: usDate(m.deactivatedAt) }) : t(tm.deactivated)}</Td>
       <Td>
-        {active ? <Badge tone="ok">Active</Badge> : <Badge tone="neutral">Deactivated</Badge>}
+        {active ? <Badge tone="ok">{t(tm.active)}</Badge> : <Badge tone="neutral">{t(tm.deactivatedBadge)}</Badge>}
       </Td>
       <Td>
         {!manage ? (
           <span className="k">–</span>
         ) : active ? (
-          <ButtonLink size="sm" to="/w/$workspace/settings/team/$memberId" params={{ workspace: slug, memberId: m.id }} aria-label={`Manage ${m.name}`}>
-            Manage
+          <ButtonLink size="sm" to="/w/$workspace/settings/team/$memberId" params={{ workspace: slug, memberId: m.id }} aria-label={t(tm.manageName, { name: m.name })}>
+            {t(tm.manage)}
           </ButtonLink>
         ) : (
-          <Button size="sm" loading={reactivate.isPending} onClick={() => reactivate.run(m)} aria-label={`Reactivate ${m.name}`}>
-            Reactivate
+          <Button size="sm" loading={reactivate.isPending} onClick={() => reactivate.run(m)} aria-label={t(tm.reactivateName, { name: m.name })}>
+            {t(tm.reactivate)}
           </Button>
         )}
       </Td>
@@ -240,16 +243,17 @@ function useReactivate() {
         { params: { path: { workspace: slug, memberId: m.id } } },
         {
           onSuccess: () => {
-            toast({ title: `${m.name} reactivated`, detail: 'they can sign in to this workspace again' })
+            toast({ title: tt(tm.reactivated, { name: m.name }), detail: tt(tm.reactivatedDetail) })
             void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/members'] })
           },
-          onError: (e) => toast({ kind: 'error', title: `Couldn't reactivate ${m.name}`, detail: errorMessage(e) }),
+          onError: (e) => toast({ kind: 'error', title: tt(tm.reactivateFailed, { name: m.name }), detail: errorMessage(e) }),
         },
       ),
   }
 }
 
 function Filters({ list, search }: { list: Schemas['TeamMemberList']; search: TeamSearch }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const navigate = useNavigate()
   const [q, setQ] = useState(search.q ?? '')
@@ -262,44 +266,45 @@ function Filters({ list, search }: { list: Schemas['TeamMemberList']; search: Te
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q])
   return (
-    <div className="row gap-2">
+    <div className="filters row gap-2">
       <label className="vh" htmlFor="team-q">
-        Search members
+        {t(tm.searchLabel)}
       </label>
-      <input id="team-q" className="in w-[240px] max-md:min-w-full" placeholder="Search name or email" value={q} onChange={(e) => setQ(e.target.value)} />
-      <select className="in w-[150px] max-md:min-w-full" aria-label="Filter by role" value={search.role ?? ''} onChange={(e) => set({ role: e.target.value || undefined })}>
-        <option value="">Any role</option>
+      <input id="team-q" className="in w-[240px] max-md:min-w-full" placeholder={t(tm.searchPlaceholder)} value={q} onChange={(e) => setQ(e.target.value)} />
+      {/* Filter selects size to their longest option, the old width being the least (text expansion rule 1). */}
+      <select className="in w-auto min-w-[150px] max-md:min-w-full" aria-label={t(tm.filterRole)} value={search.role ?? ''} onChange={(e) => set({ role: e.target.value || undefined })}>
+        <option value="">{t(tm.anyRole)}</option>
         {list.roles.map((r) => (
           <option key={r.id} value={r.key}>
-            {r.name}
+            {roleName(r)}
           </option>
         ))}
       </select>
       <select
-        className="in w-[140px] max-md:min-w-full"
-        aria-label="Filter by status"
+        className="in w-auto min-w-[140px] max-md:min-w-full"
+        aria-label={t(tm.filterStatus)}
         value={search.status ?? ''}
         onChange={(e) => set({ status: (e.target.value || undefined) as TeamSearch['status'] })}
       >
-        <option value="">Any status</option>
-        <option value="active">Active</option>
-        <option value="invited">Invited</option>
-        <option value="deactivated">Deactivated</option>
+        <option value="">{t(tm.anyStatus)}</option>
+        <option value="active">{t(tm.active)}</option>
+        <option value="invited">{t(tm.invited)}</option>
+        <option value="deactivated">{t(tm.deactivatedBadge)}</option>
       </select>
       <select
-        className="in w-[120px] max-md:min-w-full"
-        aria-label="Filter by two-factor status"
+        className="in w-auto min-w-[120px] max-md:min-w-full"
+        aria-label={t(tm.filter2FA)}
         value={search.twofa ?? ''}
         onChange={(e) => set({ twofa: (e.target.value || undefined) as TeamSearch['twofa'] })}
       >
-        <option value="">Any 2FA</option>
-        <option value="on">On</option>
-        <option value="off">Off</option>
-        <option value="idp">Via IdP</option>
-        <option value="required">Required</option>
+        <option value="">{t(tm.any2FA)}</option>
+        <option value="on">{t(tm.twoFAOn)}</option>
+        <option value="off">{t(tm.twoFAOff)}</option>
+        <option value="idp">{t(tm.twoFAIdp)}</option>
+        <option value="required">{t(tm.twoFARequired)}</option>
       </select>
       <span className="k ml-1" role="status">
-        {list.counts.members} {list.counts.members === 1 ? 'member' : 'members'} · {list.counts.invited} invited
+        {t(tm.counts, { members: list.counts.members, invited: list.counts.invited })}
       </span>
     </div>
   )
@@ -316,6 +321,7 @@ function clean(s: TeamSearch): TeamSearch {
 
 /** Bulk bar: change role, require two-factor now, deactivate. */
 function BulkBar({ list, selected, setSelected }: { list: Schemas['TeamMemberList']; selected: string[]; setSelected: (s: string[]) => void }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const qc = useQueryClient()
   const selectable = list.items.filter((m) => !m.you)
@@ -326,19 +332,20 @@ function BulkBar({ list, selected, setSelected }: { list: Schemas['TeamMemberLis
   const bulk = $api.useMutation('post', '/api/v1/workspaces/{workspace}/members/bulk')
   const all = selectable.length > 0 && selectable.every((m) => selected.includes(m.id))
   const none = selected.length === 0
-  const reason = none ? 'Select members in the table first.' : undefined
-  const run = (action: 'change_role' | 'require_2fa', label: string) =>
+  const reason = none ? t(tm.selectFirst) : undefined
+  const run = (action: 'change_role' | 'require_2fa') =>
     bulk.mutate(
       { params: { path: { workspace: slug } }, body: { memberIds: selected, action, roleId: action === 'change_role' ? list.roles.find((r) => r.key === roleKey)?.id : undefined } },
       {
         onSuccess: (res) => {
           // A partial result says who was skipped and why (Dialogs board, bulk result).
-          if (res.skipped.length) setResult({ action, role: roles.find((r) => r.key === roleKey)?.name, res })
-          else toast({ title: `${label}: ${res.changed} ${res.changed === 1 ? 'member' : 'members'}` })
+          const role = roles.find((r) => r.key === roleKey)
+          if (res.skipped.length) setResult({ action, role: role ? roleName(role) : undefined, res })
+          else toast({ title: tt(action === 'change_role' ? tm.roleChanged : tm.required2FA, { count: res.changed }) })
           setSelected([])
           void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/members'] })
         },
-        onError: (e) => toast({ kind: 'error', title: `${label} failed`, detail: errorMessage(e) }),
+        onError: (e) => toast({ kind: 'error', title: tt(action === 'change_role' ? tm.roleChangeFailed : tm.require2FAFailed), detail: errorMessage(e) }),
       },
     )
   const selectedMembers = list.items.filter((m) => selected.includes(m.id))
@@ -352,39 +359,41 @@ function BulkBar({ list, selected, setSelected }: { list: Schemas['TeamMemberLis
             if (el) el.indeterminate = !none && !all
           }}
           onChange={() => setSelected(all || !none ? [] : selectable.map((m) => m.id))}
-          aria-label={none ? 'Select every member' : 'Clear the selection'}
+          aria-label={none ? t(tm.selectAll) : t(tm.clearSelection)}
         />
-        {selected.length} selected
+        {t(tm.selected, { count: selected.length })}
       </label>
-      <span className="k">Bulk:</span>
-      <select className="in w-[160px] max-md:min-w-full" aria-label="New role for the selected members" value={roleKey} onChange={(e) => setRoleKey(e.target.value)}>
+      <span className="k">{t(tm.bulk)}</span>
+      <select className="in w-auto min-w-[160px] max-md:min-w-full" aria-label={t(tm.bulkRole)} value={roleKey} onChange={(e) => setRoleKey(e.target.value)}>
         {roles.map((r) => (
           <option key={r.id} value={r.key}>
-            {r.name}
+            {roleName(r)}
           </option>
         ))}
       </select>
-      <Button size="sm" disabledReason={reason} loading={bulk.isPending && bulk.variables?.body.action === 'change_role'} onClick={() => run('change_role', 'Role changed')}>
-        Change role
+      <Button size="sm" disabledReason={reason} loading={bulk.isPending && bulk.variables?.body.action === 'change_role'} onClick={() => run('change_role')}>
+        {t(tm.changeRole)}
       </Button>
-      <Button size="sm" disabledReason={reason} loading={bulk.isPending && bulk.variables?.body.action === 'require_2fa'} onClick={() => run('require_2fa', 'Two-factor required now')}>
-        Require 2FA now
+      <Button size="sm" disabledReason={reason} loading={bulk.isPending && bulk.variables?.body.action === 'require_2fa'} onClick={() => run('require_2fa')}>
+        {t(tm.require2FA)}
       </Button>
       <Button size="sm" variant="danger" disabledReason={reason} onClick={() => setDeactivating(true)}>
-        Deactivate
+        {t(tm.deactivate)}
       </Button>
       {result ? (
         <BulkResultDialog
           open
           onOpenChange={(o) => !o && setResult(undefined)}
-          title={result.action === 'change_role' ? `Role changed to ${result.role ?? 'the new role'}` : 'Two-factor required now'}
+          title={
+            result.action === 'change_role' ? (result.role ? t(tm.roleChangedTo, { role: result.role }) : t(tm.roleChangedToNew)) : t(tm.twoFARequiredNow)
+          }
           done={{
             count: result.res.changed,
-            text: result.action === 'change_role' ? `now ${result.role ?? 'have the new role'}` : 'must set up two-factor at their next sign-in',
+            text: result.action === 'change_role' ? (result.role ? t(tm.nowRole, { role: result.role }) : t(tm.nowNewRole)) : t(tm.mustSetUp),
           }}
           skipped={{
             count: result.res.skipped.length,
-            text: `${andList(result.res.skipped)} ${result.action === 'change_role' ? 'already had this role' : 'already use two-factor or sign in through an IdP that enforces it'}`,
+            text: t(result.action === 'change_role' ? tm.alreadyRole : tm.already2FA, { names: andList(result.res.skipped) }),
           }}
         />
       ) : null}
@@ -410,6 +419,7 @@ function bulkRoles(roles: Schemas['TeamRoleRef'][]) {
 }
 
 function InvitationsCard({ list, onInvite }: { list: Schemas['TeamInvitationList']; onInvite: () => void }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const now = useNow()
   const qc = useQueryClient()
@@ -424,51 +434,54 @@ function InvitationsCard({ list, onInvite }: { list: Schemas['TeamInvitationList
       <div className="sec">
         <div className="flex min-w-0 flex-col gap-0.5">
           <h2 className="h2" id="inv-h">
-            Pending invitations · {list.items.length}
+            {t(tm.pending, { count: list.items.length })}
           </h2>
-          <span className="k">{invite ? `Links work for ${list.defaultDays} days by default` : 'Resend, copy link and revoke are hidden'}</span>
+          <span className="k">{invite ? t(tm.linksWork, { days: list.defaultDays }) : t(tm.actionsHidden)}</span>
         </div>
         {invite ? (
           <Button size="sm" variant="primary" onClick={onInvite}>
-            Invite member
+            {t(tm.inviteMember)}
           </Button>
         ) : null}
       </div>
-      <AccessTable caption="Pending invitations">
+      <AccessTable caption={t(tm.pending, { count: list.items.length })}>
         <thead>
           <tr>
-            <Th>Invitee</Th>
-            <Th>Role · scope</Th>
-            <Th>Sent</Th>
-            <Th>Expires</Th>
+            <Th>{t(tm.invitee)}</Th>
+            <Th>{t(tm.roleScope)}</Th>
+            <Th>{t(tm.sent)}</Th>
+            <Th>{t(tm.expires)}</Th>
             <Th>
-              <span className="vh">Actions</span>
+              <span className="vh">{t(tm.actions)}</span>
             </Th>
           </tr>
         </thead>
         <tbody>
           {list.items.length === 0 ? (
-            <EmptyRow colSpan={5}>No pending invitations. Invite people by email or share a link.</EmptyRow>
+            <EmptyRow colSpan={5}>{t(tm.noInvitations)}</EmptyRow>
           ) : (
             list.items.map((i) => (
               <tr key={i.id}>
                 <Td>
-                  <PersonCell name={i.email} sub={i.invitedBy ? `invited by ${i.invitedBy}` : undefined} muted text="?" />
+                  <PersonCell name={<Truncate text={i.email} />} sub={i.invitedBy ? t(tm.invitedBy, { name: i.invitedBy }) : undefined} muted text="?" />
                 </Td>
                 <Td>
                   <RoleBadge role={i.role} />
-                  {invite && i.scope.label ? (
+                  {invite && !i.scope.all ? (
                     <>
                       {' '}
-                      <span className="k">· {i.scope.label}</span>
+                      <span className="k">· {scopeLabel(i.scope)}</span>
                     </>
                   ) : null}
                 </Td>
                 <Td>
-                  {monthDay(i.lastSentAt ?? i.createdAt)}
-                  {invite ? (i.sentVia ? ` · email via ${i.sentVia}` : ' · link only') : ''}
+                  {invite
+                    ? i.sentVia
+                      ? t(tm.sentVia, { date: monthDay(i.lastSentAt ?? i.createdAt), provider: i.sentVia })
+                      : t(tm.linkOnly, { date: monthDay(i.lastSentAt ?? i.createdAt) })
+                    : monthDay(i.lastSentAt ?? i.createdAt)}
                 </Td>
-                <Td>{i.expired ? <Badge tone="bad">Expired</Badge> : inDays(i.expiresAt, now)}</Td>
+                <Td>{i.expired ? <Badge tone="bad">{t(tm.expired)}</Badge> : inDays(i.expiresAt, now)}</Td>
                 <Td>
                   {invite ? (
                     <div className="row flex-nowrap gap-1.5">
@@ -481,18 +494,18 @@ function InvitationsCard({ list, onInvite }: { list: Schemas['TeamInvitationList
                             {
                               onSuccess: async (r) => {
                                 void refresh()
-                                if (r.emailed) toast({ title: `Invitation sent again to ${i.email}`, detail: `via ${r.sentVia}` })
+                                if (r.emailed) toast({ title: tt(tm.sentAgain, { email: i.email }), detail: tt(tm.sentAgainVia, { provider: r.sentVia ?? '' }) })
                                 else {
                                   const ok = await copyText(r.link)
-                                  toast({ kind: 'info', title: "Email can't be sent yet", detail: ok ? 'the link was copied instead' : r.link })
+                                  toast({ kind: 'info', title: tt(tm.cantEmail), detail: ok ? tt(tm.linkCopiedInstead) : r.link })
                                 }
                               },
-                              onError: (e) => toast({ kind: 'error', title: "Couldn't resend", detail: errorMessage(e) }),
+                              onError: (e) => toast({ kind: 'error', title: tt(tm.resendFailed), detail: errorMessage(e) }),
                             },
                           )
                         }
                       >
-                        Resend
+                        {t(tm.resend)}
                       </Button>
                       <Button
                         size="sm"
@@ -502,14 +515,14 @@ function InvitationsCard({ list, onInvite }: { list: Schemas['TeamInvitationList
                             {
                               onSuccess: async (r) => {
                                 const ok = await copyText(r.link)
-                                toast({ title: ok ? 'Invite link copied' : 'Invite link', detail: ok ? `works until ${monthDay(r.expiresAt)}` : r.link })
+                                toast({ title: ok ? tt(tm.linkCopied) : tt(tm.inviteLink), detail: ok ? tt(tm.worksUntil, { date: monthDay(r.expiresAt) }) : r.link })
                               },
-                              onError: (e) => toast({ kind: 'error', title: "Couldn't copy the link", detail: errorMessage(e) }),
+                              onError: (e) => toast({ kind: 'error', title: tt(tm.copyFailed), detail: errorMessage(e) }),
                             },
                           )
                         }
                       >
-                        Copy link
+                        {t(tm.copyLink)}
                       </Button>
                       <Button
                         size="sm"
@@ -520,14 +533,14 @@ function InvitationsCard({ list, onInvite }: { list: Schemas['TeamInvitationList
                             {
                               onSuccess: () => {
                                 void refresh()
-                                toast({ kind: 'deleted', title: `Invitation for ${i.email} revoked`, detail: 'the link stops working' })
+                                toast({ kind: 'deleted', title: tt(tm.revoked, { email: i.email }), detail: tt(tm.revokedDetail) })
                               },
-                              onError: (e) => toast({ kind: 'error', title: "Couldn't revoke", detail: errorMessage(e) }),
+                              onError: (e) => toast({ kind: 'error', title: tt(tm.revokeFailed), detail: errorMessage(e) }),
                             },
                           )
                         }
                       >
-                        Revoke
+                        {t(tm.revoke)}
                       </Button>
                     </div>
                   ) : (
@@ -543,10 +556,7 @@ function InvitationsCard({ list, onInvite }: { list: Schemas['TeamInvitationList
         <div className="pad pt-3">
           <div className="note i">
             <GoogleMark size={14} />
-            <span>
-              {jit.domain} users can also join automatically with {jit.provider}: single sign-on creates their account as {jit.roleName} on first sign-in (JIT). Invite them only to give a
-              different role.
-            </span>
+            <span>{t(tm.jit, { domain: jit.domain, provider: jit.provider, role: jit.roleName })}</span>
           </div>
         </div>
       ) : null}
@@ -555,10 +565,11 @@ function InvitationsCard({ list, onInvite }: { list: Schemas['TeamInvitationList
 }
 
 function TeamSkeleton() {
+  const t = useT()
   return (
     <section className="card" aria-busy="true">
       <span className="vh" role="status">
-        Loading the team
+        {t(tm.loading)}
       </span>
       <div className="sec">
         <div className="flex flex-col gap-1.5">

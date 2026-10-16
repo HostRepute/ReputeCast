@@ -1,5 +1,7 @@
 import { useLayoutEffect, useRef, type ReactNode } from 'react'
 import { GitHubMark, GoogleMark, Icon, MicrosoftMark } from '@/components/icons/Icon'
+import { useT } from '@/i18n'
+import { m } from './parts.messages'
 import './auth.css'
 
 export function AuthHeading({ id, title, sub }: { id: string; title: ReactNode; sub?: ReactNode }) {
@@ -13,11 +15,12 @@ export function AuthHeading({ id, title, sub }: { id: string; title: ReactNode; 
 
 /** "linh@acme.io · not you?" */
 export function NotYou({ email, onBack }: { email: ReactNode; onBack: () => void }) {
+  const t = useT()
   return (
     <>
       {email} ·{' '}
       <button type="button" className="prose-link cursor-pointer border-0 bg-transparent p-0 text-[12px] font-medium text-accent hover:text-accent-hover" onClick={onBack}>
-        not you?
+        {t(m.notYou)}
       </button>
     </>
   )
@@ -93,6 +96,7 @@ export function OtpInput({
   labelledBy: string
   autoFocus?: boolean
 }) {
+  const t = useT()
   const refs = useRef<(HTMLInputElement | null)[]>([])
   // Typing fast fires several events before React re-renders, so keep the
   // latest value in a ref instead of reading it from the render closure.
@@ -121,7 +125,7 @@ export function OtpInput({
           value={d.trim()}
           inputMode="numeric"
           autoComplete={i === 0 ? 'one-time-code' : 'off'}
-          aria-label={`Digit ${i + 1}`}
+          aria-label={t(m.digitLabel, { n: i + 1 })}
           aria-invalid={invalid ? true : undefined}
           aria-describedby={describedBy}
           maxLength={6}

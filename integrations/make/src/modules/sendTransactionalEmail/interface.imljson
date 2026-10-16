@@ -1,0 +1,22 @@
+[
+  {
+    "name": "id",
+    "type": "text",
+    "label": "Message ID"
+  },
+  {
+    "name": "status",
+    "type": "text",
+    "label": "Status"
+  },
+  {
+    "name": "send_at",
+    "type": "date",
+    "label": "Send at"
+  },
+  {
+    "name": "test",
+    "type": "boolean",
+    "label": "Test mode"
+  }
+]

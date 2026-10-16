@@ -16821,6 +16821,13 @@
       "InstanceBasics": {
         "additionalProperties": false,
         "properties": {
+          "defaultLanguage": {
+            "enum": [
+              "en",
+              "vi"
+            ],
+            "type": "string"
+          },
           "name": {
             "maxLength": 80,
             "minLength": 1,
@@ -16928,11 +16935,29 @@
       "InstanceInfo": {
         "additionalProperties": false,
         "properties": {
+          "defaultLanguage": {
+            "examples": [
+              "en"
+            ],
+            "type": "string"
+          },
+          "defaultRegionFormat": {
+            "examples": [
+              "standard"
+            ],
+            "type": "string"
+          },
           "instanceName": {
             "examples": [
               "Acme ReputeCast"
             ],
             "type": "string"
+          },
+          "languages": {
+            "items": {
+              "$ref": "#/components/schemas/LanguageOption"
+            },
+            "type": "array"
           },
           "logoSvg": {
             "type": "string"
@@ -17319,6 +17344,18 @@
           "configPublicUrl": {
             "type": "string"
           },
+          "defaultLanguage": {
+            "examples": [
+              "en"
+            ],
+            "type": "string"
+          },
+          "defaultRegionFormat": {
+            "examples": [
+              "standard"
+            ],
+            "type": "string"
+          },
           "defaultTimezone": {
             "type": "string"
           },
@@ -17348,6 +17385,26 @@
       "InstanceSettingsInput": {
         "additionalProperties": false,
         "properties": {
+          "defaultLanguage": {
+            "enum": [
+              "en",
+              "vi"
+            ],
+            "type": "string"
+          },
+          "defaultRegionFormat": {
+            "enum": [
+              "standard",
+              "en-US",
+              "vi-VN",
+              "de-DE",
+              "en-GB",
+              "es-ES",
+              "fr-FR",
+              "pt-BR"
+            ],
+            "type": "string"
+          },
           "defaultTimezone": {
             "maxLength": 64,
             "type": "string"
@@ -18733,6 +18790,50 @@
           "at",
           "operation",
           "status"
+        ],
+        "type": "object"
+      },
+      "IntegrationFormItem": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "description": "The form's ID, as form.submitted's form_id",
+            "examples": [
+              "frm_8c2e1a"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "draft",
+              "live",
+              "paused"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "status"
+        ],
+        "type": "object"
+      },
+      "IntegrationFormItems": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/IntegrationFormItem"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
         ],
         "type": "object"
       },
@@ -20462,6 +20563,15 @@
           "inviterName": {
             "type": "string"
           },
+          "inviterUnknown": {
+            "type": "boolean"
+          },
+          "language": {
+            "examples": [
+              "en"
+            ],
+            "type": "string"
+          },
           "message": {
             "description": "Personal message from the inviter",
             "type": "string"
@@ -20685,6 +20795,28 @@
         "required": [
           "default",
           "fallback"
+        ],
+        "type": "object"
+      },
+      "LanguageOption": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "examples": [
+              "vi"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "examples": [
+              "Tiếng Việt"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "name"
         ],
         "type": "object"
       },
@@ -22621,6 +22753,24 @@
       "MeInstance": {
         "additionalProperties": false,
         "properties": {
+          "defaultLanguage": {
+            "examples": [
+              "en"
+            ],
+            "type": "string"
+          },
+          "defaultRegionFormat": {
+            "examples": [
+              "standard"
+            ],
+            "type": "string"
+          },
+          "languages": {
+            "items": {
+              "$ref": "#/components/schemas/LanguageOption"
+            },
+            "type": "array"
+          },
           "latestVersion": {
             "type": "string"
           },
@@ -22669,12 +22819,18 @@
           "isInstanceAdmin": {
             "type": "boolean"
           },
+          "languageSuggestionAnswered": {
+            "type": "boolean"
+          },
           "name": {
             "type": "string"
           },
           "passkeys": {
             "format": "int64",
             "type": "integer"
+          },
+          "preferences": {
+            "$ref": "#/components/schemas/MemberLanguage"
           },
           "recoveryCodes": {
             "description": "Unused recovery codes",
@@ -22816,6 +22972,61 @@
         },
         "required": [
           "items"
+        ],
+        "type": "object"
+      },
+      "MemberLanguage": {
+        "additionalProperties": false,
+        "properties": {
+          "hourCycle": {
+            "description": "auto follows the region format",
+            "enum": [
+              "auto",
+              "h23",
+              "h12"
+            ],
+            "type": "string"
+          },
+          "language": {
+            "description": "default follows the instance default",
+            "enum": [
+              "default",
+              "en",
+              "vi",
+              "en-XA"
+            ],
+            "type": "string"
+          },
+          "regionFormat": {
+            "description": "auto follows the app language",
+            "enum": [
+              "auto",
+              "standard",
+              "en-US",
+              "vi-VN",
+              "de-DE",
+              "en-GB",
+              "es-ES",
+              "fr-FR",
+              "pt-BR"
+            ],
+            "type": "string"
+          },
+          "weekStart": {
+            "description": "auto follows the region format",
+            "enum": [
+              "auto",
+              "monday",
+              "sunday"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "language",
+          "regionFormat",
+          "hourCycle",
+          "weekStart"
         ],
         "type": "object"
       },
@@ -34835,6 +35046,33 @@
         ],
         "type": "object"
       },
+      "SuggestionAnswer": {
+        "additionalProperties": false,
+        "properties": {
+          "answer": {
+            "description": "use switched to the language; keep and dismiss didn't",
+            "enum": [
+              "use",
+              "keep",
+              "dismiss"
+            ],
+            "type": "string"
+          },
+          "language": {
+            "description": "The language the browser suggested",
+            "enum": [
+              "en",
+              "vi"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "answer",
+          "language"
+        ],
+        "type": "object"
+      },
       "SunsetPolicy": {
         "additionalProperties": false,
         "properties": {
@@ -35722,6 +35960,13 @@
             "minimum": 1,
             "type": "integer"
           },
+          "language": {
+            "enum": [
+              "en",
+              "vi"
+            ],
+            "type": "string"
+          },
           "message": {
             "maxLength": 1000,
             "type": "string"
@@ -35770,6 +36015,12 @@
             "format": "int64",
             "type": "integer"
           },
+          "defaultLanguage": {
+            "examples": [
+              "en"
+            ],
+            "type": "string"
+          },
           "defaultRoleId": {
             "type": "string"
           },
@@ -35783,6 +36034,12 @@
           "jit": {
             "items": {
               "$ref": "#/components/schemas/TeamJITHint"
+            },
+            "type": "array"
+          },
+          "languages": {
+            "items": {
+              "$ref": "#/components/schemas/LanguageOption"
             },
             "type": "array"
           },
@@ -42301,6 +42558,12 @@
           "created": {
             "type": "boolean"
           },
+          "languages": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "name": {
             "type": "string"
           },
@@ -42474,6 +42737,14 @@
             "minLength": 1,
             "type": "string"
           },
+          "translations": {
+            "description": "The post's translations (plugin 1.3.0, WPML or Polylang): they become the draft's language versions",
+            "items": {
+              "$ref": "#/components/schemas/WordPressPostTranslation"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
           "url": {
             "maxLength": 1000,
             "type": "string"
@@ -42481,6 +42752,46 @@
         },
         "required": [
           "id",
+          "title"
+        ],
+        "type": "object"
+      },
+      "WordPressPostTranslation": {
+        "additionalProperties": false,
+        "properties": {
+          "excerpt": {
+            "maxLength": 2000,
+            "type": "string"
+          },
+          "id": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "imageUrl": {
+            "maxLength": 1000,
+            "type": "string"
+          },
+          "language": {
+            "examples": [
+              "es"
+            ],
+            "maxLength": 40,
+            "minLength": 2,
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 300,
+            "minLength": 1,
+            "type": "string"
+          },
+          "url": {
+            "maxLength": 1000,
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "language",
           "title"
         ],
         "type": "object"
@@ -46887,6 +47198,95 @@
           }
         ],
         "summary": "Unlink a social or SSO sign-in (not your last way to sign in)",
+        "tags": [
+          "Account"
+        ],
+        "x-access": "user"
+      }
+    },
+    "/api/v1/me/language": {
+      "put": {
+        "description": "Sets the language of ReputeCast's interface and of the emails it sends you, and how dates, times and numbers are written. \"default\" follows the instance default; \"auto\" follows the language (region format) or the region format (clock, first day of the week). Times stay in each workspace's timezone.",
+        "operationId": "update-my-language",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberLanguage"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberLanguage"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Change your app language and region format",
+        "tags": [
+          "Account"
+        ],
+        "x-access": "user"
+      }
+    },
+    "/api/v1/me/language/suggestion": {
+      "put": {
+        "description": "Records that you answered \"Your browser prefers …\", so it isn't offered again on any device.",
+        "operationId": "answer-language-suggestion",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SuggestionAnswer"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Answer the browser's language suggestion",
         "tags": [
           "Account"
         ],
@@ -63866,6 +64266,62 @@
         "x-permission": "subscribers:view"
       }
     },
+    "/api/v1/workspaces/{workspace}/integration/forms": {
+      "get": {
+        "description": "Only keys with the Form submitted trigger turned on can call it. It lists forms, never contacts.",
+        "operationId": "list-integration-forms",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegrationFormItems"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Signup forms, for the Form submitted trigger's form filter",
+        "tags": [
+          "Integration API"
+        ],
+        "x-access": "workspace",
+        "x-integration": "*",
+        "x-permission": "subscribers:view"
+      }
+    },
     "/api/v1/workspaces/{workspace}/integration/hooks": {
       "post": {
         "description": "Creates a managed webhook. It can't be edited by hand, answers to the integration only, and is removed when the endpoint answers 410 Gone.",
@@ -63990,6 +64446,69 @@
           }
         ],
         "summary": "Unsubscribe: remove a workflow's managed webhook",
+        "tags": [
+          "Integration API"
+        ],
+        "x-access": "workspace",
+        "x-integration": "*",
+        "x-permission": "webhooks:manage"
+      },
+      "get": {
+        "description": "n8n checks that a workflow's webhook still exists when the workflow is turned on, and subscribes again when it answers 404.",
+        "operationId": "get-integration-hook",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "hookId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegrationHook"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A workflow's managed webhook, without its secret",
         "tags": [
           "Integration API"
         ],

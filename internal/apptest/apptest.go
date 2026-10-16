@@ -111,6 +111,8 @@ type Client struct {
 	http *http.Client
 	// Bearer is sent as Authorization when set (API keys, agents).
 	Bearer string
+	// Header is added to every request (Accept-Language…).
+	Header http.Header
 }
 
 // Client returns a new client with an empty cookie jar.
@@ -170,6 +172,9 @@ func (c *Client) Do(method, path string, body any) *Response {
 	if c.Bearer != "" {
 		req.Header.Set("Authorization", "Bearer "+c.Bearer)
 		req.Header.Del("Sec-Fetch-Site")
+	}
+	for k, vs := range c.Header {
+		req.Header[k] = vs
 	}
 	resp, err := c.http.Do(req)
 	if err != nil {

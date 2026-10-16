@@ -1,0 +1,55 @@
+[
+  {
+    "name": "contactId",
+    "type": "text",
+    "label": "Contact ID"
+  },
+  {
+    "name": "email",
+    "type": "email",
+    "label": "Email"
+  },
+  {
+    "name": "created",
+    "type": "boolean",
+    "label": "Created"
+  },
+  {
+    "name": "lists",
+    "type": "array",
+    "label": "Lists",
+    "spec": {
+      "type": "collection",
+      "spec": [
+        {
+          "name": "id",
+          "type": "text",
+          "label": "List ID"
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "label": "Name"
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "label": "Status"
+        }
+      ]
+    }
+  },
+  {
+    "name": "tags",
+    "type": "array",
+    "label": "Tags",
+    "spec": {
+      "type": "text"
+    }
+  },
+  {
+    "name": "confirmationSent",
+    "type": "boolean",
+    "label": "Confirmation email sent"
+  }
+]

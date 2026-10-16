@@ -2,6 +2,7 @@ import { Link, useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { DropdownMenu } from 'radix-ui'
 import { http } from '@/api/client'
+import { LanguageMenuItem } from '@/features/language/LanguageMenuItem'
 import { T, useT } from '@/i18n'
 import { useMediaQuery } from '@/lib/hooks'
 import { useMe, useOptionalWorkspace } from '@/lib/session'
@@ -74,6 +75,8 @@ export function UserMenu() {
               {t(m.userMenuAccount)}
             </Link>
           </DropdownMenu.Item>
+          <LanguageMenuItem slug={slug} />
+
           <DropdownMenu.Item asChild>
             <Link to="/w/$workspace/notifications" params={{ workspace: slug }} hash="preferences">
               <Icon name="bell" />
