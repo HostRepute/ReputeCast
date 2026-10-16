@@ -499,7 +499,7 @@ func (s *Service) syncFailed(ctx context.Context, conn store.HostreputeConnectio
 			if err := notify.ToMembersWith(ctx, tx, conn.WorkspaceID, authz.IntegrationsHostRepute, notify.Notification{
 				Kind: notify.KindHostReputeAlert, Severity: "warn", Title: "HostRepute needs reconnecting",
 				Body: "HostRepute rejected the token. Blocklist, Postmaster, SNDS and DMARC data is stale until someone reconnects; Send Readiness marks the reputation check as unknown.",
-				Link: "/w/" + slug + "/settings/integrations",
+				Link: "/w/" + slug + "/settings/integrations/hostrepute",
 			}); err != nil {
 				return err
 			}

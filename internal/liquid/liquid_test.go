@@ -1,8 +1,12 @@
 package liquid
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/osteele/liquid/render"
 )
 
 func TestRenderFallbacks(t *testing.T) {
@@ -45,8 +49,59 @@ func TestValidateAndLimits(t *testing.T) {
 	if p := Validate(`{% for i in (1..5000) %}x{% endfor %}`); len(p) == 0 {
 		t.Fatal("huge range must be rejected")
 	}
-	if _, err := Render(`{% include "secrets" %}`, nil); err == nil {
-		t.Fatal("include must be unavailable")
+}
+
+// osteele/liquid's include and render read templates from files under the
+// working directory; here neither tag exists and no file is ever read.
+func TestTemplatesCantReadFiles(t *testing.T) {
+	const secret = "db_password: hunter2"
+	root := t.TempDir()
+	dir := filepath.Join(root, "a", "b")
+	if err := os.MkdirAll(dir, 0o750); err != nil {
+		t.Fatal(err)
+	}
+	for path, body := range map[string]string{
+		filepath.Join(root, "go.mod"): secret,
+		filepath.Join(dir, "x"):       secret,
+		// It renders itself: osteele/liquid recursed until the stack
+		// overflowed, a fatal error that kills the whole process.
+		filepath.Join(dir, "self"): `{% render "self" %}`,
+	} {
+		if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	t.Chdir(dir)
+
+	for _, tag := range []string{
+		`{% render "x" %}`,
+		`{% render "../../go.mod" %}`,
+		`{% render "self" %}`,
+		`{%- render 'x' -%}`,
+		`{% render &quot;x&quot; %}`,
+		`{% if true %}{% render "x" %}{% endif %}`,
+		`{% include "x" %}`,
+		`{% include "../../go.mod" %}`,
+	} {
+		src := "Hi {{ first_name }},\n" + tag
+		if out, err := Render(src, nil); err == nil {
+			t.Errorf("%s rendered %q; want an error", tag, out)
+		} else if strings.Contains(err.Error(), secret) {
+			t.Errorf("%s: the error shows the file: %v", tag, err)
+		}
+		if p := Validate(src); len(p) != 1 || p[0].Line != 2 {
+			t.Errorf("%s: problems %+v; want one on line 2", tag, p)
+		}
+	}
+
+	// The template store holds nothing, so even a tag that asks for a file
+	// gets none.
+	e := NewEngine()
+	e.RegisterTag("probe", func(ctx render.Context) (string, error) {
+		return ctx.RenderFile("x", nil)
+	})
+	if out, err := e.ParseAndRenderString(`{% probe %}`, nil); err == nil || strings.Contains(out, secret) {
+		t.Fatalf("a tag read a file: %q, %v", out, err)
 	}
 }
 

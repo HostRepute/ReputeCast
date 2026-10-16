@@ -63,11 +63,10 @@ const (
 )
 
 var (
-	engine = func() *osteele.Engine {
-		e := osteele.NewEngine()
-		e.UnregisterTag("include")
-		return e
-	}()
+	// Not osteele.NewEngine: the plain-text part derived from the HTML is
+	// parsed here without liquid.Validate, so this engine can't load
+	// templates or files either.
+	engine     = liquid.NewEngine()
 	anchorRe   = regexp.MustCompile(`(?is)<a\b([^>]*)>(.*?)</a\s*>`)
 	hrefRe     = regexp.MustCompile(`(?is)(\shref\s*=\s*)("([^"]*)"|'([^']*)'|([^\s>"']+))`)
 	tagRe      = regexp.MustCompile(`(?s)<[^>]*>`)

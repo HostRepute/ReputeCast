@@ -134,7 +134,7 @@ export const entries: Entry[] = [
   { board: 'SettingsMCP', path: `${ws}/settings/mcp` },
   { board: 'SettingsAPI', path: `${ws}/settings/webhooks` },
   { board: 'SettingsAudit', path: `${ws}/settings/audit` },
-  { board: 'SettingsIntegrations', path: `${ws}/settings/integrations` },
+  { board: 'SettingsIntegrations', path: `${ws}/settings/integrations/hostrepute` },
   { board: 'SettingsSenders', path: `${ws}/settings/senders` },
   { board: 'SettingsSendersPhone', path: `${ws}/settings/senders`, widths: [390] },
   { board: 'SettingsSendersTablet', path: `${ws}/settings/senders`, widths: [834] },
@@ -166,6 +166,16 @@ export const entries: Entry[] = [
   { board: 'PublicUnsubscribe', manual: true },
   // X01 · the phone tab bar's More sheet: open it with More at 390 × 844 (any screen; the board draws it over Overview).
   { board: 'ShellMore', manual: true },
+  // X04 · the integrations hub. The connect dialog, the states and the WordPress board's dialogs need clicks or data changes.
+  { board: 'IntegrationsCatalog', path: `${ws}/settings/integrations`, widths: [1440] },
+  { board: 'IntegrationsCatalogTablet', path: `${ws}/settings/integrations`, widths: [834] },
+  { board: 'IntegrationsCatalogPhone', path: `${ws}/settings/integrations`, widths: [390] },
+  { board: 'IntegrationsZapier', path: `${ws}/settings/integrations/zapier`, widths: [1440] },
+  { board: 'IntegrationsZapierTablet', path: `${ws}/settings/integrations/zapier`, widths: [834] },
+  { board: 'IntegrationsZapierPhone', path: `${ws}/settings/integrations/zapier`, widths: [390] },
+  { board: 'IntegrationsWordPress', path: `${ws}/settings/integrations/wordpress` },
+  { board: 'IntegrationsConnect', manual: true },
+  { board: 'IntegrationsStates', manual: true },
   // X07 · app languages. Language & region sits under Profile; its states (picked and not saved,
   // saved in Tiếng Việt with Undo, the browser's suggestion, the pseudo-locale) come from picking.
   { board: 'LanguageRegion', path: `${ws}/account`, viewportOnly: true, height: 1000 },

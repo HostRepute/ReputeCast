@@ -4,8 +4,9 @@
 // Email HTML escapes quotes and angle brackets, and editors write them as
 // entities, so Prepare decodes entities inside {{ … }} and {% … %} before
 // parsing. The composer's short form {{ first_name | "there" }} is accepted
-// and read as default: "there". Rendering is bounded: no includes, ranges of
-// at most 1,000 items and at most 4 MB of output.
+// and read as default: "there". Rendering is bounded: no include or render
+// (templates can't load other templates or files), ranges of at most 1,000
+// items and at most 4 MB of output.
 package liquid
 
 import (
@@ -158,11 +159,32 @@ type LiquidProblem struct {
 	Message string `json:"message"`
 }
 
-var engine = func() *osteele.Engine {
+// NewEngine returns a Liquid engine that can't read files. Every package
+// that parses Liquid uses it.
+//
+// osteele/liquid's include and render tags load other templates from the
+// engine's template store, which by default reads files under the working
+// directory: an email could print the server's files, and a template that
+// renders itself recursed until the stack overflowed, killing the process.
+// Both tags are removed, so using one is a parse error with its line, and
+// the store holds no templates, so a tag added later can't read files
+// either.
+func NewEngine() *osteele.Engine {
 	e := osteele.NewEngine()
 	e.UnregisterTag("include")
+	e.UnregisterTag("render")
+	e.RegisterTemplateStore(noTemplates{})
 	return e
-}()
+}
+
+// noTemplates is a template store without templates.
+type noTemplates struct{}
+
+func (noTemplates) ReadTemplate(name string) ([]byte, error) {
+	return nil, fmt.Errorf("templates can't load other templates (%q)", name)
+}
+
+var engine = NewEngine()
 
 func checkRanges(src string) error {
 	for _, m := range rangeRe.FindAllStringSubmatch(src, -1) {
