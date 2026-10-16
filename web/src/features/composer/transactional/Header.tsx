@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/Button'
 import { Note } from '@/components/ui/Note'
 import { useT } from '@/i18n'
 import { clock } from '@/lib/format'
+import { useMe, useOptionalWorkspace } from '@/lib/session'
 import { useComposer } from '../context'
 import { ToolIcon } from '../icons'
 import { m } from './messages'
@@ -82,6 +83,16 @@ function SaveState() {
   )
 }
 
+/** Who is looking, on the read-only header: "Aisha Bello · Viewer". */
+function ViewerLine() {
+  const t = useT()
+  const ws = useOptionalWorkspace()
+  const { data } = useMe()
+  const user = data?.user
+  if (!user || !ws) return null
+  return <span className="k">{t(m.viewerLine, { name: user.name || user.email, role: ws.me.workspace.roleName })}</span>
+}
+
 /** Publish, with why it can't happen yet. */
 function PublishButton() {
   const t = useT()
@@ -92,6 +103,8 @@ function PublishButton() {
   const blocked = (tx.checks?.checks ?? []).some((x) => x.severity === 'block' && (x.id === 'liquid.syntax' || x.id === 'content.compile'))
   const unchanged = !!tpl.liveVersion && !tpl.draftChanges && c.status.kind !== 'dirty' && c.status.kind !== 'conflict'
   const reason = !tx.canPublish ? tpl.access.publishReason || t(m.publishNeedsPermission) : tpl.archived ? t(m.publishArchived) : undefined
+  // A Viewer can neither edit nor publish: the board shows no Publish button.
+  if (!tx.canEdit && !tx.canPublish) return null
   if (unchanged)
     return (
       <span className="inline-flex items-center gap-2">
@@ -101,7 +114,7 @@ function PublishButton() {
         </Button>
       </span>
     )
-  if (blocked)
+  if (blocked && tx.canPublish)
     return (
       <span className="inline-flex items-center gap-2">
         <span className="k">{t(m.needsRender)}</span>
@@ -171,6 +184,7 @@ export function TxHeader() {
       <Badge tone={tpl.category?.kind === 'optional' ? 'info' : 'neutral'}>{category}</Badge>
       <VersionBadge />
       {tx.canEdit ? null : <Badge tone="neutral">{t(m.readOnly)}</Badge>}
+      {tx.canEdit ? null : <ViewerLine />}
       <SaveState />
       <div className="flex flex-wrap items-center gap-2" style={{ marginLeft: 'auto' }}>
         <Button onClick={tx.openVersions}>{t(m.versions)}</Button>

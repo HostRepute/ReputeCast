@@ -550,11 +550,11 @@ export function ImportDialog({ initial, onClose, onSession }: { initial?: Import
           <Icon name="info" size={16} />
           <div>{t(m.draftsNote)}</div>
         </div>
-        <Table caption={t(m.reportEyebrow)} density="compact" phoneWrap>
+        <Table caption={t(m.reportEyebrow)}>
           <thead>
             <tr>
               <Th>{t(m.colTemplate)}</Th>
-              <Th>{imp.source === 'files' ? t(m.colFile) : t(m.colAlias, { source: name(imp.source) })}</Th>
+              <Th className="txi-alias">{imp.source === 'files' ? t(m.colFile) : t(m.colAlias, { source: name(imp.source) })}</Th>
               <Th>{t(m.colId)}</Th>
               <Th>{t(m.colResult)}</Th>
               <Th>{t(m.colNotes)}</Th>
@@ -565,8 +565,9 @@ export function ImportDialog({ initial, onClose, onSession }: { initial?: Import
               <tr key={it.ref}>
                 <Td>
                   <span className="font-semibold">{it.name}</span>
+                  <span className="txi-alias-inline mono k">{it.alias || it.ref}</span>
                 </Td>
-                <Td nowrap>
+                <Td nowrap className="txi-alias">
                   <span className="mono k">{it.alias || it.ref}</span>
                 </Td>
                 <Td nowrap>
@@ -575,7 +576,7 @@ export function ImportDialog({ initial, onClose, onSession }: { initial?: Import
                 <Td nowrap>
                   <ResultBadge it={it} />
                 </Td>
-                <Td wrap>
+                <Td wrap className="txi-notes">
                   <NoteCell it={it} />
                 </Td>
               </tr>

@@ -133,3 +133,20 @@
   flex-wrap: wrap;
   font-size: 13px;
 }
+
+/* The report: below 900 px the source's alias moves under the template's
+   name, so the notes keep their room. */
+.txi-alias-inline {
+  display: none;
+}
+.txi-notes {
+  min-width: 180px;
+}
+@media (max-width: 899px) {
+  .tbl .txi-alias {
+    display: none;
+  }
+  .txi-alias-inline {
+    display: block;
+  }
+}
