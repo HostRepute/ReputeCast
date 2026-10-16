@@ -422,6 +422,39 @@ export function zonedParts(d: string | number | Date): DateParts {
   return zoned(toDate(d))
 }
 
+/**
+ * A calendar day ("2026-10-14", in no timezone) in the region format:
+ * "Wednesday 14 Oct 2026" (longDate), "Nov 4" (monthDay), "Nov 4, 2026" (date).
+ */
+export function calendarDate(day: string, kind: 'longDate' | 'monthDay' | 'date' = 'longDate'): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day)
+  if (!m) return day
+  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])))
+  return formatDate(region(), kind, { year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate(), weekday: d.getUTCDay(), hour: 0, minute: 0, second: 0 })
+}
+
+/** A moment in another timezone than the display one, in the region format: "Nov 4, 2026" and "09:00". */
+export function inZone(d: string | number | Date, tz: string | undefined): { date: string; time: string } {
+  let p: Record<string, string> = {}
+  try {
+    const f = new Intl.DateTimeFormat('en-US', { timeZone: tz || undefined, year: 'numeric', month: 'numeric', day: 'numeric', weekday: 'short', hour: 'numeric', minute: 'numeric', hourCycle: 'h23' })
+    for (const x of f.formatToParts(toDate(d))) p[x.type] = x.value
+  } catch {
+    p = {}
+  }
+  const parts: DateParts = {
+    year: Number(p.year),
+    month: Number(p.month),
+    day: Number(p.day),
+    weekday: Math.max(0, weekdays.indexOf(p.weekday ?? '')),
+    hour: Number(p.hour) % 24,
+    minute: Number(p.minute),
+    second: 0,
+  }
+  if (!p.year) return { date: usDate(d), time: clock(d) }
+  return { date: formatDate(region(), 'date', parts), time: formatTime(region(), parts, getI18n().hourCycle) }
+}
+
 /** The first day of the week in calendars: 1 is Monday, 0 is Sunday. */
 export function weekStartsOn(): 0 | 1 {
   const w: WeekStart = getI18n().weekStart
