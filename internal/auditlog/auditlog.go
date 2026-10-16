@@ -128,6 +128,7 @@ var Categories = []AuditCategory{
 	{Key: "team", Label: "Team & access", Groups: []string{"team", "member", "role", "apikey", "agent", "auth", "invitation", "user", "session", "sso"}},
 	{Key: "settings", Label: "Settings", Groups: []string{"workspace", "webhook", "audit", "settings", "mcp", "instance"}},
 	{Key: "integrations", Label: "Integrations", Groups: []string{"integration", "wordpress", "hostrepute"}},
+	{Key: "polls", Label: "Polls & surveys", Groups: []string{"poll", "survey"}},
 }
 
 // Filter narrows the log.

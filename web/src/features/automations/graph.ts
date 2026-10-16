@@ -23,6 +23,8 @@ export interface Refs {
   emails: Map<string, { name: string; latestVersion: number; subject: string }>
   providers: Map<string, { name: string; short: string; status: string }>
   fields: Map<string, { label: string; type: string }>
+  /** Polls and surveys the trigger "Answered a poll or survey" names ("poll:<id>" → name). */
+  polls?: Map<string, string>
 }
 
 export const emptyRefs: Refs = { lists: new Map(), forms: new Map(), emails: new Map(), providers: new Map(), fields: new Map() }
@@ -58,6 +60,7 @@ export const triggerKindLabels: Record<TriggerConfig['kind'], string> = {
   tag_added: 'Tag added',
   api_event: 'API event',
   date_field: 'Date field',
+  poll_answered: 'Answered a poll or survey',
 }
 
 /** Colour of a step type: the palette swatch and the node header. */
@@ -191,6 +194,8 @@ export function triggerRef(t: TriggerConfig | undefined, refs: Refs): string {
       return t.event ?? ''
     case 'date_field':
       return refs.fields.get(t.field ?? '')?.label ?? t.field ?? ''
+    case 'poll_answered':
+      return refs.polls?.get(t.poll ?? '') ?? 'a poll or survey'
   }
 }
 

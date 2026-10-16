@@ -39,6 +39,8 @@ type Service struct {
 	Accessibility AccessibilityReader
 	PublicURL     func(context.Context) string
 	Now           func() time.Time
+	// Polls reads poll and survey results (nil: unavailable).
+	Polls PollReader
 
 	limiters sync.Map // agent id → *limiter
 }
@@ -81,6 +83,7 @@ var Tools = []MCPToolInfo{
 	{"send_test_email", "Send a test of a campaign to a member of the workspace.", string(authz.CampaignsEdit), true},
 	{"get_campaign_languages", "A campaign's language versions: each one's status (up to date, outdated, draft, missing) and who gets it.", string(authz.CampaignsView), false},
 	{"get_accessibility_issues", "Accessibility issues of a campaign in every language: what is serious, where it is and how to fix it.", string(authz.CampaignsView), false},
+	{"get_poll_results", "Results of a campaign's polls or of a survey: answers by answer, NPS, by tier and language. Aggregate only.", string(authz.ReportsView), false},
 }
 
 // Settings are the per-workspace MCP options.

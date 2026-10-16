@@ -13,9 +13,10 @@ import (
 func (a *App) mcpserver() *mcpserver.Service {
 	return &mcpserver.Service{
 		Pool: a.Pool, Q: a.Q, Audit: a.Audit, Sending: a.Sending, Mail: a.Mail,
-		Campaigns:     &campaigns.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit},
+		Campaigns:     &campaigns.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Extras: campaignExtras(a)},
 		Languages:     languagesService(a),
 		Accessibility: newAccessibility(a),
+		Polls:         a.polls(),
 		PublicURL:     func(context.Context) string { return a.URLs.Base() },
 	}
 }

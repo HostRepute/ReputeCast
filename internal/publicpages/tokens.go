@@ -717,6 +717,14 @@ func (h *Handler) viewOnline(w http.ResponseWriter, r *http.Request) {
 		"view_in_browser_url": s.links.View(token),
 	}
 	subj, html := variantContent(cp.Subject, cp.Html, cp.AbTest, m.Variant)
+	// The reader's version of conditional content; poll links answer as
+	// someone who isn't a contact (design expansion, X11).
+	if h.Browser != nil {
+		html = h.Browser.BrowserHTML(r.Context(), s.ws, cp.ID, m.ID, html)
+		for k, v := range h.Browser.BrowserLinks(r.Context(), s.ws, cp.ID) {
+			links[k] = v
+		}
+	}
 	subject, body := renderEmail(subj, html, pc.Email, pc.FirstName, pc.LastName, pc.Attributes, links, h.URLs.Base())
 	doc := injectHead(body, emailHead{Title: subject, Robots: "noindex, nofollow"})
 	emailHeaders(w, true)

@@ -210,6 +210,8 @@ func triggerMatches(t AutomationTrigger, ev store.ClaimAutomationEventsRow) bool
 		return t.Event == ev.Ref
 	case TriggerDateField:
 		return t.Field == ev.Ref
+	case TriggerPollAnswered:
+		return pollTriggerMatches(t, ev)
 	}
 	return false
 }
@@ -228,7 +230,7 @@ func (s *Service) enroll(ctx context.Context, q *store.Queries, stats statsBuf, 
 	if !decoded || !triggerMatches(t, ev) || f.LiveVersion == nil {
 		return false, nil
 	}
-	if t.Reentry != "always" {
+	if t.Reentry != "always" && !pollReentry(t, ev) {
 		exists, err := q.AutomationRunExists(ctx, store.AutomationRunExistsParams{AutomationID: f.ID, ContactID: ev.ContactID})
 		if err != nil || exists {
 			return false, err

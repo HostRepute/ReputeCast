@@ -127,7 +127,11 @@ const (
 
 // loadRefs loads what steps can point at in a workspace.
 func (s *Service) loadRefs(ctx context.Context, q *store.Queries, wsID uuid.UUID) (*Refs, error) {
-	r := &Refs{Lists: map[string]string{}, Forms: map[string]string{}, Emails: map[string]int{}, EmailNames: map[string]string{}, Fields: map[string]string{}, Providers: map[string]string{}}
+	r := &Refs{Lists: map[string]string{}, Forms: map[string]string{}, Emails: map[string]int{}, EmailNames: map[string]string{}, Fields: map[string]string{}, Providers: map[string]string{},
+		Polls: map[string]string{}}
+	if err := loadPollRefs(ctx, q, wsID, r); err != nil {
+		return nil, err
+	}
 	lists, err := q.AutomationLists(ctx, wsID)
 	if err != nil {
 		return nil, err

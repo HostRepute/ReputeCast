@@ -55,6 +55,8 @@ func TriggerKindLabel(kind string) string {
 		return "API event"
 	case TriggerDateField:
 		return "Date field"
+	case TriggerPollAnswered:
+		return "Answered a poll or survey"
 	}
 	return "Trigger"
 }
@@ -85,6 +87,13 @@ func TriggerRef(t *AutomationTrigger, refs *Refs) string {
 		return t.Event
 	case TriggerDateField:
 		return t.Field
+	case TriggerPollAnswered:
+		if refs != nil {
+			if n, ok := refs.Polls[t.Poll]; ok {
+				return n
+			}
+		}
+		return "a poll"
 	}
 	return ""
 }

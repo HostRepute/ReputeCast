@@ -59,6 +59,7 @@ func (a *App) formsService() *forms.Service {
 
 func (a *App) publicPages() *publicpages.Handler {
 	fs := a.formsService()
+	pl := a.polls()
 	formsMu.Lock()
 	defer formsMu.Unlock()
 	if h, ok := formsPages[a]; ok {
@@ -68,6 +69,10 @@ func (a *App) publicPages() *publicpages.Handler {
 		Pool: a.Pool, Q: a.Q, Forms: fs, Audience: a.audience(), Tokens: a.Links, URLs: a.URLs, Log: a.Log,
 		// Root paths on hosts that aren't a custom domain stay the web app's.
 		SPA: server.NewSPA(web.Dist()),
+		// The poll answer pages and survey pages; emails in the browser get
+		// their version of conditional content and their poll links.
+		Polls:   pl,
+		Browser: browserContent{a},
 	}
 	formsPages[a] = h
 	return h

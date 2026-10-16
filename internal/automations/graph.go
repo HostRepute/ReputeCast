@@ -91,7 +91,7 @@ type AutomationNodeData struct {
 
 // AutomationTrigger says which contacts enter the flow.
 type AutomationTrigger struct {
-	Kind string `json:"kind" enum:"joined_list,form_submitted,tag_added,api_event,date_field"`
+	Kind string `json:"kind" enum:"joined_list,form_submitted,tag_added,api_event,date_field,poll_answered"`
 	// Joined list: the list, whether to wait for double opt-in, and whether
 	// contacts added by an import count.
 	ListID         string `json:"listId,omitempty" maxLength:"40"`
@@ -109,6 +109,13 @@ type AutomationTrigger struct {
 	// Reentry: "once" (default) lets a contact through the flow one time;
 	// "always" lets them enter again after they leave.
 	Reentry string `json:"reentry,omitempty" maxLength:"8"`
+	// Answered a poll or survey (polls.go): the poll or survey ("poll:<id>",
+	// "survey:<id>"), the answers that start it (keys, with is or is not),
+	// and whether a changed answer starts it again.
+	Poll     string `json:"poll,omitempty" maxLength:"60"`
+	AnswerOp string `json:"answerOp,omitempty" enum:"any,is,is_not"`
+	Answers  []int  `json:"answers,omitempty" maxItems:"11"`
+	OnChange bool   `json:"onChange,omitempty"`
 }
 
 // AutomationDuration is a delay or a time window.
@@ -450,6 +457,7 @@ type Refs struct {
 	EmailNames map[string]string // id → name
 	Fields     map[string]string // key → type
 	Providers  map[string]string // id → name
+	Polls      map[string]string // "poll:<id>" or "survey:<id>" → name
 }
 
 var (
@@ -606,6 +614,14 @@ func checkConfig(n AutomationNode, refs *Refs) []configProblem {
 		case TriggerAPIEvent:
 			if !reEvent.MatchString(t.Event) {
 				bad("invalid_event", "Name the API event, like workspace.created (letters, numbers and . _ : -).")
+			}
+		case TriggerPollAnswered:
+			if t.Poll == "" {
+				bad("missing_ref", "Pick the poll or survey.")
+			} else if refs != nil && refs.Polls != nil {
+				if _, ok := refs.Polls[t.Poll]; !ok {
+					bad("missing_ref", "The trigger's poll or survey was deleted. Pick another one.")
+				}
 			}
 		case TriggerDateField:
 			if t.Field == "" {
