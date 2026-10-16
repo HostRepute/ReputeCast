@@ -306,7 +306,9 @@ pseudo-locale by 40%. The stress-test boards (`StressCampaigns…`,
 
 1. **Never cut off** verdicts, status badges, numbers, buttons, permission
    keys, error messages or anything in a dialog. They wrap, or the layout
-   makes room.
+   makes room. A select can't wrap: a choice whose label can pass about 32
+   characters in another language is a set of radio cards there
+   (StressReviewVi's auto-pause scope).
 2. **Ellipsis, with the full text on hover and focus,** for user content in
    table cells (campaign, list and member names, email addresses) and the
    middle of breadcrumbs: wrap the cell's link in `components/ui/Truncate`.

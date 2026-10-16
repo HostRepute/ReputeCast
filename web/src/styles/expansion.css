@@ -50,12 +50,14 @@
 }
 
 /* Rule 4: buttons don't wrap, so a Send Readiness row's fixes move to their
-   own row under the finding instead of squeezing it (StressReviewVi). */
+   own row when they'd squeeze the finding, as StressReviewVi and
+   StressReviewPseudo draw it: the row wraps and the finding keeps 320 px. */
 :root:not([lang='en']) .rv-row {
   flex-wrap: wrap;
+  row-gap: 8px;
 }
-:root:not([lang='en']) .rv-row > :is(.btn, .rv-fixes) {
-  margin-left: auto;
+:root:not([lang='en']) .rv-rt {
+  flex-basis: 320px;
 }
 
 /* Rule 5: badges don't wrap, on phones too (where English lets a phone-wrap

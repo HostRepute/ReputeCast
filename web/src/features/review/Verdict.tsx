@@ -30,7 +30,13 @@ export function VerdictBanner({ run, mode, actions }: { run: Run; mode: Review['
             ? t(am.blockedLine, { counts: countsLine(run.counts), note: a11y.note })
             : blocked
               ? blockedLine(run.counts, run.checks)
-              : t(m.verdictLine, { counts: countsLine(run.counts), when: whenText(run.ranAt, now), mode: mode === 'now' ? 'now' : 'scheduled' })}
+              : t(m.verdictLine, {
+                  passed: run.counts.passed,
+                  warnings: run.counts.warnings,
+                  blocks: run.counts.blocks,
+                  when: whenText(run.ranAt, now),
+                  mode: mode === 'now' ? 'now' : 'scheduled',
+                })}
         </span>
       </div>
       {actions ? <div className="rv-vacts">{actions}</div> : null}

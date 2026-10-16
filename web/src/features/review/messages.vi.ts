@@ -59,6 +59,7 @@ export default translate(m, {
   groupAudience: 'Chất lượng người nhận',
   groupRouting: 'Định tuyến',
   groupAccessibility: 'Khả năng tiếp cận',
+  groupLanguages: 'Ngôn ngữ',
   groupAudienceShort: 'Người nhận',
   wordReputation: 'uy tín',
   wordAuthentication: 'xác thực',
@@ -70,7 +71,7 @@ export default translate(m, {
   wordAccessibility: 'khả năng tiếp cận',
 
   verdictLine:
-    '{counts}. Kiểm tra xong lúc {when} {mode, select, now {và sẽ chạy lại khi bắt đầu gửi} other {và sẽ chạy lại 15 phút trước giờ gửi đã lên lịch}}.',
+    '{passed, plural, other {# mục đạt}}, {warnings, plural, other {# cảnh báo}}, {blocks, plural, other {# mục chặn}}. Kiểm tra xong lúc {when} {mode, select, now {và sẽ chạy lại khi bắt đầu gửi} other {và sẽ chạy lại 15 phút trước giờ gửi đã lên lịch}}.',
   running: 'Đang kiểm tra độ sẵn sàng',
   runningCount: 'Đang kiểm tra độ sẵn sàng · xong {done} trên {total} mục',
   checksDone: 'Số mục đã kiểm tra',

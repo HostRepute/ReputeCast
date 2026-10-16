@@ -361,6 +361,7 @@ const groupTitleMessages = {
   audience: m.groupAudience,
   routing: m.groupRouting,
   accessibility: m.groupAccessibility,
+  languages: m.groupLanguages,
 }
 
 /** Group headings: "Sender reputation", "Audience quality". */

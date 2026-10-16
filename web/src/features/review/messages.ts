@@ -68,6 +68,7 @@ export const m = defineMessages('review', {
   groupAudience: 'Audience quality',
   groupRouting: 'Routing',
   groupAccessibility: 'Accessibility',
+  groupLanguages: 'Languages',
   groupAudienceShort: 'Audience',
   wordReputation: 'reputation',
   wordAuthentication: 'authentication',
@@ -80,7 +81,7 @@ export const m = defineMessages('review', {
 
   // Banners.
   verdictLine:
-    '{counts}. Checks finished {when}, {mode, select, now {and will run again when the send starts} other {and will run again 15 minutes before the scheduled send}}.',
+    '{passed, plural, one {# check passed} other {# checks passed}}, {warnings, plural, one {# warning} other {# warnings}}, {blocks, plural, one {# block} other {# blocks}}. Checks finished {when}, {mode, select, now {and will run again when the send starts} other {and will run again 15 minutes before the scheduled send}}.',
   running: 'Running Send Readiness',
   runningCount: 'Running Send Readiness · {done} of {total} checks done',
   checksDone: 'Checks done',
