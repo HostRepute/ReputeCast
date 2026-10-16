@@ -1933,6 +1933,10 @@ type Querier interface {
 	// A site connects to one workspace: another active connection of the same address.
 	WordPressSiteElsewhere(ctx context.Context, arg WordPressSiteElsewhereParams) (WordPressSiteElsewhereRow, error)
 	WordPressSiteInsert(ctx context.Context, arg WordPressSiteInsertParams) error
+	// The hashes of a site's live keys, newest first (a rotated key keeps
+	// working for 24 hours): "Check now" signs its call with them, so the
+	// plugin answers only the workspace it's connected to.
+	WordPressSiteKeyHashes(ctx context.Context, integrationID *uuid.UUID) ([][]byte, error)
 	WordPressSiteReport(ctx context.Context, arg WordPressSiteReportParams) error
 	WordPressSiteSetRule(ctx context.Context, arg WordPressSiteSetRuleParams) error
 	WordPressSites(ctx context.Context, workspaceID uuid.UUID) ([]WordPressSitesRow, error)

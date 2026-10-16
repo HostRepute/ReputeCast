@@ -1,0 +1,24 @@
+{
+  "id": "evt_sample",
+  "type": "form.submitted",
+  "created_at": "2026-10-03T14:05:40Z",
+  "workspace": "acme-newsletter",
+  "data": {
+    "form_id": "frm_8c2e1a",
+    "form_name": "Newsletter signup",
+    "contact_id": "0192a4c1-7d4e-7c1e-9a40-3f1b2c8d5e01",
+    "email": "lucia.fernandez@example.com",
+    "answers": {
+      "email": "lucia.fernandez@example.com",
+      "first_name": "Lucía"
+    },
+    "lists": [
+      "Weekly Digest"
+    ],
+    "consent_text": "I agree to receive emails from Acme. Unsubscribe any time with one click.",
+    "language": "es",
+    "double_opt_in": true,
+    "submitted_at": "2026-10-03T14:02:11Z",
+    "confirmed_at": "2026-10-03T14:05:40Z"
+  }
+}

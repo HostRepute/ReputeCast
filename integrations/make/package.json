@@ -1,0 +1,16 @@
+{
+  "name": "reputecast-make",
+  "version": "1.0.4",
+  "description": "ReputeCast for Make: the custom app's definition, its validation and its tests.",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "engines": {
+    "node": ">=24.11"
+  },
+  "scripts": {
+    "lint": "node scripts/validate.mjs",
+    "test": "node --test \"test/*.test.mjs\" \"../contract/*.test.mjs\"",
+    "build": "node scripts/build.mjs"
+  }
+}

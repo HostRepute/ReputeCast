@@ -46,6 +46,9 @@ type Service struct {
 	// AllowPrivate reports whether webhooks may reach private addresses
 	// (webhooks.allow_private_networks).
 	AllowPrivate func() bool
+	// Languages turns a post's translations into its draft's language
+	// versions (WordPress plugin 1.3.0).
+	Languages DraftLanguages
 	// HTTP overrides the client of "Check now" and the release check (tests).
 	HTTP *http.Client
 	// CheckTimeout overrides how long "Check now" waits (10 s).
@@ -107,6 +110,18 @@ type Workflow struct {
 func (w Workflow) Key() string {
 	if w.ID != "" {
 		return w.ID
+	}
+	return w.Name
+}
+
+// String is the header as a person reads it, the name decoded:
+// "Unsubscribes → Acme Cloud CRM; id=wf_2Lm8".
+func (w Workflow) String() string {
+	switch {
+	case w.Name != "" && w.ID != "":
+		return w.Name + "; id=" + w.ID
+	case w.ID != "":
+		return "id=" + w.ID
 	}
 	return w.Name
 }

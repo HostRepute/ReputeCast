@@ -1,0 +1,38 @@
+{
+	"name": "hostrepute/reputecast-wordpress",
+	"description": "Development tools for the ReputeCast WordPress plugin: its tests, coding standards and build.",
+	"type": "project",
+	"license": "GPL-2.0-or-later",
+	"require": {
+		"php": ">=8.1"
+	},
+	"require-dev": {
+		"brain/monkey": "^2.6",
+		"dealerdirect/phpcodesniffer-composer-installer": "^1.0",
+		"phpunit/phpunit": "^10.5",
+		"wp-coding-standards/wpcs": "^3.1"
+	},
+	"autoload-dev": {
+		"psr-4": {
+			"ReputeCast\\Tests\\": "tests/"
+		}
+	},
+	"config": {
+		"allow-plugins": {
+			"dealerdirect/phpcodesniffer-composer-installer": true
+		},
+		"platform": {
+			"php": "8.1.0"
+		},
+		"sort-packages": true
+	},
+	"scripts": {
+		"lint": [
+			"@php scripts/lint.php",
+			"phpcs"
+		],
+		"format": "phpcbf",
+		"test": "phpunit",
+		"build": "@php scripts/build.php"
+	}
+}

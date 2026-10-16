@@ -1,0 +1,18 @@
+{
+  "baseUrl": "{{connection.instanceUrl}}/api/v1",
+  "headers": {
+    "Authorization": "Bearer {{connection.apiKey}}",
+    "Accept": "application/json",
+    "User-Agent": "ReputeCast-Make/1.0.4",
+    "X-ReputeCast-Workflow": "{{if(scenario.id, if(scenario.name, encodeURL(scenario.name) + '; ', '') + 'id=' + scenario.id, '')}}"
+  },
+  "response": {
+    "error": {
+      "message": "{{ifempty(body.detail, ifempty(body.title, 'ReputeCast answered HTTP ' + statusCode + '.'))}}",
+      "type": "{{if(statusCode = 401, 'InvalidAccessTokenError', if(statusCode = 403, 'InvalidConfigurationError', if(body.code = 'workspace_not_found', 'InvalidConfigurationError', if(statusCode = 409, 'DataError', if(statusCode = 422, 'DataError', if(statusCode = 429, 'RateLimitError', if(statusCode >= 500, 'ConnectionError', 'RuntimeError')))))))}}"
+    }
+  },
+  "log": {
+    "sanitize": ["request.headers.authorization"]
+  }
+}

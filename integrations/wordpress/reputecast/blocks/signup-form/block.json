@@ -1,0 +1,33 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "reputecast/signup-form",
+	"version": "1.3.0",
+	"title": "ReputeCast signup form",
+	"category": "widgets",
+	"icon": "email-alt",
+	"description": "One of your ReputeCast signup forms. It loads from ReputeCast, so changes made there show on the page.",
+	"keywords": [ "newsletter", "subscribe", "signup", "email", "form" ],
+	"textdomain": "reputecast",
+	"attributes": {
+		"formId": {
+			"type": "string",
+			"default": ""
+		},
+		"language": {
+			"type": "string",
+			"default": ""
+		}
+	},
+	"supports": {
+		"html": false,
+		"align": [ "wide", "full" ],
+		"spacing": {
+			"margin": true,
+			"padding": true
+		}
+	},
+	"editorScript": "file:./index.js",
+	"editorStyle": "file:./editor.css",
+	"render": "file:./render.php"
+}

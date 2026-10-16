@@ -1,0 +1,8 @@
+{
+  "url": "/workspaces/{{connection.workspace}}/contacts/tags",
+  "method": "POST",
+  "body": "{{parameters}}",
+  "response": {
+    "output": "{{body}}"
+  }
+}

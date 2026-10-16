@@ -1,0 +1,4 @@
+{
+  "condition": "{{if(parameters.form, body.data.form_id = parameters.form, true)}}",
+  "output": "{{body}}"
+}

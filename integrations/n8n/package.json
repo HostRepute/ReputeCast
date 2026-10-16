@@ -1,0 +1,60 @@
+{
+  "name": "n8n-nodes-reputecast",
+  "version": "1.1.0",
+  "description": "ReputeCast nodes for n8n: start workflows from ReputeCast events, and create contacts, tag them, record events and send transactional email from your workflows.",
+  "license": "MIT",
+  "homepage": "https://github.com/hostrepute/reputecast/tree/main/integrations/n8n",
+  "keywords": [
+    "n8n-community-node-package",
+    "reputecast",
+    "newsletter",
+    "email"
+  ],
+  "author": {
+    "name": "HostRepute",
+    "email": "support@hostrepute.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hostrepute/reputecast.git",
+    "directory": "integrations/n8n"
+  },
+  "scripts": {
+    "build": "n8n-node build",
+    "build:watch": "tsc --watch",
+    "dev": "n8n-node dev",
+    "lint": "n8n-node lint",
+    "lint:fix": "n8n-node lint --fix",
+    "typecheck": "tsc -p tsconfig.test.json",
+    "test": "vitest run",
+    "release": "n8n-node release",
+    "prepublishOnly": "n8n-node prerelease"
+  },
+  "files": [
+    "dist"
+  ],
+  "n8n": {
+    "n8nNodesApiVersion": 1,
+    "strict": true,
+    "credentials": [
+      "dist/credentials/ReputeCastApi.credentials.js"
+    ],
+    "nodes": [
+      "dist/nodes/ReputeCast/ReputeCast.node.js",
+      "dist/nodes/ReputeCastTrigger/ReputeCastTrigger.node.js"
+    ]
+  },
+  "devDependencies": {
+    "@n8n/node-cli": "0.52.4",
+    "@types/node": "24.19.2",
+    "eslint": "9.32.0",
+    "n8n-workflow": "2.43.4",
+    "prettier": "3.6.2",
+    "release-it": "^21.1.0",
+    "typescript": "5.9.2",
+    "vitest": "5.0.4"
+  },
+  "peerDependencies": {
+    "n8n-workflow": "*"
+  }
+}
