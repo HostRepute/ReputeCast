@@ -213,6 +213,161 @@
   }
 }
 
+/* The color picker with contrast (ComposerContrast). */
+@layer components {
+  .a11y-swatch {
+    cursor: pointer;
+  }
+  .a11y-picker {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    margin-top: 4px;
+    border: 1px solid var(--line-strong);
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 12px 32px rgba(11, 18, 32, 0.16);
+  }
+  .a11y-sv {
+    position: relative;
+    height: 150px;
+    border-radius: 8px;
+    touch-action: none;
+    cursor: crosshair;
+  }
+  .a11y-sv:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .a11y-sv-dot {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    margin: -8px 0 0 -8px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow:
+      0 0 0 1px rgba(11, 18, 32, 0.5),
+      0 2px 6px rgba(11, 18, 32, 0.3);
+    pointer-events: none;
+  }
+  .a11y-hue {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 100%;
+    height: 12px;
+    margin: 0;
+    border-radius: 999px;
+    background: linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00);
+  }
+  .a11y-hue::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 1px rgba(11, 18, 32, 0.5);
+    background: transparent;
+    cursor: pointer;
+  }
+  .a11y-hue::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 1px rgba(11, 18, 32, 0.5);
+    background: transparent;
+    cursor: pointer;
+  }
+  .a11y-cp-sec {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 10px;
+    border-top: 1px solid var(--line-2);
+  }
+  .a11y-cchip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 24px;
+    padding: 0 9px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+    flex: none;
+    font-variant-numeric: tabular-nums;
+    align-self: center;
+  }
+  .a11y-cp-sec .a11y-cchip {
+    align-self: flex-start;
+  }
+  .a11y-cchip.f {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+  .a11y-cchip.p {
+    background: #dcfce7;
+    color: #166534;
+  }
+  .a11y-cchip.u {
+    background: var(--line-2);
+    color: var(--ink-2);
+  }
+  .a11y-wcag {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+  }
+  .a11y-wcag th,
+  .a11y-wcag td {
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--line-2);
+    text-align: left;
+    white-space: nowrap;
+  }
+  .a11y-wcag th {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .a11y-wcag tr:last-child td {
+    border-bottom: 0;
+  }
+  .a11y-pf {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-weight: 600;
+  }
+  .a11y-pf.y {
+    color: #166534;
+  }
+  .a11y-pf.n {
+    color: #991b1b;
+  }
+  .a11y-sug-h {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink-2);
+    margin-top: 2px;
+  }
+}
+
+/* The template gallery's results (ComposerEmpty, AccessibilityStates). */
+@layer components {
+  .a11y-gres {
+    align-self: flex-start;
+  }
+}
+.tpl.a11y-tpl-warn {
+  border-color: #fcd34d;
+}
+
 /* The right panel is 360 px wide on the Accessibility boards (300 px
    otherwise). Unlayered, like the composer's own styles it widens. */
 .cpanel.right.a11y-wide {

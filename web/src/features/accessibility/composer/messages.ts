@@ -133,6 +133,7 @@ export const m = defineMessages('accessibilityComposer', {
   againstBackground: '{what} {color} on this background',
   againstText: '{what} in this color on {color}',
   buttonText: 'Button text',
+  headlineText: 'Headline text',
   bodyText: 'Text',
   textOf: '{what}, {px} px{bold, select, true { bold} other {}}',
   colText: 'Text',
