@@ -54,6 +54,9 @@ type Service struct {
 	Now      func() time.Time
 	// Inline runs staging and imports in the request instead of River (tests).
 	Inline bool
+	// Templates imports a source's email templates (Notifuse); nil skips
+	// the step.
+	Templates TemplateImporter
 }
 
 func (s *Service) now() time.Time {
@@ -64,7 +67,7 @@ func (s *Service) now() time.Time {
 }
 
 // Sources the importer supports, in the order of the source grid.
-var Sources = []string{"brevo", "mailchimp", "mailerlite", "listmonk", "keila", "csv"}
+var Sources = []string{"brevo", "mailchimp", "mailerlite", "listmonk", "keila", "notifuse", "csv"}
 
 // SourceName is the display name of a source.
 func SourceName(src string) string {
@@ -79,6 +82,8 @@ func SourceName(src string) string {
 		return "listmonk"
 	case "keila":
 		return "Keila"
+	case "notifuse":
+		return "Notifuse"
 	case "csv":
 		return "CSV"
 	case "xlsx":
@@ -110,6 +115,9 @@ type ImportOptions struct {
 	// Pace limits requests to the source, per second (0: as fast as it
 	// answers); "Slow down" after a rate limit sets 3.
 	Pace int `json:"pace,omitempty" minimum:"0" maximum:"50"`
+	// ImportTemplates brings the source's email templates along (Notifuse):
+	// transactional ones as drafts, the others as saved templates.
+	ImportTemplates bool `json:"importTemplates"`
 }
 
 // ImportListChoice maps a source list to a ReputeCast list.
@@ -129,7 +137,7 @@ type ImportRiskyActions struct {
 
 func defaultOptions() ImportOptions {
 	return ImportOptions{Lists: []ImportListChoice{}, ImportTags: true, ImportEngagement: true, PullSuppressions: true, RecordHistory: true,
-		Evidence: "trust", OnConflict: "fill", SkipRows: []int{},
+		ImportTemplates: true, Evidence: "trust", OnConflict: "fill", SkipRows: []int{},
 		Risky: ImportRiskyActions{Role: "exclude_broadcasts", Disposable: "skip", Typo: "fix", Stale: "pending", Trap: "skip"}}
 }
 
@@ -251,6 +259,8 @@ type ImportStats struct {
 	DurationMs   int64             `json:"durationMs"`
 	PushedTo     []string          `json:"pushedTo" doc:"Providers the new suppressions were pushed to"`
 	ConfirmsSent int64             `json:"confirmsSent" doc:"Re-permission emails sent through the System stream"`
+	// Templates the import brought along (Notifuse).
+	Templates *ImportTemplateStats `json:"templates,omitempty"`
 }
 
 // ImportListAfter is a target list and its size after the import.
@@ -420,7 +430,7 @@ func shortProvider(name, adapter string) string {
 
 // ImportCreateInput starts an import.
 type ImportCreateInput struct {
-	Source string `json:"source" enum:"brevo,mailchimp,mailerlite,listmonk,keila,csv,xlsx"`
+	Source string `json:"source" enum:"brevo,mailchimp,mailerlite,listmonk,keila,notifuse,csv,xlsx"`
 }
 
 // Create makes a draft import.
@@ -464,7 +474,7 @@ func (s *Service) Delete(ctx context.Context, ws *store.Workspace, id uuid.UUID)
 // ImportUpdateInput changes the draft: its source (before connecting), options
 // and the step the person is on.
 type ImportUpdateInput struct {
-	Source  string         `json:"source,omitempty" enum:"brevo,mailchimp,mailerlite,listmonk,keila,csv,xlsx,"`
+	Source  string         `json:"source,omitempty" enum:"brevo,mailchimp,mailerlite,listmonk,keila,notifuse,csv,xlsx,"`
 	Options *ImportOptions `json:"options,omitempty"`
 	Step    string         `json:"step,omitempty" enum:"source,fields,consent,preview,"`
 }

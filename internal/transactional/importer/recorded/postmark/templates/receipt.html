@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Your receipt from Acme Cloud</title>
+</head>
+<body style="margin:0;background:#f4f4f7;font-family:Helvetica,Arial,sans-serif;color:#51545e">
+<table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+<tr><td style="padding:24px">
+<h1 style="color:#333333;font-size:22px">Hi {{ name }},</h1>
+<p>Thanks for using Acme Cloud. This email is the receipt for your purchase.</p>
+<table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+<tr>
+<td><h3>{{ receipt_id }}</h3></td>
+<td align="right"><h3>{{ date }}</h3></td>
+</tr>
+<tr><th align="left">Description</th><th align="right">Amount</th></tr>
+{{#each items}}
+<tr><td>{{ description }}</td><td align="right">{{ amount }}</td></tr>
+{{/each}}
+<tr><td align="right"><strong>Total</strong></td><td align="right"><strong>{{ total }}</strong></td></tr>
+</table>
+<p>If you have questions about this receipt, reply to this email or contact our <a href="{{ support_url }}">support team</a>.</p>
+<p>Cheers,<br>The Acme Cloud team</p>
+</td></tr>
+</table>
+</body>
+</html>

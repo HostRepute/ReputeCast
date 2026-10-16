@@ -369,6 +369,9 @@ func (s *Service) Decide(ctx context.Context, ws *store.Workspace, p *authz.Prin
 			targetType, targetID = "automation", locked.AutomationID.String()
 			action = map[string]string{DecisionApprove: "automation.publish_approved", DecisionRequestChanges: "automation.publish_changes_requested", DecisionReject: "automation.publish_rejected"}[in.Decision]
 		}
+		if locked.SubjectType == "transactional_template" && locked.TransactionalTemplateID != nil {
+			targetType, targetID, action = transactionalDecisionAudit(*locked.TransactionalTemplateID, in.Decision)
+		}
 		if err := s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: action, TargetType: targetType, TargetID: targetID, TargetName: name,
 			Before: map[string]any{"status": "pending"}, After: map[string]any{"status": status, "comment": comment},
 			Metadata: map[string]any{"request_id": requestID.String(), "approvals": fmt.Sprintf("%d of %d", min(given+1, int(locked.ApprovalsRequired)), locked.ApprovalsRequired), "permission": "campaigns:approve"}}); err != nil {
@@ -404,6 +407,9 @@ func (s *Service) Decide(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		link := "/w/" + ws.Slug + "/approvals/" + requestID.String()
 		if locked.CampaignID != nil {
 			link = "/w/" + ws.Slug + "/campaigns/" + locked.CampaignID.String() + "/review"
+		}
+		if locked.TransactionalTemplateID != nil {
+			link, summary, body = transactionalDecisionNote(ws, *locked.TransactionalTemplateID, ParseSnapshot(locked.Snapshot), status, summary, body)
 		}
 		if err := notify.ToUser(ctx, tx, *locked.RequestedBy, notify.Notification{WorkspaceID: &ws.ID, Kind: notify.KindApprovalDecided, Severity: sev, Title: title,
 			Summary: summary, Body: body, Link: link, Data: map[string]any{"request_id": requestID.String(), "decision": in.Decision}}); err != nil {

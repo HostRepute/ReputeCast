@@ -11,6 +11,7 @@ import { Menu, MenuItem } from '@/components/ui/Menu'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
 import { TableScroll } from '@/components/ui/Table'
+import { WelcomePromptCard } from '@/features/welcome-prompt/WelcomePromptCard'
 import { clock, count, pct, rate } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { AudienceTabs } from './AudienceTabs'
@@ -65,6 +66,7 @@ export function HealthPage() {
         <HealthSkeleton />
       ) : (
         <>
+          <WelcomePromptCard where={{ context: 'health' }} />
           <TierCards h={h} />
           <div className="flex flex-wrap items-start gap-5">
             <Trend h={h} />
@@ -316,7 +318,7 @@ function PerList({ h }: { h: Health }) {
         <span className="k">30-day figures</span>
       </div>
       <TableScroll label="Health per list">
-        <table className="tbl compact first160 phone-wrap">
+        <table className="tbl compact first160 phone-wrap fit">
           <thead>
             <tr>
               <th scope="col">List</th>

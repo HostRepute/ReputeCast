@@ -1,0 +1,9 @@
+Welcome, {{ name }}!
+
+Thanks for signing up for Acme Cloud. Confirm your email address to finish setting up your account:
+
+{{ action_url }}
+
+If you didn't sign up for Acme Cloud, you can ignore this email.
+
+The Acme Cloud team

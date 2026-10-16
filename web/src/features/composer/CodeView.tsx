@@ -136,9 +136,10 @@ function Pane({ title, aside, dark, children }: { title: string; aside: string; 
 
 /**
  * The code view (ComposerCode): MJML is the source of truth; the compiled
- * HTML beside it is read-only.
+ * HTML beside it is read-only. `aside` replaces the Compile · Tokens panel
+ * (the transactional mode keeps its own right panel).
  */
-export function CodeView() {
+export function CodeView({ aside }: { aside?: ReactNode } = {}) {
   const c = useComposer()
   const initial = useMemo(() => c.currentMjml(), []) // eslint-disable-line react-hooks/exhaustive-deps
   const [draft, setDraft] = useState(initial)
@@ -280,103 +281,105 @@ export function CodeView() {
           </Pane>
         </div>
       </section>
-      <aside className="cpanel right" aria-label="Compile results and tokens">
-        <PanelTabs
-          value={tab}
-          onChange={setTab}
-          label="Code tools"
-          items={[
-            { value: 'compile', label: 'Compile' },
-            { value: 'tokens', label: 'Tokens' },
-          ]}
-          className="flex flex-1 flex-col"
-        >
-          <TabPanel value="compile" className="flex flex-1 flex-col" tabIndex={-1}>
-            {result ? (
-              <div className="crow" style={{ background: errors.length ? 'var(--bad-tint)' : '#F0FDF4' }}>
-                <Badge tone={errors.length ? 'bad' : 'ok'}>{errors.length ? 'Error' : 'OK'}</Badge>
-                <span>
-                  Compiled in {result.ms} ms · {errors.length} {errors.length === 1 ? 'error' : 'errors'} · {warnings.length} {warnings.length === 1 ? 'warning' : 'warnings'}
-                </span>
-              </div>
-            ) : (
-              <div className="crow">
-                <span className="spin" aria-hidden="true" />
-                <span>Compiling…</span>
-              </div>
-            )}
-            {errors.map((e, i) => (
-              <div key={`e${i}`} className="crow">
-                <Badge tone="bad">Error</Badge>
-                <span>
-                  Line {e.line}: {e.message}
-                </span>
-              </div>
-            ))}
-            {warnings.map((w, i) => (
-              <div key={`w${i}`} className="crow">
-                <Badge tone="warn">Warn</Badge>
-                <button type="button" className="text-left" style={{ border: 0, background: 'none', padding: 0, font: 'inherit', color: 'inherit', cursor: 'pointer' }} onClick={() => setJump({ line: w.line, n: Date.now() })}>
-                  Line {w.line}: {w.message}
-                </button>
-              </div>
-            ))}
-            <div className="crow">
-              <Badge tone="info">Info</Badge>
-              <span>
-                Comments like <span className="mono">rc:footer</span> mark ReputeCast blocks so they stay editable as one unit on the canvas.
-              </span>
-            </div>
-            <div className="crow">
-              <Badge tone="info">Info</Badge>
-              <span>Tracking links and the open pixel are added at send time, per sending provider, so they don't appear here.</span>
-            </div>
-            <div className="flex flex-col gap-2 border-t border-line-2" style={{ padding: 12, marginTop: 'auto' }}>
-              <span className="k">Personalization tokens available</span>
-              <div className="mono flex flex-col gap-1" style={{ fontSize: 12, color: 'var(--ink-nav)' }}>
-                {contactTokens.map((t) => (
-                  <span key={t.key}>{fmtToken(t)}</span>
-                ))}
-                {systemTokens.length ? <span>{systemTokens.map(fmtToken).join(' · ')}</span> : null}
-              </div>
-              <span className="k">Fallbacks after the pipe are used when the field is empty.</span>
-            </div>
-          </TabPanel>
-          <TabPanel value="tokens" className="flex flex-col" tabIndex={-1}>
-            {(['contact', 'custom', 'system'] as const).map((kind) => {
-              const list = tokens.filter((t) => t.kind === kind)
-              if (!list.length) return null
-              return (
-                <div key={kind} className="flex flex-col">
-                  <div className="grp">{kind === 'contact' ? 'Contact fields' : kind === 'custom' ? 'Custom fields' : 'Links and system'}</div>
-                  {list.map((t) => (
-                    <button
-                      key={t.key}
-                      type="button"
-                      className="crow text-left"
-                      style={{ border: 0, borderBottom: '1px solid var(--line-2)', background: 'none', width: '100%', font: 'inherit', cursor: 'pointer' }}
-                      onClick={() =>
-                        void navigator.clipboard.writeText(fmtToken(t)).then(
-                          () => toast({ kind: 'success', title: `Copied ${fmtToken(t)}` }),
-                          () => undefined,
-                        )
-                      }
-                      title="Copy"
-                    >
-                      <span className="flex min-w-0 flex-1 flex-col">
-                        <span>{t.label}</span>
-                        <span className="mono k" style={{ overflowWrap: 'anywhere' }}>
-                          {fmtToken(t)}
-                        </span>
-                      </span>
-                    </button>
-                  ))}
+      {aside ?? (
+        <aside className="cpanel right" aria-label="Compile results and tokens">
+          <PanelTabs
+            value={tab}
+            onChange={setTab}
+            label="Code tools"
+            items={[
+              { value: 'compile', label: 'Compile' },
+              { value: 'tokens', label: 'Tokens' },
+            ]}
+            className="flex flex-1 flex-col"
+          >
+            <TabPanel value="compile" className="flex flex-1 flex-col" tabIndex={-1}>
+              {result ? (
+                <div className="crow" style={{ background: errors.length ? 'var(--bad-tint)' : '#F0FDF4' }}>
+                  <Badge tone={errors.length ? 'bad' : 'ok'}>{errors.length ? 'Error' : 'OK'}</Badge>
+                  <span>
+                    Compiled in {result.ms} ms · {errors.length} {errors.length === 1 ? 'error' : 'errors'} · {warnings.length} {warnings.length === 1 ? 'warning' : 'warnings'}
+                  </span>
                 </div>
-              )
-            })}
-          </TabPanel>
-        </PanelTabs>
-      </aside>
+              ) : (
+                <div className="crow">
+                  <span className="spin" aria-hidden="true" />
+                  <span>Compiling…</span>
+                </div>
+              )}
+              {errors.map((e, i) => (
+                <div key={`e${i}`} className="crow">
+                  <Badge tone="bad">Error</Badge>
+                  <span>
+                    Line {e.line}: {e.message}
+                  </span>
+                </div>
+              ))}
+              {warnings.map((w, i) => (
+                <div key={`w${i}`} className="crow">
+                  <Badge tone="warn">Warn</Badge>
+                  <button type="button" className="text-left" style={{ border: 0, background: 'none', padding: 0, font: 'inherit', color: 'inherit', cursor: 'pointer' }} onClick={() => setJump({ line: w.line, n: Date.now() })}>
+                    Line {w.line}: {w.message}
+                  </button>
+                </div>
+              ))}
+              <div className="crow">
+                <Badge tone="info">Info</Badge>
+                <span>
+                  Comments like <span className="mono">rc:footer</span> mark ReputeCast blocks so they stay editable as one unit on the canvas.
+                </span>
+              </div>
+              <div className="crow">
+                <Badge tone="info">Info</Badge>
+                <span>Tracking links and the open pixel are added at send time, per sending provider, so they don't appear here.</span>
+              </div>
+              <div className="flex flex-col gap-2 border-t border-line-2" style={{ padding: 12, marginTop: 'auto' }}>
+                <span className="k">Personalization tokens available</span>
+                <div className="mono flex flex-col gap-1" style={{ fontSize: 12, color: 'var(--ink-nav)' }}>
+                  {contactTokens.map((t) => (
+                    <span key={t.key}>{fmtToken(t)}</span>
+                  ))}
+                  {systemTokens.length ? <span>{systemTokens.map(fmtToken).join(' · ')}</span> : null}
+                </div>
+                <span className="k">Fallbacks after the pipe are used when the field is empty.</span>
+              </div>
+            </TabPanel>
+            <TabPanel value="tokens" className="flex flex-col" tabIndex={-1}>
+              {(['contact', 'custom', 'system'] as const).map((kind) => {
+                const list = tokens.filter((t) => t.kind === kind)
+                if (!list.length) return null
+                return (
+                  <div key={kind} className="flex flex-col">
+                    <div className="grp">{kind === 'contact' ? 'Contact fields' : kind === 'custom' ? 'Custom fields' : 'Links and system'}</div>
+                    {list.map((t) => (
+                      <button
+                        key={t.key}
+                        type="button"
+                        className="crow text-left"
+                        style={{ border: 0, borderBottom: '1px solid var(--line-2)', background: 'none', width: '100%', font: 'inherit', cursor: 'pointer' }}
+                        onClick={() =>
+                          void navigator.clipboard.writeText(fmtToken(t)).then(
+                            () => toast({ kind: 'success', title: `Copied ${fmtToken(t)}` }),
+                            () => undefined,
+                          )
+                        }
+                        title="Copy"
+                      >
+                        <span className="flex min-w-0 flex-1 flex-col">
+                          <span>{t.label}</span>
+                          <span className="mono k" style={{ overflowWrap: 'anywhere' }}>
+                            {fmtToken(t)}
+                          </span>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )
+              })}
+            </TabPanel>
+          </PanelTabs>
+        </aside>
+      )}
     </>
   )
 }

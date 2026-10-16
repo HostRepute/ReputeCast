@@ -1,0 +1,12 @@
+{
+  "ID": 41208,
+  "Name": "Acme Cloud production",
+  "Color": "blue",
+  "SmtpApiActivated": true,
+  "RawEmailEnabled": false,
+  "DeliveryType": "Live",
+  "ServerLink": "https://account.postmarkapp.com/servers/41208/streams",
+  "InboundAddress": "",
+  "TrackOpens": false,
+  "TrackLinks": "None"
+}

@@ -2,6 +2,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { Link, useLocation, useRouter, type ErrorComponentProps } from '@tanstack/react-router'
 import { useId, useState, type ReactNode } from 'react'
 import { $api, ApiError, errorMessage } from '@/api/client'
+import { formatList, T, t, useT } from '@/i18n'
 import { ago } from '@/lib/format'
 import { useDocumentTitle } from '@/lib/hooks'
 import { deniedReason, useCan, useWorkspace } from '@/lib/session'
@@ -11,7 +12,10 @@ import { Button, ButtonLink } from '../ui/Button'
 import { Dialog } from '../ui/Dialog'
 import { Note } from '../ui/Note'
 import { toast } from '../ui/Toast'
+import { m } from './messages'
 import { Page } from './Page'
+
+const mono = (chunks: ReactNode[]) => <span className="mono">{chunks}</span>
 
 /** A full-page state card: icon, status badge, sentence, actions, footnote. */
 export function FullPageState({
@@ -48,11 +52,12 @@ export function FullPageState({
 
 /** Centered frame for states shown before a workspace is known. */
 function Frame({ children }: { children: ReactNode }) {
+  const tr = useT()
   return (
     <div className="flex min-h-dvh flex-col items-center gap-6 px-4 py-14">
-      <Link to="/" className="flex items-center gap-2.5 text-[16px] font-bold text-ink hover:text-ink" aria-label="ReputeCast home">
+      <Link to="/" className="flex items-center gap-2.5 text-[16px] font-bold text-ink hover:text-ink" aria-label={tr(m.homeLabel)}>
         <LogoMark size={28} />
-        ReputeCast
+        {tr(m.brandName)}
       </Link>
       <main id="main" className="w-full max-w-[640px]">
         {children}
@@ -62,28 +67,30 @@ function Frame({ children }: { children: ReactNode }) {
 }
 
 export function NotFoundScreen() {
-  useDocumentTitle('Not found · ReputeCast')
+  const tr = useT()
+  useDocumentTitle(tr(m.docTitle, { title: tr(m.stateNotFoundTitle) }))
   const path = typeof window === 'undefined' ? '' : window.location.pathname
   return (
     <Frame>
       <FullPageState
         icon="searchLarge"
         badge="404"
-        title={`There's nothing at ${path}`}
+        title={tr(m.stateNotFoundHeading, { path })}
         actions={
           <Link to="/" className="btn pri">
-            Go to overview
+            {tr(m.stateGoToOverview)}
           </Link>
         }
       >
-        The page may have been deleted, or the link was copied before it was saved.
+        {tr(m.stateNotFoundBody)}
       </FullPageState>
     </Frame>
   )
 }
 
 export function ErrorScreen({ error, reset }: ErrorComponentProps) {
-  useDocumentTitle('Something broke · ReputeCast')
+  const tr = useT()
+  useDocumentTitle(tr(m.docTitle, { title: tr(m.stateErrorTitle) }))
   const router = useRouter()
   const ref = error instanceof ApiError ? (error.problem as { instance?: string }).instance : undefined
   return (
@@ -92,7 +99,7 @@ export function ErrorScreen({ error, reset }: ErrorComponentProps) {
         icon="warningTriangle"
         tone="bad"
         badge={error instanceof ApiError ? String(error.status) : '500'}
-        title="Something broke on our side"
+        title={tr(m.stateErrorHeading)}
         actions={
           <>
             <Button
@@ -102,21 +109,16 @@ export function ErrorScreen({ error, reset }: ErrorComponentProps) {
                 void router.invalidate()
               }}
             >
-              Retry
+              {tr(m.stateRetry)}
             </Button>
             <Link to="/" className="btn">
-              Back to overview
+              {tr(m.stateBackToOverview)}
             </Link>
           </>
         }
-        footnote={
-          <>
-            Self-hosted? Check <span className="mono">docker compose logs app</span>
-            {ref ? <> for {ref}</> : null}.
-          </>
-        }
+        footnote={ref ? <T msg={m.stateErrorFootnoteRef} values={{ ref, mono }} /> : <T msg={m.stateErrorFootnote} values={{ mono }} />}
       >
-        The page couldn't load. Retry now, or wait a minute; the error is already in the server log.
+        {tr(m.stateErrorBody)}
       </FullPageState>
     </Frame>
   )
@@ -147,11 +149,12 @@ export function NotFoundState({
   secondary?: ReactNode
   reference?: string
 }) {
+  const tr = useT()
   return (
     <FullPageState
       icon="searchLarge"
       badge="404"
-      title={`There's nothing at ${path}`}
+      title={tr(m.stateNotFoundHeading, { path })}
       actions={
         primary || secondary ? (
           <>
@@ -160,15 +163,9 @@ export function NotFoundState({
           </>
         ) : undefined
       }
-      footnote={
-        reference ? (
-          <>
-            Request id <span className="mono">{reference}</span> · include it if you contact support
-          </>
-        ) : undefined
-      }
+      footnote={reference ? <T msg={m.stateRequestId} values={{ ref: reference, mono }} /> : undefined}
     >
-      {children ?? 'The page may have been deleted, or the link was copied before it was saved.'}
+      {children ?? tr(m.stateNotFoundBody)}
     </FullPageState>
   )
 }
@@ -186,35 +183,25 @@ export function ServerErrorState({
   onRetry: () => void
   back?: ReactNode
 }) {
+  const tr = useT()
+  const body = savedNote ? (reference ? m.stateErrorBodySavedRef : m.stateErrorBodySaved) : reference ? m.stateErrorBodyRef : m.stateErrorBody
   return (
     <FullPageState
       icon="warningTriangle"
       tone="bad"
       badge="500"
-      title="Something broke on our side"
+      title={tr(m.stateErrorHeading)}
       actions={
         <>
           <Button variant="primary" onClick={onRetry}>
-            Retry
+            {tr(m.stateRetry)}
           </Button>
           {back}
         </>
       }
-      footnote={
-        <>
-          Self-hosted? Check <span className="mono">docker compose logs app</span>
-          {reference ? <> for {reference}</> : null}.
-        </>
-      }
+      footnote={reference ? <T msg={m.stateErrorFootnoteRef} values={{ ref: reference, mono }} /> : <T msg={m.stateErrorFootnote} values={{ mono }} />}
     >
-      The page couldn&apos;t load. {savedNote ? `${savedNote} ` : null}Retry now, or wait a minute; the error is already in the server log
-      {reference ? (
-        <>
-          {' '}
-          with id <span className="mono">{reference}</span>
-        </>
-      ) : null}
-      .
+      <T msg={body} values={{ saved: savedNote ?? '', ref: reference ?? '', mono }} />
     </FullPageState>
   )
 }
@@ -222,13 +209,12 @@ export function ServerErrorState({
 /** "just now", "5 min ago", "yesterday", "on Oct 3" */
 function askedWhen(at: string): string {
   const w = ago(at)
-  if (w === 'now') return 'just now'
-  return w.endsWith(' ago') || w === 'yesterday' ? w : `on ${w}`
+  if (w === 'now') return t(m.stateAskedJustNow)
+  return w.endsWith(' ago') || w === 'yesterday' ? w : t(m.stateAskedOn, { date: w })
 }
 
 function names(list: string[]): string {
-  if (list.length <= 1) return list[0] ?? ''
-  return `${list.slice(0, -1).join(', ')} and ${list[list.length - 1]}`
+  return formatList(list)
 }
 
 /** Asks the members who manage the team for the role a permission needs. */
@@ -250,12 +236,13 @@ export function RequestAccessDialog({
   const [note, setNote] = useState('')
   const send = $api.useMutation('post', '/api/v1/workspaces/{workspace}/access-requests')
   const [error, setError] = useState<string>()
+  const tr = useT()
   const submit = async () => {
     setError(undefined)
     try {
       const r = await send.mutateAsync({ params: { path: { workspace: slug } }, body: { permission, note: note.trim() || undefined } })
       await qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/access-requests/suggestion'] })
-      toast({ kind: 'success', title: 'Request sent', detail: `${names(r.notified)} will see it` })
+      toast({ kind: 'success', title: tr(m.requestSent), detail: tr(m.requestSentDetail, { names: names(r.notified) }) })
       setNote('')
       onOpenChange(false)
     } catch (e) {
@@ -268,27 +255,23 @@ export function RequestAccessDialog({
       open={open}
       onOpenChange={(o) => !send.isPending && onOpenChange(o)}
       layout="confirm"
-      eyebrow={<Badge tone="info">Request access</Badge>}
-      title={`Ask for ${roleName} access`}
-      description={
-        managers.length
-          ? `${names(managers)} can change roles. They'll see your note in their notifications; nothing changes until one of them does.`
-          : 'Nobody in this workspace can change roles. Ask an instance admin.'
-      }
+      eyebrow={<Badge tone="info">{tr(m.requestBadge)}</Badge>}
+      title={tr(m.requestTitle, { role: roleName })}
+      description={managers.length ? tr(m.requestManagers, { names: names(managers) }) : tr(m.requestNobody)}
       footer={
         <>
           <Button onClick={() => onOpenChange(false)} disabled={send.isPending}>
-            Cancel
+            {tr(m.requestCancel)}
           </Button>
-          <Button variant="primary" onClick={() => void submit()} loading={send.isPending} disabledReason={managers.length ? undefined : 'Nobody here can change roles.'}>
-            Send request
+          <Button variant="primary" onClick={() => void submit()} loading={send.isPending} disabledReason={managers.length ? undefined : tr(m.requestNobodyReason)}>
+            {tr(m.requestSend)}
           </Button>
         </>
       }
     >
       <div className="lblc">
         <label htmlFor={`${id}-note`}>
-          Why you need it <span className="k font-medium">· optional</span>
+          <T msg={m.requestWhy} values={{ k: (chunks) => <span className="k font-medium">{chunks}</span> }} />
         </label>
         <textarea id={`${id}-note`} className="in" value={note} maxLength={500} onChange={(e) => setNote(e.target.value)} />
       </div>
@@ -318,33 +301,33 @@ export function ForbiddenState({
   const q = $api.useQuery('get', '/api/v1/workspaces/{workspace}/access-requests/suggestion', {
     params: { path: { workspace: slug }, query: { permission } },
   })
+  const tr = useT()
   const s = q.data
   const role = me.workspace.roleName
   const sentence = s
-    ? `Your role in ${me.workspace.name} is ${role}. ${s.action} needs ${s.roleName} or above.${s.owners.length ? ` Owners: ${s.owners.join(', ')}.` : ''}`
-    : `Your role in ${me.workspace.name} is ${role}. ${deniedReason(permission)}`
+    ? s.owners.length
+      ? tr(m.stateForbiddenNeedsOwners, { workspace: me.workspace.name, role, action: s.action, needed: s.roleName, owners: s.owners.join(', ') })
+      : tr(m.stateForbiddenNeeds, { workspace: me.workspace.name, role, action: s.action, needed: s.roleName })
+    : tr(m.stateForbiddenDenied, { workspace: me.workspace.name, role, reason: deniedReason(permission) })
   return (
     <>
       <FullPageState
         icon="lockLarge"
         tone="warn"
-        badge={`403 · ${role} role`}
+        badge={tr(m.stateForbiddenBadge, { role })}
         title={title}
         actions={
           <>
             {s?.requestedAt ? null : (
-              <Button variant="primary" onClick={() => setAsking(true)} disabledReason={q.isPending ? 'Checking who can grant it…' : undefined}>
-                Request {s?.roleName ?? 'access'}
-                {s ? ' access' : ''}
+              <Button variant="primary" onClick={() => setAsking(true)} disabledReason={q.isPending ? tr(m.stateChecking) : undefined}>
+                {s ? tr(m.stateRequestRole, { role: s.roleName }) : tr(m.stateRequestAccess)}
               </Button>
             )}
             {readOnly}
           </>
         }
         footnote={
-          s?.requestedAt
-            ? `You asked ${askedWhen(s.requestedAt)}; ${names(s.managers)} will see it. Ask them directly if it's urgent.`
-            : 'Requests go to the owners with a note; they usually answer within the day.'
+          s?.requestedAt ? tr(m.stateAsked, { when: askedWhen(s.requestedAt), names: names(s.managers) }) : tr(m.stateRequestsGo)
         }
       >
         {sentence}
@@ -359,20 +342,21 @@ export function WorkspaceNotFound() {
   const { slug } = useWorkspace()
   const canAudit = useCan('audit:view')
   const pathname = useLocation({ select: (l) => l.pathname })
+  const tr = useT()
   const path = pathname.replace(new RegExp(`^/w/${slug}`), '') || '/'
   return (
-    <Page title="Not found">
+    <Page title={tr(m.stateNotFoundTitle)}>
       <NotFoundState
         path={path}
         primary={
           <ButtonLink variant="primary" to="/w/$workspace" params={{ workspace: slug }}>
-            Go to overview
+            {tr(m.stateGoToOverview)}
           </ButtonLink>
         }
         secondary={
           canAudit ? (
             <ButtonLink to="/w/$workspace/settings/audit" params={{ workspace: slug }}>
-              Search the audit log
+              {tr(m.stateSearchAudit)}
             </ButtonLink>
           ) : null
         }
@@ -389,34 +373,35 @@ export function WorkspaceRouteError({ error, reset }: ErrorComponentProps) {
   const router = useRouter()
   const { slug } = useWorkspace()
   const pathname = useLocation({ select: (l) => l.pathname })
+  const tr = useT()
   const retry = () => {
     reset()
     void router.invalidate()
   }
   if (error instanceof ApiError && error.status === 403 && error.problem.permission) {
     return (
-      <Page title="No access">
-        <ForbiddenState permission={error.problem.permission} title="Your role can't open this page" />
+      <Page title={tr(m.stateNoAccessTitle)}>
+        <ForbiddenState permission={error.problem.permission} title={tr(m.stateNoAccessHeading)} />
       </Page>
     )
   }
   if (error instanceof ApiError && error.status === 404) {
     return (
-      <Page title="Not found">
+      <Page title={tr(m.stateNotFoundTitle)}>
         <NotFoundState path={pathname.replace(new RegExp(`^/w/${slug}`), '') || '/'} reference={problemReference(error)}>
-          {error.problem.detail ? `${error.problem.detail} It may have been deleted, or the link was copied before it was saved.` : undefined}
+          {error.problem.detail ? tr(m.stateNotFoundDetail, { detail: error.problem.detail }) : undefined}
         </NotFoundState>
       </Page>
     )
   }
   return (
-    <Page title="Something broke">
+    <Page title={tr(m.stateErrorTitle)}>
       <ServerErrorState
         reference={problemReference(error)}
         onRetry={retry}
         back={
           <ButtonLink to="/w/$workspace" params={{ workspace: slug }}>
-            Back to overview
+            {tr(m.stateBackToOverview)}
           </ButtonLink>
         }
       />

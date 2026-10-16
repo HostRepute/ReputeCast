@@ -287,6 +287,7 @@ func (s *Service) Run(ctx context.Context, id uuid.UUID) error {
 	}
 	s.pushSuppressions(ctx, st)
 	s.sendRepermission(ctx, st)
+	s.importTemplates(ctx, st)
 	return s.finish(ctx, st, "done", start)
 }
 

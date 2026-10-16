@@ -3,6 +3,8 @@ import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { ErrorPanel } from '@/components/ui/Feedback'
 import { TableScroll } from '@/components/ui/Table'
+import { NotifuseTemplatesDone } from '@/features/transactional-import/NotifuseOption'
+import { WelcomePromptCard } from '@/features/welcome-prompt/WelcomePromptCard'
 import { andList, clock, count, dayMonthDate } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { ImportFrame, stepPath, currentStep, useImportDetail, type Detail } from './ImportFrame'
@@ -175,6 +177,8 @@ function Summary({ d, now }: { d: Detail; now: number }) {
           </div>
         ))}
       </div>
+      {s?.templates ? <NotifuseTemplatesDone stats={s.templates} /> : null}
+      {d.status === 'done' ? <WelcomePromptCard where={{ context: 'import', id: d.id }} /> : null}
       <section className="card flex flex-col">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line-2 px-4.5 py-3.5">
           <h3 className="h2">Skipped and changed rows</h3>

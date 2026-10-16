@@ -548,15 +548,16 @@ function ContactsTable({
                       <Badge tone={consentTone[consent]}>{consentLabel[consent]}</Badge>
                     )}
                   </td>
-                  <td>
+                  {/* Mailbox provider, last open and source wrap so the table fits its card (Contacts board). */}
+                  <td className="wrap">
                     <span className="flex items-center gap-1.5">
                       <span className="dot" style={{ color: mailboxColor[c.mailboxProvider] ?? mailboxColor.other }} aria-hidden="true" />
                       {c.mailboxLabel}
                     </span>
                   </td>
-                  <td>{lastOpen(c.lastOpenAt, c.lastOpenMachine)}</td>
+                  <td className="wrap">{lastOpen(c.lastOpenAt, c.lastOpenMachine)}</td>
                   <td>{joined(c.joinedAt)}</td>
-                  <td>{c.sourceLabel}</td>
+                  <td className="wrap">{c.sourceLabel}</td>
                 </tr>
               )
             })}
