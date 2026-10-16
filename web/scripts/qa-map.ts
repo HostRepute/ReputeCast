@@ -176,6 +176,16 @@ export const entries: Entry[] = [
   { board: 'IntegrationsWordPress', path: `${ws}/settings/integrations/wordpress` },
   { board: 'IntegrationsConnect', manual: true },
   { board: 'IntegrationsStates', manual: true },
+  // X03 · transactional templates. The editor board has reset_url's row open (click it in Variables).
+  // The editor's states need edits, Daniel (SSO only) or Aisha; the publish states need the approval
+  // rule on or a conflict; the import needs its steps (in development the Postmark token
+  // pm-0f3c-recorded-8a21 answers from the recorded sample account).
+  { board: 'TransactionalTemplate', path: `${ws}/transactional/templates/password-reset`, widths: [1440] },
+  { board: 'TransactionalTemplateStates', manual: true },
+  { board: 'TransactionalPublish', path: `${ws}/transactional/templates/trial-ending?publish=1`, widths: [1440] },
+  { board: 'TransactionalPublishStates', manual: true },
+  { board: 'TransactionalImport', manual: true },
+  { board: 'TransactionalImportStates', manual: true },
   // X07 · app languages. Language & region sits under Profile; its states (picked and not saved,
   // saved in Tiếng Việt with Undo, the browser's suggestion, the pseudo-locale) come from picking.
   { board: 'LanguageRegion', path: `${ws}/account`, viewportOnly: true, height: 1000 },

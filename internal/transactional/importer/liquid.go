@@ -337,6 +337,7 @@ type liquidChange struct {
 }
 
 var (
+	contactEmail = regexp.MustCompile(`\bcontact\.email\b`)
 	contactField = regexp.MustCompile(`\bcontact\.([A-Za-z_]\w*)`)
 	listField    = regexp.MustCompile(`\blist\.(name|id)\b`)
 )
@@ -353,6 +354,11 @@ func rewriteLiquidSpan(span string, opt Options) (string, []liquidChange) {
 		changes = append(changes, liquidChange{NoteChange, "notification_center_url", "Notifuse's `notification_center_url` became `preferences_url`."})
 	}
 	if opt.Transactional {
+		// The contact's address is the recipient's.
+		if contactEmail.MatchString(stringLit.ReplaceAllString(out, `""`)) {
+			out = contactEmail.ReplaceAllString(out, "to.email")
+			changes = append(changes, liquidChange{NoteChange, "contact.email", "`contact.email` became `to.email`, the recipient's address."})
+		}
 		if contactField.MatchString(stringLit.ReplaceAllString(out, `""`)) {
 			for _, m := range contactField.FindAllStringSubmatch(out, -1) {
 				changes = append(changes, liquidChange{NoteChange, m[0], fmt.Sprintf("`%s` became `%s`: transactional mail has no contact profile, so the call sends it in its data.", m[0], m[1])})

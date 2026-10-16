@@ -252,9 +252,9 @@ func TestStructureProblems(t *testing.T) {
 }
 
 func TestMailgunHelpersAndPlaceholders(t *testing.T) {
-	src := "Hi %recipient.first_name%,\n{{#equal subscription \"free\"}}Upgrade{{/equal}}\n{{#with author}}{{firstName}} {{lastName}}{{/with}}\n<a href=\"%unsubscribe_url%\">Unsubscribe</a> %recipient_email%"
+	src := "Hi %recipient.first_name%,\n{{#equal subscription \"free\"}}Upgrade{{/equal}}\n{{#with author}}{{firstName}} {{lastName}}{{/with}}\n<a href=\"%unsubscribe_url%\">Unsubscribe</a> %recipient_email% %recipient_fname%"
 	c := body(DialectMailgun, src)
-	want := "Hi {{ first_name }},\n{% if subscription == \"free\" %}Upgrade{% endif %}\n{% if author %}{{ author.firstName }} {{ author.lastName }}{% endif %}\n<a href=\"{{ unsubscribe_url }}\">Unsubscribe</a> %recipient_email%"
+	want := "Hi {{ first_name }},\n{% if subscription == \"free\" %}Upgrade{% endif %}\n{% if author %}{{ author.firstName }} {{ author.lastName }}{% endif %}\n<a href=\"{{ unsubscribe_url }}\">Unsubscribe</a> {{ to.email }} %recipient_fname%"
 	if c.Body != want {
 		t.Fatalf("got\n%s\nwant\n%s", c.Body, want)
 	}
@@ -263,8 +263,40 @@ func TestMailgunHelpersAndPlaceholders(t *testing.T) {
 		hasNote(c, NoteChange, "`{{#with author}}` became `{% if author %}`; names inside it now start with `author.`.") == nil {
 		t.Fatalf("notes: %+v", c.Notes)
 	}
-	if n := hasNote(c, NoteManual, "Mailgun's `%recipient_email%` has no ReputeCast equivalent."); n == nil || n.Line != 4 {
+	if hasNote(c, NoteChange, "Mailgun's `%recipient_email%` became `{{ to.email }}`.") == nil {
 		t.Fatalf("notes: %+v", c.Notes)
+	}
+	if n := hasNote(c, NoteManual, "Mailgun's `%recipient_fname%` has no ReputeCast equivalent."); n == nil || n.Line != 4 {
+		t.Fatalf("notes: %+v", c.Notes)
+	}
+	for _, v := range c.Variables {
+		if v.Name == "to" {
+			t.Fatalf("the recipient was declared: %+v", c.Variables)
+		}
+	}
+}
+
+func TestVariableNamesTheAPIAccepts(t *testing.T) {
+	c := Convert(Source{Ref: "x", Name: "X", Subject: "Hi {{first-name}}", Body: "<p>{{#if first-name}}{{first-name}}{{/if}} {{promo-code}}</p>"}, Options{Dialect: DialectSendGrid})
+	names := []string{}
+	for _, v := range c.Variables {
+		names = append(names, v.Name)
+	}
+	if strings.Join(names, ",") != "first_name,promo_code" {
+		t.Fatalf("variables: %v", names)
+	}
+	if c.Subject != "Hi {{ first_name }}" || !strings.Contains(c.Body, `{% if first_name and first_name != "" %}{{ first_name }}{% endif %} {{ promo_code }}`) {
+		t.Fatalf("subject %q body %q", c.Subject, c.Body)
+	}
+	if hasNote(c, NoteChange, "`first-name` became `first_name`") == nil {
+		t.Fatalf("notes: %+v", c.Notes)
+	}
+}
+
+func TestViewInBrowserHasNoTransactionalValue(t *testing.T) {
+	c := Convert(Source{Ref: "x", Name: "X", Body: "<a href=\"{{ view_in_browser_url }}\">View</a>"}, Options{Dialect: DialectFile})
+	if c.Status != StatusManual || hasNote(c, NoteManual, "no web version") == nil || len(c.Variables) != 0 {
+		t.Fatalf("status %s notes %+v vars %+v", c.Status, c.Notes, c.Variables)
 	}
 }
 

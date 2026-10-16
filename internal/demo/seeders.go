@@ -25,7 +25,9 @@ var (
 	seedTransactional  = noop // transactional email: Acme Cloud's templates, keys, messages, relay (seed_transactional.go)
 	// Design expansion (append-only).
 	seedIntegrationsHub = noop // integrations hub: Zapier, n8n, WordPress sites (seed_integrations_hub.go)
-	seedAppLanguages    = noop // app languages: instance defaults, Marcus's region format, the invitation's language (seed_app_languages.go)
+	// transactional templates of the editor and publish boards, welcome prompts (seed_transactional_templates.go)
+	seedTransactionalTemplates = noop
+	seedAppLanguages           = noop // app languages: instance defaults, Marcus's region format, the invitation's language (seed_app_languages.go)
 )
 
 func noop(context.Context, *Seeder) error { return nil }

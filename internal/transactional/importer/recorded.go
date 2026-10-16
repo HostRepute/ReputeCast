@@ -35,6 +35,33 @@ const RecordedNotifuse = "https://notifuse.acme.io"
 // like the providers do.
 func RecordedTransport() http.RoundTripper { return recordedTransport{} }
 
+// SampleTransport answers the sample accounts (their recorded keys, the
+// sample Notifuse instance) from the recordings and sends every other
+// request to next. The development server uses it, so the demo's sample
+// accounts import without a network.
+func SampleTransport(next http.RoundTripper) http.RoundTripper { return sampleTransport{next: next} }
+
+type sampleTransport struct{ next http.RoundTripper }
+
+func (t sampleTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+	if IsSample(r) {
+		return recordedTransport{}.RoundTrip(r)
+	}
+	return t.next.RoundTrip(r)
+}
+
+// IsSample reports whether a request is for one of the sample accounts.
+func IsSample(r *http.Request) bool {
+	if r.URL.Host == strings.TrimPrefix(RecordedNotifuse, "https://") {
+		return true
+	}
+	if r.Header.Get("X-Postmark-Server-Token") == RecordedKeys["postmark"] || r.Header.Get("Authorization") == "Bearer "+RecordedKeys["sendgrid"] {
+		return true
+	}
+	_, pass, ok := r.BasicAuth()
+	return ok && pass == RecordedKeys["mailgun"]
+}
+
 type recordedTransport struct{}
 
 func (recordedTransport) RoundTrip(r *http.Request) (*http.Response, error) {

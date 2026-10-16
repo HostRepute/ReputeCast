@@ -33,6 +33,8 @@ func (a *App) imports() *imports.Service {
 		HTTP:  guard.Client(60 * time.Second),
 		Guard: guard,
 		Jobs:  func() *jobs.Client { return a.Jobs },
+		// Notifuse's templates come along as transactional drafts and saved templates.
+		Templates: notifuseTemplates{a: a},
 	}
 	if a.Secrets != nil {
 		s.Box = a.Secrets
