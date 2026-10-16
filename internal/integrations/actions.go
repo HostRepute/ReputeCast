@@ -17,6 +17,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/access"
 	"github.com/hostrepute/reputecast/internal/api"
+	"github.com/hostrepute/reputecast/internal/audience"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
@@ -261,6 +262,11 @@ func (s *Service) UpsertContact(ctx context.Context, ws *store.Workspace, p *aut
 			}
 			contactID = row.ID
 			out.Tags = cleanTags(in.Tags, nil)
+			if language != "" {
+				if err := audience.RecordLanguageSource(ctx, q, contactID, audience.LanguageFromAPI, languageSetter(ctx), s.now(), nil); err != nil {
+					return err
+				}
+			}
 		} else {
 			contactID = existing.ID
 			before = contactSnapshot(*existing)
@@ -273,6 +279,11 @@ func (s *Service) UpsertContact(ctx context.Context, ws *store.Workspace, p *aut
 				FirstName: strOr(in.FirstName, existing.FirstName), LastName: strOr(in.LastName, existing.LastName), Company: strOr(in.Company, existing.Company),
 				Language: lang, Tags: out.Tags, Attributes: attrs, Now: s.now()}); err != nil {
 				return err
+			}
+			if lang != existing.Language {
+				if err := audience.RecordLanguageSource(ctx, q, contactID, audience.LanguageFromAPI, languageSetter(ctx), s.now(), nil); err != nil {
+					return err
+				}
 			}
 		}
 		if err := s.join(ctx, q, contactID, joins, &out); err != nil {
@@ -445,6 +456,18 @@ func integrationName(ctx context.Context) string {
 	return "the API"
 }
 
+// languageSetter names who set a contact's language through the API: the
+// integration ("Zapier"), or the API key.
+func languageSetter(ctx context.Context) string {
+	if ik := api.IntegrationFrom(ctx); ik != nil {
+		return ik.Name
+	}
+	if p := api.PrincipalFrom(ctx); p != nil {
+		return p.Name
+	}
+	return ""
+}
+
 func listNames(joins []joinPlan) []string {
 	out := []string{}
 	for _, j := range joins {
@@ -574,17 +597,6 @@ func fieldValue(f store.IntegrationCustomFieldsRow, v any) (any, error) {
 	return s, nil
 }
 
-var (
-	langTag   = regexp.MustCompile(`^[A-Za-z]{2,3}([-_][A-Za-z0-9]{2,8})*$`)
-	langNames = map[string]string{
-		"english": "en", "spanish": "es", "español": "es", "espanol": "es", "german": "de", "deutsch": "de", "french": "fr", "français": "fr",
-		"portuguese": "pt", "português": "pt", "vietnamese": "vi", "tiếng việt": "vi", "italian": "it", "italiano": "it", "dutch": "nl",
-		"nederlands": "nl", "japanese": "ja", "chinese": "zh", "korean": "ko", "polish": "pl", "swedish": "sv", "danish": "da",
-		"norwegian": "no", "finnish": "fi", "turkish": "tr", "russian": "ru", "ukrainian": "uk", "czech": "cs", "greek": "el",
-		"arabic": "ar", "hebrew": "he", "hindi": "hi", "indonesian": "id", "thai": "th",
-	}
-)
-
 // Lists returns the lists the key's scope reaches, for the apps' dropdowns.
 func (s *Service) Lists(ctx context.Context, ws *store.Workspace, p *authz.Principal) (IntegrationListItems, error) {
 	rows, err := s.Q.IntegrationListNames(ctx, ws.ID)
@@ -661,40 +673,12 @@ func (s *Service) Templates(ctx context.Context, ws *store.Workspace) (Integrati
 	return out, nil
 }
 
-// normalizeLanguage turns "es_MX", "ES" or "Spanish" into a BCP 47 code. An
-// unknown value answers 422 with the closest match when there is one.
+// normalizeLanguage turns "es_MX", "ES" or "Spanish" into a BCP 47 code
+// (audience.NormalizeLanguage). An unknown value answers 422 with the
+// closest match when there is one.
 func normalizeLanguage(p *string) (string, error) {
 	if p == nil {
 		return "", nil
 	}
-	v := strings.TrimSpace(*p)
-	if v == "" {
-		return "", nil
-	}
-	if code, ok := langNames[strings.ToLower(v)]; ok {
-		return code, nil
-	}
-	if !langTag.MatchString(v) {
-		msg := fmt.Sprintf("%q isn't a language code. Use a BCP 47 code such as es-MX.", v)
-		for name, code := range langNames {
-			if strings.HasPrefix(name, strings.ToLower(v)) || strings.HasPrefix(strings.ToLower(v), name) {
-				msg = fmt.Sprintf("%q isn't a language code. Did you mean %s?", v, code)
-				break
-			}
-		}
-		return "", api.Invalid("body.language", msg)
-	}
-	parts := strings.FieldsFunc(v, func(r rune) bool { return r == '-' || r == '_' })
-	parts[0] = strings.ToLower(parts[0])
-	for i := 1; i < len(parts); i++ {
-		switch {
-		case len(parts[i]) == 2:
-			parts[i] = strings.ToUpper(parts[i])
-		case len(parts[i]) == 4:
-			parts[i] = strings.ToUpper(parts[i][:1]) + strings.ToLower(parts[i][1:])
-		default:
-			parts[i] = strings.ToLower(parts[i])
-		}
-	}
-	return strings.Join(parts, "-"), nil
+	return audience.NormalizeLanguage(*p, "body.language")
 }

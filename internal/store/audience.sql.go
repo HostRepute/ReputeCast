@@ -92,7 +92,7 @@ func (q *Queries) ContactChoseFewer(ctx context.Context, contactID *uuid.UUID) (
 }
 
 const contactConsentEvents = `-- name: ContactConsentEvents :many
-SELECT ce.id, ce.list_id, ce.action, ce.source, ce.ip, ce.user_agent, ce.detail, ce.note, ce.consent_version, ce.occurred_at,
+SELECT ce.id, ce.list_id, ce.action, ce.source, ce.ip, ce.user_agent, ce.detail, ce.note, ce.consent_version, ce.language, ce.occurred_at,
        coalesce(u.name, '')::text AS actor_name
 FROM consent_events ce
 LEFT JOIN users u ON u.id = ce.actor_id
@@ -110,6 +110,7 @@ type ContactConsentEventsRow struct {
 	Detail         string      `json:"detail"`
 	Note           string      `json:"note"`
 	ConsentVersion string      `json:"consentVersion"`
+	Language       string      `json:"language"`
 	OccurredAt     time.Time   `json:"occurredAt"`
 	ActorName      string      `json:"actorName"`
 }
@@ -133,6 +134,7 @@ func (q *Queries) ContactConsentEvents(ctx context.Context, contactID uuid.UUID)
 			&i.Detail,
 			&i.Note,
 			&i.ConsentVersion,
+			&i.Language,
 			&i.OccurredAt,
 			&i.ActorName,
 		); err != nil {
@@ -273,7 +275,7 @@ INSERT INTO contacts (id, workspace_id, email, first_name, last_name, company, c
                       mailbox_provider, mailbox_detail, consent, source, tags, attributes, role_address, last_activity_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9,
         $10, $11, $12, $13, $14, $15, $16, now())
-RETURNING id, workspace_id, email, first_name, last_name, status, tier, source, timezone, country, mailbox_provider, tags, attributes, last_sent_at, last_open_at, last_click_at, created_at, updated_at, erased_at, company, language, mailbox_detail, consent, consent_evidence, import_id, role_address, last_human_open_at, last_open_machine, last_activity_at, tier_changed_at, sunset_at, broadcasts_stopped_at
+RETURNING id, workspace_id, email, first_name, last_name, status, tier, source, timezone, country, mailbox_provider, tags, attributes, last_sent_at, last_open_at, last_click_at, created_at, updated_at, erased_at, company, language, mailbox_detail, consent, consent_evidence, import_id, role_address, last_human_open_at, last_open_machine, last_activity_at, tier_changed_at, sunset_at, broadcasts_stopped_at, language_source, language_source_name, language_browser, language_set_at, language_set_by
 `
 
 type CreateContactParams struct {
@@ -348,6 +350,11 @@ func (q *Queries) CreateContact(ctx context.Context, arg CreateContactParams) (C
 		&i.TierChangedAt,
 		&i.SunsetAt,
 		&i.BroadcastsStoppedAt,
+		&i.LanguageSource,
+		&i.LanguageSourceName,
+		&i.LanguageBrowser,
+		&i.LanguageSetAt,
+		&i.LanguageSetBy,
 	)
 	return i, err
 }
@@ -539,7 +546,7 @@ func (q *Queries) GetAudienceState(ctx context.Context, workspaceID uuid.UUID) (
 }
 
 const getContact = `-- name: GetContact :one
-SELECT id, workspace_id, email, first_name, last_name, status, tier, source, timezone, country, mailbox_provider, tags, attributes, last_sent_at, last_open_at, last_click_at, created_at, updated_at, erased_at, company, language, mailbox_detail, consent, consent_evidence, import_id, role_address, last_human_open_at, last_open_machine, last_activity_at, tier_changed_at, sunset_at, broadcasts_stopped_at FROM contacts WHERE workspace_id = $1 AND id = $2 AND erased_at IS NULL
+SELECT id, workspace_id, email, first_name, last_name, status, tier, source, timezone, country, mailbox_provider, tags, attributes, last_sent_at, last_open_at, last_click_at, created_at, updated_at, erased_at, company, language, mailbox_detail, consent, consent_evidence, import_id, role_address, last_human_open_at, last_open_machine, last_activity_at, tier_changed_at, sunset_at, broadcasts_stopped_at, language_source, language_source_name, language_browser, language_set_at, language_set_by FROM contacts WHERE workspace_id = $1 AND id = $2 AND erased_at IS NULL
 `
 
 type GetContactParams struct {
@@ -583,12 +590,17 @@ func (q *Queries) GetContact(ctx context.Context, arg GetContactParams) (Contact
 		&i.TierChangedAt,
 		&i.SunsetAt,
 		&i.BroadcastsStoppedAt,
+		&i.LanguageSource,
+		&i.LanguageSourceName,
+		&i.LanguageBrowser,
+		&i.LanguageSetAt,
+		&i.LanguageSetBy,
 	)
 	return i, err
 }
 
 const getContactByEmail = `-- name: GetContactByEmail :one
-SELECT id, workspace_id, email, first_name, last_name, status, tier, source, timezone, country, mailbox_provider, tags, attributes, last_sent_at, last_open_at, last_click_at, created_at, updated_at, erased_at, company, language, mailbox_detail, consent, consent_evidence, import_id, role_address, last_human_open_at, last_open_machine, last_activity_at, tier_changed_at, sunset_at, broadcasts_stopped_at FROM contacts WHERE workspace_id = $1 AND email = $2 AND erased_at IS NULL
+SELECT id, workspace_id, email, first_name, last_name, status, tier, source, timezone, country, mailbox_provider, tags, attributes, last_sent_at, last_open_at, last_click_at, created_at, updated_at, erased_at, company, language, mailbox_detail, consent, consent_evidence, import_id, role_address, last_human_open_at, last_open_machine, last_activity_at, tier_changed_at, sunset_at, broadcasts_stopped_at, language_source, language_source_name, language_browser, language_set_at, language_set_by FROM contacts WHERE workspace_id = $1 AND email = $2 AND erased_at IS NULL
 `
 
 type GetContactByEmailParams struct {
@@ -632,6 +644,11 @@ func (q *Queries) GetContactByEmail(ctx context.Context, arg GetContactByEmailPa
 		&i.TierChangedAt,
 		&i.SunsetAt,
 		&i.BroadcastsStoppedAt,
+		&i.LanguageSource,
+		&i.LanguageSourceName,
+		&i.LanguageBrowser,
+		&i.LanguageSetAt,
+		&i.LanguageSetBy,
 	)
 	return i, err
 }
@@ -1885,7 +1902,7 @@ UPDATE contacts
 SET first_name = $1, last_name = $2, company = $3, country = $4, timezone = $5,
     language = $6, tags = $7, attributes = $8, updated_at = now()
 WHERE workspace_id = $9 AND id = $10 AND erased_at IS NULL
-RETURNING id, workspace_id, email, first_name, last_name, status, tier, source, timezone, country, mailbox_provider, tags, attributes, last_sent_at, last_open_at, last_click_at, created_at, updated_at, erased_at, company, language, mailbox_detail, consent, consent_evidence, import_id, role_address, last_human_open_at, last_open_machine, last_activity_at, tier_changed_at, sunset_at, broadcasts_stopped_at
+RETURNING id, workspace_id, email, first_name, last_name, status, tier, source, timezone, country, mailbox_provider, tags, attributes, last_sent_at, last_open_at, last_click_at, created_at, updated_at, erased_at, company, language, mailbox_detail, consent, consent_evidence, import_id, role_address, last_human_open_at, last_open_machine, last_activity_at, tier_changed_at, sunset_at, broadcasts_stopped_at, language_source, language_source_name, language_browser, language_set_at, language_set_by
 `
 
 type UpdateContactFieldsParams struct {
@@ -1948,6 +1965,11 @@ func (q *Queries) UpdateContactFields(ctx context.Context, arg UpdateContactFiel
 		&i.TierChangedAt,
 		&i.SunsetAt,
 		&i.BroadcastsStoppedAt,
+		&i.LanguageSource,
+		&i.LanguageSourceName,
+		&i.LanguageBrowser,
+		&i.LanguageSetAt,
+		&i.LanguageSetBy,
 	)
 	return i, err
 }

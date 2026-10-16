@@ -256,9 +256,20 @@ type Querier interface {
 	// Emails sent to a contact since a date (Broadcasts and Automations), how
 	// many were opened by a person and how many were clicked.
 	ContactEngagementSince(ctx context.Context, arg ContactEngagementSinceParams) (ContactEngagementSinceRow, error)
+	// A signup form sets the language from the browser's first language when
+	// the contact has none. It never overwrites one.
+	ContactFillLanguage(ctx context.Context, arg ContactFillLanguageParams) (int64, error)
+	ContactLanguageSetBy(ctx context.Context, id uuid.UUID) (string, error)
 	// Lists a page of contacts belongs to (subscribed or pending), in list order.
 	ContactListNames(ctx context.Context, contactIds []uuid.UUID) ([]ContactListNamesRow, error)
 	ContactMemberships(ctx context.Context, contactID uuid.UUID) ([]ContactMembershipsRow, error)
+	// Content languages of forms, public pages and contacts (design expansion
+	// M17, workstream X08): a contact's language and where it came from, page
+	// and form copy per language, and ReputeCast's built-in page labels.
+	// Sets a contact's language and records where it came from.
+	ContactSetLanguage(ctx context.Context, arg ContactSetLanguageParams) error
+	// Records where a contact's language came from, after another query set it.
+	ContactSetLanguageSource(ctx context.Context, arg ContactSetLanguageSourceParams) error
 	ContactSources(ctx context.Context, workspaceID uuid.UUID) ([]ContactSourcesRow, error)
 	ContentCheckLinkListings(ctx context.Context, domains []string) ([]LinkDomainListing, error)
 	ContentCheckUpsertLinkListing(ctx context.Context, arg ContentCheckUpsertLinkListingParams) error

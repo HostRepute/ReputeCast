@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/api"
+	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -53,6 +54,15 @@ type ContactActivityItem struct {
 	IP             string `json:"ip,omitempty"`
 	Actor          string `json:"actor,omitempty"`
 	ConsentVersion string `json:"consentVersion,omitempty"`
+	// Language is the language version delivered ("en"), set on deliveries
+	// when the workspace has several languages. LanguageReason says why a
+	// contact got another language than theirs, whose name is
+	// ContactLanguageName ("Portuguese").
+	Language            string `json:"language,omitempty"`
+	LanguageReason      string `json:"languageReason,omitempty" enum:",match,no_language,not_offered,missing,draft,held,requested"`
+	ContactLanguageName string `json:"contactLanguageName,omitempty"`
+	// ConsentLanguage is the language the consent text was shown in.
+	ConsentLanguage string `json:"consentLanguage,omitempty"`
 }
 
 // ContactActivityPage is one page of the timeline, newest first.
@@ -101,7 +111,9 @@ func (s *Service) Activity(ctx context.Context, ws *store.Workspace, contactID u
 		       coalesce(p.name, '') AS provider, coalesce(p.adapter, '') AS adapter,
 		       de.original_code, de.diagnostic, de.machine, de.url, de.user_agent,
 		       coalesce((SELECT l.label FROM campaign_links l WHERE l.campaign_id = cp.id AND l.url = de.url ORDER BY l.position LIMIT 1), '') AS link_label,
-		       ''::text AS list, ''::text AS source, ''::text AS detail, ''::text AS note, NULL::inet AS ip, ''::text AS actor, ''::text AS version
+		       ''::text AS list, ''::text AS source, ''::text AS detail, ''::text AS note, NULL::inet AS ip, ''::text AS actor, ''::text AS version,
+		       coalesce(nullif(m.language, ''), (SELECT cs.language FROM content_sources cs WHERE cs.owner_kind = 'campaign' AND cs.owner_id = cp.id AND cs.owner_version = 0), '') AS language,
+		       coalesce(m.language_reason, '') AS language_reason, coalesce(m.contact_language, '') AS contact_language
 		FROM delivery_events de
 		LEFT JOIN messages m ON m.id = de.message_id
 		LEFT JOIN campaigns cp ON cp.id = coalesce(de.campaign_id, m.campaign_id)
@@ -110,7 +122,8 @@ func (s *Service) Activity(ctx context.Context, ws *store.Workspace, contactID u
 		WHERE de.contact_id = $1 AND de.type = ANY ($2)
 		UNION ALL
 		SELECT ce.id, 'consent', ce.action, ce.occurred_at, '', false, '', NULL, '', '', '', '', '', '', '', '', false, '', ce.user_agent, '',
-		       coalesce(l.name, ''), ce.source, ce.detail, ce.note, ce.ip, coalesce(u.name, ''), ce.consent_version
+		       coalesce(l.name, ''), ce.source, ce.detail, ce.note, ce.ip, coalesce(u.name, ''), ce.consent_version,
+		       ce.language, '', ''
 		FROM consent_events ce
 		LEFT JOIN lists l ON l.id = ce.list_id
 		LEFT JOIN users u ON u.id = ce.actor_id
@@ -126,18 +139,37 @@ func (s *Service) Activity(ctx context.Context, ws *store.Workspace, contactID u
 		return out, err
 	}
 	defer rows.Close()
+	// Deliveries name their language version when the workspace writes in
+	// several languages.
+	st, err := s.workspaceLanguages(ctx, nil, ws.ID)
+	if err != nil {
+		return out, err
+	}
+	multilingual := len(st.Languages) > 1
 	for rows.Next() {
 		var it ContactActivityItem
 		var id uuid.UUID
-		var src, campaign, origin, automation, node, provider, adapter, userAgent, url string
+		var src, campaign, origin, automation, node, provider, adapter, userAgent, url, lang, reason, contactLang string
 		var delivered *time.Time
 		var ip *netip.Addr
 		if err := rows.Scan(&id, &src, &it.Type, &it.At, &it.Variant, &it.Failover, &it.RouteNote, &delivered, &campaign, &origin,
 			&automation, &node, &provider, &adapter, &it.Code, &it.Diagnostic, &it.Machine, &url, &userAgent, &it.LinkLabel,
-			&it.List, &it.Source, &it.Detail, &it.Note, &ip, &it.Actor, &it.ConsentVersion); err != nil {
+			&it.List, &it.Source, &it.Detail, &it.Note, &ip, &it.Actor, &it.ConsentVersion, &lang, &reason, &contactLang); err != nil {
 			return out, err
 		}
 		it.ID = id.String()
+		if src == "consent" {
+			it.ConsentLanguage = lang
+		} else if multilingual && provider != "" {
+			it.Language = lang
+			if it.Language == "" {
+				it.Language = st.Default
+			}
+			if reason != languages.ReasonMatch {
+				it.LanguageReason = reason
+			}
+			it.ContactLanguageName = languageName(contactLang)
+		}
 		if src == "consent" {
 			it.Category = "consent"
 			it.SourceLabel = consentSourceLabel(it.Source)

@@ -556,6 +556,7 @@ type ConsentEvent struct {
 	ActorID        *uuid.UUID  `json:"actorId"`
 	ImportID       *uuid.UUID  `json:"importId"`
 	ConsentText    string      `json:"consentText"`
+	Language       string      `json:"language"`
 }
 
 type Contact struct {
@@ -591,6 +592,11 @@ type Contact struct {
 	TierChangedAt       *time.Time      `json:"tierChangedAt"`
 	SunsetAt            *time.Time      `json:"sunsetAt"`
 	BroadcastsStoppedAt *time.Time      `json:"broadcastsStoppedAt"`
+	LanguageSource      string          `json:"languageSource"`
+	LanguageSourceName  string          `json:"languageSourceName"`
+	LanguageBrowser     bool            `json:"languageBrowser"`
+	LanguageSetAt       *time.Time      `json:"languageSetAt"`
+	LanguageSetBy       *uuid.UUID      `json:"languageSetBy"`
 }
 
 type ContactPreference struct {

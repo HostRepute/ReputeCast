@@ -11096,7 +11096,13 @@
             "description": "Provider code: 250 2.6.0, 452 4.2.2",
             "type": "string"
           },
+          "consentLanguage": {
+            "type": "string"
+          },
           "consentVersion": {
+            "type": "string"
+          },
+          "contactLanguageName": {
             "type": "string"
           },
           "detail": {
@@ -11115,6 +11121,22 @@
             "type": "string"
           },
           "ip": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string"
+          },
+          "languageReason": {
+            "enum": [
+              "",
+              "match",
+              "no_language",
+              "not_offered",
+              "missing",
+              "draft",
+              "held",
+              "requested"
+            ],
             "type": "string"
           },
           "linkLabel": {
@@ -11334,6 +11356,9 @@
           "ip": {
             "type": "string"
           },
+          "language": {
+            "type": "string"
+          },
           "note": {
             "type": "string"
           },
@@ -11415,6 +11440,10 @@
             "maxLength": 10,
             "type": "string"
           },
+          "language": {
+            "maxLength": 16,
+            "type": "string"
+          },
           "list": {
             "description": "List id",
             "type": "string"
@@ -11456,6 +11485,82 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "ContactLanguage": {
+        "additionalProperties": false,
+        "properties": {
+          "browser": {
+            "description": "A signup form read it from the browser",
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "gets": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "offered": {
+            "type": "boolean"
+          },
+          "options": {
+            "items": {
+              "$ref": "#/components/schemas/ContactLanguageOption"
+            },
+            "type": "array"
+          },
+          "setAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "import",
+              "form",
+              "preference_center",
+              "api",
+              "team",
+              ""
+            ],
+            "type": "string"
+          },
+          "sourceName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "offered",
+          "gets",
+          "source",
+          "sourceName",
+          "browser",
+          "options"
+        ],
+        "type": "object"
+      },
+      "ContactLanguageOption": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "offered": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "offered"
+        ],
         "type": "object"
       },
       "ContactList": {
@@ -11685,6 +11790,9 @@
             "format": "date-time",
             "type": "string"
           },
+          "language": {
+            "$ref": "#/components/schemas/ContactLanguage"
+          },
           "lastName": {
             "type": "string"
           },
@@ -11756,7 +11864,8 @@
           "tags",
           "lists",
           "preferences",
-          "activityTotal"
+          "activityTotal",
+          "language"
         ],
         "type": "object"
       },
@@ -12002,7 +12111,8 @@
             "type": "string"
           },
           "language": {
-            "maxLength": 16,
+            "description": "A BCP 47 code such as es-MX; \"Spanish\" and \"es_MX\" are normalized. Empty clears it.",
+            "maxLength": 40,
             "type": "string"
           },
           "lastName": {
@@ -15484,7 +15594,7 @@
             "type": "string"
           },
           "type": {
-            "description": "What ReputeCast stores: email, text, number, date, timezone, consent, tags, or – when skipped",
+            "description": "What ReputeCast stores: email, text, number, date, timezone, language, consent, tags, or – when skipped",
             "type": "string"
           }
         },
@@ -15587,6 +15697,70 @@
         },
         "required": [
           "items"
+        ],
+        "type": "object"
+      },
+      "ImportLanguageColumn": {
+        "additionalProperties": false,
+        "properties": {
+          "languages": {
+            "items": {
+              "$ref": "#/components/schemas/ImportLanguageValue"
+            },
+            "type": "array"
+          },
+          "normalized": {
+            "items": {
+              "$ref": "#/components/schemas/ImportLanguageValue"
+            },
+            "type": "array"
+          },
+          "unknown": {
+            "items": {
+              "$ref": "#/components/schemas/ImportLanguageValue"
+            },
+            "type": "array"
+          },
+          "unknownRows": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "unknownValues": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "normalized",
+          "unknown",
+          "unknownValues",
+          "unknownRows",
+          "languages"
+        ],
+        "type": "object"
+      },
+      "ImportLanguageValue": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "rows": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "value": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "value",
+          "code",
+          "name",
+          "rows"
         ],
         "type": "object"
       },
@@ -22919,6 +23093,10 @@
           },
           "firstName": {
             "maxLength": 100,
+            "type": "string"
+          },
+          "language": {
+            "maxLength": 40,
             "type": "string"
           },
           "lastName": {
@@ -56842,6 +57020,17 @@
             }
           },
           {
+            "description": "A workspace language's code (es also matches es-MX), none or not_offered",
+            "explode": false,
+            "in": "query",
+            "name": "language",
+            "schema": {
+              "description": "A workspace language's code (es also matches es-MX), none or not_offered",
+              "maxLength": 16,
+              "type": "string"
+            }
+          },
+          {
             "explode": false,
             "in": "query",
             "name": "page",
@@ -60950,6 +61139,83 @@
           }
         ],
         "summary": "Save the field mapping",
+        "tags": [
+          "Imports"
+        ],
+        "x-access": "workspace",
+        "x-permission": "subscribers:import"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/imports/{id}/fields/{field}/languages": {
+      "get": {
+        "operationId": "get-import-language-column",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The source field's key",
+            "in": "path",
+            "name": "field",
+            "required": true,
+            "schema": {
+              "description": "The source field's key",
+              "maxLength": 200,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportLanguageColumn"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What a source field becomes as the contact's language, and the values that aren't languages",
         "tags": [
           "Imports"
         ],

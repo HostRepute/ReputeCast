@@ -21,6 +21,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/emailaddr"
+	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -56,6 +57,9 @@ type PublicEvidence struct {
 	// is its version ("v3").
 	ConsentText    string
 	ConsentVersion string
+	// Language is the language the page or form, and so its consent text,
+	// was shown in ("es"); consent evidence keeps it.
+	Language string
 	// Note goes on the consent events.
 	Note string
 	At   time.Time
@@ -81,7 +85,7 @@ func consentEvent(ctx context.Context, q *store.Queries, contact uuid.UUID, list
 		UserAgent: clip(ev.UserAgent, 500), Detail: detail, Note: ev.Note, OccurredAt: ev.at(),
 	}
 	if withConsent {
-		p.ConsentText, p.ConsentVersion = ev.ConsentText, ev.ConsentVersion
+		p.ConsentText, p.ConsentVersion, p.Language = ev.ConsentText, ev.ConsentVersion, ev.Language
 	}
 	return q.SignupInsertConsent(ctx, p)
 }
@@ -100,6 +104,11 @@ type SignupInput struct {
 	// is clicked.
 	DoubleOptIn bool
 	Evidence    PublicEvidence
+	// BrowserLanguage is the browser's first language ("es-MX"): it becomes
+	// the contact's language when they have none. FormName names the form
+	// it came through ("Newsletter signup"; empty for the subscribe page).
+	BrowserLanguage string
+	FormName        string
 }
 
 // SignupResult says what happened. Public pages show the same message in
@@ -203,6 +212,9 @@ func (s *Service) Signup(ctx context.Context, tx pgx.Tx, ws *store.Workspace, in
 		if out.FirstName == "" {
 			out.FirstName = first
 		}
+	}
+	if err := FillLanguage(ctx, q, c.ID, in.BrowserLanguage, in.FormName, at); err != nil {
+		return out, err
 	}
 	members, err := q.SignupMemberships(ctx, c.ID)
 	if err != nil {
@@ -384,7 +396,7 @@ func (s *Service) Confirm(ctx context.Context, tx pgx.Tx, ws *store.Workspace, c
 	}
 	if ev.ConsentText == "" {
 		if prev, err := q.SignupLastConsent(ctx, store.SignupLastConsentParams{ContactID: c.ID, Action: "subscribed"}); err == nil {
-			ev.ConsentText, ev.ConsentVersion = prev.ConsentText, prev.ConsentVersion
+			ev.ConsentText, ev.ConsentVersion, ev.Language = prev.ConsentText, prev.ConsentVersion, prev.Language
 		}
 	}
 	for _, l := range lists {
@@ -418,6 +430,9 @@ type PublicContact struct {
 	// LastName and Attributes personalize "view online".
 	LastName   string
 	Attributes map[string]any
+	// Language is the contact's language ("es-MX", "" for none): the pages
+	// reached from an email show in it.
+	Language string
 }
 
 // FindPublicContact returns the contact behind an address, for "email me
@@ -453,7 +468,7 @@ func (s *Service) LoadPublicContact(ctx context.Context, q *store.Queries, ws *s
 		return PublicContact{}, err
 	}
 	out := PublicContact{ID: c.ID, Email: c.Email, FirstName: c.FirstName, LastName: c.LastName, Status: c.Status, Consent: c.Consent,
-		Lists: map[uuid.UUID]string{}, Frequency: "all", Attributes: map[string]any{}}
+		Lists: map[uuid.UUID]string{}, Frequency: "all", Attributes: map[string]any{}, Language: c.Language}
 	_ = json.Unmarshal(c.Attributes, &out.Attributes)
 	members, err := q.SignupMemberships(ctx, c.ID)
 	if err != nil {
@@ -509,6 +524,10 @@ type PreferencesInput struct {
 	PauseDays int
 	// FirstName changes the first name when set.
 	FirstName *string
+	// Language is the "Email language" choice, one of the workspace's
+	// languages; nil keeps it. A regional code of the same language stays
+	// (es-MX choosing Español keeps es-MX).
+	Language *string
 }
 
 // PreferencesResult lists what changed.
@@ -518,6 +537,8 @@ type PreferencesResult struct {
 	Frequency   string
 	PausedUntil *time.Time
 	Changed     bool
+	// LanguageChanged is true when the Email language changed.
+	LanguageChanged bool
 }
 
 // Frequencies offered in the preference center.
@@ -644,7 +665,25 @@ func (s *Service) SavePreferences(ctx context.Context, tx pgx.Tx, ws *store.Work
 			nameChanged = true
 		}
 	}
-	out.Changed = len(out.Joined)+len(out.Left) > 0 || prefsChanged || nameChanged
+	langChanged := false
+	if in.Language != nil {
+		code := languages.Base(*in.Language)
+		st, err := s.workspaceLanguages(ctx, q, ws.ID)
+		if err != nil {
+			return out, err
+		}
+		if code != "" && !st.Offers(code) {
+			return out, &FieldError{Field: "language", Message: "Pick one of the languages listed."}
+		}
+		if code != "" && languages.Base(c.Language) != code {
+			if err := SetLanguageFrom(ctx, q, c.ID, code, LanguageFromPreferences, "", at); err != nil {
+				return out, err
+			}
+			langChanged = true
+		}
+	}
+	out.LanguageChanged = langChanged
+	out.Changed = len(out.Joined)+len(out.Left) > 0 || prefsChanged || nameChanged || langChanged
 	if out.Changed {
 		if err := q.SignupTouchContact(ctx, store.SignupTouchContactParams{ID: c.ID, At: at}); err != nil {
 			return out, err

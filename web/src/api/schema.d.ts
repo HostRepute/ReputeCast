@@ -4467,6 +4467,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/imports/{id}/fields/{field}/languages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What a source field becomes as the contact's language, and the values that aren't languages */
+        get: operations["get-import-language-column"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/imports/{id}/file": {
         parameters: {
             query?: never;
@@ -10852,13 +10869,18 @@ export interface components {
             client?: string;
             /** @description Provider code: 250 2.6.0, 452 4.2.2 */
             code?: string;
+            consentLanguage?: string;
             consentVersion?: string;
+            contactLanguageName?: string;
             detail?: string;
             diagnostic?: string;
             failover: boolean;
             id: string;
             imported?: string;
             ip?: string;
+            language?: string;
+            /** @enum {string} */
+            languageReason?: "" | "match" | "no_language" | "not_offered" | "missing" | "draft" | "held" | "requested";
             linkLabel?: string;
             list?: string;
             machine: boolean;
@@ -10926,6 +10948,7 @@ export interface components {
             consentVersion?: string;
             detail: string;
             ip?: string;
+            language?: string;
             note: string;
             source: string;
             sourceLabel: string;
@@ -10949,6 +10972,7 @@ export interface components {
             /** @enum {string} */
             consent?: "double" | "single" | "pending";
             joinedAfter?: string;
+            language?: string;
             /** @description List id */
             list?: string;
             /** @enum {string} */
@@ -10961,6 +10985,25 @@ export interface components {
             tag?: string;
             /** @enum {string} */
             tier?: "active" | "cooling" | "at_risk" | "sunset";
+        };
+        ContactLanguage: {
+            /** @description A signup form read it from the browser */
+            browser: boolean;
+            code: string;
+            gets: string;
+            name: string;
+            offered: boolean;
+            options: components["schemas"]["ContactLanguageOption"][];
+            /** Format: date-time */
+            setAt?: string;
+            /** @enum {string} */
+            source: "import" | "form" | "preference_center" | "api" | "team" | "";
+            sourceName: string;
+        };
+        ContactLanguageOption: {
+            code: string;
+            name: string;
+            offered: boolean;
         };
         ContactList: {
             items: components["schemas"]["ContactListItem"][];
@@ -11023,6 +11066,7 @@ export interface components {
             id: string;
             /** Format: date-time */
             joinedAt: string;
+            language: components["schemas"]["ContactLanguage"];
             lastName: string;
             lists: components["schemas"]["ContactListConsent"][];
             mailboxLabel: string;
@@ -11108,6 +11152,7 @@ export interface components {
                 [key: string]: unknown;
             };
             firstName?: string;
+            /** @description A BCP 47 code such as es-MX; "Spanish" and "es_MX" are normalized. Empty clears it. */
             language?: string;
             lastName?: string;
             tags?: string[];
@@ -12089,7 +12134,7 @@ export interface components {
             /** @enum {string} */
             status: "mapped" | "new" | "skipped";
             target: string;
-            /** @description What ReputeCast stores: email, text, number, date, timezone, consent, tags, or – when skipped */
+            /** @description What ReputeCast stores: email, text, number, date, timezone, language, consent, tags, or – when skipped */
             type: string;
         };
         ImportInvalidGroup: {
@@ -12117,6 +12162,22 @@ export interface components {
         };
         ImportJobList: {
             items: components["schemas"]["ImportJob"][];
+        };
+        ImportLanguageColumn: {
+            languages: components["schemas"]["ImportLanguageValue"][];
+            normalized: components["schemas"]["ImportLanguageValue"][];
+            unknown: components["schemas"]["ImportLanguageValue"][];
+            /** Format: int64 */
+            unknownRows: number;
+            /** Format: int64 */
+            unknownValues: number;
+        };
+        ImportLanguageValue: {
+            code: string;
+            name: string;
+            /** Format: int64 */
+            rows: number;
+            value: string;
         };
         ImportList: {
             active?: string;
@@ -14266,6 +14327,7 @@ export interface components {
             consent: "single" | "double";
             email: string;
             firstName?: string;
+            language?: string;
             lastName?: string;
             /** @description List ids */
             lists: string[];
@@ -27763,6 +27825,8 @@ export interface operations {
                 /** @description Segment id */
                 segment?: string;
                 joinedAfter?: string;
+                /** @description A workspace language's code (es also matches es-MX), none or not_offered */
+                language?: string;
                 page?: number;
                 pageSize?: number;
             };
@@ -29839,6 +29903,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ImportFieldMapping"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-import-language-column": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+                /** @description The source field's key */
+                field: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportLanguageColumn"];
                 };
             };
             /** @description Error */

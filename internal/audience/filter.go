@@ -27,6 +27,10 @@ type ContactFilter struct {
 	Segment string `json:"segment,omitempty" doc:"Segment id"`
 	// JoinedAfter is a date (2026-09-01).
 	JoinedAfter string `json:"joinedAfter,omitempty" maxLength:"10"`
+	// Language is a workspace language's code (its regional codes match),
+	// "none" for contacts with no language or "not_offered" for languages
+	// the workspace doesn't offer.
+	Language string `json:"language,omitempty" maxLength:"16"`
 }
 
 // Empty reports whether the filter matches everyone.
@@ -95,6 +99,9 @@ func (s *Service) applyFilter(ctx context.Context, wsID uuid.UUID, out *filterSQ
 			return api.Invalid("joinedAfter", "Use a date like 2026-09-01.")
 		}
 		out.add("c.created_at >= ?", d)
+	}
+	if err := s.languageFilter(ctx, wsID, out, f.Language); err != nil {
+		return err
 	}
 	if f.Segment != "" {
 		id, err := uuid.Parse(f.Segment)

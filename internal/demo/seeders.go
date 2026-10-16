@@ -30,6 +30,8 @@ var (
 	seedAccessibility          = noop // accessibility policy, Weekly Digest #143, the gallery's and the publish dialog's issues (seed_accessibility.go)
 	// content languages: workspace languages, contacts' languages, versions of #142 and #143 (seed_languages.go)
 	seedLanguages = noop
+	// content languages of forms, public pages and contacts: where contacts' languages came from, page and form copy (seed_page_languages.go)
+	seedPageLanguages = noop
 )
 
 func noop(context.Context, *Seeder) error { return nil }
