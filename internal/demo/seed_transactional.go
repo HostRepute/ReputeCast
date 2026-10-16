@@ -405,9 +405,9 @@ func (t *txnSeed) keysAndRelay(ctx context.Context) error {
 	// the periodic check leaves it be until an instance admin changes it.
 	now := s.Ago(6 * time.Minute)
 	status, _ := json.Marshal(map[string]any{"demo": true, "checkedAt": now, "from": "this server", "checks": []map[string]any{
-		{"key": "dns", "ok": true, "detail": txnRelayHost + " points to " + txnRelayIP},
-		{"key": "starttls", "ok": true, "port": 587, "detail": "Port 587 answers with STARTTLS"},
-		{"key": "tls", "ok": true, "port": 465, "detail": "Port 465 answers with TLS"},
+		{"key": "dns", "ok": true, "detail": "DNS · " + txnRelayHost + " points to " + txnRelayIP},
+		{"key": "starttls", "ok": true, "port": 587, "detail": "Port 587 reachable from the internet"},
+		{"key": "tls", "ok": true, "port": 465, "detail": "Port 465 reachable from the internet"},
 		{"key": "certificate", "ok": true, "detail": "Certificate valid until 2 Dec 2026"},
 	}})
 	notAfter := s.designDay(-48, 12, 0)

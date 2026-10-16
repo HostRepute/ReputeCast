@@ -307,7 +307,7 @@ func (r *Relay) checks(ctx context.Context, cfg Config) []SMTPRelayCheck {
 		out = append(out, SMTPRelayCheck{Key: "certificate", OK: false, Detail: "The certificate can't be checked until " + cfg.Hostname + " resolves"})
 		return out
 	}
-	out = append(out, SMTPRelayCheck{Key: "dns", OK: true, Detail: fmt.Sprintf("%s points to %s", cfg.Hostname, strings.Join(addrs, ", "))})
+	out = append(out, SMTPRelayCheck{Key: "dns", OK: true, Detail: fmt.Sprintf("DNS · %s points to %s", cfg.Hostname, strings.Join(addrs, ", "))})
 	// Each port must answer at one of the hostname's addresses.
 	ip := addrs[0]
 	dialAny := func(port int, useTLS bool) error {
@@ -321,16 +321,15 @@ func (r *Relay) checks(ctx context.Context, cfg Config) []SMTPRelayCheck {
 		return err
 	}
 	for _, k := range []struct {
-		key     string
-		port    int
-		useTLS  bool
-		reached string
-	}{{"starttls", cfg.StartTLSPort, false, "STARTTLS"}, {"tls", cfg.TLSPort, true, "TLS"}} {
+		key    string
+		port   int
+		useTLS bool
+	}{{"starttls", cfg.StartTLSPort, false}, {"tls", cfg.TLSPort, true}} {
 		if err := dialAny(k.port, k.useTLS); err != nil {
 			out = append(out, SMTPRelayCheck{Key: k.key, OK: false, Port: k.port, Detail: fmt.Sprintf("Port %d isn't reachable at %s: %s", k.port, cfg.Hostname, shortNetErr(err))})
 			continue
 		}
-		out = append(out, SMTPRelayCheck{Key: k.key, OK: true, Port: k.port, Detail: fmt.Sprintf("Port %d answers with %s", k.port, k.reached)})
+		out = append(out, SMTPRelayCheck{Key: k.key, OK: true, Port: k.port, Detail: fmt.Sprintf("Port %d reachable from the internet", k.port)})
 	}
 	out = append(out, r.certCheck(ctx, cfg, ip, timeout))
 	return out
