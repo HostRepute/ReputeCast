@@ -246,6 +246,10 @@
       var body = new URLSearchParams(new FormData(form))
       body.set('_t', token)
       body.set('_js', '1')
+      // Where the signup happened, for growth sources: this page (its UTM
+      // parameters) and the page before it.
+      body.set('_page', String(window.location.href).slice(0, 2000))
+      body.set('_ref', String(document.referrer || '').slice(0, 2000))
       button.disabled = true
       button.setAttribute('aria-busy', 'true')
       fetch(cfg.submit, { method: 'POST', mode: 'cors', credentials: 'omit', headers: { Accept: 'application/json' }, body: body })

@@ -157,7 +157,7 @@ type AutomationCondition struct {
 	URLContains string              `json:"urlContains,omitempty" maxLength:"200"`
 	// Field: compare a contact field.
 	Field string `json:"field,omitempty" maxLength:"64"`
-	Op    string `json:"op,omitempty" maxLength:"16" doc:"equals, not_equals, contains, is_set, is_not_set"`
+	Op    string `json:"op,omitempty" maxLength:"16" doc:"equals, not_equals, contains, is_set, is_not_set, is_one_of (comma-separated values)"`
 	Value string `json:"value,omitempty" maxLength:"200"`
 	Tag   string `json:"tag,omitempty" maxLength:"64"`
 	// List: member of this list (subscribed).
@@ -687,7 +687,7 @@ func checkConfig(n AutomationNode, refs *Refs) []configProblem {
 					bad("missing_ref", "The condition's field was deleted. Pick another field.")
 				}
 			}
-			if !slices.Contains([]string{"equals", "not_equals", "contains", "is_set", "is_not_set"}, c.Op) {
+			if !slices.Contains([]string{"equals", "not_equals", "contains", "is_set", "is_not_set", "is_one_of"}, c.Op) {
 				bad("invalid_op", "Pick how to compare the field.")
 			}
 		case "tag":

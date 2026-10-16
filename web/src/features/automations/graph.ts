@@ -1,5 +1,5 @@
 import type { Schemas } from '@/api/client'
-import { scoreTriggerDetail, scoreTriggerName, scoreTriggerRef } from '@/features/scoring/triggerText'
+import { isOneOfPhrase, scoreTriggerDetail, scoreTriggerName, scoreTriggerRef } from '@/features/scoring/triggerText'
 
 /*
  * Flow graph helpers shared by the canvas, the step panel and the tests:
@@ -225,6 +225,8 @@ export function conditionPhrase(g: FlowGraph, c: FlowCondition | undefined, refs
           return `${c.field} isn't ${c.value ?? ''}`
         case 'contains':
           return `${c.field} contains ${c.value ?? ''}`
+        case 'is_one_of':
+          return isOneOfPhrase(c.field ?? '', c.value ?? '')
       }
       return `${c.field} is ${c.value ?? ''}`
   }

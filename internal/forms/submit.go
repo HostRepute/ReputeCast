@@ -16,6 +16,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/automations"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/emailaddr"
+	"github.com/hostrepute/reputecast/internal/growth"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -39,6 +40,10 @@ type Submission struct {
 	Origin    string      `json:"-"`
 	IP        *netip.Addr `json:"-"`
 	UserAgent string      `json:"-"`
+	// Page is the address of the page with the form (its UTM parameters)
+	// and Referrer the page before it (growth sources).
+	Page     string `json:"-"`
+	Referrer string `json:"-"`
 }
 
 // Outcome statuses.
@@ -296,6 +301,10 @@ func (s *Service) accept(ctx context.Context, ws *store.Workspace, set *Settings
 			return err
 		}
 		q := store.New(tx)
+		// UTM parameters and the referring page go with the consent records.
+		if err := growth.SaveTouch(ctx, q, res.ContactID, now, growth.TouchOf(sub.Page, sub.Referrer)); err != nil {
+			return err
+		}
 		var formID *uuid.UUID
 		if !c.Builtin {
 			id := c.ID

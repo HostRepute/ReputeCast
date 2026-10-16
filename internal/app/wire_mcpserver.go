@@ -16,6 +16,7 @@ func (a *App) mcpserver() *mcpserver.Service {
 		Campaigns:     &campaigns.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit},
 		Languages:     languagesService(a),
 		Accessibility: newAccessibility(a),
+		Growth:        a.growth(),
 		PublicURL:     func(context.Context) string { return a.URLs.Base() },
 	}
 }

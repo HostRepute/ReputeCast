@@ -259,8 +259,16 @@ func (s *Service) ContactScore(ctx context.Context, ws *store.Workspace, contact
 		}
 		out.Decay.QuietWeeks = int(asOf.Sub(*res.ActiveAt).Hours() / (24 * 7))
 	}
-	if n := len(res.Steps); n > 0 {
-		step := res.Steps[n-1]
+	// The last change of the score itself (events at 100 change nothing).
+	last := -1
+	for i := len(res.Steps) - 1; i >= 0; i-- {
+		if Total(res.Steps[i].Before, fieldsPart) != Total(res.Steps[i].After, fieldsPart) {
+			last = i
+			break
+		}
+	}
+	if last >= 0 {
+		step := res.Steps[last]
 		b, a := Total(step.Before, fieldsPart), Total(step.After, fieldsPart)
 		ch := &ContactScoreChange{At: step.At, Delta: a - b, Before: b, After: a, BeforeBand: cfg.Bands.Band(b), AfterBand: cfg.Bands.Band(a), Cause: ContactScoreCause{Kind: "decay"}}
 		if step.Event >= 0 {

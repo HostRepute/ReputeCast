@@ -513,6 +513,26 @@ type Querier interface {
 	GetUserSession(ctx context.Context, arg GetUserSessionParams) (Session, error)
 	GetWorkspace(ctx context.Context, id uuid.UUID) (Workspace, error)
 	GetWorkspaceBySlug(ctx context.Context, slug string) (Workspace, error)
+	// A contact's attribution, for the profile's join line.
+	GrowthContactTouch(ctx context.Context, contactID uuid.UUID) (ContactGrowth, error)
+	GrowthFormsOf(ctx context.Context, workspaceID uuid.UUID) ([]GrowthFormsOfRow, error)
+	GrowthImportsOf(ctx context.Context, workspaceID uuid.UUID) ([]GrowthImportsOfRow, error)
+	GrowthIntegrationsOf(ctx context.Context, workspaceID uuid.UUID) ([]GrowthIntegrationsOfRow, error)
+	GrowthKeysOf(ctx context.Context, workspaceID uuid.UUID) ([]GrowthKeysOfRow, error)
+	// Growth sources (audience-insights brief §3.4).
+	// Puts a signup's UTM parameters and pages on the consent records it wrote.
+	GrowthSaveTouch(ctx context.Context, arg GrowthSaveTouchParams) error
+	// Contacts per source, for the contacts filter and segment conditions.
+	GrowthSourceCounts(ctx context.Context, workspaceID uuid.UUID) ([]GrowthSourceCountsRow, error)
+	// The first run of a workspace starts UTM capture and attributes the
+	// contacts it already has.
+	GrowthStateEnsure(ctx context.Context, arg GrowthStateEnsureParams) (GrowthState, error)
+	GrowthStateGet(ctx context.Context, workspaceID uuid.UUID) (GrowthState, error)
+	GrowthStateSetAttributed(ctx context.Context, arg GrowthStateSetAttributedParams) error
+	GrowthStateSetRolledUp(ctx context.Context, arg GrowthStateSetRolledUpParams) error
+	GrowthWorkflowsOf(ctx context.Context, workspaceID uuid.UUID) ([]GrowthWorkflowsOfRow, error)
+	GrowthWorkspaceProviders(ctx context.Context, workspaceID uuid.UUID) ([]uuid.UUID, error)
+	GrowthWorkspaces(ctx context.Context) ([]GrowthWorkspacesRow, error)
 	HealthViews(ctx context.Context, workspaceID uuid.UUID) ([]SavedView, error)
 	HideMediaAsset(ctx context.Context, arg HideMediaAssetParams) (int64, error)
 	// Takes a due delivery for one attempt. Returns no row when someone else has it.
@@ -995,6 +1015,8 @@ type Querier interface {
 	McpFindCampaign(ctx context.Context, arg McpFindCampaignParams) (McpFindCampaignRow, error)
 	McpGetRoutingRule(ctx context.Context, arg McpGetRoutingRuleParams) (McpGetRoutingRuleRow, error)
 	McpLatestReadiness(ctx context.Context, campaignID uuid.UUID) (McpLatestReadinessRow, error)
+	// A list by its name, for MCP tools that take a list name.
+	McpListByName(ctx context.Context, arg McpListByNameParams) (uuid.UUID, error)
 	McpPostmaster(ctx context.Context, workspaceID uuid.UUID) ([]McpPostmasterRow, error)
 	McpProviders(ctx context.Context, workspaceID uuid.UUID) ([]McpProvidersRow, error)
 	McpRouting(ctx context.Context, workspaceID uuid.UUID) ([]McpRoutingRow, error)

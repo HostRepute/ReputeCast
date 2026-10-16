@@ -29,6 +29,7 @@ import {
 } from './graph'
 import type { StepStats } from './view'
 import { StepLanguages } from '@/features/languages/automation'
+import { isOneOfLabel } from '@/features/scoring/triggerText'
 
 type Options = Schemas['AutomationOptions']
 
@@ -301,6 +302,7 @@ function ConditionEditor({ graph, node, value, onChange, refs, options, disabled
             <option value="equals">is</option>
             <option value="not_equals">isn't</option>
             <option value="contains">contains</option>
+            <option value="is_one_of">{isOneOfLabel()}</option>
             <option value="is_set">is set</option>
             <option value="is_not_set">is empty</option>
           </select>

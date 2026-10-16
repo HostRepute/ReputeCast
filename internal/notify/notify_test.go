@@ -89,7 +89,7 @@ func TestPreferencesAndDelivery(t *testing.T) {
 	var prefs map[string]any
 	c.Do("GET", "/me/notification-preferences?workspace="+ws.Slug, nil).MustStatus(t, 200).JSON(t, &prefs)
 	events := prefs["events"].([]any)
-	if len(events) != 10 || prefs["digest"] != "immediate" || prefs["quietHours"] != nil {
+	if len(events) != len(notify.Events) || prefs["digest"] != "immediate" || prefs["quietHours"] != nil {
 		t.Fatalf("defaults: %v", prefs)
 	}
 	if e := events[0].(map[string]any); e["type"] != "approval_requested" || e["inApp"] != true || e["email"] != true || e["audience"] != "Only for approvers" {

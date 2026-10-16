@@ -3893,6 +3893,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/contacts/{contact}/growth": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** How a contact first joined: the source, UTM parameters and referring page */
+        get: operations["get-contact-growth"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/contacts/{contact}/preference-link": {
         parameters: {
             query?: never;
@@ -4408,6 +4425,57 @@ export interface paths {
          * @description The copy-link fallback while nothing can send System mail. Every link handed out is written to the audit log.
          */
         post: operations["signup-form-confirm-link"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/growth": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Joins and departures by source, quality by source, UTM and referring pages, and cohort retention */
+        get: operations["get-growth"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/growth/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The Growth tables as CSV: totals only, no addresses (logged) */
+        get: operations["export-growth"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/growth/sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The sources contacts joined through, with how many (the contacts filter) */
+        get: operations["list-growth-sources"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -9297,7 +9365,7 @@ export interface components {
             /** @enum {string} */
             kind: "opened" | "clicked" | "field" | "tag" | "list" | "event";
             listId?: string;
-            /** @description equals, not_equals, contains, is_set, is_not_set */
+            /** @description equals, not_equals, contains, is_set, is_not_set, is_one_of (comma-separated values) */
             op?: string;
             step?: string;
             tag?: string;
@@ -11112,6 +11180,20 @@ export interface components {
             utmMedium?: string;
             utmSource?: string;
         };
+        ContactJoin: {
+            attributed: boolean;
+            /** Format: date-time */
+            joinedAt?: string;
+            /** Format: date-time */
+            leftAt?: string;
+            leftKind?: string;
+            page: string;
+            referrer: string;
+            source: components["schemas"]["GrowthSource"];
+            utmCampaign: string;
+            utmMedium: string;
+            utmSource: string;
+        };
         ContactList: {
             items: components["schemas"]["ContactListItem"][];
             /** Format: int64 */
@@ -12027,6 +12109,237 @@ export interface components {
             noLanguage: number;
             /** Format: int64 */
             notOffered: number;
+        };
+        GrowthChart: {
+            days: components["schemas"]["GrowthChartDay"][];
+            series: components["schemas"]["GrowthSeries"][];
+        };
+        GrowthChartDay: {
+            day: string;
+            /** Format: int64 */
+            imports: number;
+            joined: number[];
+            left: number[];
+        };
+        GrowthCohort: {
+            after30: components["schemas"]["GrowthRetention"];
+            after90: components["schemas"]["GrowthRetention"];
+            /** Format: int64 */
+            contacts: number;
+            /** @description YYYY-MM */
+            month: string;
+        };
+        GrowthDepartures: {
+            /** Format: int64 */
+            complained: number;
+            /** Format: int64 */
+            erased: number;
+            /** Format: int64 */
+            hardBounced: number;
+            /** Format: int64 */
+            unsubscribed: number;
+        };
+        GrowthImportItem: {
+            /** Format: int64 */
+            count: number;
+            day: string;
+            key: string;
+            name: string;
+        };
+        GrowthListRef: {
+            id: string;
+            name: string;
+        };
+        GrowthPage: {
+            chart: components["schemas"]["GrowthChart"];
+            cohortSource: string;
+            cohortSources: components["schemas"]["GrowthSource"][];
+            cohorts: components["schemas"]["GrowthCohort"][];
+            /** Format: int64 */
+            contacts: number;
+            departures: components["schemas"]["GrowthDepartures"];
+            /** Format: double */
+            flagFactor: number;
+            /** @description Every finished import, for the only-imports state */
+            imports: components["schemas"]["GrowthImportItem"][];
+            includeImports: boolean;
+            list?: components["schemas"]["GrowthListRef"];
+            lists: components["schemas"]["GrowthListRef"][];
+            members: boolean;
+            /** Format: int64 */
+            minContacts: number;
+            /** Format: int64 */
+            minDelivered: number;
+            onlyImports: boolean;
+            period: components["schemas"]["GrowthPeriod"];
+            referrers: components["schemas"]["GrowthReferrers"];
+            sources: components["schemas"]["GrowthSourceRow"][];
+            tiles: components["schemas"]["GrowthTiles"];
+            total: components["schemas"]["GrowthTotals"];
+            utm: components["schemas"]["GrowthUTM"];
+            workspace: components["schemas"]["GrowthRates"];
+        };
+        GrowthPeriod: {
+            /** Format: int64 */
+            days: number;
+            /** @description YYYY-MM-DD */
+            from: string;
+            /** @enum {string} */
+            kind: "30d" | "90d" | "12m" | "custom";
+            /** @description YYYY-MM-DD */
+            to: string;
+        };
+        GrowthRates: {
+            /** Format: double */
+            bounce: number;
+            /** Format: double */
+            complaint: number;
+            /** Format: int64 */
+            delivered: number;
+            /** Format: double */
+            humanOpen: number;
+            /** Format: int64 */
+            sent: number;
+        };
+        GrowthReferrerRow: {
+            /** Format: int64 */
+            joins: number;
+            page: string;
+        };
+        GrowthReferrers: {
+            /** Format: int64 */
+            joins: number;
+            /** Format: int64 */
+            none: number;
+            other: components["schemas"]["GrowthRest"];
+            rows: components["schemas"]["GrowthReferrerRow"][];
+        };
+        GrowthRest: {
+            /** Format: int64 */
+            count: number;
+            /** Format: double */
+            humanOpenRate?: number;
+            /** Format: int64 */
+            joins: number;
+        };
+        GrowthRetention: {
+            completeOn?: string;
+            from?: string;
+            /** Format: double */
+            rate?: number;
+            /** @enum {string} */
+            state: "done" | "in_progress" | "not_started";
+        };
+        GrowthSeries: {
+            /** Format: int64 */
+            joined: number;
+            key: string;
+            /** Format: int64 */
+            left: number;
+            other: boolean;
+            source: components["schemas"]["GrowthSource"];
+        };
+        GrowthSource: {
+            carried?: string;
+            carriedLabel?: string;
+            /** Format: date-time */
+            firstJoin?: string;
+            formKind?: string;
+            hosts: string[];
+            /** Format: int64 */
+            importCount?: number;
+            imported: boolean;
+            /** Format: date-time */
+            importedAt?: string;
+            integration?: string;
+            key: string;
+            keyPrefix?: string;
+            kind: string;
+            name: string;
+            /** Format: int64 */
+            tookImportDay?: number;
+            url?: string;
+            workflow?: string;
+        };
+        GrowthSourceList: {
+            items: components["schemas"]["GrowthSourceOption"][];
+        };
+        GrowthSourceOption: {
+            /** Format: int64 */
+            contacts: number;
+            source: components["schemas"]["GrowthSource"];
+        };
+        GrowthSourceRow: {
+            /** Format: double */
+            bounceFlag?: number;
+            /** Format: double */
+            bounceRate?: number;
+            /** Format: double */
+            complaintFlag?: number;
+            /** Format: double */
+            complaintRate?: number;
+            /** Format: int64 */
+            contacts: number;
+            /** Format: int64 */
+            delivered: number;
+            /** Format: double */
+            humanOpenRate?: number;
+            /** Format: int64 */
+            joined?: number;
+            /** Format: int64 */
+            left: number;
+            /** Format: int64 */
+            net?: number;
+            /** Format: int64 */
+            sent: number;
+            source: components["schemas"]["GrowthSource"];
+            /** @enum {string} */
+            tooFew?: "contacts" | "messages" | "";
+        };
+        GrowthTiles: {
+            importItems: components["schemas"]["GrowthImportItem"][];
+            /** Format: int64 */
+            imports: number;
+            /** Format: int64 */
+            joined: number;
+            /** Format: int64 */
+            left: number;
+            /** Format: int64 */
+            net: number;
+            /** Format: double */
+            netPct: number;
+        };
+        GrowthTotals: {
+            /** Format: int64 */
+            joined: number;
+            /** Format: int64 */
+            left: number;
+            /** Format: int64 */
+            net: number;
+        };
+        GrowthUTM: {
+            /** Format: date-time */
+            captureStartedAt?: string;
+            /** Format: int64 */
+            captured: number;
+            /** Format: int64 */
+            joins: number;
+            none: components["schemas"]["GrowthUTMRow"];
+            /** Format: int64 */
+            notCaptured: number;
+            /** Format: double */
+            notCapturedHumanOpenRate?: number;
+            other: components["schemas"]["GrowthRest"];
+            rows: components["schemas"]["GrowthUTMRow"][];
+        };
+        GrowthUTMRow: {
+            campaign: string;
+            /** Format: double */
+            humanOpenRate?: number;
+            /** Format: int64 */
+            joins: number;
+            medium: string;
+            source: string;
         };
         HealthTierCard: {
             /** Format: int64 */
@@ -28898,6 +29211,39 @@ export interface operations {
             };
         };
     };
+    "get-contact-growth": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                contact: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactJoin"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "contact-preference-link": {
         parameters: {
             query?: never;
@@ -30132,6 +30478,127 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SignupFormConfirmLink"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-growth": {
+        parameters: {
+            query?: {
+                /** @description 30d (default), 90d, 12m or custom */
+                period?: "30d" | "90d" | "12m" | "custom" | "";
+                /** @description First day of a custom period (YYYY-MM-DD) */
+                from?: string;
+                /** @description Last day of a custom period */
+                to?: string;
+                /** @description A list id: count its members instead of contacts */
+                list?: string;
+                imports?: boolean;
+                cohortSource?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GrowthPage"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "export-growth": {
+        parameters: {
+            query?: {
+                /** @description 30d (default), 90d, 12m or custom */
+                period?: "30d" | "90d" | "12m" | "custom" | "";
+                /** @description First day of a custom period (YYYY-MM-DD) */
+                from?: string;
+                /** @description Last day of a custom period */
+                to?: string;
+                /** @description A list id: count its members instead of contacts */
+                list?: string;
+                imports?: boolean;
+                cohortSource?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control"?: string;
+                    "Content-Disposition"?: string;
+                    "Content-Type"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-growth-sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GrowthSourceList"];
                 };
             };
             /** @description Error */

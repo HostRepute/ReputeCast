@@ -25,4 +25,6 @@ export const m = defineMessages('scoring.trigger', {
   needs: 'Choosing this trigger needs automations:edit.',
   noScoring: 'Scoring has no rules yet, so no score crosses anything. Set up scoring in Audience › Scoring.',
   setUp: 'Audience › Scoring',
+  isOneOf: 'is one of',
+  isOneOfPhrase: '{field} is {values}',
 })

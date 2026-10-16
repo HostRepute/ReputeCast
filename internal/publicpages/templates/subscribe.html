@@ -4,6 +4,7 @@
   {{with .Description}}<p class="lead">{{.}}</p>{{end}}
   <form class="form" method="post" action="{{.Action}}" novalidate>
     <input type="hidden" name="_t" value="{{.Token}}">
+    {{with .Page}}<input type="hidden" name="_page" value="{{.}}">{{end}}{{with .Ref}}<input type="hidden" name="_ref" value="{{.}}">{{end}}
     {{range .Fields}}{{$f := .}}<div class="col6">
       <label class="field">{{if $f.Optional}}<span>{{$f.Label}} <span class="opt">optional</span></span>{{else}}{{$f.Label}}{{end}}
         {{if eq $f.Type "select"}}<select class="in" name="{{$f.Name}}" id="{{$f.ID}}"{{if $f.Required}} required{{end}}{{if $f.Error}} aria-invalid="true" aria-describedby="{{$f.ID}}-err"{{end}}>

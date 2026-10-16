@@ -255,6 +255,8 @@ func conditionPhrase(g AutomationGraph, c *AutomationCondition, refs *Refs) stri
 			return fmt.Sprintf("%s isn't %s", c.Field, c.Value)
 		case "contains":
 			return fmt.Sprintf("%s contains %s", c.Field, c.Value)
+		case "is_one_of":
+			return fmt.Sprintf("%s is %s", c.Field, orValues(c.Value))
 		}
 		return fmt.Sprintf("%s is %s", c.Field, c.Value)
 	}

@@ -5052,7 +5052,7 @@
             "type": "string"
           },
           "op": {
-            "description": "equals, not_equals, contains, is_set, is_not_set",
+            "description": "equals, not_equals, contains, is_set, is_not_set, is_one_of (comma-separated values)",
             "maxLength": 16,
             "type": "string"
           },
@@ -11521,6 +11521,53 @@
         },
         "type": "object"
       },
+      "ContactJoin": {
+        "additionalProperties": false,
+        "properties": {
+          "attributed": {
+            "type": "boolean"
+          },
+          "joinedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "leftAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "leftKind": {
+            "type": "string"
+          },
+          "page": {
+            "type": "string"
+          },
+          "referrer": {
+            "type": "string"
+          },
+          "source": {
+            "$ref": "#/components/schemas/GrowthSource"
+          },
+          "utmCampaign": {
+            "type": "string"
+          },
+          "utmMedium": {
+            "type": "string"
+          },
+          "utmSource": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "attributed",
+          "source",
+          "utmSource",
+          "utmMedium",
+          "utmCampaign",
+          "referrer",
+          "page"
+        ],
+        "type": "object"
+      },
       "ContactList": {
         "additionalProperties": false,
         "properties": {
@@ -14780,6 +14827,768 @@
           "moved",
           "noLanguage",
           "notOffered"
+        ],
+        "type": "object"
+      },
+      "GrowthChart": {
+        "additionalProperties": false,
+        "properties": {
+          "days": {
+            "items": {
+              "$ref": "#/components/schemas/GrowthChartDay"
+            },
+            "type": "array"
+          },
+          "series": {
+            "items": {
+              "$ref": "#/components/schemas/GrowthSeries"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "series",
+          "days"
+        ],
+        "type": "object"
+      },
+      "GrowthChartDay": {
+        "additionalProperties": false,
+        "properties": {
+          "day": {
+            "type": "string"
+          },
+          "imports": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "joined": {
+            "items": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "left": {
+            "items": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "day",
+          "joined",
+          "left",
+          "imports"
+        ],
+        "type": "object"
+      },
+      "GrowthCohort": {
+        "additionalProperties": false,
+        "properties": {
+          "after30": {
+            "$ref": "#/components/schemas/GrowthRetention"
+          },
+          "after90": {
+            "$ref": "#/components/schemas/GrowthRetention"
+          },
+          "contacts": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "month": {
+            "description": "YYYY-MM",
+            "type": "string"
+          }
+        },
+        "required": [
+          "month",
+          "contacts",
+          "after30",
+          "after90"
+        ],
+        "type": "object"
+      },
+      "GrowthDepartures": {
+        "additionalProperties": false,
+        "properties": {
+          "complained": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "erased": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "hardBounced": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "unsubscribed": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "unsubscribed",
+          "hardBounced",
+          "complained",
+          "erased"
+        ],
+        "type": "object"
+      },
+      "GrowthImportItem": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "day": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "name",
+          "day",
+          "count"
+        ],
+        "type": "object"
+      },
+      "GrowthListRef": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
+      "GrowthPage": {
+        "additionalProperties": false,
+        "properties": {
+          "chart": {
+            "$ref": "#/components/schemas/GrowthChart"
+          },
+          "cohortSource": {
+            "type": "string"
+          },
+          "cohortSources": {
+            "items": {
+              "$ref": "#/components/schemas/GrowthSource"
+            },
+            "type": "array"
+          },
+          "cohorts": {
+            "items": {
+              "$ref": "#/components/schemas/GrowthCohort"
+            },
+            "type": "array"
+          },
+          "contacts": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "departures": {
+            "$ref": "#/components/schemas/GrowthDepartures"
+          },
+          "flagFactor": {
+            "format": "double",
+            "type": "number"
+          },
+          "imports": {
+            "description": "Every finished import, for the only-imports state",
+            "items": {
+              "$ref": "#/components/schemas/GrowthImportItem"
+            },
+            "type": "array"
+          },
+          "includeImports": {
+            "type": "boolean"
+          },
+          "list": {
+            "$ref": "#/components/schemas/GrowthListRef"
+          },
+          "lists": {
+            "items": {
+              "$ref": "#/components/schemas/GrowthListRef"
+            },
+            "type": "array"
+          },
+          "members": {
+            "type": "boolean"
+          },
+          "minContacts": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "minDelivered": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "onlyImports": {
+            "type": "boolean"
+          },
+          "period": {
+            "$ref": "#/components/schemas/GrowthPeriod"
+          },
+          "referrers": {
+            "$ref": "#/components/schemas/GrowthReferrers"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/GrowthSourceRow"
+            },
+            "type": "array"
+          },
+          "tiles": {
+            "$ref": "#/components/schemas/GrowthTiles"
+          },
+          "total": {
+            "$ref": "#/components/schemas/GrowthTotals"
+          },
+          "utm": {
+            "$ref": "#/components/schemas/GrowthUTM"
+          },
+          "workspace": {
+            "$ref": "#/components/schemas/GrowthRates"
+          }
+        },
+        "required": [
+          "period",
+          "members",
+          "includeImports",
+          "contacts",
+          "tiles",
+          "chart",
+          "sources",
+          "total",
+          "workspace",
+          "departures",
+          "utm",
+          "referrers",
+          "cohorts",
+          "cohortSource",
+          "cohortSources",
+          "lists",
+          "onlyImports",
+          "imports",
+          "minContacts",
+          "minDelivered",
+          "flagFactor"
+        ],
+        "type": "object"
+      },
+      "GrowthPeriod": {
+        "additionalProperties": false,
+        "properties": {
+          "days": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "from": {
+            "description": "YYYY-MM-DD",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "30d",
+              "90d",
+              "12m",
+              "custom"
+            ],
+            "type": "string"
+          },
+          "to": {
+            "description": "YYYY-MM-DD",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "from",
+          "to",
+          "days"
+        ],
+        "type": "object"
+      },
+      "GrowthRates": {
+        "additionalProperties": false,
+        "properties": {
+          "bounce": {
+            "format": "double",
+            "type": "number"
+          },
+          "complaint": {
+            "format": "double",
+            "type": "number"
+          },
+          "delivered": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "humanOpen": {
+            "format": "double",
+            "type": "number"
+          },
+          "sent": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "sent",
+          "delivered",
+          "bounce",
+          "complaint",
+          "humanOpen"
+        ],
+        "type": "object"
+      },
+      "GrowthReferrerRow": {
+        "additionalProperties": false,
+        "properties": {
+          "joins": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "page": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "page",
+          "joins"
+        ],
+        "type": "object"
+      },
+      "GrowthReferrers": {
+        "additionalProperties": false,
+        "properties": {
+          "joins": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "none": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "other": {
+            "$ref": "#/components/schemas/GrowthRest"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/GrowthReferrerRow"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "rows",
+          "none",
+          "other",
+          "joins"
+        ],
+        "type": "object"
+      },
+      "GrowthRest": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "humanOpenRate": {
+            "format": "double",
+            "type": "number"
+          },
+          "joins": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "count",
+          "joins"
+        ],
+        "type": "object"
+      },
+      "GrowthRetention": {
+        "additionalProperties": false,
+        "properties": {
+          "completeOn": {
+            "type": "string"
+          },
+          "from": {
+            "type": "string"
+          },
+          "rate": {
+            "format": "double",
+            "type": "number"
+          },
+          "state": {
+            "enum": [
+              "done",
+              "in_progress",
+              "not_started"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "type": "object"
+      },
+      "GrowthSeries": {
+        "additionalProperties": false,
+        "properties": {
+          "joined": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "key": {
+            "type": "string"
+          },
+          "left": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "other": {
+            "type": "boolean"
+          },
+          "source": {
+            "$ref": "#/components/schemas/GrowthSource"
+          }
+        },
+        "required": [
+          "key",
+          "other",
+          "source",
+          "joined",
+          "left"
+        ],
+        "type": "object"
+      },
+      "GrowthSource": {
+        "additionalProperties": false,
+        "properties": {
+          "carried": {
+            "type": "string"
+          },
+          "carriedLabel": {
+            "type": "string"
+          },
+          "firstJoin": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "formKind": {
+            "type": "string"
+          },
+          "hosts": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "importCount": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "imported": {
+            "type": "boolean"
+          },
+          "importedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "integration": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "keyPrefix": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "tookImportDay": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "url": {
+            "type": "string"
+          },
+          "workflow": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "kind",
+          "name",
+          "imported",
+          "hosts"
+        ],
+        "type": "object"
+      },
+      "GrowthSourceList": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/GrowthSourceOption"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "GrowthSourceOption": {
+        "additionalProperties": false,
+        "properties": {
+          "contacts": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "source": {
+            "$ref": "#/components/schemas/GrowthSource"
+          }
+        },
+        "required": [
+          "source",
+          "contacts"
+        ],
+        "type": "object"
+      },
+      "GrowthSourceRow": {
+        "additionalProperties": false,
+        "properties": {
+          "bounceFlag": {
+            "format": "double",
+            "type": "number"
+          },
+          "bounceRate": {
+            "format": "double",
+            "type": "number"
+          },
+          "complaintFlag": {
+            "format": "double",
+            "type": "number"
+          },
+          "complaintRate": {
+            "format": "double",
+            "type": "number"
+          },
+          "contacts": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "delivered": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "humanOpenRate": {
+            "format": "double",
+            "type": "number"
+          },
+          "joined": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "left": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "net": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "sent": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "source": {
+            "$ref": "#/components/schemas/GrowthSource"
+          },
+          "tooFew": {
+            "enum": [
+              "contacts",
+              "messages",
+              ""
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "left",
+          "contacts",
+          "sent",
+          "delivered"
+        ],
+        "type": "object"
+      },
+      "GrowthTiles": {
+        "additionalProperties": false,
+        "properties": {
+          "importItems": {
+            "items": {
+              "$ref": "#/components/schemas/GrowthImportItem"
+            },
+            "type": "array"
+          },
+          "imports": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "joined": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "left": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "net": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "netPct": {
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "joined",
+          "left",
+          "net",
+          "netPct",
+          "imports",
+          "importItems"
+        ],
+        "type": "object"
+      },
+      "GrowthTotals": {
+        "additionalProperties": false,
+        "properties": {
+          "joined": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "left": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "net": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "joined",
+          "left",
+          "net"
+        ],
+        "type": "object"
+      },
+      "GrowthUTM": {
+        "additionalProperties": false,
+        "properties": {
+          "captureStartedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "captured": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "joins": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "none": {
+            "$ref": "#/components/schemas/GrowthUTMRow"
+          },
+          "notCaptured": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "notCapturedHumanOpenRate": {
+            "format": "double",
+            "type": "number"
+          },
+          "other": {
+            "$ref": "#/components/schemas/GrowthRest"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/GrowthUTMRow"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "joins",
+          "captured",
+          "notCaptured",
+          "none",
+          "rows",
+          "other"
+        ],
+        "type": "object"
+      },
+      "GrowthUTMRow": {
+        "additionalProperties": false,
+        "properties": {
+          "campaign": {
+            "type": "string"
+          },
+          "humanOpenRate": {
+            "format": "double",
+            "type": "number"
+          },
+          "joins": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "medium": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "medium",
+          "campaign",
+          "joins"
         ],
         "type": "object"
       },
@@ -59532,6 +60341,72 @@
         "x-permission": "subscribers:export"
       }
     },
+    "/api/v1/workspaces/{workspace}/contacts/{contact}/growth": {
+      "get": {
+        "operationId": "get-contact-growth",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "contact",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactJoin"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "How a contact first joined: the source, UTM parameters and referring page",
+        "tags": [
+          "Growth"
+        ],
+        "x-access": "workspace",
+        "x-permission": "subscribers:view"
+      }
+    },
     "/api/v1/workspaces/{workspace}/contacts/{contact}/preference-link": {
       "post": {
         "operationId": "contact-preference-link",
@@ -61971,6 +62846,327 @@
         ],
         "x-access": "workspace",
         "x-permission": "subscribers:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/growth": {
+      "get": {
+        "operationId": "get-growth",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "30d (default), 90d, 12m or custom",
+            "explode": false,
+            "in": "query",
+            "name": "period",
+            "schema": {
+              "description": "30d (default), 90d, 12m or custom",
+              "enum": [
+                "30d",
+                "90d",
+                "12m",
+                "custom",
+                ""
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "First day of a custom period (YYYY-MM-DD)",
+            "explode": false,
+            "in": "query",
+            "name": "from",
+            "schema": {
+              "description": "First day of a custom period (YYYY-MM-DD)",
+              "maxLength": 10,
+              "type": "string"
+            }
+          },
+          {
+            "description": "Last day of a custom period",
+            "explode": false,
+            "in": "query",
+            "name": "to",
+            "schema": {
+              "description": "Last day of a custom period",
+              "maxLength": 10,
+              "type": "string"
+            }
+          },
+          {
+            "description": "A list id: count its members instead of contacts",
+            "explode": false,
+            "in": "query",
+            "name": "list",
+            "schema": {
+              "description": "A list id: count its members instead of contacts",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "imports",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "cohortSource",
+            "schema": {
+              "maxLength": 200,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GrowthPage"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Joins and departures by source, quality by source, UTM and referring pages, and cohort retention",
+        "tags": [
+          "Growth"
+        ],
+        "x-access": "workspace",
+        "x-permission": "subscribers:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/growth/export": {
+      "get": {
+        "operationId": "export-growth",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "30d (default), 90d, 12m or custom",
+            "explode": false,
+            "in": "query",
+            "name": "period",
+            "schema": {
+              "description": "30d (default), 90d, 12m or custom",
+              "enum": [
+                "30d",
+                "90d",
+                "12m",
+                "custom",
+                ""
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "First day of a custom period (YYYY-MM-DD)",
+            "explode": false,
+            "in": "query",
+            "name": "from",
+            "schema": {
+              "description": "First day of a custom period (YYYY-MM-DD)",
+              "maxLength": 10,
+              "type": "string"
+            }
+          },
+          {
+            "description": "Last day of a custom period",
+            "explode": false,
+            "in": "query",
+            "name": "to",
+            "schema": {
+              "description": "Last day of a custom period",
+              "maxLength": 10,
+              "type": "string"
+            }
+          },
+          {
+            "description": "A list id: count its members instead of contacts",
+            "explode": false,
+            "in": "query",
+            "name": "list",
+            "schema": {
+              "description": "A list id: count its members instead of contacts",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "imports",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "cohortSource",
+            "schema": {
+              "maxLength": 200,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "contentEncoding": "base64",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Content-Type": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The Growth tables as CSV: totals only, no addresses (logged)",
+        "tags": [
+          "Growth"
+        ],
+        "x-access": "workspace",
+        "x-permission": "reports:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/growth/sources": {
+      "get": {
+        "operationId": "list-growth-sources",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GrowthSourceList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The sources contacts joined through, with how many (the contacts filter)",
+        "tags": [
+          "Growth"
+        ],
+        "x-access": "workspace",
+        "x-permission": "subscribers:view"
       }
     },
     "/api/v1/workspaces/{workspace}/imports": {

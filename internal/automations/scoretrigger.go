@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -67,4 +68,33 @@ func scoreTriggerRef(t *AutomationTrigger) string {
 		return fmt.Sprintf("Falls below %d", t.Threshold)
 	}
 	return fmt.Sprintf("Rises to %d or more", t.Threshold)
+}
+
+// oneOf reports whether v is one of the comma-separated values ("team,
+// business"), ignoring case: the "is one of" field condition, used by the
+// "Sales-ready handoff" filter ("plan is team or business").
+func oneOf(v, values string) bool {
+	for _, x := range strings.Split(values, ",") {
+		if x = strings.TrimSpace(x); x != "" && strings.EqualFold(v, x) {
+			return true
+		}
+	}
+	return false
+}
+
+// orValues reads comma-separated values as "team or business".
+func orValues(values string) string {
+	var vs []string
+	for _, x := range strings.Split(values, ",") {
+		if x = strings.TrimSpace(x); x != "" {
+			vs = append(vs, x)
+		}
+	}
+	switch len(vs) {
+	case 0:
+		return ""
+	case 1:
+		return vs[0]
+	}
+	return strings.Join(vs[:len(vs)-1], ", ") + " or " + vs[len(vs)-1]
 }

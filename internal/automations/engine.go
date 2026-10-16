@@ -678,6 +678,8 @@ func fieldMatches(c *store.AutomationContactRow, cond *AutomationCondition) bool
 		return !strings.EqualFold(v, cond.Value)
 	case "contains":
 		return strings.Contains(strings.ToLower(v), strings.ToLower(cond.Value))
+	case "is_one_of":
+		return oneOf(v, cond.Value)
 	}
 	return strings.EqualFold(v, cond.Value)
 }

@@ -414,9 +414,12 @@ func (s *Service) addTools(srv *mcp.Server) {
 			return nil, e, err
 		}
 		out := []map[string]any{}
+		ids := make([]uuid.UUID, 0, len(rows))
 		for _, r := range rows {
 			out = append(out, map[string]any{"id": r.ID, "email": r.Email, "name": strings.TrimSpace(r.FirstName + " " + r.LastName), "status": r.Status, "tier": r.Tier, "since": r.CreatedAt})
+			ids = append(ids, r.ID)
 		}
+		s.scoresFor(ctx, c.Workspace.ID, out, ids)
 		e.detail += fmt.Sprintf(" · %d found", len(out))
 		return map[string]any{"contacts": out}, e, nil
 	}, nil)
