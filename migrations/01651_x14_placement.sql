@@ -61,7 +61,13 @@ CREATE TABLE placement_tests (
     content_kind       text        NOT NULL CHECK (content_kind IN ('campaign', 'template', 'digest', 'transactional')),
     content_id         uuid,
     content_name       text        NOT NULL,
+    -- How the content stood: draft, scheduled, sent, template or a
+    -- transactional template's key and published version; content_at is
+    -- when the campaign is scheduled or was sent.
     content_note       text        NOT NULL DEFAULT '',
+    content_key        text        NOT NULL DEFAULT '',
+    content_version    integer     NOT NULL DEFAULT 0,
+    content_at         timestamptz,
     variant            text        NOT NULL DEFAULT '',
     language           text        NOT NULL DEFAULT '',
     personalization    text        NOT NULL DEFAULT '',
@@ -79,7 +85,10 @@ CREATE TABLE placement_tests (
     html               text        NOT NULL DEFAULT '',
     text_body          text        NOT NULL DEFAULT '',
     links              jsonb       NOT NULL DEFAULT '[]',
-    -- The providers as they were: {"<provider id>": {"status","day","days","note"}}.
+    track_opens        boolean     NOT NULL DEFAULT true,
+    track_clicks       boolean     NOT NULL DEFAULT true,
+    -- The providers as they were: {"<provider id>": {"name","short","adapter",
+    -- "detail","ip","status","warmDay","warmDays","cost"}}.
     providers          jsonb       NOT NULL DEFAULT '{}',
     started_by         uuid        REFERENCES users(id) ON DELETE SET NULL,
     started_at         timestamptz NOT NULL DEFAULT now(),
@@ -130,6 +139,8 @@ CREATE TABLE placement_copies (
     hop                  jsonb       NOT NULL DEFAULT '{}',
     headers              text        NOT NULL DEFAULT '',
     ref                  jsonb       NOT NULL DEFAULT '{}',
+    -- Why a copy wasn't looked for, or stopped being looked for:
+    -- signin_failed, signin_expired, seed_removed, stopped, unsent.
     not_checked          text        NOT NULL DEFAULT '',
     deleted_at           timestamptz
 );

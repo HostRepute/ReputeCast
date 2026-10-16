@@ -49,6 +49,9 @@ const (
 type Provider struct {
 	Key  string `json:"key"`
 	Name string `json:"name"`
+	// Company runs the mailboxes ("Apple" for iCloud): who refused or
+	// ended a sign-in.
+	Company string `json:"company"`
 	// IMAP server, filled in for the person.
 	Host string `json:"host"`
 	Port int    `json:"port"`
@@ -77,23 +80,23 @@ type Provider struct {
 //
 //nolint:gosec // G101: labels, not credentials
 var Providers = []Provider{
-	{Key: Gmail, Name: "Gmail", Host: "imap.gmail.com", Port: 993, OAuth: "google", Password: "App password", UsernameLabel: "Email address",
+	{Key: Gmail, Name: "Gmail", Company: "Google", Host: "imap.gmail.com", Port: 993, OAuth: "google", Password: "App password", UsernameLabel: "Email address",
 		PasswordHelp: "https://support.google.com/accounts/answer/185833", InboxName: "Inbox", SpamName: "Spam", Tabs: []string{"Primary", "Promotions", "Updates", "Social", "Forums"}},
-	{Key: GoogleWorkspace, Name: "Google Workspace", Host: "imap.gmail.com", Port: 993, OAuth: "google", Password: "App password", UsernameLabel: "Email address",
+	{Key: GoogleWorkspace, Name: "Google Workspace", Company: "Google", Host: "imap.gmail.com", Port: 993, OAuth: "google", Password: "App password", UsernameLabel: "Email address",
 		PasswordHelp: "https://support.google.com/accounts/answer/185833", InboxName: "Inbox", SpamName: "Spam", Tabs: []string{"Primary", "Promotions", "Updates", "Social", "Forums"}},
-	{Key: Outlook, Name: "Outlook.com", Host: "outlook.office365.com", Port: 993, OAuth: "microsoft", Password: "App password", UsernameLabel: "Email address",
+	{Key: Outlook, Name: "Outlook.com", Company: "Microsoft", Host: "outlook.office365.com", Port: 993, OAuth: "microsoft", Password: "App password", UsernameLabel: "Email address",
 		PasswordHelp: "https://support.microsoft.com/account-billing/how-to-get-and-use-app-passwords-5896ed9b-4263-e681-128a-a6f2979a7944", InboxName: "Inbox", SpamName: "Junk Email", Tabs: []string{"Focused", "Other"}},
-	{Key: Microsoft365, Name: "Microsoft 365", Host: "outlook.office365.com", Port: 993, OAuth: "microsoft", Password: "App password", UsernameLabel: "Email address",
+	{Key: Microsoft365, Name: "Microsoft 365", Company: "Microsoft", Host: "outlook.office365.com", Port: 993, OAuth: "microsoft", Password: "App password", UsernameLabel: "Email address",
 		PasswordHelp: "https://support.microsoft.com/account-billing/how-to-get-and-use-app-passwords-5896ed9b-4263-e681-128a-a6f2979a7944", InboxName: "Inbox", SpamName: "Junk Email", Tabs: []string{"Focused", "Other"}},
-	{Key: Yahoo, Name: "Yahoo", Host: "imap.mail.yahoo.com", Port: 993, Password: "App password", UsernameLabel: "Email address",
+	{Key: Yahoo, Name: "Yahoo", Company: "Yahoo", Host: "imap.mail.yahoo.com", Port: 993, Password: "App password", UsernameLabel: "Email address",
 		PasswordHelp: "https://help.yahoo.com/kb/SLN15241.html", InboxName: "Inbox", SpamName: "Bulk"},
-	{Key: AOL, Name: "AOL", Host: "imap.aol.com", Port: 993, Password: "App password", UsernameLabel: "Email address",
+	{Key: AOL, Name: "AOL", Company: "AOL", Host: "imap.aol.com", Port: 993, Password: "App password", UsernameLabel: "Email address",
 		PasswordHelp: "https://help.aol.com/articles/Create-and-manage-app-password", InboxName: "Inbox", SpamName: "Bulk"},
-	{Key: ICloud, Name: "iCloud", Host: "imap.mail.me.com", Port: 993, Password: "App-specific password", UsernameLabel: "Apple ID",
+	{Key: ICloud, Name: "iCloud", Company: "Apple", Host: "imap.mail.me.com", Port: 993, Password: "App-specific password", UsernameLabel: "Apple ID",
 		PasswordHelp: "https://support.apple.com/102654", InboxName: "Inbox", SpamName: "Junk"},
-	{Key: GMX, Name: "GMX", Host: "imap.gmx.net", Port: 993, Password: "Password", UsernameLabel: "Email address",
+	{Key: GMX, Name: "GMX", Company: "GMX", Host: "imap.gmx.net", Port: 993, Password: "Password", UsernameLabel: "Email address",
 		IMAPHelp: "https://support.gmx.com/pop-imap/toggle.html", InboxName: "Posteingang", SpamName: "Spamverdacht"},
-	{Key: WebDE, Name: "Web.de", Host: "imap.web.de", Port: 993, Password: "Password", UsernameLabel: "Email address",
+	{Key: WebDE, Name: "Web.de", Company: "Web.de", Host: "imap.web.de", Port: 993, Password: "Password", UsernameLabel: "Email address",
 		IMAPHelp: "https://hilfe.web.de/pop-imap/einschalten.html", InboxName: "Posteingang", SpamName: "Spamverdacht"},
 }
 

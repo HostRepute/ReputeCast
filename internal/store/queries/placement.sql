@@ -65,12 +65,14 @@ DELETE FROM placement_oauth_states WHERE state_hash = @state_hash RETURNING *;
 DELETE FROM placement_oauth_states WHERE expires_at < @now;
 
 -- name: PlacementTestInsert :exec
-INSERT INTO placement_tests (id, workspace_id, name, content_kind, content_id, content_name, content_note, variant, language,
-                             personalization, through, stream, provider_ids, sender_id, from_name, from_email, origin, status,
-                             subject, html, text_body, links, providers, started_by, started_at, delete_after)
-VALUES (@id, @workspace_id, @name, @content_kind, @content_id, @content_name, @content_note, @variant, @language,
-        @personalization, @through, @stream, @provider_ids, @sender_id, @from_name, @from_email, @origin, 'sending',
-        @subject, @html, @text_body, @links, @providers, @started_by, @started_at, @delete_after);
+INSERT INTO placement_tests (id, workspace_id, name, content_kind, content_id, content_name, content_note, content_key, content_version,
+                             content_at, variant, language, personalization, through, stream, provider_ids, sender_id, from_name,
+                             from_email, origin, status, subject, html, text_body, links, providers, track_opens, track_clicks,
+                             started_by, started_at, wait_until, delete_after)
+VALUES (@id, @workspace_id, @name, @content_kind, @content_id, @content_name, @content_note, @content_key, @content_version,
+        @content_at, @variant, @language, @personalization, @through, @stream, @provider_ids, @sender_id, @from_name,
+        @from_email, @origin, 'sending', @subject, @html, @text_body, @links, @providers, @track_opens, @track_clicks,
+        @started_by, @started_at, @wait_until, @delete_after);
 
 -- name: PlacementCopyInsert :exec
 INSERT INTO placement_copies (id, test_id, workspace_id, seed_id, seed_email, seed_provider, position, provider_id, provider_name,
@@ -107,6 +109,10 @@ SELECT c.* FROM placement_copies c WHERE c.test_id = ANY(@test_ids::uuid[]) ORDE
 -- name: PlacementCopy :one
 SELECT c.* FROM placement_copies c WHERE c.id = @id AND c.workspace_id = @workspace_id;
 
+-- name: PlacementCopiesByTokens :many
+-- The demo seeds' simulated mailboxes look copies up by token.
+SELECT c.* FROM placement_copies c WHERE c.token = ANY(@tokens::text[]);
+
 -- name: PlacementCopyByID :one
 SELECT c.* FROM placement_copies c WHERE c.id = @id;
 
@@ -128,7 +134,12 @@ SET status = 'found', folder = @folder, folder_name = @folder_name, tab = @tab, 
 WHERE id = @id;
 
 -- name: PlacementCopiesNotArrived :exec
-UPDATE placement_copies SET status = 'not_arrived' WHERE test_id = @test_id AND status = 'sent';
+-- Copies still missing when the test finishes or is stopped (reason stopped).
+UPDATE placement_copies SET status = 'not_arrived', not_checked = @reason WHERE test_id = @test_id AND status = 'sent';
+
+-- name: PlacementCopiesUnsent :exec
+-- Copies of a stopped comparison's later round that never went out.
+UPDATE placement_copies SET status = 'not_checked', not_checked = 'unsent' WHERE test_id = @test_id AND status = 'queued';
 
 -- name: PlacementCopiesNotChecked :exec
 -- Copies of a seed that couldn't be read (its sign-in failed during the test).
@@ -183,5 +194,55 @@ ORDER BY t.started_at;
 -- The provider's events for a copy.
 SELECT e.* FROM delivery_events e WHERE e.message_id = @message_id ORDER BY e.occurred_at, e.id;
 
+-- name: PlacementTestEvents :many
+-- The provider's events for a test's copies.
+SELECT e.* FROM delivery_events e WHERE e.message_id = ANY(@ids::uuid[]) ORDER BY e.message_id, e.occurred_at, e.id;
+
 -- name: PlacementMessageKind :one
 SELECT m.kind FROM messages m WHERE m.id = @id;
+
+-- name: PlacementTemplate :one
+SELECT t.id, t.name, t.html FROM templates t WHERE t.workspace_id = @workspace_id AND t.id = @id AND t.kind = 'template';
+
+-- name: PlacementTransactional :one
+SELECT t.id, t.key, t.name, t.live_version, coalesce(c.name, '')::text AS category_name
+FROM transactional_templates t
+LEFT JOIN transactional_categories c ON c.id = t.category_id
+WHERE t.workspace_id = @workspace_id AND t.id = @id AND t.deleted_at IS NULL;
+
+-- name: PlacementSourceLanguage :one
+-- A campaign's source language: its own, or the workspace's default.
+SELECT coalesce(
+    (SELECT cs.language FROM content_sources cs WHERE cs.owner_kind = 'campaign' AND cs.owner_id = @owner_id AND cs.owner_version = 0),
+    (SELECT wl.code FROM workspace_languages wl WHERE wl.workspace_id = @workspace_id AND wl.is_default AND wl.removed_at IS NULL),
+    'en')::text;
+
+-- name: PlacementCampaignLanguages :many
+-- A campaign's translated language versions.
+SELECT t.language FROM content_translations t
+WHERE t.owner_kind = 'campaign' AND t.owner_id = @owner_id AND t.owner_version = 0 AND t.status = 'translated' AND NOT t.held
+ORDER BY t.language;
+
+-- name: PlacementCampaignTranslation :one
+SELECT t.subject, t.html, t.plain_text FROM content_translations t
+WHERE t.owner_kind = 'campaign' AND t.owner_id = @owner_id AND t.owner_version = 0 AND t.language = @language AND t.status = 'translated';
+
+-- name: PlacementListNames :many
+SELECT l.name FROM lists l WHERE l.workspace_id = @workspace_id AND l.id = ANY(@ids::uuid[]) ORDER BY l.name;
+
+-- name: PlacementContentSearch :many
+-- What a test can send, for the dialog's search: campaigns with content,
+-- campaign templates and published transactional templates.
+SELECT x.kind::text AS kind, x.id, x.name::text AS name, x.note::text AS note, x.at::timestamptz AS at FROM (
+    SELECT 'campaign' AS kind, c.id, c.name, c.status AS note, coalesce(c.scheduled_at, c.started_at, c.updated_at) AS at
+    FROM campaigns c WHERE c.workspace_id = @workspace_id AND c.deleted_at IS NULL AND c.html <> ''
+    UNION ALL
+    SELECT 'template', t.id, t.name, 'template', t.updated_at
+    FROM templates t WHERE t.workspace_id = @workspace_id AND t.kind = 'template' AND t.html <> ''
+    UNION ALL
+    SELECT 'transactional', tt.id, tt.name, tt.key, tt.updated_at
+    FROM transactional_templates tt WHERE tt.workspace_id = @workspace_id AND tt.live_version IS NOT NULL AND tt.archived_at IS NULL AND tt.deleted_at IS NULL
+) x
+WHERE @q::text = '' OR x.name ILIKE '%' || @q::text || '%' OR x.note ILIKE '%' || @q::text || '%'
+ORDER BY x.at DESC
+LIMIT 20;

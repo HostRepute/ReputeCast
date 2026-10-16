@@ -13,12 +13,173 @@ import (
 	"github.com/google/uuid"
 )
 
+const placementCampaignLanguages = `-- name: PlacementCampaignLanguages :many
+SELECT t.language FROM content_translations t
+WHERE t.owner_kind = 'campaign' AND t.owner_id = $1 AND t.owner_version = 0 AND t.status = 'translated' AND NOT t.held
+ORDER BY t.language
+`
+
+// A campaign's translated language versions.
+func (q *Queries) PlacementCampaignLanguages(ctx context.Context, ownerID uuid.UUID) ([]string, error) {
+	rows, err := q.db.Query(ctx, placementCampaignLanguages, ownerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var language string
+		if err := rows.Scan(&language); err != nil {
+			return nil, err
+		}
+		items = append(items, language)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const placementCampaignTranslation = `-- name: PlacementCampaignTranslation :one
+SELECT t.subject, t.html, t.plain_text FROM content_translations t
+WHERE t.owner_kind = 'campaign' AND t.owner_id = $1 AND t.owner_version = 0 AND t.language = $2 AND t.status = 'translated'
+`
+
+type PlacementCampaignTranslationParams struct {
+	OwnerID  uuid.UUID `json:"ownerId"`
+	Language string    `json:"language"`
+}
+
+type PlacementCampaignTranslationRow struct {
+	Subject   string `json:"subject"`
+	Html      string `json:"html"`
+	PlainText string `json:"plainText"`
+}
+
+func (q *Queries) PlacementCampaignTranslation(ctx context.Context, arg PlacementCampaignTranslationParams) (PlacementCampaignTranslationRow, error) {
+	row := q.db.QueryRow(ctx, placementCampaignTranslation, arg.OwnerID, arg.Language)
+	var i PlacementCampaignTranslationRow
+	err := row.Scan(&i.Subject, &i.Html, &i.PlainText)
+	return i, err
+}
+
+const placementContentSearch = `-- name: PlacementContentSearch :many
+SELECT x.kind::text AS kind, x.id, x.name::text AS name, x.note::text AS note, x.at::timestamptz AS at FROM (
+    SELECT 'campaign' AS kind, c.id, c.name, c.status AS note, coalesce(c.scheduled_at, c.started_at, c.updated_at) AS at
+    FROM campaigns c WHERE c.workspace_id = $1 AND c.deleted_at IS NULL AND c.html <> ''
+    UNION ALL
+    SELECT 'template', t.id, t.name, 'template', t.updated_at
+    FROM templates t WHERE t.workspace_id = $1 AND t.kind = 'template' AND t.html <> ''
+    UNION ALL
+    SELECT 'transactional', tt.id, tt.name, tt.key, tt.updated_at
+    FROM transactional_templates tt WHERE tt.workspace_id = $1 AND tt.live_version IS NOT NULL AND tt.archived_at IS NULL AND tt.deleted_at IS NULL
+) x
+WHERE $2::text = '' OR x.name ILIKE '%' || $2::text || '%' OR x.note ILIKE '%' || $2::text || '%'
+ORDER BY x.at DESC
+LIMIT 20
+`
+
+type PlacementContentSearchParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Q           string    `json:"q"`
+}
+
+type PlacementContentSearchRow struct {
+	Kind string    `json:"kind"`
+	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
+	Note string    `json:"note"`
+	At   time.Time `json:"at"`
+}
+
+// What a test can send, for the dialog's search: campaigns with content,
+// campaign templates and published transactional templates.
+func (q *Queries) PlacementContentSearch(ctx context.Context, arg PlacementContentSearchParams) ([]PlacementContentSearchRow, error) {
+	rows, err := q.db.Query(ctx, placementContentSearch, arg.WorkspaceID, arg.Q)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []PlacementContentSearchRow{}
+	for rows.Next() {
+		var i PlacementContentSearchRow
+		if err := rows.Scan(
+			&i.Kind,
+			&i.ID,
+			&i.Name,
+			&i.Note,
+			&i.At,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const placementCopies = `-- name: PlacementCopies :many
 SELECT c.id, c.test_id, c.workspace_id, c.seed_id, c.seed_email, c.seed_provider, c.position, c.provider_id, c.provider_name, c.token, c.round, c.send_at, c.status, c.folder, c.folder_name, c.tab, c.late, c.handed_at, c.received_at, c.found_at, c.provider_message_id, c.error, c.auth, c.hop, c.headers, c.ref, c.not_checked, c.deleted_at FROM placement_copies c WHERE c.test_id = $1 ORDER BY c.position, c.round, c.provider_name
 `
 
 func (q *Queries) PlacementCopies(ctx context.Context, testID uuid.UUID) ([]PlacementCopy, error) {
 	rows, err := q.db.Query(ctx, placementCopies, testID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []PlacementCopy{}
+	for rows.Next() {
+		var i PlacementCopy
+		if err := rows.Scan(
+			&i.ID,
+			&i.TestID,
+			&i.WorkspaceID,
+			&i.SeedID,
+			&i.SeedEmail,
+			&i.SeedProvider,
+			&i.Position,
+			&i.ProviderID,
+			&i.ProviderName,
+			&i.Token,
+			&i.Round,
+			&i.SendAt,
+			&i.Status,
+			&i.Folder,
+			&i.FolderName,
+			&i.Tab,
+			&i.Late,
+			&i.HandedAt,
+			&i.ReceivedAt,
+			&i.FoundAt,
+			&i.ProviderMessageID,
+			&i.Error,
+			&i.Auth,
+			&i.Hop,
+			&i.Headers,
+			&i.Ref,
+			&i.NotChecked,
+			&i.DeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const placementCopiesByTokens = `-- name: PlacementCopiesByTokens :many
+SELECT c.id, c.test_id, c.workspace_id, c.seed_id, c.seed_email, c.seed_provider, c.position, c.provider_id, c.provider_name, c.token, c.round, c.send_at, c.status, c.folder, c.folder_name, c.tab, c.late, c.handed_at, c.received_at, c.found_at, c.provider_message_id, c.error, c.auth, c.hop, c.headers, c.ref, c.not_checked, c.deleted_at FROM placement_copies c WHERE c.token = ANY($1::text[])
+`
+
+// The demo seeds' simulated mailboxes look copies up by token.
+func (q *Queries) PlacementCopiesByTokens(ctx context.Context, tokens []string) ([]PlacementCopy, error) {
+	rows, err := q.db.Query(ctx, placementCopiesByTokens, tokens)
 	if err != nil {
 		return nil, err
 	}
@@ -143,11 +304,17 @@ func (q *Queries) PlacementCopiesDue(ctx context.Context, arg PlacementCopiesDue
 }
 
 const placementCopiesNotArrived = `-- name: PlacementCopiesNotArrived :exec
-UPDATE placement_copies SET status = 'not_arrived' WHERE test_id = $1 AND status = 'sent'
+UPDATE placement_copies SET status = 'not_arrived', not_checked = $1 WHERE test_id = $2 AND status = 'sent'
 `
 
-func (q *Queries) PlacementCopiesNotArrived(ctx context.Context, testID uuid.UUID) error {
-	_, err := q.db.Exec(ctx, placementCopiesNotArrived, testID)
+type PlacementCopiesNotArrivedParams struct {
+	Reason string    `json:"reason"`
+	TestID uuid.UUID `json:"testId"`
+}
+
+// Copies still missing when the test finishes or is stopped (reason stopped).
+func (q *Queries) PlacementCopiesNotArrived(ctx context.Context, arg PlacementCopiesNotArrivedParams) error {
+	_, err := q.db.Exec(ctx, placementCopiesNotArrived, arg.Reason, arg.TestID)
 	return err
 }
 
@@ -219,6 +386,16 @@ func (q *Queries) PlacementCopiesOfTests(ctx context.Context, testIds []uuid.UUI
 		return nil, err
 	}
 	return items, nil
+}
+
+const placementCopiesUnsent = `-- name: PlacementCopiesUnsent :exec
+UPDATE placement_copies SET status = 'not_checked', not_checked = 'unsent' WHERE test_id = $1 AND status = 'queued'
+`
+
+// Copies of a stopped comparison's later round that never went out.
+func (q *Queries) PlacementCopiesUnsent(ctx context.Context, testID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, placementCopiesUnsent, testID)
+	return err
 }
 
 const placementCopy = `-- name: PlacementCopy :one
@@ -463,7 +640,7 @@ func (q *Queries) PlacementCopySent(ctx context.Context, arg PlacementCopySentPa
 }
 
 const placementLatestForCampaign = `-- name: PlacementLatestForCampaign :one
-SELECT t.id, t.workspace_id, t.name, t.content_kind, t.content_id, t.content_name, t.content_note, t.variant, t.language, t.personalization, t.through, t.stream, t.provider_ids, t.sender_id, t.from_name, t.from_email, t.origin, t.status, t.subject, t.html, t.text_body, t.links, t.providers, t.started_by, t.started_at, t.last_sent_at, t.wait_until, t.late_until, t.finished_at, t.stopped_by, t.stopped_at, t.delete_after, t.delete_at, t.copies_deleted_at, t.copies_deleted_by FROM placement_tests t
+SELECT t.id, t.workspace_id, t.name, t.content_kind, t.content_id, t.content_name, t.content_note, t.content_key, t.content_version, t.content_at, t.variant, t.language, t.personalization, t.through, t.stream, t.provider_ids, t.sender_id, t.from_name, t.from_email, t.origin, t.status, t.subject, t.html, t.text_body, t.links, t.track_opens, t.track_clicks, t.providers, t.started_by, t.started_at, t.last_sent_at, t.wait_until, t.late_until, t.finished_at, t.stopped_by, t.stopped_at, t.delete_after, t.delete_at, t.copies_deleted_at, t.copies_deleted_by FROM placement_tests t
 WHERE t.workspace_id = $1 AND t.content_kind = 'campaign' AND t.content_id = $2
 ORDER BY t.started_at DESC
 LIMIT 1
@@ -485,6 +662,9 @@ func (q *Queries) PlacementLatestForCampaign(ctx context.Context, arg PlacementL
 		&i.ContentID,
 		&i.ContentName,
 		&i.ContentNote,
+		&i.ContentKey,
+		&i.ContentVersion,
+		&i.ContentAt,
 		&i.Variant,
 		&i.Language,
 		&i.Personalization,
@@ -500,6 +680,8 @@ func (q *Queries) PlacementLatestForCampaign(ctx context.Context, arg PlacementL
 		&i.Html,
 		&i.TextBody,
 		&i.Links,
+		&i.TrackOpens,
+		&i.TrackClicks,
 		&i.Providers,
 		&i.StartedBy,
 		&i.StartedAt,
@@ -515,6 +697,35 @@ func (q *Queries) PlacementLatestForCampaign(ctx context.Context, arg PlacementL
 		&i.CopiesDeletedBy,
 	)
 	return i, err
+}
+
+const placementListNames = `-- name: PlacementListNames :many
+SELECT l.name FROM lists l WHERE l.workspace_id = $1 AND l.id = ANY($2::uuid[]) ORDER BY l.name
+`
+
+type PlacementListNamesParams struct {
+	WorkspaceID uuid.UUID   `json:"workspaceId"`
+	Ids         []uuid.UUID `json:"ids"`
+}
+
+func (q *Queries) PlacementListNames(ctx context.Context, arg PlacementListNamesParams) ([]string, error) {
+	rows, err := q.db.Query(ctx, placementListNames, arg.WorkspaceID, arg.Ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			return nil, err
+		}
+		items = append(items, name)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const placementMessageKind = `-- name: PlacementMessageKind :one
@@ -931,8 +1142,50 @@ func (q *Queries) PlacementSettingsSet(ctx context.Context, arg PlacementSetting
 	return err
 }
 
+const placementSourceLanguage = `-- name: PlacementSourceLanguage :one
+SELECT coalesce(
+    (SELECT cs.language FROM content_sources cs WHERE cs.owner_kind = 'campaign' AND cs.owner_id = $1 AND cs.owner_version = 0),
+    (SELECT wl.code FROM workspace_languages wl WHERE wl.workspace_id = $2 AND wl.is_default AND wl.removed_at IS NULL),
+    'en')::text
+`
+
+type PlacementSourceLanguageParams struct {
+	OwnerID     uuid.UUID `json:"ownerId"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+}
+
+// A campaign's source language: its own, or the workspace's default.
+func (q *Queries) PlacementSourceLanguage(ctx context.Context, arg PlacementSourceLanguageParams) (string, error) {
+	row := q.db.QueryRow(ctx, placementSourceLanguage, arg.OwnerID, arg.WorkspaceID)
+	var column_1 string
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
+const placementTemplate = `-- name: PlacementTemplate :one
+SELECT t.id, t.name, t.html FROM templates t WHERE t.workspace_id = $1 AND t.id = $2 AND t.kind = 'template'
+`
+
+type PlacementTemplateParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	ID          uuid.UUID `json:"id"`
+}
+
+type PlacementTemplateRow struct {
+	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
+	Html string    `json:"html"`
+}
+
+func (q *Queries) PlacementTemplate(ctx context.Context, arg PlacementTemplateParams) (PlacementTemplateRow, error) {
+	row := q.db.QueryRow(ctx, placementTemplate, arg.WorkspaceID, arg.ID)
+	var i PlacementTemplateRow
+	err := row.Scan(&i.ID, &i.Name, &i.Html)
+	return i, err
+}
+
 const placementTest = `-- name: PlacementTest :one
-SELECT t.id, t.workspace_id, t.name, t.content_kind, t.content_id, t.content_name, t.content_note, t.variant, t.language, t.personalization, t.through, t.stream, t.provider_ids, t.sender_id, t.from_name, t.from_email, t.origin, t.status, t.subject, t.html, t.text_body, t.links, t.providers, t.started_by, t.started_at, t.last_sent_at, t.wait_until, t.late_until, t.finished_at, t.stopped_by, t.stopped_at, t.delete_after, t.delete_at, t.copies_deleted_at, t.copies_deleted_by, coalesce(u.name, '')::text AS started_by_name, coalesce(su.name, '')::text AS stopped_by_name,
+SELECT t.id, t.workspace_id, t.name, t.content_kind, t.content_id, t.content_name, t.content_note, t.content_key, t.content_version, t.content_at, t.variant, t.language, t.personalization, t.through, t.stream, t.provider_ids, t.sender_id, t.from_name, t.from_email, t.origin, t.status, t.subject, t.html, t.text_body, t.links, t.track_opens, t.track_clicks, t.providers, t.started_by, t.started_at, t.last_sent_at, t.wait_until, t.late_until, t.finished_at, t.stopped_by, t.stopped_at, t.delete_after, t.delete_at, t.copies_deleted_at, t.copies_deleted_by, coalesce(u.name, '')::text AS started_by_name, coalesce(su.name, '')::text AS stopped_by_name,
        coalesce(du.name, '')::text AS copies_deleted_by_name
 FROM placement_tests t
 LEFT JOIN users u ON u.id = t.started_by
@@ -964,6 +1217,9 @@ func (q *Queries) PlacementTest(ctx context.Context, arg PlacementTestParams) (P
 		&i.PlacementTest.ContentID,
 		&i.PlacementTest.ContentName,
 		&i.PlacementTest.ContentNote,
+		&i.PlacementTest.ContentKey,
+		&i.PlacementTest.ContentVersion,
+		&i.PlacementTest.ContentAt,
 		&i.PlacementTest.Variant,
 		&i.PlacementTest.Language,
 		&i.PlacementTest.Personalization,
@@ -979,6 +1235,8 @@ func (q *Queries) PlacementTest(ctx context.Context, arg PlacementTestParams) (P
 		&i.PlacementTest.Html,
 		&i.PlacementTest.TextBody,
 		&i.PlacementTest.Links,
+		&i.PlacementTest.TrackOpens,
+		&i.PlacementTest.TrackClicks,
 		&i.PlacementTest.Providers,
 		&i.PlacementTest.StartedBy,
 		&i.PlacementTest.StartedAt,
@@ -1000,7 +1258,7 @@ func (q *Queries) PlacementTest(ctx context.Context, arg PlacementTestParams) (P
 }
 
 const placementTestByID = `-- name: PlacementTestByID :one
-SELECT t.id, t.workspace_id, t.name, t.content_kind, t.content_id, t.content_name, t.content_note, t.variant, t.language, t.personalization, t.through, t.stream, t.provider_ids, t.sender_id, t.from_name, t.from_email, t.origin, t.status, t.subject, t.html, t.text_body, t.links, t.providers, t.started_by, t.started_at, t.last_sent_at, t.wait_until, t.late_until, t.finished_at, t.stopped_by, t.stopped_at, t.delete_after, t.delete_at, t.copies_deleted_at, t.copies_deleted_by FROM placement_tests t WHERE t.id = $1
+SELECT t.id, t.workspace_id, t.name, t.content_kind, t.content_id, t.content_name, t.content_note, t.content_key, t.content_version, t.content_at, t.variant, t.language, t.personalization, t.through, t.stream, t.provider_ids, t.sender_id, t.from_name, t.from_email, t.origin, t.status, t.subject, t.html, t.text_body, t.links, t.track_opens, t.track_clicks, t.providers, t.started_by, t.started_at, t.last_sent_at, t.wait_until, t.late_until, t.finished_at, t.stopped_by, t.stopped_at, t.delete_after, t.delete_at, t.copies_deleted_at, t.copies_deleted_by FROM placement_tests t WHERE t.id = $1
 `
 
 func (q *Queries) PlacementTestByID(ctx context.Context, id uuid.UUID) (PlacementTest, error) {
@@ -1014,6 +1272,9 @@ func (q *Queries) PlacementTestByID(ctx context.Context, id uuid.UUID) (Placemen
 		&i.ContentID,
 		&i.ContentName,
 		&i.ContentNote,
+		&i.ContentKey,
+		&i.ContentVersion,
+		&i.ContentAt,
 		&i.Variant,
 		&i.Language,
 		&i.Personalization,
@@ -1029,6 +1290,8 @@ func (q *Queries) PlacementTestByID(ctx context.Context, id uuid.UUID) (Placemen
 		&i.Html,
 		&i.TextBody,
 		&i.Links,
+		&i.TrackOpens,
+		&i.TrackClicks,
 		&i.Providers,
 		&i.StartedBy,
 		&i.StartedAt,
@@ -1061,13 +1324,64 @@ func (q *Queries) PlacementTestCopiesDeleted(ctx context.Context, arg PlacementT
 	return err
 }
 
+const placementTestEvents = `-- name: PlacementTestEvents :many
+SELECT e.id, e.workspace_id, e.message_id, e.campaign_id, e.contact_id, e.provider_id, e.raw_event_id, e.type, e.occurred_at, e.mailbox_provider, e.original_type, e.original_code, e.diagnostic, e.bounce_class, e.machine, e.url, e.user_agent, e.ip, e.recipient, e.provider_message_id, e.source, e.received_at, e.dedupe_key FROM delivery_events e WHERE e.message_id = ANY($1::uuid[]) ORDER BY e.message_id, e.occurred_at, e.id
+`
+
+// The provider's events for a test's copies.
+func (q *Queries) PlacementTestEvents(ctx context.Context, ids []uuid.UUID) ([]DeliveryEvent, error) {
+	rows, err := q.db.Query(ctx, placementTestEvents, ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []DeliveryEvent{}
+	for rows.Next() {
+		var i DeliveryEvent
+		if err := rows.Scan(
+			&i.ID,
+			&i.WorkspaceID,
+			&i.MessageID,
+			&i.CampaignID,
+			&i.ContactID,
+			&i.ProviderID,
+			&i.RawEventID,
+			&i.Type,
+			&i.OccurredAt,
+			&i.MailboxProvider,
+			&i.OriginalType,
+			&i.OriginalCode,
+			&i.Diagnostic,
+			&i.BounceClass,
+			&i.Machine,
+			&i.Url,
+			&i.UserAgent,
+			&i.Ip,
+			&i.Recipient,
+			&i.ProviderMessageID,
+			&i.Source,
+			&i.ReceivedAt,
+			&i.DedupeKey,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const placementTestInsert = `-- name: PlacementTestInsert :exec
-INSERT INTO placement_tests (id, workspace_id, name, content_kind, content_id, content_name, content_note, variant, language,
-                             personalization, through, stream, provider_ids, sender_id, from_name, from_email, origin, status,
-                             subject, html, text_body, links, providers, started_by, started_at, delete_after)
+INSERT INTO placement_tests (id, workspace_id, name, content_kind, content_id, content_name, content_note, content_key, content_version,
+                             content_at, variant, language, personalization, through, stream, provider_ids, sender_id, from_name,
+                             from_email, origin, status, subject, html, text_body, links, providers, track_opens, track_clicks,
+                             started_by, started_at, wait_until, delete_after)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9,
-        $10, $11, $12, $13, $14, $15, $16, $17, 'sending',
-        $18, $19, $20, $21, $22, $23, $24, $25)
+        $10, $11, $12, $13, $14, $15, $16, $17, $18,
+        $19, $20, 'sending', $21, $22, $23, $24, $25, $26, $27,
+        $28, $29, $30, $31)
 `
 
 type PlacementTestInsertParams struct {
@@ -1078,6 +1392,9 @@ type PlacementTestInsertParams struct {
 	ContentID       *uuid.UUID      `json:"contentId"`
 	ContentName     string          `json:"contentName"`
 	ContentNote     string          `json:"contentNote"`
+	ContentKey      string          `json:"contentKey"`
+	ContentVersion  int32           `json:"contentVersion"`
+	ContentAt       *time.Time      `json:"contentAt"`
 	Variant         string          `json:"variant"`
 	Language        string          `json:"language"`
 	Personalization string          `json:"personalization"`
@@ -1093,8 +1410,11 @@ type PlacementTestInsertParams struct {
 	TextBody        string          `json:"textBody"`
 	Links           json.RawMessage `json:"links"`
 	Providers       json.RawMessage `json:"providers"`
+	TrackOpens      bool            `json:"trackOpens"`
+	TrackClicks     bool            `json:"trackClicks"`
 	StartedBy       *uuid.UUID      `json:"startedBy"`
 	StartedAt       time.Time       `json:"startedAt"`
+	WaitUntil       *time.Time      `json:"waitUntil"`
 	DeleteAfter     string          `json:"deleteAfter"`
 }
 
@@ -1107,6 +1427,9 @@ func (q *Queries) PlacementTestInsert(ctx context.Context, arg PlacementTestInse
 		arg.ContentID,
 		arg.ContentName,
 		arg.ContentNote,
+		arg.ContentKey,
+		arg.ContentVersion,
+		arg.ContentAt,
 		arg.Variant,
 		arg.Language,
 		arg.Personalization,
@@ -1122,8 +1445,11 @@ func (q *Queries) PlacementTestInsert(ctx context.Context, arg PlacementTestInse
 		arg.TextBody,
 		arg.Links,
 		arg.Providers,
+		arg.TrackOpens,
+		arg.TrackClicks,
 		arg.StartedBy,
 		arg.StartedAt,
+		arg.WaitUntil,
 		arg.DeleteAfter,
 	)
 	return err
@@ -1190,7 +1516,7 @@ func (q *Queries) PlacementTestStop(ctx context.Context, arg PlacementTestStopPa
 }
 
 const placementTests = `-- name: PlacementTests :many
-SELECT t.id, t.workspace_id, t.name, t.content_kind, t.content_id, t.content_name, t.content_note, t.variant, t.language, t.personalization, t.through, t.stream, t.provider_ids, t.sender_id, t.from_name, t.from_email, t.origin, t.status, t.subject, t.html, t.text_body, t.links, t.providers, t.started_by, t.started_at, t.last_sent_at, t.wait_until, t.late_until, t.finished_at, t.stopped_by, t.stopped_at, t.delete_after, t.delete_at, t.copies_deleted_at, t.copies_deleted_by, coalesce(u.name, '')::text AS started_by_name
+SELECT t.id, t.workspace_id, t.name, t.content_kind, t.content_id, t.content_name, t.content_note, t.content_key, t.content_version, t.content_at, t.variant, t.language, t.personalization, t.through, t.stream, t.provider_ids, t.sender_id, t.from_name, t.from_email, t.origin, t.status, t.subject, t.html, t.text_body, t.links, t.track_opens, t.track_clicks, t.providers, t.started_by, t.started_at, t.last_sent_at, t.wait_until, t.late_until, t.finished_at, t.stopped_by, t.stopped_at, t.delete_after, t.delete_at, t.copies_deleted_at, t.copies_deleted_by, coalesce(u.name, '')::text AS started_by_name
 FROM placement_tests t
 LEFT JOIN users u ON u.id = t.started_by
 WHERE t.workspace_id = $1
@@ -1225,6 +1551,9 @@ func (q *Queries) PlacementTests(ctx context.Context, arg PlacementTestsParams) 
 			&i.PlacementTest.ContentID,
 			&i.PlacementTest.ContentName,
 			&i.PlacementTest.ContentNote,
+			&i.PlacementTest.ContentKey,
+			&i.PlacementTest.ContentVersion,
+			&i.PlacementTest.ContentAt,
 			&i.PlacementTest.Variant,
 			&i.PlacementTest.Language,
 			&i.PlacementTest.Personalization,
@@ -1240,6 +1569,8 @@ func (q *Queries) PlacementTests(ctx context.Context, arg PlacementTestsParams) 
 			&i.PlacementTest.Html,
 			&i.PlacementTest.TextBody,
 			&i.PlacementTest.Links,
+			&i.PlacementTest.TrackOpens,
+			&i.PlacementTest.TrackClicks,
 			&i.PlacementTest.Providers,
 			&i.PlacementTest.StartedBy,
 			&i.PlacementTest.StartedAt,
@@ -1266,7 +1597,7 @@ func (q *Queries) PlacementTests(ctx context.Context, arg PlacementTestsParams) 
 }
 
 const placementTestsForProvider = `-- name: PlacementTestsForProvider :many
-SELECT t.id, t.workspace_id, t.name, t.content_kind, t.content_id, t.content_name, t.content_note, t.variant, t.language, t.personalization, t.through, t.stream, t.provider_ids, t.sender_id, t.from_name, t.from_email, t.origin, t.status, t.subject, t.html, t.text_body, t.links, t.providers, t.started_by, t.started_at, t.last_sent_at, t.wait_until, t.late_until, t.finished_at, t.stopped_by, t.stopped_at, t.delete_after, t.delete_at, t.copies_deleted_at, t.copies_deleted_by FROM placement_tests t
+SELECT t.id, t.workspace_id, t.name, t.content_kind, t.content_id, t.content_name, t.content_note, t.content_key, t.content_version, t.content_at, t.variant, t.language, t.personalization, t.through, t.stream, t.provider_ids, t.sender_id, t.from_name, t.from_email, t.origin, t.status, t.subject, t.html, t.text_body, t.links, t.track_opens, t.track_clicks, t.providers, t.started_by, t.started_at, t.last_sent_at, t.wait_until, t.late_until, t.finished_at, t.stopped_by, t.stopped_at, t.delete_after, t.delete_at, t.copies_deleted_at, t.copies_deleted_by FROM placement_tests t
 WHERE t.workspace_id = $1 AND $2::uuid = ANY(t.provider_ids) AND t.started_at >= $3
 ORDER BY t.started_at
 `
@@ -1295,6 +1626,9 @@ func (q *Queries) PlacementTestsForProvider(ctx context.Context, arg PlacementTe
 			&i.ContentID,
 			&i.ContentName,
 			&i.ContentNote,
+			&i.ContentKey,
+			&i.ContentVersion,
+			&i.ContentAt,
 			&i.Variant,
 			&i.Language,
 			&i.Personalization,
@@ -1310,6 +1644,8 @@ func (q *Queries) PlacementTestsForProvider(ctx context.Context, arg PlacementTe
 			&i.Html,
 			&i.TextBody,
 			&i.Links,
+			&i.TrackOpens,
+			&i.TrackClicks,
 			&i.Providers,
 			&i.StartedBy,
 			&i.StartedAt,
@@ -1335,7 +1671,7 @@ func (q *Queries) PlacementTestsForProvider(ctx context.Context, arg PlacementTe
 }
 
 const placementTestsOpen = `-- name: PlacementTestsOpen :many
-SELECT t.id, t.workspace_id, t.name, t.content_kind, t.content_id, t.content_name, t.content_note, t.variant, t.language, t.personalization, t.through, t.stream, t.provider_ids, t.sender_id, t.from_name, t.from_email, t.origin, t.status, t.subject, t.html, t.text_body, t.links, t.providers, t.started_by, t.started_at, t.last_sent_at, t.wait_until, t.late_until, t.finished_at, t.stopped_by, t.stopped_at, t.delete_after, t.delete_at, t.copies_deleted_at, t.copies_deleted_by FROM placement_tests t
+SELECT t.id, t.workspace_id, t.name, t.content_kind, t.content_id, t.content_name, t.content_note, t.content_key, t.content_version, t.content_at, t.variant, t.language, t.personalization, t.through, t.stream, t.provider_ids, t.sender_id, t.from_name, t.from_email, t.origin, t.status, t.subject, t.html, t.text_body, t.links, t.track_opens, t.track_clicks, t.providers, t.started_by, t.started_at, t.last_sent_at, t.wait_until, t.late_until, t.finished_at, t.stopped_by, t.stopped_at, t.delete_after, t.delete_at, t.copies_deleted_at, t.copies_deleted_by FROM placement_tests t
 WHERE t.status IN ('sending', 'waiting') OR (t.status = 'finished' AND t.late_until > $1)
 ORDER BY t.started_at
 `
@@ -1358,6 +1694,9 @@ func (q *Queries) PlacementTestsOpen(ctx context.Context, now *time.Time) ([]Pla
 			&i.ContentID,
 			&i.ContentName,
 			&i.ContentNote,
+			&i.ContentKey,
+			&i.ContentVersion,
+			&i.ContentAt,
 			&i.Variant,
 			&i.Language,
 			&i.Personalization,
@@ -1373,6 +1712,8 @@ func (q *Queries) PlacementTestsOpen(ctx context.Context, now *time.Time) ([]Pla
 			&i.Html,
 			&i.TextBody,
 			&i.Links,
+			&i.TrackOpens,
+			&i.TrackClicks,
 			&i.Providers,
 			&i.StartedBy,
 			&i.StartedAt,
@@ -1398,7 +1739,7 @@ func (q *Queries) PlacementTestsOpen(ctx context.Context, now *time.Time) ([]Pla
 }
 
 const placementTestsToDelete = `-- name: PlacementTestsToDelete :many
-SELECT t.id, t.workspace_id, t.name, t.content_kind, t.content_id, t.content_name, t.content_note, t.variant, t.language, t.personalization, t.through, t.stream, t.provider_ids, t.sender_id, t.from_name, t.from_email, t.origin, t.status, t.subject, t.html, t.text_body, t.links, t.providers, t.started_by, t.started_at, t.last_sent_at, t.wait_until, t.late_until, t.finished_at, t.stopped_by, t.stopped_at, t.delete_after, t.delete_at, t.copies_deleted_at, t.copies_deleted_by FROM placement_tests t
+SELECT t.id, t.workspace_id, t.name, t.content_kind, t.content_id, t.content_name, t.content_note, t.content_key, t.content_version, t.content_at, t.variant, t.language, t.personalization, t.through, t.stream, t.provider_ids, t.sender_id, t.from_name, t.from_email, t.origin, t.status, t.subject, t.html, t.text_body, t.links, t.track_opens, t.track_clicks, t.providers, t.started_by, t.started_at, t.last_sent_at, t.wait_until, t.late_until, t.finished_at, t.stopped_by, t.stopped_at, t.delete_after, t.delete_at, t.copies_deleted_at, t.copies_deleted_by FROM placement_tests t
 WHERE t.delete_at <= $1 AND t.copies_deleted_at IS NULL AND t.status IN ('finished', 'stopped')
 ORDER BY t.delete_at
 LIMIT 10
@@ -1422,6 +1763,9 @@ func (q *Queries) PlacementTestsToDelete(ctx context.Context, now *time.Time) ([
 			&i.ContentID,
 			&i.ContentName,
 			&i.ContentNote,
+			&i.ContentKey,
+			&i.ContentVersion,
+			&i.ContentAt,
 			&i.Variant,
 			&i.Language,
 			&i.Personalization,
@@ -1437,6 +1781,8 @@ func (q *Queries) PlacementTestsToDelete(ctx context.Context, now *time.Time) ([
 			&i.Html,
 			&i.TextBody,
 			&i.Links,
+			&i.TrackOpens,
+			&i.TrackClicks,
 			&i.Providers,
 			&i.StartedBy,
 			&i.StartedAt,
@@ -1459,4 +1805,37 @@ func (q *Queries) PlacementTestsToDelete(ctx context.Context, now *time.Time) ([
 		return nil, err
 	}
 	return items, nil
+}
+
+const placementTransactional = `-- name: PlacementTransactional :one
+SELECT t.id, t.key, t.name, t.live_version, coalesce(c.name, '')::text AS category_name
+FROM transactional_templates t
+LEFT JOIN transactional_categories c ON c.id = t.category_id
+WHERE t.workspace_id = $1 AND t.id = $2 AND t.deleted_at IS NULL
+`
+
+type PlacementTransactionalParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	ID          uuid.UUID `json:"id"`
+}
+
+type PlacementTransactionalRow struct {
+	ID           uuid.UUID `json:"id"`
+	Key          string    `json:"key"`
+	Name         string    `json:"name"`
+	LiveVersion  *int32    `json:"liveVersion"`
+	CategoryName string    `json:"categoryName"`
+}
+
+func (q *Queries) PlacementTransactional(ctx context.Context, arg PlacementTransactionalParams) (PlacementTransactionalRow, error) {
+	row := q.db.QueryRow(ctx, placementTransactional, arg.WorkspaceID, arg.ID)
+	var i PlacementTransactionalRow
+	err := row.Scan(
+		&i.ID,
+		&i.Key,
+		&i.Name,
+		&i.LiveVersion,
+		&i.CategoryName,
+	)
+	return i, err
 }

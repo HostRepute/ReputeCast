@@ -32,17 +32,34 @@ func ParseHeader(raw []byte) Header {
 	return Header{MIMEHeader: h, Raw: raw}
 }
 
+// uuidPattern finds a copy's id in a Message-ID (<copy id@sender domain>,
+// as the providers that keep ReputeCast's Message-ID write it).
+var uuidPattern = regexp.MustCompile(`[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`)
+
 // Tokens returns the test tokens the header carries, from X-ReputeCast-Test
-// first, then the Message-ID.
+// first, then the Message-ID (a token, or the copy's id).
 func (h Header) Tokens() []string {
 	var out []string
 	seen := map[string]bool{}
+	add := func(t string) {
+		if !seen[t] {
+			seen[t] = true
+			out = append(out, t)
+		}
+	}
 	for _, v := range append(h.Values(TestHeader), h.Values("Message-Id")...) {
 		for _, t := range tokenPattern.FindAllString(strings.ToLower(v), -1) {
-			if !seen[t] {
-				seen[t] = true
-				out = append(out, t)
-			}
+			add(t)
+		}
+	}
+	for _, v := range h.Values("Message-Id") {
+		for _, t := range uuidPattern.FindAllString(strings.ToLower(v), -1) {
+			add(t)
+		}
+	}
+	for _, v := range h.Values("X-Reputecast-Message") {
+		for _, t := range uuidPattern.FindAllString(strings.ToLower(v), -1) {
+			add(t)
 		}
 	}
 	return out

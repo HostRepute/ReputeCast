@@ -227,7 +227,7 @@ func (b *imapBox) scan(mailbox string, want map[string]bool, since time.Time, wr
 	}
 	// First the two header fields that carry tokens, then whole headers of
 	// the matches only.
-	fields := &imap.FetchItemBodySection{Specifier: imap.PartSpecifierHeader, HeaderFields: []string{TestHeader, "Message-ID"}, Peek: true}
+	fields := &imap.FetchItemBodySection{Specifier: imap.PartSpecifierHeader, HeaderFields: []string{TestHeader, "Message-ID", "X-ReputeCast-Message"}, Peek: true}
 	msgs, err := b.c.Fetch(imap.UIDSetNum(uids...), &imap.FetchOptions{UID: true, BodySection: []*imap.FetchItemBodySection{fields}}).Collect()
 	if err != nil {
 		return nil, sel.UIDValidity, err

@@ -1294,6 +1294,9 @@ type PlacementTest struct {
 	ContentID       *uuid.UUID      `json:"contentId"`
 	ContentName     string          `json:"contentName"`
 	ContentNote     string          `json:"contentNote"`
+	ContentKey      string          `json:"contentKey"`
+	ContentVersion  int32           `json:"contentVersion"`
+	ContentAt       *time.Time      `json:"contentAt"`
 	Variant         string          `json:"variant"`
 	Language        string          `json:"language"`
 	Personalization string          `json:"personalization"`
@@ -1309,6 +1312,8 @@ type PlacementTest struct {
 	Html            string          `json:"html"`
 	TextBody        string          `json:"textBody"`
 	Links           json.RawMessage `json:"links"`
+	TrackOpens      bool            `json:"trackOpens"`
+	TrackClicks     bool            `json:"trackClicks"`
 	Providers       json.RawMessage `json:"providers"`
 	StartedBy       *uuid.UUID      `json:"startedBy"`
 	StartedAt       time.Time       `json:"startedAt"`

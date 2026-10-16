@@ -1012,14 +1012,25 @@ type Querier interface {
 	// Overview (spec 7.1).
 	OverviewNextScheduled(ctx context.Context, arg OverviewNextScheduledParams) (OverviewNextScheduledRow, error)
 	PauseAutomation(ctx context.Context, arg PauseAutomationParams) error
+	// A campaign's translated language versions.
+	PlacementCampaignLanguages(ctx context.Context, ownerID uuid.UUID) ([]string, error)
+	PlacementCampaignTranslation(ctx context.Context, arg PlacementCampaignTranslationParams) (PlacementCampaignTranslationRow, error)
+	// What a test can send, for the dialog's search: campaigns with content,
+	// campaign templates and published transactional templates.
+	PlacementContentSearch(ctx context.Context, arg PlacementContentSearchParams) ([]PlacementContentSearchRow, error)
 	PlacementCopies(ctx context.Context, testID uuid.UUID) ([]PlacementCopy, error)
+	// The demo seeds' simulated mailboxes look copies up by token.
+	PlacementCopiesByTokens(ctx context.Context, tokens []string) ([]PlacementCopy, error)
 	PlacementCopiesDeleted(ctx context.Context, arg PlacementCopiesDeletedParams) error
 	// Copies whose hand-off time has come.
 	PlacementCopiesDue(ctx context.Context, arg PlacementCopiesDueParams) ([]PlacementCopy, error)
-	PlacementCopiesNotArrived(ctx context.Context, testID uuid.UUID) error
+	// Copies still missing when the test finishes or is stopped (reason stopped).
+	PlacementCopiesNotArrived(ctx context.Context, arg PlacementCopiesNotArrivedParams) error
 	// Copies of a seed that couldn't be read (its sign-in failed during the test).
 	PlacementCopiesNotChecked(ctx context.Context, arg PlacementCopiesNotCheckedParams) error
 	PlacementCopiesOfTests(ctx context.Context, testIds []uuid.UUID) ([]PlacementCopy, error)
+	// Copies of a stopped comparison's later round that never went out.
+	PlacementCopiesUnsent(ctx context.Context, testID uuid.UUID) error
 	PlacementCopy(ctx context.Context, arg PlacementCopyParams) (PlacementCopy, error)
 	PlacementCopyByID(ctx context.Context, id uuid.UUID) (PlacementCopy, error)
 	// The provider's events for a copy.
@@ -1028,6 +1039,7 @@ type Querier interface {
 	PlacementCopyInsert(ctx context.Context, arg PlacementCopyInsertParams) error
 	PlacementCopySent(ctx context.Context, arg PlacementCopySentParams) error
 	PlacementLatestForCampaign(ctx context.Context, arg PlacementLatestForCampaignParams) (PlacementTest, error)
+	PlacementListNames(ctx context.Context, arg PlacementListNamesParams) ([]string, error)
 	PlacementMessageKind(ctx context.Context, id uuid.UUID) (string, error)
 	PlacementOAuthStateInsert(ctx context.Context, arg PlacementOAuthStateInsertParams) error
 	// Single use: the state is removed as it's read.
@@ -1047,9 +1059,14 @@ type Querier interface {
 	PlacementSeeds(ctx context.Context, workspaceID uuid.UUID) ([]PlacementSeedsRow, error)
 	PlacementSettings(ctx context.Context, workspaceID uuid.UUID) (string, error)
 	PlacementSettingsSet(ctx context.Context, arg PlacementSettingsSetParams) error
+	// A campaign's source language: its own, or the workspace's default.
+	PlacementSourceLanguage(ctx context.Context, arg PlacementSourceLanguageParams) (string, error)
+	PlacementTemplate(ctx context.Context, arg PlacementTemplateParams) (PlacementTemplateRow, error)
 	PlacementTest(ctx context.Context, arg PlacementTestParams) (PlacementTestRow, error)
 	PlacementTestByID(ctx context.Context, id uuid.UUID) (PlacementTest, error)
 	PlacementTestCopiesDeleted(ctx context.Context, arg PlacementTestCopiesDeletedParams) error
+	// The provider's events for a test's copies.
+	PlacementTestEvents(ctx context.Context, ids []uuid.UUID) ([]DeliveryEvent, error)
 	PlacementTestInsert(ctx context.Context, arg PlacementTestInsertParams) error
 	PlacementTestSetStatus(ctx context.Context, arg PlacementTestSetStatusParams) error
 	PlacementTestStop(ctx context.Context, arg PlacementTestStopParams) (int64, error)
@@ -1060,6 +1077,7 @@ type Querier interface {
 	PlacementTestsOpen(ctx context.Context, now *time.Time) ([]PlacementTest, error)
 	// Tests whose copies are due to be deleted from the seeds.
 	PlacementTestsToDelete(ctx context.Context, now *time.Time) ([]PlacementTest, error)
+	PlacementTransactional(ctx context.Context, arg PlacementTransactionalParams) (PlacementTransactionalRow, error)
 	ProvActiveFailovers(ctx context.Context, workspaceID uuid.UUID) ([]StreamFailover, error)
 	ProvAwaitingCampaigns(ctx context.Context, arg ProvAwaitingCampaignsParams) ([]ProvAwaitingCampaignsRow, error)
 	ProvAwaitingCount(ctx context.Context, arg ProvAwaitingCountParams) (ProvAwaitingCountRow, error)
