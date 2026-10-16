@@ -592,8 +592,12 @@ func (s *Service) numbers(ctx context.Context, l loaded) (IntegrationNumbers, []
 		return n, nil, err
 	}
 	deliveries := map[string]int64{}
+	delivered := map[string]time.Time{}
 	for _, h := range l.hooks {
 		deliveries[h.WorkflowKey] += h.Deliveries7d
+		if h.LastDeliveryAt != nil && h.LastDeliveryAt.After(delivered[h.WorkflowKey]) {
+			delivered[h.WorkflowKey] = *h.LastDeliveryAt
+		}
 	}
 	out := []IntegrationWorkflowRow{}
 	var flows *eventFlows
@@ -647,6 +651,12 @@ func (s *Service) numbers(ctx context.Context, l loaded) (IntegrationNumbers, []
 			}
 		}
 		n.LastCallWorkflow = latest.Name
+	}
+	// A trigger's workflow last ran when its webhook last delivered.
+	for i := range out {
+		if d, ok := delivered[out[i].Key]; ok && d.After(out[i].LastRunAt) {
+			out[i].LastRunAt = d
+		}
 	}
 	return n, out, nil
 }

@@ -535,7 +535,7 @@ function WorkflowsCard({ app }: { app: App }) {
                         ))}
                       </td>
                       <td className="r">
-                        <span className="num">{w.trigger && !w.calls7d ? w.deliveries7d : w.calls7d}</span>
+                        {w.trigger && !w.calls7d ? <span className="nw">{countCell(w)}</span> : <span className="num">{w.calls7d}</span>}
                       </td>
                       <td className="r">{errorsCell(w)}</td>
                       <td className="nw mono">{stamp(w.lastRunAt)}</td>

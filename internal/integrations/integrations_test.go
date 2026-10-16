@@ -1160,6 +1160,7 @@ func TestDemoPages(t *testing.T) {
 		Workflows []struct {
 			Name         string
 			Deliveries7d int64
+			LastRunAt    time.Time
 			Uses         []struct {
 				Item, Event    string
 				Starts, GoalOf []string
@@ -1174,7 +1175,8 @@ func TestDemoPages(t *testing.T) {
 	// automation"; teammate.invited is its goal.
 	if len(n8n.Workflows) != 3 || len(n8n.Workflows[0].Uses) != 1 || n8n.Workflows[0].Uses[0].Event != "workspace.created" ||
 		strings.Join(n8n.Workflows[0].Uses[0].Starts, ",") != "Onboarding · new workspace" ||
-		strings.Join(n8n.Workflows[1].Uses[0].GoalOf, ",") != "Onboarding · new workspace" || n8n.Workflows[2].Deliveries7d != 14 {
+		strings.Join(n8n.Workflows[1].Uses[0].GoalOf, ",") != "Onboarding · new workspace" || n8n.Workflows[2].Deliveries7d != 14 ||
+		time.Since(n8n.Workflows[2].LastRunAt) > time.Hour {
 		t.Errorf("n8n's workflows: %+v", n8n.Workflows)
 	}
 	// The delivery log shows n8n's endpoint masked, as its page does.
