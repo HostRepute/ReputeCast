@@ -8,7 +8,7 @@ import './providers.css'
 
 export type ProviderCard = Schemas['ProviderCard']
 export type ColorKey = ProviderCard['color']
-export type Stream = 'broadcast' | 'automation' | 'system'
+export type Stream = 'broadcast' | 'automation' | 'system' | 'transactional'
 export type FailoverPolicy = 'automatic' | 'pause_and_ask' | 'warm_only'
 
 /** Sending-provider series colours from the design system. */
@@ -22,7 +22,7 @@ export const providerColor: Record<ColorKey, string> = {
 /** Text colour on a provider-coloured segment (the routing split bar). */
 export const onProviderColor: Record<ColorKey, string> = { ses: '#fff', postal: '#3F0A1F', postmark: '#fff', other: 'var(--ink)' }
 
-export const streamName: Record<Stream, string> = { broadcast: 'Broadcasts', automation: 'Automations', system: 'System' }
+export const streamName: Record<Stream, string> = { broadcast: 'Broadcasts', automation: 'Automations', system: 'System', transactional: 'Transactional' }
 
 export const failoverText: Record<FailoverPolicy, string> = {
   automatic: 'automatic',

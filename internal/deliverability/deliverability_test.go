@@ -41,6 +41,32 @@ func toneOf(usage float64) string {
 	return "ok"
 }
 
+type deliverabilityAsset struct {
+	Asset, Type, Provider, Verdict, Tone string
+	UsedBy                               []string
+	Score                                *int
+	Warmup                               *struct{ Day, Days int }
+	Blocklists                           struct {
+		Via             string
+		Sources, Listed int
+		Listings        []string
+	}
+	Fallback        *struct{ Via string }
+	Stale           *string
+	Auth            *struct{ SPF, DKIM, DMARC string }
+	DMARCAligned    *float64 `json:"dmarcAligned"`
+	GmailReputation string
+	ReverseDNS      *struct {
+		PTR     string
+		Matches bool
+	} `json:"reverseDns"`
+	SNDS *struct {
+		FilterResult string
+		TrapHits     int
+	}
+	NotMonitored bool
+}
+
 type overview struct {
 	HostRepute struct {
 		Status      string
@@ -53,31 +79,8 @@ type overview struct {
 		LastAt        *string
 		Running       *struct{ ID, Status string }
 	}
-	Assets []struct {
-		Asset, Type, Provider, Verdict, Tone string
-		UsedBy                               []string
-		Score                                *int
-		Warmup                               *struct{ Day, Days int }
-		Blocklists                           struct {
-			Via             string
-			Sources, Listed int
-			Listings        []string
-		}
-		Fallback        *struct{ Via string }
-		Stale           *string
-		Auth            *struct{ SPF, DKIM, DMARC string }
-		DMARCAligned    *float64 `json:"dmarcAligned"`
-		GmailReputation string
-		ReverseDNS      *struct {
-			PTR     string
-			Matches bool
-		} `json:"reverseDns"`
-		SNDS *struct {
-			FilterResult string
-			TrapHits     int
-		}
-	}
-	Pools []struct {
+	Assets []deliverabilityAsset
+	Pools  []struct {
 		Short, AccountStatus, OnlyStream string
 		DedicatedIPOption                string `json:"dedicatedIpOption"`
 		VolumeThisMonth                  *int64
@@ -144,7 +147,10 @@ func TestOverviewDemo(t *testing.T) {
 	if o.HostRepute.Status != "connected" || o.HostRepute.TeamName != "Acme Inc" || o.Checks.Via != "hostrepute" || o.Checks.Interval != "hourly" {
 		t.Fatalf("header: %+v %+v", o.HostRepute, o.Checks)
 	}
-	if len(o.Assets) != 2 {
+	// HostRepute monitors news.acme.io and Postal's IP; notify.acme.io,
+	// Acme Cloud's Transactional domain, comes after them, not monitored.
+	if len(o.Assets) != 3 || o.Assets[2].Asset != "notify.acme.io" || !o.Assets[2].NotMonitored || o.Assets[2].Score != nil || o.Assets[2].Blocklists.Via != "none" ||
+		o.Assets[0].NotMonitored || o.Assets[1].NotMonitored {
 		t.Fatalf("assets: %+v", o.Assets)
 	}
 	d, ip := o.Assets[0], o.Assets[1]
@@ -158,7 +164,7 @@ func TestOverviewDemo(t *testing.T) {
 		t.Fatalf("IP card: %+v", ip)
 	}
 	if len(o.Pools) != 2 || o.Pools[0].Short != "SES" || o.Pools[0].DedicatedIPOption != "$24.95 per IP per month" ||
-		o.Pools[1].AccountStatus != "Approved" || o.Pools[1].OnlyStream != "system" || *o.Pools[1].VolumeThisMonth != 3412 {
+		o.Pools[1].AccountStatus != "Approved" || o.Pools[1].OnlyStream != "" || *o.Pools[1].VolumeThisMonth != 3412 { // System and Transactional
 		t.Fatalf("pools: %+v", o.Pools)
 	}
 	// Rates are the 7-day figures from manage.UsageOf, so they match Sending
@@ -166,7 +172,7 @@ func TestOverviewDemo(t *testing.T) {
 	ses, pm, postal := o.Providers[0], o.Providers[1], o.Providers[2]
 	if ses.Badge != "Healthy · no enforcement" || ses.Bounce.Thresholds != "review 5%, pause 10%" || *ses.Bounce.Value != 0.6 ||
 		*ses.Complaint.Value != 0.04 || ses.Complaint.Usage != 40 || ses.Note.Value != "Bounce and complaint metrics only; no VDM" ||
-		pm.Badge != "Approved" || pm.Complaint.Label != "Spam complaint rate" || pm.Bounce.Thresholds != "limit 10%" || pm.Note.Value != "Transactional · System mail only" ||
+		pm.Badge != "Approved" || pm.Complaint.Label != "Spam complaint rate" || pm.Bounce.Thresholds != "limit 10%" || pm.Note.Value != "Transactional · System and Transactional mail" ||
 		postal.Name != "Postal (self-hosted)" || postal.Badge != "Warming up" || postal.Bounce.Thresholds != "warm-up guard 2%" ||
 		postal.Complaint.Thresholds != "guard 0.1%" || postal.Note.Value != "Set by ReputeCast; Postal has no account limits" {
 		t.Fatalf("providers: %+v", o.Providers)
@@ -430,7 +436,12 @@ func TestBuiltinCheck(t *testing.T) {
 		o.Blocklists.Sources != 8 || o.Blocklists.Listed != 1 || o.Blocklists.Results[0].Source != "Spamhaus ZEN" {
 		t.Fatalf("built-in: %+v %+v", o.Checks, o.Blocklists)
 	}
-	ip := o.Assets[1]
+	var ip deliverabilityAsset
+	for _, a := range o.Assets {
+		if a.Asset == "203.0.113.25" {
+			ip = a
+		}
+	}
 	if ip.Blocklists.Via != "builtin" || ip.Blocklists.Listed != 1 || ip.Tone != "bad" || ip.Score != nil {
 		t.Fatalf("IP card from the built-in check: %+v", ip)
 	}

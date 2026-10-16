@@ -336,7 +336,7 @@ func TestConnectAPIProvider(t *testing.T) {
 		Listening               bool
 	}
 	c.Do("GET", base+"/test", nil).MustStatus(t, 200).JSON(t, &test)
-	if test.To != "linh@acme.io" || len(test.Senders) != 6 || test.MessageID != "" {
+	if test.To != "linh@acme.io" || len(test.Senders) != 8 || test.MessageID != "" { // Acme Cloud's two on notify.acme.io among them
 		t.Fatalf("test form: %+v", test)
 	}
 	digest := ""
