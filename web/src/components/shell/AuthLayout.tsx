@@ -36,7 +36,6 @@ export function AuthLayout({ title, children, labelledBy, wide }: { title: strin
 /** Instance name and host, as set by the instance admin. */
 export function InstanceBrand() {
   const { data } = useInstanceMeta()
-  const t = useT()
   const host = data?.publicUrl ? safeHost(data.publicUrl) : ''
   return (
     <div className="brand">
@@ -47,7 +46,7 @@ export function InstanceBrand() {
         <LogoMark size={28} />
       )}
       <span>
-        {data?.instanceName ?? t(m.brandName)} {host ? <small>{host}</small> : null}
+        {data?.instanceName ?? 'ReputeCast'} {host ? <small>{host}</small> : null}
       </span>
     </div>
   )

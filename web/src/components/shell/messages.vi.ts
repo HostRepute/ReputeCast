@@ -18,7 +18,6 @@ export default translate(m, {
   sidebarLabel: 'Điều hướng không gian làm việc',
   mainNavLabel: 'Chính',
   homeLabel: 'Trang chủ ReputeCast',
-  brandName: 'ReputeCast',
   importContacts: 'Nhập liên hệ',
   hostReputeConnected: 'Đã kết nối HostRepute',
   hostReputeAttention: 'HostRepute cần chú ý',

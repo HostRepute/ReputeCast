@@ -58,7 +58,7 @@ function Frame({ children }: { children: ReactNode }) {
     <div className="flex min-h-dvh flex-col items-center gap-6 px-4 py-14">
       <Link to="/" className="flex items-center gap-2.5 text-[16px] font-bold text-ink hover:text-ink" aria-label={tr(m.homeLabel)}>
         <LogoMark size={28} />
-        {tr(m.brandName)}
+        ReputeCast
       </Link>
       <main id="main" className="w-full max-w-[640px]">
         {children}

@@ -58,7 +58,7 @@ function Sidebar() {
     <aside className={cn('side', sheetOpen && 'sheet-open')} aria-label={t(m.sidebarLabel)}>
       <Link to="/w/$workspace" params={{ workspace: slug }} className="home" aria-label={t(m.homeLabel)}>
         <LogoMark size={26} />
-        <span className="brand-t">{t(m.brandName)}</span>
+        <span className="brand-t">ReputeCast</span>
       </Link>
       <WorkspaceSwitcher />
       <nav className="nav" aria-label={t(m.mainNavLabel)}>
