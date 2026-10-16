@@ -228,6 +228,9 @@ func customCondition(t *sqlText, key string, f CustomField, c SegmentCondition) 
 	case "is_false":
 		t.raw("coalesce(" + jsonv + ", 'false'::jsonb) = 'false'::jsonb")
 		return
+	case "is_one_of":
+		oneOfCondition(t, text, c.Value)
+		return
 	}
 	switch f.Type {
 	case "number":

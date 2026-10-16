@@ -194,9 +194,20 @@ func (s *Service) attribute(c candidate, n *names, calls map[uuid.UUID]string, a
 		if c.evAt != nil {
 			importedAt = *c.evAt
 		}
-		// The import kept an older date and the contact's own source.
+		// The import kept an older date and the contact's own source: one of
+		// the workspace's forms or its subscribe page counts there, anything
+		// else under the source as the import named it.
 		if c.createdAt.Before(importedAt.Add(-carriedSlack)) && c.source != "" && !strings.HasPrefix(src, c.source) {
-			a.kind, a.id, a.joinedAt = KindCarried, c.source, c.createdAt
+			a.joinedAt = c.createdAt
+			kind, detail, _ := strings.Cut(c.source, ":")
+			switch f, ok := n.formsBySlug[detail]; {
+			case kind == "form" && ok:
+				a.kind, a.id = KindForm, f.ID.String()
+			case c.source == "subscribe_page":
+				a.kind = KindSubscribePage
+			default:
+				a.kind, a.id = KindCarried, c.source
+			}
 			return a, true
 		}
 		a.kind, a.joinedAt = KindImport, importedAt

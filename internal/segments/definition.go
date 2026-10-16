@@ -116,9 +116,9 @@ func customOps(typ string) []string {
 	case "boolean":
 		return []string{"is_true", "is_false"}
 	case "select":
-		return []string{"equals", "not_equals", "is_empty", "is_not_empty"}
+		return []string{"equals", "not_equals", "is_one_of", "is_empty", "is_not_empty"}
 	}
-	return []string{"equals", "not_equals", "contains", "is_empty", "is_not_empty"}
+	return []string{"equals", "not_equals", "is_one_of", "contains", "is_empty", "is_not_empty"}
 }
 
 // ValidationError explains which condition is wrong, for a 422.

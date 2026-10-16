@@ -4,6 +4,10 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/google/uuid"
+
+	"github.com/hostrepute/reputecast/internal/store"
 )
 
 func TestTouchOf(t *testing.T) {
@@ -108,5 +112,42 @@ func TestPeriodOf(t *testing.T) {
 	}
 	if w, _ := periodOf(GrowthQuery{Period: "bogus"}, now, loc); w.kind != "30d" {
 		t.Fatalf("unknown period: %q", w.kind)
+	}
+}
+
+func TestAttributeImports(t *testing.T) {
+	s := &Service{}
+	form := store.GrowthFormsOfRow{ID: uuid.MustParse("0199c0de-0000-7000-8000-0000000000f1"), Slug: "newsletter-signup", Name: "Newsletter signup"}
+	n := &names{formsBySlug: map[string]store.GrowthFormsOfRow{form.Slug: form}}
+	imp := uuid.MustParse("0199c0de-0000-7000-8000-0000000000a1")
+	importedAt := time.Date(2026, 9, 18, 20, 40, 0, 0, time.UTC)
+	imported := "imported"
+	old := time.Date(2025, 3, 2, 10, 0, 0, 0, time.UTC)
+	cases := []struct {
+		name     string
+		created  time.Time
+		source   string
+		kind, id string
+		joinedAt time.Time
+	}{
+		// Brevo had no date or source: the import is the source, its day the join.
+		{"took the import day", importedAt, "import:brevo", KindImport, imp.String(), importedAt},
+		// The import kept a date and one of the workspace's forms.
+		{"carried a form", old, "form:newsletter-signup", KindForm, form.ID.String(), old},
+		{"carried the subscribe page", old, "subscribe_page", KindSubscribePage, "", old},
+		// A source ReputeCast doesn't have stays as the import named it.
+		{"carried something else", old, "import:csv", KindCarried, "import:csv", old},
+	}
+	for _, c := range cases {
+		at := importedAt
+		cand := candidate{id: uuid.New(), createdAt: c.created, source: c.source, action: &imported, evImport: &imp, evAt: &at}
+		a, ok := s.attribute(cand, n, nil, nil)
+		if !ok || a.kind != c.kind || a.id != c.id || !a.joinedAt.Equal(c.joinedAt) {
+			t.Errorf("%s: %+v", c.name, a)
+		}
+	}
+	// Still waiting for the confirmation click: no join yet.
+	if _, ok := s.attribute(candidate{id: uuid.New(), source: "form:newsletter-signup"}, n, nil, nil); ok {
+		t.Fatal("an unconfirmed signup has no join yet")
 	}
 }

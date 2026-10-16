@@ -28,6 +28,7 @@ func init() {
 	opLabels["at_least"] = "is at least"
 	opLabels["at_most"] = "is at most"
 	opLabels["between"] = "is between"
+	opLabels["is_one_of"] = "is one of"
 	builtinFields["score"] = fieldSpec{"Score", KindNumber, scoreOps}
 	builtinFields["score_band"] = fieldSpec{"Score band", KindEnum, []string{"is", "is_not"}}
 	builtinFields["growth_source"] = fieldSpec{"Growth source", KindEnum, []string{"is", "is_not"}}
@@ -211,3 +212,27 @@ const scoringJoins = `
                JOIN public.scoring_versions v ON v.workspace_id = k.workspace_id AND v.version = k.applied_version
                WHERE k.applied_version > 0) sb ON sb.workspace_id = c.workspace_id
     LEFT JOIN public.contact_growth g ON g.contact_id = c.id`
+
+// oneOfCondition matches a custom field against comma-separated values,
+// ignoring case: "plan is one of team, business" (the "Hot on paid plans"
+// segment of the scoring sample).
+func oneOfCondition(t *sqlText, text, value string) {
+	var vals []string
+	for _, v := range strings.Split(value, ",") {
+		if v = strings.ToLower(strings.TrimSpace(v)); v != "" && !slices.Contains(vals, v) {
+			vals = append(vals, v)
+		}
+	}
+	if len(vals) == 0 {
+		t.raw("false")
+		return
+	}
+	t.raw("lower(coalesce(" + text + ", '')) IN (")
+	for i, v := range vals {
+		if i > 0 {
+			t.raw(", ")
+		}
+		t.bind(str(v))
+	}
+	t.raw(")")
+}
