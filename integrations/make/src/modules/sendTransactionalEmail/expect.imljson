@@ -1,0 +1,51 @@
+[
+  {
+    "name": "template",
+    "type": "select",
+    "label": "Template",
+    "required": true,
+    "options": {
+      "store": "rpc://listTemplates",
+      "nested": [
+        {
+          "name": "data",
+          "type": "collection",
+          "label": "Variables",
+          "spec": "rpc://templateVariables"
+        }
+      ]
+    },
+    "help": "A published transactional template. Its live version is sent."
+  },
+  {
+    "name": "to",
+    "type": "collection",
+    "label": "Recipient",
+    "required": true,
+    "spec": [
+      {
+        "name": "email",
+        "type": "email",
+        "label": "Email",
+        "required": true
+      },
+      {
+        "name": "name",
+        "type": "text",
+        "label": "Name"
+      }
+    ]
+  },
+  {
+    "name": "language",
+    "type": "text",
+    "label": "Language",
+    "help": "A language code such as es, to send that language's version. Without it, the contact's language is used, then the workspace's fallback."
+  },
+  {
+    "name": "idempotencyKey",
+    "type": "text",
+    "label": "Idempotency key",
+    "help": "A value unique to this email, such as the triggering event's ID. If the module runs again with the same value within 24 hours, ReputeCast sends nothing new."
+  }
+]

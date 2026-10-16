@@ -1,0 +1,52 @@
+<?xml version="1.0"?>
+<ruleset name="ReputeCast">
+	<description>The WordPress Coding Standards, for the ReputeCast plugin.</description>
+
+	<file>reputecast</file>
+	<file>scripts</file>
+
+	<arg name="extensions" value="php"/>
+	<arg name="colors"/>
+	<arg value="sp"/>
+
+	<config name="minimum_wp_version" value="6.4"/>
+
+	<rule ref="WordPress"/>
+
+	<rule ref="WordPress.WP.I18n">
+		<properties>
+			<property name="text_domain" type="array">
+				<element value="reputecast"/>
+			</property>
+		</properties>
+	</rule>
+
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+		<properties>
+			<property name="prefixes" type="array">
+				<element value="reputecast"/>
+			</property>
+		</properties>
+	</rule>
+
+	<!-- block.json's "file:./index.js" needs the asset file named index.asset.php. -->
+	<rule ref="WordPress.Files.FileName">
+		<exclude-pattern>reputecast/blocks/*/index.asset.php</exclude-pattern>
+	</rule>
+
+	<!-- WPML's own hooks (apply_filters( 'wpml_current_language' ) and the like) all live here. -->
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound">
+		<exclude-pattern>reputecast/includes/class-languages.php</exclude-pattern>
+	</rule>
+
+	<!-- The build and lint scripts run from the command line, outside WordPress. -->
+	<rule ref="WordPress.WP.AlternativeFunctions">
+		<exclude-pattern>scripts/*</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.Security.EscapeOutput">
+		<exclude-pattern>scripts/*</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+		<exclude-pattern>scripts/*</exclude-pattern>
+	</rule>
+</ruleset>

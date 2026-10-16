@@ -1,0 +1,32 @@
+{
+  "name": "reputecast-zapier",
+  "version": "1.2.0",
+  "description": "ReputeCast for Zapier: start Zaps from ReputeCast events, and create contacts, tag them, record events and send transactional email from your other apps.",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "homepage": "https://github.com/hostrepute/reputecast/tree/main/integrations/zapier",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hostrepute/reputecast.git",
+    "directory": "integrations/zapier"
+  },
+  "main": "index.js",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "lint": "eslint --max-warnings=0 . && zapier-platform validate --without-style",
+    "test": "node --test \"test/*.test.mjs\"",
+    "build": "zapier-platform build --skip-validation"
+  },
+  "dependencies": {
+    "zapier-platform-core": "19.2.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "eslint": "10.12.0",
+    "globals": "17.13.0",
+    "nock": "14.0.17",
+    "zapier-platform-cli": "19.2.1"
+  }
+}

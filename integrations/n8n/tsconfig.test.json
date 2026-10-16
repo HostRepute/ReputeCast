@@ -1,0 +1,24 @@
+{
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"noEmit": true,
+		"incremental": false,
+		"declaration": false,
+		"sourceMap": false,
+		"module": "preserve",
+		"moduleResolution": "bundler",
+		"allowImportingTsExtensions": true,
+		"allowJs": true,
+		"checkJs": false,
+		"lib": ["es2022", "dom", "dom.iterable"],
+		"types": ["node"]
+	},
+	"include": [
+		"credentials/**/*",
+		"nodes/**/*",
+		"nodes/**/*.json",
+		"package.json",
+		"test/**/*.mts",
+		"vitest.config.mts"
+	]
+}

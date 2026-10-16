@@ -1,0 +1,38 @@
+[
+  {
+    "label": "Contacts",
+    "modules": [
+      "watchSubscribedContacts",
+      "watchUnsubscribedContacts",
+      "watchUpdatedContacts",
+      "createOrUpdateContact",
+      "addContactToList",
+      "addTagToContact"
+    ]
+  },
+  {
+    "label": "Forms",
+    "modules": [
+      "watchFormSubmissions"
+    ]
+  },
+  {
+    "label": "Events",
+    "modules": [
+      "recordEvent"
+    ]
+  },
+  {
+    "label": "Campaigns",
+    "modules": [
+      "watchSentCampaigns"
+    ]
+  },
+  {
+    "label": "Transactional email",
+    "modules": [
+      "sendTransactionalEmail",
+      "watchTransactionalBounces"
+    ]
+  }
+]

@@ -373,6 +373,24 @@ func Register(h huma.API, s *Service) {
 			}
 			return api.NoContent, s.Unsubscribe(ctx, api.WorkspaceFrom(ctx), id)
 		})
+	api.Get(h, api.Op{ID: OpGetHook, Path: "/workspaces/{workspace}/integration/hooks/{hookId}", Summary: "A workflow's managed webhook, without its secret",
+		Description: "n8n checks that a workflow's webhook still exists when the workflow is turned on, and subscribes again when it answers 404.",
+		Tags:        app, Access: api.IntegrationOnly("*", authz.WebhooksManage)},
+		func(ctx context.Context, in *hookPathInput) (*api.Body[IntegrationHook], error) {
+			id, err := uuid.Parse(in.HookID)
+			if err != nil {
+				return nil, api.NotFound("Webhook")
+			}
+			out, err := s.Hook(ctx, id)
+			return api.OK(out), err
+		})
+	api.Get(h, api.Op{ID: OpForms, Path: "/workspaces/{workspace}/integration/forms", Summary: "Signup forms, for the Form submitted trigger's form filter",
+		Description: "Only keys with the Form submitted trigger turned on can call it. It lists forms, never contacts.",
+		Tags:        app, Access: api.IntegrationOnly("*", authz.SubscribersView)},
+		func(ctx context.Context, _ *api.WorkspaceInput) (*api.Body[IntegrationFormItems], error) {
+			out, err := s.TriggerForms(ctx, api.WorkspaceFrom(ctx))
+			return api.OK(out), err
+		})
 	api.Get(h, api.Op{ID: OpSample, Path: "/workspaces/{workspace}/integration/samples/{event}", Summary: "A sample payload of a trigger, for field mapping",
 		Tags: app, Access: api.IntegrationOnly("*", authz.WebhooksManage)},
 		func(ctx context.Context, in *sampleInput) (*api.Body[IntegrationTriggerSample], error) {

@@ -1,0 +1,39 @@
+[
+  {
+    "name": "event",
+    "type": "text",
+    "label": "Event",
+    "required": true,
+    "help": "The event's name, such as workspace.created. Automations that start with this API event, or have it as their goal, run for the contact."
+  },
+  {
+    "name": "email",
+    "type": "email",
+    "label": "Email",
+    "required": true,
+    "help": "The contact the event is about. They must be in ReputeCast already: add them with Create or Update a Contact first."
+  },
+  {
+    "name": "properties",
+    "type": "array",
+    "label": "Properties",
+    "spec": {
+      "type": "collection",
+      "label": "Property",
+      "spec": [
+        {
+          "name": "name",
+          "type": "text",
+          "label": "Name",
+          "required": true
+        },
+        {
+          "name": "value",
+          "type": "text",
+          "label": "Value"
+        }
+      ]
+    },
+    "help": "Details of the event, such as plan: Team. Automations can use them in conditions and emails."
+  }
+]

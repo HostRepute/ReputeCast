@@ -4660,6 +4660,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/integration/forms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Signup forms, for the Form submitted trigger's form filter
+         * @description Only keys with the Form submitted trigger turned on can call it. It lists forms, never contacts.
+         */
+        get: operations["list-integration-forms"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/integration/hooks": {
         parameters: {
             query?: never;
@@ -4687,7 +4707,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * A workflow's managed webhook, without its secret
+         * @description n8n checks that a workflow's webhook still exists when the workflow is turned on, and subscribes again when it answers 404.
+         */
+        get: operations["get-integration-hook"];
         put?: never;
         post?: never;
         /** Unsubscribe: remove a workflow's managed webhook */
@@ -13279,6 +13303,19 @@ export interface components {
             /** Format: int32 */
             status: number;
         };
+        IntegrationFormItem: {
+            /**
+             * @description The form's ID, as form.submitted's form_id
+             * @example frm_8c2e1a
+             */
+            id: string;
+            name: string;
+            /** @enum {string} */
+            status: "draft" | "live" | "paused";
+        };
+        IntegrationFormItems: {
+            items: components["schemas"]["IntegrationFormItem"][];
+        };
         IntegrationGroup: {
             entries: components["schemas"]["IntegrationEntry"][];
             /** @enum {string} */
@@ -19678,6 +19715,7 @@ export interface components {
         WordPressDraftResult: {
             campaignId?: string;
             created: boolean;
+            languages?: string[];
             name?: string;
             /** @enum {string} */
             reason?: "no_rule" | "rule_off" | "category" | "exists" | "";
@@ -19723,6 +19761,17 @@ export interface components {
             language?: string;
             /** Format: date-time */
             publishedAt?: string;
+            title: string;
+            /** @description The post's translations (plugin 1.3.0, WPML or Polylang): they become the draft's language versions */
+            translations?: components["schemas"]["WordPressPostTranslation"][];
+            url?: string;
+        };
+        WordPressPostTranslation: {
+            excerpt?: string;
+            id: string;
+            imageUrl?: string;
+            /** @example es */
+            language: string;
             title: string;
             url?: string;
         };
@@ -30755,6 +30804,38 @@ export interface operations {
             };
         };
     };
+    "list-integration-forms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntegrationFormItems"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "subscribe-integration-hook": {
         parameters: {
             query?: never;
@@ -30776,6 +30857,39 @@ export interface operations {
         responses: {
             /** @description Created */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntegrationHook"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-integration-hook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                hookId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };

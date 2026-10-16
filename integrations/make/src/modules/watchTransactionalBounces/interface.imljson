@@ -1,0 +1,87 @@
+[
+  {
+    "name": "id",
+    "type": "text",
+    "label": "Event ID"
+  },
+  {
+    "name": "type",
+    "type": "text",
+    "label": "Event"
+  },
+  {
+    "name": "created_at",
+    "type": "date",
+    "label": "Event time"
+  },
+  {
+    "name": "workspace",
+    "type": "text",
+    "label": "Workspace"
+  },
+  {
+    "name": "data",
+    "type": "collection",
+    "label": "Data",
+    "spec": [
+      {
+        "name": "message_id",
+        "type": "text",
+        "label": "Message ID"
+      },
+      {
+        "name": "template",
+        "type": "text",
+        "label": "Template"
+      },
+      {
+        "name": "template_version",
+        "type": "uinteger",
+        "label": "Template version"
+      },
+      {
+        "name": "category",
+        "type": "text",
+        "label": "Category"
+      },
+      {
+        "name": "to",
+        "type": "email",
+        "label": "Recipient"
+      },
+      {
+        "name": "status",
+        "type": "text",
+        "label": "Status"
+      },
+      {
+        "name": "reason",
+        "type": "text",
+        "label": "Bounce reason"
+      },
+      {
+        "name": "provider",
+        "type": "text",
+        "label": "Sending provider"
+      },
+      {
+        "name": "tags",
+        "type": "array",
+        "label": "Tags",
+        "spec": {
+          "type": "text"
+        }
+      },
+      {
+        "name": "metadata",
+        "type": "any",
+        "label": "Metadata"
+      },
+      {
+        "name": "at",
+        "type": "date",
+        "label": "Bounced at"
+      }
+    ]
+  }
+]

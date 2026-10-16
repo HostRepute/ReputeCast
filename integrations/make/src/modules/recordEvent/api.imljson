@@ -1,0 +1,12 @@
+{
+  "url": "/workspaces/{{connection.workspace}}/automations/events",
+  "method": "POST",
+  "body": {
+    "event": "{{parameters.event}}",
+    "email": "{{parameters.email}}",
+    "properties": "{{if(length(parameters.properties) > 0, toCollection(parameters.properties, 'name', 'value'))}}"
+  },
+  "response": {
+    "output": "{{body}}"
+  }
+}

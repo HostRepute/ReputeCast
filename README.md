@@ -337,6 +337,11 @@ Found a vulnerability? Please email security@hostrepute.com instead of opening a
   give it permissions (for example reports and deliverability, or the right
   to pause a send but never to start one) and point your MCP client at
   `<public URL>/mcp` with the agent token. Agents' actions appear in the audit log.
+- **Integration apps** (Settings › Integrations, [docs/integrations/hub.md](docs/integrations/hub.md)), in `integrations/`:
+  - [Zapier](integrations/zapier/README.md): instant triggers and five actions, as a Zapier Platform app.
+  - [Make](integrations/make/README.md): instant triggers, actions and dynamic fields, as a Make custom app.
+  - [n8n](integrations/n8n/README.md): the `n8n-nodes-reputecast` community nodes, ReputeCast and ReputeCast Trigger.
+  - [WordPress](integrations/wordpress/README.md): the plugin's signup-form block and shortcode, post drafts and site health.
 
 ## Development
 
@@ -426,6 +431,7 @@ internal/
   demo/                the Acme sample data
 migrations/            goose SQL migrations (embedded)
 web/                   React app (embedded into the binary)
+integrations/          the Zapier, Make and n8n apps and the WordPress plugin
 site/                  reputecast.com landing page (static, prerendered)
 design/                the design prototype boards and the Clearwater design system
 docs/                  specs, roadmap, conventions, design inventory
