@@ -1,0 +1,38 @@
+import { defineMessages } from '@/i18n'
+
+/** Reset a password: request a link, the results, and the new-password page (A5 §5.3, AuthScreens). */
+export const m = defineMessages('auth.reset', {
+  title: 'Reset your password',
+  emailInvalid: 'Enter your work email, like you@company.com.',
+  emailUnavailableLabel: 'Email unavailable',
+  emailUnavailable: "No sending provider is connected to the System stream yet, so the reset email can't go out. An instance admin can reset it from the server:",
+  commandNote: 'The command prints a one-time link that works for {minutes} minutes. The same applies to two-factor resets: <mono>reputecast user reset-2fa --email …</mono>',
+  backToSignIn: 'Back to sign in',
+  managedTitle: 'Your password is managed by {name}',
+  ssoLabel: 'SSO',
+  managedNote: "{domain} accounts sign in through {name}. ReputeCast doesn't store a password for this account, so there is nothing to reset here.",
+  continueWith: 'Continue with {name}',
+  lockedOut: 'Locked out of {provider} too? Contact your {name} admin.',
+  workEmail: 'Work email',
+  emailMe: 'Email me a reset link',
+  sentLabel: 'Sent',
+  sent: "If {email} belongs to a member, a link is on its way. It works once and expires in {minutes} minutes. Check Promotions or spam if it's slow.",
+  expiredLabel: 'Expired',
+  expired: 'This reset link is older than 15 minutes or was already used. <link>Request a new one</link>; your current password still works until you change it.',
+  foot: '<link>Back to sign in</link> · Workspaces that use SSO reset passwords with their identity provider.',
+
+  newTitle: 'Set a new password',
+  checking: 'Checking the reset link…',
+  errorLabel: 'Error',
+  stillWorks: 'The link still works until it expires.',
+  tryAgain: 'Try again',
+  tooShort: 'Use at least {min} characters. Passphrases are fine.',
+  mismatch: "The two passwords don't match.",
+  notSavedLabel: 'Not saved',
+  newPassword: 'New password',
+  hintBreached: 'At least {min} characters. Checked against known breaches.',
+  hintPassphrase: 'At least {min} characters. Passphrases are fine.',
+  confirmPassword: 'Confirm new password',
+  save: 'Save new password',
+  tokenFoot: 'The link works once, until {time}. Saving signs out every session; two-factor still applies at sign-in.',
+})

@@ -8,7 +8,7 @@ import { OptionCard } from '@/components/ui/Field'
 import { Icon } from '@/components/icons/Icon'
 import { toast } from '@/components/ui/Toast'
 import { formatList, T, useT } from '@/i18n'
-import { ago, clock, dayMonthDate } from '@/lib/format'
+import { ago, clock, dayMonthDate, usDate } from '@/lib/format'
 import { useComposer } from '../context'
 import { useCategoryLabel } from './Header'
 import { mp } from './messages'
@@ -20,9 +20,11 @@ type Choice = 'optional' | 'later' | 'anyway'
 
 /** "just now", "5 min ago", "yesterday", "on Oct 3" for the approval sentences. */
 function askedWhen(t: ReturnType<typeof useT>, at: string | undefined): string {
-  const w = at ? ago(at) : 'now'
-  if (w === 'now') return t(mp.askedJustNow)
-  return w.endsWith(' ago') || w === 'yesterday' ? w : t(mp.askedOn, { date: w })
+  if (!at || Date.now() - Date.parse(at) < 45_000) return t(mp.askedJustNow)
+  // ago() writes a date once it's a week old; compare with the date rather
+  // than its words, which change with the language.
+  const w = ago(at)
+  return w === usDate(at) ? t(mp.askedOn, { date: w }) : w
 }
 
 function Diff({ preview, full }: { preview: PublishPreview; full: boolean }) {

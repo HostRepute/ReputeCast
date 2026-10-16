@@ -3,11 +3,12 @@ import { useId, useState } from 'react'
 import { ApiError } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
-import { count } from '@/lib/format'
+import { count, money } from '@/lib/format'
 import { confirmLanguages } from '@/features/languages/review'
 import { mr } from '@/features/languages/messages'
 import { useT } from '@/i18n'
-import { acknowledgedKeys, acknowledgements, minutes, plural, scheduleSentence, thresholdsLine, verdictTitle, type Review, type Run } from './logic'
+import { acknowledgedKeys, acknowledgements, minutes, scheduleSentence, thresholdsLine, verdictTitle, type Review, type Run } from './logic'
+import { m } from './messages'
 
 export type SendIntent = { acknowledged: string[]; confirm?: string }
 
@@ -52,7 +53,7 @@ export function ConfirmSend({
   const a = run.estimates.audience
   const missing = acks.filter((x) => !checked.includes(x.key)).length
   const countOK = !large || typed.replace(/\D/g, '') === String(recipients)
-  const reason = missing ? `Confirm ${missing === 1 ? 'the warning' : `the ${missing} warnings`} first.` : !countOK ? `Type ${recipients} to confirm.` : undefined
+  const reason = missing ? t(m.confirmWarnings, { count: missing }) : !countOK ? t(m.typeCount, { count: String(recipients) }) : undefined
   const close = (next: boolean) => {
     if (busy) return
     if (!next) {
@@ -72,30 +73,35 @@ export function ConfirmSend({
       close(false)
     } catch (e) {
       setBusy(false)
-      setError(e instanceof ApiError ? e.message : "Couldn't reach the server. Nothing was sent; try again.")
+      setError(e instanceof ApiError ? e.message : t(m.unreachable))
     }
   }
-  const title =
-    schedule.mode === 'now' ? `Send "${c.name}" to ${count(recipients)} ${plural(recipients, 'person', 'people')} now?` : `Schedule "${c.name}" for ${count(recipients)} ${plural(recipients, 'person', 'people')}?`
+  const title = schedule.mode === 'now' ? t(m.confirmTitleNow, { name: c.name, recipients }) : t(m.confirmTitleAt, { name: c.name, recipients })
   const when =
     schedule.mode === 'now'
-      ? 'Sending starts within a minute of confirming. Send Readiness runs again as it starts, and a Block stops the send.'
+      ? t(m.whenNow)
       : schedule.mode === 'best_time'
-        ? `Each contact gets it at their usual open time, within 24 h of ${scheduleSentence(schedule)}. Checks run again 15 minutes before the send, and the campaign pauses itself if any check turns to Block.`
-        : `${scheduleSentence(schedule)}. Checks run again 15 minutes before the send, and the campaign pauses itself if any check turns to Block.`
-  const excluded = [a.suppressed ? `${count(a.suppressed)} suppressed` : '', a.role ? `${count(a.role)} role` : '', a.duplicates ? `${count(a.duplicates)} duplicates` : '']
+        ? t(m.whenBest, { when: scheduleSentence(schedule) })
+        : t(m.whenAt, { when: scheduleSentence(schedule) })
+  const excluded = [
+    a.suppressed ? t(m.excludedSuppressed, { count: count(a.suppressed) }) : '',
+    a.role ? t(m.excludedRole, { count: count(a.role) }) : '',
+    a.duplicates ? t(m.excludedDuplicates, { count: count(a.duplicates) }) : '',
+  ]
     .filter(Boolean)
     .join(' · ')
+  const subjectLabel = t(m.rowSubject)
   const rows: [string, string][] = [
-    ['From', c.from || '—'],
-    ['Reply-to', c.replyTo || 'same as From'],
-    ['Subject', c.subject],
+    [t(m.rowFrom), c.from || '—'],
+    [t(m.rowReplyTo), c.replyTo || t(m.sameAsFrom)],
+    [subjectLabel, c.subject],
     ...(languages ? [[t(mr.confirmLabel), languages] as [string, string]] : []),
-    ['A/B', c.ab ? c.ab.label : 'No test'],
-    ['Route', shares.map((s) => `${s.short} ${count(s.recipients)}`).join(' · ')],
-    ['Cost · duration', `$${route.totalCost.toFixed(2)} · about ${minutes(route.totalMinutes)}`],
-    ['Auto-pause', thresholdsLine(review.thresholds)],
-    ['Excluded', excluded || 'nobody'],
+    // An A/B test's label comes from the server.
+    [t(m.rowAb), c.ab ? c.ab.label : t(m.noTest)],
+    [t(m.rowRoute), shares.map((s) => `${s.short} ${count(s.recipients)}`).join(' · ')],
+    [t(m.rowCost), t(m.costValue, { cost: money(route.totalCost, 2), duration: minutes(route.totalMinutes) })],
+    [t(m.rowAutoPause), thresholdsLine(review.thresholds)],
+    [t(m.rowExcluded), excluded || t(m.nobody)],
   ]
   return (
     <RDialog.Root open={open} onOpenChange={close}>
@@ -117,13 +123,13 @@ export function ConfirmSend({
                 {rows.map(([k, v]) => (
                   <div key={k} className="rv-sum">
                     <span className="k shrink-0">{k}</span>
-                    <span className={k === 'Subject' ? 'n text-right' : 'n'}>{v}</span>
+                    <span className={k === subjectLabel ? 'n text-right' : 'n'}>{v}</span>
                   </div>
                 ))}
               </div>
             </section>
             {acks.length ? (
-              <section className="c-acks" aria-label="Warnings to confirm">
+              <section className="c-acks" aria-label={t(m.warningsToConfirm)}>
                 {acks.map((x) => (
                   <label key={x.key} className="rv-chk">
                     <input
@@ -144,7 +150,7 @@ export function ConfirmSend({
                               onExclude()
                             }}
                           >
-                            Exclude them instead
+                            {t(m.excludeInstead)}
                           </a>
                         </>
                       ) : null}
@@ -156,7 +162,7 @@ export function ConfirmSend({
             <section className="c-last">
               {large ? (
                 <label className="rv-typed">
-                  Type the recipient count to confirm
+                  {t(m.typeToConfirm)}
                   <input
                     className="in mono rv-count"
                     inputMode="numeric"
@@ -168,7 +174,7 @@ export function ConfirmSend({
                       if (e.key === 'Enter') void confirm()
                     }}
                   />
-                  <span className="k font-medium">This is deliberate: large sends can't be recalled once they leave the queue.</span>
+                  <span className="k font-medium">{t(m.deliberate)}</span>
                 </label>
               ) : null}
               {error ? (
@@ -177,7 +183,7 @@ export function ConfirmSend({
                 </div>
               ) : null}
               <div className="flex flex-wrap justify-end gap-2.5">
-                <RDialog.Close className="btn min-h-11">Back</RDialog.Close>
+                <RDialog.Close className="btn min-h-11">{t(m.back)}</RDialog.Close>
                 <Button variant="primary" className="min-h-11 px-5 text-[14px]" disabledReason={reason} loading={busy} onClick={() => void confirm()}>
                   {action}
                 </Button>

@@ -6,7 +6,9 @@ type EventType struct {
 	Key      string
 	Label    string
 	Audience string
-	// Short is the plural phrase used in summaries ("Approvals, auto-pauses").
+	// Short is the plural phrase used in summaries ("Approvals,
+	// auto-pauses"), in English. messages/<locale>.json has it as
+	// short.<Key>, with its translations.
 	Short string
 	// DefaultEmail is used until the person saves their preferences.
 	DefaultEmail bool

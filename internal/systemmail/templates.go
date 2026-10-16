@@ -9,6 +9,9 @@ import (
 	"strings"
 	texttemplate "text/template"
 	"unicode/utf8"
+
+	"github.com/hostrepute/reputecast/internal/i18n"
+	"github.com/hostrepute/reputecast/internal/membermail"
 )
 
 //go:embed templates/*
@@ -31,18 +34,11 @@ type Brand struct {
 // ReputeCast's teal (public pages belong to the publisher).
 var subscriberKinds = map[string]bool{"double_opt_in": true, "preference_link": true}
 
-// reasons says why each kind of message was sent, under the body.
+// reasons says why subscribers' messages were sent, under the body. Team
+// mail says why in the member's language (internal/membermail).
 var reasons = map[string]string{
-	"password_reset":  "You get this email because someone asked to reset the password of this account. If it wasn't you, ignore it.",
-	"email_change":    "You get this email because someone asked to sign in with this address. If it wasn't you, ignore it.",
-	"email_changed":   "Sent to your previous address, so a change you didn't make doesn't go unnoticed.",
-	"invite":          "You get this email because a member of the workspace invited this address.",
 	"double_opt_in":   "You get this email because this address was used to subscribe. If it wasn't you, ignore it and you won't hear from us again.",
 	"preference_link": "You get this email because someone asked for a link to manage this address's subscriptions.",
-	"campaign_test":   "This is a test of a campaign; subscribers get the final version.",
-	"test":            "This is a test sent while connecting a sending provider.",
-	// Notifications already end with the preferences link.
-	"notification": "",
 }
 
 // Rendered is a message ready for a provider.
@@ -56,9 +52,17 @@ type Rendered struct {
 // Callers pass their own HTML fragment (trusted: they escape their values);
 // messages with text only get it converted.
 func Render(kind string, brand Brand, subject, text, body string) (Rendered, error) {
-	reason, ok := reasons[kind]
+	return RenderIn(i18n.Default, kind, brand, subject, text, body)
+}
+
+// RenderIn is Render with the layout in the reader's language.
+func RenderIn(l i18n.Lang, kind string, brand Brand, subject, text, body string) (Rendered, error) {
+	reason, ok := membermail.Reason(l, kind)
 	if !ok {
-		reason = "This is an automated message from " + brand.Name + "."
+		// Subscribers' mail follows their content language, not the app's.
+		if reason, ok = reasons[kind]; !ok {
+			reason = membermail.DefaultReason(l, brand.Name)
+		}
 	}
 	if strings.TrimSpace(body) == "" {
 		body = TextToHTML(text, brand.Accent)
@@ -74,8 +78,12 @@ func Render(kind string, brand Brand, subject, text, body string) (Rendered, err
 	if !hexColor.MatchString(accent) {
 		accent = "#0F766E"
 	}
+	lang := string(l.Locale)
+	if lang == "" || subscriberKinds[kind] {
+		lang = "en"
+	}
 	data := map[string]any{
-		"Subject": subject, "BrandName": brand.Name, "Initial": initial,
+		"Lang": lang, "Subject": subject, "BrandName": brand.Name, "Initial": initial,
 		"Accent": template.CSS(accent), //nolint:gosec // a validated hex colour
 		"Body":   template.HTML(body),  //nolint:gosec // the caller's own HTML fragment, its values already escaped
 		"Reason": reason, "Footer": brand.Footer, "Preheader": firstLine(text),

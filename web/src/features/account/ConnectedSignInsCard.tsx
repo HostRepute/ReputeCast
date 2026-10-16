@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { errorMessage, http, type Schemas } from '@/api/client'
 import { Button, ButtonAnchor } from '@/components/ui/Button'
 import { CardSection } from '@/components/ui/Card'
@@ -8,17 +8,23 @@ import { Table, Td, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { PasskeyGlyph, SocialMark } from '@/features/auth/AuthParts'
 import { passkeyErrorMessage, registerPasskey } from '@/features/auth/passkey'
+import { T, useT } from '@/i18n'
 import { useRefreshAccount } from './AccountPage'
+import { m } from './messages'
 
 type Account = Schemas['AccountOverview']
 type Identity = Schemas['AccountIdentity']
 
+const mono = (c: ReactNode) => <span className="mono">{c}</span>
+
 function Status({ i }: { i: Identity }) {
-  if (!i.linked) return <span className="k">Not linked</span>
+  const t = useT()
+  if (!i.linked) return <span className="k">{t(m.notLinked)}</span>
+  // The notes come from the server, in the member's language: "org acme-eng".
   const notes = i.notes.map((n) => ` · ${n}`).join('')
   const main = i.username ? (
     <span>
-      Linked as <span className="mono">{i.username}</span>
+      <T msg={m.linkedAs} values={{ username: i.username, mono }} />
       {notes}
     </span>
   ) : (
@@ -31,26 +37,27 @@ function Status({ i }: { i: Identity }) {
   return (
     <div className="col" style={{ gap: 2 }}>
       {main}
-      <span className="k">This is your only sign-in method. Add a passkey before unlinking.</span>
+      <span className="k">{t(m.onlyMethod)}</span>
     </div>
   )
 }
 
 /** Google, Microsoft, GitHub and SSO identities; the last way in can't be unlinked. */
 export function ConnectedSignInsCard({ a }: { a: Account }) {
+  const t = useT()
   const refresh = useRefreshAccount()
   const [unlink, setUnlink] = useState<Identity>()
   const [adding, setAdding] = useState(false)
   const ssoOnly = a.password.ssoOnly
   const showPasskeyRow = !a.password.set && a.passkeys.length === 0
   const table = (
-    <Table density="compact" className="[&_td]:whitespace-normal" caption="Connected sign-ins">
+    <Table density="compact" className="[&_td]:whitespace-normal" caption={t(m.connectedSignIns)}>
       <thead>
         <tr>
-          <Th>Method</Th>
-          <Th>Status</Th>
+          <Th>{t(m.method)}</Th>
+          <Th>{t(m.status)}</Th>
           <Th>
-            <span className="vh">Actions</span>
+            <span className="vh">{t(m.actions)}</span>
           </Th>
         </tr>
       </thead>
@@ -69,17 +76,17 @@ export function ConnectedSignInsCard({ a }: { a: Account }) {
             <Td>
               {!i.linked ? (
                 i.linkUrl ? (
-                  <ButtonAnchor size="sm" href={i.linkUrl} newTab={false} aria-label={`Link ${i.name}`}>
-                    Link
+                  <ButtonAnchor size="sm" href={i.linkUrl} newTab={false} aria-label={t(m.linkNamed, { name: i.name })}>
+                    {t(m.link)}
                   </ButtonAnchor>
                 ) : null
               ) : i.managed ? (
                 <Button size="sm" disabledReason={i.unlinkReason}>
-                  Managed
+                  {t(m.managed)}
                 </Button>
               ) : (
-                <Button size="sm" disabledReason={i.canUnlink ? undefined : i.unlinkReason} onClick={() => setUnlink(i)} aria-label={`Unlink ${i.name}`}>
-                  Unlink
+                <Button size="sm" disabledReason={i.canUnlink ? undefined : i.unlinkReason} onClick={() => setUnlink(i)} aria-label={t(m.unlinkNamed, { name: i.name })}>
+                  {t(m.unlink)}
                 </Button>
               )}
             </Td>
@@ -90,11 +97,11 @@ export function ConnectedSignInsCard({ a }: { a: Account }) {
             <Td>
               <div className="row flex-nowrap">
                 <PasskeyGlyph />
-                <span className="font-semibold">Passkeys</span>
+                <span className="font-semibold">{t(m.passkeys)}</span>
               </div>
             </Td>
             <Td>
-              <span className="k">None yet</span>
+              <span className="k">{t(m.noneYet)}</span>
             </Td>
             <Td>
               <Button
@@ -106,15 +113,15 @@ export function ConnectedSignInsCard({ a }: { a: Account }) {
                   try {
                     const pk = await registerPasskey()
                     await refresh()
-                    toast({ kind: 'success', title: 'Passkey added', detail: pk.name })
+                    toast({ kind: 'success', title: t(m.passkeyAdded), detail: pk.name })
                   } catch (e) {
-                    toast({ kind: 'error', title: 'No passkey added', detail: passkeyErrorMessage(e, 'add') })
+                    toast({ kind: 'error', title: t(m.noPasskeyAdded), detail: passkeyErrorMessage(e, 'add') })
                   } finally {
                     setAdding(false)
                   }
                 }}
               >
-                Add a passkey
+                {t(m.addPasskey)}
               </Button>
             </Td>
           </tr>
@@ -122,7 +129,7 @@ export function ConnectedSignInsCard({ a }: { a: Account }) {
         {a.identities.length === 0 && !showPasskeyRow ? (
           <tr>
             <Td colSpan={3}>
-              <span className="k">No social or single sign-on accounts are available on this instance.</span>
+              <span className="k">{t(m.noIdentities)}</span>
             </Td>
           </tr>
         ) : null}
@@ -131,15 +138,15 @@ export function ConnectedSignInsCard({ a }: { a: Account }) {
   )
   return (
     <section className="card" aria-labelledby="h-signins">
-      <CardSection id="h-signins" title="Connected sign-ins" caption="Linking lets you sign in with these; your last remaining method can't be unlinked" />
+      <CardSection id="h-signins" title={t(m.connectedSignIns)} caption={t(m.signInsCaption)} />
       {ssoOnly ? (
         <div className="pad col" style={{ gap: 12 }}>
-          <Note tone="info" label="SSO">
-            {a.profile.email} signs in through {a.password.managedBy}. There is no ReputeCast password for this account, so the Password section is hidden.
+          <Note tone="info" label={t(m.sso)}>
+            {t(m.ssoOnlyNote, { email: a.profile.email, provider: a.password.managedBy ?? '' })}
           </Note>
           {table}
           <Note tone="neutral">
-            Two-factor: <b>via IdP</b>. {a.password.managedBy} enforces it; ReputeCast trusts the <span className="mono">amr</span> claim and shows it in the team list.
+            <T msg={m.viaIdpNote} values={{ provider: a.password.managedBy ?? '', b: (c) => <b>{c}</b>, mono }} />
           </Note>
         </div>
       ) : (
@@ -151,6 +158,7 @@ export function ConnectedSignInsCard({ a }: { a: Account }) {
 }
 
 function UnlinkDialog({ identity, onClose, onDone }: { identity?: Identity; onClose: () => void; onDone: () => Promise<void> }) {
+  const t = useT()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string>()
   return (
@@ -161,11 +169,11 @@ function UnlinkDialog({ identity, onClose, onDone }: { identity?: Identity; onCl
         setError(undefined)
         onClose()
       }}
-      title={`Unlink ${identity?.name ?? ''}?`}
+      title={t(m.unlinkTitle, { name: identity?.name ?? '' })}
       size="sm"
       footer={
         <>
-          <Button onClick={onClose}>Keep it linked</Button>
+          <Button onClick={onClose}>{t(m.keepLinked)}</Button>
           <Button
             variant="danger-primary"
             loading={busy}
@@ -176,7 +184,7 @@ function UnlinkDialog({ identity, onClose, onDone }: { identity?: Identity; onCl
               try {
                 await http.DELETE('/api/v1/me/identities/{id}', { params: { path: { id: identity.id } } })
                 await onDone()
-                toast({ kind: 'deleted', title: `${identity.name} unlinked` })
+                toast({ kind: 'deleted', title: t(m.unlinked, { name: identity.name }) })
                 onClose()
               } catch (e) {
                 setError(errorMessage(e))
@@ -185,14 +193,14 @@ function UnlinkDialog({ identity, onClose, onDone }: { identity?: Identity; onCl
               }
             }}
           >
-            Unlink
+            {t(m.unlink)}
           </Button>
         </>
       }
     >
-      <p className="text-ink-2">You won't be able to sign in with {identity?.name} until you link it again. Your other sign-in methods stay as they are.</p>
+      <p className="text-ink-2">{t(m.unlinkBody, { name: identity?.name ?? '' })}</p>
       {error ? (
-        <Note tone="bad" label="Not unlinked">
+        <Note tone="bad" label={t(m.notUnlinked)}>
           {error}
         </Note>
       ) : null}

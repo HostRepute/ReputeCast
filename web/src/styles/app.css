@@ -13,6 +13,7 @@
 @import 'tailwindcss';
 @import './tokens.css';
 @import './fonts.css';
+@import './expansion.css';
 
 @theme inline {
   --font-sans: var(--font-family-sans);

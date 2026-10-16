@@ -25,7 +25,9 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/mailer"
+	"github.com/hostrepute/reputecast/internal/membermail"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/routing"
@@ -218,8 +220,8 @@ func (m *Mailer) SendSystem(ctx context.Context, msg mailer.Message) (string, er
 			lastErr = err
 			continue
 		}
-		brand := m.brand(ctx, wsID, kind, msg.WorkspaceID == nil)
-		rendered, err := Render(kind, brand, msg.Subject, msg.Text, msg.HTML)
+		brand := m.brand(ctx, wsID, kind, msg.WorkspaceID == nil, msg.Lang)
+		rendered, err := RenderIn(msg.Lang, kind, brand, msg.Subject, msg.Text, msg.HTML)
 		if err != nil {
 			return "", err
 		}
@@ -289,7 +291,7 @@ var hexColor = regexp.MustCompile(`^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$`)
 
 // brand is ReputeCast's (the instance's) for team mail and the publisher's
 // for subscriber mail.
-func (m *Mailer) brand(ctx context.Context, wsID uuid.UUID, kind string, instanceLevel bool) Brand {
+func (m *Mailer) brand(ctx context.Context, wsID uuid.UUID, kind string, instanceLevel bool, l i18n.Lang) Brand {
 	name, public := "ReputeCast", ""
 	if m.Instance != nil {
 		if n, p := m.Instance(ctx); n != "" {
@@ -302,10 +304,7 @@ func (m *Mailer) brand(ctx context.Context, wsID uuid.UUID, kind string, instanc
 	if u, err := url.Parse(public); err == nil && u.Host != "" {
 		host = u.Host
 	}
-	b := Brand{Name: name, Accent: "#0F766E", Footer: "Sent by " + name}
-	if host != "" {
-		b.Footer += " · " + host
-	}
+	b := Brand{Name: name, Accent: "#0F766E", Footer: membermail.Footer(l, name, "", host)}
 	if instanceLevel && !subscriberKinds[kind] {
 		return b
 	}
@@ -314,10 +313,7 @@ func (m *Mailer) brand(ctx context.Context, wsID uuid.UUID, kind string, instanc
 		return b
 	}
 	if !subscriberKinds[kind] {
-		b.Footer = "Sent by " + name + " for " + ws.Name
-		if host != "" {
-			b.Footer += " · " + host
-		}
+		b.Footer = membermail.Footer(l, name, ws.Name, host)
 		return b
 	}
 	var branding struct {

@@ -1,0 +1,11 @@
+{
+  "audience.all": { "message": "All subscribers", "note": "the audience of a campaign sent to every list" },
+  "audience.segments": "{count, plural, one {# segment} other {# segments}}",
+
+  "note.ab": { "message": "A/B {kind, select, subject {subject} content {content} send_time {send time} other {{kindName}}}", "note": "an A/B test that ran, in the campaign list: A/B subject" },
+  "note.abWinner": { "message": "A/B {kind, select, subject {subject} content {content} send_time {send time} other {{kindName}}}, winner {winner}", "note": "winner: A or B" },
+
+  "note.autoPaused": { "message": "auto-paused {count, plural, one {once} =2 {twice} other {# times}}", "note": "a send the guard paused, in the campaign list" },
+  "note.autoPausedOn": { "message": "auto-paused {count, plural, one {once} =2 {twice} other {# times}}, {mailbox} {metric, select, deferral {deferrals} complaint {complaints} bounce {bounces} other {{metricName}}}", "note": "mailbox: Gmail, Outlook, Yahoo, iCloud" },
+  "mailbox.other": { "message": "Other", "note": "mailbox providers other than Gmail, Outlook, Yahoo and iCloud" }
+}

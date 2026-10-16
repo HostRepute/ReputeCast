@@ -1,0 +1,57 @@
+{
+  "reason.default": "This is an automated message from {brand}.",
+  "reason.password_reset": "You get this email because someone asked to reset the password of this account. If it wasn't you, ignore it.",
+  "reason.email_change": "You get this email because someone asked to sign in with this address. If it wasn't you, ignore it.",
+  "reason.email_changed": "Sent to your previous address, so a change you didn't make doesn't go unnoticed.",
+  "reason.invite": "You get this email because a member of the workspace invited this address.",
+  "reason.campaign_test": "This is a test of a campaign; subscribers get the final version.",
+  "reason.test": "This is a test sent while connecting a sending provider.",
+
+  "footer.sentBy": { "message": "Sent by {instance}", "note": "instance: the instance's name, like Acme ReputeCast" },
+  "footer.sentByHost": "Sent by {instance} · {host}",
+  "footer.sentFor": "Sent by {instance} for {workspace}",
+  "footer.sentForHost": "Sent by {instance} for {workspace} · {host}",
+
+  "linkLine": { "message": "{label}: {url}", "note": "a link in the plain-text version of an email" },
+
+  "invite.subject": "{inviter} invited you to {workspace}",
+  "invite.lead": "{inviter} invited you to {workspace} on ReputeCast as {role}.",
+  "invite.action": "Accept the invitation",
+  "invite.expires": { "message": "The link works until {date}.", "note": "date: Oct 22, 2026" },
+
+  "reset.subject": "Reset your {instance} password",
+  "reset.lead": "Someone asked to reset the password of <b>{email}</b> on {instance}.",
+  "reset.action": "Set a new password",
+  "reset.note": "The link works once and expires in 15 minutes. If it wasn't you, ignore this email; your password stays the same.",
+
+  "resetSso.subject": "How you sign in to {instance}",
+  "resetSso.lead": "Someone asked to reset the password of <b>{email}</b> on {instance}. This account has no password: it signs in with {provider}.",
+  "resetSso.action": "Sign in",
+  "resetSso.note": "If it wasn't you, ignore this email.",
+
+  "adminReset.subject": "Reset your {instance} password",
+  "adminReset.lead": "{admin}, an instance admin, sent you a link to set a new password for <b>{email}</b> on {instance}.",
+  "adminReset.action": "Set a new password",
+  "adminReset.note": "The link works once and expires in 15 minutes. Your current password keeps working until you use it.",
+
+  "emailChange.subject": "Confirm your new email for {instance}",
+  "emailChange.lead": "{email} asked to sign in to {instance} with this address from now on.",
+  "emailChange.action": "Confirm the change",
+  "emailChange.note": "The link works for 24 hours. If you didn't ask for this, ignore this email.",
+
+  "emailChanged.subject": "Your {instance} email was changed",
+  "emailChanged.lead": "The account that used {old} on {instance} now signs in with {new}. If you didn't do this, contact your instance admin right away.",
+
+  "twofaReset.subject": "Two-factor was reset on your {instance} account",
+  "twofaReset.lead": "{admin}, an instance admin, reset two-factor on your account <b>{email}</b>.",
+  "twofaReset.reason": "Reason: {reason}",
+  "twofaReset.note": { "message": "Sign in with your password and set up an authenticator app again before {date}. If you didn't ask for this, tell your admin right away.", "note": "date: Oct 22, 2026" },
+
+  "notify.subject": { "message": "[{workspace}] {title}", "note": "title: the notification's title" },
+  "notify.digestSubject": "{count, plural, one {# notification} other {# notifications}}",
+  "notify.open": "Open in ReputeCast",
+  "notify.openShort": "Open",
+  "notify.openText": "Open: {url}",
+  "notify.why": "You get this email because of your <link>notification preferences</link>.",
+  "notify.whyText": "You get this email because of your notification preferences: {url}"
+}

@@ -377,6 +377,15 @@ const icons = {
       </>
     ),
   },
+  // App languages (user menu: "Language: English").
+  language: {
+    body: (
+      <>
+        <circle cx="8" cy="8" r="6.2" />
+        <path d="M1.8 8h12.4M8 1.8c1.8 1.7 2.7 3.8 2.7 6.2S9.8 12.5 8 14.2C6.2 12.5 5.3 10.4 5.3 8S6.2 3.5 8 1.8z" strokeLinejoin="round" />
+      </>
+    ),
+  },
 } satisfies Record<string, IconDef>
 
 export type IconName = keyof typeof icons

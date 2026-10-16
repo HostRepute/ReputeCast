@@ -29,7 +29,8 @@ var (
 	seedTransactionalTemplates = noop
 	seedAccessibility          = noop // accessibility policy, Weekly Digest #143, the gallery's and the publish dialog's issues (seed_accessibility.go)
 	// content languages: workspace languages, contacts' languages, versions of #142 and #143 (seed_languages.go)
-	seedLanguages = noop
+	seedLanguages    = noop
+	seedAppLanguages = noop // app languages: instance defaults, Marcus's region format, the invitation's language (seed_app_languages.go)
 )
 
 func noop(context.Context, *Seeder) error { return nil }

@@ -5,11 +5,13 @@ import { ApiError, errorMessage, http, type Schemas } from '@/api/client'
 import { AuthLayout, useInstanceMeta } from '@/components/shell/AuthLayout'
 import { Button } from '@/components/ui/Button'
 import { Note } from '@/components/ui/Note'
-import { usDate } from '@/lib/format'
+import { T, useT, type MessageDescriptor } from '@/i18n'
+import { clock, usDate } from '@/lib/format'
 import { meQueryKey } from '@/lib/session'
 import { AuthHeading, InlineAction, NotYou, OtpInput, orgName, PasskeyGlyph, SocialButtons, SocialMark } from './AuthParts'
 import { passkeyErrorMessage, passkeySecondFactor, passkeySignIn } from './passkey'
 import { RecoveryCodesPanel } from './RecoveryCodes'
+import { m } from './signin.messages'
 
 export interface SignInSearch {
   next?: string
@@ -255,6 +257,7 @@ function EmailStep({
   onPasskey: (r: Schemas['SignInResult']) => void
   onProblem: (email: string, e: unknown) => boolean
 }) {
+  const t = useT()
   const { data: meta } = useInstanceMeta()
   const [email, setEmail] = useState(initial ?? '')
   const [busy, setBusy] = useState(false)
@@ -263,7 +266,7 @@ function EmailStep({
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      setError('Enter your work email, like you@company.com.')
+      setError(t(m.emailInvalid))
       return
     }
     setBusy(true)
@@ -281,27 +284,27 @@ function EmailStep({
   }
   const social = meta?.social ?? []
   return (
-    <AuthLayout title="Sign in" labelledBy="h-signin">
-      <AuthHeading id="h-signin" title="Sign in" sub="Enter your work email. If your organization uses single sign-on, you go straight to it." />
+    <AuthLayout title={t(m.title)} labelledBy="h-signin">
+      <AuthHeading id="h-signin" title={t(m.title)} sub={t(m.emailSub)} />
       {expired ? (
-        <Note tone="info" label="Session ended">
-          Your session timed out. Sign in again to pick up where you left off.
+        <Note tone="info" label={t(m.sessionEndedLabel)}>
+          {t(m.sessionEnded)}
         </Note>
       ) : null}
       {resetDone ? (
-        <Note tone="ok" label="Password changed">
-          Sign in with your new password. Every other session was signed out.
+        <Note tone="ok" label={t(m.passwordChangedLabel)}>
+          {t(m.passwordChanged)}
         </Note>
       ) : null}
       <form className="flex flex-col gap-4" onSubmit={submit} noValidate>
         <label className="lbl">
-          Work email
+          {t(m.workEmail)}
           <input
             className={error ? 'in err' : 'in'}
             type="email"
             name="email"
             autoComplete="username"
-            placeholder="you@company.com"
+            placeholder={t(m.emailPlaceholder)}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -316,18 +319,18 @@ function EmailStep({
           ) : null}
         </label>
         <Button type="submit" variant="primary" loading={busy}>
-          Continue
+          {t(m.continue)}
         </Button>
       </form>
-      {meta?.passkeys !== false ? <PasskeyButton label="Sign in with a passkey" onDone={onPasskey} onProblem={(e) => onProblem('', e)} /> : null}
+      {meta?.passkeys !== false ? <PasskeyButton label={t(m.passkeySignIn)} onDone={onPasskey} onProblem={(e) => onProblem('', e)} /> : null}
       {social.length > 0 ? (
         <>
-          <div className="sep">or continue with</div>
+          <div className="sep">{t(m.orContinueWith)}</div>
           <SocialButtons providers={social} href={(p) => withNext(`/api/v1/auth/social/${p}/start`, next)} />
         </>
       ) : null}
       <span className="foot">
-        <Link to="/reset-password">Forgot password?</Link> · No account? Ask an admin to invite you.
+        <T msg={m.foot} values={{ reset: (c) => <Link to="/reset-password">{c}</Link> }} />
       </span>
     </AuthLayout>
   )
@@ -346,6 +349,7 @@ function PasswordStep({
   onSubmit: (pw: string) => Promise<void>
   onPasskey: (r: Schemas['SignInResult']) => void
 }) {
+  const t = useT()
   const { data: meta } = useInstanceMeta()
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
@@ -374,12 +378,12 @@ function PasswordStep({
   const domain = step.email.split('@')[1]?.toLowerCase() ?? ''
   const sso = meta?.sso.find((p) => p.domains.includes(domain))
   return (
-    <AuthLayout title="Sign in" labelledBy="h-password">
-      <AuthHeading id="h-password" title="Sign in" sub={<NotYou email={step.email} onBack={onBack} />} />
+    <AuthLayout title={t(m.title)} labelledBy="h-password">
+      <AuthHeading id="h-password" title={t(m.title)} sub={<NotYou email={step.email} onBack={onBack} />} />
       <form className="flex flex-col gap-4" onSubmit={submit}>
         <input type="email" name="email" autoComplete="username" value={step.email} readOnly hidden />
         <label className="lbl">
-          Password
+          {t(m.password)}
           <input
             className={step.error ? 'in err' : 'in'}
             type="password"
@@ -399,29 +403,29 @@ function PasswordStep({
           ) : null}
         </label>
         <Button type="submit" variant="primary" loading={busy}>
-          Continue
+          {t(m.continue)}
         </Button>
       </form>
       <div className="links">
         <Link to="/reset-password" search={{ email: step.email }}>
-          Forgot password?
+          {t(m.forgotPassword)}
         </Link>
         {meta?.passkeys !== false ? (
           <button type="button" onClick={usePasskey}>
-            Use a passkey instead
+            {t(m.usePasskeyInstead)}
           </button>
         ) : null}
       </div>
       {sso ? (
         <>
-          <div className="sep">or</div>
+          <div className="sep">{t(m.or)}</div>
           <a className="btn" href={withNext(`${sso.startUrl}?login_hint=${encodeURIComponent(step.email)}`, next)}>
             <SocialMark provider={ssoMark(sso.preset)} />
-            Continue with {sso.name}
+            {t(m.continueWith, { name: sso.name })}
           </a>
         </>
       ) : null}
-      {step.error ? <span className="foot">The message is the same whether or not an account exists for this email.</span> : null}
+      {step.error ? <span className="foot">{t(m.sameMessage)}</span> : null}
     </AuthLayout>
   )
 }
@@ -432,23 +436,23 @@ function ssoMark(preset: string) {
 }
 
 function SsoStep({ step, next, onPassword, onBack }: { step: Extract<Step, { kind: 'sso' }>; next?: string; onPassword: () => void; onBack: () => void }) {
+  const t = useT()
   const domain = step.email.split('@')[1] ?? ''
   const google = step.sso.preset === 'google'
   return (
-    <AuthLayout title={`Continue with ${step.sso.name}`} labelledBy="h-sso">
-      <AuthHeading id="h-sso" title={`Continue with ${step.sso.name}`} sub={<NotYou email={step.email} onBack={onBack} />} />
-      <Note tone="info" label="SSO">
-        {domain} signs in with {step.sso.name}. Password sign-in is turned off for this domain.
+    <AuthLayout title={t(m.continueWith, { name: step.sso.name })} labelledBy="h-sso">
+      <AuthHeading id="h-sso" title={t(m.continueWith, { name: step.sso.name })} sub={<NotYou email={step.email} onBack={onBack} />} />
+      <Note tone="info" label={t(m.ssoLabel)}>
+        {t(m.ssoNote, { domain, name: step.sso.name })}
       </Note>
       <a className="btn pri" href={withNext(step.sso.startUrl, next)}>
         <SocialMark provider={ssoMark(step.sso.preset)} />
-        Continue with {step.sso.name}
+        {t(m.continueWith, { name: step.sso.name })}
       </a>
-      <Note tone="neutral" label="Owner">
-        Owners keep a break-glass sign-in for emergencies. <InlineAction onClick={onPassword}>Sign in with password</InlineAction> (password and two-factor required; the sign-in
-        is logged).
+      <Note tone="neutral" label={t(m.ownerLabel)}>
+        <T msg={m.breakGlass} values={{ action: (c) => <InlineAction onClick={onPassword}>{c}</InlineAction> }} />
       </Note>
-      <span className="foot">You will return here after {google ? 'Google' : step.sso.name} confirms your identity.</span>
+      <span className="foot">{t(m.returnAfter, { name: google ? 'Google' : step.sso.name })}</span>
     </AuthLayout>
   )
 }
@@ -466,41 +470,40 @@ function useCountdown(until: string) {
 }
 
 function LockedStep({ step, onBack, onPasskey }: { step: Extract<Step, { kind: 'locked' }>; onBack: () => void; onPasskey: (r: Schemas['SignInResult']) => void }) {
+  const t = useT()
   const { data: meta } = useInstanceMeta()
   const { left, label } = useCountdown(step.until)
-  const at = new Date(step.until).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+  const at = clock(step.until)
   return (
-    <AuthLayout title="Sign-in is locked" labelledBy="h-lock">
-      <AuthHeading id="h-lock" title={left > 0 ? 'Sign-in is locked' : 'You can sign in again'} sub={`${step.email} · ${step.failures} failed attempts`} />
+    <AuthLayout title={t(m.lockedTitle)} labelledBy="h-lock">
+      <AuthHeading id="h-lock" title={left > 0 ? t(m.lockedTitle) : t(m.unlockedTitle)} sub={t(m.lockedSub, { email: step.email, count: step.failures })} />
       {left > 0 ? (
         <div className="lock" role="timer" aria-live="off">
           <span className="t">{label}</span>
-          <span className="k">remaining · sign-in reopens at {at}</span>
+          <span className="k">{t(m.lockedRemaining, { time: at })}</span>
         </div>
       ) : null}
-      <p className="body">
-        Lockouts protect your account. If this was you, reset your password or use a passkey. If it wasn't, tell an instance admin: the attempts are in the audit log with their IP
-        addresses.
-      </p>
+      <p className="body">{t(m.lockedBody)}</p>
       <div className="tiles">
         <Link className="btn" to="/reset-password" search={{ email: step.email }}>
-          Reset password
+          {t(m.resetPassword)}
         </Link>
-        {left > 0 ? meta?.passkeys !== false ? <PasskeyButton label="Use a passkey" onDone={onPasskey} /> : null : <Button onClick={onBack}>Sign in</Button>}
+        {left > 0 ? meta?.passkeys !== false ? <PasskeyButton label={t(m.usePasskey)} onDone={onPasskey} /> : null : <Button onClick={onBack}>{t(m.signInButton)}</Button>}
       </div>
     </AuthLayout>
   )
 }
 
 function DeactivatedStep({ step, onBack }: { step: Extract<Step, { kind: 'deactivated' }>; onBack: () => void }) {
+  const t = useT()
   return (
-    <AuthLayout title="This account was deactivated" labelledBy="h-deact">
-      <AuthHeading id="h-deact" title="This account was deactivated" sub={step.email} />
-      <Note tone="warn" label="Deactivated">
-        Your account was deactivated{step.at ? ` on ${usDate(step.at)}` : ''} by an instance admin. Your history stays in the audit log; you can't sign in.
+    <AuthLayout title={t(m.deactivatedTitle)} labelledBy="h-deact">
+      <AuthHeading id="h-deact" title={t(m.deactivatedTitle)} sub={step.email} />
+      <Note tone="warn" label={t(m.deactivatedLabel)}>
+        {step.at ? t(m.deactivatedOn, { date: usDate(step.at) }) : t(m.deactivated)}
       </Note>
-      <p className="body">Think this is a mistake? Ask your instance admin to reactivate the account. Nothing was deleted.</p>
-      <Button onClick={onBack}>Back to sign in</Button>
+      <p className="body">{t(m.deactivatedMistake)}</p>
+      <Button onClick={onBack}>{t(m.backToSignIn)}</Button>
     </AuthLayout>
   )
 }
@@ -520,6 +523,7 @@ function TwoFactorStep({
   onExpired: (message: string) => void
   onError: (message: string) => void
 }) {
+  const t = useT()
   const [code, setCode] = useState('')
   const [busy, setBusy] = useState(false)
   const [localError, setLocalError] = useState<string>()
@@ -536,7 +540,7 @@ function TwoFactorStep({
     e.preventDefault()
     const totp = step.mode === 'totp'
     if (totp ? code.length < 6 : code.trim().length < 12) {
-      setLocalError(totp ? 'Enter all 6 digits.' : 'Enter the whole recovery code, like b4xk-9q2m-7hdn.')
+      setLocalError(totp ? t(m.enterSixDigits) : t(m.enterRecovery))
       return
     }
     setLocalError(undefined)
@@ -577,17 +581,17 @@ function TwoFactorStep({
     <div className="links">
       {step.mode !== 'passkey' && has('passkey') ? (
         <button type="button" onClick={() => onMode('passkey')}>
-          Use a passkey instead
+          {t(m.usePasskeyInstead)}
         </button>
       ) : null}
       {step.mode !== 'totp' && has('totp') ? (
         <button type="button" onClick={() => onMode('totp')}>
-          Use my authenticator app
+          {t(m.useAuthenticator)}
         </button>
       ) : null}
       {step.mode !== 'recovery' && has('recovery') ? (
         <button type="button" onClick={() => onMode('recovery')}>
-          Use a recovery code
+          {t(m.useRecovery)}
         </button>
       ) : null}
     </div>
@@ -595,12 +599,12 @@ function TwoFactorStep({
 
   if (step.mode === 'passkey') {
     return (
-      <AuthLayout title="Confirm with your passkey" labelledBy="h-2fa-pk">
-        <AuthHeading id="h-2fa-pk" title="Confirm with your passkey" sub={`Signing in as ${step.email}`} />
+      <AuthLayout title={t(m.passkeyTitle)} labelledBy="h-2fa-pk">
+        <AuthHeading id="h-2fa-pk" title={t(m.passkeyTitle)} sub={t(m.signingInAs, { email: step.email })} />
         <div className="lock">
           <PasskeyGlyph size={44} strokeWidth={1.4} color="#0F766E" />
           {step.passkeyHint ? <span className="pk-name">{step.passkeyHint}</span> : null}
-          <span className="k">{busy ? 'Your browser is asking for your passkey' : 'Use the button to confirm with your passkey'}</span>
+          <span className="k">{busy ? t(m.browserAsking) : t(m.useButton)}</span>
         </div>
         {error ? (
           <span className="err" role="alert">
@@ -611,7 +615,7 @@ function TwoFactorStep({
             glyph (TwoFactorStates); a second press would only be refused. */}
         <Button variant="primary" aria-busy={busy || undefined} onClick={busy ? undefined : confirmPasskey}>
           <PasskeyGlyph />
-          Use passkey
+          {t(m.usePasskeyButton)}
         </Button>
         {links}
       </AuthLayout>
@@ -619,18 +623,15 @@ function TwoFactorStep({
   }
 
   const totp = step.mode === 'totp'
+  const signingInAs = t(m.signingInAs, { email: step.email })
   return (
-    <AuthLayout title={totp ? 'Check your authenticator' : 'Use a recovery code'} labelledBy="h-2fa">
-      <AuthHeading
-        id="h-2fa"
-        title={totp ? 'Check your authenticator' : 'Use a recovery code'}
-        sub={totp && !error ? <NotYou email={`Signing in as ${step.email}`} onBack={onBack} /> : `Signing in as ${step.email}`}
-      />
+    <AuthLayout title={totp ? t(m.checkAuthenticator) : t(m.useRecovery)} labelledBy="h-2fa">
+      <AuthHeading id="h-2fa" title={totp ? t(m.checkAuthenticator) : t(m.useRecovery)} sub={totp && !error ? <NotYou email={signingInAs} onBack={onBack} /> : signingInAs} />
       <form className="flex flex-col gap-4" onSubmit={submit}>
         {totp ? (
           <div className="stack-8">
             <span className="otp-label" id="otp-label">
-              {error ? '6-digit code' : '6-digit code from your authenticator app'}
+              {error ? t(m.codeLabelShort) : t(m.codeLabel)}
             </span>
             <OtpInput value={code} onChange={setCode} invalid={Boolean(error)} describedBy={error ? errId : undefined} labelledBy="otp-label" />
             {error ? (
@@ -638,17 +639,18 @@ function TwoFactorStep({
                 {error}
               </span>
             ) : (
-              <span className="k">You can paste the whole code. It changes every 30 seconds.</span>
+              <span className="k">{t(m.pasteHint)}</span>
             )}
           </div>
         ) : (
           <label className="lbl">
-            Recovery code
+            {t(m.recoveryCode)}
             <input
               className={error ? 'in err mono' : 'in mono'}
               value={code}
               onChange={(e) => setCode(e.target.value)}
-              placeholder="xxxx-xxxx-xxxx"
+              // The code's format, the same in every language.
+              placeholder={'xxxx-xxxx-xxxx'}
               autoComplete="one-time-code"
               spellCheck={false}
               autoFocus
@@ -661,37 +663,37 @@ function TwoFactorStep({
               </span>
             ) : (
               <span className="k">
-                Each code works once.
-                {step.recoveryLeft !== undefined ? ` ${step.recoveryLeft} of ${step.recoveryTotal ?? 10} remain.` : ''}
+                {step.recoveryLeft !== undefined ? t(m.eachCodeOnceLeft, { left: step.recoveryLeft, total: step.recoveryTotal ?? 10 }) : t(m.eachCodeOnce)}
               </span>
             )}
           </label>
         )}
         <Button type="submit" variant="primary" loading={busy}>
-          Verify and sign in
+          {t(m.verify)}
         </Button>
       </form>
       {links}
-      {totp && !error ? <span className="foot">Lost your device? An instance admin can reset two-factor for you; the reset is logged with a reason.</span> : null}
-      {!totp ? <span className="foot">Lost the codes and your device? An instance admin can reset two-factor for you; the reset is logged with a reason.</span> : null}
+      {totp && !error ? <span className="foot">{t(m.lostDevice)}</span> : null}
+      {!totp ? <span className="foot">{t(m.lostCodes)}</span> : null}
     </AuthLayout>
   )
 }
 
 function LastCodeStep({ step }: { step: Extract<Step, { kind: 'last_code' }> }) {
+  const t = useT()
   const navigate = useNavigate()
   const [codes, setCodes] = useState<string[]>()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string>()
   return (
-    <AuthLayout title="Signed in with your last recovery code" labelledBy="h-last">
-      <AuthHeading id="h-last" title="Signed in with your last recovery code" sub={step.email} />
+    <AuthLayout title={t(m.lastCodeTitle)} labelledBy="h-last">
+      <AuthHeading id="h-last" title={t(m.lastCodeTitle)} sub={step.email} />
       {codes ? (
-        <RecoveryCodesPanel codes={codes} email={step.email} onFinish={() => navigate({ to: step.next })} finishLabel="Continue" />
+        <RecoveryCodesPanel codes={codes} email={step.email} onFinish={() => navigate({ to: step.next })} finishLabel={t(m.continue)} />
       ) : (
         <>
-          <Note tone="warn" label={`0 of ${step.total} left`} role="alert">
-            That was your last recovery code. Generate a new set now so you aren't locked out if you lose your authenticator.
+          <Note tone="warn" label={t(m.lastCodeLeft, { total: step.total })} role="alert">
+            {t(m.lastCodeBody)}
           </Note>
           {error ? (
             <span className="err" role="alert">
@@ -715,33 +717,35 @@ function LastCodeStep({ step }: { step: Extract<Step, { kind: 'last_code' }> }) 
                 }
               }}
             >
-              Generate new codes
+              {t(m.generate)}
             </Button>
-            <Button onClick={() => navigate({ to: step.next })}>Remind me later</Button>
+            <Button onClick={() => navigate({ to: step.next })}>{t(m.remindLater)}</Button>
           </div>
-          <span className="foot">You can also do this any time from Account &amp; security.</span>
+          <span className="foot">{t(m.doItLater)}</span>
         </>
       )}
     </AuthLayout>
   )
 }
 
-function IdpError({ provider = 'Your identity provider', code, reference, email }: { provider?: string; code?: string; reference?: string; email?: string }) {
+function IdpError({ provider: given, code, reference, email }: { provider?: string; code?: string; reference?: string; email?: string }) {
+  const t = useT()
+  const provider = given ?? t(m.idpDefaultProvider)
   const { data: meta } = useInstanceMeta()
   const [copied, setCopied] = useState(false)
   const navigate = useNavigate()
   const retry = meta?.sso.find((s) => s.name === provider)
   const social = (['google', 'microsoft', 'github'] as const).find((k) => k === provider.toLowerCase() && meta?.social.includes(k))
   return (
-    <AuthLayout title={`${provider} couldn't sign you in`} labelledBy="h-idp">
-      <AuthHeading id="h-idp" title={`${provider} couldn't sign you in`} sub={email} />
-      <Note tone="bad" label="IdP error">
-        {idpSentence(provider, code)} Nothing was changed on your account.
+    <AuthLayout title={t(m.idpTitle, { provider })} labelledBy="h-idp">
+      <AuthHeading id="h-idp" title={t(m.idpTitle, { provider })} sub={email} />
+      <Note tone="bad" label={t(m.idpLabel)}>
+        <IdpSentence provider={provider} code={code} /> {t(m.nothingChanged)}
       </Note>
       {reference ? (
         <div className="refbox">
           <span className="k">
-            Reference ID <span className="mono text-ink">{reference}</span> · an admin can look it up in the audit log
+            <T msg={m.referenceId} values={{ reference, mono: (c) => <span className="mono text-ink">{c}</span> }} />
           </span>
           <Button
             size="sm"
@@ -751,61 +755,54 @@ function IdpError({ provider = 'Your identity provider', code, reference, email 
               setCopied(true)
             }}
           >
-            {copied ? 'Copied' : 'Copy'}
+            {copied ? t(m.copied) : t(m.copy)}
           </Button>
         </div>
       ) : null}
       <div className="tiles">
         {retry || social ? (
           <a className="btn pri" href={retry ? retry.startUrl + (email ? `?login_hint=${encodeURIComponent(email)}` : '') : `/api/v1/auth/social/${social}/start`}>
-            Try again
+            {t(m.tryAgain)}
           </a>
         ) : (
           <Button variant="primary" onClick={() => navigate({ to: '/sign-in', search: email ? { email } : {} })}>
-            Try again
+            {t(m.tryAgain)}
           </Button>
         )}
         <Link className="btn" to="/sign-in" search={{}}>
-          Sign in another way
+          {t(m.anotherWay)}
         </Link>
       </div>
     </AuthLayout>
   )
 }
 
-/** What went wrong, for the codes ReputeCast sets itself; others are the IdP's. */
-function idpSentence(provider: string, code?: string) {
-  switch (code) {
-    case 'state_expired':
-      return 'This sign-in link expired or was already used.'
-    case 'state_mismatch':
-      return 'This sign-in was started in another browser or tab.'
-    case 'nonce_mismatch':
-      return `The answer from ${provider} belongs to another sign-in.`
-    case 'provider_disabled':
-    case 'method_disabled':
-      return `${provider} sign-in is turned off on this instance.`
-    case 'not_in_org':
-      return `${provider} sign-in is limited to members of the instance's organization.`
-    case 'org_restricted':
-      return `Your ${provider} organization restricts third-party apps; an owner of it must approve ReputeCast.`
-    case 'email_not_verified':
-      return `${provider} didn't confirm that your email address is verified.`
-    case 'invite_wrong_account':
-      return `This invitation is for another email address than your ${provider} account.`
-    case 'identity_in_use':
-      return `This ${provider} account is already linked to another ReputeCast account.`
-    case 'already_linked':
-      return `Your account already has a ${provider} sign-in.`
-  }
-  return (
-    <>
-      {provider} returned {code ? <span className="mono">{code}</span> : 'an error'} while exchanging your sign-in.
-    </>
-  )
+/** The sentence for each code ReputeCast sets itself; others are the IdP's. */
+const idpMessages: Record<string, MessageDescriptor> = {
+  state_expired: m.idpStateExpired,
+  state_mismatch: m.idpStateMismatch,
+  nonce_mismatch: m.idpNonceMismatch,
+  provider_disabled: m.idpDisabled,
+  method_disabled: m.idpDisabled,
+  not_in_org: m.idpNotInOrg,
+  org_restricted: m.idpOrgRestricted,
+  email_not_verified: m.idpEmailNotVerified,
+  invite_wrong_account: m.idpInviteWrongAccount,
+  identity_in_use: m.idpIdentityInUse,
+  already_linked: m.idpAlreadyLinked,
+}
+
+/** What went wrong. */
+function IdpSentence({ provider, code }: { provider: string; code?: string }) {
+  const t = useT()
+  const known = code ? idpMessages[code] : undefined
+  if (known) return <>{t(known, { provider })}</>
+  if (!code) return <>{t(m.idpReturnedError, { provider })}</>
+  return <T msg={m.idpReturned} values={{ provider, code, mono: (c) => <span className="mono">{c}</span> }} />
 }
 
 function NoAccount({ email, onRetry }: { email: string; onRetry: (email: string) => Promise<void> }) {
+  const t = useT()
   const { data: meta } = useInstanceMeta()
   const [value, setValue] = useState(email)
   const [busy, setBusy] = useState(false)
@@ -814,17 +811,17 @@ function NoAccount({ email, onRetry }: { email: string; onRetry: (email: string)
   const sso = meta?.sso.find((s) => s.domains.length > 0)
   const org = orgName(meta?.instanceName)
   return (
-    <AuthLayout title={`No account for ${email}`} labelledBy="h-noacct">
-      <AuthHeading id="h-noacct" title={`No account for ${email}`} sub="Automatic sign-up is off for this domain" />
-      <Note tone="neutral" label="Invite only">
-        This instance only creates accounts for invited people, or for allowed email domains through single sign-on. Ask an admin to invite you.
+    <AuthLayout title={t(m.noAccountTitle, { email })} labelledBy="h-noacct">
+      <AuthHeading id="h-noacct" title={t(m.noAccountTitle, { email })} sub={t(m.noAccountSub)} />
+      <Note tone="neutral" label={t(m.inviteOnlyLabel)}>
+        {t(m.inviteOnly)}
       </Note>
       <form
         className="flex flex-col gap-4"
         onSubmit={async (e) => {
           e.preventDefault()
           if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())) {
-            setError('Enter your work email, like you@company.com.')
+            setError(t(m.emailInvalid))
             return
           }
           setBusy(true)
@@ -840,7 +837,7 @@ function NoAccount({ email, onRetry }: { email: string; onRetry: (email: string)
         noValidate
       >
         <label className="lbl">
-          Try another email
+          {t(m.tryAnother)}
           <input
             className={error ? 'in err' : 'in'}
             type="email"
@@ -857,12 +854,12 @@ function NoAccount({ email, onRetry }: { email: string; onRetry: (email: string)
           ) : null}
         </label>
         <Button type="submit" variant="primary" loading={busy}>
-          Continue
+          {t(m.continue)}
         </Button>
       </form>
       {sso ? (
         <span className="foot">
-          {org ? `Work for ${org}? ` : ''}Sign in with your {sso.domains[0]} {sso.name} account instead.
+          {org ? t(m.workFor, { org, domain: sso.domains[0], provider: sso.name }) : t(m.useSso, { domain: sso.domains[0], provider: sso.name })}
         </span>
       ) : null}
     </AuthLayout>

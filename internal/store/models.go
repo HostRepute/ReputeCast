@@ -975,6 +975,8 @@ type InstanceSetting struct {
 	AuditStreamCursorAt  *time.Time      `json:"auditStreamCursorAt"`
 	AuditStreamCursorID  *uuid.UUID      `json:"auditStreamCursorId"`
 	AuditStreamStatus    json.RawMessage `json:"auditStreamStatus"`
+	DefaultLanguage      string          `json:"defaultLanguage"`
+	DefaultRegionFormat  string          `json:"defaultRegionFormat"`
 }
 
 type Integration struct {
@@ -1066,6 +1068,7 @@ type Invitation struct {
 	TokenEnc            []byte          `json:"tokenEnc"`
 	ExpiresDays         int32           `json:"expiresDays"`
 	ReinviteRequestedAt *time.Time      `json:"reinviteRequestedAt"`
+	Language            *string         `json:"language"`
 }
 
 type LinkDomainListing struct {
@@ -1924,6 +1927,11 @@ type User struct {
 	TotpLabel            string     `json:"totpLabel"`
 	RecoveryCodesSavedAt *time.Time `json:"recoveryCodesSavedAt"`
 	AvatarUpdatedAt      *time.Time `json:"avatarUpdatedAt"`
+	Language             *string    `json:"language"`
+	RegionFormat         *string    `json:"regionFormat"`
+	HourCycle            *string    `json:"hourCycle"`
+	WeekStart            *string    `json:"weekStart"`
+	LanguagePromptedAt   *time.Time `json:"languagePromptedAt"`
 }
 
 type UserAvatar struct {

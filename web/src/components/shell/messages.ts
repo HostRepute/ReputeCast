@@ -24,7 +24,6 @@ export const m = defineMessages('shell', {
   sidebarLabel: 'Workspace navigation',
   mainNavLabel: 'Main',
   homeLabel: 'ReputeCast home',
-  brandName: 'ReputeCast',
   importContacts: 'Import contacts',
   hostReputeConnected: 'HostRepute connected',
   hostReputeAttention: 'HostRepute needs attention',

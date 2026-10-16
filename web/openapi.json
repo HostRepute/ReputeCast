@@ -16797,6 +16797,13 @@
       "InstanceBasics": {
         "additionalProperties": false,
         "properties": {
+          "defaultLanguage": {
+            "enum": [
+              "en",
+              "vi"
+            ],
+            "type": "string"
+          },
           "name": {
             "maxLength": 80,
             "minLength": 1,
@@ -16904,11 +16911,29 @@
       "InstanceInfo": {
         "additionalProperties": false,
         "properties": {
+          "defaultLanguage": {
+            "examples": [
+              "en"
+            ],
+            "type": "string"
+          },
+          "defaultRegionFormat": {
+            "examples": [
+              "standard"
+            ],
+            "type": "string"
+          },
           "instanceName": {
             "examples": [
               "Acme ReputeCast"
             ],
             "type": "string"
+          },
+          "languages": {
+            "items": {
+              "$ref": "#/components/schemas/LanguageOption"
+            },
+            "type": "array"
           },
           "logoSvg": {
             "type": "string"
@@ -17295,6 +17320,18 @@
           "configPublicUrl": {
             "type": "string"
           },
+          "defaultLanguage": {
+            "examples": [
+              "en"
+            ],
+            "type": "string"
+          },
+          "defaultRegionFormat": {
+            "examples": [
+              "standard"
+            ],
+            "type": "string"
+          },
           "defaultTimezone": {
             "type": "string"
           },
@@ -17324,6 +17361,26 @@
       "InstanceSettingsInput": {
         "additionalProperties": false,
         "properties": {
+          "defaultLanguage": {
+            "enum": [
+              "en",
+              "vi"
+            ],
+            "type": "string"
+          },
+          "defaultRegionFormat": {
+            "enum": [
+              "standard",
+              "en-US",
+              "vi-VN",
+              "de-DE",
+              "en-GB",
+              "es-ES",
+              "fr-FR",
+              "pt-BR"
+            ],
+            "type": "string"
+          },
           "defaultTimezone": {
             "maxLength": 64,
             "type": "string"
@@ -20482,6 +20539,15 @@
           "inviterName": {
             "type": "string"
           },
+          "inviterUnknown": {
+            "type": "boolean"
+          },
+          "language": {
+            "examples": [
+              "en"
+            ],
+            "type": "string"
+          },
           "message": {
             "description": "Personal message from the inviter",
             "type": "string"
@@ -20705,6 +20771,28 @@
         "required": [
           "default",
           "fallback"
+        ],
+        "type": "object"
+      },
+      "LanguageOption": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "examples": [
+              "vi"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "examples": [
+              "Tiếng Việt"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "name"
         ],
         "type": "object"
       },
@@ -22641,6 +22729,24 @@
       "MeInstance": {
         "additionalProperties": false,
         "properties": {
+          "defaultLanguage": {
+            "examples": [
+              "en"
+            ],
+            "type": "string"
+          },
+          "defaultRegionFormat": {
+            "examples": [
+              "standard"
+            ],
+            "type": "string"
+          },
+          "languages": {
+            "items": {
+              "$ref": "#/components/schemas/LanguageOption"
+            },
+            "type": "array"
+          },
           "latestVersion": {
             "type": "string"
           },
@@ -22689,12 +22795,18 @@
           "isInstanceAdmin": {
             "type": "boolean"
           },
+          "languageSuggestionAnswered": {
+            "type": "boolean"
+          },
           "name": {
             "type": "string"
           },
           "passkeys": {
             "format": "int64",
             "type": "integer"
+          },
+          "preferences": {
+            "$ref": "#/components/schemas/MemberLanguage"
           },
           "recoveryCodes": {
             "description": "Unused recovery codes",
@@ -22836,6 +22948,61 @@
         },
         "required": [
           "items"
+        ],
+        "type": "object"
+      },
+      "MemberLanguage": {
+        "additionalProperties": false,
+        "properties": {
+          "hourCycle": {
+            "description": "auto follows the region format",
+            "enum": [
+              "auto",
+              "h23",
+              "h12"
+            ],
+            "type": "string"
+          },
+          "language": {
+            "description": "default follows the instance default",
+            "enum": [
+              "default",
+              "en",
+              "vi",
+              "en-XA"
+            ],
+            "type": "string"
+          },
+          "regionFormat": {
+            "description": "auto follows the app language",
+            "enum": [
+              "auto",
+              "standard",
+              "en-US",
+              "vi-VN",
+              "de-DE",
+              "en-GB",
+              "es-ES",
+              "fr-FR",
+              "pt-BR"
+            ],
+            "type": "string"
+          },
+          "weekStart": {
+            "description": "auto follows the region format",
+            "enum": [
+              "auto",
+              "monday",
+              "sunday"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "language",
+          "regionFormat",
+          "hourCycle",
+          "weekStart"
         ],
         "type": "object"
       },
@@ -34625,6 +34792,33 @@
         ],
         "type": "object"
       },
+      "SuggestionAnswer": {
+        "additionalProperties": false,
+        "properties": {
+          "answer": {
+            "description": "use switched to the language; keep and dismiss didn't",
+            "enum": [
+              "use",
+              "keep",
+              "dismiss"
+            ],
+            "type": "string"
+          },
+          "language": {
+            "description": "The language the browser suggested",
+            "enum": [
+              "en",
+              "vi"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "answer",
+          "language"
+        ],
+        "type": "object"
+      },
       "SunsetPolicy": {
         "additionalProperties": false,
         "properties": {
@@ -35512,6 +35706,13 @@
             "minimum": 1,
             "type": "integer"
           },
+          "language": {
+            "enum": [
+              "en",
+              "vi"
+            ],
+            "type": "string"
+          },
           "message": {
             "maxLength": 1000,
             "type": "string"
@@ -35560,6 +35761,12 @@
             "format": "int64",
             "type": "integer"
           },
+          "defaultLanguage": {
+            "examples": [
+              "en"
+            ],
+            "type": "string"
+          },
           "defaultRoleId": {
             "type": "string"
           },
@@ -35573,6 +35780,12 @@
           "jit": {
             "items": {
               "$ref": "#/components/schemas/TeamJITHint"
+            },
+            "type": "array"
+          },
+          "languages": {
+            "items": {
+              "$ref": "#/components/schemas/LanguageOption"
             },
             "type": "array"
           },
@@ -44660,6 +44873,95 @@
           }
         ],
         "summary": "Unlink a social or SSO sign-in (not your last way to sign in)",
+        "tags": [
+          "Account"
+        ],
+        "x-access": "user"
+      }
+    },
+    "/api/v1/me/language": {
+      "put": {
+        "description": "Sets the language of ReputeCast's interface and of the emails it sends you, and how dates, times and numbers are written. \"default\" follows the instance default; \"auto\" follows the language (region format) or the region format (clock, first day of the week). Times stay in each workspace's timezone.",
+        "operationId": "update-my-language",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberLanguage"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberLanguage"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Change your app language and region format",
+        "tags": [
+          "Account"
+        ],
+        "x-access": "user"
+      }
+    },
+    "/api/v1/me/language/suggestion": {
+      "put": {
+        "description": "Records that you answered \"Your browser prefers …\", so it isn't offered again on any device.",
+        "operationId": "answer-language-suggestion",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SuggestionAnswer"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Answer the browser's language suggestion",
         "tags": [
           "Account"
         ],

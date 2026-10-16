@@ -18,6 +18,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authn"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/passwordreuse"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/workspaces"
@@ -193,6 +194,9 @@ type InstanceBasics struct {
 	PublicURL   string `json:"publicUrl" format:"uri" maxLength:"300"`
 	Timezone    string `json:"timezone" maxLength:"64"`
 	UpdateCheck bool   `json:"updateCheck"`
+	// DefaultLanguage is the instance's default app language; the region
+	// format follows it. Unchanged when omitted.
+	DefaultLanguage string `json:"defaultLanguage,omitempty" enum:"en,vi"`
 }
 
 // SaveInstanceBasics stores the instance name, public URL, timezone and
@@ -209,6 +213,14 @@ func (s *Service) SaveInstanceBasics(ctx context.Context, in InstanceBasics) err
 		return api.Invalid("body.timezone", "Unknown timezone.")
 	}
 	before, _ := s.policy(ctx)
+	lang, region := before.DefaultLanguage, before.DefaultRegionFormat
+	if in.DefaultLanguage != "" && in.DefaultLanguage != lang {
+		l, ok := i18n.ParseLocale(in.DefaultLanguage)
+		if !ok || l == i18n.Pseudo {
+			return api.Invalid("body.defaultLanguage", "Pick a language ReputeCast is translated into.")
+		}
+		lang, region = string(l), string(l.DefaultRegion())
+	}
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		if _, err := q.UpdateInstanceBasics(ctx, store.UpdateInstanceBasicsParams{
@@ -216,12 +228,17 @@ func (s *Service) SaveInstanceBasics(ctx context.Context, in InstanceBasics) err
 		}); err != nil {
 			return err
 		}
+		if err := q.AppLangSetInstanceDefaults(ctx, store.AppLangSetInstanceDefaultsParams{DefaultLanguage: lang, DefaultRegionFormat: region}); err != nil {
+			return err
+		}
 		if err := q.ConfirmInstanceBasics(ctx); err != nil {
 			return err
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{Action: "instance.settings_update", TargetType: "instance", TargetName: in.Name,
-			Before: map[string]any{"name": before.Name, "public_url": before.PublicUrl, "timezone": before.DefaultTimezone, "update_check": before.UpdateCheck},
-			After:  map[string]any{"name": in.Name, "public_url": u.String(), "timezone": in.Timezone, "update_check": in.UpdateCheck}})
+			Before: map[string]any{"name": before.Name, "public_url": before.PublicUrl, "timezone": before.DefaultTimezone, "update_check": before.UpdateCheck,
+				"default_language": before.DefaultLanguage, "default_region_format": before.DefaultRegionFormat},
+			After: map[string]any{"name": in.Name, "public_url": u.String(), "timezone": in.Timezone, "update_check": in.UpdateCheck,
+				"default_language": lang, "default_region_format": region}})
 	})
 	if err == nil && s.OnPolicyChange != nil {
 		s.OnPolicyChange()

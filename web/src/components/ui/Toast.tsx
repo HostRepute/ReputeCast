@@ -1,4 +1,7 @@
 import { useEffect, useSyncExternalStore, type ReactNode } from 'react'
+import { useT } from '@/i18n'
+import { common } from '@/i18n/common'
+import { m } from './messages'
 
 export type ToastKind = 'success' | 'deleted' | 'error' | 'progress' | 'info'
 
@@ -70,6 +73,7 @@ export function toastDuration(t: ToastInput): number {
 }
 
 function ToastView({ t }: { t: ToastItem }) {
+  const say = useT()
   const kind = t.kind ?? 'success'
   const duration = toastDuration(t)
   useEffect(() => {
@@ -80,7 +84,13 @@ function ToastView({ t }: { t: ToastItem }) {
   const ic = kind === 'progress' ? null : icons[kind]
   const act =
     t.action ??
-    (t.undo ? { label: 'Undo', onClick: t.undo } : t.retry ? { label: 'Retry', onClick: t.retry } : kind === 'progress' ? { label: 'Hide', onClick: () => {} } : undefined)
+    (t.undo
+      ? { label: say(m.undo), onClick: t.undo }
+      : t.retry
+        ? { label: say(common.retry), onClick: t.retry }
+        : kind === 'progress'
+          ? { label: say(m.hide), onClick: () => {} }
+          : undefined)
   return (
     <div className="toast" role={kind === 'error' ? 'alert' : 'status'}>
       {ic ? (
@@ -108,7 +118,7 @@ function ToastView({ t }: { t: ToastItem }) {
         </button>
       ) : null}
       {kind !== 'progress' ? (
-        <button type="button" className="x" aria-label="Dismiss" onClick={() => dismissToast(t.id)}>
+        <button type="button" className="x" aria-label={say(m.dismiss)} onClick={() => dismissToast(t.id)}>
           ×
         </button>
       ) : null}

@@ -16,6 +16,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/authn"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/workspaces"
@@ -31,8 +32,11 @@ type InvitationView struct {
 	WorkspaceName string `json:"workspaceName"`
 	WorkspaceSlug string `json:"workspaceSlug"`
 	InviterName   string `json:"inviterName"`
-	RoleKey       string `json:"roleKey"`
-	RoleName      string `json:"roleName"`
+	// InviterUnknown: the inviter's account is gone, so InviterName names an
+	// admin of the workspace ("An admin of Acme Newsletter").
+	InviterUnknown bool   `json:"inviterUnknown,omitempty"`
+	RoleKey        string `json:"roleKey"`
+	RoleName       string `json:"roleName"`
 	// Scope restricts the role ("Beta Program list only"); empty for everything.
 	Scope string `json:"scope,omitempty"`
 	// Description says what the role can do, in one or two sentences.
@@ -53,6 +57,9 @@ type InvitationView struct {
 	Social          []string                 `json:"social" doc:"Social sign-in providers to join with: google, microsoft, github"`
 	SSO             *SSOStart                `json:"sso,omitempty"`
 	TwoFactor       InvitationTwoFactor      `json:"twoFactor"`
+	// Language is the invitation's (the instance default when it has none):
+	// the page reads in it unless the visitor picks another.
+	Language string `json:"language,omitempty" example:"en"`
 }
 
 // InvitationPasswordPolicy is the password policy shown while creating a password.
@@ -69,15 +76,15 @@ type InvitationTwoFactor struct {
 	GraceUntil *time.Time `json:"graceUntil,omitempty"`
 }
 
-func inviteNotFound() *api.Problem {
-	return api.Err(http.StatusNotFound, "invite_not_found", "This invitation link isn't valid. Check that you copied the whole link, or ask for a new invite.")
+func inviteNotFound(ctx context.Context) *api.Problem {
+	return api.Err(http.StatusNotFound, "invite_not_found", say(ctx, mInviteNotFound))
 }
 
 func (s *Service) loadInvitation(ctx context.Context, token string) (store.GetInvitationViewRow, error) {
 	inv, err := s.Q.GetInvitationView(ctx, authn.HashToken(token))
 	if err != nil {
 		if isNoRows(err) {
-			return inv, inviteNotFound()
+			return inv, inviteNotFound(ctx)
 		}
 		return inv, err
 	}
@@ -107,25 +114,30 @@ func (s *Service) Invitation(ctx context.Context, token string) (InvitationView,
 		return InvitationView{}, err
 	}
 	now := s.now()
+	l := langOf(ctx)
 	sent := inv.CreatedAt
 	if inv.LastSentAt != nil {
 		sent = *inv.LastSentAt
 	}
 	v := InvitationView{
 		Status: inviteStatus(inv, now), Email: inv.Email, WorkspaceName: inv.WorkspaceName, WorkspaceSlug: inv.WorkspaceSlug,
-		InviterName: inv.InvitedByName, RoleKey: inv.RoleKey, RoleName: inv.RoleName, Message: inv.Message,
+		InviterName: inv.InvitedByName, RoleKey: inv.RoleKey, RoleName: api.RoleName(l, inv.RoleKey, inv.RoleName), Message: inv.Message,
 		SentAt: sent, ExpiresAt: inv.ExpiresAt, RevokedAt: inv.RevokedAt, AcceptedAt: inv.AcceptedAt,
 		PasswordAllowed: methodAllowed(st, "password"),
 		PasswordPolicy:  InvitationPasswordPolicy{MinLength: int(st.PasswordMinLength), BreachedCheck: st.BreachedCheck},
 		Social:          []string{},
+		Language:        st.DefaultLanguage,
+	}
+	if inv.Language != nil && *inv.Language != "" {
+		v.Language = *inv.Language
 	}
 	if v.InviterName == "" {
-		v.InviterName = "An admin of " + inv.WorkspaceName
+		v.InviterName, v.InviterUnknown = mInviterUnknown.Text(l, i18n.Args{"workspace": inv.WorkspaceName}), true
 	}
 	perms := authz.Effective(inv.RoleKey, inv.RoleBuiltin, inv.RolePermissions)
 	scope, listNames := s.scopeOf(ctx, inv.WorkspaceID, inv.Scope)
 	v.Scope = scope
-	v.Description = roleDescription(inv.RoleKey, inv.WorkspaceName, perms, listNames, inv.WorkspaceApprovalPolicy)
+	v.Description = roleDescription(l, inv.RoleKey, inv.WorkspaceName, perms, listNames, inv.WorkspaceApprovalPolicy)
 	if _, err := s.Q.GetUserByEmail(ctx, inv.Email); err == nil {
 		v.AccountExists = true
 	}
@@ -148,23 +160,23 @@ func (s *Service) Invitation(ctx context.Context, token string) (InvitationView,
 			}
 		}
 	}
-	v.TwoFactor = inviteTwoFactor(st, perms)
+	v.TwoFactor = inviteTwoFactor(l, st, perms)
 	return v, nil
 }
 
-func inviteTwoFactor(st store.InstanceSetting, perms authz.Set) InvitationTwoFactor {
+func inviteTwoFactor(l i18n.Lang, st store.InstanceSetting, perms authz.Set) InvitationTwoFactor {
 	t := InvitationTwoFactor{GraceDays: int(st.TwofaGraceDays)}
 	switch {
 	case st.TwofaEnforcement == "everyone":
-		t.Required, t.Reason = true, "This instance requires two-factor for everyone."
+		t.Required, t.Reason = true, mTwoFactorEveryone.Text(l, nil)
 	case st.TwofaEnforcement == "sensitive" && perms.HasSensitive():
-		t.Required, t.Reason = true, sensitiveReason(perms)
+		t.Required, t.Reason = true, sensitiveReason(l, perms)
 	}
 	return t
 }
 
-// scopeOf describes a member scope ("Beta Program list only") and returns
-// the list names.
+// scopeOf describes a member scope ("Beta Program list only") in the
+// request's language and returns the list names.
 func (s *Service) scopeOf(ctx context.Context, workspaceID uuid.UUID, raw []byte) (string, []string) {
 	var sc authz.Scope
 	if json.Unmarshal(raw, &sc) != nil || sc.IsZero() {
@@ -178,77 +190,7 @@ func (s *Service) scopeOf(ctx context.Context, workspaceID uuid.UUID, raw []byte
 			}
 		}
 	}
-	var parts []string
-	if len(names) > 0 {
-		parts = append(parts, andJoin(names)+plural(len(names), " list", " lists"))
-	}
-	if len(sc.SenderDomains) > 0 {
-		parts = append(parts, andJoin(sc.SenderDomains)+plural(len(sc.SenderDomains), " sender domain", " sender domains"))
-	}
-	if len(parts) == 0 {
-		return "", names
-	}
-	return strings.Join(parts, " and ") + " only", names
-}
-
-func andJoin(xs []string) string {
-	switch len(xs) {
-	case 0:
-		return ""
-	case 1:
-		return xs[0]
-	}
-	return strings.Join(xs[:len(xs)-1], ", ") + " and " + xs[len(xs)-1]
-}
-
-// roleDescription explains a role in plain words for the invitee.
-func roleDescription(roleKey, workspace string, perms authz.Set, lists []string, approvalPolicy []byte) string {
-	switch roleKey {
-	case authz.RoleOwner:
-		return "You'll have full access to " + workspace + ", including its team, sending providers and settings."
-	case authz.RoleAdmin:
-		return "You'll be able to manage campaigns, contacts, sending providers and the team of " + workspace + "."
-	}
-	var what string
-	switch {
-	case perms.Has(authz.CampaignsSend) && perms.Has(authz.CampaignsEdit):
-		what = "create, edit and send campaigns"
-	case perms.Has(authz.CampaignsEdit):
-		what = "create and edit campaigns, and ask for approval to send them"
-	default:
-		return "You'll be able to view campaigns, reports and settings. Nothing you do can change them, and secrets are never shown."
-	}
-	where := ""
-	if len(lists) > 0 {
-		where = " for the " + andJoin(lists) + plural(len(lists), " list", " lists")
-	}
-	out := "You'll be able to " + what + where + "."
-	if perms.Has(authz.CampaignsSend) {
-		var pol struct {
-			Rules struct {
-				AudienceMin struct {
-					Enabled bool `json:"enabled"`
-					N       int  `json:"n"`
-				} `json:"audience_min"`
-			} `json:"rules"`
-		}
-		if json.Unmarshal(approvalPolicy, &pol) == nil && pol.Rules.AudienceMin.Enabled && pol.Rules.AudienceMin.N > 0 {
-			out += fmt.Sprintf(" Sends over %s recipients need a second person's approval.", thousands(pol.Rules.AudienceMin.N))
-		}
-	}
-	return out
-}
-
-func thousands(n int) string {
-	s := fmt.Sprint(n)
-	var b strings.Builder
-	for i, c := range s {
-		if i > 0 && (len(s)-i)%3 == 0 {
-			b.WriteByte(',')
-		}
-		b.WriteRune(c)
-	}
-	return b.String()
+	return describeScope(langOf(ctx), names, sc.SenderDomains), names
 }
 
 // InvitationAcceptInput creates the account of a new member. Existing accounts
@@ -272,22 +214,23 @@ type InvitationAccepted struct {
 	Next            string              `json:"next"`
 }
 
-func inviteClosed(status string, inv store.GetInvitationViewRow) *api.Problem {
+func inviteClosed(l i18n.Lang, status string, inv store.GetInvitationViewRow) *api.Problem {
 	switch status {
 	case "expired":
-		return api.Err(http.StatusGone, "invite_expired", "This invitation has expired. Ask "+orAdmin(inv)+" for a new one.")
+		return api.Err(http.StatusGone, "invite_expired", mClosedExpired.Text(l, i18n.Args{"inviter": orAdmin(l, inv)}))
 	case "revoked":
-		return api.Err(http.StatusGone, "invite_revoked", "This invitation was revoked. The link no longer works.")
+		return api.Err(http.StatusGone, "invite_revoked", mClosedRevoked.Text(l, nil))
 	default:
-		return api.Err(http.StatusGone, "invite_accepted", "This invitation was already used. Sign in to continue.")
+		return api.Err(http.StatusGone, "invite_accepted", mClosedAccepted.Text(l, nil))
 	}
 }
 
-func orAdmin(inv store.GetInvitationViewRow) string {
+// orAdmin names who sent an invitation in the middle of a sentence.
+func orAdmin(l i18n.Lang, inv store.GetInvitationViewRow) string {
 	if inv.InvitedByName != "" {
 		return inv.InvitedByName
 	}
-	return "an admin of " + inv.WorkspaceName
+	return mInviterUnknownLower.Text(l, i18n.Args{"workspace": inv.WorkspaceName})
 }
 
 // AcceptInvitation joins the workspace. Signed-in people accept with their
@@ -299,45 +242,46 @@ func (s *Service) AcceptInvitation(ctx context.Context, token string, in Invitat
 		return InvitationAccepted{}, nil, err
 	}
 	now := s.now()
+	l := langOf(ctx)
 	if status := inviteStatus(inv, now); status != "pending" {
-		return InvitationAccepted{}, nil, inviteClosed(status, inv)
+		return InvitationAccepted{}, nil, inviteClosed(l, status, inv)
 	}
 	st, err := s.policy(ctx)
 	if err != nil {
 		return InvitationAccepted{}, nil, err
 	}
 	perms := authz.Effective(inv.RoleKey, inv.RoleBuiltin, inv.RolePermissions)
-	out := InvitationAccepted{Workspace: inv.WorkspaceSlug, WorkspaceName: inv.WorkspaceName, RoleName: inv.RoleName, Email: inv.Email, TwoFactor: inviteTwoFactor(st, perms),
+	out := InvitationAccepted{Workspace: inv.WorkspaceSlug, WorkspaceName: inv.WorkspaceName, RoleName: api.RoleName(l, inv.RoleKey, inv.RoleName), Email: inv.Email, TwoFactor: inviteTwoFactor(l, st, perms),
 		Next: "/w/" + inv.WorkspaceSlug}
 
 	var user store.User
 	signedIn := api.UserFrom(ctx)
 	switch {
 	case signedIn != nil && signedIn.Email != inv.Email:
-		return InvitationAccepted{}, nil, api.Err(http.StatusConflict, "invite_wrong_account", "This invite is for "+inv.Email+", but you're signed in as "+signedIn.Email+". Sign out and continue, or ask for an invite for "+signedIn.Email+".").
+		return InvitationAccepted{}, nil, api.Err(http.StatusConflict, "invite_wrong_account", say(ctx, mInviteWrongAccount, "invited", inv.Email, "current", signedIn.Email)).
 			WithMeta("invited", inv.Email, "signedInAs", signedIn.Email)
 	case signedIn != nil:
 		user = *signedIn
 	default:
 		if _, err := s.Q.GetUserByEmail(ctx, inv.Email); err == nil {
-			return InvitationAccepted{}, nil, api.Err(http.StatusConflict, "invite_sign_in", inv.Email+" already has an account. Sign in to accept the invitation.").WithMeta("email", inv.Email)
+			return InvitationAccepted{}, nil, api.Err(http.StatusConflict, "invite_sign_in", say(ctx, mInviteSignIn, "email", inv.Email)).WithMeta("email", inv.Email)
 		}
 		if p, _ := s.enforcingProvider(ctx, inv.Email); p != nil {
-			return InvitationAccepted{}, nil, api.Err(http.StatusForbidden, "sso_required", emailDomain(inv.Email)+" signs in with "+p.Name+". Join with "+p.Name+" instead of a password.")
+			return InvitationAccepted{}, nil, api.Err(http.StatusForbidden, "sso_required", say(ctx, mSSORequiredJoin, "domain", emailDomain(inv.Email), "provider", p.Name))
 		}
 		if !methodAllowed(st, "password") {
-			return InvitationAccepted{}, nil, api.Err(http.StatusForbidden, "method_disabled", "Password sign-in is turned off on this instance. Join with single sign-on or a social account.")
+			return InvitationAccepted{}, nil, api.Err(http.StatusForbidden, "method_disabled", say(ctx, mPasswordOffJoin))
 		}
 		name := strings.TrimSpace(in.Name)
 		if name == "" {
-			return InvitationAccepted{}, nil, api.Invalid("body.name", "Enter your name as the team should see it.")
+			return InvitationAccepted{}, nil, api.Invalid("body.name", say(ctx, mInviteName))
 		}
 		if p := authn.PasswordProblem(in.Password, int(st.PasswordMinLength)); p != "" {
 			return InvitationAccepted{}, nil, api.Invalid("body.password", p)
 		}
 		if st.BreachedCheck {
 			if hit, err := s.Breach.Breached(ctx, in.Password); err == nil && hit {
-				return InvitationAccepted{}, nil, api.Invalid("body.password", "This password appears in known data breaches. Choose another one.")
+				return InvitationAccepted{}, nil, api.Invalid("body.password", say(ctx, mBreached))
 			}
 		}
 		hash, err := authn.HashPassword(in.Password)
@@ -353,9 +297,9 @@ func (s *Service) AcceptInvitation(ctx context.Context, token string, in Invitat
 	}
 	if m, err := s.Q.GetMembership(ctx, store.GetMembershipParams{WorkspaceID: inv.WorkspaceID, UserID: user.ID}); err == nil {
 		if m.Status == "active" {
-			return InvitationAccepted{}, nil, api.Conflict("You're already a member of " + inv.WorkspaceName + ".")
+			return InvitationAccepted{}, nil, api.Conflict(say(ctx, mAlreadyMember, "workspace", inv.WorkspaceName))
 		}
-		return InvitationAccepted{}, nil, api.Conflict("Your membership in " + inv.WorkspaceName + " was deactivated. Ask an admin to reactivate it.")
+		return InvitationAccepted{}, nil, api.Conflict(say(ctx, mMembershipDeactivated, "workspace", inv.WorkspaceName))
 	}
 
 	var cookie *http.Cookie
@@ -411,7 +355,7 @@ func (s *Service) joinWorkspace(ctx context.Context, tx pgx.Tx, inv store.GetInv
 		return err
 	}
 	if n == 0 {
-		return inviteClosed("accepted", inv)
+		return inviteClosed(langOf(ctx), "accepted", inv)
 	}
 	if _, err := q.CreateMember(ctx, store.CreateMemberParams{ID: uuid.Must(uuid.NewV7()), WorkspaceID: inv.WorkspaceID, UserID: user.ID, RoleID: inv.RoleID,
 		Scope: inv.Scope, Source: "invite", InvitedBy: inv.InvitedBy}); err != nil {
@@ -456,9 +400,9 @@ func (s *Service) RequestNewInvite(ctx context.Context, token string) (Invitatio
 	signedIn := api.UserFrom(ctx)
 	other := signedIn != nil && signedIn.Email != inv.Email
 	if status != "expired" && (status != "pending" || !other) {
-		return InvitationRequestResult{}, api.Conflict("This invitation doesn't need a new one.")
+		return InvitationRequestResult{}, api.Conflict(say(ctx, mInviteNoNeed))
 	}
-	res := InvitationRequestResult{Status: "sent", Inviter: orAdmin(inv)}
+	res := InvitationRequestResult{Status: "sent", Inviter: orAdmin(langOf(ctx), inv)}
 	wsID := inv.WorkspaceID
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)

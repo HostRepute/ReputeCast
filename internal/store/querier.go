@@ -36,6 +36,18 @@ type Querier interface {
 	// The draft or running import the wizard resumes.
 	ActiveImport(ctx context.Context, workspaceID uuid.UUID) (Import, error)
 	AddSegmentMembers(ctx context.Context, arg AddSegmentMembersParams) error
+	AppLangForEmail(ctx context.Context, email string) (AppLangForEmailRow, error)
+	// The language a member reads their email in: their choices, and the
+	// instance defaults for what they haven't chosen.
+	AppLangForUser(ctx context.Context, id uuid.UUID) (AppLangForUserRow, error)
+	AppLangInstanceDefaults(ctx context.Context) (AppLangInstanceDefaultsRow, error)
+	AppLangInvitationLanguage(ctx context.Context, id uuid.UUID) (string, error)
+	AppLangSetInstanceDefaults(ctx context.Context, arg AppLangSetInstanceDefaultsParams) error
+	AppLangSetInvitationLanguage(ctx context.Context, arg AppLangSetInvitationLanguageParams) error
+	AppLangSetPrompted(ctx context.Context, id uuid.UUID) error
+	// App languages: a member's language and region format, the instance
+	// defaults and an invitation's language (internal/applang, internal/i18n).
+	AppLangSetUser(ctx context.Context, arg AppLangSetUserParams) (User, error)
 	ApprovalAudienceLists(ctx context.Context, workspaceID uuid.UUID) ([]ApprovalAudienceListsRow, error)
 	ApprovalBypassCount(ctx context.Context, arg ApprovalBypassCountParams) (int64, error)
 	ApprovalCampaignVersion(ctx context.Context, arg ApprovalCampaignVersionParams) (ApprovalCampaignVersionRow, error)
@@ -281,7 +293,9 @@ type Querier interface {
 	ContentTranslationVersion(ctx context.Context, arg ContentTranslationVersionParams) (ContentTranslationVersionRow, error)
 	ContentTranslationVersionInsert(ctx context.Context, arg ContentTranslationVersionInsertParams) error
 	ContentTranslationVersions(ctx context.Context, arg ContentTranslationVersionsParams) ([]ContentTranslationVersionsRow, error)
-	// The language versions of an email, with who translated and last saved them.
+	// The language versions of an email, in the order of the workspace's
+	// languages ("English, Spanish and German"), with who translated and last
+	// saved them.
 	ContentTranslations(ctx context.Context, arg ContentTranslationsParams) ([]ContentTranslationsRow, error)
 	// Carries an automation email's or template's language versions to its
 	// next version (their versions are immutable), with ids made in Go: one

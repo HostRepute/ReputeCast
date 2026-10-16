@@ -674,7 +674,11 @@ func audBaseline(c *audContact) time.Time {
 func audShapeSunset(g *audGen, a *audSeed) {
 	s := g.s
 	week := g.now.Add(7*24*time.Hour - time.Minute)
-	wed := audNextWeekday(g.now, time.Wednesday, 10, 0)
+	// "This week" is read a while after the seed's now (the seed takes a
+	// minute or more under load): what is due today stays ahead by half an
+	// hour, so it is still counted then.
+	const lead = 30 * time.Minute
+	wed := audNextWeekday(g.now.Add(lead), time.Wednesday, 10, 0)
 	fri := audNextWeekday(g.now, time.Friday, 3, 0)
 	enabled := s.designDay(41, 3, 0) // 1 Sep, the policy's first run
 	entering, stopping := 0, 0
@@ -697,8 +701,8 @@ func audShapeSunset(g *audGen, a *audSeed) {
 		case c.tier == "sunset":
 			if audIsGenerated(c) && stopping < 893 {
 				stop := fri.Add(-g.minutes(0, 59))
-				if !stop.After(g.now) {
-					stop = g.now.Add(g.minutes(1, 5))
+				if !stop.After(g.now.Add(lead)) {
+					stop = g.now.Add(lead + g.minutes(1, 5))
 				}
 				base := stop.AddDate(0, 0, -30-181)
 				if c.lastHuman != nil {
