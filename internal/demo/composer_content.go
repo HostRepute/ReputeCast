@@ -52,13 +52,13 @@ func composerDigestCards(padding string) string {
     <mj-section background-color="#ffffff" padding="` + padding + `">
       <mj-column width="50%" padding="0px 8px 0px 0px" css-class="article-card">
         <mj-image src="@@article-card.png@@" alt="Feature flags dashboard" width="268px" height="120px" fluid-on-mobile="true" padding="0px 0px 10px"></mj-image>
-        <mj-text font-size="17px" line-height="1.3" font-weight="700" color="#0B1220" padding="0px 0px 6px">Feature flags are generally available</mj-text>
+        <mj-text font-size="17px" line-height="1.3" font-weight="700" color="#0B1220" padding="0px 0px 6px"><h2 style="margin:0;font-size:17px;line-height:1.3;font-weight:700">Feature flags are generally available</h2></mj-text>
         <mj-text font-size="14px" line-height="1.5" color="#374151" padding="0px 0px 10px">Target rollouts by plan, region or percentage, with an audit trail for every change.</mj-text>
         ` + composerButton("https://docs.acme.io/flags", "Read the docs") + `
       </mj-column>
       <mj-column width="50%" padding="0px 0px 0px 8px" css-class="article-card">
         <mj-image src="@@article-card.png@@" alt="Audit log export settings" width="268px" height="120px" fluid-on-mobile="true" padding="0px 0px 10px"></mj-image>
-        <mj-text font-size="17px" line-height="1.3" font-weight="700" color="#0B1220" padding="0px 0px 6px">Audit log exports</mj-text>
+        <mj-text font-size="17px" line-height="1.3" font-weight="700" color="#0B1220" padding="0px 0px 6px"><h2 style="margin:0;font-size:17px;line-height:1.3;font-weight:700">Audit log exports</h2></mj-text>
         <mj-text font-size="14px" line-height="1.5" color="#374151" padding="0px 0px 10px">Stream every workspace event to S3 or your SIEM, with 13 months of history.</mj-text>
         ` + composerButton("https://acme.io/changelog", "See the changelog") + `
       </mj-column>
@@ -78,7 +78,7 @@ func composerDigestMJML(stage int, subject, preheader string) string {
 	b.WriteString(`    <mj-section background-color="#ffffff" padding="20px 24px 8px">
       <mj-column>
         <mj-image src="@@q4-roadmap.png@@" alt="Q4 roadmap illustration" width="552px" height="180px" padding="0px 0px 16px"></mj-image>
-        <mj-text font-size="26px" line-height="1.2" font-weight="700" color="#0B1220" padding="0px 0px 10px">` + headline + `</mj-text>
+        <mj-text font-size="26px" line-height="1.2" font-weight="700" color="#0B1220" padding="0px 0px 10px"><h1 style="margin:0;font-size:26px;line-height:1.2;font-weight:700">` + headline + `</h1></mj-text>
         <mj-text font-size="15px" line-height="1.55">` + intro + `</mj-text>
       </mj-column>
     </mj-section>
@@ -135,7 +135,7 @@ func composerFlashSaleMJML(subject, preheader string, withFooter bool, cardBloat
     <mj-section background-color="#ffffff" padding="20px 24px 8px">
       <mj-column>
         <mj-image src="@@sale-hero.png@@" width="552px" height="220px" padding="0px 0px 16px"></mj-image>
-        <mj-text font-size="28px" line-height="1.15" font-weight="700" color="#0B1220" padding="0px 0px 10px">48 hours. 30% off every annual plan.</mj-text>
+        <mj-text font-size="28px" line-height="1.15" font-weight="700" color="#0B1220" padding="0px 0px 10px"><h1 style="margin:0;font-size:28px;line-height:1.15;font-weight:700">48 hours. 30% off every annual plan.</h1></mj-text>
         <mj-text font-size="15px" line-height="1.55">Hi {{ first_name | default: "there" }}, until Thursday at midnight every annual plan is 30% off, including upgrades from monthly.</mj-text>
       </mj-column>
     </mj-section>
@@ -222,7 +222,7 @@ func composerOctoberMJML() string {
 	card := func(img, alt, heading, href, label, padding string) string {
 		return `      <mj-column width="50%" padding="` + padding + `">
         <mj-image src="@@october-card.png@@" href="` + img + `" alt="` + alt + `" width="275px" height="81px" padding="0px"></mj-image>
-        <mj-text font-weight="700" color="` + ink + `" padding="7px 0px 4px">` + heading + `</mj-text>
+        <mj-text font-weight="700" color="` + ink + `" padding="7px 0px 4px"><h2 style="margin:0;font-size:16px;font-weight:700">` + heading + `</h2></mj-text>
         <mj-button href="` + href + `" align="left" background-color="#0F766E" color="#ffffff" font-family="` + composerPlexFont + `" font-size="14px" font-weight="600" line-height="20px" border-radius="5px" inner-padding="7px 12px" padding="0px">` + label + `</mj-button>
       </mj-column>
 `
@@ -250,7 +250,7 @@ func composerOctoberMJML() string {
     <mj-section background-color="#ffffff" padding="18px">
       <mj-column>
         <mj-image src="@@october-hero.png@@" href="https://acme.io/blog/october-product-update" alt="October Product Update" width="564px" height="127px" padding="0px 0px 11px"></mj-image>
-        <mj-text font-size="21px" font-weight="700" color="` + ink + `">October Product Update: three launches</mj-text>
+        <mj-text font-size="21px" font-weight="700" color="` + ink + `"><h1 style="margin:0;font-size:21px;font-weight:700">October Product Update: three launches</h1></mj-text>
         <mj-text>Hi {{ first_name | default: "there" }}, here's what shipped in October…</mj-text>
       </mj-column>
     </mj-section>

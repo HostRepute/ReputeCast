@@ -106,6 +106,70 @@ func TestCompileKeepsQuotesEscaped(t *testing.T) {
 	}
 }
 
+// A Raw HTML block between two sections stays outside Outlook's
+// conditional comments, so every client shows it.
+func TestCompileKeepsRawBlocksVisible(t *testing.T) {
+	section := func(s string) string {
+		return `<mj-section><mj-column><mj-text>` + s + `</mj-text></mj-column></mj-section>`
+	}
+	for _, body := range []string{
+		section("A") + `<mj-raw><p>RAW</p></mj-raw>` + section("B"),
+		`<mj-raw><p>RAW</p></mj-raw>` + section("B"),
+		section("A") + `<mj-raw><p>RAW</p></mj-raw>`,
+		section("A") + `<mj-raw><p>RAW</p></mj-raw><mj-raw><p>RAW2</p></mj-raw>` + section("B"),
+		section("A") + `<mj-raw><!--[if mso]><p>OUTLOOK</p><![endif]--><p>RAW</p></mj-raw>` + section("B"),
+	} {
+		res := Compile(`<mjml><mj-body>` + body + `</mj-body></mjml>`)
+		if len(res.Errors) > 0 {
+			t.Fatalf("compile: %+v", res.Errors)
+		}
+		if strings.Contains(res.HTML, "rc-raw") {
+			t.Fatalf("markers left in the HTML")
+		}
+		// Outside the comments, every raw paragraph and every section remains.
+		visible := commentFree(res.HTML)
+		want := []string{"<p>RAW</p>"}
+		if strings.Contains(body, ">A<") {
+			want = append(want, ">A</div>")
+		}
+		if strings.Contains(body, ">B<") {
+			want = append(want, ">B</div>")
+		}
+		if strings.Contains(body, "RAW2") {
+			want = append(want, "<p>RAW2</p>")
+		}
+		for _, w := range want {
+			if !strings.Contains(visible, w) {
+				t.Errorf("%s hidden in a comment for body %s", w, body)
+			}
+		}
+		if strings.Contains(visible, "OUTLOOK") {
+			t.Errorf("the block's own Outlook comment must stay a comment")
+		}
+		if strings.Count(res.HTML, "<!--[if") != strings.Count(res.HTML, "<![endif]-->") {
+			t.Errorf("unbalanced conditional comments in %s", res.HTML)
+		}
+	}
+}
+
+// commentFree drops HTML comments, as a client other than Outlook reads them.
+func commentFree(h string) string {
+	var b strings.Builder
+	for {
+		i := strings.Index(h, "<!--")
+		if i < 0 {
+			b.WriteString(h)
+			return b.String()
+		}
+		b.WriteString(h[:i])
+		j := strings.Index(h[i:], "-->")
+		if j < 0 {
+			return b.String()
+		}
+		h = h[i+j+3:]
+	}
+}
+
 func TestThumbAndChanges(t *testing.T) {
 	th := Thumb(doc)
 	if len(th) != 4 || th[0].H != 10 || th[0].W != 40 || len(th[2].Row) != 2 {

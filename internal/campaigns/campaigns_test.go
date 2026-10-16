@@ -36,8 +36,9 @@ func TestListCampaigns(t *testing.T) {
 	// 48 campaigns of the Campaigns board plus the approval sample data:
 	// November Product Update (waiting for approval), two of Daniel's drafts
 	// and the Beta Program launch invite (sent). The integrations hub adds
-	// the draft blog.acme.io made from a post (Scheduled rollouts are here).
-	if list.Total != 53 || list.Counts.All != 53 || list.Counts.Drafts != 6 || list.Counts.Scheduled != 1 || list.Counts.Sent != 46 {
+	// the draft blog.acme.io made from a post (Scheduled rollouts are here),
+	// and the accessibility sample its draft, Weekly Digest #143.
+	if list.Total != 54 || list.Counts.All != 54 || list.Counts.Drafts != 7 || list.Counts.Scheduled != 1 || list.Counts.Sent != 46 {
 		t.Fatalf("counts: total %d %+v", list.Total, list.Counts)
 	}
 	if len(list.Items) != 9 {
@@ -53,23 +54,34 @@ func TestListCampaigns(t *testing.T) {
 	if list.Items[1].Name != "November Product Update" || list.Items[1].Status != "approval" {
 		t.Fatalf("waiting for approval: %+v", list.Items[1])
 	}
-	// The integrations hub's post draft (10:05) is the newest draft.
-	if list.Items[2].Name != "Scheduled rollouts are here" || list.Items[2].Status != "draft" {
-		t.Fatalf("post draft: %+v", list.Items[2])
+	// Drafts follow their last save (Weekly Digest #143's is relative to the
+	// clock), so the drafts below are found by name.
+	var post, flash, oct = list.Items[0], list.Items[0], list.Items[0]
+	for _, it := range list.Items {
+		switch it.Name {
+		case "Scheduled rollouts are here":
+			post = it
+		case "Flash sale: 48 hours only":
+			flash = it
+		case "October Product Update":
+			oct = it
+		}
+	}
+	// The integrations hub's post draft.
+	if post.Name != "Scheduled rollouts are here" || post.Status != "draft" {
+		t.Fatalf("post draft: %+v", post)
 	}
 	// "3 blocking issues", as on the board and on Review & send: its two
 	// warnings aren't counted.
-	if !list.Items[3].Blocked || list.Items[3].Audience != "All subscribers" || list.Items[3].Readiness == nil || list.Items[3].Readiness.Issues != 3 {
-		t.Fatalf("blocked draft: %+v", list.Items[3])
+	if !flash.Blocked || flash.Audience != "All subscribers" || flash.Readiness == nil || flash.Readiness.Issues != 3 {
+		t.Fatalf("blocked draft: %+v", flash)
 	}
-	// Seventh on the board; the post draft (a newer draft) comes before it.
-	var oct = list.Items[7]
 	if oct.Name != "October Product Update" || len(oct.Notes) == 0 || oct.Notes[0] != "A/B subject, winner B" {
 		t.Fatalf("A/B note: %+v", oct)
 	}
 
 	c.Do("GET", "/workspaces/acme-newsletter/campaigns?status=drafts", nil).MustStatus(t, 200).JSON(t, &list)
-	if list.Total != 6 {
+	if list.Total != 7 {
 		t.Fatalf("drafts: %d", list.Total)
 	}
 	c.Do("GET", "/workspaces/acme-newsletter/campaigns?q=flash", nil).MustStatus(t, 200).JSON(t, &list)

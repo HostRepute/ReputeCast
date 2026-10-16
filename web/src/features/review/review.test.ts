@@ -1,5 +1,6 @@
 import { approvalMode, heldNote, heldSentence } from './ApprovalCard'
 import {
+  acknowledgedKeys,
   acknowledgements,
   agoWords,
   blockedLine,
@@ -11,6 +12,7 @@ import {
   localDateWords,
   minutes,
   parsePercent,
+  primaryFix,
   scheduleSentence,
   scheduleShort,
   sendLabel,
@@ -108,6 +110,32 @@ describe('confirmation', () => {
       ],
     } as Run
     expect(acknowledgements(run).map((a) => a.key)).toEqual(['audience.unengaged', 'reputation.ip'])
+  })
+
+  it('confirms warnings worded the same with one checkbox', () => {
+    const both = 'I understand the hero image has no alt text and “Plan your migration” is 2.1:1, below 4.5:1.'
+    const run = {
+      checks: [
+        check({ key: 'accessibility.alt_text:1-0-0', group: 'accessibility', status: 'warn', ack: both }),
+        check({ key: 'accessibility.contrast:6-0-0', group: 'accessibility', status: 'warn', ack: both }),
+        check({ key: 'accessibility.moderate', group: 'accessibility', status: 'warn', ack: 'I understand 4 moderate accessibility issues remain.' }),
+      ],
+    } as Run
+    const acks = acknowledgements(run)
+    expect(acks.map((a) => a.keys)).toEqual([['accessibility.alt_text:1-0-0', 'accessibility.contrast:6-0-0'], ['accessibility.moderate']])
+    expect(acknowledgedKeys(acks, ['accessibility.alt_text:1-0-0'])).toEqual(['accessibility.alt_text:1-0-0', 'accessibility.contrast:6-0-0'])
+  })
+
+  it('never marks an image decorative in bulk', () => {
+    const alt = check({
+      key: 'accessibility.alt_text:1-0-0',
+      status: 'warn',
+      fixes: [
+        { kind: 'link', label: 'Write alt text', href: '/w/acme/campaigns/c/edit' },
+        { kind: 'apply', action: 'accessibility_decorative', label: 'Mark as decorative' },
+      ] as Check['fixes'],
+    })
+    expect(primaryFix(alt)).toBeUndefined()
   })
 
   it('sets web addresses apart', () => {

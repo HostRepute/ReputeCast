@@ -10,6 +10,7 @@ import { UnsavedChangesGuard } from '@/components/ui/ConfirmDialog'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { KeyValues } from '@/components/ui/Data'
 import { toast } from '@/components/ui/Toast'
+import { PolicyCard as AccessibilityCard } from '@/features/accessibility/PolicyCard'
 import { settingsTabs } from '@/features/settings/SettingsTabs'
 import { andList, count } from '@/lib/format'
 import { useWorkspace, workspaceMeKey } from '@/lib/session'
@@ -51,6 +52,7 @@ function General({ s }: { s: Schemas['WorkspaceSettings'] }) {
       {/* Saved values come back from the server; remounting resets the form to them. */}
       <WorkspaceCard key={`${s.name}|${s.timezone}|${s.defaultSenderId ?? ''}`} s={s} />
       <SidebarSectionsCard s={s} />
+      <AccessibilityCard />
       <ApprovalsCard s={s} />
       <MembersCard s={s} />
       <section className="card" style={{ borderColor: '#FCA5A5' }} aria-labelledby="danger-h">

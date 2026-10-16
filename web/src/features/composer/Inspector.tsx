@@ -25,6 +25,9 @@ import {
 } from './editor/attrs'
 import { mjChildren, sectionLabel, sectionOf, tagOf } from './editor/labels'
 import { withVisibilityStyles } from './editor/mjmlDoc'
+import { TextRoleProp } from '@/features/accessibility/composer/TextRole'
+import { ContrastColorField } from '@/features/accessibility/composer/ColorPicker'
+import { useContrastSpec, type ContrastSpec } from '@/features/accessibility/composer/contrastSpec'
 
 /** A text input that edits a draft and commits on Enter or blur (one undo step per edit). */
 function DraftInput({
@@ -95,10 +98,30 @@ function Prop({ title, children, id }: { title: ReactNode; children: ReactNode; 
   )
 }
 
-/** Colour swatch (native picker) + hex input. */
-function ColorField({ value, onCommit, label, children, gap = 8 }: { value: string; onCommit: (v: string) => void; label: string; children?: ReactNode; gap?: number }) {
+/** Colour swatch (native picker) + hex input; with `contrast`, the accessibility picker. */
+function ColorField({
+  value,
+  onCommit,
+  label,
+  children,
+  gap = 8,
+  contrast,
+}: {
+  value: string
+  onCommit: (v: string) => void
+  label: string
+  children?: ReactNode
+  gap?: number
+  contrast?: ContrastSpec
+}) {
   const timer = useRef<number | undefined>(undefined)
   const hex = hexColor(value)
+  if (contrast)
+    return (
+      <ContrastColorField value={value} onCommit={onCommit} label={label} spec={contrast} gap={gap}>
+        {children}
+      </ContrastColorField>
+    )
   return (
     <div className="flex items-center" style={{ gap }}>
       <input
@@ -187,9 +210,10 @@ function BackgroundProp({ c, k = 'background-color', image, title = 'Background'
   const head = useHead()
   const { openDialog, setAssetTarget } = useComposer()
   const id = useId()
+  const contrast = useContrastSpec(c, k)
   return (
     <Prop title={title} id={id}>
-      <ColorField label={title} value={effective(c, k, head)} onCommit={(v) => setAttr(c, k, v)}>
+      <ColorField label={title} value={effective(c, k, head)} onCommit={(v) => setAttr(c, k, v)} contrast={contrast}>
         {image ? (
           <button
             type="button"
@@ -313,6 +337,7 @@ function TypographyProp({ targets, title, sample, weight }: { targets: Component
   const set = (k: string, v: string) => targets.forEach((t) => setAttr(t, k, v))
   const family = effective(sample, 'font-family', head)
   const color = effective(sample, 'color', head)
+  const contrast = useContrastSpec(sample, 'color')
   return (
     <Prop title={title} id={id}>
       <div className="row2">
@@ -321,7 +346,7 @@ function TypographyProp({ targets, title, sample, weight }: { targets: Component
       </div>
       <div className="row2">
         {/* In a two-column row the board spaces swatch and hex 6px apart. */}
-        <ColorField label="Text colour" value={color} onCommit={(v) => set('color', v)} gap={6} />
+        <ColorField label="Text colour" value={color} onCommit={(v) => set('color', v)} gap={6} contrast={contrast} />
         {weight ? (
           <SelectField
             label="Font weight"
@@ -734,6 +759,7 @@ export function SettingsFields({ c }: { c: Component }) {
       rows.push(<LinkProp key="href" c={c} />)
       break
     case 'mj-text': {
+      rows.push(<TextRoleProp key="role" c={c} />)
       const links = textLinks(c)
       if (links.length)
         rows.push(

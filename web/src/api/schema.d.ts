@@ -1364,6 +1364,90 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/accessibility/fix": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Apply an accessibility fix to MJML
+         * @description The composer's fixes: alt text, decorative images, link text, a color, heading levels, a text size, and a Text block's role. Returns the changed MJML; nothing is saved, the composer's autosave stores it.
+         */
+        post: operations["apply-accessibility-fix"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/accessibility/policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The workspace's accessibility policy
+         * @description Whether serious issues only warn or block sends and publishing, and the smallest text size.
+         */
+        get: operations["get-accessibility-policy"];
+        /**
+         * Change the accessibility policy
+         * @description Block makes Send Readiness turn Blocked on serious issues and stops publishing automations and transactional templates that have them. Live automations and published templates keep sending.
+         */
+        put: operations["update-accessibility-policy"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/accessibility/policy/impact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * What a policy would affect now
+         * @description Scheduled campaigns that would be held at their send-time recheck, and drafts and automation drafts with serious issues. Nothing is saved.
+         */
+        post: operations["preview-accessibility-policy"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/accessibility/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Accessibility results of the template gallery
+         * @description Each starter, saved template and the last sent campaign, checked in the workspace's default language.
+         */
+        get: operations["template-gallery-accessibility"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/adapters": {
         parameters: {
             query?: never;
@@ -2311,6 +2395,30 @@ export interface paths {
         head?: never;
         /** Rename a campaign or change its sender, reply-to, audience or content settings */
         patch: operations["update-campaign"];
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/accessibility": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Accessibility issues of a campaign as saved
+         * @description Every language version's compiled HTML is checked; an issue in several versions is listed once with its languages.
+         */
+        get: operations["get-campaign-accessibility"];
+        put?: never;
+        /**
+         * Check the composer's current content for accessibility issues
+         * @description The composer calls it as you edit. The version being edited is checked with your unsaved changes, the others as saved. Nothing is saved.
+         */
+        post: operations["check-campaign-accessibility"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/approval": {
@@ -7619,6 +7727,234 @@ export interface components {
             /** @example Viewer */
             yourRole: string;
         };
+        AccessibilityCheckRequest: {
+            html?: string;
+            /** @description The language version being edited (the source when empty) */
+            lang?: string;
+            mjml?: string;
+        };
+        AccessibilityColorSuggestion: {
+            /** @example #0F766E */
+            color: string;
+            /**
+             * Format: double
+             * @description Contrast ratio, rounded down to one decimal
+             */
+            ratio: number;
+            /** @enum {string} */
+            reason: "other_buttons" | "nearest_aa" | "aaa";
+        };
+        AccessibilityCounts: {
+            /** Format: int64 */
+            dataTables: number;
+            /** @enum {string} */
+            dir: "ltr";
+            /** Format: int64 */
+            images: number;
+            /** Format: int64 */
+            imagesOk: number;
+            languages: string[];
+            /** Format: int64 */
+            layoutTables: number;
+            /** Format: int64 */
+            links: number;
+            /** Format: int64 */
+            linksOk: number;
+            /** Format: int64 */
+            overImage: number;
+            /** Format: int64 */
+            roleAdded: number;
+        };
+        AccessibilityElement: {
+            /** Format: int64 */
+            count: number;
+            href?: string;
+            /** Format: int64 */
+            index: number;
+            label?: string;
+            /** @enum {string} */
+            role: "image" | "linked_image" | "button" | "link" | "text" | "heading";
+            section?: string;
+            src?: string;
+            tag: string;
+        };
+        AccessibilityFixInput: {
+            from?: string;
+            headings?: components["schemas"]["AccessibilityHeadingChange"][];
+            /** Format: int64 */
+            index?: number;
+            /** @enum {string} */
+            kind: "alt_text" | "decorative" | "link_text" | "color" | "heading" | "text_size" | "text_role";
+            mjml: string;
+            path: number[];
+            /** @enum {string} */
+            role?: "p" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
+            /** @enum {string} */
+            target?: "background" | "text";
+            /** Format: int64 */
+            toPx?: number;
+            value?: string;
+        };
+        AccessibilityFixSpec: {
+            against?: string;
+            decorative: boolean;
+            from?: string;
+            /** Format: double */
+            fromPx?: number;
+            headings: components["schemas"]["AccessibilityHeadingChange"][];
+            /** @enum {string} */
+            kind: "alt_text" | "link_text" | "color" | "heading" | "text_size";
+            large?: boolean;
+            links: components["schemas"]["AccessibilityLinkTarget"][];
+            /** Format: double */
+            needs?: number;
+            oneClick: boolean;
+            perLanguage: boolean;
+            /** Format: double */
+            ratio?: number;
+            subject?: string;
+            suggestions: components["schemas"]["AccessibilityColorSuggestion"][];
+            /** @enum {string} */
+            target?: "background" | "text";
+            /** Format: int64 */
+            toPx?: number;
+        };
+        AccessibilityFixed: {
+            mjml: string;
+        };
+        AccessibilityGallery: {
+            language: string;
+            lastCampaign?: components["schemas"]["AccessibilityTemplateResult"];
+            templates: components["schemas"]["AccessibilityTemplateResult"][];
+        };
+        AccessibilityHeadingChange: {
+            /** Format: int64 */
+            from: number;
+            /**
+             * Format: int64
+             * @description The nth heading of the text block, from 0
+             */
+            index: number;
+            path: number[];
+            text: string;
+            /** Format: int64 */
+            to: number;
+        };
+        AccessibilityImpact: {
+            campaigns: components["schemas"]["AccessibilityImpactCampaign"][];
+            flows: components["schemas"]["AccessibilityImpactFlow"][];
+            /** Format: int64 */
+            held: number;
+            /** @enum {string} */
+            onSerious: "warn" | "block";
+        };
+        AccessibilityImpactCampaign: {
+            held: boolean;
+            id: string;
+            name: string;
+            /** Format: date-time */
+            scheduledAt?: string;
+            /** Format: int64 */
+            serious: number;
+            /** @enum {string} */
+            status: "draft" | "approval" | "approved" | "scheduled";
+            summary: string;
+        };
+        AccessibilityImpactFlow: {
+            automationId: string;
+            /** Format: int64 */
+            liveVersion?: number;
+            name: string;
+            /** Format: int64 */
+            serious: number;
+            step: string;
+            summary: string;
+            /** Format: int64 */
+            version: number;
+        };
+        AccessibilityIssue: {
+            detail?: string;
+            element: components["schemas"]["AccessibilityElement"];
+            fix: components["schemas"]["AccessibilityFixSpec"];
+            id: string;
+            /** @enum {string} */
+            kind: "alt_text" | "link_no_text" | "contrast" | "link_text" | "heading" | "text_size";
+            languages: string[];
+            location: string[];
+            path: number[];
+            paths: number[][];
+            /** @enum {string} */
+            severity: "serious" | "moderate";
+            short: string;
+            tag: string;
+            title: string;
+            versions: components["schemas"]["AccessibilityIssueVersion"][];
+        };
+        AccessibilityIssueVersion: {
+            lang: string;
+            suggestion?: string;
+            text?: string;
+        };
+        AccessibilityLanguage: {
+            /** @example es */
+            code: string;
+            /** @example Spanish */
+            name: string;
+            source: boolean;
+        };
+        AccessibilityLinkTarget: {
+            href: string;
+            /**
+             * Format: int64
+             * @description The nth link of the text block, from 0
+             */
+            index: number;
+            path: number[];
+        };
+        AccessibilityPolicy: {
+            canManage: boolean;
+            helpers: string[];
+            /** Format: int64 */
+            minTextPx: number;
+            /** @enum {string} */
+            onSerious: "warn" | "block";
+            /** Format: date-time */
+            updatedAt?: string;
+            updatedBy?: string;
+        };
+        AccessibilityPolicyInput: {
+            /** Format: int64 */
+            minTextPx: number;
+            /** @enum {string} */
+            onSerious: "warn" | "block";
+        };
+        AccessibilityReport: {
+            /** Format: date-time */
+            checkedAt: string;
+            counts: components["schemas"]["AccessibilityCounts"];
+            /** Format: int64 */
+            durationMs: number;
+            issues: components["schemas"]["AccessibilityIssue"][];
+            languages: components["schemas"]["AccessibilityLanguage"][];
+            /** Format: int64 */
+            minTextPx: number;
+            /** @enum {string} */
+            mode: "mjml" | "html";
+            /** Format: int64 */
+            moderate: number;
+            /** @enum {string} */
+            policy: "warn" | "block";
+            /** Format: int64 */
+            serious: number;
+        };
+        AccessibilityTemplateResult: {
+            id: string;
+            /** Format: int64 */
+            issues: number;
+            /** Format: int64 */
+            serious: number;
+            summary?: string;
+        };
         AccountAvatarInput: {
             /** @description PNG or JPEG, up to 2 MB, base64 */
             data: string;
@@ -9450,6 +9786,8 @@ export interface components {
             canSend: boolean;
             canSendTestToOthers: boolean;
             canViewContacts: boolean;
+            /** @description Members who hold campaigns:edit (when the caller can't edit) */
+            editHelpers?: string[];
             editable: boolean;
             readOnlyReason?: string;
             /** @description Members who hold campaigns:send */
@@ -14764,7 +15102,7 @@ export interface components {
             fixes: components["schemas"]["ReadinessFix"][];
             flatTitle: string;
             /** @enum {string} */
-            group: "reputation" | "authentication" | "content" | "languages" | "links" | "compliance" | "audience" | "routing";
+            group: "reputation" | "authentication" | "content" | "languages" | "links" | "compliance" | "audience" | "routing" | "accessibility";
             key: string;
             label?: string;
             mono?: boolean;
@@ -14800,7 +15138,7 @@ export interface components {
         };
         ReadinessFix: {
             /** @enum {string} */
-            action?: "exclude_sunset" | "route_only" | "insert_footer" | "replace_link" | "use_subject" | "minify" | "mark_language_up_to_date" | "mark_language_translated" | "hold_language" | "release_language";
+            action?: "exclude_sunset" | "route_only" | "insert_footer" | "replace_link" | "use_subject" | "minify" | "mark_language_up_to_date" | "mark_language_translated" | "hold_language" | "release_language" | "accessibility_decorative" | "accessibility_color" | "accessibility_one_click";
             href?: string;
             /** @enum {string} */
             kind: "apply" | "link";
@@ -14819,7 +15157,7 @@ export interface components {
         };
         ReadinessFixRequest: {
             /** @enum {string} */
-            action: "exclude_sunset" | "route_only" | "insert_footer" | "replace_link" | "use_subject" | "minify" | "mark_language_up_to_date" | "mark_language_translated" | "hold_language" | "release_language";
+            action: "exclude_sunset" | "route_only" | "insert_footer" | "replace_link" | "use_subject" | "minify" | "mark_language_up_to_date" | "mark_language_translated" | "hold_language" | "release_language" | "accessibility_decorative" | "accessibility_color" | "accessibility_one_click";
             params?: {
                 [key: string]: string;
             };
@@ -14830,7 +15168,8 @@ export interface components {
         ReadinessGroup: {
             caption: string;
             /** @enum {string} */
-            key: "reputation" | "authentication" | "content" | "languages" | "links" | "compliance" | "audience" | "routing";
+            key: "reputation" | "authentication" | "content" | "languages" | "links" | "compliance" | "audience" | "routing" | "accessibility";
+            note?: string;
             /** Format: int64 */
             passed: number;
             running: string;
@@ -14868,7 +15207,7 @@ export interface components {
             /** Format: int64 */
             done: number;
             /** @enum {string} */
-            key: "reputation" | "authentication" | "content" | "languages" | "links" | "compliance" | "audience" | "routing";
+            key: "reputation" | "authentication" | "content" | "languages" | "links" | "compliance" | "audience" | "routing" | "accessibility";
             /** @enum {string} */
             status: "queued" | "running" | "pass" | "warn" | "block" | "unknown";
             text: string;
@@ -17576,7 +17915,7 @@ export interface components {
             detail?: string;
             fixes: components["schemas"]["TransactionalCheckFix"][];
             /** @enum {string} */
-            group: "Content" | "Links" | "Compliance" | "Subject" | "Variables" | "Test data" | "Privacy";
+            group: "Content" | "Links" | "Compliance" | "Subject" | "Variables" | "Test data" | "Privacy" | "Accessibility";
             /** @example variables.undeclared */
             id: string;
             /** Format: int64 */
@@ -21816,6 +22155,178 @@ export interface operations {
             };
         };
     };
+    "apply-accessibility-fix": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccessibilityFixInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessibilityFixed"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-accessibility-policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessibilityPolicy"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-accessibility-policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccessibilityPolicyInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessibilityPolicy"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "preview-accessibility-policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccessibilityPolicyInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessibilityImpact"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "template-gallery-accessibility": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessibilityGallery"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "list-adapters": {
         parameters: {
             query?: never;
@@ -24149,6 +24660,76 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ComposerCampaign"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-campaign-accessibility": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessibilityReport"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "check-campaign-accessibility": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccessibilityCheckRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessibilityReport"];
                 };
             };
             /** @description Error */

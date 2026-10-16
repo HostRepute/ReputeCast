@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/hostrepute/reputecast/internal/accessibility"
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
@@ -227,6 +228,8 @@ func (s *Service) addVersion(ctx context.Context, q *store.Queries, o Owner, p *
 		}
 		subject, preheader = "", ""
 	}
+	// lang, dir and the layout tables' role, in this version's language.
+	html, _ = accessibility.Finalize(html, lang)
 	blocks := Blocks(mj, html)
 	links := FreshLinks(st.Blocks, st.Keys, blocks, src.Subject, src.Preheader, st.Version)
 	lb, _ := json.Marshal(links)
@@ -326,6 +329,8 @@ func (s *Service) saveVersion(ctx context.Context, q *store.Queries, o Owner, p 
 	if in.Minify && html != "" {
 		html = contentcheck.Minify(html)
 	}
+	// lang, dir and the layout tables' role, in this version's language.
+	html, _ = accessibility.Finalize(html, lang)
 	var old Links
 	_ = json.Unmarshal(cur.Links, &old)
 	blocks := Blocks(src, html)

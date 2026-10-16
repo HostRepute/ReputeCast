@@ -55,7 +55,7 @@ func Compile(src string) Result {
 		}
 		return Result{Errors: []MJMLProblem{{Message: err.Error()}}, Duration: time.Since(start)}
 	}
-	prepared := protect.Replace(src)
+	prepared := protect.Replace(markBodyRaw(src))
 	prepared = voidHTML.ReplaceAllStringFunc(prepared, func(m string) string {
 		if strings.HasSuffix(m, "/>") {
 			return m
@@ -76,5 +76,113 @@ func Compile(src string) Result {
 		}
 		return Result{Errors: []MJMLProblem{p}, Duration: time.Since(start)}
 	}
-	return Result{HTML: unprotect.Replace(html), Errors: []MJMLProblem{}, Duration: time.Since(start)}
+	return Result{HTML: repairRaw(unprotect.Replace(html)), Errors: []MJMLProblem{}, Duration: time.Since(start)}
+}
+
+// Markers around the content of Raw HTML blocks placed directly in mj-body.
+const (
+	rawStart = "<!--rc-raw-start-->"
+	rawEnd   = "<!--rc-raw-end-->"
+)
+
+// markBodyRaw marks the content of every Raw HTML block in mj-body. gomjml
+// puts such a block between two sections inside Outlook's conditional
+// comment, which hides it from every other client; repairRaw uses the
+// markers to close the comment around it, as MJML does.
+func markBodyRaw(src string) string {
+	root, err := Parse(src)
+	if err != nil {
+		return src
+	}
+	body := Body(root)
+	if body == nil {
+		return src
+	}
+	type insert struct {
+		at   int
+		text string
+	}
+	var ins []insert
+	for _, c := range body.Children {
+		if c.Tag != "mj-raw" || c.End <= c.Start {
+			continue
+		}
+		open := strings.IndexByte(src[c.Start:c.End], '>')
+		closeTag := strings.LastIndex(strings.ToLower(src[c.Start:c.End]), "</mj-raw")
+		if open < 0 || closeTag < 0 || c.Start+open+1 > c.Start+closeTag || src[c.Start+open-1] == '/' {
+			continue
+		}
+		ins = append(ins, insert{c.Start + open + 1, rawStart}, insert{c.Start + closeTag, rawEnd})
+	}
+	if len(ins) == 0 {
+		return src
+	}
+	var b strings.Builder
+	last := 0
+	for _, in := range ins {
+		b.WriteString(src[last:in.at])
+		b.WriteString(in.text)
+		last = in.at
+	}
+	b.WriteString(src[last:])
+	return b.String()
+}
+
+// repairRaw closes Outlook's conditional comment before each marked Raw
+// HTML block it was left open around, reopens it after, and removes the
+// markers.
+func repairRaw(h string) string {
+	if !strings.Contains(h, rawStart) {
+		return h
+	}
+	var b strings.Builder
+	inCond := false
+	// track updates inCond from the conditional comments in s, in order.
+	track := func(s string) {
+		for {
+			o, c := strings.Index(s, "<!--[if"), strings.Index(s, "<![endif]-->")
+			switch {
+			case o < 0 && c < 0:
+				return
+			case c < 0 || (o >= 0 && o < c):
+				inCond = true
+				s = s[o+len("<!--[if"):]
+			default:
+				inCond = false
+				s = s[c+len("<![endif]-->"):]
+			}
+		}
+	}
+	rest := h
+	for {
+		i := strings.Index(rest, rawStart)
+		if i < 0 {
+			b.WriteString(rest)
+			return b.String()
+		}
+		before := rest[:i]
+		b.WriteString(before)
+		track(before)
+		if inCond {
+			b.WriteString("<![endif]-->")
+			inCond = false
+		}
+		rest = rest[i+len(rawStart):]
+		j := strings.Index(rest, rawEnd)
+		if j < 0 {
+			b.WriteString(rest)
+			return b.String()
+		}
+		b.WriteString(rest[:j])
+		rest = rest[j+len(rawEnd):]
+		if strings.HasPrefix(strings.TrimSpace(rest), rawStart) {
+			continue
+		}
+		// Reopen when what follows is the rest of the conditional comment.
+		c, o := strings.Index(rest, "<![endif]-->"), strings.Index(rest, "<!--[if")
+		if c >= 0 && (o < 0 || c < o) {
+			b.WriteString("<!--[if mso | IE]>")
+			inCond = true
+		}
+	}
 }

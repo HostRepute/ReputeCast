@@ -133,6 +133,7 @@ func Seed(ctx context.Context, pool *pgxpool.Pool, cfg *config.Config, box *secr
 		{"transactional", seedTransactional},
 		{"integrations-hub", seedIntegrationsHub},
 		{"transactional templates", seedTransactionalTemplates},
+		{"accessibility", seedAccessibility},
 	}
 	for _, st := range steps {
 		if err := st.fn(ctx, s); err != nil {
