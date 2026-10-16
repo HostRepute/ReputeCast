@@ -1344,6 +1344,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/accessibility/fix": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Apply an accessibility fix to MJML
+         * @description The composer's fixes: alt text, decorative images, link text, a color, heading levels, a text size. Returns the changed MJML; nothing is saved, the composer's autosave stores it.
+         */
+        post: operations["apply-accessibility-fix"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/accessibility/policy": {
         parameters: {
             query?: never;
@@ -7050,6 +7070,21 @@ export interface components {
             src?: string;
             tag: string;
         };
+        AccessibilityFixInput: {
+            from?: string;
+            headings?: components["schemas"]["AccessibilityHeadingChange"][];
+            /** Format: int64 */
+            index?: number;
+            /** @enum {string} */
+            kind: "alt_text" | "decorative" | "link_text" | "color" | "heading" | "text_size";
+            mjml: string;
+            path: number[];
+            /** @enum {string} */
+            target?: "background" | "text";
+            /** Format: int64 */
+            toPx?: number;
+            value?: string;
+        };
         AccessibilityFixSpec: {
             against?: string;
             decorative: boolean;
@@ -7073,6 +7108,9 @@ export interface components {
             target?: "background" | "text";
             /** Format: int64 */
             toPx?: number;
+        };
+        AccessibilityFixed: {
+            mjml: string;
         };
         AccessibilityGallery: {
             language: string;
@@ -9027,6 +9065,8 @@ export interface components {
             canSend: boolean;
             canSendTestToOthers: boolean;
             canViewContacts: boolean;
+            /** @description Members who hold campaigns:edit (when the caller can't edit) */
+            editHelpers?: string[];
             editable: boolean;
             readOnlyReason?: string;
             /** @description Members who hold campaigns:send */
@@ -20372,6 +20412,42 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AccessSuggestion"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "apply-accessibility-fix": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccessibilityFixInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessibilityFixed"];
                 };
             };
             /** @description Error */

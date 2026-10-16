@@ -3,6 +3,7 @@ package accessibility_test
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -559,4 +560,56 @@ func TestTransactionalTemplates(t *testing.T) {
 	linh.Do("PUT", tx+"/a11y-reset/draft", map[string]any{"baseRevision": tpl.DraftRevision, "subject": "Choose a new password", "editorMode": "mjml", "mjml": fixed}).
 		MustStatus(t, 200).JSON(t, &saved)
 	linh.Do("POST", tx+"/a11y-reset/publish", map[string]any{"baseRevision": saved.DraftRevision}).MustStatus(t, 200)
+}
+
+// The composer's fixes change the MJML the way Review & send's do; people
+// who can't edit campaigns can't use them, and editors learn who can.
+func TestComposerFix(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	linh, aisha := env.Client(), env.Client()
+	linh.SignInDemo("linh@acme.io")
+	aisha.SignInDemo("aisha@acme.io")
+	id := campaignID(t, linh, "Weekly Digest #143")
+	var c struct{ MJML string }
+	linh.Do("GET", ws+"/campaigns/"+id, nil).MustStatus(t, 200).JSON(t, &c)
+	var r accessibility.AccessibilityReport
+	linh.Do("GET", ws+"/campaigns/"+id+"/accessibility", nil).MustStatus(t, 200).JSON(t, &r)
+	var heading accessibility.AccessibilityIssue
+	for _, is := range r.Issues {
+		if is.Kind == accessibility.KindHeading {
+			heading = is
+		}
+	}
+	if heading.Fix.Subject != "Card titles" || len(heading.Fix.Headings) != 2 {
+		t.Fatalf("heading issue: %+v", heading.Fix)
+	}
+	body := map[string]any{"mjml": c.MJML, "kind": "heading", "path": heading.Path, "headings": heading.Fix.Headings}
+	aisha.Do("POST", ws+"/accessibility/fix", body).MustStatus(t, 403)
+	var fixed struct{ MJML string }
+	linh.Do("POST", ws+"/accessibility/fix", body).MustStatus(t, 200).JSON(t, &fixed)
+	if strings.Count(fixed.MJML, "<h2") != strings.Count(c.MJML, "<h2")+2 || strings.Contains(fixed.MJML, "<h3") {
+		t.Fatalf("headings not changed")
+	}
+	// Nothing is saved: the campaign keeps its content.
+	linh.Do("GET", ws+"/campaigns/"+id, nil).MustStatus(t, 200).JSON(t, &c)
+	if !strings.Contains(c.MJML, "<h3") {
+		t.Fatal("the fix endpoint saved the campaign")
+	}
+	// An element that isn't there any more.
+	pr := linh.Do("POST", ws+"/accessibility/fix", map[string]any{"mjml": c.MJML, "kind": "decorative", "path": []int{40, 0, 0}}).MustStatus(t, 422).Problem(t)
+	if !strings.Contains(fmt.Sprint(pr["detail"]), "changed since the checks ran") {
+		t.Fatalf("problem: %v", pr)
+	}
+	// Aisha can't edit: the composer names who can.
+	var detail struct {
+		Access struct {
+			CanEdit     bool
+			EditHelpers []string
+		}
+	}
+	aisha.Do("GET", ws+"/campaigns/"+id, nil).MustStatus(t, 200).JSON(t, &detail)
+	if detail.Access.CanEdit || len(detail.Access.EditHelpers) == 0 {
+		t.Fatalf("edit helpers: %+v", detail.Access)
+	}
 }

@@ -2,6 +2,7 @@ package accessibility
 
 import (
 	"context"
+	"strings"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/google/uuid"
@@ -32,6 +33,54 @@ func (in CampaignPath) id() (uuid.UUID, error) {
 type checkInput struct {
 	CampaignPath
 	Body AccessibilityCheckRequest
+}
+
+// AccessibilityFixInput applies one fix to the composer's MJML.
+type AccessibilityFixInput struct {
+	MJML string `json:"mjml" maxLength:"2000000"`
+	Kind string `json:"kind" enum:"alt_text,decorative,link_text,color,heading,text_size"`
+	// Path is the element (mj-body element-index path); Index the nth link
+	// or image inside a text or Raw HTML block.
+	Path  []int `json:"path" maxItems:"12"`
+	Index int   `json:"index,omitempty" minimum:"0"`
+	// Value is the alt text, the link text or the color.
+	Value string `json:"value,omitempty" maxLength:"500"`
+	// Target and From are a color fix's attribute ("background" or "text")
+	// and the color it replaces inside the element.
+	Target   string                       `json:"target,omitempty" enum:"background,text"`
+	From     string                       `json:"from,omitempty" maxLength:"60"`
+	Headings []AccessibilityHeadingChange `json:"headings,omitempty" maxItems:"50"`
+	ToPx     int                          `json:"toPx,omitempty"`
+}
+
+// AccessibilityFixed is the MJML after a fix.
+type AccessibilityFixed struct {
+	MJML string `json:"mjml"`
+}
+
+type fixInput struct {
+	api.WorkspaceInput
+	Body AccessibilityFixInput
+}
+
+// FixContent applies one fix to an email's MJML: the composer's buttons
+// change the email the way Review & send's fixes do. Nothing is saved.
+func FixContent(in AccessibilityFixInput) (AccessibilityFixed, error) {
+	out, err := ApplyFix(in.MJML, FixRequest{Kind: in.Kind, Path: in.Path, Index: in.Index, Value: in.Value, Target: in.Target, From: in.From,
+		Headings: in.Headings, ToPx: in.ToPx})
+	if err != nil {
+		return AccessibilityFixed{}, api.Invalid("body", sentenceOf(fixError(err).Error()))
+	}
+	return AccessibilityFixed{MJML: out}, nil
+}
+
+// sentenceOf is an error as a sentence: capital first letter, a full stop.
+func sentenceOf(s string) string {
+	s = capitalize(strings.TrimSpace(s))
+	if s != "" && !strings.HasSuffix(s, ".") {
+		s += "."
+	}
+	return s
 }
 
 // Register adds the accessibility operations.
@@ -76,6 +125,13 @@ func Register(h huma.API, s *Service) {
 				return nil, err
 			}
 			out, err := s.CheckCampaign(ctx, api.WorkspaceFrom(ctx), id, in.Body)
+			return api.OK(out), err
+		})
+	api.Post(h, api.Op{ID: "apply-accessibility-fix", Path: "/workspaces/{workspace}/accessibility/fix", Summary: "Apply an accessibility fix to MJML",
+		Description: "The composer's fixes: alt text, decorative images, link text, a color, heading levels, a text size. Returns the changed MJML; nothing is saved, the composer's autosave stores it.",
+		Tags:        tags, Access: api.Workspace(authz.CampaignsEdit), MaxBodyBytes: 3 << 20},
+		func(_ context.Context, in *fixInput) (*api.Body[AccessibilityFixed], error) {
+			out, err := FixContent(in.Body)
 			return api.OK(out), err
 		})
 	api.Get(h, api.Op{ID: "template-gallery-accessibility", Path: "/workspaces/{workspace}/accessibility/templates", Summary: "Accessibility results of the template gallery",

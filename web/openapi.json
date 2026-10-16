@@ -659,6 +659,71 @@
         ],
         "type": "object"
       },
+      "AccessibilityFixInput": {
+        "additionalProperties": false,
+        "properties": {
+          "from": {
+            "maxLength": 60,
+            "type": "string"
+          },
+          "headings": {
+            "items": {
+              "$ref": "#/components/schemas/AccessibilityHeadingChange"
+            },
+            "maxItems": 50,
+            "type": "array"
+          },
+          "index": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "kind": {
+            "enum": [
+              "alt_text",
+              "decorative",
+              "link_text",
+              "color",
+              "heading",
+              "text_size"
+            ],
+            "type": "string"
+          },
+          "mjml": {
+            "maxLength": 2000000,
+            "type": "string"
+          },
+          "path": {
+            "items": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "maxItems": 12,
+            "type": "array"
+          },
+          "target": {
+            "enum": [
+              "background",
+              "text"
+            ],
+            "type": "string"
+          },
+          "toPx": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "value": {
+            "maxLength": 500,
+            "type": "string"
+          }
+        },
+        "required": [
+          "mjml",
+          "kind",
+          "path"
+        ],
+        "type": "object"
+      },
       "AccessibilityFixSpec": {
         "additionalProperties": false,
         "properties": {
@@ -743,6 +808,18 @@
           "suggestions",
           "headings",
           "links"
+        ],
+        "type": "object"
+      },
+      "AccessibilityFixed": {
+        "additionalProperties": false,
+        "properties": {
+          "mjml": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "mjml"
         ],
         "type": "object"
       },
@@ -7603,6 +7680,13 @@
           },
           "canViewContacts": {
             "type": "boolean"
+          },
+          "editHelpers": {
+            "description": "Members who hold campaigns:edit (when the caller can't edit)",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "editable": {
             "type": "boolean"
@@ -41722,6 +41806,74 @@
           "Team"
         ],
         "x-access": "workspace"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/accessibility/fix": {
+      "post": {
+        "description": "The composer's fixes: alt text, decorative images, link text, a color, heading levels, a text size. Returns the changed MJML; nothing is saved, the composer's autosave stores it.",
+        "operationId": "apply-accessibility-fix",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccessibilityFixInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessibilityFixed"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Apply an accessibility fix to MJML",
+        "tags": [
+          "Accessibility"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
       }
     },
     "/api/v1/workspaces/{workspace}/accessibility/policy": {
