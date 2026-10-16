@@ -55,7 +55,6 @@ import { Route as WWorkspaceAppProvidersWarmupRouteImport } from './routes/w/$wo
 import { Route as WWorkspaceAppSettingsIndexRouteImport } from './routes/w/$workspace/_app/settings/index'
 import { Route as WWorkspaceAppSettingsApprovalsRouteImport } from './routes/w/$workspace/_app/settings/approvals'
 import { Route as WWorkspaceAppSettingsAuditRouteImport } from './routes/w/$workspace/_app/settings/audit'
-import { Route as WWorkspaceAppSettingsIntegrationsRouteImport } from './routes/w/$workspace/_app/settings/integrations'
 import { Route as WWorkspaceAppSettingsKeysRouteImport } from './routes/w/$workspace/_app/settings/keys'
 import { Route as WWorkspaceAppSettingsMcpRouteImport } from './routes/w/$workspace/_app/settings/mcp'
 import { Route as WWorkspaceAppSettingsProvidersRouteImport } from './routes/w/$workspace/_app/settings/providers'
@@ -82,6 +81,10 @@ import { Route as WWorkspaceAppAudienceSegmentsSegmentIdRouteImport } from './ro
 import { Route as WWorkspaceAppCampaignsCampaignIdLiveRouteImport } from './routes/w/$workspace/_app/campaigns/$campaignId/live'
 import { Route as WWorkspaceAppCampaignsCampaignIdReportRouteImport } from './routes/w/$workspace/_app/campaigns/$campaignId/report'
 import { Route as WWorkspaceAppCampaignsCampaignIdReviewRouteImport } from './routes/w/$workspace/_app/campaigns/$campaignId/review'
+import { Route as WWorkspaceAppSettingsIntegrationsIndexRouteImport } from './routes/w/$workspace/_app/settings/integrations/index'
+import { Route as WWorkspaceAppSettingsIntegrationsKindRouteImport } from './routes/w/$workspace/_app/settings/integrations/$kind'
+import { Route as WWorkspaceAppSettingsIntegrationsHostreputeRouteImport } from './routes/w/$workspace/_app/settings/integrations/hostrepute'
+import { Route as WWorkspaceAppSettingsIntegrationsWordpressRouteImport } from './routes/w/$workspace/_app/settings/integrations/wordpress'
 import { Route as WWorkspaceAppSettingsRolesIndexRouteImport } from './routes/w/$workspace/_app/settings/roles/index'
 import { Route as WWorkspaceAppSettingsRolesRoleIdRouteImport } from './routes/w/$workspace/_app/settings/roles/$roleId'
 import { Route as WWorkspaceAppSettingsSendersIndexRouteImport } from './routes/w/$workspace/_app/settings/senders/index'
@@ -345,12 +348,6 @@ const WWorkspaceAppSettingsAuditRoute =
     path: '/settings/audit',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
-const WWorkspaceAppSettingsIntegrationsRoute =
-  WWorkspaceAppSettingsIntegrationsRouteImport.update({
-    id: '/settings/integrations',
-    path: '/settings/integrations',
-    getParentRoute: () => WWorkspaceAppRouteRoute,
-  } as any)
 const WWorkspaceAppSettingsKeysRoute =
   WWorkspaceAppSettingsKeysRouteImport.update({
     id: '/settings/keys',
@@ -507,6 +504,30 @@ const WWorkspaceAppCampaignsCampaignIdReviewRoute =
     path: '/campaigns/$campaignId/review',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
+const WWorkspaceAppSettingsIntegrationsIndexRoute =
+  WWorkspaceAppSettingsIntegrationsIndexRouteImport.update({
+    id: '/settings/integrations/',
+    path: '/settings/integrations/',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppSettingsIntegrationsKindRoute =
+  WWorkspaceAppSettingsIntegrationsKindRouteImport.update({
+    id: '/settings/integrations/$kind',
+    path: '/settings/integrations/$kind',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppSettingsIntegrationsHostreputeRoute =
+  WWorkspaceAppSettingsIntegrationsHostreputeRouteImport.update({
+    id: '/settings/integrations/hostrepute',
+    path: '/settings/integrations/hostrepute',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppSettingsIntegrationsWordpressRoute =
+  WWorkspaceAppSettingsIntegrationsWordpressRouteImport.update({
+    id: '/settings/integrations/wordpress',
+    path: '/settings/integrations/wordpress',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
 const WWorkspaceAppSettingsRolesIndexRoute =
   WWorkspaceAppSettingsRolesIndexRouteImport.update({
     id: '/settings/roles/',
@@ -580,7 +601,6 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/providers/warmup': typeof WWorkspaceAppProvidersWarmupRoute
   '/w/$workspace/settings/approvals': typeof WWorkspaceAppSettingsApprovalsRoute
   '/w/$workspace/settings/audit': typeof WWorkspaceAppSettingsAuditRoute
-  '/w/$workspace/settings/integrations': typeof WWorkspaceAppSettingsIntegrationsRoute
   '/w/$workspace/settings/keys': typeof WWorkspaceAppSettingsKeysRoute
   '/w/$workspace/settings/mcp': typeof WWorkspaceAppSettingsMcpRoute
   '/w/$workspace/settings/providers': typeof WWorkspaceAppSettingsProvidersRoute
@@ -615,11 +635,15 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/campaigns/$campaignId/live': typeof WWorkspaceAppCampaignsCampaignIdLiveRoute
   '/w/$workspace/campaigns/$campaignId/report': typeof WWorkspaceAppCampaignsCampaignIdReportRoute
   '/w/$workspace/campaigns/$campaignId/review': typeof WWorkspaceAppCampaignsCampaignIdReviewRoute
+  '/w/$workspace/settings/integrations/$kind': typeof WWorkspaceAppSettingsIntegrationsKindRoute
+  '/w/$workspace/settings/integrations/hostrepute': typeof WWorkspaceAppSettingsIntegrationsHostreputeRoute
+  '/w/$workspace/settings/integrations/wordpress': typeof WWorkspaceAppSettingsIntegrationsWordpressRoute
   '/w/$workspace/settings/roles/$roleId': typeof WWorkspaceAppSettingsRolesRoleIdRoute
   '/w/$workspace/settings/senders/$domainId': typeof WWorkspaceAppSettingsSendersDomainIdRoute
   '/w/$workspace/settings/team/$memberId': typeof WWorkspaceAppSettingsTeamMemberIdRoute
   '/w/$workspace/admin/sso/': typeof WWorkspaceAppAdminSsoIndexRoute
   '/w/$workspace/audience/segments/': typeof WWorkspaceAppAudienceSegmentsIndexRoute
+  '/w/$workspace/settings/integrations/': typeof WWorkspaceAppSettingsIntegrationsIndexRoute
   '/w/$workspace/settings/roles/': typeof WWorkspaceAppSettingsRolesIndexRoute
   '/w/$workspace/settings/senders/': typeof WWorkspaceAppSettingsSendersIndexRoute
   '/w/$workspace/settings/team/': typeof WWorkspaceAppSettingsTeamIndexRoute
@@ -659,7 +683,6 @@ export interface FileRoutesByTo {
   '/w/$workspace/providers/warmup': typeof WWorkspaceAppProvidersWarmupRoute
   '/w/$workspace/settings/approvals': typeof WWorkspaceAppSettingsApprovalsRoute
   '/w/$workspace/settings/audit': typeof WWorkspaceAppSettingsAuditRoute
-  '/w/$workspace/settings/integrations': typeof WWorkspaceAppSettingsIntegrationsRoute
   '/w/$workspace/settings/keys': typeof WWorkspaceAppSettingsKeysRoute
   '/w/$workspace/settings/mcp': typeof WWorkspaceAppSettingsMcpRoute
   '/w/$workspace/settings/providers': typeof WWorkspaceAppSettingsProvidersRoute
@@ -694,11 +717,15 @@ export interface FileRoutesByTo {
   '/w/$workspace/campaigns/$campaignId/live': typeof WWorkspaceAppCampaignsCampaignIdLiveRoute
   '/w/$workspace/campaigns/$campaignId/report': typeof WWorkspaceAppCampaignsCampaignIdReportRoute
   '/w/$workspace/campaigns/$campaignId/review': typeof WWorkspaceAppCampaignsCampaignIdReviewRoute
+  '/w/$workspace/settings/integrations/$kind': typeof WWorkspaceAppSettingsIntegrationsKindRoute
+  '/w/$workspace/settings/integrations/hostrepute': typeof WWorkspaceAppSettingsIntegrationsHostreputeRoute
+  '/w/$workspace/settings/integrations/wordpress': typeof WWorkspaceAppSettingsIntegrationsWordpressRoute
   '/w/$workspace/settings/roles/$roleId': typeof WWorkspaceAppSettingsRolesRoleIdRoute
   '/w/$workspace/settings/senders/$domainId': typeof WWorkspaceAppSettingsSendersDomainIdRoute
   '/w/$workspace/settings/team/$memberId': typeof WWorkspaceAppSettingsTeamMemberIdRoute
   '/w/$workspace/admin/sso': typeof WWorkspaceAppAdminSsoIndexRoute
   '/w/$workspace/audience/segments': typeof WWorkspaceAppAudienceSegmentsIndexRoute
+  '/w/$workspace/settings/integrations': typeof WWorkspaceAppSettingsIntegrationsIndexRoute
   '/w/$workspace/settings/roles': typeof WWorkspaceAppSettingsRolesIndexRoute
   '/w/$workspace/settings/senders': typeof WWorkspaceAppSettingsSendersIndexRoute
   '/w/$workspace/settings/team': typeof WWorkspaceAppSettingsTeamIndexRoute
@@ -741,7 +768,6 @@ export interface FileRoutesById {
   '/w/$workspace/_app/providers/warmup': typeof WWorkspaceAppProvidersWarmupRoute
   '/w/$workspace/_app/settings/approvals': typeof WWorkspaceAppSettingsApprovalsRoute
   '/w/$workspace/_app/settings/audit': typeof WWorkspaceAppSettingsAuditRoute
-  '/w/$workspace/_app/settings/integrations': typeof WWorkspaceAppSettingsIntegrationsRoute
   '/w/$workspace/_app/settings/keys': typeof WWorkspaceAppSettingsKeysRoute
   '/w/$workspace/_app/settings/mcp': typeof WWorkspaceAppSettingsMcpRoute
   '/w/$workspace/_app/settings/providers': typeof WWorkspaceAppSettingsProvidersRoute
@@ -776,11 +802,15 @@ export interface FileRoutesById {
   '/w/$workspace/_app/campaigns/$campaignId/live': typeof WWorkspaceAppCampaignsCampaignIdLiveRoute
   '/w/$workspace/_app/campaigns/$campaignId/report': typeof WWorkspaceAppCampaignsCampaignIdReportRoute
   '/w/$workspace/_app/campaigns/$campaignId/review': typeof WWorkspaceAppCampaignsCampaignIdReviewRoute
+  '/w/$workspace/_app/settings/integrations/$kind': typeof WWorkspaceAppSettingsIntegrationsKindRoute
+  '/w/$workspace/_app/settings/integrations/hostrepute': typeof WWorkspaceAppSettingsIntegrationsHostreputeRoute
+  '/w/$workspace/_app/settings/integrations/wordpress': typeof WWorkspaceAppSettingsIntegrationsWordpressRoute
   '/w/$workspace/_app/settings/roles/$roleId': typeof WWorkspaceAppSettingsRolesRoleIdRoute
   '/w/$workspace/_app/settings/senders/$domainId': typeof WWorkspaceAppSettingsSendersDomainIdRoute
   '/w/$workspace/_app/settings/team/$memberId': typeof WWorkspaceAppSettingsTeamMemberIdRoute
   '/w/$workspace/_app/admin/sso/': typeof WWorkspaceAppAdminSsoIndexRoute
   '/w/$workspace/_app/audience/segments/': typeof WWorkspaceAppAudienceSegmentsIndexRoute
+  '/w/$workspace/_app/settings/integrations/': typeof WWorkspaceAppSettingsIntegrationsIndexRoute
   '/w/$workspace/_app/settings/roles/': typeof WWorkspaceAppSettingsRolesIndexRoute
   '/w/$workspace/_app/settings/senders/': typeof WWorkspaceAppSettingsSendersIndexRoute
   '/w/$workspace/_app/settings/team/': typeof WWorkspaceAppSettingsTeamIndexRoute
@@ -823,7 +853,6 @@ export interface FileRouteTypes {
     | '/w/$workspace/providers/warmup'
     | '/w/$workspace/settings/approvals'
     | '/w/$workspace/settings/audit'
-    | '/w/$workspace/settings/integrations'
     | '/w/$workspace/settings/keys'
     | '/w/$workspace/settings/mcp'
     | '/w/$workspace/settings/providers'
@@ -858,11 +887,15 @@ export interface FileRouteTypes {
     | '/w/$workspace/campaigns/$campaignId/live'
     | '/w/$workspace/campaigns/$campaignId/report'
     | '/w/$workspace/campaigns/$campaignId/review'
+    | '/w/$workspace/settings/integrations/$kind'
+    | '/w/$workspace/settings/integrations/hostrepute'
+    | '/w/$workspace/settings/integrations/wordpress'
     | '/w/$workspace/settings/roles/$roleId'
     | '/w/$workspace/settings/senders/$domainId'
     | '/w/$workspace/settings/team/$memberId'
     | '/w/$workspace/admin/sso/'
     | '/w/$workspace/audience/segments/'
+    | '/w/$workspace/settings/integrations/'
     | '/w/$workspace/settings/roles/'
     | '/w/$workspace/settings/senders/'
     | '/w/$workspace/settings/team/'
@@ -902,7 +935,6 @@ export interface FileRouteTypes {
     | '/w/$workspace/providers/warmup'
     | '/w/$workspace/settings/approvals'
     | '/w/$workspace/settings/audit'
-    | '/w/$workspace/settings/integrations'
     | '/w/$workspace/settings/keys'
     | '/w/$workspace/settings/mcp'
     | '/w/$workspace/settings/providers'
@@ -937,11 +969,15 @@ export interface FileRouteTypes {
     | '/w/$workspace/campaigns/$campaignId/live'
     | '/w/$workspace/campaigns/$campaignId/report'
     | '/w/$workspace/campaigns/$campaignId/review'
+    | '/w/$workspace/settings/integrations/$kind'
+    | '/w/$workspace/settings/integrations/hostrepute'
+    | '/w/$workspace/settings/integrations/wordpress'
     | '/w/$workspace/settings/roles/$roleId'
     | '/w/$workspace/settings/senders/$domainId'
     | '/w/$workspace/settings/team/$memberId'
     | '/w/$workspace/admin/sso'
     | '/w/$workspace/audience/segments'
+    | '/w/$workspace/settings/integrations'
     | '/w/$workspace/settings/roles'
     | '/w/$workspace/settings/senders'
     | '/w/$workspace/settings/team'
@@ -983,7 +1019,6 @@ export interface FileRouteTypes {
     | '/w/$workspace/_app/providers/warmup'
     | '/w/$workspace/_app/settings/approvals'
     | '/w/$workspace/_app/settings/audit'
-    | '/w/$workspace/_app/settings/integrations'
     | '/w/$workspace/_app/settings/keys'
     | '/w/$workspace/_app/settings/mcp'
     | '/w/$workspace/_app/settings/providers'
@@ -1018,11 +1053,15 @@ export interface FileRouteTypes {
     | '/w/$workspace/_app/campaigns/$campaignId/live'
     | '/w/$workspace/_app/campaigns/$campaignId/report'
     | '/w/$workspace/_app/campaigns/$campaignId/review'
+    | '/w/$workspace/_app/settings/integrations/$kind'
+    | '/w/$workspace/_app/settings/integrations/hostrepute'
+    | '/w/$workspace/_app/settings/integrations/wordpress'
     | '/w/$workspace/_app/settings/roles/$roleId'
     | '/w/$workspace/_app/settings/senders/$domainId'
     | '/w/$workspace/_app/settings/team/$memberId'
     | '/w/$workspace/_app/admin/sso/'
     | '/w/$workspace/_app/audience/segments/'
+    | '/w/$workspace/_app/settings/integrations/'
     | '/w/$workspace/_app/settings/roles/'
     | '/w/$workspace/_app/settings/senders/'
     | '/w/$workspace/_app/settings/team/'
@@ -1363,13 +1402,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceAppSettingsAuditRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
-    '/w/$workspace/_app/settings/integrations': {
-      id: '/w/$workspace/_app/settings/integrations'
-      path: '/settings/integrations'
-      fullPath: '/w/$workspace/settings/integrations'
-      preLoaderRoute: typeof WWorkspaceAppSettingsIntegrationsRouteImport
-      parentRoute: typeof WWorkspaceAppRouteRoute
-    }
     '/w/$workspace/_app/settings/keys': {
       id: '/w/$workspace/_app/settings/keys'
       path: '/settings/keys'
@@ -1552,6 +1584,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceAppCampaignsCampaignIdReviewRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
+    '/w/$workspace/_app/settings/integrations/': {
+      id: '/w/$workspace/_app/settings/integrations/'
+      path: '/settings/integrations'
+      fullPath: '/w/$workspace/settings/integrations/'
+      preLoaderRoute: typeof WWorkspaceAppSettingsIntegrationsIndexRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/settings/integrations/$kind': {
+      id: '/w/$workspace/_app/settings/integrations/$kind'
+      path: '/settings/integrations/$kind'
+      fullPath: '/w/$workspace/settings/integrations/$kind'
+      preLoaderRoute: typeof WWorkspaceAppSettingsIntegrationsKindRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/settings/integrations/hostrepute': {
+      id: '/w/$workspace/_app/settings/integrations/hostrepute'
+      path: '/settings/integrations/hostrepute'
+      fullPath: '/w/$workspace/settings/integrations/hostrepute'
+      preLoaderRoute: typeof WWorkspaceAppSettingsIntegrationsHostreputeRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/settings/integrations/wordpress': {
+      id: '/w/$workspace/_app/settings/integrations/wordpress'
+      path: '/settings/integrations/wordpress'
+      fullPath: '/w/$workspace/settings/integrations/wordpress'
+      preLoaderRoute: typeof WWorkspaceAppSettingsIntegrationsWordpressRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
     '/w/$workspace/_app/settings/roles/': {
       id: '/w/$workspace/_app/settings/roles/'
       path: '/settings/roles'
@@ -1633,7 +1693,6 @@ interface WWorkspaceAppRouteRouteChildren {
   WWorkspaceAppProvidersWarmupRoute: typeof WWorkspaceAppProvidersWarmupRoute
   WWorkspaceAppSettingsApprovalsRoute: typeof WWorkspaceAppSettingsApprovalsRoute
   WWorkspaceAppSettingsAuditRoute: typeof WWorkspaceAppSettingsAuditRoute
-  WWorkspaceAppSettingsIntegrationsRoute: typeof WWorkspaceAppSettingsIntegrationsRoute
   WWorkspaceAppSettingsKeysRoute: typeof WWorkspaceAppSettingsKeysRoute
   WWorkspaceAppSettingsMcpRoute: typeof WWorkspaceAppSettingsMcpRoute
   WWorkspaceAppSettingsProvidersRoute: typeof WWorkspaceAppSettingsProvidersRoute
@@ -1656,11 +1715,15 @@ interface WWorkspaceAppRouteRouteChildren {
   WWorkspaceAppCampaignsCampaignIdLiveRoute: typeof WWorkspaceAppCampaignsCampaignIdLiveRoute
   WWorkspaceAppCampaignsCampaignIdReportRoute: typeof WWorkspaceAppCampaignsCampaignIdReportRoute
   WWorkspaceAppCampaignsCampaignIdReviewRoute: typeof WWorkspaceAppCampaignsCampaignIdReviewRoute
+  WWorkspaceAppSettingsIntegrationsKindRoute: typeof WWorkspaceAppSettingsIntegrationsKindRoute
+  WWorkspaceAppSettingsIntegrationsHostreputeRoute: typeof WWorkspaceAppSettingsIntegrationsHostreputeRoute
+  WWorkspaceAppSettingsIntegrationsWordpressRoute: typeof WWorkspaceAppSettingsIntegrationsWordpressRoute
   WWorkspaceAppSettingsRolesRoleIdRoute: typeof WWorkspaceAppSettingsRolesRoleIdRoute
   WWorkspaceAppSettingsSendersDomainIdRoute: typeof WWorkspaceAppSettingsSendersDomainIdRoute
   WWorkspaceAppSettingsTeamMemberIdRoute: typeof WWorkspaceAppSettingsTeamMemberIdRoute
   WWorkspaceAppAdminSsoIndexRoute: typeof WWorkspaceAppAdminSsoIndexRoute
   WWorkspaceAppAudienceSegmentsIndexRoute: typeof WWorkspaceAppAudienceSegmentsIndexRoute
+  WWorkspaceAppSettingsIntegrationsIndexRoute: typeof WWorkspaceAppSettingsIntegrationsIndexRoute
   WWorkspaceAppSettingsRolesIndexRoute: typeof WWorkspaceAppSettingsRolesIndexRoute
   WWorkspaceAppSettingsSendersIndexRoute: typeof WWorkspaceAppSettingsSendersIndexRoute
   WWorkspaceAppSettingsTeamIndexRoute: typeof WWorkspaceAppSettingsTeamIndexRoute
@@ -1692,8 +1755,6 @@ const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
   WWorkspaceAppProvidersWarmupRoute: WWorkspaceAppProvidersWarmupRoute,
   WWorkspaceAppSettingsApprovalsRoute: WWorkspaceAppSettingsApprovalsRoute,
   WWorkspaceAppSettingsAuditRoute: WWorkspaceAppSettingsAuditRoute,
-  WWorkspaceAppSettingsIntegrationsRoute:
-    WWorkspaceAppSettingsIntegrationsRoute,
   WWorkspaceAppSettingsKeysRoute: WWorkspaceAppSettingsKeysRoute,
   WWorkspaceAppSettingsMcpRoute: WWorkspaceAppSettingsMcpRoute,
   WWorkspaceAppSettingsProvidersRoute: WWorkspaceAppSettingsProvidersRoute,
@@ -1721,6 +1782,12 @@ const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
     WWorkspaceAppCampaignsCampaignIdReportRoute,
   WWorkspaceAppCampaignsCampaignIdReviewRoute:
     WWorkspaceAppCampaignsCampaignIdReviewRoute,
+  WWorkspaceAppSettingsIntegrationsKindRoute:
+    WWorkspaceAppSettingsIntegrationsKindRoute,
+  WWorkspaceAppSettingsIntegrationsHostreputeRoute:
+    WWorkspaceAppSettingsIntegrationsHostreputeRoute,
+  WWorkspaceAppSettingsIntegrationsWordpressRoute:
+    WWorkspaceAppSettingsIntegrationsWordpressRoute,
   WWorkspaceAppSettingsRolesRoleIdRoute: WWorkspaceAppSettingsRolesRoleIdRoute,
   WWorkspaceAppSettingsSendersDomainIdRoute:
     WWorkspaceAppSettingsSendersDomainIdRoute,
@@ -1729,6 +1796,8 @@ const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
   WWorkspaceAppAdminSsoIndexRoute: WWorkspaceAppAdminSsoIndexRoute,
   WWorkspaceAppAudienceSegmentsIndexRoute:
     WWorkspaceAppAudienceSegmentsIndexRoute,
+  WWorkspaceAppSettingsIntegrationsIndexRoute:
+    WWorkspaceAppSettingsIntegrationsIndexRoute,
   WWorkspaceAppSettingsRolesIndexRoute: WWorkspaceAppSettingsRolesIndexRoute,
   WWorkspaceAppSettingsSendersIndexRoute:
     WWorkspaceAppSettingsSendersIndexRoute,

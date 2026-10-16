@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button'
 import { Dialog } from '@/components/ui/Dialog'
 import { Skeleton } from '@/components/ui/Feedback'
 import { toast } from '@/components/ui/Toast'
+import { MemberIntegrations, useMemberIntegrations } from '@/features/integrations/MemberIntegrations'
 import { andList } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 
@@ -44,6 +45,7 @@ export function DeactivateDialog({
   const scheduled = data.reduce((n, d) => n + d.scheduledCampaigns, 0)
   const approvals = data.reduce((n, d) => n + d.approvalsRequested.filter((a) => a.status === 'pending').length, 0)
   const keys = data.flatMap((d) => d.apiKeys.filter((k) => k.status === 'active'))
+  const integrations = useMemberIntegrations(data.map((d) => d.member.userId))
   const one = members.length === 1
   const name = one ? members[0]!.name : `${members.length} members`
   const firstName = one ? first(members[0]!.name) : `${members.length} members`
@@ -51,6 +53,7 @@ export function DeactivateDialog({
   const submit = async () => {
     setBusy(true)
     try {
+      await integrations.apply(reason.trim())
       for (const m of members) {
         await http.POST('/api/v1/workspaces/{workspace}/members/{memberId}/deactivate', {
           params: { path: { workspace: slug, memberId: m.id } },
@@ -87,7 +90,7 @@ export function DeactivateDialog({
       footer={
         <>
           <Button onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button variant="danger-primary" loading={busy} disabledReason={loaded ? undefined : 'Loading what changes…'} onClick={submit}>
+          <Button variant="danger-primary" loading={busy} disabledReason={loaded && integrations.loaded ? undefined : 'Loading what changes…'} onClick={submit}>
             Deactivate {one ? firstName : `${members.length} members`}
           </Button>
         </>
@@ -135,6 +138,7 @@ export function DeactivateDialog({
           </label>
         </fieldset>
       ) : null}
+      <MemberIntegrations state={integrations} name={one ? firstName : undefined} />
       <label className="lbl">
         <span>
           Reason <span className="k font-medium">· recorded in the audit log</span>

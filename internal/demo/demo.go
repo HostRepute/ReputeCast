@@ -131,6 +131,7 @@ func Seed(ctx context.Context, pool *pgxpool.Pool, cfg *config.Config, box *secr
 		{"notifications", seedNotifications},
 		{"audit", seedAudit},
 		{"transactional", seedTransactional},
+		{"integrations-hub", seedIntegrationsHub},
 		{"transactional templates", seedTransactionalTemplates},
 	}
 	for _, st := range steps {
