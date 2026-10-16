@@ -23,6 +23,8 @@ export interface SampleInput {
   template: string
   to: { email: string; name: string }
   data: Data
+  /** The language version to send (internal/languages); omitted for the source. */
+  language?: string
 }
 
 export function messagesUrl(origin: string, workspace: string): string {
@@ -35,7 +37,9 @@ function idempotencyKey(template: string): string {
 }
 
 function payload(s: SampleInput): Data {
-  return { template: s.template, to: { email: s.to.email, name: s.to.name }, data: s.data }
+  const body: Data = { template: s.template, to: { email: s.to.email, name: s.to.name }, data: s.data }
+  if (s.language) body.language = s.language
+  return body
 }
 
 function indent(text: string, by: string): string {

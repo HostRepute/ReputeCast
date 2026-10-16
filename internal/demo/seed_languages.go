@@ -26,7 +26,7 @@ func init() { seedLanguages = seedLanguagesImpl }
 // two blocks. Vietnamese has no version in either.
 func seedLanguagesImpl(ctx context.Context, s *Seeder) error {
 	l := &langSeed{s: s, ws: s.WS(), svc: &languages.Service{Now: func() time.Time { return s.Now }}}
-	for _, step := range []func(context.Context) error{l.workspace, l.contacts, l.digest142, l.digest143, l.runs} {
+	for _, step := range []func(context.Context) error{l.workspace, l.contacts, l.sampleContacts, l.digest142, l.digest143, l.passwordReset, l.runs} {
 		if err := step(ctx); err != nil {
 			return err
 		}

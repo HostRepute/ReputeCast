@@ -125,8 +125,8 @@ func TestTransactionalLanguages(t *testing.T) {
 
 	// --- The editor (TransactionalTemplate's language switcher) ---
 	var created struct{ DraftRevision int }
-	linh.Do("POST", tbase+"/templates", map[string]any{"name": "Password reset", "key": "password-reset", "starter": "password-reset"}).MustStatus(t, 201).JSON(t, &created)
-	tpl := tbase + "/templates/password-reset"
+	linh.Do("POST", tbase+"/templates", map[string]any{"name": "Reset in languages", "key": "lang-reset", "starter": "password-reset"}).MustStatus(t, 201).JSON(t, &created)
+	tpl := tbase + "/templates/lang-reset"
 	var langs emailLanguages
 	linh.Do("GET", tpl+"/languages", nil).MustStatus(t, 200).JSON(t, &langs)
 	if langs.Source != "en" || !langs.CanEdit || langs.version(t, "es").Status != "missing" || langs.version(t, "vi").Gets != "en" {
@@ -190,7 +190,7 @@ func TestTransactionalLanguages(t *testing.T) {
 	data := map[string]any{"first_name": "Lucía", "reset_url": "https://app.acme.io/reset/tok_1", "expires_in": "30 minutes"}
 	send := func(to, language string) (lang, contact, reason, subject string) {
 		t.Helper()
-		body := map[string]any{"template": "password-reset", "to": map[string]any{"email": to}, "data": data}
+		body := map[string]any{"template": "lang-reset", "to": map[string]any{"email": to}, "data": data}
 		if language != "" {
 			body["language"] = language
 		}
@@ -221,7 +221,7 @@ func TestTransactionalLanguages(t *testing.T) {
 		t.Fatalf("no contact, no language: %s %s", l, r)
 	}
 	var rendered struct{ Subject, Language string }
-	txnCall(t, env, key.Secret, "/templates/password-reset/render", map[string]any{"data": data, "language": "es"}).MustStatus(t, 200).JSON(t, &rendered)
+	txnCall(t, env, key.Secret, "/templates/lang-reset/render", map[string]any{"data": data, "language": "es"}).MustStatus(t, 200).JSON(t, &rendered)
 	if rendered.Language != "es" || rendered.Subject != spanish {
 		t.Fatalf("render in Spanish: %+v", rendered)
 	}
@@ -238,4 +238,55 @@ func TestTransactionalLanguages(t *testing.T) {
 	// Archived templates can't change.
 	linh.Do("POST", tpl+"/archive", nil).MustStatus(t, 200)
 	linh.Do("POST", tpl+"/languages", map[string]any{"language": "de"}).MustStatus(t, 409)
+}
+
+// The sample's password-reset is in English, Spanish and German (brief §4):
+// Lucía Fernández gets Spanish from her contact language, Remove German
+// names it, and "Preview as" names the sample's readers.
+func TestDemoTemplateLanguages(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	linh := env.Client()
+	linh.SignInDemo("linh@acme.io")
+
+	var langs emailLanguages
+	linh.Do("GET", tbase+"/templates/password-reset/languages", nil).MustStatus(t, 200).JSON(t, &langs)
+	if es, de, vi := langs.version(t, "es"), langs.version(t, "de"), langs.version(t, "vi"); es.Status != "up_to_date" || de.Status != "up_to_date" ||
+		vi.Status != "missing" || vi.Gets != "en" {
+		t.Fatalf("password-reset's versions: %+v", langs.Versions)
+	}
+	var rendered struct{ Subject, Language string }
+	linh.Do("POST", tbase+"/templates/password-reset/render", map[string]any{"to": map[string]any{"email": "lucia.fernandez@example.com"},
+		"data": map[string]any{"reset_url": "https://app.acme.io/reset/tok_1", "expires_in": "30 minutes"}}).MustStatus(t, 200).JSON(t, &rendered)
+	if rendered.Language != "es" || rendered.Subject != "Restablece tu contraseña de Acme Cloud" {
+		t.Fatalf("Lucía gets Spanish: %+v", rendered)
+	}
+
+	var removal struct {
+		Has []struct {
+			Kind, Name  string
+			LiveVersion int
+			Languages   []string
+		}
+	}
+	linh.Do("GET", ws+"/languages/de/removal", nil).MustStatus(t, 200).JSON(t, &removal)
+	found := false
+	for _, h := range removal.Has {
+		if h.Kind == "transactional_template" && h.Name == "password-reset" {
+			found = h.LiveVersion > 0 && strings.Join(h.Languages, ", ") == "English, Spanish, German"
+		}
+	}
+	if !found {
+		t.Fatalf("Remove German names password-reset: %+v", removal.Has)
+	}
+
+	var pc struct{ Items []struct{ Name, Language string } }
+	linh.Do("GET", ws+"/campaigns/"+campaignByName(t, env, "Weekly Digest #142")+"/languages/preview-contacts", nil).MustStatus(t, 200).JSON(t, &pc)
+	names := []string{}
+	for _, it := range pc.Items {
+		names = append(names, it.Name)
+	}
+	if len(names) < 4 || names[1] != "Lucía Fernández" || names[2] != "Jonas Weber" || names[3] != "Phạm Minh Anh" {
+		t.Fatalf("Preview as: %v", names)
+	}
 }

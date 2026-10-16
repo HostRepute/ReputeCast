@@ -194,7 +194,9 @@ function itemDetail(i: Item, language: string, t: ReturnType<typeof useT>): stri
             : t(md.campaignDraft)
       : i.kind === 'automation_email'
         ? t(md.automationEmail)
-        : t(md.transactionalTemplate)
+        : i.liveVersion && i.languages?.length
+          ? t(md.templateLive, { version: i.liveVersion, languages: formatList(i.languages) })
+          : t(md.transactionalTemplate)
   if (!i.status) return kind
   return t(md.itemDetail, { kind, status: t(md.itemStatus, { language, status: i.status, count: i.changed }) })
 }

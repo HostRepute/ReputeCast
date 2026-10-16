@@ -390,6 +390,11 @@ type RemovalItem struct {
 	// outdated").
 	Status  string `json:"status,omitempty" enum:"up_to_date,outdated,draft,held"`
 	Changed int    `json:"changed,omitempty"`
+	// LiveVersion and Languages are a transactional template's live
+	// version and the languages it sends ("v4 live in English, Spanish
+	// and German").
+	LiveVersion int      `json:"liveVersion,omitempty"`
+	Languages   []string `json:"languages,omitempty"`
 }
 
 // LanguageRemoval is what removing a language affects.
@@ -436,6 +441,11 @@ func (s *Service) Removal(ctx context.Context, ws *store.Workspace, code string)
 			if r.AutomationName != "" {
 				item.Name, item.ID = r.AutomationName, r.AutomationID.String()
 			}
+		case OwnerTransactional:
+			if r.LiveVersion > 0 && !seen[r.OwnerKind+":"+item.ID] {
+				item.LiveVersion = int(r.LiveVersion)
+				item.Languages = s.liveLanguages(ctx, st, r.OwnerID, item.LiveVersion)
+			}
 		}
 		key := r.OwnerKind + ":" + item.ID
 		if seen[key] {
@@ -445,6 +455,31 @@ func (s *Service) Removal(ctx context.Context, ws *store.Workspace, code string)
 		out.Has = append(out.Has, item)
 	}
 	return out, nil
+}
+
+// liveLanguages names the languages a template's live version sends, its
+// source first.
+func (s *Service) liveLanguages(ctx context.Context, st Settings, id uuid.UUID, version int) []string {
+	source := st.Default
+	if row, err := s.Q.ContentSource(ctx, store.ContentSourceParams{OwnerKind: OwnerTransactional, OwnerID: id, OwnerVersion: int32(version)}); err == nil {
+		source = row.Language
+	}
+	rows, err := s.Q.ContentTranslations(ctx, store.ContentTranslationsParams{OwnerKind: OwnerTransactional, OwnerID: id, OwnerVersion: int32(version)})
+	if err != nil {
+		return nil
+	}
+	states := make([]VersionState, 0, len(rows))
+	for _, r := range rows {
+		states = append(states, VersionState{Language: r.Language, Status: r.Status, Held: r.Held})
+	}
+	ch := NewChooser(source, st, states)
+	out := []string{NameOf(source)}
+	for _, l := range st.Languages {
+		if l != source && ch.Ready(l) {
+			out = append(out, NameOf(l))
+		}
+	}
+	return out
 }
 
 func campaignState(status string) string {

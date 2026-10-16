@@ -15247,6 +15247,9 @@ export interface components {
             id: string;
             /** @enum {string} */
             kind: "campaign" | "automation_email" | "transactional_template";
+            languages?: string[];
+            /** Format: int64 */
+            liveVersion?: number;
             name: string;
             /** @enum {string} */
             state?: "draft" | "scheduled" | "waiting" | "sending";

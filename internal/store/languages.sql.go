@@ -1500,17 +1500,20 @@ func (q *Queries) LanguagesTemplateSource(ctx context.Context, arg LanguagesTemp
 
 const languagesVersionsIn = `-- name: LanguagesVersionsIn :many
 SELECT t.owner_kind, t.owner_id, t.owner_version, t.status, t.held,
-       coalesce(c.name, ae.name, '')::text AS name,
+       coalesce(c.name, ae.name, tt.key, '')::text AS name,
        coalesce(c.status, '')::text AS campaign_status,
        coalesce(a.name, '')::text AS automation_name,
-       coalesce(a.id, '00000000-0000-0000-0000-000000000000'::uuid)::uuid AS automation_id
+       coalesce(a.id, '00000000-0000-0000-0000-000000000000'::uuid)::uuid AS automation_id,
+       coalesce(tt.live_version, 0)::int AS live_version
 FROM content_translations t
 LEFT JOIN campaigns c ON t.owner_kind = 'campaign' AND c.id = t.owner_id AND c.deleted_at IS NULL
 LEFT JOIN automation_emails ae ON t.owner_kind = 'automation_email' AND ae.id = t.owner_id AND ae.deleted_at IS NULL
 LEFT JOIN automations a ON a.id = ae.automation_id
+LEFT JOIN transactional_templates tt ON t.owner_kind = 'transactional_template' AND tt.id = t.owner_id AND tt.deleted_at IS NULL
 WHERE t.workspace_id = $1 AND t.language = $2
   AND (t.owner_kind <> 'campaign' OR c.status IN ('draft','approval','approved','scheduled','sending','paused'))
   AND (t.owner_kind <> 'automation_email' OR ae.id IS NOT NULL)
+  AND (t.owner_kind <> 'transactional_template' OR tt.id IS NOT NULL)
 ORDER BY t.owner_kind, t.updated_at DESC
 `
 
@@ -1529,6 +1532,7 @@ type LanguagesVersionsInRow struct {
 	CampaignStatus string    `json:"campaignStatus"`
 	AutomationName string    `json:"automationName"`
 	AutomationID   uuid.UUID `json:"automationId"`
+	LiveVersion    int32     `json:"liveVersion"`
 }
 
 // What has a version in a language (the Remove dialog): unsent campaigns,
@@ -1552,6 +1556,7 @@ func (q *Queries) LanguagesVersionsIn(ctx context.Context, arg LanguagesVersions
 			&i.CampaignStatus,
 			&i.AutomationName,
 			&i.AutomationID,
+			&i.LiveVersion,
 		); err != nil {
 			return nil, err
 		}

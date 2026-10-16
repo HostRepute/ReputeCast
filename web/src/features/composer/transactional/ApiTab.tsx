@@ -8,6 +8,8 @@ import { acceptedAnswer, apiSample, LANGS, missingAnswer, unpublishedAnswer, typ
 import { ScrollText } from './ScrollText'
 import { useTx } from './state'
 import { PREVIEW_TO } from './types'
+import { versionLanguage } from '@/features/languages/composerParts'
+import { ApiLanguageNote } from '@/features/languages/transactional'
 
 function copy(text: string, title: string, failed: string, detail: string) {
   void navigator.clipboard.writeText(text).then(
@@ -27,7 +29,11 @@ export function ApiTab() {
   const tx = useTx()
   const [lang, setLang] = useState<Lang>('curl')
   const origin = c.context.publicUrl || window.location.origin
-  const input = useMemo(() => ({ origin, workspace: c.slug, template: tx.template.key, to: PREVIEW_TO, data: tx.previewData }), [origin, c.slug, tx.template.key, tx.previewData])
+  const language = versionLanguage(c.campaign)
+  const input = useMemo(
+    () => ({ origin, workspace: c.slug, template: tx.template.key, to: PREVIEW_TO, data: tx.previewData, language }),
+    [origin, c.slug, tx.template.key, tx.previewData, language],
+  )
   const code = apiSample(lang, input)
   const required = tx.variables.filter((v) => v.required).map((v) => v.name)
   const version = tx.template.liveVersion
@@ -76,6 +82,7 @@ export function ApiTab() {
       <span className="k">
         <T msg={tx.previewWith ? m.apiHelpWith : m.apiHelpSamples} values={{ name: tx.previewWith, mono: (chunks) => <span className="mono">{chunks}</span> }} />
       </span>
+      <ApiLanguageNote />
     </div>
   )
 }

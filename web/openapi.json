@@ -26755,6 +26755,16 @@
             ],
             "type": "string"
           },
+          "languages": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "liveVersion": {
+            "format": "int64",
+            "type": "integer"
+          },
           "name": {
             "type": "string"
           },

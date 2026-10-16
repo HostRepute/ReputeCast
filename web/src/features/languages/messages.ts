@@ -115,6 +115,7 @@ export const md = defineMessages('languages.dialogs', {
   campaignSending: 'Campaign sending',
   automationEmail: 'Automation email',
   transactionalTemplate: 'Transactional template',
+  templateLive: 'Transactional template · v{version} live in {languages}',
   itemDetail: '{kind} · {status}',
   itemStatus: '{status, select, outdated {{language} is outdated} up_to_date {{language} is up to date} draft {{language} is a draft} held {{language} is held back} other {{language} version}}',
 })
