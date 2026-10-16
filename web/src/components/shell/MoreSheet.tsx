@@ -102,7 +102,7 @@ export function MoreSheet({
             ))}
           </nav>
           <div className="sheet-sep" />
-          <Link to="/w/$workspace/settings/integrations" params={{ workspace: slug }} className="sheet-row" onClick={follow}>
+          <Link to="/w/$workspace/settings/integrations/hostrepute" params={{ workspace: slug }} className="sheet-row" onClick={follow}>
             <span className="dot" style={{ color: hr.color, margin: '0 14px' }} aria-hidden="true" />
             <span className="sheet-row-t">
               <span className="sheet-row-l">{hr.title}</span>

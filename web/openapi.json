@@ -6307,6 +6307,42 @@
         ],
         "type": "object"
       },
+      "CallTarget": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "endpoint": {
+            "type": "string"
+          },
+          "event": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "list": {
+            "type": "string"
+          },
+          "tag": {
+            "type": "string"
+          },
+          "template": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "type": "object"
+      },
       "CampaignList": {
         "additionalProperties": false,
         "properties": {
@@ -10616,6 +10652,27 @@
         ],
         "type": "object"
       },
+      "ContactListAddInput": {
+        "additionalProperties": false,
+        "properties": {
+          "consent": {
+            "enum": [
+              "single",
+              "double"
+            ],
+            "type": "string"
+          },
+          "email": {
+            "maxLength": 254,
+            "minLength": 3,
+            "type": "string"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "type": "object"
+      },
       "ContactListConsent": {
         "additionalProperties": false,
         "properties": {
@@ -10731,6 +10788,30 @@
           "source",
           "sourceLabel",
           "suppressed"
+        ],
+        "type": "object"
+      },
+      "ContactListJoin": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "subscribed",
+              "pending"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "status"
         ],
         "type": "object"
       },
@@ -11041,6 +11122,29 @@
         ],
         "type": "object"
       },
+      "ContactTagInput": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "maxLength": 254,
+            "minLength": 3,
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 50,
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "email",
+          "tags"
+        ],
+        "type": "object"
+      },
       "ContactUpdate": {
         "additionalProperties": false,
         "properties": {
@@ -11081,6 +11185,102 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "ContactUpsertInput": {
+        "additionalProperties": false,
+        "properties": {
+          "company": {
+            "maxLength": 200,
+            "type": "string"
+          },
+          "consent": {
+            "enum": [
+              "single",
+              "double"
+            ],
+            "type": "string"
+          },
+          "email": {
+            "examples": [
+              "rob@example.net"
+            ],
+            "maxLength": 254,
+            "minLength": 3,
+            "type": "string"
+          },
+          "fields": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "firstName": {
+            "maxLength": 100,
+            "type": "string"
+          },
+          "language": {
+            "maxLength": 40,
+            "type": "string"
+          },
+          "lastName": {
+            "maxLength": 100,
+            "type": "string"
+          },
+          "lists": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 50,
+            "type": "array"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "type": "object"
+      },
+      "ContactUpsertResult": {
+        "additionalProperties": false,
+        "properties": {
+          "confirmationSent": {
+            "type": "boolean"
+          },
+          "contactId": {
+            "type": "string"
+          },
+          "created": {
+            "type": "boolean"
+          },
+          "email": {
+            "type": "string"
+          },
+          "lists": {
+            "items": {
+              "$ref": "#/components/schemas/ContactListJoin"
+            },
+            "type": "array"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "contactId",
+          "email",
+          "created",
+          "lists",
+          "tags",
+          "confirmationSent"
+        ],
         "type": "object"
       },
       "ContactViewInput": {
@@ -13299,6 +13499,33 @@
           "thumb",
           "builtin",
           "sizeBytes"
+        ],
+        "type": "object"
+      },
+      "Envelope": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "data": {},
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "workspace": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "created_at",
+          "workspace",
+          "data"
         ],
         "type": "object"
       },
@@ -16820,6 +17047,2422 @@
         ],
         "type": "object"
       },
+      "IntegrationAddressCheck": {
+        "additionalProperties": false,
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "admins": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "allowed": {
+            "type": "boolean"
+          },
+          "host": {
+            "type": "string"
+          },
+          "private": {
+            "type": "boolean"
+          },
+          "resolves": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "address",
+          "host",
+          "private",
+          "allowed",
+          "admins"
+        ],
+        "type": "object"
+      },
+      "IntegrationAddressCheckInput": {
+        "additionalProperties": false,
+        "properties": {
+          "address": {
+            "examples": [
+              "https://n8n.acme.io"
+            ],
+            "maxLength": 300,
+            "type": "string"
+          }
+        },
+        "required": [
+          "address"
+        ],
+        "type": "object"
+      },
+      "IntegrationAddressInput": {
+        "additionalProperties": false,
+        "properties": {
+          "address": {
+            "description": "Empty to forget it",
+            "examples": [
+              "https://n8n.acme.io"
+            ],
+            "maxLength": 300,
+            "type": "string"
+          }
+        },
+        "required": [
+          "address"
+        ],
+        "type": "object"
+      },
+      "IntegrationAlert": {
+        "additionalProperties": false,
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "connectionId": {
+            "type": "string"
+          },
+          "entry": {
+            "type": "string"
+          },
+          "reason": {
+            "$ref": "#/components/schemas/IntegrationReason"
+          }
+        },
+        "required": [
+          "entry",
+          "reason"
+        ],
+        "type": "object"
+      },
+      "IntegrationApp": {
+        "additionalProperties": false,
+        "properties": {
+          "actions": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "address": {
+            "type": "string"
+          },
+          "canManage": {
+            "type": "boolean"
+          },
+          "connectedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "connectedBy": {
+            "$ref": "#/components/schemas/IntegrationPerson"
+          },
+          "connectionId": {
+            "type": "string"
+          },
+          "firstCall": {
+            "$ref": "#/components/schemas/IntegrationFirstCall"
+          },
+          "helpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "instanceUrl": {
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/IntegrationItemState"
+            },
+            "type": "array"
+          },
+          "key": {
+            "$ref": "#/components/schemas/IntegrationKeyView"
+          },
+          "kind": {
+            "enum": [
+              "zapier",
+              "make",
+              "n8n"
+            ],
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "numbers": {
+            "$ref": "#/components/schemas/IntegrationNumbers"
+          },
+          "oldKey": {
+            "$ref": "#/components/schemas/IntegrationKeyView"
+          },
+          "reachability": {
+            "$ref": "#/components/schemas/IntegrationReachability"
+          },
+          "reasons": {
+            "items": {
+              "$ref": "#/components/schemas/IntegrationReason"
+            },
+            "type": "array"
+          },
+          "receives": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "rejected": {
+            "items": {
+              "$ref": "#/components/schemas/IntegrationRejectedCall"
+            },
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "not_connected",
+              "waiting",
+              "connected",
+              "attention"
+            ],
+            "type": "string"
+          },
+          "triggers": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "webhooks": {
+            "items": {
+              "$ref": "#/components/schemas/IntegrationManagedHook"
+            },
+            "type": "array"
+          },
+          "workflows": {
+            "items": {
+              "$ref": "#/components/schemas/IntegrationWorkflowRow"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "kind",
+          "status",
+          "reasons",
+          "numbers",
+          "workflows",
+          "webhooks",
+          "items",
+          "instanceUrl",
+          "receives",
+          "rejected",
+          "reachability",
+          "canManage",
+          "helpers",
+          "triggers",
+          "actions"
+        ],
+        "type": "object"
+      },
+      "IntegrationAttempt": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "attempt": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "event": {
+            "type": "string"
+          },
+          "maxAttempts": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "queued": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "status": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "statusText": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "event",
+          "attempt",
+          "maxAttempts",
+          "queued"
+        ],
+        "type": "object"
+      },
+      "IntegrationCallDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "call": {
+            "$ref": "#/components/schemas/IntegrationCallView"
+          },
+          "headers": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "request": {},
+          "response": {}
+        },
+        "required": [
+          "call",
+          "headers"
+        ],
+        "type": "object"
+      },
+      "IntegrationCallList": {
+        "additionalProperties": false,
+        "properties": {
+          "errors": {
+            "description": "Errors in the window",
+            "format": "int64",
+            "type": "integer"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/IntegrationCallView"
+            },
+            "type": "array"
+          },
+          "limit": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "offset": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "total": {
+            "description": "Calls in the window",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "errors",
+          "offset",
+          "limit"
+        ],
+        "type": "object"
+      },
+      "IntegrationCallView": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "client": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "durationMs": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "ip": {
+            "type": "string"
+          },
+          "item": {
+            "type": "string"
+          },
+          "method": {
+            "type": "string"
+          },
+          "missing": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "operation": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "resolution": {
+            "$ref": "#/components/schemas/IntegrationResolution"
+          },
+          "status": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "target": {
+            "$ref": "#/components/schemas/CallTarget"
+          },
+          "unnamed": {
+            "type": "boolean"
+          },
+          "who": {
+            "enum": [
+              "email",
+              "contact",
+              "erased",
+              "none"
+            ],
+            "type": "string"
+          },
+          "workflow": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "at",
+          "workflow",
+          "unnamed",
+          "operation",
+          "method",
+          "path",
+          "status",
+          "durationMs",
+          "target",
+          "who"
+        ],
+        "type": "object"
+      },
+      "IntegrationChangeInput": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "lists": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "IntegrationChanged": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "permissions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "webhooksRemoved": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "permissions",
+          "webhooksRemoved"
+        ],
+        "type": "object"
+      },
+      "IntegrationConnectInfo": {
+        "additionalProperties": false,
+        "properties": {
+          "connectionId": {
+            "type": "string"
+          },
+          "includes": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "type": "object"
+          },
+          "instanceUrl": {
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/IntegrationItemLock"
+            },
+            "type": "array"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "lists": {
+            "items": {
+              "$ref": "#/components/schemas/ScopedList"
+            },
+            "type": "array"
+          },
+          "name": {
+            "description": "The suggested key name, \"Make · Acme ops\"",
+            "type": "string"
+          },
+          "order": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "reachability": {
+            "$ref": "#/components/schemas/IntegrationReachability"
+          }
+        },
+        "required": [
+          "kind",
+          "items",
+          "lists",
+          "name",
+          "reachability",
+          "instanceUrl",
+          "order",
+          "includes"
+        ],
+        "type": "object"
+      },
+      "IntegrationConnectInput": {
+        "additionalProperties": false,
+        "properties": {
+          "address": {
+            "maxLength": 300,
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "items": {
+            "description": "Catalog keys of the triggers and actions turned on",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "lists": {
+            "description": "Limit the key to these lists; empty for all lists",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "type": "array"
+          },
+          "name": {
+            "description": "The key's name, \"Make · Acme ops\"",
+            "maxLength": 80,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "IntegrationDeadLetter": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          },
+          "event": {
+            "type": "string"
+          },
+          "firstTryAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "keptUntil": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "lastAnswer": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "lastAttempt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "statusText": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "event",
+          "firstTryAt",
+          "keptUntil"
+        ],
+        "type": "object"
+      },
+      "IntegrationDeadLetterList": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/IntegrationDeadLetter"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "IntegrationDisconnectInput": {
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "maxLength": 300,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "IntegrationDisconnectPreview": {
+        "additionalProperties": false,
+        "properties": {
+          "dead": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "key": {
+            "$ref": "#/components/schemas/IntegrationKeyView"
+          },
+          "queued": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "webhooks": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "workflows": {
+            "description": "Workflows seen in the last 30 days: they stop",
+            "items": {
+              "$ref": "#/components/schemas/IntegrationWorkflowRef"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "workflows",
+          "webhooks",
+          "queued",
+          "dead"
+        ],
+        "type": "object"
+      },
+      "IntegrationEntry": {
+        "additionalProperties": false,
+        "properties": {
+          "connectionId": {
+            "type": "string"
+          },
+          "facts": {
+            "$ref": "#/components/schemas/IntegrationFacts"
+          },
+          "key": {
+            "enum": [
+              "zapier",
+              "make",
+              "n8n",
+              "wordpress",
+              "hostrepute",
+              "api",
+              "webhooks",
+              "mcp"
+            ],
+            "type": "string"
+          },
+          "reasons": {
+            "items": {
+              "$ref": "#/components/schemas/IntegrationReason"
+            },
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "not_connected",
+              "waiting",
+              "connected",
+              "attention",
+              "none"
+            ],
+            "type": "string"
+          },
+          "updateAvailable": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "key",
+          "status",
+          "updateAvailable",
+          "reasons",
+          "facts"
+        ],
+        "type": "object"
+      },
+      "IntegrationFacts": {
+        "additionalProperties": false,
+        "properties": {
+          "actions": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "agents": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "endpoints": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "failing": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "keyCreatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "lastCallAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "lastSyncAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "mcpEnabled": {
+            "type": "boolean"
+          },
+          "silentSites": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "sites": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "team": {
+            "type": "string"
+          },
+          "triggers": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "updates": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "workflows": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "workflows",
+          "triggers",
+          "actions",
+          "sites",
+          "silentSites",
+          "updates",
+          "endpoints",
+          "failing",
+          "mcpEnabled",
+          "agents"
+        ],
+        "type": "object"
+      },
+      "IntegrationFieldItem": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "type"
+        ],
+        "type": "object"
+      },
+      "IntegrationFieldItems": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/IntegrationFieldItem"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "IntegrationFirstCall": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "client": {
+            "type": "string"
+          },
+          "ip": {
+            "type": "string"
+          },
+          "operation": {
+            "type": "string"
+          },
+          "status": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "at",
+          "operation",
+          "status"
+        ],
+        "type": "object"
+      },
+      "IntegrationGroup": {
+        "additionalProperties": false,
+        "properties": {
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/IntegrationEntry"
+            },
+            "type": "array"
+          },
+          "key": {
+            "enum": [
+              "automation",
+              "websites",
+              "deliverability",
+              "developer",
+              "ai",
+              "verification",
+              "payments",
+              "commerce"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "entries"
+        ],
+        "type": "object"
+      },
+      "IntegrationHook": {
+        "additionalProperties": false,
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "event": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "secret": {
+            "description": "The signing secret. Only in the answer to the subscribe call.",
+            "type": "string"
+          },
+          "signatureHeader": {
+            "type": "string"
+          },
+          "timestampHeader": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "event",
+          "url",
+          "createdAt",
+          "signatureHeader",
+          "timestampHeader"
+        ],
+        "type": "object"
+      },
+      "IntegrationHookInput": {
+        "additionalProperties": false,
+        "properties": {
+          "event": {
+            "description": "The trigger's event",
+            "examples": [
+              "contact.unsubscribed"
+            ],
+            "type": "string"
+          },
+          "url": {
+            "description": "Where ReputeCast posts the events: the workflow's webhook address",
+            "maxLength": 500,
+            "type": "string"
+          }
+        },
+        "required": [
+          "event",
+          "url"
+        ],
+        "type": "object"
+      },
+      "IntegrationHub": {
+        "additionalProperties": false,
+        "properties": {
+          "alerts": {
+            "items": {
+              "$ref": "#/components/schemas/IntegrationAlert"
+            },
+            "type": "array"
+          },
+          "canManage": {
+            "type": "boolean"
+          },
+          "groups": {
+            "description": "Groups with something in them, in order",
+            "items": {
+              "$ref": "#/components/schemas/IntegrationGroup"
+            },
+            "type": "array"
+          },
+          "helpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "groups",
+          "alerts",
+          "canManage",
+          "helpers"
+        ],
+        "type": "object"
+      },
+      "IntegrationItemLock": {
+        "additionalProperties": false,
+        "properties": {
+          "event": {
+            "type": "string"
+          },
+          "helpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "key": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "trigger",
+              "action"
+            ],
+            "type": "string"
+          },
+          "locked": {
+            "type": "boolean"
+          },
+          "missing": {
+            "type": "string"
+          },
+          "new": {
+            "type": "boolean"
+          },
+          "on": {
+            "type": "boolean"
+          },
+          "permissions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "sensitive": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "key",
+          "kind",
+          "permissions",
+          "sensitive",
+          "new",
+          "on",
+          "locked"
+        ],
+        "type": "object"
+      },
+      "IntegrationItemState": {
+        "additionalProperties": false,
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "event": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "trigger",
+              "action"
+            ],
+            "type": "string"
+          },
+          "missing": {
+            "type": "string"
+          },
+          "new": {
+            "type": "boolean"
+          },
+          "offReason": {
+            "enum": [
+              "turned_off",
+              "owner_lacks",
+              ""
+            ],
+            "type": "string"
+          },
+          "on": {
+            "type": "boolean"
+          },
+          "owner": {
+            "type": "string"
+          },
+          "permissions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "sensitive": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "key",
+          "kind",
+          "permissions",
+          "sensitive",
+          "new",
+          "on",
+          "available"
+        ],
+        "type": "object"
+      },
+      "IntegrationKeyView": {
+        "additionalProperties": false,
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "graceUntil": {
+            "description": "A rotated key keeps working until then",
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "lastUsedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "lastUsedClient": {
+            "type": "string"
+          },
+          "lastUsedIp": {
+            "type": "string"
+          },
+          "masked": {
+            "examples": [
+              "rc_live_5d1e…7b20"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "owner": {
+            "$ref": "#/components/schemas/IntegrationPerson"
+          },
+          "ownerLeftAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "ownerStatus": {
+            "enum": [
+              "active",
+              "deactivated",
+              "removed"
+            ],
+            "type": "string"
+          },
+          "permissions": {
+            "description": "As held: implied view permissions left out",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "revokedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/ScopeSummary"
+          },
+          "sensitive": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "grace",
+              "revoked",
+              "expired"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "masked",
+          "permissions",
+          "sensitive",
+          "scope",
+          "owner",
+          "ownerStatus",
+          "createdAt",
+          "status"
+        ],
+        "type": "object"
+      },
+      "IntegrationListItem": {
+        "additionalProperties": false,
+        "properties": {
+          "doubleOptIn": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "doubleOptIn"
+        ],
+        "type": "object"
+      },
+      "IntegrationListItems": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/IntegrationListItem"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "IntegrationListOption": {
+        "additionalProperties": false,
+        "properties": {
+          "contacts": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "contacts"
+        ],
+        "type": "object"
+      },
+      "IntegrationManagedHook": {
+        "additionalProperties": false,
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "dead": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "delivered24h": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "endpoint": {
+            "description": "Masked: https://n8n.acme.io/webhook/7c1e…/reputecast",
+            "type": "string"
+          },
+          "event": {
+            "type": "string"
+          },
+          "failingSince": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "lastAttempt": {
+            "$ref": "#/components/schemas/IntegrationAttempt"
+          },
+          "lastStatus": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "nextAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "queued": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "recoveredAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "retrying": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "new",
+              "healthy",
+              "failing",
+              "dead_letters"
+            ],
+            "type": "string"
+          },
+          "statusText": {
+            "type": "string"
+          },
+          "total24h": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "workflow": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "event",
+          "endpoint",
+          "createdAt",
+          "delivered24h",
+          "total24h",
+          "retrying",
+          "queued",
+          "dead",
+          "status"
+        ],
+        "type": "object"
+      },
+      "IntegrationManagedKey": {
+        "additionalProperties": false,
+        "properties": {
+          "calls7d": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "connectionId": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "graceUntil": {
+            "description": "A rotated key keeps working until then",
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "lastUsedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "lastUsedClient": {
+            "type": "string"
+          },
+          "lastUsedIp": {
+            "type": "string"
+          },
+          "masked": {
+            "examples": [
+              "rc_live_5d1e…7b20"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "owner": {
+            "$ref": "#/components/schemas/IntegrationPerson"
+          },
+          "ownerLeftAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "ownerStatus": {
+            "enum": [
+              "active",
+              "deactivated",
+              "removed"
+            ],
+            "type": "string"
+          },
+          "permissions": {
+            "description": "As held: implied view permissions left out",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "revokedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/ScopeSummary"
+          },
+          "sensitive": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "grace",
+              "revoked",
+              "expired"
+            ],
+            "type": "string"
+          },
+          "workflows": {
+            "items": {
+              "$ref": "#/components/schemas/IntegrationWorkflowRef"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "connectionId",
+          "kind",
+          "label",
+          "workflows",
+          "calls7d",
+          "id",
+          "name",
+          "masked",
+          "permissions",
+          "sensitive",
+          "scope",
+          "owner",
+          "ownerStatus",
+          "createdAt",
+          "status"
+        ],
+        "type": "object"
+      },
+      "IntegrationManagedKeyList": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/IntegrationManagedKey"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "IntegrationMe": {
+        "additionalProperties": false,
+        "properties": {
+          "actions": {
+            "description": "Actions turned on",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "integration": {
+            "enum": [
+              "zapier",
+              "make",
+              "n8n",
+              "wordpress",
+              ""
+            ],
+            "type": "string"
+          },
+          "key": {
+            "description": "The key's name",
+            "type": "string"
+          },
+          "permissions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "triggers": {
+            "description": "Events of the triggers turned on",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "workspace": {
+            "description": "The workspace slug, for the other calls' paths",
+            "type": "string"
+          },
+          "workspaceName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace",
+          "workspaceName",
+          "integration",
+          "key",
+          "triggers",
+          "actions",
+          "permissions"
+        ],
+        "type": "object"
+      },
+      "IntegrationNumbers": {
+        "additionalProperties": false,
+        "properties": {
+          "calls7d": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "consentKept7d": {
+            "description": "Calls refused to keep consent (409)",
+            "format": "int64",
+            "type": "integer"
+          },
+          "errors7d": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "fixed7d": {
+            "description": "Errors a later call from the same workflow got past",
+            "format": "int64",
+            "type": "integer"
+          },
+          "lastCallAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "lastCallWorkflow": {
+            "type": "string"
+          },
+          "managedWebhooks": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "calls7d",
+          "errors7d",
+          "fixed7d",
+          "consentKept7d",
+          "managedWebhooks"
+        ],
+        "type": "object"
+      },
+      "IntegrationOption": {
+        "additionalProperties": false,
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
+      "IntegrationOwned": {
+        "additionalProperties": false,
+        "properties": {
+          "connectionId": {
+            "type": "string"
+          },
+          "keyName": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "silentSince": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "workflows": {
+            "description": "Workflows seen in the last 30 days",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "connectionId",
+          "kind",
+          "label",
+          "keyName",
+          "workflows"
+        ],
+        "type": "object"
+      },
+      "IntegrationOwnedList": {
+        "additionalProperties": false,
+        "properties": {
+          "canManage": {
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/IntegrationOwned"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items",
+          "canManage"
+        ],
+        "type": "object"
+      },
+      "IntegrationPerson": {
+        "additionalProperties": false,
+        "properties": {
+          "avatarColor": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "IntegrationReachability": {
+        "additionalProperties": false,
+        "properties": {
+          "admins": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "checkedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "dns": {
+            "$ref": "#/components/schemas/CheckLine"
+          },
+          "private": {
+            "type": "boolean"
+          },
+          "privateWebhooks": {
+            "type": "boolean"
+          },
+          "reach": {
+            "$ref": "#/components/schemas/CheckLine"
+          },
+          "reachable": {
+            "type": "boolean"
+          },
+          "tls": {
+            "$ref": "#/components/schemas/CheckLine"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "private",
+          "reachable",
+          "dns",
+          "tls",
+          "reach",
+          "admins",
+          "privateWebhooks"
+        ],
+        "type": "object"
+      },
+      "IntegrationReason": {
+        "additionalProperties": false,
+        "properties": {
+          "by": {
+            "type": "string"
+          },
+          "calls": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "check": {
+            "$ref": "#/components/schemas/WordPressCheck"
+          },
+          "code": {
+            "enum": [
+              "key_revoked",
+              "key_expired",
+              "owner_left",
+              "key_expiring",
+              "deliveries_failing",
+              "calls_failing",
+              "site_silent"
+            ],
+            "type": "string"
+          },
+          "connectionId": {
+            "type": "string"
+          },
+          "failed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "host": {
+            "type": "string"
+          },
+          "nextAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "rejected": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "retrying": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "since": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "statusText": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "type": "object"
+      },
+      "IntegrationRejectedCall": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "status": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "workflow": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "at",
+          "workflow",
+          "status",
+          "code"
+        ],
+        "type": "object"
+      },
+      "IntegrationResolution": {
+        "additionalProperties": false,
+        "properties": {
+          "fixedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "fixedBy": {
+            "type": "string"
+          },
+          "laterRuns": {
+            "items": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "laterRuns"
+        ],
+        "type": "object"
+      },
+      "IntegrationSecret": {
+        "additionalProperties": false,
+        "properties": {
+          "instanceUrl": {
+            "description": "Paste it into the other tool with the key",
+            "type": "string"
+          },
+          "integrationId": {
+            "type": "string"
+          },
+          "key": {
+            "$ref": "#/components/schemas/IntegrationKeyView"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "oldKeyUntil": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "secret": {
+            "description": "The full key. Shown only in this response.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "integrationId",
+          "kind",
+          "key",
+          "secret",
+          "instanceUrl"
+        ],
+        "type": "object"
+      },
+      "IntegrationSite": {
+        "additionalProperties": false,
+        "properties": {
+          "categories": {
+            "items": {
+              "$ref": "#/components/schemas/WordPressCategory"
+            },
+            "type": "array"
+          },
+          "connectedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "connectedBy": {
+            "type": "string"
+          },
+          "drafts": {
+            "items": {
+              "$ref": "#/components/schemas/IntegrationSiteDraft"
+            },
+            "type": "array"
+          },
+          "draftsThisWeek": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "feedUrl": {
+            "type": "string"
+          },
+          "firstReportAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "forms": {
+            "items": {
+              "$ref": "#/components/schemas/IntegrationSiteForm"
+            },
+            "type": "array"
+          },
+          "host": {
+            "type": "string"
+          },
+          "id": {
+            "description": "The connection's id",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/IntegrationItemState"
+            },
+            "type": "array"
+          },
+          "key": {
+            "$ref": "#/components/schemas/IntegrationKeyView"
+          },
+          "languagePlugin": {
+            "type": "string"
+          },
+          "lastCheck": {
+            "$ref": "#/components/schemas/WordPressCheck"
+          },
+          "lastReportAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "oldKey": {
+            "$ref": "#/components/schemas/IntegrationKeyView"
+          },
+          "phpVersion": {
+            "type": "string"
+          },
+          "pluginVersion": {
+            "type": "string"
+          },
+          "reasons": {
+            "items": {
+              "$ref": "#/components/schemas/IntegrationReason"
+            },
+            "type": "array"
+          },
+          "rule": {
+            "$ref": "#/components/schemas/IntegrationSiteRule"
+          },
+          "signupsRejected": {
+            "type": "boolean"
+          },
+          "siteUrl": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "waiting",
+              "connected",
+              "attention"
+            ],
+            "type": "string"
+          },
+          "updateAvailable": {
+            "type": "boolean"
+          },
+          "wordpressVersion": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "host",
+          "status",
+          "updateAvailable",
+          "forms",
+          "categories",
+          "rule",
+          "drafts",
+          "draftsThisWeek",
+          "items",
+          "connectedAt",
+          "reasons",
+          "signupsRejected"
+        ],
+        "type": "object"
+      },
+      "IntegrationSiteDraft": {
+        "additionalProperties": false,
+        "properties": {
+          "audience": {
+            "type": "string"
+          },
+          "campaignId": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "notified": {
+            "type": "string"
+          },
+          "postUrl": {
+            "type": "string"
+          },
+          "publishedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "description": "The campaign's status (draft, scheduled, sent…)",
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "status",
+          "createdAt"
+        ],
+        "type": "object"
+      },
+      "IntegrationSiteForm": {
+        "additionalProperties": false,
+        "properties": {
+          "allowed": {
+            "description": "The site is one of the form's allowed domains",
+            "type": "boolean"
+          },
+          "id": {
+            "description": "The form's uuid, for links",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "block",
+              "shortcode",
+              "widget"
+            ],
+            "type": "string"
+          },
+          "missing": {
+            "description": "The site uses a form that no longer exists",
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "places": {
+            "items": {
+              "$ref": "#/components/schemas/WordPressFormPlace"
+            },
+            "type": "array"
+          },
+          "publicId": {
+            "examples": [
+              "frm_8c2e1a"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "publicId",
+          "name",
+          "kind",
+          "places",
+          "allowed",
+          "missing"
+        ],
+        "type": "object"
+      },
+      "IntegrationSiteRule": {
+        "additionalProperties": false,
+        "properties": {
+          "categories": {
+            "items": {
+              "$ref": "#/components/schemas/WordPressCategory"
+            },
+            "type": "array"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "list": {
+            "$ref": "#/components/schemas/IntegrationListOption"
+          },
+          "listIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "notify": {
+            "$ref": "#/components/schemas/IntegrationOption"
+          },
+          "sender": {
+            "$ref": "#/components/schemas/IntegrationOption"
+          },
+          "set": {
+            "description": "A rule was set up (even if it's off now)",
+            "type": "boolean"
+          },
+          "template": {
+            "$ref": "#/components/schemas/IntegrationOption"
+          }
+        },
+        "required": [
+          "enabled",
+          "set",
+          "categories",
+          "listIds"
+        ],
+        "type": "object"
+      },
+      "IntegrationStatus": {
+        "additionalProperties": false,
+        "properties": {
+          "firstCall": {
+            "$ref": "#/components/schemas/IntegrationFirstCall"
+          },
+          "keyCreatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "reported": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "waiting",
+              "connected",
+              "attention"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "type": "object"
+      },
+      "IntegrationTakeOverPreview": {
+        "additionalProperties": false,
+        "properties": {
+          "held": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "key": {
+            "$ref": "#/components/schemas/IntegrationKeyView"
+          },
+          "missing": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "newOwner": {
+            "$ref": "#/components/schemas/IntegrationPerson"
+          },
+          "roleName": {
+            "type": "string"
+          },
+          "stops": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "key",
+          "newOwner",
+          "roleName",
+          "held",
+          "missing",
+          "stops"
+        ],
+        "type": "object"
+      },
+      "IntegrationTemplateItem": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "description": "The template's ID, for the send call",
+            "examples": [
+              "payment-failed"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "variables": {
+            "items": {
+              "$ref": "#/components/schemas/IntegrationTemplateVariable"
+            },
+            "type": "array"
+          },
+          "version": {
+            "description": "The live version",
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "key",
+          "name",
+          "version",
+          "variables"
+        ],
+        "type": "object"
+      },
+      "IntegrationTemplateItems": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/IntegrationTemplateItem"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "IntegrationTemplateVariable": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "name": {
+            "examples": [
+              "amount_due"
+            ],
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "sensitive": {
+            "description": "Masked in the call log, never stored",
+            "type": "boolean"
+          },
+          "type": {
+            "examples": [
+              "text"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "type",
+          "required",
+          "sensitive"
+        ],
+        "type": "object"
+      },
+      "IntegrationTriggerSample": {
+        "additionalProperties": false,
+        "properties": {
+          "event": {
+            "type": "string"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/Envelope"
+          }
+        },
+        "required": [
+          "event",
+          "payload"
+        ],
+        "type": "object"
+      },
+      "IntegrationWordPressPage": {
+        "additionalProperties": false,
+        "properties": {
+          "canEditForms": {
+            "type": "boolean"
+          },
+          "canManage": {
+            "type": "boolean"
+          },
+          "connectedBy": {
+            "type": "string"
+          },
+          "helpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "instanceUrl": {
+            "type": "string"
+          },
+          "latestPlugin": {
+            "type": "string"
+          },
+          "lists": {
+            "items": {
+              "$ref": "#/components/schemas/IntegrationListOption"
+            },
+            "type": "array"
+          },
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/IntegrationOption"
+            },
+            "type": "array"
+          },
+          "reasons": {
+            "items": {
+              "$ref": "#/components/schemas/IntegrationReason"
+            },
+            "type": "array"
+          },
+          "senders": {
+            "items": {
+              "$ref": "#/components/schemas/IntegrationOption"
+            },
+            "type": "array"
+          },
+          "sites": {
+            "items": {
+              "$ref": "#/components/schemas/IntegrationSite"
+            },
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "not_connected",
+              "waiting",
+              "connected",
+              "attention"
+            ],
+            "type": "string"
+          },
+          "templates": {
+            "items": {
+              "$ref": "#/components/schemas/IntegrationOption"
+            },
+            "type": "array"
+          },
+          "updateAvailable": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "status",
+          "reasons",
+          "updateAvailable",
+          "latestPlugin",
+          "sites",
+          "templates",
+          "senders",
+          "lists",
+          "members",
+          "canManage",
+          "canEditForms",
+          "helpers",
+          "instanceUrl"
+        ],
+        "type": "object"
+      },
+      "IntegrationWorkflowRef": {
+        "additionalProperties": false,
+        "properties": {
+          "lastRunAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "unnamed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "unnamed",
+          "lastRunAt"
+        ],
+        "type": "object"
+      },
+      "IntegrationWorkflowRow": {
+        "additionalProperties": false,
+        "properties": {
+          "calls7d": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "consentKept7d": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "deliveries7d": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "errors7d": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "fixedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "lastRunAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "trigger": {
+            "type": "boolean"
+          },
+          "unnamed": {
+            "type": "boolean"
+          },
+          "uses": {
+            "items": {
+              "$ref": "#/components/schemas/WorkflowUse"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "key",
+          "name",
+          "unnamed",
+          "uses",
+          "calls7d",
+          "errors7d",
+          "consentKept7d",
+          "lastRunAt",
+          "deliveries7d",
+          "trigger"
+        ],
+        "type": "object"
+      },
       "InvitationAcceptInput": {
         "additionalProperties": false,
         "properties": {
@@ -19630,7 +22273,8 @@
               "providers",
               "team",
               "hostrepute",
-              "other"
+              "other",
+              "integrations"
             ],
             "type": "string"
           },
@@ -35799,6 +38443,41 @@
         ],
         "type": "object"
       },
+      "WebhookManagedBy": {
+        "additionalProperties": false,
+        "properties": {
+          "endpoint": {
+            "examples": [
+              "https://n8n.acme.io/webhook/7c1e…/reputecast"
+            ],
+            "type": "string"
+          },
+          "integrationId": {
+            "type": "string"
+          },
+          "kind": {
+            "examples": [
+              "n8n"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "examples": [
+              "n8n"
+            ],
+            "type": "string"
+          },
+          "workflow": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "integrationId",
+          "kind",
+          "name"
+        ],
+        "type": "object"
+      },
       "WebhookRetryInput": {
         "additionalProperties": false,
         "properties": {
@@ -35879,6 +38558,9 @@
           "lastStatus": {
             "format": "int32",
             "type": "integer"
+          },
+          "managedBy": {
+            "$ref": "#/components/schemas/WebhookManagedBy"
           },
           "name": {
             "type": "string"
@@ -35983,6 +38665,500 @@
             "$ref": "#/components/schemas/WelcomePrompt"
           }
         },
+        "type": "object"
+      },
+      "WordPressCategory": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 200,
+            "type": "string"
+          },
+          "slug": {
+            "maxLength": 200,
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug"
+        ],
+        "type": "object"
+      },
+      "WordPressCheck": {
+        "additionalProperties": false,
+        "properties": {
+          "checkedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "detail": {
+            "examples": [
+              "Timed out after 10 s"
+            ],
+            "type": "string"
+          },
+          "ms": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "outcome": {
+            "enum": [
+              "answered",
+              "timeout",
+              "status",
+              "blocked",
+              "unreachable"
+            ],
+            "type": "string"
+          },
+          "seconds": {
+            "format": "double",
+            "type": "number"
+          },
+          "status": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ok",
+          "checkedAt",
+          "outcome",
+          "detail"
+        ],
+        "type": "object"
+      },
+      "WordPressDraftInput": {
+        "additionalProperties": false,
+        "properties": {
+          "post": {
+            "$ref": "#/components/schemas/WordPressPost"
+          }
+        },
+        "required": [
+          "post"
+        ],
+        "type": "object"
+      },
+      "WordPressDraftResult": {
+        "additionalProperties": false,
+        "properties": {
+          "campaignId": {
+            "type": "string"
+          },
+          "created": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "reason": {
+            "enum": [
+              "no_rule",
+              "rule_off",
+              "category",
+              "exists",
+              ""
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "created"
+        ],
+        "type": "object"
+      },
+      "WordPressForm": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "examples": [
+              "frm_8c2e1a"
+            ],
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "script": {
+            "description": "The form's public script, as embeds load it",
+            "type": "string"
+          },
+          "shortcode": {
+            "examples": [
+              "[reputecast_form id=\"frm_8c2e1a\"]"
+            ],
+            "type": "string"
+          },
+          "siteAllowed": {
+            "type": "boolean"
+          },
+          "status": {
+            "enum": [
+              "draft",
+              "live",
+              "paused"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "status",
+          "kind",
+          "siteAllowed",
+          "shortcode",
+          "script"
+        ],
+        "type": "object"
+      },
+      "WordPressFormList": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/WordPressForm"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "WordPressFormPlace": {
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "examples": [
+              "Join the beta"
+            ],
+            "maxLength": 200,
+            "type": "string"
+          },
+          "url": {
+            "maxLength": 500,
+            "type": "string"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "type": "object"
+      },
+      "WordPressFormUse": {
+        "additionalProperties": false,
+        "properties": {
+          "form": {
+            "description": "The form's id (frm_…)",
+            "examples": [
+              "frm_8c2e1a"
+            ],
+            "maxLength": 40,
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "block",
+              "shortcode",
+              "widget"
+            ],
+            "type": "string"
+          },
+          "places": {
+            "items": {
+              "$ref": "#/components/schemas/WordPressFormPlace"
+            },
+            "maxItems": 100,
+            "type": "array"
+          }
+        },
+        "required": [
+          "form",
+          "kind",
+          "places"
+        ],
+        "type": "object"
+      },
+      "WordPressPost": {
+        "additionalProperties": false,
+        "properties": {
+          "categories": {
+            "description": "Category slugs",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "type": "array"
+          },
+          "excerpt": {
+            "maxLength": 2000,
+            "type": "string"
+          },
+          "id": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "imageUrl": {
+            "description": "The featured image",
+            "maxLength": 1000,
+            "type": "string"
+          },
+          "language": {
+            "maxLength": 40,
+            "type": "string"
+          },
+          "publishedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 300,
+            "minLength": 1,
+            "type": "string"
+          },
+          "url": {
+            "maxLength": 1000,
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title"
+        ],
+        "type": "object"
+      },
+      "WordPressReportInput": {
+        "additionalProperties": false,
+        "properties": {
+          "categories": {
+            "items": {
+              "$ref": "#/components/schemas/WordPressCategory"
+            },
+            "maxItems": 500,
+            "type": "array"
+          },
+          "feedUrl": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "forms": {
+            "items": {
+              "$ref": "#/components/schemas/WordPressFormUse"
+            },
+            "maxItems": 100,
+            "type": "array"
+          },
+          "languagePlugin": {
+            "enum": [
+              "wpml",
+              "polylang",
+              ""
+            ],
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 200,
+            "type": "string"
+          },
+          "phpVersion": {
+            "examples": [
+              "8.3"
+            ],
+            "maxLength": 20,
+            "type": "string"
+          },
+          "pluginVersion": {
+            "examples": [
+              "1.2.0"
+            ],
+            "maxLength": 20,
+            "type": "string"
+          },
+          "siteUrl": {
+            "examples": [
+              "https://blog.acme.io"
+            ],
+            "maxLength": 300,
+            "type": "string"
+          },
+          "wordpressVersion": {
+            "examples": [
+              "6.9.2"
+            ],
+            "maxLength": 20,
+            "type": "string"
+          }
+        },
+        "required": [
+          "siteUrl",
+          "pluginVersion"
+        ],
+        "type": "object"
+      },
+      "WordPressReportResult": {
+        "additionalProperties": false,
+        "properties": {
+          "latestPlugin": {
+            "type": "string"
+          },
+          "site": {
+            "description": "The site's address as ReputeCast lists it",
+            "type": "string"
+          },
+          "workspace": {
+            "type": "string"
+          },
+          "workspaceName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace",
+          "workspaceName",
+          "site",
+          "latestPlugin"
+        ],
+        "type": "object"
+      },
+      "WordPressRule": {
+        "additionalProperties": false,
+        "properties": {
+          "categories": {
+            "description": "Category slugs",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "type": "array"
+          },
+          "listIds": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "notifyUserId": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "senderId": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "templateId": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "categories",
+          "listIds"
+        ],
+        "type": "object"
+      },
+      "WordPressRuleInput": {
+        "additionalProperties": false,
+        "properties": {
+          "categories": {
+            "description": "Category slugs",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "type": "array"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "listIds": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "notifyUserId": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "senderId": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "templateId": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "enabled",
+          "categories",
+          "listIds"
+        ],
+        "type": "object"
+      },
+      "WorkflowUse": {
+        "additionalProperties": false,
+        "properties": {
+          "event": {
+            "type": "string"
+          },
+          "goalOf": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "item": {
+            "type": "string"
+          },
+          "lists": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "optIn": {
+            "enum": [
+              "single",
+              "double"
+            ],
+            "type": "string"
+          },
+          "starts": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "template": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item"
+        ],
         "type": "object"
       },
       "WorkspaceApprovals": {
@@ -39474,6 +42650,44 @@
           "Sign-in"
         ],
         "x-access": "public"
+      }
+    },
+    "/api/v1/integration": {
+      "get": {
+        "description": "Needs only the key: the apps call it first to learn the workspace slug the other paths take.",
+        "operationId": "get-integration",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegrationMe"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Test connection: the key's workspace and what it can do",
+        "tags": [
+          "Integration API"
+        ],
+        "x-access": "key"
       }
     },
     "/api/v1/integrations/hostrepute/callback": {
@@ -43166,7 +46380,8 @@
                 "routing",
                 "audience",
                 "team",
-                "settings"
+                "settings",
+                "integrations"
               ],
               "type": "string"
             }
@@ -43422,7 +46637,8 @@
                 "routing",
                 "audience",
                 "team",
-                "settings"
+                "settings",
+                "integrations"
               ],
               "type": "string"
             }
@@ -52173,6 +55389,141 @@
         "x-permission": "subscribers:export"
       }
     },
+    "/api/v1/workspaces/{workspace}/contacts/tags": {
+      "post": {
+        "operationId": "tag-contact",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContactTagInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactUpsertResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add tags to a contact, matched by email",
+        "tags": [
+          "Contacts"
+        ],
+        "x-access": "workspace",
+        "x-permission": "subscribers:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/contacts/upsert": {
+      "post": {
+        "description": "Adds to lists with single or double opt-in. Never adds someone back to a list they left (409 unsubscribed) or a suppressed address (409 suppressed). Updating an existing contact needs subscribers:edit.",
+        "operationId": "upsert-contact",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContactUpsertInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactUpsertResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create or update a contact, matched by email",
+        "tags": [
+          "Contacts"
+        ],
+        "x-access": "workspace",
+        "x-permission": "subscribers:create"
+      }
+    },
     "/api/v1/workspaces/{workspace}/contacts/views": {
       "get": {
         "operationId": "list-contact-views",
@@ -56334,6 +59685,370 @@
         "x-permission": "subscribers:import"
       }
     },
+    "/api/v1/workspaces/{workspace}/integration/fields": {
+      "get": {
+        "operationId": "list-integration-fields",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegrationFieldItems"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Custom fields, for the apps' field mapping",
+        "tags": [
+          "Integration API"
+        ],
+        "x-access": "workspace",
+        "x-integration": "*",
+        "x-permission": "subscribers:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/integration/hooks": {
+      "post": {
+        "description": "Creates a managed webhook. It can't be edited by hand, answers to the integration only, and is removed when the endpoint answers 410 Gone.",
+        "operationId": "subscribe-integration-hook",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The calling workflow: \"\u003cname\u003e; id=\u003cid\u003e\", the name percent-encoded when it isn't ASCII",
+            "in": "header",
+            "name": "X-ReputeCast-Workflow",
+            "schema": {
+              "description": "The calling workflow: \"\u003cname\u003e; id=\u003cid\u003e\", the name percent-encoded when it isn't ASCII",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IntegrationHookInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegrationHook"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Subscribe a workflow to a trigger (REST hook); the signing secret is shown once",
+        "tags": [
+          "Integration API"
+        ],
+        "x-access": "workspace",
+        "x-integration": "*",
+        "x-permission": "webhooks:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/integration/hooks/{hookId}": {
+      "delete": {
+        "operationId": "unsubscribe-integration-hook",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "hookId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Unsubscribe: remove a workflow's managed webhook",
+        "tags": [
+          "Integration API"
+        ],
+        "x-access": "workspace",
+        "x-integration": "*",
+        "x-permission": "webhooks:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/integration/lists": {
+      "get": {
+        "operationId": "list-integration-lists",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegrationListItems"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lists, for the apps' dropdowns",
+        "tags": [
+          "Integration API"
+        ],
+        "x-access": "workspace",
+        "x-integration": "*",
+        "x-permission": "subscribers:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/integration/samples/{event}": {
+      "get": {
+        "operationId": "get-integration-trigger-sample",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "event",
+            "required": true,
+            "schema": {
+              "examples": [
+                "contact.subscribed"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegrationTriggerSample"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A sample payload of a trigger, for field mapping",
+        "tags": [
+          "Integration API"
+        ],
+        "x-access": "workspace",
+        "x-integration": "*",
+        "x-permission": "webhooks:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/integration/templates": {
+      "get": {
+        "description": "Only keys with \"Send a transactional email\" turned on can call it. Send with send-transactional-message.",
+        "operationId": "list-integration-templates",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegrationTemplateItems"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Published transactional templates and their variables, for \"Send a transactional email\"",
+        "tags": [
+          "Integration API"
+        ],
+        "x-access": "workspace",
+        "x-integration": "*",
+        "x-permission": "transactional:send"
+      }
+    },
     "/api/v1/workspaces/{workspace}/integrations": {
       "get": {
         "operationId": "get-integrations",
@@ -56389,6 +60104,1399 @@
         ],
         "x-access": "workspace",
         "x-permission": "deliverability:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/integrations/address-check": {
+      "post": {
+        "operationId": "check-integration-address",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IntegrationAddressCheckInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegrationAddressCheck"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Whether triggers can reach a workflow tool's address (private addresses need an instance admin)",
+        "tags": [
+          "Integrations"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/integrations/apps/{kind}": {
+      "get": {
+        "operationId": "get-integration-app",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "enum": [
+                "zapier",
+                "make",
+                "n8n",
+                "wordpress"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegrationApp"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "An automation platform's page: numbers, workflows, webhooks, what it can do and its key",
+        "tags": [
+          "Integrations"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/integrations/apps/{kind}/connect": {
+      "get": {
+        "operationId": "get-integration-connect",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "enum": [
+                "zapier",
+                "make",
+                "n8n",
+                "wordpress"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegrationConnectInfo"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "What the connect dialog offers you: triggers and actions, locks, lists and reachability",
+        "tags": [
+          "Integrations"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      },
+      "post": {
+        "description": "Creates the integration's own key with the permissions of the triggers and actions turned on. The key works only for those.",
+        "operationId": "connect-integration",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "enum": [
+                "zapier",
+                "make",
+                "n8n",
+                "wordpress"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IntegrationConnectInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegrationSecret"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Connect an integration; its key is shown once",
+        "tags": [
+          "Integrations"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/integrations/catalog": {
+      "get": {
+        "operationId": "get-integration-catalog",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegrationHub"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The integrations catalog: groups, statuses and what needs attention",
+        "tags": [
+          "Integrations"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/integrations/connections/{id}/address": {
+      "put": {
+        "operationId": "set-integration-address",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IntegrationAddressInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegrationAddressCheck"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Keep n8n's address, to open it and to check that triggers can reach it",
+        "tags": [
+          "Integrations"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/integrations/connections/{id}/calls": {
+      "get": {
+        "description": "Addresses show to members with subscribers:view; others see \"a contact\".",
+        "operationId": "list-integration-calls",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Only errors",
+            "explode": false,
+            "in": "query",
+            "name": "errors",
+            "schema": {
+              "description": "Only errors",
+              "type": "boolean"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "window",
+            "schema": {
+              "default": "7d",
+              "enum": [
+                "24h",
+                "7d"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "default": 0,
+              "format": "int64",
+              "maximum": 10000,
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 20,
+              "format": "int64",
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegrationCallList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The 7-day call log: workflow, action, target, result and duration",
+        "tags": [
+          "Integrations"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/integrations/connections/{id}/calls/{callId}": {
+      "get": {
+        "operationId": "get-integration-call",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "callId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegrationCallDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One call with its request and response, secrets masked",
+        "tags": [
+          "Integrations"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/integrations/connections/{id}/change": {
+      "post": {
+        "operationId": "change-integration",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IntegrationChangeInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegrationChanged"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Change what an integration can do; its key changes in place",
+        "tags": [
+          "Integrations"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/integrations/connections/{id}/check": {
+      "post": {
+        "operationId": "check-wordpress-site",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WordPressCheck"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Check now: call a site's status endpoint once, through the SSRF guard",
+        "tags": [
+          "Integrations"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/integrations/connections/{id}/disconnect": {
+      "get": {
+        "operationId": "get-integration-disconnect",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegrationDisconnectPreview"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "What disconnecting stops, removes and keeps",
+        "tags": [
+          "Integrations"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      },
+      "post": {
+        "description": "Contacts, events and messages created through the integration stay.",
+        "operationId": "disconnect-integration",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IntegrationDisconnectInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Disconnect: revoke the key and remove the webhooks it created",
+        "tags": [
+          "Integrations"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/integrations/connections/{id}/reconnect": {
+      "post": {
+        "operationId": "reconnect-integration",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IntegrationConnectInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegrationSecret"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Give an integration whose key was revoked or expired a new key, shown once",
+        "tags": [
+          "Integrations"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/integrations/connections/{id}/rotate": {
+      "post": {
+        "operationId": "rotate-integration-key",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegrationSecret"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Rotate an integration's key; the old one works for 24 hours",
+        "tags": [
+          "Integrations"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/integrations/connections/{id}/rule": {
+      "put": {
+        "operationId": "set-wordpress-rule",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WordPressRuleInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WordPressRule"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Set a site's post-draft rule: categories, audience, template, sender, who's notified",
+        "tags": [
+          "Integrations"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/integrations/connections/{id}/status": {
+      "get": {
+        "operationId": "get-integration-status",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegrationStatus"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Whether a new key has been called yet (the connect dialog's last step)",
+        "tags": [
+          "Integrations"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/integrations/connections/{id}/stop-old-key": {
+      "post": {
+        "operationId": "stop-integration-old-key",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Stop a rotated key before its 24 hours run out",
+        "tags": [
+          "Integrations"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/integrations/connections/{id}/take-over": {
+      "get": {
+        "operationId": "get-integration-take-over",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegrationTakeOverPreview"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "What taking over the key would change: the permissions you hold and don't",
+        "tags": [
+          "Integrations"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      },
+      "post": {
+        "operationId": "take-over-integration",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegrationTakeOverPreview"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Become the owner of an integration's key; it keeps its value",
+        "tags": [
+          "Integrations"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/integrations/connections/{id}/webhooks/{webhookId}/dead-letters": {
+      "get": {
+        "operationId": "list-integration-dead-letters",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "webhookId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegrationDeadLetterList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A managed webhook's dead-letter queue",
+        "tags": [
+          "Integrations"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:view"
       }
     },
     "/api/v1/workspaces/{workspace}/integrations/hostrepute": {
@@ -56754,6 +61862,240 @@
         ],
         "x-access": "workspace",
         "x-permission": "integrations:hostrepute"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/integrations/keys": {
+      "get": {
+        "operationId": "list-integration-keys",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegrationManagedKeyList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Keys managed by integrations (Keys \u0026 MCP's second table)",
+        "tags": [
+          "Integrations"
+        ],
+        "x-access": "workspace",
+        "x-permission": "apikeys:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/integrations/owned-by/{userId}": {
+      "get": {
+        "operationId": "list-member-integrations",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "userId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegrationOwnedList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Integrations whose key a member owns (deactivate and remove dialogs)",
+        "tags": [
+          "Integrations"
+        ],
+        "x-access": "workspace",
+        "x-permission": "team:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/integrations/reachability/check": {
+      "post": {
+        "operationId": "check-integration-reachability",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegrationReachability"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Run the public URL check again: can Zapier and Make reach this instance?",
+        "tags": [
+          "Integrations"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/integrations/wordpress": {
+      "get": {
+        "operationId": "get-integration-wordpress",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegrationWordPressPage"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "WordPress sites: health, forms, post drafts and keys",
+        "tags": [
+          "Integrations"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:view"
       }
     },
     "/api/v1/workspaces/{workspace}/invitations": {
@@ -57921,6 +63263,85 @@
         ],
         "x-access": "workspace",
         "x-permission": "lists:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/lists/{id}/contacts": {
+      "post": {
+        "description": "Never adds someone back to a list they left, or a suppressed address: both answer 409 with the date and the reason.",
+        "operationId": "add-contact-to-list",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The list",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "The list",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContactListAddInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactUpsertResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add a contact to a list, single or double opt-in",
+        "tags": [
+          "Contacts"
+        ],
+        "x-access": "workspace",
+        "x-permission": "subscribers:edit"
       }
     },
     "/api/v1/workspaces/{workspace}/lists/{id}/impact": {
@@ -67957,6 +73378,193 @@
         ],
         "x-access": "workspace",
         "x-permission": "automations:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/wordpress/drafts": {
+      "post": {
+        "description": "campaigns:edit lets a site's key create drafts from posts only: it can't open, change or send any other campaign. Nothing is sent.",
+        "operationId": "create-wordpress-draft",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WordPressDraftInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WordPressDraftResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a campaign draft from a published post, as the site's rule says",
+        "tags": [
+          "WordPress plugin"
+        ],
+        "x-access": "workspace",
+        "x-integration": "wordpress",
+        "x-permission": "campaigns:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/wordpress/forms": {
+      "get": {
+        "description": "subscribers:view lets a site's key list forms only: it can't read contacts.",
+        "operationId": "list-wordpress-forms",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WordPressFormList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The signup forms, for the block and the shortcode",
+        "tags": [
+          "WordPress plugin"
+        ],
+        "x-access": "workspace",
+        "x-integration": "wordpress",
+        "x-permission": "subscribers:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/wordpress/report": {
+      "post": {
+        "description": "The plugin reports when it connects, every 12 hours and with every post. ReputeCast never polls a site.",
+        "operationId": "report-wordpress-site",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WordPressReportInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WordPressReportResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Report in: plugin, WordPress and PHP versions, the feed and where forms are used",
+        "tags": [
+          "WordPress plugin"
+        ],
+        "x-access": "workspace",
+        "x-integration": "wordpress"
       }
     }
   }

@@ -3,6 +3,8 @@ package engine
 import (
 	"context"
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -77,6 +79,28 @@ func TestPrepareWithoutClickTracking(t *testing.T) {
 func TestPrepareRejectsBrokenLiquid(t *testing.T) {
 	if _, err := Prepare(Content{Subject: "Hi", HTML: "<p>{% if vip %}VIP</p>"}, Tracking{}); err == nil {
 		t.Fatal("broken Liquid must fail before anything is sent")
+	}
+}
+
+func TestPrepareCantReadFiles(t *testing.T) {
+	const secret = "db_password: hunter2"
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "config.yaml"), []byte(secret), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(dir)
+	for _, src := range []string{`{% render "config.yaml" %}`, `{% include "config.yaml" %}`} {
+		if _, err := parse(src); err == nil {
+			t.Errorf("%s parses; templates must not load files", src)
+		}
+	}
+	// html.Parse decodes the entities, so the plain-text part derived from
+	// this HTML holds a render tag that liquid.Validate never saw.
+	tpl, err := Prepare(Content{Subject: "Hi", HTML: `<p>&#123;% render "config.yaml" %&#125;</p>`}, Tracking{})
+	if err == nil {
+		if out, _ := tpl.Render(nil, false); strings.Contains(out.Text, secret) {
+			t.Fatalf("the plain-text part shows the file: %q", out.Text)
+		}
 	}
 }
 
