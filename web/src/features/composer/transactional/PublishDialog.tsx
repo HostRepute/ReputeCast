@@ -17,6 +17,13 @@ import { PREVIEW_TO, type ApprovalState, type PublishPreview } from './types'
 
 type Choice = 'optional' | 'later' | 'anyway'
 
+/** "just now", "5 min ago", "yesterday", "on Oct 3" for the approval sentences. */
+function askedWhen(t: ReturnType<typeof useT>, at: string | undefined): string {
+  const w = at ? ago(at) : 'now'
+  if (w === 'now') return t(mp.askedJustNow)
+  return w.endsWith(' ago') || w === 'yesterday' ? w : t(mp.askedOn, { date: w })
+}
+
 function Diff({ preview, full }: { preview: PublishPreview; full: boolean }) {
   const t = useT()
   const d = preview.diff
@@ -93,7 +100,11 @@ function PublishFlow({ onClose }: { onClose: () => void }) {
   const category = useCategoryLabel()
   const [dirty] = useState(() => c.status.kind !== 'saved' && c.status.kind !== 'new')
   const [phase, setPhase] = useState<'saving' | 'loading' | 'ready' | 'publishing' | 'requesting'>(dirty ? 'saving' : 'loading')
+  // preview is the draft as it is (its diff, breaking change and checks);
+  // opt is the same draft with the breaking variables made optional, whose
+  // test renders show what the old calls would get.
   const [preview, setPreview] = useState<PublishPreview | null>(null)
+  const [opt, setOpt] = useState<PublishPreview | null>(null)
   const [approval, setApproval] = useState<ApprovalState | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [choice, setChoice] = useState<Choice>('optional')
@@ -117,9 +128,13 @@ function PublishFlow({ onClose }: { onClose: () => void }) {
           http.GET('/api/v1/workspaces/{workspace}/transactional/templates/{template}/approval', { params: { path } }),
         ])
         if (n !== seq.current) return
-        setPreview(p.data ?? null)
+        if (opts.optional) setOpt(p.data ?? null)
+        else {
+          setPreview(p.data ?? null)
+          setOpt(null)
+          if (p.data) setDefaults(Object.fromEntries(p.data.breaking.breaking.map((b) => [b.name, b.suggestedDefault])))
+        }
         setApproval(a.data ?? null)
-        if (!opts.optional && p.data) setDefaults(Object.fromEntries(p.data.breaking.breaking.map((b) => [b.name, b.suggestedDefault])))
         setPhase('ready')
       } catch (e) {
         if (n !== seq.current) return
@@ -205,7 +220,8 @@ function PublishFlow({ onClose }: { onClose: () => void }) {
       if (e instanceof ApiError && e.status === 409) {
         // Breaking change, approval, a newer draft or a check that blocks: show where things stand now.
         setError(e.problem.detail ?? errorMessage(e))
-        await load(optional ? { optional } : {})
+        await load()
+        if (optional) await load({ optional })
         return
       }
       setError(errorMessage(e))
@@ -249,6 +265,7 @@ function PublishFlow({ onClose }: { onClose: () => void }) {
     const decided = approval && approval.coversDraft && (approval.status === 'changes_requested' || approval.status === 'rejected') ? approval : null
     return (
       <Dialog
+        className="txe-dlg"
         open={open}
         onOpenChange={(o) => !o && !busy && onClose()}
         size="md"
@@ -267,7 +284,7 @@ function PublishFlow({ onClose }: { onClose: () => void }) {
       >
         {pending ? (
           <p className="m-0 text-ink-nav">
-            {t(mp.waitingBody, { when: ago(approval.requestedAt), approvers: formatList(approval.approvers, 'disjunction') })}
+            {t(mp.waitingBody, { when: askedWhen(t, approval.requestedAt), approvers: formatList(approval.approvers, 'disjunction') })}
           </p>
         ) : (
           <>
@@ -295,7 +312,7 @@ function PublishFlow({ onClose }: { onClose: () => void }) {
 
   const first = !tpl.liveVersion
   const blocking = preview?.blocking ?? []
-  const renders = preview?.testRenders ?? []
+  const renders = (choice === 'optional' && breaking.length && opt ? opt : preview)?.testRenders ?? []
   const passed = (preview?.checks.checks ?? []).filter((x) => x.severity === 'pass')
   const allRender = renders.length > 0 && renders.every((r) => r.ok)
   const primary = (() => {
@@ -321,6 +338,7 @@ function PublishFlow({ onClose }: { onClose: () => void }) {
 
   return (
     <Dialog
+      className="txe-dlg"
       open={open}
       onOpenChange={(o) => !o && !busy && onClose()}
       size="lg"
@@ -460,7 +478,11 @@ function PublishFlow({ onClose }: { onClose: () => void }) {
                   <div key={`${r.source}-${r.name}`} className="chk">
                     <Icon name={r.ok ? 'check' : 'alertCircle'} size={14} />
                     <span style={{ flex: 1 }}>
-                      <b className="font-semibold">{r.source === 'last_call' && r.at ? t(mp.realCall, { when: clock(r.at) }) : r.name}</b>{' '}
+                      <b className="font-semibold">{r.source === 'last_call' && r.at
+                          ? new Date(r.at).toDateString() === new Date().toDateString()
+                            ? t(mp.realCall, { when: clock(r.at) })
+                            : t(mp.realCallOn, { date: dayMonthDate(r.at), time: clock(r.at) })
+                          : r.name}</b>{' '}
                       <span className="k">
                         {r.source === 'last_call'
                           ? t(mp.realCallDetail, { recipient: r.recipient ?? '' })
@@ -499,7 +521,7 @@ function PublishFlow({ onClose }: { onClose: () => void }) {
           {preview.approval.required && approval?.status === 'approved' && approval.coversDraft ? (
             <div className="note g" role="status">
               <Icon name="check" size={14} />
-              <div>{t(mp.approvedBy, { name: approval.decidedBy ?? '', when: approval.decidedAt ? ago(approval.decidedAt) : '' })}</div>
+              <div>{t(mp.approvedBy, { name: approval.decidedBy ?? '', when: askedWhen(t, approval.decidedAt) })}</div>
             </div>
           ) : null}
         </>

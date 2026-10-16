@@ -6777,6 +6777,100 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/transactional/imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Connect a provider, or upload MJML and HTML files, to import templates
+         * @description Postmark, SendGrid and Mailgun list their templates; Notifuse needs its instance's address. The key is sealed for this import and never returned. Files (up to 50, 2 MB each) are converted at once.
+         */
+        post: operations["start-transactional-template-import"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/imports/{importId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A template import: its templates, conversion report and drafts */
+        get: operations["get-transactional-template-import"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/imports/{importId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stop a template import without importing; the key is dropped */
+        post: operations["cancel-transactional-template-import"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/imports/{importId}/convert": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Read the picked templates and convert them to ReputeCast Liquid
+         * @description Each template gets a report row: converted, converted with notes, or needing a manual fix, naming the line and the construct.
+         */
+        post: operations["convert-transactional-template-import"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/imports/{importId}/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import the converted templates as drafts
+         * @description Nothing is published: the API keeps sending the live versions until someone publishes a draft. The provider key is dropped.
+         */
+        post: operations["finish-transactional-template-import"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/transactional/messages": {
         parameters: {
             query?: never;
@@ -13865,6 +13959,16 @@ export interface components {
             /** Format: int64 */
             targetVolume?: number;
         };
+        Note: {
+            construct?: string;
+            /** @enum {string} */
+            field: "subject" | "preheader" | "body" | "text" | "template";
+            /** @enum {string} */
+            kind: "info" | "note" | "manual";
+            /** Format: int64 */
+            line: number;
+            message: string;
+        };
         NotificationEmailDelivery: {
             available: boolean;
             provider?: string;
@@ -15129,6 +15233,13 @@ export interface components {
         };
         RecoveryCodes: {
             codes: string[];
+        };
+        Ref: {
+            alias: string;
+            category?: string;
+            name: string;
+            ref: string;
+            suggested: boolean;
         };
         RemovalItem: {
             /** Format: int64 */
@@ -17505,6 +17616,85 @@ export interface components {
         TeamSignOutResult: {
             /** Format: int64 */
             sessionsRevoked: number;
+        };
+        TemplateImport: {
+            account?: string;
+            /** @enum {string} */
+            accountKind?: "server" | "account" | "workspace" | "domains";
+            available: components["schemas"]["Ref"][];
+            /** Format: int64 */
+            converted: number;
+            created: components["schemas"]["TemplateImportCreated"][];
+            /** Format: date-time */
+            createdAt: string;
+            error?: components["schemas"]["TemplateImportError"];
+            /** Format: date-time */
+            finishedAt?: string;
+            id: string;
+            items: components["schemas"]["TemplateImportItem"][];
+            keySealed: boolean;
+            /** Format: int64 */
+            manual: number;
+            picked: string[];
+            /** @enum {string} */
+            source: "postmark" | "sendgrid" | "mailgun" | "notifuse" | "files";
+            /** @enum {string} */
+            status: "connect" | "pick" | "review" | "done" | "cancelled";
+            /** Format: int64 */
+            withNotes: number;
+        };
+        TemplateImportCreated: {
+            error?: string;
+            id?: string;
+            key: string;
+            name: string;
+            /** @enum {string} */
+            status: "converted" | "notes" | "manual";
+        };
+        TemplateImportError: {
+            code: string;
+            message: string;
+        };
+        TemplateImportFile: {
+            content: string;
+            /** @example password-reset.mjml */
+            name: string;
+        };
+        TemplateImportItem: {
+            alias: string;
+            failed: boolean;
+            key: string;
+            name: string;
+            notes: components["schemas"]["Note"][];
+            ref: string;
+            /** @enum {string} */
+            status: "converted" | "notes" | "manual";
+            summary: string;
+            /** @enum {string} */
+            summaryKind: "info" | "note" | "manual";
+            /** Format: int64 */
+            summaryLine: number;
+            /** Format: int64 */
+            variables: number;
+        };
+        TemplateImportPick: {
+            refs: string[];
+        };
+        TemplateImportStart: {
+            /** @description Sealed, used only for this import, never returned */
+            apiKey?: string;
+            /** @description Notifuse: the instance's address */
+            baseUrl?: string;
+            /** @description Mailgun: one sending domain; empty reads every domain */
+            domain?: string;
+            files?: components["schemas"]["TemplateImportFile"][];
+            /**
+             * @description Mailgun: the account's region
+             * @enum {string}
+             */
+            region?: "us" | "eu";
+            /** @enum {string} */
+            source: "postmark" | "sendgrid" | "mailgun" | "notifuse" | "files";
         };
         "Totp-confirmRequest": {
             challenge: string;
@@ -34806,6 +34996,178 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "start-transactional-template-import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TemplateImportStart"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateImport"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-transactional-template-import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                importId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateImport"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "cancel-transactional-template-import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                importId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateImport"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "convert-transactional-template-import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                importId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TemplateImportPick"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateImport"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "finish-transactional-template-import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                importId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateImport"];
+                };
             };
             /** @description Error */
             default: {

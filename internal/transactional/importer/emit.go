@@ -894,6 +894,13 @@ func preprocess(src string, d Dialect, field string) (string, []Note) {
 	var rules []rule
 	if d == DialectMailgun || d == DialectHandlebarsFile {
 		rules = append(rules,
+			// The recipient's address and name are to.email and to.name.
+			rule{mailgunTo, func(m []string) string {
+				if m[1] == "_name" {
+					return "{{to.name}}"
+				}
+				return "{{to.email}}"
+			}, changed("Mailgun")},
 			rule{mailgunRecipient, func(m []string) string { return "{{" + m[1] + "}}" }, changed("Mailgun")},
 			rule{mailgunUnsub, func([]string) string { return "{{unsubscribe_url}}" }, changed("Mailgun")},
 			rule{mailgunOther, func(m []string) string { return m[0] }, func(m []string, _ string) (NoteKind, string) {
@@ -933,6 +940,7 @@ func preprocess(src string, d Dialect, field string) (string, []Note) {
 }
 
 var (
+	mailgunTo        = regexp.MustCompile(`%recipient(_email|_name)?%`)
 	mailgunRecipient = regexp.MustCompile(`%recipient\.([A-Za-z_][A-Za-z0-9_]*)%`)
 	mailgunUnsub     = regexp.MustCompile(`%(unsubscribe_url|tag_unsubscribe_url|mailing_list_unsubscribe_url)%`)
 	mailgunOther     = regexp.MustCompile(`%recipient(_[a-z]+)?%`)
