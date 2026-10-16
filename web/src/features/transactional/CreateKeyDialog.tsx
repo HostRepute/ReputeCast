@@ -272,3 +272,11 @@ function ShownOnce({ created, smtp, setup, onClose }: { created: Created; smtp: 
     </Dialog>
   )
 }
+
+/** The Send-only preset of Settings › Keys & MCP: Transactional's own key dialog, once Setup has loaded. */
+export function SendOnlyKeyDialog({ onClose }: { onClose: () => void }) {
+  const { slug } = useWorkspace()
+  const q = $api.useQuery('get', `${API}/setup`, { params: { path: { workspace: slug } } })
+  if (!q.data) return null
+  return <CreateTransactionalKeyDialog preset="send_only" setup={q.data} onClose={onClose} />
+}
