@@ -91,6 +91,8 @@ import { Route as WWorkspaceAppSettingsSendersIndexRouteImport } from './routes/
 import { Route as WWorkspaceAppSettingsSendersDomainIdRouteImport } from './routes/w/$workspace/_app/settings/senders/$domainId'
 import { Route as WWorkspaceAppSettingsTeamIndexRouteImport } from './routes/w/$workspace/_app/settings/team/index'
 import { Route as WWorkspaceAppSettingsTeamMemberIdRouteImport } from './routes/w/$workspace/_app/settings/team/$memberId'
+import { Route as WWorkspaceAppCampaignsDigestsDigestIdIndexRouteImport } from './routes/w/$workspace/_app/campaigns/digests/$digestId/index'
+import { Route as WWorkspaceAppCampaignsDigestsDigestIdSettingsRouteImport } from './routes/w/$workspace/_app/campaigns/digests/$digestId/settings'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -564,6 +566,18 @@ const WWorkspaceAppSettingsTeamMemberIdRoute =
     path: '/settings/team/$memberId',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
+const WWorkspaceAppCampaignsDigestsDigestIdIndexRoute =
+  WWorkspaceAppCampaignsDigestsDigestIdIndexRouteImport.update({
+    id: '/campaigns/digests/$digestId/',
+    path: '/campaigns/digests/$digestId/',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppCampaignsDigestsDigestIdSettingsRoute =
+  WWorkspaceAppCampaignsDigestsDigestIdSettingsRouteImport.update({
+    id: '/campaigns/digests/$digestId/settings',
+    path: '/campaigns/digests/$digestId/settings',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -647,6 +661,8 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/settings/roles/': typeof WWorkspaceAppSettingsRolesIndexRoute
   '/w/$workspace/settings/senders/': typeof WWorkspaceAppSettingsSendersIndexRoute
   '/w/$workspace/settings/team/': typeof WWorkspaceAppSettingsTeamIndexRoute
+  '/w/$workspace/campaigns/digests/$digestId/settings': typeof WWorkspaceAppCampaignsDigestsDigestIdSettingsRoute
+  '/w/$workspace/campaigns/digests/$digestId/': typeof WWorkspaceAppCampaignsDigestsDigestIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -729,6 +745,8 @@ export interface FileRoutesByTo {
   '/w/$workspace/settings/roles': typeof WWorkspaceAppSettingsRolesIndexRoute
   '/w/$workspace/settings/senders': typeof WWorkspaceAppSettingsSendersIndexRoute
   '/w/$workspace/settings/team': typeof WWorkspaceAppSettingsTeamIndexRoute
+  '/w/$workspace/campaigns/digests/$digestId/settings': typeof WWorkspaceAppCampaignsDigestsDigestIdSettingsRoute
+  '/w/$workspace/campaigns/digests/$digestId': typeof WWorkspaceAppCampaignsDigestsDigestIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -814,6 +832,8 @@ export interface FileRoutesById {
   '/w/$workspace/_app/settings/roles/': typeof WWorkspaceAppSettingsRolesIndexRoute
   '/w/$workspace/_app/settings/senders/': typeof WWorkspaceAppSettingsSendersIndexRoute
   '/w/$workspace/_app/settings/team/': typeof WWorkspaceAppSettingsTeamIndexRoute
+  '/w/$workspace/_app/campaigns/digests/$digestId/settings': typeof WWorkspaceAppCampaignsDigestsDigestIdSettingsRoute
+  '/w/$workspace/_app/campaigns/digests/$digestId/': typeof WWorkspaceAppCampaignsDigestsDigestIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -899,6 +919,8 @@ export interface FileRouteTypes {
     | '/w/$workspace/settings/roles/'
     | '/w/$workspace/settings/senders/'
     | '/w/$workspace/settings/team/'
+    | '/w/$workspace/campaigns/digests/$digestId/settings'
+    | '/w/$workspace/campaigns/digests/$digestId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -981,6 +1003,8 @@ export interface FileRouteTypes {
     | '/w/$workspace/settings/roles'
     | '/w/$workspace/settings/senders'
     | '/w/$workspace/settings/team'
+    | '/w/$workspace/campaigns/digests/$digestId/settings'
+    | '/w/$workspace/campaigns/digests/$digestId'
   id:
     | '__root__'
     | '/'
@@ -1065,6 +1089,8 @@ export interface FileRouteTypes {
     | '/w/$workspace/_app/settings/roles/'
     | '/w/$workspace/_app/settings/senders/'
     | '/w/$workspace/_app/settings/team/'
+    | '/w/$workspace/_app/campaigns/digests/$digestId/settings'
+    | '/w/$workspace/_app/campaigns/digests/$digestId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1654,6 +1680,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceAppSettingsTeamMemberIdRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
+    '/w/$workspace/_app/campaigns/digests/$digestId/': {
+      id: '/w/$workspace/_app/campaigns/digests/$digestId/'
+      path: '/campaigns/digests/$digestId'
+      fullPath: '/w/$workspace/campaigns/digests/$digestId/'
+      preLoaderRoute: typeof WWorkspaceAppCampaignsDigestsDigestIdIndexRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/campaigns/digests/$digestId/settings': {
+      id: '/w/$workspace/_app/campaigns/digests/$digestId/settings'
+      path: '/campaigns/digests/$digestId/settings'
+      fullPath: '/w/$workspace/campaigns/digests/$digestId/settings'
+      preLoaderRoute: typeof WWorkspaceAppCampaignsDigestsDigestIdSettingsRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
   }
 }
 
@@ -1727,6 +1767,8 @@ interface WWorkspaceAppRouteRouteChildren {
   WWorkspaceAppSettingsRolesIndexRoute: typeof WWorkspaceAppSettingsRolesIndexRoute
   WWorkspaceAppSettingsSendersIndexRoute: typeof WWorkspaceAppSettingsSendersIndexRoute
   WWorkspaceAppSettingsTeamIndexRoute: typeof WWorkspaceAppSettingsTeamIndexRoute
+  WWorkspaceAppCampaignsDigestsDigestIdSettingsRoute: typeof WWorkspaceAppCampaignsDigestsDigestIdSettingsRoute
+  WWorkspaceAppCampaignsDigestsDigestIdIndexRoute: typeof WWorkspaceAppCampaignsDigestsDigestIdIndexRoute
 }
 
 const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
@@ -1802,6 +1844,10 @@ const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
   WWorkspaceAppSettingsSendersIndexRoute:
     WWorkspaceAppSettingsSendersIndexRoute,
   WWorkspaceAppSettingsTeamIndexRoute: WWorkspaceAppSettingsTeamIndexRoute,
+  WWorkspaceAppCampaignsDigestsDigestIdSettingsRoute:
+    WWorkspaceAppCampaignsDigestsDigestIdSettingsRoute,
+  WWorkspaceAppCampaignsDigestsDigestIdIndexRoute:
+    WWorkspaceAppCampaignsDigestsDigestIdIndexRoute,
 }
 
 const WWorkspaceAppRouteRouteWithChildren =

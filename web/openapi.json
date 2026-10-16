@@ -7172,6 +7172,54 @@
         ],
         "type": "object"
       },
+      "CampaignDigestRef": {
+        "additionalProperties": false,
+        "properties": {
+          "approvalId": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "issueStatus": {
+            "enum": [
+              "collecting",
+              "preparing",
+              "prepared",
+              "waiting",
+              "held",
+              "draft",
+              "sending",
+              "sent",
+              "skipped",
+              "not_sent"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "posts": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "preparedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "sendAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "issueStatus",
+          "posts"
+        ],
+        "type": "object"
+      },
       "CampaignList": {
         "additionalProperties": false,
         "properties": {
@@ -7227,6 +7275,9 @@
           "delivered": {
             "format": "double",
             "type": "number"
+          },
+          "digest": {
+            "$ref": "#/components/schemas/CampaignDigestRef"
           },
           "humanOpens": {
             "format": "double",
@@ -8051,6 +8102,18 @@
           },
           "createdAt": {
             "format": "date-time",
+            "type": "string"
+          },
+          "digestId": {
+            "type": "string"
+          },
+          "digestRole": {
+            "enum": [
+              "template",
+              "next",
+              "issue",
+              ""
+            ],
             "type": "string"
           },
           "editorMode": {
@@ -13869,6 +13932,2400 @@
           "day",
           "days"
         ],
+        "type": "object"
+      },
+      "DigestApprovals": {
+        "additionalProperties": false,
+        "properties": {
+          "approvers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "needed": {
+            "type": "boolean"
+          },
+          "rules": {
+            "items": {
+              "$ref": "#/components/schemas/DigestRuleMatch"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "needed",
+          "rules",
+          "approvers"
+        ],
+        "type": "object"
+      },
+      "DigestAudience": {
+        "additionalProperties": false,
+        "properties": {
+          "base": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "duplicates": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "empty": {
+            "type": "boolean"
+          },
+          "final": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "label": {
+            "type": "string"
+          },
+          "listIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "role": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "segmentIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "stopped": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "suppressed": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "listIds",
+          "segmentIds",
+          "label",
+          "base",
+          "suppressed",
+          "role",
+          "duplicates",
+          "stopped",
+          "final",
+          "empty"
+        ],
+        "type": "object"
+      },
+      "DigestBlockChecks": {
+        "additionalProperties": false,
+        "properties": {
+          "altFromTitle": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "fallback": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "fitPosts": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "images": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "limit": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "links": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "maxBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "maxPosts": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "maxPosts",
+          "maxBytes",
+          "limit",
+          "images",
+          "altFromTitle",
+          "fallback",
+          "links",
+          "fitPosts"
+        ],
+        "type": "object"
+      },
+      "DigestCheck": {
+        "additionalProperties": false,
+        "properties": {
+          "campaignId": {
+            "type": "string"
+          },
+          "runId": {
+            "type": "string"
+          },
+          "verdict": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "campaignId",
+          "runId",
+          "verdict"
+        ],
+        "type": "object"
+      },
+      "DigestCreateInput": {
+        "additionalProperties": false,
+        "properties": {
+          "feedUrl": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 200,
+            "type": "string"
+          },
+          "siteId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "url",
+              "wordpress"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "source"
+        ],
+        "type": "object"
+      },
+      "DigestDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "approvals": {
+            "$ref": "#/components/schemas/DigestApprovals"
+          },
+          "archive": {
+            "type": "boolean"
+          },
+          "audience": {
+            "$ref": "#/components/schemas/DigestAudience"
+          },
+          "categoryOptions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdBy": {
+            "$ref": "#/components/schemas/DigestPerson"
+          },
+          "editHelpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "feed": {
+            "$ref": "#/components/schemas/DigestFeedStatus"
+          },
+          "feedUrl": {
+            "type": "string"
+          },
+          "filters": {
+            "$ref": "#/components/schemas/DigestFilters"
+          },
+          "firstOnAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "firstSentAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "lateHours": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "mode": {
+            "enum": [
+              "auto",
+              "draft"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "next": {
+            "$ref": "#/components/schemas/DigestNextIssue"
+          },
+          "nextSend": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "owner": {
+            "$ref": "#/components/schemas/DigestPerson"
+          },
+          "ownerSince": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "pause": {
+            "$ref": "#/components/schemas/DigestPause"
+          },
+          "pauseHelpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "prepareHours": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "route": {
+            "$ref": "#/components/schemas/DigestRoute"
+          },
+          "schedule": {
+            "$ref": "#/components/schemas/DigestSchedule"
+          },
+          "sendHelpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "sender": {
+            "$ref": "#/components/schemas/DigestSender"
+          },
+          "sentIssues": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "site": {
+            "$ref": "#/components/schemas/DigestSite"
+          },
+          "source": {
+            "enum": [
+              "url",
+              "wordpress"
+            ],
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "off",
+              "on",
+              "paused"
+            ],
+            "type": "string"
+          },
+          "tagOptions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "templateId": {
+            "type": "string"
+          },
+          "templateSavedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "templateVersion": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "thresholds": {
+            "$ref": "#/components/schemas/DigestThresholds"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "state",
+          "mode",
+          "templateId",
+          "templateVersion",
+          "archive",
+          "source",
+          "feedUrl",
+          "filters",
+          "categoryOptions",
+          "tagOptions",
+          "feed",
+          "schedule",
+          "prepareHours",
+          "lateHours",
+          "audience",
+          "route",
+          "thresholds",
+          "approvals",
+          "sentIssues",
+          "createdAt",
+          "updatedAt",
+          "sendHelpers",
+          "editHelpers",
+          "pauseHelpers"
+        ],
+        "type": "object"
+      },
+      "DigestFeedBlock": {
+        "additionalProperties": false,
+        "properties": {
+          "buttonText": {
+            "maxLength": 60,
+            "type": "string"
+          },
+          "excerptWords": {
+            "format": "int64",
+            "maximum": 200,
+            "minimum": 5,
+            "type": "integer"
+          },
+          "fallback": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "fallbackName": {
+            "maxLength": 200,
+            "type": "string"
+          },
+          "fields": {
+            "description": "image, title (linked), date, author, categories, excerpt, button",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 7,
+            "type": "array"
+          },
+          "layout": {
+            "enum": [
+              "list",
+              "cards",
+              "grid"
+            ],
+            "type": "string"
+          },
+          "max": {
+            "format": "int64",
+            "maximum": 20,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "order": {
+            "enum": [
+              "newest",
+              "oldest"
+            ],
+            "type": "string"
+          },
+          "overflow": {
+            "enum": [
+              "drop",
+              "keep"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "layout",
+          "fields",
+          "excerptWords",
+          "buttonText",
+          "max",
+          "order",
+          "overflow"
+        ],
+        "type": "object"
+      },
+      "DigestFeedError": {
+        "additionalProperties": false,
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "hops": {
+            "items": {
+              "$ref": "#/components/schemas/DigestFeedHop"
+            },
+            "type": "array"
+          },
+          "host": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "lines": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "seconds": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "status": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "host",
+          "url",
+          "detail",
+          "lines",
+          "hops"
+        ],
+        "type": "object"
+      },
+      "DigestFeedHop": {
+        "additionalProperties": false,
+        "properties": {
+          "location": {
+            "type": "string"
+          },
+          "status": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "status"
+        ],
+        "type": "object"
+      },
+      "DigestFeedItem": {
+        "additionalProperties": false,
+        "properties": {
+          "altFromTitle": {
+            "type": "boolean"
+          },
+          "author": {
+            "type": "string"
+          },
+          "categories": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "excerpt": {
+            "type": "string"
+          },
+          "firstSeenAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "firstSeenVia": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "image": {
+            "type": "string"
+          },
+          "imageAlt": {
+            "type": "string"
+          },
+          "leftOutBy": {
+            "enum": [
+              "category",
+              "tag",
+              "age",
+              ""
+            ],
+            "type": "string"
+          },
+          "published": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "sentIn": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "new",
+              "sent",
+              "left_out",
+              "before_start"
+            ],
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "title": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "url",
+          "author",
+          "categories",
+          "tags",
+          "excerpt",
+          "altFromTitle",
+          "status",
+          "firstSeenAt",
+          "firstSeenVia"
+        ],
+        "type": "object"
+      },
+      "DigestFeedPreview": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/DigestFeedItem"
+            },
+            "type": "array"
+          },
+          "olderBefore": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "olderLeftOut": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "olderNew": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "olderSent": {
+            "items": {
+              "$ref": "#/components/schemas/DigestSentCount"
+            },
+            "type": "array"
+          },
+          "total": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "olderSent",
+          "olderLeftOut",
+          "olderBefore",
+          "olderNew"
+        ],
+        "type": "object"
+      },
+      "DigestFeedSkip": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "sendAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "sendAt",
+          "kind"
+        ],
+        "type": "object"
+      },
+      "DigestFeedStatus": {
+        "additionalProperties": false,
+        "properties": {
+          "bytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "error": {
+            "$ref": "#/components/schemas/DigestFeedError"
+          },
+          "items": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "kind": {
+            "enum": [
+              "rss",
+              "atom",
+              "json",
+              ""
+            ],
+            "type": "string"
+          },
+          "lastOkAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "lastReadAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "lastReadVia": {
+            "type": "string"
+          },
+          "leftOut": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "movedTo": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "unread",
+              "ok",
+              "unreachable",
+              "invalid"
+            ],
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "waiting": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "status",
+          "url",
+          "title",
+          "items",
+          "bytes",
+          "waiting",
+          "leftOut"
+        ],
+        "type": "object"
+      },
+      "DigestFeedTry": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "at",
+          "error",
+          "kind"
+        ],
+        "type": "object"
+      },
+      "DigestFilters": {
+        "additionalProperties": false,
+        "properties": {
+          "categories": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "maxAgeDays": {
+            "format": "int64",
+            "maximum": 365,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "startLatest": {
+            "format": "int64",
+            "maximum": 20,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "startMode": {
+            "enum": [
+              "after_on",
+              "latest"
+            ],
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "categories",
+          "tags",
+          "startMode",
+          "startLatest"
+        ],
+        "type": "object"
+      },
+      "DigestFindInput": {
+        "additionalProperties": false,
+        "properties": {
+          "address": {
+            "maxLength": 500,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "address"
+        ],
+        "type": "object"
+      },
+      "DigestFound": {
+        "additionalProperties": false,
+        "properties": {
+          "bytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "error": {
+            "$ref": "#/components/schemas/DigestFeedError"
+          },
+          "hops": {
+            "items": {
+              "$ref": "#/components/schemas/DigestFeedHop"
+            },
+            "type": "array"
+          },
+          "items": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "moved": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "page": {
+            "type": "string"
+          },
+          "preview": {
+            "items": {
+              "$ref": "#/components/schemas/DigestFeedItem"
+            },
+            "type": "array"
+          },
+          "title": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ok",
+          "items",
+          "bytes",
+          "hops",
+          "preview"
+        ],
+        "type": "object"
+      },
+      "DigestHistory": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/DigestHistoryItem"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "DigestHistoryItem": {
+        "additionalProperties": false,
+        "properties": {
+          "actor": {
+            "type": "string"
+          },
+          "approvedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "approvedBy": {
+            "type": "string"
+          },
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "builtAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "builtBy": {
+            "type": "string"
+          },
+          "builtMode": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "draftList": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "left_out",
+              "goes_in",
+              "sent",
+              "skipped",
+              "not_sent",
+              "turned_on",
+              "paused",
+              "created"
+            ],
+            "type": "string"
+          },
+          "leftOutBy": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          },
+          "number": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "owner": {
+            "type": "string"
+          },
+          "pauseReason": {
+            "type": "string"
+          },
+          "published": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "recipients": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "sendAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "skipReason": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "via": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "at"
+        ],
+        "type": "object"
+      },
+      "DigestIssue": {
+        "additionalProperties": false,
+        "properties": {
+          "approval": {
+            "$ref": "#/components/schemas/DigestIssueApproval"
+          },
+          "campaignId": {
+            "type": "string"
+          },
+          "clicks": {
+            "format": "double",
+            "type": "number"
+          },
+          "clicksDelta": {
+            "format": "double",
+            "type": "number"
+          },
+          "deadline": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "delivered": {
+            "format": "double",
+            "type": "number"
+          },
+          "estimated": {
+            "type": "boolean"
+          },
+          "feedTries": {
+            "items": {
+              "$ref": "#/components/schemas/DigestFeedTry"
+            },
+            "type": "array"
+          },
+          "firstIssue": {
+            "type": "boolean"
+          },
+          "holdReason": {
+            "enum": [
+              "readiness",
+              "changes",
+              "rejected",
+              "no_approvers",
+              ""
+            ],
+            "type": "string"
+          },
+          "humanOpens": {
+            "format": "double",
+            "type": "number"
+          },
+          "humanOpensDelta": {
+            "format": "double",
+            "type": "number"
+          },
+          "id": {
+            "type": "string"
+          },
+          "needsApproval": {
+            "type": "boolean"
+          },
+          "number": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "posts": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "postsDelta": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "preparedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "recipients": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "recipientsDelta": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "sendAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "sentAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "skipNote": {
+            "type": "string"
+          },
+          "skipReason": {
+            "enum": [
+              "no_items",
+              "feed",
+              "not_approved",
+              "held",
+              "person",
+              ""
+            ],
+            "type": "string"
+          },
+          "skippedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "skippedBy": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "collecting",
+              "preparing",
+              "prepared",
+              "waiting",
+              "held",
+              "draft",
+              "sending",
+              "sent",
+              "skipped",
+              "not_sent"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "firstIssue",
+          "posts",
+          "estimated",
+          "needsApproval",
+          "feedTries"
+        ],
+        "type": "object"
+      },
+      "DigestIssueApproval": {
+        "additionalProperties": false,
+        "properties": {
+          "decidedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "decidedBy": {
+            "$ref": "#/components/schemas/DigestPerson"
+          },
+          "id": {
+            "type": "string"
+          },
+          "requestedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "rules": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "requestedAt",
+          "rules"
+        ],
+        "type": "object"
+      },
+      "DigestIssueInfo": {
+        "additionalProperties": false,
+        "properties": {
+          "campaignId": {
+            "type": "string"
+          },
+          "deadline": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "digestId": {
+            "type": "string"
+          },
+          "digestName": {
+            "type": "string"
+          },
+          "holdReason": {
+            "enum": [
+              "readiness",
+              "changes",
+              "rejected",
+              "no_approvers",
+              ""
+            ],
+            "type": "string"
+          },
+          "issueId": {
+            "type": "string"
+          },
+          "mode": {
+            "enum": [
+              "auto",
+              "draft"
+            ],
+            "type": "string"
+          },
+          "number": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "owner": {
+            "$ref": "#/components/schemas/DigestPerson"
+          },
+          "posts": {
+            "items": {
+              "$ref": "#/components/schemas/DigestFeedItem"
+            },
+            "type": "array"
+          },
+          "preparedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "previousCampaignId": {
+            "type": "string"
+          },
+          "previousNumber": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "releaseHelpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "sendAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "since": {
+            "$ref": "#/components/schemas/DigestIssueSince"
+          },
+          "status": {
+            "enum": [
+              "collecting",
+              "preparing",
+              "prepared",
+              "waiting",
+              "held",
+              "draft",
+              "sending",
+              "sent",
+              "skipped",
+              "not_sent"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "campaignId",
+          "digestId",
+          "digestName",
+          "issueId",
+          "number",
+          "status",
+          "mode",
+          "posts",
+          "releaseHelpers"
+        ],
+        "type": "object"
+      },
+      "DigestIssueInfos": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/DigestIssueInfo"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "DigestIssueReadiness": {
+        "additionalProperties": false,
+        "properties": {
+          "blocking": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "blocks": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "passed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "ranAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "runId": {
+            "type": "string"
+          },
+          "verdict": {
+            "type": "string"
+          },
+          "warnings": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "runId",
+          "verdict",
+          "passed",
+          "warnings",
+          "blocks",
+          "ranAt",
+          "blocking"
+        ],
+        "type": "object"
+      },
+      "DigestIssueRef": {
+        "additionalProperties": false,
+        "properties": {
+          "humanOpens": {
+            "format": "double",
+            "type": "number"
+          },
+          "humanOpensDelta": {
+            "format": "double",
+            "type": "number"
+          },
+          "id": {
+            "type": "string"
+          },
+          "needsApproval": {
+            "type": "boolean"
+          },
+          "number": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "posts": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "sendAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "collecting",
+              "preparing",
+              "prepared",
+              "waiting",
+              "held",
+              "draft",
+              "sending",
+              "sent",
+              "skipped",
+              "not_sent"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "number",
+          "status",
+          "posts",
+          "needsApproval"
+        ],
+        "type": "object"
+      },
+      "DigestIssueSince": {
+        "additionalProperties": false,
+        "properties": {
+          "approvedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "changed": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "number": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "sentAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "number",
+          "changed"
+        ],
+        "type": "object"
+      },
+      "DigestIssues": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/DigestIssue"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "DigestList": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/DigestListItem"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "DigestListItem": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "last": {
+            "$ref": "#/components/schemas/DigestIssueRef"
+          },
+          "mode": {
+            "enum": [
+              "auto",
+              "draft"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "next": {
+            "$ref": "#/components/schemas/DigestIssueRef"
+          },
+          "owner": {
+            "$ref": "#/components/schemas/DigestPerson"
+          },
+          "schedule": {
+            "$ref": "#/components/schemas/DigestSchedule"
+          },
+          "source": {
+            "$ref": "#/components/schemas/DigestSourceRef"
+          },
+          "state": {
+            "enum": [
+              "off",
+              "on",
+              "paused"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "state",
+          "mode",
+          "source",
+          "schedule"
+        ],
+        "type": "object"
+      },
+      "DigestNextIssue": {
+        "additionalProperties": false,
+        "properties": {
+          "approval": {
+            "$ref": "#/components/schemas/DigestIssueApproval"
+          },
+          "campaignId": {
+            "type": "string"
+          },
+          "deadline": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "feedTries": {
+            "items": {
+              "$ref": "#/components/schemas/DigestFeedTry"
+            },
+            "type": "array"
+          },
+          "fit": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "heldAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "holdReason": {
+            "enum": [
+              "readiness",
+              "changes",
+              "rejected",
+              "no_approvers",
+              ""
+            ],
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/DigestFeedItem"
+            },
+            "type": "array"
+          },
+          "nextTry": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "number": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "posts": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "preheader": {
+            "type": "string"
+          },
+          "prepareAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "preparedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "readiness": {
+            "$ref": "#/components/schemas/DigestIssueReadiness"
+          },
+          "recipients": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "sendAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "collecting",
+              "preparing",
+              "prepared",
+              "waiting",
+              "held",
+              "draft",
+              "sending",
+              "sent",
+              "skipped",
+              "not_sent"
+            ],
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "subjects": {
+            "items": {
+              "$ref": "#/components/schemas/DigestSubject"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "number",
+          "status",
+          "posts",
+          "fit",
+          "recipients",
+          "subject",
+          "preheader",
+          "items",
+          "subjects",
+          "feedTries"
+        ],
+        "type": "object"
+      },
+      "DigestPause": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "by": {
+            "type": "string"
+          },
+          "from": {
+            "type": "string"
+          },
+          "left": {
+            "type": "boolean"
+          },
+          "note": {
+            "type": "string"
+          },
+          "notified": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "reason": {
+            "enum": [
+              "person",
+              "owner",
+              "feed"
+            ],
+            "type": "string"
+          },
+          "skips": {
+            "items": {
+              "$ref": "#/components/schemas/DigestFeedSkip"
+            },
+            "type": "array"
+          },
+          "to": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason",
+          "notified",
+          "skips"
+        ],
+        "type": "object"
+      },
+      "DigestPauseInput": {
+        "additionalProperties": false,
+        "properties": {
+          "note": {
+            "maxLength": 500,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "DigestPerson": {
+        "additionalProperties": false,
+        "properties": {
+          "color": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "initials": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "initials",
+          "color"
+        ],
+        "type": "object"
+      },
+      "DigestPreview": {
+        "additionalProperties": false,
+        "properties": {
+          "empty": {
+            "type": "boolean"
+          },
+          "html": {
+            "type": "string"
+          },
+          "number": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "posts": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "preheader": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "number",
+          "subject",
+          "preheader",
+          "html",
+          "posts",
+          "empty"
+        ],
+        "type": "object"
+      },
+      "DigestReadNow": {
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/DigestFeedError"
+          },
+          "items": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "new": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "notModified": {
+            "type": "boolean"
+          },
+          "ok": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ok",
+          "notModified",
+          "items",
+          "new"
+        ],
+        "type": "object"
+      },
+      "DigestRender": {
+        "additionalProperties": false,
+        "properties": {
+          "checks": {
+            "$ref": "#/components/schemas/DigestBlockChecks"
+          },
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/DigestFeedItem"
+            },
+            "type": "array"
+          },
+          "mjml": {
+            "type": "string"
+          },
+          "number": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "preheader": {
+            "type": "string"
+          },
+          "preview": {
+            "type": "string"
+          },
+          "sendAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "sizes": {
+            "items": {
+              "$ref": "#/components/schemas/DigestSize"
+            },
+            "type": "array"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "subjects": {
+            "items": {
+              "$ref": "#/components/schemas/DigestSubject"
+            },
+            "type": "array"
+          },
+          "tokens": {
+            "items": {
+              "$ref": "#/components/schemas/DigestToken"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "preview",
+          "number",
+          "count",
+          "mjml",
+          "items",
+          "subject",
+          "preheader",
+          "subjects",
+          "sizes",
+          "checks",
+          "tokens"
+        ],
+        "type": "object"
+      },
+      "DigestRenderInput": {
+        "additionalProperties": false,
+        "properties": {
+          "block": {
+            "$ref": "#/components/schemas/DigestFeedBlock"
+          },
+          "mjml": {
+            "maxLength": 2000000,
+            "type": "string"
+          },
+          "preheader": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "preview": {
+            "enum": [
+              "next",
+              "last",
+              "one",
+              "six"
+            ],
+            "type": "string"
+          },
+          "sizes": {
+            "type": "boolean"
+          },
+          "subject": {
+            "maxLength": 998,
+            "type": "string"
+          }
+        },
+        "required": [
+          "preview"
+        ],
+        "type": "object"
+      },
+      "DigestRoute": {
+        "additionalProperties": false,
+        "properties": {
+          "override": {
+            "type": "boolean"
+          },
+          "shares": {
+            "items": {
+              "$ref": "#/components/schemas/DigestRouteShare"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "override",
+          "shares"
+        ],
+        "type": "object"
+      },
+      "DigestRouteShare": {
+        "additionalProperties": false,
+        "properties": {
+          "adapter": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "percent": {
+            "format": "double",
+            "type": "number"
+          },
+          "providerId": {
+            "type": "string"
+          },
+          "short": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "warmupDay": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "warmupDays": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "warmupEnds": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "providerId",
+          "name",
+          "short",
+          "adapter",
+          "percent",
+          "status"
+        ],
+        "type": "object"
+      },
+      "DigestRuleMatch": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "short": {
+            "type": "string"
+          },
+          "threshold": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "until": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "short"
+        ],
+        "type": "object"
+      },
+      "DigestSchedule": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "format": "int64",
+            "maximum": 50,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "frequency": {
+            "enum": [
+              "daily",
+              "weekly",
+              "monthly",
+              "items"
+            ],
+            "type": "string"
+          },
+          "monthDay": {
+            "format": "int64",
+            "maximum": 31,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "monthRule": {
+            "enum": [
+              "day",
+              "first",
+              ""
+            ],
+            "type": "string"
+          },
+          "time": {
+            "examples": [
+              "08:00"
+            ],
+            "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$",
+            "type": "string"
+          },
+          "timezone": {
+            "examples": [
+              "America/New_York"
+            ],
+            "maxLength": 64,
+            "type": "string"
+          },
+          "weekday": {
+            "format": "int64",
+            "maximum": 6,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "weekdaysOnly": {
+            "type": "boolean"
+          },
+          "windowFrom": {
+            "pattern": "^(([01][0-9]|2[0-3]):[0-5][0-9])?$",
+            "type": "string"
+          },
+          "windowUntil": {
+            "pattern": "^(([01][0-9]|2[0-3]):[0-5][0-9])?$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "frequency",
+          "weekday",
+          "time",
+          "timezone"
+        ],
+        "type": "object"
+      },
+      "DigestSender": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email"
+        ],
+        "type": "object"
+      },
+      "DigestSentCount": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "number": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "number",
+          "count"
+        ],
+        "type": "object"
+      },
+      "DigestSettingsInput": {
+        "additionalProperties": false,
+        "properties": {
+          "archive": {
+            "type": "boolean"
+          },
+          "categoryFilter": {
+            "type": "boolean"
+          },
+          "feedUrl": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "filters": {
+            "$ref": "#/components/schemas/DigestFilters"
+          },
+          "lateHours": {
+            "enum": [
+              6,
+              24,
+              48
+            ],
+            "format": "int64",
+            "type": "integer"
+          },
+          "listIds": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "mode": {
+            "enum": [
+              "auto",
+              "draft"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "prepareHours": {
+            "format": "int64",
+            "maximum": 24,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "schedule": {
+            "$ref": "#/components/schemas/DigestSchedule"
+          },
+          "segmentIds": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "senderId": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "siteId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "url",
+              "wordpress"
+            ],
+            "type": "string"
+          },
+          "thresholds": {
+            "$ref": "#/components/schemas/DigestThresholdsInput"
+          }
+        },
+        "required": [
+          "name",
+          "archive",
+          "mode",
+          "source",
+          "filters",
+          "categoryFilter",
+          "schedule",
+          "prepareHours",
+          "lateHours",
+          "listIds",
+          "segmentIds"
+        ],
+        "type": "object"
+      },
+      "DigestSite": {
+        "additionalProperties": false,
+        "properties": {
+          "connectedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "connectedBy": {
+            "type": "string"
+          },
+          "draftCategories": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "draftList": {
+            "type": "string"
+          },
+          "feedUrl": {
+            "type": "string"
+          },
+          "host": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "items": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "lastReportAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "latestPlugin": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "pluginVersion": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "silent",
+              "outdated"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "host",
+          "name",
+          "feedUrl",
+          "connectedAt",
+          "connectedBy",
+          "pluginVersion",
+          "latestPlugin",
+          "status",
+          "items",
+          "draftCategories"
+        ],
+        "type": "object"
+      },
+      "DigestSites": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/DigestSite"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "DigestSize": {
+        "additionalProperties": false,
+        "properties": {
+          "bytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "posts": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "posts",
+          "bytes"
+        ],
+        "type": "object"
+      },
+      "DigestSkipInput": {
+        "additionalProperties": false,
+        "properties": {
+          "note": {
+            "maxLength": 500,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "DigestSourceRef": {
+        "additionalProperties": false,
+        "properties": {
+          "categories": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "kind": {
+            "enum": [
+              "url",
+              "wordpress"
+            ],
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "label",
+          "categories"
+        ],
+        "type": "object"
+      },
+      "DigestSubject": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "text": {
+            "type": "string"
+          },
+          "zeroMore": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "items",
+          "text",
+          "zeroMore"
+        ],
+        "type": "object"
+      },
+      "DigestTestInput": {
+        "additionalProperties": false,
+        "properties": {
+          "to": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 10,
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "to"
+        ],
+        "type": "object"
+      },
+      "DigestThresholds": {
+        "additionalProperties": false,
+        "properties": {
+          "bounce": {
+            "format": "double",
+            "type": "number"
+          },
+          "complaint": {
+            "format": "double",
+            "type": "number"
+          },
+          "custom": {
+            "type": "boolean"
+          },
+          "scope": {
+            "enum": [
+              "route",
+              "campaign"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "bounce",
+          "complaint",
+          "scope",
+          "custom"
+        ],
+        "type": "object"
+      },
+      "DigestThresholdsInput": {
+        "additionalProperties": false,
+        "properties": {
+          "bounce": {
+            "format": "double",
+            "maximum": 20,
+            "minimum": 0.1,
+            "type": "number"
+          },
+          "complaint": {
+            "format": "double",
+            "maximum": 5,
+            "minimum": 0.01,
+            "type": "number"
+          },
+          "scope": {
+            "enum": [
+              "route",
+              "campaign"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "bounce",
+          "complaint",
+          "scope"
+        ],
+        "type": "object"
+      },
+      "DigestToken": {
+        "additionalProperties": false,
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "token",
+          "value"
+        ],
+        "type": "object"
+      },
+      "DigestTurnOnInput": {
+        "additionalProperties": false,
+        "properties": {
+          "mode": {
+            "enum": [
+              "auto",
+              "draft",
+              ""
+            ],
+            "type": "string"
+          }
+        },
         "type": "object"
       },
       "DomainInput": {
@@ -48438,7 +50895,8 @@
                 "audience",
                 "team",
                 "settings",
-                "integrations"
+                "integrations",
+                "digests"
               ],
               "type": "string"
             }
@@ -48695,7 +51153,8 @@
                 "audience",
                 "team",
                 "settings",
-                "integrations"
+                "integrations",
+                "digests"
               ],
               "type": "string"
             }
@@ -59013,6 +61472,1468 @@
         ],
         "x-access": "workspace",
         "x-permission": "deliverability:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/digest-issues": {
+      "get": {
+        "operationId": "list-digest-issue-infos",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Campaign ids, comma-separated (up to 100)",
+            "explode": false,
+            "in": "query",
+            "name": "campaigns",
+            "schema": {
+              "description": "Campaign ids, comma-separated (up to 100)",
+              "maxLength": 4000,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DigestIssueInfos"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Which campaigns are digest issues, with their posts and what changed since the last approved issue",
+        "tags": [
+          "Digests"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/digests": {
+      "get": {
+        "operationId": "list-digests",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DigestList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Recurring digests: status, schedule, next issue, the last issue's human opens and the owner",
+        "tags": [
+          "Digests"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:view"
+      },
+      "post": {
+        "description": "The digest starts off, with the Blog digest template, the workspace's default sender and its time zone. Without campaigns:send it starts in draft mode.",
+        "operationId": "create-digest",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DigestCreateInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DigestDetail"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a recurring digest from a feed or a connected WordPress site",
+        "tags": [
+          "Digests"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/digests/find": {
+      "post": {
+        "description": "Reads the address through the outbound guard (no private networks, three redirects at most, 5 MB and 15 seconds), and finds the feed a page links to.",
+        "operationId": "find-digest-feed",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DigestFindInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DigestFound"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Find and read the feed of a feed or page address",
+        "tags": [
+          "Digests"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/digests/sites": {
+      "get": {
+        "operationId": "list-digest-sites",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DigestSites"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Connected WordPress sites a digest can read, with their feeds",
+        "tags": [
+          "Digests"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/digests/{digestId}": {
+      "delete": {
+        "operationId": "delete-digest",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "digestId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Delete a digest that isn't on (its sent issues stay as campaigns)",
+        "tags": [
+          "Digests"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
+      },
+      "get": {
+        "operationId": "get-digest",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "digestId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DigestDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A digest: its feed, filters, schedule, audience, route, approvals, owner and next issue",
+        "tags": [
+          "Digests"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:view"
+      },
+      "put": {
+        "description": "Changes apply from the next preparation; an issue already prepared keeps its content. Switching to Send automatically while it is on needs campaigns:send.",
+        "operationId": "update-digest",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "digestId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DigestSettingsInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DigestDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Save a digest's settings",
+        "tags": [
+          "Digests"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/digests/{digestId}/check": {
+      "post": {
+        "operationId": "check-digest-issue",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "digestId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DigestCheck"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Run Send Readiness on the next issue as it would be built now",
+        "tags": [
+          "Digests"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/digests/{digestId}/feed": {
+      "get": {
+        "operationId": "get-digest-feed",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "digestId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 6,
+              "format": "int64",
+              "maximum": 50,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DigestFeedPreview"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The feed's newest items, each with what the digest does with it",
+        "tags": [
+          "Digests"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/digests/{digestId}/history": {
+      "get": {
+        "operationId": "get-digest-history",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "digestId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 5,
+              "format": "int64",
+              "maximum": 30,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DigestHistory"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What happened since the last issue: posts that went in or were left out, issues, and who turned it on",
+        "tags": [
+          "Digests"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/digests/{digestId}/issues": {
+      "get": {
+        "operationId": "list-digest-issues",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "digestId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DigestIssues"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A digest's issues: sent, skipped, held, waiting and paused, each with its numbers",
+        "tags": [
+          "Digests"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/digests/{digestId}/issues/{issueId}/rebuild": {
+      "post": {
+        "operationId": "rebuild-digest-issue",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "digestId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "issueId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DigestIssues"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Build a prepared issue again from the current template, and check it again",
+        "tags": [
+          "Digests"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/digests/{digestId}/issues/{issueId}/release": {
+      "post": {
+        "description": "Send Readiness runs again and must not be Blocked; the issue then waits for its approval, if one is needed, and goes out at its time.",
+        "operationId": "release-digest-issue",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "digestId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "issueId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DigestIssues"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Release a held issue once its block is fixed",
+        "tags": [
+          "Digests"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:send"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/digests/{digestId}/issues/{issueId}/skip": {
+      "post": {
+        "operationId": "skip-digest-issue",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "digestId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "issueId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DigestSkipInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DigestIssues"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Skip an issue: nothing goes out and its posts stay new",
+        "tags": [
+          "Digests"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:pause"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/digests/{digestId}/pause": {
+      "post": {
+        "description": "An issue waiting to go out is skipped and its posts stay new; one that is sending pauses like any send.",
+        "operationId": "pause-digest",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "digestId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DigestPauseInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DigestDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Pause a digest: no new issues are prepared",
+        "tags": [
+          "Digests"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:pause"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/digests/{digestId}/preview": {
+      "get": {
+        "operationId": "preview-digest",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "digestId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DigestPreview"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The next issue as a reader would get it now",
+        "tags": [
+          "Digests"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/digests/{digestId}/read": {
+      "post": {
+        "operationId": "read-digest-feed",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "digestId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DigestReadNow"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Read the digest's feed now",
+        "tags": [
+          "Digests"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/digests/{digestId}/render": {
+      "post": {
+        "operationId": "render-digest",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "digestId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DigestRenderInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DigestRender"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Draw the Feed items block and the subject with a preview's posts (the composer in digest mode)",
+        "tags": [
+          "Digests"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/digests/{digestId}/test": {
+      "post": {
+        "description": "Goes through the System route. Without campaigns:send, test emails can only go to your own address.",
+        "operationId": "test-digest-issue",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "digestId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DigestTestInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComposerTestSendResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Send the next issue, as it would be built now, as a test",
+        "tags": [
+          "Digests"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/digests/{digestId}/turn-on": {
+      "post": {
+        "description": "Send automatically needs campaigns:send; Create a draft needs campaigns:edit. Whoever turns it on becomes its owner: issues go out on their authority. People only: API keys and agents can't turn a digest on.",
+        "operationId": "turn-on-digest",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "digestId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DigestTurnOnInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DigestDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Turn a digest on, or back on after a pause",
+        "tags": [
+          "Digests"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
       }
     },
     "/api/v1/workspaces/{workspace}/domains": {
@@ -72054,6 +75975,19 @@
                 "acme-newsletter"
               ],
               "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "mode",
+            "schema": {
+              "default": "regular",
+              "enum": [
+                "regular",
+                "digest"
+              ],
               "type": "string"
             }
           }

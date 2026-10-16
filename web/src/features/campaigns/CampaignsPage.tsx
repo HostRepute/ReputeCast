@@ -16,8 +16,12 @@ import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { m } from './messages'
 import { RouteBadges } from './RouteBadges'
 import { CampaignStatusBadge } from './StatusBadge'
+import { NewCampaignDialog } from '@/features/digests/TypePicker'
+import { DigestBadgeLink, RecurringTable, useDigestCount } from '@/features/digests/RecurringTable'
+import { IssueStatusBadge } from '@/features/digests/shared'
+import { m as dm } from '@/features/digests/messages'
 
-export type CampaignFilter = 'all' | 'drafts' | 'scheduled' | 'sending' | 'sent'
+export type CampaignFilter = 'all' | 'drafts' | 'scheduled' | 'sending' | 'sent' | 'recurring'
 
 export interface CampaignsSearch {
   status?: CampaignFilter
@@ -37,10 +41,12 @@ export function CampaignsPage({ search }: { search: CampaignsSearch }) {
   const list = $api.useQuery(
     'get',
     '/api/v1/workspaces/{workspace}/campaigns',
-    { params: { path: { workspace: slug }, query: { status, q: search.q ?? '', page, pageSize: PAGE_SIZE } } },
+    { params: { path: { workspace: slug }, query: { status: status === 'recurring' ? 'all' : status, q: search.q ?? '', page, pageSize: PAGE_SIZE } } },
     { placeholderData: keepPreviousData },
   )
   const counts = list.data?.counts
+  // "New campaign" asks what kind first: Regular or Recurring digest (DigestSetup).
+  const [picking, setPicking] = useState(false)
   return (
     <Page
       title={t(m.title)}
@@ -53,15 +59,18 @@ export function CampaignsPage({ search }: { search: CampaignsSearch }) {
               {t(m.newCampaign)}
             </Button>
           ) : (
-            <ButtonLink variant="primary" to="/w/$workspace/campaigns/new" params={{ workspace: slug }}>
+            <Button variant="primary" onClick={() => setPicking(true)}>
               {t(m.newCampaign)}
-            </ButtonLink>
+            </Button>
           )}
+          {picking ? <NewCampaignDialog open onOpenChange={setPicking} /> : null}
         </>
       }
     >
       <SummaryCards />
-      {list.isError ? (
+      {status === 'recurring' ? (
+        <RecurringTable onNew={() => setPicking(true)} newReason={newReason} />
+      ) : list.isError ? (
         <ErrorPanel title={t(m.loadFailed)} actions={<Button onClick={() => list.refetch()}>{t(common.retry)}</Button>}>
           {errorMessage(list.error)} {t(m.nothingChanged)}
         </ErrorPanel>
@@ -84,9 +93,9 @@ export function CampaignsPage({ search }: { search: CampaignsSearch }) {
             title={t(m.emptyTitle)}
             action={
               newReason ? null : (
-                <ButtonLink variant="primary" to="/w/$workspace/campaigns/new" params={{ workspace: slug }}>
+                <Button variant="primary" onClick={() => setPicking(true)}>
                   {t(m.newCampaign)}
-                </ButtonLink>
+                </Button>
               )
             }
           >
@@ -102,6 +111,7 @@ export function CampaignsPage({ search }: { search: CampaignsSearch }) {
 
 function CampaignFilters({ status, counts, q }: { status: CampaignFilter; counts?: Schemas['CampaignStatusCounts']; q?: string }) {
   const t = useT()
+  const digests = useDigestCount()
   const { slug } = useWorkspace()
   const navigate = useNavigate()
   const label = (filter: CampaignFilter, v?: number) => (v !== undefined ? t(m.filterCount, { filter, count: count(v) }) : t(m.filter, { filter }))
@@ -119,6 +129,7 @@ function CampaignFilters({ status, counts, q }: { status: CampaignFilter; counts
         { value: 'scheduled', label: label('scheduled', counts?.scheduled) },
         { value: 'sending', label: label('sending', counts?.sending) },
         { value: 'sent', label: label('sent', counts?.sent) },
+        { value: 'recurring', label: digests !== undefined ? t(dm.recurringTabCount, { count: digests }) : t(dm.recurringTab) },
       ]}
     />
   )
@@ -213,6 +224,9 @@ function subtitle(c: Schemas['CampaignListItem']) {
     parts.push(tt(m.created, { time: clock(c.createdAt) }))
   }
   if (c.origin) parts.push(tt(m.importedFrom, { origin: originName(c.origin) }))
+  // A digest issue: when it was prepared, or how many posts it went out with.
+  if (c.digest && (c.status === 'sent' || c.status === 'sending')) parts.push(tt(dm.issuePosts, { count: c.digest.posts }))
+  else if (c.digest?.preparedAt) parts.push(tt(dm.issuePrepared, { time: clock(c.digest.preparedAt) }))
   parts.push(...c.notes)
   return parts.join(' · ')
 }
@@ -269,10 +283,19 @@ function CampaignTable({ data, page, status, q }: { data: Schemas['CampaignList'
                       </Link>
                     )}
                   </Truncate>
+                  {c.digest ? (
+                    <div className="my-1">
+                      <DigestBadgeLink digest={c.digest} />
+                    </div>
+                  ) : null}
                   <div className="k">{subtitle(c)}</div>
                 </Td>
                 <Td>
-                  <CampaignStatusBadge status={c.status} blocked={c.blocked} />
+                  {c.digest && (c.digest.issueStatus === 'waiting' || c.digest.issueStatus === 'held') ? (
+                    <IssueStatusBadge status={c.digest.issueStatus} />
+                  ) : (
+                    <CampaignStatusBadge status={c.status} blocked={c.blocked} />
+                  )}
                 </Td>
                 <Td className={c.audience ? undefined : 'k'}>{c.audience || t(m.notSet)}</Td>
                 <Td align="right" num={c.recipients != null} className={c.recipients == null ? 'k' : undefined}>
