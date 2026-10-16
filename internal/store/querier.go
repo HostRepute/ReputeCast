@@ -1121,6 +1121,8 @@ type Querier interface {
 	// The SMTP relay (Instance admin › Instance settings) and its Let's Encrypt
 	// cache.
 	RelaySettings(ctx context.Context) (RelaySettingsRow, error)
+	// Saving drops the demo's flag (see Relay.Reconcile): from then on the
+	// relay listens and is checked like any other.
 	RelayUpdate(ctx context.Context, arg RelayUpdateParams) error
 	ReleaseAutomationHeldMessages(ctx context.Context, arg ReleaseAutomationHeldMessagesParams) (int64, error)
 	RemoteAdapterConnected(ctx context.Context, adapter string) (int64, error)
@@ -1762,7 +1764,10 @@ type Querier interface {
 	TxnOutboxProviders(ctx context.Context, now time.Time) ([]uuid.UUID, error)
 	// Queued transactional messages of a provider (failover when it is down).
 	TxnOutboxQueuedOn(ctx context.Context, arg TxnOutboxQueuedOnParams) ([]TxnOutboxQueuedOnRow, error)
-	// The workspace's numbers over a period (Raw SMTP mail included).
+	// The workspace's numbers over a period (Raw SMTP mail included). Test
+	// messages count only with include_test; keys counts every API key that
+	// called in the period, test-mode keys included ("from 2 keys and the SMTP
+	// relay").
 	TxnOverviewStats(ctx context.Context, arg TxnOverviewStatsParams) (TxnOverviewStatsRow, error)
 	// What the template's calls of a period sent: per call, the variable
 	// names (the breaking-change check of the publish dialog).

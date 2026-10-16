@@ -2328,31 +2328,36 @@ func (q *Queries) TxnOutboxQueuedOn(ctx context.Context, arg TxnOutboxQueuedOnPa
 }
 
 const txnOverviewStats = `-- name: TxnOverviewStats :one
-SELECT count(*) FILTER (WHERE m.status IN ('sent', 'delivered', 'deferred', 'bounced', 'complained'))::bigint AS sent,
-       count(*) FILTER (WHERE m.status IN ('delivered', 'complained'))::bigint AS delivered,
-       count(*) FILTER (WHERE m.status = 'bounced')::bigint AS bounced,
-       count(*) FILTER (WHERE m.status = 'complained')::bigint AS complained,
-       count(*) FILTER (WHERE m.status = 'deferred')::bigint AS deferred,
-       count(*) FILTER (WHERE t.reject_reason = 'suppressed' AND NOT t.test)::bigint AS suppressed,
-       count(*) FILTER (WHERE t.reject_reason = 'opted_out' AND NOT t.test)::bigint AS opted_out,
-       count(*) FILTER (WHERE m.status = 'failed')::bigint AS failed,
-       count(*) FILTER (WHERE m.opened_at IS NOT NULL)::bigint AS opened,
-       count(*) FILTER (WHERE m.clicked_at IS NOT NULL)::bigint AS clicked,
-       coalesce((percentile_cont(0.5) WITHIN GROUP (ORDER BY extract(epoch FROM m.delivered_at - t.accepted_at) * 1000)
-                 FILTER (WHERE m.delivered_at IS NOT NULL AND m.delivered_at >= t.accepted_at)), -1)::bigint AS median_ms,
-       count(DISTINCT t.key_id) FILTER (WHERE t.source <> 'smtp' AND t.key_id IS NOT NULL)::bigint AS keys,
-       (count(*) FILTER (WHERE t.source = 'smtp') > 0)::boolean AS smtp,
-       coalesce(string_agg(DISTINCT t.template_key, ',') FILTER (WHERE m.status = 'complained'), '')::text AS complained_templates
-FROM transactional_messages t
-JOIN messages m ON m.id = t.message_id
-WHERE t.workspace_id = $1 AND t.accepted_at >= $2::timestamptz
-  AND ($3::boolean OR NOT t.test)
+WITH p AS (
+    SELECT t.source, t.key_id, t.template_key, t.reject_reason, t.test, t.accepted_at,
+           m.status, m.delivered_at, m.opened_at, m.clicked_at,
+           ($1::boolean OR NOT t.test) AS counted
+    FROM transactional_messages t
+    JOIN messages m ON m.id = t.message_id
+    WHERE t.workspace_id = $2 AND t.accepted_at >= $3::timestamptz
+)
+SELECT count(*) FILTER (WHERE counted AND status IN ('sent', 'delivered', 'deferred', 'bounced', 'complained'))::bigint AS sent,
+       count(*) FILTER (WHERE counted AND status IN ('delivered', 'complained'))::bigint AS delivered,
+       count(*) FILTER (WHERE counted AND status = 'bounced')::bigint AS bounced,
+       count(*) FILTER (WHERE counted AND status = 'complained')::bigint AS complained,
+       count(*) FILTER (WHERE counted AND status = 'deferred')::bigint AS deferred,
+       count(*) FILTER (WHERE reject_reason = 'suppressed' AND NOT test)::bigint AS suppressed,
+       count(*) FILTER (WHERE reject_reason = 'opted_out' AND NOT test)::bigint AS opted_out,
+       count(*) FILTER (WHERE counted AND status = 'failed')::bigint AS failed,
+       count(*) FILTER (WHERE counted AND opened_at IS NOT NULL)::bigint AS opened,
+       count(*) FILTER (WHERE counted AND clicked_at IS NOT NULL)::bigint AS clicked,
+       coalesce((percentile_cont(0.5) WITHIN GROUP (ORDER BY extract(epoch FROM delivered_at - accepted_at) * 1000)
+                 FILTER (WHERE counted AND delivered_at IS NOT NULL AND delivered_at >= accepted_at)), -1)::bigint AS median_ms,
+       count(DISTINCT key_id) FILTER (WHERE source <> 'smtp' AND key_id IS NOT NULL)::bigint AS keys,
+       (count(*) FILTER (WHERE counted AND source = 'smtp') > 0)::boolean AS smtp,
+       coalesce(string_agg(DISTINCT template_key, ',') FILTER (WHERE counted AND status = 'complained'), '')::text AS complained_templates
+FROM p
 `
 
 type TxnOverviewStatsParams struct {
+	IncludeTest bool      `json:"includeTest"`
 	WorkspaceID uuid.UUID `json:"workspaceId"`
 	Since       time.Time `json:"since"`
-	IncludeTest bool      `json:"includeTest"`
 }
 
 type TxnOverviewStatsRow struct {
@@ -2372,9 +2377,12 @@ type TxnOverviewStatsRow struct {
 	ComplainedTemplates string `json:"complainedTemplates"`
 }
 
-// The workspace's numbers over a period (Raw SMTP mail included).
+// The workspace's numbers over a period (Raw SMTP mail included). Test
+// messages count only with include_test; keys counts every API key that
+// called in the period, test-mode keys included ("from 2 keys and the SMTP
+// relay").
 func (q *Queries) TxnOverviewStats(ctx context.Context, arg TxnOverviewStatsParams) (TxnOverviewStatsRow, error) {
-	row := q.db.QueryRow(ctx, txnOverviewStats, arg.WorkspaceID, arg.Since, arg.IncludeTest)
+	row := q.db.QueryRow(ctx, txnOverviewStats, arg.IncludeTest, arg.WorkspaceID, arg.Since)
 	var i TxnOverviewStatsRow
 	err := row.Scan(
 		&i.Sent,

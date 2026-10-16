@@ -23,7 +23,8 @@ type TransactionalOverviewStats struct {
 	TransactionalStats
 	Suppressed int64 `json:"suppressed"`
 	OptedOut   int64 `json:"optedOut"`
-	// Keys is how many keys sent in the period; SMTP whether the relay did.
+	// Keys is how many API keys called in the period, test-mode keys
+	// included; SMTP whether the relay sent.
 	Keys int64 `json:"keys"`
 	SMTP bool  `json:"smtp"`
 	// ComplainedOn names the templates with complaints.

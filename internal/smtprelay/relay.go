@@ -23,6 +23,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -141,6 +142,18 @@ func configOf(row store.RelaySettingsRow) Config {
 		CertSource: row.CertSource, CertFile: row.CertFile, KeyFile: row.KeyFile}
 }
 
+// isDemo reports whether the settings are the demo's (internal/demo): on,
+// at reputecast.acme.io with passing checks, but nothing listens and the
+// periodic check leaves them be, until an instance admin saves the
+// settings.
+func isDemo(status []byte) bool {
+	var v struct {
+		Demo bool `json:"demo"`
+	}
+	_ = json.Unmarshal(status, &v)
+	return v.Demo
+}
+
 // servers are the two listeners of a running relay.
 type servers struct {
 	cfg       Config
@@ -160,9 +173,16 @@ func (r *Relay) Run(ctx context.Context) error {
 	t := time.NewTicker(poll)
 	defer t.Stop()
 	wake := r.wakeCh()
+	last := ""
 	for {
-		if err := r.Reconcile(ctx); err != nil && ctx.Err() == nil {
+		// The same error (a port taken, say) is logged once, not every poll.
+		err := r.Reconcile(ctx)
+		switch {
+		case err != nil && ctx.Err() == nil && err.Error() != last:
 			r.log().WarnContext(ctx, "smtp relay", "err", err)
+			last = err.Error()
+		case err == nil:
+			last = ""
 		}
 		select {
 		case <-ctx.Done():
@@ -185,7 +205,7 @@ func (r *Relay) Reconcile(ctx context.Context) error {
 	r.mu.Lock()
 	cur := r.running
 	r.mu.Unlock()
-	want := cfg.Enabled && cfg.Hostname != ""
+	want := cfg.Enabled && cfg.Hostname != "" && !isDemo(row.Status)
 	if cur != nil && (!want || cur.cfg != cfg) {
 		r.stop(ctx)
 		cur = nil

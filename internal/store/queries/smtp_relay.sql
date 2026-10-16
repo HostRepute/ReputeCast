@@ -8,9 +8,11 @@ SELECT r.enabled, r.hostname, r.starttls_port, r.tls_port, r.cert_source, r.cert
 FROM smtp_relay r LEFT JOIN users u ON u.id = r.enabled_by;
 
 -- name: RelayUpdate :exec
+-- Saving drops the demo's flag (see Relay.Reconcile): from then on the
+-- relay listens and is checked like any other.
 UPDATE smtp_relay SET enabled = @enabled, hostname = @hostname, starttls_port = @starttls_port, tls_port = @tls_port, cert_source = @cert_source,
     cert_file = @cert_file, key_file = @key_file, enabled_by = sqlc.narg(enabled_by), enabled_at = sqlc.narg(enabled_at),
-    updated_by = sqlc.narg(updated_by), updated_at = @updated_at;
+    updated_by = sqlc.narg(updated_by), updated_at = @updated_at, status = status - 'demo';
 
 -- name: RelaySetStatus :exec
 UPDATE smtp_relay SET status = @status, unreachable_since = sqlc.narg(unreachable_since);

@@ -415,7 +415,7 @@ type CheckWorker struct {
 // Work implements river.Worker.
 func (w *CheckWorker) Work(ctx context.Context, _ *river.Job[CheckArgs]) error {
 	row, err := w.R.Q.RelaySettings(ctx)
-	if err != nil || !row.Enabled {
+	if err != nil || !row.Enabled || isDemo(row.Status) {
 		return err
 	}
 	_, err = w.R.Check(ctx, w.PublicURL(ctx))

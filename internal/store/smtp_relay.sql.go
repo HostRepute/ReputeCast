@@ -142,7 +142,7 @@ func (q *Queries) RelaySettings(ctx context.Context) (RelaySettingsRow, error) {
 const relayUpdate = `-- name: RelayUpdate :exec
 UPDATE smtp_relay SET enabled = $1, hostname = $2, starttls_port = $3, tls_port = $4, cert_source = $5,
     cert_file = $6, key_file = $7, enabled_by = $8, enabled_at = $9,
-    updated_by = $10, updated_at = $11
+    updated_by = $10, updated_at = $11, status = status - 'demo'
 `
 
 type RelayUpdateParams struct {
@@ -159,6 +159,8 @@ type RelayUpdateParams struct {
 	UpdatedAt    time.Time  `json:"updatedAt"`
 }
 
+// Saving drops the demo's flag (see Relay.Reconcile): from then on the
+// relay listens and is checked like any other.
 func (q *Queries) RelayUpdate(ctx context.Context, arg RelayUpdateParams) error {
 	_, err := q.db.Exec(ctx, relayUpdate,
 		arg.Enabled,
