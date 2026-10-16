@@ -424,6 +424,8 @@ type Campaign struct {
 	Note            string          `json:"note"`
 	ContentHash     string          `json:"contentHash"`
 	ContentSettings json.RawMessage `json:"contentSettings"`
+	DigestID        *uuid.UUID      `json:"digestId"`
+	DigestRole      string          `json:"digestRole"`
 }
 
 type CampaignAudienceStage struct {
@@ -719,6 +721,128 @@ type DeliveryEvent struct {
 	Source            string      `json:"source"`
 	ReceivedAt        time.Time   `json:"receivedAt"`
 	DedupeKey         string      `json:"dedupeKey"`
+}
+
+type Digest struct {
+	ID           uuid.UUID       `json:"id"`
+	WorkspaceID  uuid.UUID       `json:"workspaceId"`
+	Name         string          `json:"name"`
+	TemplateID   *uuid.UUID      `json:"templateId"`
+	State        string          `json:"state"`
+	Mode         string          `json:"mode"`
+	Source       string          `json:"source"`
+	FeedUrl      string          `json:"feedUrl"`
+	SiteID       *uuid.UUID      `json:"siteId"`
+	Categories   []string        `json:"categories"`
+	Tags         []string        `json:"tags"`
+	MaxAgeDays   *int32          `json:"maxAgeDays"`
+	StartMode    string          `json:"startMode"`
+	StartLatest  int32           `json:"startLatest"`
+	Schedule     json.RawMessage `json:"schedule"`
+	PrepareHours int32           `json:"prepareHours"`
+	LateHours    int32           `json:"lateHours"`
+	Archive      bool            `json:"archive"`
+	OwnerID      *uuid.UUID      `json:"ownerId"`
+	OwnerSince   *time.Time      `json:"ownerSince"`
+	FirstOnAt    *time.Time      `json:"firstOnAt"`
+	PausedAt     *time.Time      `json:"pausedAt"`
+	PausedBy     *uuid.UUID      `json:"pausedBy"`
+	PauseReason  string          `json:"pauseReason"`
+	PauseNote    string          `json:"pauseNote"`
+	PauseDetail  json.RawMessage `json:"pauseDetail"`
+	FeedSkips    int32           `json:"feedSkips"`
+	FeedStatus   string          `json:"feedStatus"`
+	FeedKind     string          `json:"feedKind"`
+	FeedTitle    string          `json:"feedTitle"`
+	FeedItems    int32           `json:"feedItems"`
+	FeedBytes    int32           `json:"feedBytes"`
+	FeedEtag     string          `json:"feedEtag"`
+	FeedModified string          `json:"feedModified"`
+	FeedError    string          `json:"feedError"`
+	FeedSnippet  string          `json:"feedSnippet"`
+	FeedMovedTo  string          `json:"feedMovedTo"`
+	LastReadAt   *time.Time      `json:"lastReadAt"`
+	LastReadVia  string          `json:"lastReadVia"`
+	LastOkAt     *time.Time      `json:"lastOkAt"`
+	CreatedBy    *uuid.UUID      `json:"createdBy"`
+	CreatedAt    time.Time       `json:"createdAt"`
+	UpdatedBy    *uuid.UUID      `json:"updatedBy"`
+	UpdatedAt    time.Time       `json:"updatedAt"`
+	DeletedAt    *time.Time      `json:"deletedAt"`
+}
+
+type DigestFeedRead struct {
+	ID          int64           `json:"id"`
+	DigestID    uuid.UUID       `json:"digestId"`
+	At          time.Time       `json:"at"`
+	Via         string          `json:"via"`
+	Ok          bool            `json:"ok"`
+	HttpStatus  int32           `json:"httpStatus"`
+	NotModified bool            `json:"notModified"`
+	Kind        string          `json:"kind"`
+	Items       int32           `json:"items"`
+	NewItems    int32           `json:"newItems"`
+	Bytes       int32           `json:"bytes"`
+	Ms          int32           `json:"ms"`
+	Error       string          `json:"error"`
+	Hops        json.RawMessage `json:"hops"`
+}
+
+type DigestIssue struct {
+	ID          uuid.UUID       `json:"id"`
+	DigestID    uuid.UUID       `json:"digestId"`
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	Number      *int32          `json:"number"`
+	Status      string          `json:"status"`
+	Mode        string          `json:"mode"`
+	SendAt      *time.Time      `json:"sendAt"`
+	PrepareAt   *time.Time      `json:"prepareAt"`
+	Deadline    *time.Time      `json:"deadline"`
+	CampaignID  *uuid.UUID      `json:"campaignId"`
+	PreparedAt  *time.Time      `json:"preparedAt"`
+	HeldAt      *time.Time      `json:"heldAt"`
+	HoldReason  string          `json:"holdReason"`
+	StartedAt   *time.Time      `json:"startedAt"`
+	SentAt      *time.Time      `json:"sentAt"`
+	SkippedAt   *time.Time      `json:"skippedAt"`
+	SkipReason  string          `json:"skipReason"`
+	SkipNote    string          `json:"skipNote"`
+	SkippedBy   *uuid.UUID      `json:"skippedBy"`
+	FeedTries   json.RawMessage `json:"feedTries"`
+	ItemCount   int32           `json:"itemCount"`
+	Notified    []string        `json:"notified"`
+	CreatedAt   time.Time       `json:"createdAt"`
+	UpdatedAt   time.Time       `json:"updatedAt"`
+}
+
+type DigestIssueItem struct {
+	IssueID  uuid.UUID `json:"issueId"`
+	ItemID   uuid.UUID `json:"itemId"`
+	Position int32     `json:"position"`
+}
+
+type DigestItem struct {
+	ID           uuid.UUID  `json:"id"`
+	DigestID     uuid.UUID  `json:"digestId"`
+	Key          string     `json:"key"`
+	Url          string     `json:"url"`
+	Title        string     `json:"title"`
+	Author       string     `json:"author"`
+	PublishedAt  *time.Time `json:"publishedAt"`
+	Categories   []string   `json:"categories"`
+	Tags         []string   `json:"tags"`
+	Excerpt      string     `json:"excerpt"`
+	ImageUrl     string     `json:"imageUrl"`
+	ImageAlt     string     `json:"imageAlt"`
+	MediaID      *uuid.UUID `json:"mediaId"`
+	MediaUrl     string     `json:"mediaUrl"`
+	MediaWidth   int32      `json:"mediaWidth"`
+	MediaHeight  int32      `json:"mediaHeight"`
+	ImageError   string     `json:"imageError"`
+	FirstSeenAt  time.Time  `json:"firstSeenAt"`
+	FirstSeenVia string     `json:"firstSeenVia"`
+	LastSeenAt   time.Time  `json:"lastSeenAt"`
+	GoneAt       *time.Time `json:"goneAt"`
 }
 
 type DmarcReport struct {
