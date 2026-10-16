@@ -161,6 +161,9 @@ type SignupFormCopyLanguage struct {
 	// that agreed to its consent text.
 	Labels   PublicCopyLabels           `json:"labels"`
 	Evidence *SignupFormConsentEvidence `json:"evidence,omitempty"`
+	// DefaultAfterSubmit is the built-in after-submit message in the
+	// language, shown when the form has no message of its own.
+	DefaultAfterSubmit string `json:"defaultAfterSubmit"`
 }
 
 // SignupFormCopy is a form's copy in every workspace language.
@@ -626,6 +629,9 @@ func (s *Service) formCopyView(ctx context.Context, q *store.Queries, ws *store.
 		if l := fc.Pages.lang(code); l != nil {
 			v.Labels = labelsState(l)
 		}
+		lc := c
+		lc.Labels, lc.publisher, lc.Content.AfterSubmitText = fc.Pages.Labels(code), set.Branding.PublisherName, ""
+		v.DefaultAfterSubmit = lc.afterSubmitSource()
 		if v.IsSource {
 			v.Copy = SignupFormCopyText{Heading: c.Content.Heading, Description: c.Content.Description, Button: c.Content.Button, ConsentText: c.ConsentText,
 				AfterSubmit: c.Content.AfterSubmitText, Fields: map[string]string{}}

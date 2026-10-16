@@ -1,4 +1,5 @@
 import { keepPreviousData } from '@tanstack/react-query'
+import { useSearch } from '@tanstack/react-router'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { $api, ApiError, errorMessage, type Schemas } from '@/api/client'
 import { Page } from '@/components/shell/Page'
@@ -12,6 +13,7 @@ import { toast } from '@/components/ui/Toast'
 import { cn } from '@/lib/cn'
 import { count, longDate } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
+import { PageCopyView, PageLanguageSection, usePageCopy, type PageGroup } from '@/features/page-languages/PageCopyView'
 import { copyText, FormsTabs, hostPath, throwIfForbidden, useInvalidateForms, usePublicPages, type PublicPages } from './common'
 
 type Pages = Schemas['Pages']
@@ -79,22 +81,10 @@ function draftOf(s: PublicPages): Draft {
   return { pages: structuredClone(s.pages), hostedFormId: s.hostedFormId }
 }
 
-/**
- * One tab: the options on the left, the page as subscribers see it on the
- * right (rendered by the server with the unsaved options), and Save in the
- * top bar while something changed.
- */
-function PageEditor({
-  settings,
-  pick,
-  preview,
-  previewLabel,
-  previewURL,
-  extraBar,
-  options,
-  form,
-}: {
+interface EditorProps {
   settings: PublicPages
+  /** Which page tab: what of the pages' own text it edits in other languages. */
+  group: PageGroup
   pick: Pick
   preview: PreviewPage
   previewLabel: string
@@ -102,7 +92,41 @@ function PageEditor({
   extraBar?: ReactNode
   form?: string
   options: (draft: Draft, set: (fn: (d: Draft) => Draft) => void, readOnly: boolean) => ReactNode
-}) {
+}
+
+/**
+ * One tab: the options on the left, the page as subscribers see it on the
+ * right (rendered by the server with the unsaved options), and Save in the
+ * top bar while something changed. With ?language= (a workspace language
+ * other than the pages' own), the tab edits the page's text in it.
+ */
+function PageEditor(props: EditorProps) {
+  const { language } = useSearch({ strict: false }) as { language?: string }
+  const copy = usePageCopy()
+  const other = Boolean(language && copy.data && language !== copy.data.copyLanguage && copy.data.languages.some((l) => l.code === language))
+  if (other && language) {
+    const { settings, pick, preview, previewLabel, previewURL, extraBar, form, group } = props
+    const body = pick(draftOf(settings))
+    return (
+      <PageCopyView
+        group={group}
+        language={language}
+        lists={settings.lists}
+        previewLabel={previewLabel}
+        previewURL={previewURL}
+        extraBar={extraBar}
+        preview={(device) => (
+          <div className={cn('fb-stage wide', device === 'mobile' && 'phone')}>
+            <PagePreview page={preview} draft={body} form={form} label={previewLabel} />
+          </div>
+        )}
+      />
+    )
+  }
+  return <BaseEditor {...props} />
+}
+
+function BaseEditor({ settings, pick, preview, previewLabel, previewURL, extraBar, options, form }: EditorProps) {
   const { slug } = useWorkspace()
   const invalidate = useInvalidateForms()
   const reason = usePermissionReason('forms:edit')
@@ -141,6 +165,7 @@ function PageEditor({
     >
       <div className="fb-cols">
         <aside className="fb-left" aria-label="Page options">
+          <PageLanguageSection />
           {options(draft, setDraft, readOnly)}
         </aside>
         <section className="fb-center" aria-label="Live preview">
@@ -309,6 +334,7 @@ export function SubscribePageTab() {
           <PageEditor
             key={settings.updatedAt}
             settings={settings}
+            group="subscribe"
             pick={(d) => ({ subscribe: d.pages.subscribe, confirm: d.pages.confirm, hostedFormId: hosted(d) })}
             preview={shown}
             previewLabel={shown === 'subscribe' ? 'subscribe page' : 'confirmation page'}
@@ -404,6 +430,7 @@ export function PreferencesTab() {
         <PageEditor
           key={settings.updatedAt}
           settings={settings}
+          group="preferences"
           pick={(d) => ({ preferences: d.pages.preferences, previewEmail: d.pages.previewEmail })}
           preview="preferences"
           previewLabel="preference center"
@@ -475,6 +502,7 @@ export function UnsubscribeTab() {
         <PageEditor
           key={settings.updatedAt}
           settings={settings}
+          group="unsubscribe"
           pick={(d) => ({ unsubscribe: d.pages.unsubscribe, previewEmail: d.pages.previewEmail })}
           preview="unsubscribe"
           previewLabel="unsubscribe page"
@@ -566,6 +594,7 @@ export function ArchiveTab() {
         <PageEditor
           key={settings.updatedAt}
           settings={settings}
+          group="archive"
           pick={(d) => ({ archive: d.pages.archive })}
           preview="archive"
           previewLabel="archive"

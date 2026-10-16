@@ -17805,6 +17805,7 @@ export interface components {
             /** Format: int64 */
             consentVersion: number;
             copy: components["schemas"]["SignupFormCopyText"];
+            defaultAfterSubmit: string;
             evidence?: components["schemas"]["SignupFormConsentEvidence"];
             isDefault: boolean;
             isSource: boolean;

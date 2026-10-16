@@ -34779,6 +34779,9 @@
           "copy": {
             "$ref": "#/components/schemas/SignupFormCopyText"
           },
+          "defaultAfterSubmit": {
+            "type": "string"
+          },
           "evidence": {
             "$ref": "#/components/schemas/SignupFormConsentEvidence"
           },
@@ -34839,7 +34842,8 @@
           "consentVersion",
           "consentFor",
           "consentReview",
-          "labels"
+          "labels",
+          "defaultAfterSubmit"
         ],
         "type": "object"
       },
