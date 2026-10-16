@@ -1,12 +1,14 @@
 /**
- * Lists the messages each language still misses, checks every message and
- * translation (ICU syntax, arguments and tags), and writes
- * src/i18n/status.gen.ts: the languages the picker offers outside
- * development. docs/i18n/translating.md explains the workflow.
+ * Lists the messages each language still misses and the text the screens
+ * still hard-code, checks every message and translation (ICU syntax,
+ * arguments and tags), and writes src/i18n/status.gen.ts: the languages the
+ * picker offers outside development. docs/i18n/translating.md explains the
+ * workflow.
  *
  *   pnpm run i18n:check              # every missing message, by file
  *   pnpm run i18n:check --summary    # one line per language
  *   pnpm run i18n:check --lang vi    # one language
+ *   pnpm run i18n:check --hardcoded  # every hard-coded string, with its line
  *   pnpm run i18n:check --json       # for tools
  *
  * Exits 1 when a message or a translation has an error. Missing
@@ -36,11 +38,12 @@ if (args.includes('--json')) {
     messages: report.messages.length,
     complete: report.complete,
     languages: report.languages.map((l) => ({ code: l.code, name: l.name, total: l.total, translated: l.translated, missing: Object.fromEntries(l.missing) })),
+    hardCoded: report.hardCoded,
     errors: report.errors,
   }
   console.log(JSON.stringify(json, null, 2))
 } else {
-  console.log(summary(report, { verbose: !args.includes('--summary') }))
+  console.log(summary(report, { verbose: !args.includes('--summary'), hardCoded: args.includes('--hardcoded') }))
 }
 
 const statusPath = fileURLToPath(new URL('../src/i18n/status.gen.ts', import.meta.url))

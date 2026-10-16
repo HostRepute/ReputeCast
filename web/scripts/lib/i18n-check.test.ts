@@ -58,6 +58,63 @@ describe('i18n:check', () => {
     expect(r.errors).toContain('web/src/features/other/messages.ts: transactional.title is also defined in web/src/features/transactional/messages.ts with different English')
   })
 
+  it('counts hard-coded text, and keeps a complete translation out of the picker while some is left', () => {
+    const screen: SourceFile = {
+      path: 'web/src/features/transactional/Page.tsx',
+      text: `export function Page() {
+  return (
+    <section title="Templates" data-x="ignored">
+      <h1>{t(m.title)}</h1>
+      <p>
+        Nothing here yet
+      </p>
+      <span>·</span>
+      <b>{'xxxx-xxxx'}</b>
+      <i>ReputeCast</i>
+      <input placeholder="Search templates" aria-label={label} />
+    </section>
+  )
+}`,
+    }
+    const complete = vi(`title: 'Giao dịch', sent: 'Đã gửi {count, plural, other {# thư}} cho <b>{name}</b>', long: 'Hai phần'`)
+    const r = check([languages, source, complete, screen])
+    expect(r.hardCoded).toEqual([
+      { file: screen.path, line: 3, text: 'Templates' },
+      { file: screen.path, line: 6, text: 'Nothing here yet' },
+      { file: screen.path, line: 11, text: 'Search templates' },
+    ])
+    expect(r.complete).toEqual(['en'])
+    const short = summary(r, { verbose: false })
+    expect(short).toContain('Hard-coded text: 3 strings in 1 file, in English in every language')
+    expect(short).toContain('In the language picker: en (Tiếng Việt waits for the hard-coded text)')
+    expect(summary(r, { hardCoded: true })).toContain('    6: Nothing here yet')
+    // Tests aren't screens.
+    expect(check([languages, source, complete, { ...screen, path: 'web/src/features/transactional/Page.test.tsx' }]).complete).toEqual(['en', 'vi'])
+  })
+
+  it('reads every group a translation file translates', () => {
+    const two: SourceFile = {
+      path: 'web/src/features/editor/messages.ts',
+      text: `import { defineMessages } from '@/i18n'
+export const mb = defineMessages('editor.blocks', { footer: 'Footer' })
+export const m = defineMessages('editor', { title: 'Editor', save: 'Save' })`,
+    }
+    const r = check([
+      languages,
+      two,
+      {
+        path: 'web/src/features/editor/messages.vi.ts',
+        text: `import { translate } from '@/i18n'
+import { m, mb } from './messages'
+export default { ...translate(mb, { footer: 'Chân trang' }), ...translate(m, { title: 'Trình soạn thảo', nope: 'Không' }) }`,
+      },
+    ])
+    expect(r.errors).toEqual(["web/src/features/editor/messages.vi.ts: editor.nope isn't in the English"])
+    const l = r.languages.find((x) => x.code === 'vi')!
+    expect(l.translated).toBe(2)
+    expect(l.missing.get(two.path)).toEqual(['editor.save'])
+  })
+
   it('checks the server catalogs too', () => {
     const r = check([
       languages,

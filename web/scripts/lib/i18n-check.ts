@@ -4,8 +4,9 @@
  * It reads the app's messages without running the app:
  * - English sources: every `defineMessages('namespace', { key: 'text' })`
  *   under web/src;
- * - translations: every `translate(m, { key: 'text' })` default export in a
- *   `*messages.<lang>.ts` file, matched to its source through the import;
+ * - translations: the `translate(m, { key: 'text' })` default export of a
+ *   `*messages.<lang>.ts` file (or one translate() per group of messages,
+ *   spread together), matched to its source through the import;
  * - the server's catalogs: internal/<package>/messages/<lang>.json, with
  *   en.json as the source.
  *
@@ -44,11 +45,23 @@ export interface LanguageStatus {
   missing: Map<string, string[]>
 }
 
+/** Text a person reads that skipped web/src/i18n, so it's English in every language. */
+export interface HardCoded {
+  file: string
+  line: number
+  text: string
+}
+
 export interface Report {
   messages: Message[]
   languages: LanguageStatus[]
+  /** Hard-coded text in the app's screens. */
+  hardCoded: HardCoded[]
   errors: string[]
-  /** Languages with nothing missing: English, and every complete translation. */
+  /**
+   * The languages the picker offers in a release: English, and every
+   * translation with nothing missing once no hard-coded text is left.
+   */
   complete: string[]
 }
 
@@ -170,8 +183,11 @@ function resolveImport(fromFile: string, spec: string, files: Map<string, Source
   return undefined
 }
 
-/** The translate() call of a translation file. */
-export function translationIn(f: SourceFile, files: Map<string, SourceFile>, errors: string[]): Translation | undefined {
+/**
+ * The translate() calls of a translation file: one per group of messages
+ * its source defines (`export default { ...translate(mb, {…}), ...translate(m, {…}) }`).
+ */
+export function translationsIn(f: SourceFile, files: Map<string, SourceFile>, errors: string[]): Translation[] {
   const sf = parseTs(f)
   const imports = new Map<string, { from: string; name: string }>()
   for (const st of sf.statements) {
@@ -180,7 +196,7 @@ export function translationIn(f: SourceFile, files: Map<string, SourceFile>, err
     if (!named || !ts.isNamedImports(named)) continue
     for (const el of named.elements) imports.set(el.name.text, { from: st.moduleSpecifier.text, name: (el.propertyName ?? el.name).text })
   }
-  let found: Translation | undefined
+  const found: Translation[] = []
   const visit = (node: ts.Node) => {
     if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === 'translate') {
       const [src, obj] = node.arguments
@@ -196,13 +212,69 @@ export function translationIn(f: SourceFile, files: Map<string, SourceFile>, err
           }
           keys.set(name, text)
         }
-        found = { binding: imp?.name ?? src.text, from: imp ? resolveImport(f.path, imp.from, files) : f.path, keys }
+        found.push({ binding: imp?.name ?? src.text, from: imp ? resolveImport(f.path, imp.from, files) : f.path, keys })
       }
     }
     ts.forEachChild(node, visit)
   }
   visit(sf)
   return found
+}
+
+// ---------------------------------------------------------------- hard-coded text
+
+/** Attributes whose plain string is text a person reads. */
+const TEXT_ATTRIBUTES = new Set([
+  'title',
+  'label',
+  'caption',
+  'description',
+  'placeholder',
+  'aria-label',
+  'alt',
+  'subtitle',
+  'eyebrow',
+  'detail',
+  'disabledReason',
+  'hint',
+  'help',
+  'tooltip',
+])
+
+/** Names that read the same in every language and stand alone in the markup. */
+const NAMES = new Set(['ReputeCast', 'HostRepute'])
+
+function readable(text: string): boolean {
+  return /\p{L}{2,}/u.test(text) && !NAMES.has(text)
+}
+
+/**
+ * The JSX text and the plain strings in text attributes of a screen (.tsx):
+ * what a screen converted to messages no longer has. A literal that isn't
+ * text to translate, such as the format "xxxx-xxxx-xxxx", goes in an
+ * expression: placeholder={'xxxx-xxxx-xxxx'}.
+ */
+export function hardCodedIn(f: SourceFile): HardCoded[] {
+  const out: HardCoded[] = []
+  const sf = parseTs(f)
+  const lineOf = (pos: number) => sf.getLineAndCharacterOfPosition(pos).line + 1
+  const visit = (node: ts.Node) => {
+    if (ts.isJsxText(node)) {
+      const text = node.text.replace(/\s+/g, ' ').trim()
+      if (text && readable(text)) out.push({ file: f.path, line: lineOf(node.getStart(sf) + node.text.length - node.text.trimStart().length), text })
+    } else if (ts.isJsxAttribute(node) && node.initializer && ts.isStringLiteral(node.initializer)) {
+      const text = node.initializer.text.trim()
+      if (TEXT_ATTRIBUTES.has(node.name.getText(sf)) && readable(text)) out.push({ file: f.path, line: lineOf(node.getStart(sf)), text })
+    }
+    ts.forEachChild(node, visit)
+  }
+  visit(sf)
+  return out
+}
+
+/** The screens the hard-coded scan reads: the app's .tsx files, not its tests. */
+function isScreen(path: string): boolean {
+  return path.startsWith('web/src/') && path.endsWith('.tsx') && !/\.test\.tsx$/.test(path) && !path.startsWith('web/src/test/')
 }
 
 // ---------------------------------------------------------------- the check
@@ -298,22 +370,24 @@ export function check(input: SourceFile[]): Report {
   for (const f of input) {
     const lang = f.path.startsWith('web/src/') ? TRANSLATION_FILE.exec(f.path)?.[1] : undefined
     if (!lang || lang === 'en') continue
-    const tr = translationIn(f, files, errors)
-    if (!tr) {
+    const trs = translationsIn(f, files, errors)
+    if (!trs.length) {
       errors.push(`${f.path}: no translate(m, { … }) call`)
       continue
     }
-    const def = tr.from ? bindings.get(`${tr.from}#${tr.binding}`) : undefined
-    if (!def) {
-      errors.push(`${f.path}: can't find the messages ${tr.binding} it translates`)
-      continue
-    }
-    for (const [key, text] of tr.keys) {
-      if (!def.keys.has(key)) {
-        errors.push(`${f.path}: ${def.namespace}.${key} isn't in the English`)
+    for (const tr of trs) {
+      const def = tr.from ? bindings.get(`${tr.from}#${tr.binding}`) : undefined
+      if (!def) {
+        errors.push(`${f.path}: can't find the messages ${tr.binding} it translates`)
         continue
       }
-      checkTranslation(f.path, lang, `${def.namespace}.${key}`, text)
+      for (const [key, text] of tr.keys) {
+        if (!def.keys.has(key)) {
+          errors.push(`${f.path}: ${def.namespace}.${key} isn't in the English`)
+          continue
+        }
+        checkTranslation(f.path, lang, `${def.namespace}.${key}`, text)
+      }
     }
   }
 
@@ -378,8 +452,14 @@ export function check(input: SourceFile[]): Report {
     }
     languages.push({ code, name: app.find((l) => l.code === code)?.name ?? code, total: messages.length, translated: done.size, missing })
   }
-  const complete = ['en', ...languages.filter((l) => l.translated === l.total && app.some((a) => a.code === l.code)).map((l) => l.code)]
-  return { messages, languages, errors, complete }
+  // Hard-coded text reads in English whatever the language, so no
+  // translation is complete while some is left.
+  const hardCoded = input.filter((f) => isScreen(f.path)).flatMap(hardCodedIn)
+  const complete = [
+    'en',
+    ...(hardCoded.length ? [] : languages.filter((l) => l.translated === l.total && app.some((a) => a.code === l.code)).map((l) => l.code)),
+  ]
+  return { messages, languages, hardCoded, errors, complete }
 }
 
 // ---------------------------------------------------------------- files and output
@@ -416,8 +496,11 @@ export function statusModule(report: Report): string {
   ].join('\n')
 }
 
-/** A readable summary: per language, what is missing, by file. */
-export function summary(report: Report, { verbose = true } = {}): string {
+/**
+ * A readable summary: per language, what is missing, by file; then the
+ * hard-coded text, by file (each string with `hardCoded`).
+ */
+export function summary(report: Report, { verbose = true, hardCoded = false } = {}): string {
   const web = report.messages.filter((m) => m.side === 'web').length
   const lines = [`${report.messages.length} messages: ${web} in the app, ${report.messages.length - web} on the server.`]
   for (const l of report.languages) {
@@ -430,7 +513,23 @@ export function summary(report: Report, { verbose = true } = {}): string {
       for (const id of ids) lines.push(`    ${id}`)
     }
   }
-  lines.push('', `In the language picker: ${report.complete.join(', ')}`)
+  const hc = report.hardCoded
+  if (!hc.length) lines.push('', 'Hard-coded text: none')
+  else {
+    const byFile = new Map<string, HardCoded[]>()
+    for (const h of hc) byFile.set(h.file, [...(byFile.get(h.file) ?? []), h])
+    const strings = `${hc.length} ${hc.length === 1 ? 'string' : 'strings'} in ${byFile.size} ${byFile.size === 1 ? 'file' : 'files'}`
+    lines.push('', `Hard-coded text: ${strings}, in English in every language${hardCoded ? '' : ' (--hardcoded lists them)'}`)
+    if (verbose || hardCoded) {
+      for (const [file, list] of [...byFile].sort(([x], [y]) => x.localeCompare(y))) {
+        lines.push(`  ${file} · ${list.length}`)
+        if (hardCoded) for (const h of list) lines.push(`    ${h.line}: ${h.text}`)
+      }
+    }
+  }
+  const waiting = report.languages.filter((l) => l.translated === l.total && !report.complete.includes(l.code)).map((l) => l.name)
+  const why = waiting.length ? ` (${waiting.join(', ')} ${waiting.length === 1 ? 'waits' : 'wait'} for the hard-coded text)` : ''
+  lines.push('', `In the language picker: ${report.complete.join(', ')}${why}`)
   if (report.errors.length) lines.push('', `${report.errors.length} error${report.errors.length === 1 ? '' : 's'}:`, ...report.errors.map((e) => `  ${e}`))
   return lines.join('\n')
 }

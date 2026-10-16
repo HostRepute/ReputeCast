@@ -288,9 +288,11 @@ being converted.
   needs nothing more. A key made at run time (`short.<event type>`) uses
   `Lookup` and falls back to the English in the code.
 - **Checks:** `pnpm run i18n:check` lists what each language misses, by file,
-  and fails on broken ICU or a translation that uses an argument or a tag
-  its English doesn't have. It writes `src/i18n/status.gen.ts`: outside
-  development the language picker offers only complete languages. Before a
+  counts the text screens still hard-code (JSX text and text attributes;
+  `--hardcoded` lists each), and fails on broken ICU or a translation that
+  uses an argument or a tag its English doesn't have. It writes
+  `src/i18n/status.gen.ts`: outside development the language picker offers
+  only languages with nothing missing, once no hard-coded text is left. Before a
   screen is done, look at it in the pseudo-locale (Account & security ›
   Language & region › Pseudo (+40%), in development): text without ⟦ ⟧
   skipped `web/src/i18n`, and a missing ⟧ is text that was cut off.

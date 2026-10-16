@@ -649,7 +649,8 @@ function TwoFactorStep({
               className={error ? 'in err mono' : 'in mono'}
               value={code}
               onChange={(e) => setCode(e.target.value)}
-              placeholder="xxxx-xxxx-xxxx"
+              // The code's format, the same in every language.
+              placeholder={'xxxx-xxxx-xxxx'}
               autoComplete="one-time-code"
               spellCheck={false}
               autoFocus

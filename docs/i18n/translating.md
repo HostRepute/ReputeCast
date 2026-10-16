@@ -35,6 +35,10 @@ export default translate(m, {
 })
 ```
 
+A source that defines several groups (`mb`, `m`, `mp`) gets one
+`translate()` per group, spread together:
+`export default { ...translate(mb, { … }), ...translate(m, { … }) }`.
+
 A server catalog is a JSON object of `"key": "text"`, or
 `"key": { "message": "text", "note": "for translators" }` when the English
 needs explaining. Read the notes; they say what an argument holds. A few
@@ -84,18 +88,25 @@ cd web
 pnpm run i18n:check              # every missing message, by file
 pnpm run i18n:check --lang vi    # one language
 pnpm run i18n:check --summary    # one line per language
+pnpm run i18n:check --hardcoded  # every hard-coded string, with its line
 ```
 
 It reads the web sources and translations and the server's catalogs, and:
 
 - lists the messages each language misses, grouped by the file that defines
   their English;
+- counts the hard-coded text left in the screens: JSX text, and plain
+  strings in attributes people read (`title`, `label`, `placeholder`,
+  `aria-label`…). It reads in English in every language. A literal that
+  isn't text to translate, such as a format, goes in an expression:
+  `placeholder={'xxxx-xxxx-xxxx'}`;
 - fails on a message that isn't valid ICU, a translated key the English
   doesn't have, and an argument or tag the English doesn't use;
 - writes `web/src/i18n/status.gen.ts`, the languages complete in this
-  release. Outside development, the language picker offers only those
-  (English always); in development it shows every language. Every build runs
-  the check first; commit `status.gen.ts` when it changes.
+  release: nothing missing, and no hard-coded text left. Outside
+  development, the language picker offers only those (English always); in
+  development it shows every language. Every build runs the check first;
+  commit `status.gen.ts` when it changes.
 
 Then look at the screens: switch your own app language in **Account &
 security › Language & region**, and read the stress-test screens (Campaigns,
