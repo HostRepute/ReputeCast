@@ -1,7 +1,7 @@
 import type { QueryClient } from '@tanstack/react-query'
 import { http } from '@/api/client'
 import { pickableLanguages, resolvePreferences, resolveVisitor, type InstanceDefaults, type MemberChoices } from './languages'
-import { getI18n, setPreferences, type Preferences } from './store'
+import { getI18n, i18nKey, setPreferences, subscribeI18n, type Preferences } from './store'
 
 /**
  * Keeps the app in the right language and formats:
@@ -141,15 +141,33 @@ export function forgetMember(): void {
   mode = 'visitor'
 }
 
+/**
+ * Refetches what the server wrote in the old language (a button's reason,
+ * a summary, a note) when the language or a format changes: the screens on
+ * show load again, and the rest is fetched again when it next shows.
+ */
+export function refetchOnLanguageChange(qc: QueryClient): () => void {
+  let applied = i18nKey(getI18n())
+  return subscribeI18n(() => {
+    const next = i18nKey(getI18n())
+    if (next === applied) return
+    applied = next
+    // /me and /meta set the language, and say nothing in it.
+    void qc.invalidateQueries({ predicate: (q) => q.queryKey[0] !== 'me' && q.queryKey[0] !== 'meta' })
+  })
+}
+
 let connected = false
 
 /**
- * Follows /me and /meta in the query cache, and tells the API which
- * language to answer in (errors, "who can help").
+ * Follows /me and /meta in the query cache, tells the API which language
+ * to answer in (errors, "who can help"), and refetches the server's texts
+ * when the language changes.
  */
 export function connectI18n(qc: QueryClient): void {
   if (connected) return
   connected = true
+  refetchOnLanguageChange(qc)
   http.use({
     onRequest({ request }) {
       if (!request.headers.has('Accept-Language')) request.headers.set('Accept-Language', getI18n().locale)
