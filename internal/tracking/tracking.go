@@ -216,17 +216,13 @@ func (s *Service) target(ctx context.Context, c linktoken.Claims) (string, error
 			return out, nil
 		}
 	default:
-		var ref struct {
-			Email   uuid.UUID `json:"email"`
-			Version int       `json:"version"`
-		}
-		_ = json.Unmarshal(m.ContentRef, &ref)
+		ref := refOf(m.ContentRef)
 		if ref.Email == uuid.Nil {
 			return "", errors.New("no links")
 		}
-		key = uuid.NewSHA1(ref.Email, []byte{byte(ref.Version >> 8), byte(ref.Version)})
+		key = ref.linkKey()
 		load = func() (map[int]string, error) {
-			rows, err := s.Q.TrackingAutomationLinks(ctx, store.TrackingAutomationLinksParams{EmailID: ref.Email, Version: int32(ref.Version)})
+			rows, err := s.Q.TrackingAutomationLinks(ctx, store.TrackingAutomationLinksParams{EmailID: ref.Email, Version: int32(ref.Version), Language: ref.Language})
 			if err != nil {
 				return nil, err
 			}
@@ -449,7 +445,7 @@ func (s *Service) apply(ctx context.Context, tx pgx.Tx, q *store.Queries, ev sen
 				return err
 			}
 		} else if ref := refOf(m.ContentRef); ref.Email != uuid.Nil {
-			if err := q.TrackingBumpAutomationLink(ctx, store.TrackingBumpAutomationLinkParams{EmailID: ref.Email, Version: int32(ref.Version), Position: int32(ev.Link)}); err != nil {
+			if err := q.TrackingBumpAutomationLink(ctx, store.TrackingBumpAutomationLinkParams{EmailID: ref.Email, Version: int32(ref.Version), Language: ref.Language, Position: int32(ev.Link)}); err != nil {
 				return err
 			}
 		}
@@ -557,9 +553,8 @@ func (s *Service) linksOf(ctx context.Context, q *store.Queries, m store.Trackin
 	if ref.Email == uuid.Nil {
 		return map[int]string{}, nil
 	}
-	key := uuid.NewSHA1(ref.Email, []byte{byte(ref.Version >> 8), byte(ref.Version)})
-	return s.cachedLinks(key, func() (map[int]string, error) {
-		rows, err := q.TrackingAutomationLinks(ctx, store.TrackingAutomationLinksParams{EmailID: ref.Email, Version: int32(ref.Version)})
+	return s.cachedLinks(ref.linkKey(), func() (map[int]string, error) {
+		rows, err := q.TrackingAutomationLinks(ctx, store.TrackingAutomationLinksParams{EmailID: ref.Email, Version: int32(ref.Version), Language: ref.Language})
 		if err != nil {
 			return nil, err
 		}
@@ -574,6 +569,13 @@ func (s *Service) linksOf(ctx context.Context, q *store.Queries, m store.Trackin
 type contentRef struct {
 	Email   uuid.UUID `json:"email"`
 	Version int       `json:"version"`
+	// Language is the language version sent ("" is the source).
+	Language string `json:"language,omitempty"`
+}
+
+// linkKey identifies the link set of an automation email version and language.
+func (r contentRef) linkKey() uuid.UUID {
+	return uuid.NewSHA1(r.Email, append([]byte{byte(r.Version >> 8), byte(r.Version)}, r.Language...))
 }
 
 func refOf(raw json.RawMessage) contentRef {

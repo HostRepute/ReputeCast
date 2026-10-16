@@ -6,6 +6,7 @@ import { clock, count } from '@/lib/format'
 import { useComposer, type ABTest } from './context'
 import { inboxTime } from './format'
 import { SendTestButton } from './SendTest'
+import { usePreviewAsLabel, versionLanguage } from '@/features/languages/composerParts'
 
 type Preview = Schemas['ComposerPreview']
 type Client = 'gmail' | 'outlook' | 'apple' | 'yahoo'
@@ -352,6 +353,7 @@ export function PreviewView({ onReview }: { onReview: () => void }) {
   const [preview, setPreview] = useState<Preview | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [lightDoc, setLightDoc] = useState<Document | null>(null)
+  const previewAs = usePreviewAsLabel()
   const contacts = $api.useQuery('get', '/api/v1/workspaces/{workspace}/campaigns/{campaignId}/preview-contacts', { params: { path: { workspace: c.slug, campaignId: c.campaign.id } } }, { staleTime: 60_000 })
   const media = $api.useQuery('get', '/api/v1/workspaces/{workspace}/media', { params: { path: { workspace: c.slug } } }, { staleTime: 60_000 })
   const slot = c.previewSlot
@@ -362,7 +364,14 @@ export function PreviewView({ onReview }: { onReview: () => void }) {
     void http
       .POST('/api/v1/workspaces/{workspace}/campaigns/{campaignId}/preview', {
         params: { path: { workspace: c.slug, campaignId: c.campaign.id } },
-        body: { ...sample, html: compiled?.html, subject: c.subject, preheader: c.preheader, variant: c.variant === 'A' ? undefined : (c.variant as 'B' | 'C') },
+        body: {
+          ...sample,
+          html: compiled?.html,
+          subject: c.subject,
+          preheader: c.preheader,
+          variant: c.variant === 'A' ? undefined : (c.variant as 'B' | 'C'),
+          editing: versionLanguage(c.campaign),
+        },
       })
       .then(({ data }) => {
         if (!cancelled && data) {
@@ -411,7 +420,7 @@ export function PreviewView({ onReview }: { onReview: () => void }) {
                 >
                   {(contacts.data?.items ?? []).map((ct) => (
                     <option key={ct.id ?? ct.email} value={`c:${ct.id ?? ''}`}>
-                      {ct.name || ct.email} · {ct.email} · {ct.label}
+                      {previewAs(ct) ?? `${ct.name || ct.email} · ${ct.email} · ${ct.label}`}
                     </option>
                   ))}
                   {/* No contacts in the audience yet: the server previews as a sample person. */}

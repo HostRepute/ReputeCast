@@ -53,10 +53,10 @@ type CompareRow struct {
 
 // CompareBlock is one side of a row.
 type CompareBlock struct {
-	Index    int       `json:"index"`
-	Name     string    `json:"name"`
-	Text     string    `json:"text"`
-	Segments []Segment `json:"segments"`
+	Index    int            `json:"index"`
+	Name     string         `json:"name"`
+	Text     string         `json:"text"`
+	Segments []BlockSegment `json:"segments"`
 }
 
 func compareBlock(b *Block, index int) *CompareBlock {

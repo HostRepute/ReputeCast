@@ -6,6 +6,12 @@ const search = z.object({
   view: z.enum(['visual', 'mjml', 'html', 'text']).optional().catch(undefined),
   device: z.enum(['desktop', 'mobile']).optional().catch(undefined),
   tab: z.enum(['design', 'variables', 'testdata', 'checks', 'api']).optional().catch(undefined),
+  /** A language version (its code, such as es); none is the source. */
+  language: z
+    .string()
+    .regex(/^[a-z]{2,3}$/)
+    .optional()
+    .catch(undefined),
   /** Opens the publish dialog: the approval notification links here with publish=1. */
   publish: z
     .union([z.literal('1'), z.literal(1), z.literal(true)])
@@ -23,10 +29,10 @@ export const Route = createFileRoute('/w/$workspace/transactional/templates/$tem
     return (
       <TransactionalTemplatePage
         templateId={templateId}
-        search={{ view: s.view, device: s.device, tab: s.tab, publish: s.publish !== undefined }}
+        search={{ view: s.view, device: s.device, tab: s.tab, publish: s.publish !== undefined, language: s.language }}
         onSearch={(next) =>
           void navigate({
-            search: { view: next.view, device: next.device, tab: next.tab, publish: next.publish ? '1' : undefined },
+            search: { view: next.view, device: next.device, tab: next.tab, publish: next.publish ? '1' : undefined, language: next.language },
             replace: true,
             ignoreBlocker: true,
           })

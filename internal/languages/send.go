@@ -86,6 +86,11 @@ func (s *Service) CampaignSendSet(ctx context.Context, wsID, campaignID uuid.UUI
 	return s.sendSet(ctx, wsID, OwnerCampaign, campaignID, 0)
 }
 
+// AutomationSendSet returns the languages of an automation email version.
+func (s *Service) AutomationSendSet(ctx context.Context, wsID, emailID uuid.UUID, version int) (SendSet, error) {
+	return s.sendSet(ctx, wsID, OwnerAutomationEmail, emailID, int32(version))
+}
+
 func (s *Service) sendSet(ctx context.Context, wsID uuid.UUID, kind string, id uuid.UUID, version int32) (SendSet, error) {
 	st, err := s.Settings(ctx, s.Q, wsID)
 	if err != nil {

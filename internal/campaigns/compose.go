@@ -201,6 +201,10 @@ type ComposerPreviewRequest struct {
 	// Language previews a language version. Empty: the source, or, when
 	// previewing as a contact, the version that contact gets.
 	Language string `json:"language,omitempty" maxLength:"16"`
+	// Editing is the version the subject, preheader and HTML above belong
+	// to (the one the composer has open; empty is the source). Previewing as
+	// a contact who gets another version shows that version as saved.
+	Editing string `json:"editing,omitempty" maxLength:"16"`
 }
 
 // ComposerPreviewContact is who the preview is personalized for.
@@ -289,14 +293,21 @@ func (s *Service) Preview(ctx context.Context, ws *store.Workspace, p *authz.Pri
 			}
 		}
 	}
-	if in.Subject != nil {
-		subject = *in.Subject
+	// Unsaved edits belong to the version the composer has open.
+	edited := in.Editing
+	if edited == "" {
+		edited = src
 	}
-	if in.Preheader != nil {
-		preheader = *in.Preheader
-	}
-	if in.HTML != nil {
-		html = *in.HTML
+	if src == "" || lang == edited {
+		if in.Subject != nil {
+			subject = *in.Subject
+		}
+		if in.Preheader != nil {
+			preheader = *in.Preheader
+		}
+		if in.HTML != nil {
+			html = *in.HTML
+		}
 	}
 	links := map[string]string{"unsubscribe_url": "#unsubscribe", "preferences_url": "#preferences", "view_in_browser_url": "#view-in-browser"}
 	first, last := "", ""

@@ -28,6 +28,7 @@ import {
   type TriggerConfig,
 } from './graph'
 import type { StepStats } from './view'
+import { StepLanguages } from '@/features/languages/automation'
 
 type Options = Schemas['AutomationOptions']
 
@@ -416,6 +417,15 @@ export function StepPanel(p: StepPanelProps) {
               </Button>
             </div>
           </Prop>
+          {d.email?.emailId ? (
+            <StepLanguages
+              emailId={d.email.emailId}
+              version={d.email.emailVersion ?? 1}
+              disabledReason={editable ? undefined : p.editReason}
+              onEditSource={() => d.email?.emailId && p.onEditEmail(d.email.emailId, d.email.emailVersion ?? 1)}
+              onVersion={(v) => set({ email: { ...d.email, emailVersion: v } })}
+            />
+          ) : null}
           <Prop title="Subject" id="p-subject">
             <input aria-labelledby="p-subject" className="in" disabled={disabled} value={d.email?.subject ?? ''} onChange={(e) => set({ email: { ...d.email, subject: e.target.value } })} />
           </Prop>

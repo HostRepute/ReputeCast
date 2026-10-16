@@ -20,6 +20,10 @@ var automationGate = func(*App) automations.PublishGate { return automations.NoA
 // the accessibility domain replaces it from its wire file. Nil skips it.
 var automationAccessibility = func(*App) automations.AccessibilityGate { return nil }
 
+// automationLanguages gives emails their language versions; the content
+// languages domain replaces it from its wire file.
+var automationLanguages = func(*App) automations.EmailLanguages { return nil }
+
 func newAutomations(a *App) *automations.Service {
 	return &automations.Service{
 		Pool: a.Pool, Q: a.Q, Audit: a.Audit, Box: a.Secrets, Log: a.Log,
@@ -32,6 +36,7 @@ func newAutomations(a *App) *automations.Service {
 		Mailer:        automationMailer(a),
 		Gate:          automationGate(a),
 		Accessibility: automationAccessibility(a),
+		Languages:     automationLanguages(a),
 	}
 }
 
