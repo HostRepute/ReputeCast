@@ -6973,6 +6973,90 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}/languages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A template draft's language versions with their status
+         * @description Every workspace language is listed: the source, versions that are Up to date, Outdated or Draft, and Missing ones, whose recipients get the fallback. Publishing the template publishes every language version with it; each send picks the version its recipient gets.
+         */
+        get: operations["list-transactional-template-languages"];
+        put?: never;
+        /**
+         * Add a language version (a Draft) to a template's draft
+         * @description It starts from a copy of the source (layout and text) or from the layout only. A Draft is never sent: its recipients get the fallback until it is marked translated. Edit it with ?language= on the template and its draft.
+         */
+        post: operations["add-transactional-template-language"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}/languages/{language}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove a language version from a template's draft
+         * @description Published versions keep theirs until the next publish.
+         */
+        delete: operations["remove-transactional-template-language"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}/languages/{language}/mark-translated": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark a Draft translated
+         * @description It is sent once the template is published again.
+         */
+        post: operations["mark-transactional-template-language-translated"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}/languages/{language}/mark-up-to-date": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark an Outdated version up to date
+         * @description For source changes that need no translating, such as a typo.
+         */
+        post: operations["mark-transactional-template-language-up-to-date"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/transactional/templates/{template}/preview": {
         parameters: {
             query?: never;
@@ -17745,6 +17829,16 @@ export interface components {
             note?: string;
             publishAnyway?: boolean;
         };
+        TransactionalPublishLanguage: {
+            /** Format: int64 */
+            attention: number;
+            gets: string;
+            getsName: string;
+            language: string;
+            name: string;
+            /** @enum {string} */
+            status: "source" | "up_to_date" | "outdated" | "draft";
+        };
         TransactionalPublishPreview: {
             approval: components["schemas"]["TransactionalPublishApproval"];
             blocking: string[];
@@ -17759,6 +17853,7 @@ export interface components {
             draftSavedAt: string;
             draftSavedBy: string;
             key: string;
+            languages: components["schemas"]["TransactionalPublishLanguage"][];
             liveBy?: string;
             /** Format: date-time */
             liveSince?: string;
@@ -17788,11 +17883,18 @@ export interface components {
             data?: {
                 [key: string]: unknown;
             };
+            /**
+             * @description The language version to render; the linked contact's language, then the fallback, when omitted
+             * @example es
+             */
+            language?: string;
             /** @description Fills to.email and to.name */
             to?: components["schemas"]["TransactionalAddress"];
         };
         TransactionalRendered: {
             html: string;
+            /** @example es */
+            language?: string;
             subject: string;
             /** @example password-reset */
             template: string;
@@ -17818,6 +17920,11 @@ export interface components {
             };
             /** @description A verified Transactional sender, as an address or "Name <address>"; the template's sender when omitted */
             from?: string;
+            /**
+             * @description The language version to send; the linked contact's language, then the fallback, when omitted
+             * @example es
+             */
+            language?: string;
             metadata?: {
                 [key: string]: string;
             };
@@ -17989,6 +18096,7 @@ export interface components {
             /** @description The ID the API sends, fixed after the first publish */
             key: string;
             keyLocked: boolean;
+            language: string;
             liveBy?: string;
             /** Format: date-time */
             liveSince?: string;
@@ -18003,6 +18111,7 @@ export interface components {
             preheader: string;
             replyTo: string;
             sender?: components["schemas"]["TransactionalSenderRef"];
+            sourceLanguage: string;
             subject: string;
             testData: components["schemas"]["TransactionalTestData"][];
             trackClicks: boolean;
@@ -34962,7 +35071,10 @@ export interface operations {
     };
     "get-transactional-template": {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description A language version's content in place of the draft's (internal/languages) */
+                language?: string;
+            };
             header?: never;
             path: {
                 /** @description Workspace slug */
@@ -35210,7 +35322,10 @@ export interface operations {
     };
     "save-transactional-template-draft": {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Saves a language version instead of the draft (internal/languages) */
+                language?: string;
+            };
             header?: never;
             path: {
                 /** @description Workspace slug */
@@ -35233,6 +35348,191 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TransactionalDraftSaved"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-transactional-template-languages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The template's ID, such as password-reset, or its UUID */
+                template: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailLanguages"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "add-transactional-template-language": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The template's ID, such as password-reset, or its UUID */
+                template: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddLanguageInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailLanguages"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-transactional-template-language": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The template's ID, such as password-reset, or its UUID */
+                template: string;
+                language: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailLanguages"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "mark-transactional-template-language-translated": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The template's ID, such as password-reset, or its UUID */
+                template: string;
+                language: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MarkInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailLanguages"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "mark-transactional-template-language-up-to-date": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The template's ID, such as password-reset, or its UUID */
+                template: string;
+                language: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MarkInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailLanguages"];
                 };
             };
             /** @description Error */

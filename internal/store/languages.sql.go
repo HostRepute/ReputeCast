@@ -755,25 +755,31 @@ func (q *Queries) ContentTranslations(ctx context.Context, arg ContentTranslatio
 const contentTranslationsCopy = `-- name: ContentTranslationsCopy :exec
 INSERT INTO content_translations (id, workspace_id, owner_kind, owner_id, owner_version, language, status, held, subject, preheader, mjml, html, plain_text,
     ab_test, links, version, content_hash, translated_from, translated_by, translated_at, created_by, created_at, updated_by, updated_at, autosaved_at)
-SELECT gen_random_uuid(), src.workspace_id, src.owner_kind, src.owner_id, $1, src.language, src.status, src.held, src.subject, src.preheader,
+SELECT ($1::uuid[])[array_position($2::text[], src.language)], src.workspace_id, src.owner_kind, src.owner_id, $3, src.language,
+    src.status, src.held, src.subject, src.preheader,
     src.mjml, src.html, src.plain_text, src.ab_test, src.links, src.version, src.content_hash, src.translated_from, src.translated_by, src.translated_at,
     src.created_by, src.created_at, src.updated_by, src.updated_at, src.autosaved_at
 FROM content_translations src
-WHERE src.owner_kind = $2 AND src.owner_id = $3 AND src.owner_version = $4
+WHERE src.owner_kind = $4 AND src.owner_id = $5 AND src.owner_version = $6 AND src.language = ANY($2::text[])
 ON CONFLICT (owner_kind, owner_id, owner_version, language) DO NOTHING
 `
 
 type ContentTranslationsCopyParams struct {
-	ToVersion   int32     `json:"toVersion"`
-	OwnerKind   string    `json:"ownerKind"`
-	OwnerID     uuid.UUID `json:"ownerId"`
-	FromVersion int32     `json:"fromVersion"`
+	Ids         []uuid.UUID `json:"ids"`
+	Languages   []string    `json:"languages"`
+	ToVersion   int32       `json:"toVersion"`
+	OwnerKind   string      `json:"ownerKind"`
+	OwnerID     uuid.UUID   `json:"ownerId"`
+	FromVersion int32       `json:"fromVersion"`
 }
 
 // Carries an automation email's or template's language versions to its
-// next version (their versions are immutable).
+// next version (their versions are immutable), with ids made in Go: one
+// per language.
 func (q *Queries) ContentTranslationsCopy(ctx context.Context, arg ContentTranslationsCopyParams) error {
 	_, err := q.db.Exec(ctx, contentTranslationsCopy,
+		arg.Ids,
+		arg.Languages,
 		arg.ToVersion,
 		arg.OwnerKind,
 		arg.OwnerID,
@@ -1062,6 +1068,23 @@ func (q *Queries) LanguagesContactCodes(ctx context.Context, workspaceID uuid.UU
 		return nil, err
 	}
 	return items, nil
+}
+
+const languagesContactLanguage = `-- name: LanguagesContactLanguage :one
+SELECT language FROM contacts WHERE workspace_id = $1 AND id = $2 AND erased_at IS NULL
+`
+
+type LanguagesContactLanguageParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	ID          uuid.UUID `json:"id"`
+}
+
+// A contact's language code ("" for none), for a transactional send.
+func (q *Queries) LanguagesContactLanguage(ctx context.Context, arg LanguagesContactLanguageParams) (string, error) {
+	row := q.db.QueryRow(ctx, languagesContactLanguage, arg.WorkspaceID, arg.ID)
+	var language string
+	err := row.Scan(&language)
+	return language, err
 }
 
 const languagesEnsureDefault = `-- name: LanguagesEnsureDefault :exec
@@ -1367,6 +1390,29 @@ func (q *Queries) LanguagesSetFallback(ctx context.Context, arg LanguagesSetFall
 	return result.RowsAffected(), nil
 }
 
+const languagesSetMessageLanguage = `-- name: LanguagesSetMessageLanguage :exec
+UPDATE messages SET language = $1, contact_language = $2, language_reason = $3
+WHERE id = $4
+`
+
+type LanguagesSetMessageLanguageParams struct {
+	Language        string    `json:"language"`
+	ContactLanguage string    `json:"contactLanguage"`
+	LanguageReason  string    `json:"languageReason"`
+	ID              uuid.UUID `json:"id"`
+}
+
+// The language version a transactional message was sent in, and why.
+func (q *Queries) LanguagesSetMessageLanguage(ctx context.Context, arg LanguagesSetMessageLanguageParams) error {
+	_, err := q.db.Exec(ctx, languagesSetMessageLanguage,
+		arg.Language,
+		arg.ContactLanguage,
+		arg.LanguageReason,
+		arg.ID,
+	)
+	return err
+}
+
 const languagesSetPageCopy = `-- name: LanguagesSetPageCopy :execrows
 UPDATE workspace_languages
 SET page_copy_status = $1, page_copy_missing = $2, page_copy_by = $3, page_copy_at = $4
@@ -1395,6 +1441,61 @@ func (q *Queries) LanguagesSetPageCopy(ctx context.Context, arg LanguagesSetPage
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const languagesTemplateSource = `-- name: LanguagesTemplateSource :one
+SELECT t.id, t.workspace_id, t.key, t.name, t.subject, t.preheader, t.mjml, t.html, t.plain_text, t.draft_revision, t.draft_saved_at,
+       t.archived_at, t.live_version, coalesce(u.name, '')::text AS saved_by_name
+FROM transactional_templates t
+LEFT JOIN users u ON u.id = t.draft_saved_by
+WHERE t.workspace_id = $1 AND (t.id = $2 OR ($3::text <> '' AND t.key = $3::text)) AND t.deleted_at IS NULL
+`
+
+type LanguagesTemplateSourceParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	ID          uuid.UUID `json:"id"`
+	Key         string    `json:"key"`
+}
+
+type LanguagesTemplateSourceRow struct {
+	ID            uuid.UUID  `json:"id"`
+	WorkspaceID   uuid.UUID  `json:"workspaceId"`
+	Key           string     `json:"key"`
+	Name          string     `json:"name"`
+	Subject       string     `json:"subject"`
+	Preheader     string     `json:"preheader"`
+	Mjml          string     `json:"mjml"`
+	Html          string     `json:"html"`
+	PlainText     string     `json:"plainText"`
+	DraftRevision int32      `json:"draftRevision"`
+	DraftSavedAt  time.Time  `json:"draftSavedAt"`
+	ArchivedAt    *time.Time `json:"archivedAt"`
+	LiveVersion   *int32     `json:"liveVersion"`
+	SavedByName   string     `json:"savedByName"`
+}
+
+// A transactional template's draft as the source of its language versions,
+// by its id or its key.
+func (q *Queries) LanguagesTemplateSource(ctx context.Context, arg LanguagesTemplateSourceParams) (LanguagesTemplateSourceRow, error) {
+	row := q.db.QueryRow(ctx, languagesTemplateSource, arg.WorkspaceID, arg.ID, arg.Key)
+	var i LanguagesTemplateSourceRow
+	err := row.Scan(
+		&i.ID,
+		&i.WorkspaceID,
+		&i.Key,
+		&i.Name,
+		&i.Subject,
+		&i.Preheader,
+		&i.Mjml,
+		&i.Html,
+		&i.PlainText,
+		&i.DraftRevision,
+		&i.DraftSavedAt,
+		&i.ArchivedAt,
+		&i.LiveVersion,
+		&i.SavedByName,
+	)
+	return i, err
 }
 
 const languagesVersionsIn = `-- name: LanguagesVersionsIn :many

@@ -269,7 +269,8 @@ type Querier interface {
 	// The language versions of an email, with who translated and last saved them.
 	ContentTranslations(ctx context.Context, arg ContentTranslationsParams) ([]ContentTranslationsRow, error)
 	// Carries an automation email's or template's language versions to its
-	// next version (their versions are immutable).
+	// next version (their versions are immutable), with ids made in Go: one
+	// per language.
 	ContentTranslationsCopy(ctx context.Context, arg ContentTranslationsCopyParams) error
 	CountActiveOwners(ctx context.Context, workspaceID uuid.UUID) (int64, error)
 	CountAutomationHeldMessages(ctx context.Context, automationID *uuid.UUID) (int64, error)
@@ -801,6 +802,8 @@ type Querier interface {
 	// Contacts per language code as stored ("es-MX", "" for none), erased
 	// contacts left out, as on Contacts.
 	LanguagesContactCodes(ctx context.Context, workspaceID uuid.UUID) ([]LanguagesContactCodesRow, error)
+	// A contact's language code ("" for none), for a transactional send.
+	LanguagesContactLanguage(ctx context.Context, arg LanguagesContactLanguageParams) (string, error)
 	// A workspace that never chose its default writes in English: English
 	// becomes its default (and its fallback unless it has one).
 	LanguagesEnsureDefault(ctx context.Context, workspaceID uuid.UUID) error
@@ -822,7 +825,12 @@ type Querier interface {
 	LanguagesRemove(ctx context.Context, arg LanguagesRemoveParams) (int64, error)
 	LanguagesSetDefault(ctx context.Context, arg LanguagesSetDefaultParams) (int64, error)
 	LanguagesSetFallback(ctx context.Context, arg LanguagesSetFallbackParams) (int64, error)
+	// The language version a transactional message was sent in, and why.
+	LanguagesSetMessageLanguage(ctx context.Context, arg LanguagesSetMessageLanguageParams) error
 	LanguagesSetPageCopy(ctx context.Context, arg LanguagesSetPageCopyParams) (int64, error)
+	// A transactional template's draft as the source of its language versions,
+	// by its id or its key.
+	LanguagesTemplateSource(ctx context.Context, arg LanguagesTemplateSourceParams) (LanguagesTemplateSourceRow, error)
 	// What has a version in a language (the Remove dialog): unsent campaigns,
 	// automation emails used by a flow, transactional templates.
 	LanguagesVersionsIn(ctx context.Context, arg LanguagesVersionsInParams) ([]LanguagesVersionsInRow, error)

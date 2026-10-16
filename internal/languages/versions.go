@@ -312,7 +312,7 @@ func (s *Service) saveVersion(ctx context.Context, q *store.Queries, o Owner, p 
 			who = "Someone"
 		}
 		return Saved{}, cur, api.Err(http.StatusConflict, codeVersionConflict, fmt.Sprintf("%s saved %s at %s while you were editing it.", who, NameOf(lang), at.Format("15:04"))).
-			WithMeta("version", cur.Version, "savedBy", by, "savedAt", at, "language", lang, "theirChanges", nonNil(theirs), "yourChanges", mine)
+			WithMeta("version", cur.Version, "draftRevision", cur.Version, "savedBy", by, "savedAt", at, "language", lang, "theirChanges", nonNil(theirs), "yourChanges", mine)
 	}
 	src, html := in.MJML, in.HTML
 	if html == "" && strings.TrimSpace(src) != "" {

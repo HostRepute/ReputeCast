@@ -165,6 +165,70 @@ func Register(h huma.API, s *Service) {
 
 	registerCampaign(h, s)
 	registerAutomation(h, s)
+	registerTransactional(h, s)
+}
+
+// TemplatePath names a transactional template by its ID (password-reset)
+// or its UUID.
+type TemplatePath struct {
+	api.WorkspaceInput
+	Template string `path:"template" maxLength:"64" doc:"The template's ID, such as password-reset, or its UUID" example:"password-reset"`
+}
+
+// TemplateLanguagePath adds a {language}.
+type TemplateLanguagePath struct {
+	TemplatePath
+	Language string `path:"language" pattern:"^[a-z]{2,3}$"`
+}
+
+type templateAddInput struct {
+	TemplatePath
+	Body AddLanguageInput
+}
+
+type templateMarkInput struct {
+	TemplateLanguagePath
+	Body MarkInput
+}
+
+func registerTransactional(h huma.API, s *Service) {
+	tags := []string{"Transactional templates"}
+	view, edit := api.Workspace(authz.TransactionalView), api.Workspace(authz.TransactionalEdit)
+	base := "/workspaces/{workspace}/transactional/templates/{template}/languages"
+	publish := "Publishing the template publishes every language version with it; each send picks the version its recipient gets."
+
+	api.Get(h, api.Op{ID: "list-transactional-template-languages", Path: base, Summary: "A template draft's language versions with their status",
+		Description: "Every workspace language is listed: the source, versions that are Up to date, Outdated or Draft, and Missing ones, whose recipients get the fallback. " + publish,
+		Tags:        tags, Access: view},
+		func(ctx context.Context, in *TemplatePath) (*api.Body[EmailLanguages], error) {
+			out, err := s.TemplateLanguages(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Template)
+			return api.OK(out), err
+		})
+	api.Post(h, api.Op{ID: "add-transactional-template-language", Path: base, Summary: "Add a language version (a Draft) to a template's draft",
+		Description: "It starts from a copy of the source (layout and text) or from the layout only. A Draft is never sent: its recipients get the fallback until it is marked translated. Edit it with ?language= on the template and its draft.",
+		Tags:        tags, Access: edit, Status: http.StatusCreated},
+		func(ctx context.Context, in *templateAddInput) (*api.Body[EmailLanguages], error) {
+			out, err := s.AddTemplateLanguage(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Template, in.Body)
+			return api.OK(out), err
+		})
+	api.Delete(h, api.Op{ID: "remove-transactional-template-language", Path: base + "/{language}", Summary: "Remove a language version from a template's draft",
+		Description: "Published versions keep theirs until the next publish.", Tags: tags, Access: edit, Status: http.StatusOK},
+		func(ctx context.Context, in *TemplateLanguagePath) (*api.Body[EmailLanguages], error) {
+			out, err := s.RemoveTemplateLanguage(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Template, in.Language)
+			return api.OK(out), err
+		})
+	api.Post(h, api.Op{ID: "mark-transactional-template-language-translated", Path: base + "/{language}/mark-translated", Summary: "Mark a Draft translated",
+		Description: "It is sent once the template is published again.", Tags: tags, Access: edit},
+		func(ctx context.Context, in *templateMarkInput) (*api.Body[EmailLanguages], error) {
+			out, err := s.MarkTemplateLanguage(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Template, in.Language, true, in.Body)
+			return api.OK(out), err
+		})
+	api.Post(h, api.Op{ID: "mark-transactional-template-language-up-to-date", Path: base + "/{language}/mark-up-to-date", Summary: "Mark an Outdated version up to date",
+		Description: "For source changes that need no translating, such as a typo.", Tags: tags, Access: edit},
+		func(ctx context.Context, in *templateMarkInput) (*api.Body[EmailLanguages], error) {
+			out, err := s.MarkTemplateLanguage(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Template, in.Language, false, in.Body)
+			return api.OK(out), err
+		})
 }
 
 // AutomationEmailPath is {workspace}/automation-emails/{id}.

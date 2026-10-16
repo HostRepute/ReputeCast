@@ -26,6 +26,11 @@ import (
 // publishing never needs one.
 var transactionalGate = func(*App) transactional.PublishGate { return nil }
 
+// transactionalTranslations gives templates their language versions; the
+// content-languages domain replaces it (nil: every template is in one
+// language).
+var transactionalTranslations = func(*App) transactional.Translations { return nil }
+
 // The service keeps per-process state (each key's send rate), so each App
 // has exactly one; so does the outbox (the engine's provider call logs).
 var (
@@ -49,6 +54,8 @@ func transactionalService(a *App) *transactional.Service {
 		// Queued messages wake the sending engine's transactional outbox in
 		// the transaction that queued them.
 		Outbox: func(ctx context.Context, tx pgx.Tx) error { return transactionalOutbox(a).Wake(ctx, tx) },
+
+		Translations: transactionalTranslations(a),
 	}
 	v, _ := transactionalServices.LoadOrStore(a, s)
 	return v.(*transactional.Service)

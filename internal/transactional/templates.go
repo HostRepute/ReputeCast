@@ -84,6 +84,10 @@ type TransactionalTemplate struct {
 	CreatedAt time.Time                   `json:"createdAt"`
 	UpdatedAt time.Time                   `json:"updatedAt"`
 	Access    TransactionalTemplateAccess `json:"access"`
+	// Language is the language of the content returned (?language=) and
+	// SourceLanguage the one the template is written in (internal/languages).
+	Language       string `json:"language"`
+	SourceLanguage string `json:"sourceLanguage"`
 }
 
 // draftHash fingerprints what a version would send: content, variables,

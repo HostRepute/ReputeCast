@@ -253,11 +253,25 @@ func (s *Service) RemoveAutomationEmailLanguage(ctx context.Context, ws *store.W
 // its next version, when its source is edited: the blocks the edit changed
 // are Outdated there.
 func (s *Service) CopyForward(ctx context.Context, q *store.Queries, wsID, id uuid.UUID, from, to int) error {
-	p := store.ContentSourceCopyParams{OwnerKind: OwnerAutomationEmail, OwnerID: id, FromVersion: int32(from), ToVersion: int32(to)}
-	if err := q.ContentSourceCopy(ctx, p); err != nil {
+	return copyVersions(ctx, q, OwnerAutomationEmail, id, from, to)
+}
+
+// copyVersions copies an owner version's source and language versions to
+// another of its versions.
+func copyVersions(ctx context.Context, q *store.Queries, kind string, id uuid.UUID, from, to int) error {
+	if err := q.ContentSourceCopy(ctx, store.ContentSourceCopyParams{OwnerKind: kind, OwnerID: id, FromVersion: int32(from), ToVersion: int32(to)}); err != nil {
 		return err
 	}
-	return q.ContentTranslationsCopy(ctx, store.ContentTranslationsCopyParams{OwnerKind: OwnerAutomationEmail, OwnerID: id, FromVersion: int32(from), ToVersion: int32(to)})
+	rows, err := q.ContentTranslations(ctx, store.ContentTranslationsParams{OwnerKind: kind, OwnerID: id, OwnerVersion: int32(from)})
+	if err != nil || len(rows) == 0 {
+		return err
+	}
+	langs, ids := make([]string, len(rows)), make([]uuid.UUID, len(rows))
+	for i, r := range rows {
+		langs[i], ids[i] = r.Language, uuid.Must(uuid.NewV7())
+	}
+	return q.ContentTranslationsCopy(ctx, store.ContentTranslationsCopyParams{Ids: ids, Languages: langs, OwnerKind: kind, OwnerID: id,
+		FromVersion: int32(from), ToVersion: int32(to)})
 }
 
 // AutomationEmailState is a language version of an automation email

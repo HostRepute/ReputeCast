@@ -18,21 +18,42 @@ export type Lang = Schemas['EmailLanguage']
 type Translate = ReturnType<typeof useT>
 
 const languagesPath = '/api/v1/workspaces/{workspace}/campaigns/{campaignId}/languages' as const
+const templateLanguagesPath = '/api/v1/workspaces/{workspace}/transactional/templates/{template}/languages' as const
 
-/** A campaign's language versions (the switcher, the banners, the compare view). */
-export function useCampaignLanguages(campaignId: string) {
+/**
+ * An email with language versions: a campaign, or a transactional
+ * template's draft (the template editor). A plain string is a campaign.
+ */
+export type LanguageOwner = { kind: 'campaign' | 'template'; id: string }
+
+const ownerOf = (o: LanguageOwner | string): LanguageOwner => (typeof o === 'string' ? { kind: 'campaign', id: o } : o)
+
+/** An email's language versions (the switcher, the banners, the compare view). */
+export function useEmailLanguages(owner: LanguageOwner | string) {
   const { slug } = useWorkspace()
-  return $api.useQuery('get', languagesPath, { params: { path: { workspace: slug, campaignId } } }, { staleTime: 5_000 })
+  const o = ownerOf(owner)
+  const campaign = $api.useQuery('get', languagesPath, { params: { path: { workspace: slug, campaignId: o.id } } }, { staleTime: 5_000, enabled: o.kind === 'campaign' })
+  const template = $api.useQuery('get', templateLanguagesPath, { params: { path: { workspace: slug, template: o.id } } }, { staleTime: 5_000, enabled: o.kind === 'template' })
+  return o.kind === 'campaign' ? campaign : template
+}
+
+/** A campaign's language versions. */
+export function useCampaignLanguages(campaignId: string) {
+  return useEmailLanguages(campaignId)
 }
 
 /** Refreshes the versions after a change, and returns the new list into the cache. */
-export function useLanguagesCache(campaignId: string) {
+export function useLanguagesCache(owner: LanguageOwner | string) {
   const { slug } = useWorkspace()
   const qc = useQueryClient()
-  const key = $api.queryOptions('get', languagesPath, { params: { path: { workspace: slug, campaignId } } }).queryKey
+  const o = ownerOf(owner)
+  const key: readonly unknown[] =
+    o.kind === 'campaign'
+      ? $api.queryOptions('get', languagesPath, { params: { path: { workspace: slug, campaignId: o.id } } }).queryKey
+      : $api.queryOptions('get', templateLanguagesPath, { params: { path: { workspace: slug, template: o.id } } }).queryKey
   return {
     set: (data: Langs) => qc.setQueryData(key, data),
-    refresh: () => qc.invalidateQueries({ queryKey: ['get', languagesPath] }),
+    refresh: () => qc.invalidateQueries({ queryKey: ['get', o.kind === 'campaign' ? languagesPath : templateLanguagesPath] }),
   }
 }
 
@@ -102,7 +123,8 @@ export function LanguageSwitcher({
   data: Langs
   language: string
   onPick: (language: string) => void
-  onCompare: () => void
+  /** Compare languages (campaigns); without it the menu leaves it out. */
+  onCompare?: () => void
   onAdd: () => void
 }) {
   const t = useT()
@@ -183,10 +205,12 @@ export function LanguageSwitcher({
           })}
         </div>
         <hr />
-        <button type="button" disabled={versions === 0} onClick={() => (setOpen(false), onCompare())}>
-          <CompareIcon />
-          {t(mz.compare)}
-        </button>
+        {onCompare ? (
+          <button type="button" disabled={versions === 0} onClick={() => (setOpen(false), onCompare())}>
+            <CompareIcon />
+            {t(mz.compare)}
+          </button>
+        ) : null}
         {data.canEdit ? (
           <button type="button" onClick={() => (setOpen(false), onAdd())}>
             <Icon name="plus" size={14} />
@@ -229,7 +253,7 @@ export function LanguageSwitcher({
  * version, and what it starts from. It starts as a draft.
  */
 export function AddVersionDialog({
-  campaignId,
+  owner,
   campaignName,
   data,
   open,
@@ -237,7 +261,7 @@ export function AddVersionDialog({
   onAdded,
   preselect,
 }: {
-  campaignId: string
+  owner: LanguageOwner | string
   campaignName: string
   data: Langs
   open: boolean
@@ -247,30 +271,33 @@ export function AddVersionDialog({
 }) {
   const { slug } = useWorkspace()
   const t = useT()
-  const cache = useLanguagesCache(campaignId)
+  const o = ownerOf(owner)
+  const cache = useLanguagesCache(o)
   const name = useId()
   const missing = data.versions.filter((v) => v.status === 'missing' && v.offered)
   const have = data.versions.filter((v) => v.status !== 'missing').map((v) => v.name)
   const [pick, setPick] = useState(preselect && missing.some((m) => m.language === preselect) ? preselect : missing[0]?.language)
   const [start, setStart] = useState<'copy' | 'layout'>('copy')
-  const add = $api.useMutation('post', languagesPath)
+  const addToCampaign = $api.useMutation('post', languagesPath)
+  const addToTemplate = $api.useMutation('post', templateLanguagesPath)
+  const adding = addToCampaign.isPending || addToTemplate.isPending
   const chosen = missing.find((m) => m.language === pick)
   const source = nameIn(data, data.source)
   const fallback = nameIn(data, data.fallback)
   const submit = () => {
     if (!chosen) return
-    add.mutate(
-      { params: { path: { workspace: slug, campaignId } }, body: { language: chosen.language, start } },
-      {
-        onSuccess: (out) => {
-          cache.set(out)
-          toast({ title: t(mz.added, { language: chosen.name }) })
-          onOpenChange(false)
-          onAdded(chosen.language)
-        },
-        onError: (e) => toast({ kind: 'error', title: t(mz.addFailed, { language: chosen.name }), detail: errorMessage(e) }),
+    const body = { language: chosen.language, start }
+    const done = {
+      onSuccess: (out: Langs) => {
+        cache.set(out)
+        toast({ title: t(mz.added, { language: chosen.name }) })
+        onOpenChange(false)
+        onAdded(chosen.language)
       },
-    )
+      onError: (e: unknown) => toast({ kind: 'error', title: t(mz.addFailed, { language: chosen.name }), detail: errorMessage(e) }),
+    }
+    if (o.kind === 'campaign') addToCampaign.mutate({ params: { path: { workspace: slug, campaignId: o.id } }, body }, done)
+    else addToTemplate.mutate({ params: { path: { workspace: slug, template: o.id } }, body }, done)
   }
   return (
     <Dialog
@@ -282,7 +309,7 @@ export function AddVersionDialog({
       footer={
         <>
           <Button onClick={() => onOpenChange(false)}>{t(md.cancel)}</Button>
-          <Button variant="primary" disabled={!chosen} loading={add.isPending} onClick={submit}>
+          <Button variant="primary" disabled={!chosen} loading={adding} onClick={submit}>
             {chosen ? t(mz.addButton, { language: chosen.name }) : t(mz.add)}
           </Button>
         </>
@@ -346,24 +373,35 @@ export function AddVersionDialog({
 }
 
 /** Marks a version translated, up to date (all or some blocks), held or released. */
-export function useVersionActions(campaignId: string) {
+export function useVersionActions(owner: LanguageOwner | string) {
   const { slug } = useWorkspace()
   const t = useT()
-  const cache = useLanguagesCache(campaignId)
+  const o = ownerOf(owner)
+  const cache = useLanguagesCache(o)
   const translated = $api.useMutation('post', '/api/v1/workspaces/{workspace}/campaigns/{campaignId}/languages/{language}/mark-translated')
   const upToDate = $api.useMutation('post', '/api/v1/workspaces/{workspace}/campaigns/{campaignId}/languages/{language}/mark-up-to-date')
   const hold = $api.useMutation('put', '/api/v1/workspaces/{workspace}/campaigns/{campaignId}/languages/{language}/hold')
-  const path = (language: string) => ({ params: { path: { workspace: slug, campaignId, language } } })
+  const tTranslated = $api.useMutation('post', '/api/v1/workspaces/{workspace}/transactional/templates/{template}/languages/{language}/mark-translated')
+  const tUpToDate = $api.useMutation('post', '/api/v1/workspaces/{workspace}/transactional/templates/{template}/languages/{language}/mark-up-to-date')
+  const path = (language: string) => ({ params: { path: { workspace: slug, campaignId: o.id, language } } })
+  const tpath = (language: string) => ({ params: { path: { workspace: slug, template: o.id, language } } })
   const done = (title: string) => (out: Langs) => {
     cache.set(out)
     toast({ title })
   }
   const failed = (name: string) => (e: unknown) => toast({ kind: 'error', title: t(mz.markFailed, { language: name }), detail: errorMessage(e) })
   return {
-    busy: translated.isPending || upToDate.isPending || hold.isPending,
-    markTranslated: (l: Lang) => translated.mutate(path(l.language), { onSuccess: done(t(mz.markedTranslated, { language: l.name })), onError: failed(l.name) }),
-    markUpToDate: (l: Lang, blocks?: string[]) =>
-      upToDate.mutate({ ...path(l.language), body: { blocks } }, { onSuccess: done(t(mz.marked, { language: l.name })), onError: failed(l.name) }),
+    busy: translated.isPending || upToDate.isPending || hold.isPending || tTranslated.isPending || tUpToDate.isPending,
+    markTranslated: (l: Lang) => {
+      const then = { onSuccess: done(t(mz.markedTranslated, { language: l.name })), onError: failed(l.name) }
+      if (o.kind === 'campaign') translated.mutate(path(l.language), then)
+      else tTranslated.mutate({ ...tpath(l.language), body: {} }, then)
+    },
+    markUpToDate: (l: Lang, blocks?: string[]) => {
+      const then = { onSuccess: done(t(mz.marked, { language: l.name })), onError: failed(l.name) }
+      if (o.kind === 'campaign') upToDate.mutate({ ...path(l.language), body: { blocks } }, then)
+      else tUpToDate.mutate({ ...tpath(l.language), body: { blocks } }, then)
+    },
     setHeld: (l: Lang, held: boolean) => hold.mutate({ ...path(l.language), body: { held } }, { onSuccess: (out) => cache.set(out), onError: failed(l.name) }),
   }
 }
@@ -374,9 +412,9 @@ export function useVersionActions(campaignId: string) {
  * with Mark as translated, Held, or read-only for members without
  * campaigns:edit.
  */
-export function LanguageBanner({ campaignId, data, language, onCompare }: { campaignId: string; data: Langs; language: string; onCompare: () => void }) {
+export function LanguageBanner({ owner, data, language, onCompare }: { owner: LanguageOwner | string; data: Langs; language: string; onCompare?: () => void }) {
   const t = useT()
-  const actions = useVersionActions(campaignId)
+  const actions = useVersionActions(owner)
   const l = data.versions.find((v) => v.language === language)
   if (!l || l.status === 'source') return <ReadOnlyBanner data={data} />
   const source = nameIn(data, data.source)
@@ -399,10 +437,12 @@ export function LanguageBanner({ campaignId, data, language, onCompare }: { camp
         : t(mz.outdatedTextNoName, { count: l.attention, source, language: l.name })
     body = (
       <Banner tone="w" title={t(mz.outdatedTitle, { language: l.name })} text={text}>
-        <Button size="sm" variant="primary" onClick={onCompare}>
-          <CompareIcon />
-          {t(mz.compareButton)}
-        </Button>
+        {onCompare ? (
+          <Button size="sm" variant="primary" onClick={onCompare}>
+            <CompareIcon />
+            {t(mz.compareButton)}
+          </Button>
+        ) : null}
         {data.canEdit ? (
           <Button size="sm" loading={actions.busy} onClick={() => actions.markUpToDate(l)}>
             {t(mz.markUpToDate)}
@@ -422,9 +462,11 @@ export function LanguageBanner({ campaignId, data, language, onCompare }: { camp
             {t(mz.markTranslated)}
           </Button>
         ) : null}
-        <Button size="sm" onClick={onCompare}>
-          {t(mz.compareWith, { source })}
-        </Button>
+        {onCompare ? (
+          <Button size="sm" onClick={onCompare}>
+            {t(mz.compareWith, { source })}
+          </Button>
+        ) : null}
       </Banner>
     )
   } else if (l.status === 'up_to_date') {

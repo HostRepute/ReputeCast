@@ -36270,6 +36270,45 @@
         ],
         "type": "object"
       },
+      "TransactionalPublishLanguage": {
+        "additionalProperties": false,
+        "properties": {
+          "attention": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "gets": {
+            "type": "string"
+          },
+          "getsName": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "source",
+              "up_to_date",
+              "outdated",
+              "draft"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "language",
+          "name",
+          "status",
+          "attention",
+          "gets",
+          "getsName"
+        ],
+        "type": "object"
+      },
       "TransactionalPublishPreview": {
         "additionalProperties": false,
         "properties": {
@@ -36310,6 +36349,12 @@
           },
           "key": {
             "type": "string"
+          },
+          "languages": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionalPublishLanguage"
+            },
+            "type": "array"
           },
           "liveBy": {
             "type": "string"
@@ -36353,7 +36398,8 @@
           "checks",
           "approval",
           "blocking",
-          "canPublish"
+          "canPublish",
+          "languages"
         ],
         "type": "object"
       },
@@ -36400,6 +36446,14 @@
             "description": "The template's variables",
             "type": "object"
           },
+          "language": {
+            "description": "The language version to render; the linked contact's language, then the fallback, when omitted",
+            "examples": [
+              "es"
+            ],
+            "maxLength": 16,
+            "type": "string"
+          },
           "to": {
             "$ref": "#/components/schemas/TransactionalAddress",
             "description": "Fills to.email and to.name"
@@ -36411,6 +36465,12 @@
         "additionalProperties": false,
         "properties": {
           "html": {
+            "type": "string"
+          },
+          "language": {
+            "examples": [
+              "es"
+            ],
             "type": "string"
           },
           "subject": {
@@ -36491,6 +36551,14 @@
           "from": {
             "description": "A verified Transactional sender, as an address or \"Name \u003caddress\u003e\"; the template's sender when omitted",
             "maxLength": 320,
+            "type": "string"
+          },
+          "language": {
+            "description": "The language version to send; the linked contact's language, then the fallback, when omitted",
+            "examples": [
+              "es"
+            ],
+            "maxLength": 16,
             "type": "string"
           },
           "metadata": {
@@ -36981,6 +37049,9 @@
           "keyLocked": {
             "type": "boolean"
           },
+          "language": {
+            "type": "string"
+          },
           "liveBy": {
             "type": "string"
           },
@@ -37013,6 +37084,9 @@
           },
           "sender": {
             "$ref": "#/components/schemas/TransactionalSenderRef"
+          },
+          "sourceLanguage": {
+            "type": "string"
           },
           "subject": {
             "type": "string"
@@ -37071,7 +37145,9 @@
           "origin",
           "createdAt",
           "updatedAt",
-          "access"
+          "access",
+          "language",
+          "sourceLanguage"
         ],
         "type": "object"
       },
@@ -70932,6 +71008,17 @@
               "maxLength": 64,
               "type": "string"
             }
+          },
+          {
+            "description": "A language version's content in place of the draft's (internal/languages)",
+            "explode": false,
+            "in": "query",
+            "name": "language",
+            "schema": {
+              "description": "A language version's content in place of the draft's (internal/languages)",
+              "maxLength": 16,
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -71378,6 +71465,17 @@
               "maxLength": 64,
               "type": "string"
             }
+          },
+          {
+            "description": "Saves a language version instead of the draft (internal/languages)",
+            "explode": false,
+            "in": "query",
+            "name": "language",
+            "schema": {
+              "description": "Saves a language version instead of the draft (internal/languages)",
+              "maxLength": 16,
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -71421,6 +71519,421 @@
           }
         ],
         "summary": "Save the draft (autosave)",
+        "tags": [
+          "Transactional templates"
+        ],
+        "x-access": "workspace",
+        "x-permission": "transactional:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}/languages": {
+      "get": {
+        "description": "Every workspace language is listed: the source, versions that are Up to date, Outdated or Draft, and Missing ones, whose recipients get the fallback. Publishing the template publishes every language version with it; each send picks the version its recipient gets.",
+        "operationId": "list-transactional-template-languages",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The template's ID, such as password-reset, or its UUID",
+            "in": "path",
+            "name": "template",
+            "required": true,
+            "schema": {
+              "description": "The template's ID, such as password-reset, or its UUID",
+              "examples": [
+                "password-reset"
+              ],
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailLanguages"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A template draft's language versions with their status",
+        "tags": [
+          "Transactional templates"
+        ],
+        "x-access": "workspace",
+        "x-permission": "transactional:view"
+      },
+      "post": {
+        "description": "It starts from a copy of the source (layout and text) or from the layout only. A Draft is never sent: its recipients get the fallback until it is marked translated. Edit it with ?language= on the template and its draft.",
+        "operationId": "add-transactional-template-language",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The template's ID, such as password-reset, or its UUID",
+            "in": "path",
+            "name": "template",
+            "required": true,
+            "schema": {
+              "description": "The template's ID, such as password-reset, or its UUID",
+              "examples": [
+                "password-reset"
+              ],
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddLanguageInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailLanguages"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add a language version (a Draft) to a template's draft",
+        "tags": [
+          "Transactional templates"
+        ],
+        "x-access": "workspace",
+        "x-permission": "transactional:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}/languages/{language}": {
+      "delete": {
+        "description": "Published versions keep theirs until the next publish.",
+        "operationId": "remove-transactional-template-language",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The template's ID, such as password-reset, or its UUID",
+            "in": "path",
+            "name": "template",
+            "required": true,
+            "schema": {
+              "description": "The template's ID, such as password-reset, or its UUID",
+              "examples": [
+                "password-reset"
+              ],
+              "maxLength": 64,
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "language",
+            "required": true,
+            "schema": {
+              "pattern": "^[a-z]{2,3}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailLanguages"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a language version from a template's draft",
+        "tags": [
+          "Transactional templates"
+        ],
+        "x-access": "workspace",
+        "x-permission": "transactional:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}/languages/{language}/mark-translated": {
+      "post": {
+        "description": "It is sent once the template is published again.",
+        "operationId": "mark-transactional-template-language-translated",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The template's ID, such as password-reset, or its UUID",
+            "in": "path",
+            "name": "template",
+            "required": true,
+            "schema": {
+              "description": "The template's ID, such as password-reset, or its UUID",
+              "examples": [
+                "password-reset"
+              ],
+              "maxLength": 64,
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "language",
+            "required": true,
+            "schema": {
+              "pattern": "^[a-z]{2,3}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarkInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailLanguages"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mark a Draft translated",
+        "tags": [
+          "Transactional templates"
+        ],
+        "x-access": "workspace",
+        "x-permission": "transactional:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}/languages/{language}/mark-up-to-date": {
+      "post": {
+        "description": "For source changes that need no translating, such as a typo.",
+        "operationId": "mark-transactional-template-language-up-to-date",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The template's ID, such as password-reset, or its UUID",
+            "in": "path",
+            "name": "template",
+            "required": true,
+            "schema": {
+              "description": "The template's ID, such as password-reset, or its UUID",
+              "examples": [
+                "password-reset"
+              ],
+              "maxLength": 64,
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "language",
+            "required": true,
+            "schema": {
+              "pattern": "^[a-z]{2,3}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarkInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailLanguages"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mark an Outdated version up to date",
         "tags": [
           "Transactional templates"
         ],

@@ -19,8 +19,10 @@ import {
   MissingLanguage,
   nameIn,
   useCampaignLanguages,
+  useEmailLanguages,
   useLanguagesCache,
   useVersionActions,
+  type LanguageOwner,
 } from './composer'
 import { CompareFooter, CompareView, compareLanguage, diffWords, excerpt } from './compare'
 import { mz } from './messages'
@@ -42,22 +44,41 @@ export function withoutVersion(text: string, onVersion: boolean): string {
   return onVersion ? text.replace(/ · v\d+$/, '') : text
 }
 
-/** Opens the composer on a language version, or its compare view, after saving. */
+/**
+ * The email whose language versions are open: the template in the
+ * composer's transactional mode (the template editor), else the campaign.
+ */
+export function useLanguageOwner(): LanguageOwner {
+  const c = useComposer()
+  return { kind: c.kind === 'transactional' ? 'template' : 'campaign', id: c.campaign.id }
+}
+
+/** Opens the composer (or the template editor) on a language version, or the compare view, after saving. */
 export function useLanguageNav() {
   const c = useComposer()
+  const owner = useLanguageOwner()
   const navigate = useNavigate()
   return useCallback(
     async (language: string | undefined, view?: 'compare', select?: string) => {
       if (c.canEdit && c.status.kind === 'dirty') await c.save()
-      const source = c.campaign.sourceLanguage
+      const lang = language && language !== c.campaign.sourceLanguage ? language : undefined
+      if (owner.kind === 'template') {
+        void navigate({
+          to: '/w/$workspace/transactional/templates/$templateId',
+          params: { workspace: c.slug, templateId: owner.id },
+          search: ((s: Record<string, unknown>) => ({ ...s, language: lang })) as never,
+          ignoreBlocker: true,
+        })
+        return
+      }
       void navigate({
         to: '/w/$workspace/campaigns/$campaignId/edit',
         params: { workspace: c.slug, campaignId: c.campaign.id },
-        search: { language: language && language !== source ? language : undefined, view, select } as never,
+        search: { language: lang, view, select } as never,
         ignoreBlocker: true,
       })
     },
-    [c, navigate],
+    [c, navigate, owner.kind, owner.id],
   )
 }
 
@@ -65,36 +86,47 @@ export function useLanguageNav() {
 export function useVersionName(): string | undefined {
   const c = useComposer()
   const lang = versionLanguage(c.campaign)
-  const q = useCampaignLanguages(c.campaign.id)
+  const q = useEmailLanguages(useLanguageOwner())
   return lang ? nameIn(q.data, lang) : undefined
 }
 
-/** The header's switcher, with Add a language version (ComposerLanguages). */
+/**
+ * The header's switcher, with Add a language version (ComposerLanguages;
+ * the template editor's too, where a language without a version opens Add
+ * a language version instead).
+ */
 export function ComposerLanguageSwitcher() {
   const c = useComposer()
-  const q = useCampaignLanguages(c.campaign.id)
+  const owner = useLanguageOwner()
+  const q = useEmailLanguages(owner)
   const go = useLanguageNav()
-  const [adding, setAdding] = useState(false)
+  const [adding, setAdding] = useState<string | false>(false)
   const data = q.data
   if (!data || data.versions.length < 2) return null
   const current = c.missingLanguage || c.campaign.language || data.source
+  const campaign = owner.kind === 'campaign'
   return (
     <>
       <LanguageSwitcher
         campaignName={c.name || c.campaign.name}
         data={data}
         language={current}
-        onPick={(l) => void go(l)}
-        onCompare={() => void go(current === data.source ? undefined : current, 'compare')}
-        onAdd={() => setAdding(true)}
+        onPick={(l) => {
+          const missing = data.versions.find((v) => v.language === l)?.status === 'missing'
+          if (!campaign && missing) setAdding(l)
+          else void go(l)
+        }}
+        onCompare={campaign ? () => void go(current === data.source ? undefined : current, 'compare') : undefined}
+        onAdd={() => setAdding('')}
       />
-      {adding ? (
+      {adding !== false ? (
         <AddVersionDialog
-          campaignId={c.campaign.id}
+          owner={owner}
           campaignName={c.name || c.campaign.name}
           data={data}
           open
-          onOpenChange={setAdding}
+          preselect={adding || undefined}
+          onOpenChange={(open) => setAdding(open ? '' : false)}
           onAdded={(l) => void go(l)}
         />
       ) : null}
@@ -105,13 +137,19 @@ export function ComposerLanguageSwitcher() {
 /** Above the email on the canvas, as wide as it: where the version open stands. */
 export function ComposerLanguageBanner({ width }: { width: number }) {
   const c = useComposer()
-  const q = useCampaignLanguages(c.campaign.id)
+  const owner = useLanguageOwner()
+  const q = useEmailLanguages(owner)
   const go = useLanguageNav()
   const lang = versionLanguage(c.campaign)
   if (!q.data || q.data.versions.length < 2) return null
   return (
     <div className="lng-banner-wrap" style={{ width }}>
-      <LanguageBanner campaignId={c.campaign.id} data={q.data} language={lang ?? q.data.source} onCompare={() => void go(lang, 'compare')} />
+      <LanguageBanner
+        owner={owner}
+        data={q.data}
+        language={lang ?? q.data.source}
+        onCompare={owner.kind === 'campaign' ? () => void go(lang, 'compare') : undefined}
+      />
     </div>
   )
 }
@@ -128,7 +166,7 @@ export function ComposerMissingLanguage({ language }: { language: string }) {
       <MissingLanguage data={q.data} language={language} onAdd={() => setAdding(true)} />
       {adding ? (
         <AddVersionDialog
-          campaignId={c.campaign.id}
+          owner={c.campaign.id}
           campaignName={c.name || c.campaign.name}
           data={q.data}
           open
@@ -372,7 +410,7 @@ const TAG_CSS = `[data-${TAG_ROOM}]::before{content:"";display:block;height:38px
 export function LanguageTags({ host, tick }: { host: HTMLElement | null; tick: number }) {
   const c = useComposer()
   const t = useT()
-  const q = useCampaignLanguages(c.campaign.id)
+  const q = useEmailLanguages(useLanguageOwner())
   const lang = versionLanguage(c.campaign)
   const v = lang ? q.data?.versions.find((x) => x.language === lang) : undefined
   const ed = c.editor
@@ -542,7 +580,20 @@ export function LanguageBlockPanel() {
 
 /** Keeps the switcher in step after a save of the version open. */
 export function useRefreshLanguages() {
-  const c = useComposer()
-  const cache = useLanguagesCache(c.campaign.id)
+  const cache = useLanguagesCache(useLanguageOwner())
   return cache.refresh
+}
+
+/**
+ * What the template editor loads for ?language=: that version's content
+ * when it has one, else the template's draft. Without ?language= nothing
+ * waits.
+ */
+export function useOpenTemplateLanguage(templateId: string, language?: string): { ready: boolean; load?: string } {
+  const q = useEmailLanguages({ kind: 'template', id: templateId })
+  if (!language) return { ready: true }
+  if (q.isPending) return { ready: false }
+  const v = q.data?.versions.find((x) => x.language === language)
+  if (!v || v.status === 'source' || v.status === 'missing') return { ready: true }
+  return { ready: true, load: language }
 }

@@ -109,6 +109,9 @@ type TransactionalPublishPreview struct {
 	// data that doesn't render); empty when it can.
 	Blocking   []string `json:"blocking"`
 	CanPublish bool     `json:"canPublish"`
+	// Languages are the language versions published with it, the source
+	// first (empty for a template in one language).
+	Languages []TransactionalPublishLanguage `json:"languages"`
 }
 
 // TransactionalMakeOptional turns a required variable into an optional one
@@ -541,11 +544,16 @@ func (s *Service) publishPreview(ctx context.Context, q *store.Queries, ws *stor
 		TemplateID: t.ID.String(), Key: t.Key, Name: t.Name, Category: categoryRef(t.CategoryID, t.CategoryName, t.CategoryKind), NextVersion: next,
 		LiveSince: t.LiveSince, LiveBy: t.LiveByName, DraftRevision: int(t.DraftRevision), DraftSavedAt: t.DraftSavedAt, DraftSavedBy: t.DraftSavedByName,
 		Diff: buildDiff(live, draft), TestRenders: []TransactionalTestRender{}, Blocking: []string{},
-		Approval: TransactionalPublishApproval{Approvers: []string{}},
+		Approval: TransactionalPublishApproval{Approvers: []string{}}, Languages: []TransactionalPublishLanguage{},
 	}
 	if t.LiveVersion != nil {
 		v := int(*t.LiveVersion)
 		out.LiveVersion = &v
+	}
+	if s.Translations != nil {
+		if out.Languages, err = s.Translations.Publishing(ctx, q, ws, t.ID); err != nil {
+			return out, err
+		}
 	}
 	calls, err := q.TxnRecentCallKeys(ctx, store.TxnRecentCallKeysParams{TemplateID: &t.ID, Since: s.now().Add(-BreakingWindow)})
 	if err != nil {
@@ -703,6 +711,11 @@ func (s *Service) Publish(ctx context.Context, ws *store.Workspace, p *authz.Pri
 			TrackOpens: t.TrackOpens, TrackClicks: t.TrackClicks, ContentHash: hash, SizeBytes: int32(len(html)), Change: change, Note: strings.TrimSpace(in.Note),
 			PublishedBy: userRef(p), PublishedAt: now}); err != nil {
 			return err
+		}
+		if s.Translations != nil {
+			if err := s.Translations.Publish(ctx, q, ws, id, int(version)); err != nil {
+				return err
+			}
 		}
 		if err := q.TxnTemplatePublish(ctx, store.TxnTemplatePublishParams{WorkspaceID: ws.ID, ID: id, Version: &version, Now: now, LiveBy: userRef(p), Variables: mustJSON(vars)}); err != nil {
 			return err

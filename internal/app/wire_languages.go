@@ -9,6 +9,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/automations"
 	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/store"
+	"github.com/hostrepute/reputecast/internal/transactional"
 )
 
 // Content languages (M17): workspace languages and the language versions
@@ -42,4 +43,5 @@ func init() {
 		languages.Register(h, languagesService(a))
 	})
 	automationLanguages = func(a *App) automations.EmailLanguages { return languagesService(a) }
+	transactionalTranslations = func(a *App) transactional.Translations { return languages.Transactional{S: languagesService(a)} }
 }

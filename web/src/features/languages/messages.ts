@@ -339,3 +339,12 @@ export const mp = defineMessages('languages.report', {
   clickMapCaption: 'Share of clicks in the language you pick',
   clickMapFallback: '{readers} readers got the {got} version, so their clicks are in the {got} map.',
 })
+
+/** Transactional templates' language versions (the template editor, the publish dialog, the API tab). */
+export const mx = defineMessages('languages.transactional', {
+  publishTogether: '{count, plural, one {Publishes {languages}} other {Publishes {languages} together}}',
+  publishOutdated:
+    '{language} is outdated: {count, plural, one {# change} other {# changes}} in {source} since it was translated. Its recipients get it as it is.',
+  publishDraft: '{language} is a draft: its recipients get {fallback} until someone marks it translated.',
+  apiLanguage: 'Send <mono>language</mono> to pick a version ({codes}). Without it, the linked contact’s language is used, then {fallback}.',
+})
