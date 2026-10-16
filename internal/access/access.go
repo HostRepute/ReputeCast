@@ -382,6 +382,15 @@ func NotHoldable(p authz.Permission, t authz.ActorType) string {
 	if d, _ := authz.Lookup(p); d.PeopleOnly {
 		return fmt.Sprintf("Only people can hold %s: API keys and agents can't.", p)
 	}
+	// Address verification and placement tests (X14) say why agents can't.
+	switch p {
+	case authz.SubscribersVerify:
+		return "Not offered to agents: it sends addresses out of ReputeCast"
+	case authz.PlacementRun:
+		return "Not offered to agents: it sends copies through your providers"
+	case authz.PlacementManage:
+		return "Not offered to agents: seed passwords and tokens can read whole mailboxes"
+	}
 	return fmt.Sprintf("MCP agents can't hold %s. Give it to an API key or a person.", p)
 }
 

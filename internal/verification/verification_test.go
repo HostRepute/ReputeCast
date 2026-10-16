@@ -281,6 +281,11 @@ func TestBulkJobSuppressesInvalidAndTagsRisky(t *testing.T) {
 	if j.RecheckFrom == nil {
 		t.Error("unknown results say when they can be checked again")
 	}
+	// The jobs tray shows it for two hours after it ended.
+	tray, err := f.svc.TrayJobs(f.ctx, &f.ws)
+	if err != nil || len(tray) != 1 || tray[0].Status != "done" || tray[0].Title != "Verified the Sunset tier with ZeroBounce" || tray[0].Detail != "2 suppressed, 2 tagged risky" {
+		t.Fatalf("tray = %+v, %v", tray, err)
+	}
 
 	type sup struct{ reason, source, code, scope string }
 	rows, err := f.env.App.Pool.Query(context.Background(), `SELECT email, reason, source, original_code, scope FROM suppressions WHERE workspace_id = $1`, f.ws.ID)

@@ -15,6 +15,16 @@
   "problem.noFormsService": "Pick a default service for signup forms first, on its page in Settings › Integrations.",
   "problem.contactErased": "This contact was erased, so there's no address to check.",
 
+  "tray.running": { "message": "{kind, select, tier {Verifying the {label} tier with {service}} other {Verifying {label} with {service}}}", "note": "label: what is checked (Sunset, Product Updates); service: ZeroBounce, Kickbox…" },
+  "tray.done": "{kind, select, tier {Verified the {label} tier with {service}} other {Verified {label} with {service}}}",
+  "tray.stopped": "{kind, select, tier {Verifying the {label} tier stopped} other {Verifying {label} stopped}}",
+  "tray.cancelled": "{kind, select, tier {Verifying the {label} tier was cancelled} other {Verifying {label} was cancelled}}",
+  "tray.doneDetail": "{suppressed, number} suppressed, {risky, number} tagged risky",
+  "tray.stoppedDetail": "{checked, number} of {total, number} checked; their results are kept",
+  "tray.paused": "Waiting for {service} to answer",
+  "tray.eta": "{minutes, plural, one {# min left} other {# min left}}",
+  "tray.etaSoon": "less than a minute left",
+
   "notify.jobFinishedTitle": { "message": "Verification finished · {label}", "note": "label: what was checked (Sunset tier, Product Updates)" },
   "notify.jobFinishedSummary": "{suppressed, plural, one {# suppressed} other {# suppressed}}, {risky, plural, one {# tagged risky} other {# tagged risky}}. {service} checked {checked, number} addresses.",
   "notify.jobStoppedTitle": "Verification stopped · {label}",

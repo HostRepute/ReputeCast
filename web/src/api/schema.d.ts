@@ -11550,6 +11550,8 @@ export interface components {
         };
         ContactFilter: {
             /** @enum {string} */
+            check?: "valid" | "invalid" | "risky" | "unknown" | "never";
+            /** @enum {string} */
             consent?: "double" | "single" | "pending";
             joinedAfter?: string;
             /** @description List id */
@@ -12709,7 +12711,7 @@ export interface components {
             href: string;
             id: string;
             /** @enum {string} */
-            kind: "import";
+            kind: "import" | "verification";
             /** Format: int64 */
             progress?: number;
             /** Format: date-time */
@@ -13618,6 +13620,8 @@ export interface components {
             /** Format: int64 */
             agents: number;
             /** Format: int64 */
+            balance?: number;
+            /** Format: int64 */
             endpoints: number;
             /** Format: int64 */
             failing: number;
@@ -13628,6 +13632,8 @@ export interface components {
             /** Format: date-time */
             lastSyncAt?: string;
             mcpEnabled: boolean;
+            /** Format: double */
+            price?: number;
             /** Format: int64 */
             silentSites: number;
             /** Format: int64 */
@@ -29567,6 +29573,8 @@ export interface operations {
                 /** @description Segment id */
                 segment?: string;
                 joinedAfter?: string;
+                /** @description The latest address check's result */
+                check?: "valid" | "invalid" | "risky" | "unknown" | "never" | "";
                 page?: number;
                 pageSize?: number;
             };
@@ -37421,7 +37429,7 @@ export interface operations {
             query?: {
                 /** @description Address or domain */
                 q?: string;
-                reason?: "hard_bounce" | "complaint" | "unsubscribe" | "manual" | "";
+                reason?: "hard_bounce" | "complaint" | "unsubscribe" | "manual" | "invalid" | "spam_trap" | "";
                 source?: string;
                 since?: "7d" | "30d" | "";
                 /** @description Show the rows of one import group */

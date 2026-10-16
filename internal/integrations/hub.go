@@ -92,6 +92,9 @@ func integrationOf(id, ws uuid.UUID, kind, label string, items, off []string, se
 		ConnectedAt: at, FirstCallAt: first, LastCallAt: last, Attention: attention, Notified: notified, DisconnectedAt: disc, DisconnectedBy: discBy}
 }
 
+// GroupSource returns the cards another domain adds to a catalog group.
+type GroupSource func(ctx context.Context, ws *store.Workspace) ([]IntegrationEntry, error)
+
 // IntegrationHub is Settings › Integrations: the catalog.
 type IntegrationHub struct {
 	Groups []IntegrationGroup `json:"groups" doc:"Groups with something in them, in order"`
@@ -137,6 +140,10 @@ type IntegrationFacts struct {
 	Failing      int64      `json:"failing"`
 	MCPEnabled   bool       `json:"mcpEnabled"`
 	Agents       int64      `json:"agents"`
+	// Balance is a verification service's credits and Price what a check
+	// costs on the workspace's plan, when connected.
+	Balance *int64  `json:"balance,omitempty"`
+	Price   float64 `json:"price,omitempty"`
 }
 
 // IntegrationAlert is a banner: an entry and its reason.
@@ -256,12 +263,17 @@ func (s *Service) Hub(ctx context.Context, ws *store.Workspace, p *authz.Princip
 	}
 	entries["mcp"] = mcp
 	for _, g := range Groups {
-		if len(g.Entries) == 0 {
-			continue
-		}
 		grp := IntegrationGroup{Key: g.Key, Entries: []IntegrationEntry{}}
 		for _, k := range g.Entries {
 			grp.Entries = append(grp.Entries, entries[k])
+		}
+		if src := s.Sources[g.Key]; src != nil {
+			if more, err := src(ctx, ws); err == nil {
+				grp.Entries = append(grp.Entries, more...)
+			}
+		}
+		if len(grp.Entries) == 0 {
+			continue
 		}
 		out.Groups = append(out.Groups, grp)
 	}

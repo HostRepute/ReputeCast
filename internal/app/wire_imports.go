@@ -35,6 +35,9 @@ func (a *App) imports() *imports.Service {
 		Jobs:  func() *jobs.Client { return a.Jobs },
 		// Notifuse's templates come along as transactional drafts and saved templates.
 		Templates: notifuseTemplates{a: a},
+		// Verification jobs run in the background too (built when asked:
+		// the verification service uses this one).
+		JobSources: []imports.JobSource{verificationTray(a)},
 	}
 	if a.Secrets != nil {
 		s.Box = a.Secrets

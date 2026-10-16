@@ -11493,6 +11493,16 @@
       "ContactFilter": {
         "additionalProperties": false,
         "properties": {
+          "check": {
+            "enum": [
+              "valid",
+              "invalid",
+              "risky",
+              "unknown",
+              "never"
+            ],
+            "type": "string"
+          },
           "consent": {
             "enum": [
               "double",
@@ -15630,7 +15640,8 @@
           },
           "kind": {
             "enum": [
-              "import"
+              "import",
+              "verification"
             ],
             "type": "string"
           },
@@ -18735,6 +18746,10 @@
             "format": "int64",
             "type": "integer"
           },
+          "balance": {
+            "format": "int64",
+            "type": "integer"
+          },
           "endpoints": {
             "format": "int64",
             "type": "integer"
@@ -18757,6 +18772,10 @@
           },
           "mcpEnabled": {
             "type": "boolean"
+          },
+          "price": {
+            "format": "double",
+            "type": "number"
           },
           "silentSites": {
             "format": "int64",
@@ -60914,6 +60933,24 @@
             }
           },
           {
+            "description": "The latest address check's result",
+            "explode": false,
+            "in": "query",
+            "name": "check",
+            "schema": {
+              "description": "The latest address check's result",
+              "enum": [
+                "valid",
+                "invalid",
+                "risky",
+                "unknown",
+                "never",
+                ""
+              ],
+              "type": "string"
+            }
+          },
+          {
             "explode": false,
             "in": "query",
             "name": "page",
@@ -76161,6 +76198,8 @@
                 "complaint",
                 "unsubscribe",
                 "manual",
+                "invalid",
+                "spam_trap",
                 ""
               ],
               "type": "string"

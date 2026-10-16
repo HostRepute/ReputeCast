@@ -43,10 +43,14 @@ func reasonName(r string) string {
 	case "spam_trap":
 		return "Spam trap"
 	case "invalid":
-		return "Invalid"
+		return "Invalid address"
 	}
 	return r
 }
+
+// verificationServices names the address verification services whose
+// results land on the list (source "verify:zerobounce", X14).
+var verificationServices = map[string]string{"zerobounce": "ZeroBounce", "kickbox": "Kickbox", "neverbounce": "NeverBounce", "bouncer": "Bouncer", "emailable": "Emailable"}
 
 // scopeFor is the streams a suppression blocks: unsubscribes keep System
 // mail (password resets, receipts); everything else blocks every stream.
@@ -333,6 +337,10 @@ func suppressionSource(source, provider, adapter, user, importSource string) Sup
 		return SuppressionSource{Kind: "import", Label: importerLabel(importSource) + " import"}
 	case source == "csv":
 		return SuppressionSource{Kind: source, Label: "CSV upload"}
+	case strings.HasPrefix(source, "verify:"):
+		if name, ok := verificationServices[strings.TrimPrefix(source, "verify:")]; ok {
+			return SuppressionSource{Kind: "verification", Label: name}
+		}
 	case source == "manual":
 		if user != "" {
 			return SuppressionSource{Kind: source, Label: user}
@@ -422,10 +430,28 @@ func (s *Service) suppressionSources(ctx context.Context, ws *store.Workspace) (
 		}
 		out = append(out, SuppressionFilterOption{Value: "import:" + id.String(), Label: importerLabel(src) + " import"})
 	}
+	if err := rows.Err(); err != nil {
+		return out, err
+	}
+	// Verification services whose results are on the list (X14).
+	vs, err := s.Pool.Query(ctx, `SELECT DISTINCT s.source FROM suppressions s WHERE s.workspace_id = $1 AND s.source LIKE 'verify:%' ORDER BY 1`, ws.ID)
+	if err != nil {
+		return out, err
+	}
+	defer vs.Close()
+	for vs.Next() {
+		var src string
+		if err := vs.Scan(&src); err != nil {
+			return out, err
+		}
+		if name, ok := verificationServices[strings.TrimPrefix(src, "verify:")]; ok {
+			out = append(out, SuppressionFilterOption{Value: src, Label: name})
+		}
+	}
 	// Unsubscribes (preference center, one-click) are found with the reason
 	// filter; the source filter lists providers, imports and the team.
 	out = append(out, SuppressionFilterOption{Value: "manual", Label: "Manual"})
-	return out, rows.Err()
+	return out, vs.Err()
 }
 
 // SuppressionAddResult reports how many addresses were added.

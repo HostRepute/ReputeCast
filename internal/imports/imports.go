@@ -57,6 +57,8 @@ type Service struct {
 	// Templates imports a source's email templates (Notifuse); nil skips
 	// the step.
 	Templates TemplateImporter
+	// JobSources add other domains' jobs to the background-jobs tray.
+	JobSources []JobSource
 }
 
 func (s *Service) now() time.Time {

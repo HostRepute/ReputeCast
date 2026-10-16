@@ -167,7 +167,7 @@ func (s *Service) Submit(ctx context.Context, ws *store.Workspace, set *Settings
 	if c.Spam.BlockDisposable {
 		if emailaddr.IsDisposable(emailaddr.Domain(sub.Email)) {
 			s.recordReject(ctx, ws, c, "disposable", sub.Origin)
-			return Outcome{Status: OutcomeInvalid, Errors: map[string]string{FieldEmail: "Use a permanent address: disposable inboxes expire before you could confirm."}}
+			return Outcome{Status: OutcomeInvalid, Errors: map[string]string{FieldEmail: msgDisposable}}
 		}
 		if emailaddr.IsRole(sub.Email) {
 			s.recordReject(ctx, ws, c, "role", sub.Origin)
@@ -276,6 +276,10 @@ func (s *Service) check(c Config, sub *Submission) ([]uuid.UUID, map[string]stri
 
 // accept subscribes the contact and records the submission.
 func (s *Service) accept(ctx context.Context, ws *store.Workspace, set *Settings, c Config, sub Submission, lists []uuid.UUID) Outcome {
+	addr, refused := s.checkAddress(ctx, ws, c, sub)
+	if refused != nil {
+		return *refused
+	}
 	now := s.now()
 	ev := audience.PublicEvidence{Source: c.Source(), IP: sub.IP, UserAgent: sub.UserAgent, ConsentText: c.ConsentText, ConsentVersion: c.ConsentVersionLabel(), At: now}
 	fields := map[string]string{}
@@ -352,6 +356,9 @@ func (s *Service) accept(ctx context.Context, ws *store.Workspace, set *Settings
 		}
 		s.log().ErrorContext(ctx, "form submission", "form", c.ID, "err", err)
 		return Outcome{Status: OutcomeError, Message: msgSaveFailed}
+	}
+	if s.Addresses != nil && res.ContactID != uuid.Nil {
+		s.Addresses.SignedUp(ctx, ws, res.ContactID, addr)
 	}
 	out := Outcome{Status: OutcomeSubscribed, Email: sub.Email, FirstName: res.FirstName, Lists: lists}
 	if c.DoubleOptIn || res.NeedsConfirmation() || res.Blocked {

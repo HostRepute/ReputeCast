@@ -31,6 +31,16 @@ var (
 	mNoFormsService   = msgs.M("problem.noFormsService")
 	mContactErased    = msgs.M("problem.contactErased")
 
+	mTrayRunning       = msgs.M("tray.running")
+	mTrayDone          = msgs.M("tray.done")
+	mTrayStopped       = msgs.M("tray.stopped")
+	mTrayCancelled     = msgs.M("tray.cancelled")
+	mTrayDoneDetail    = msgs.M("tray.doneDetail")
+	mTrayStoppedDetail = msgs.M("tray.stoppedDetail")
+	mTrayPaused        = msgs.M("tray.paused")
+	mTrayEta           = msgs.M("tray.eta")
+	mTrayEtaSoon       = msgs.M("tray.etaSoon")
+
 	// MJobFinishedTitle and the rest word the notifications (notify.go in
 	// internal/app formats them per recipient).
 	MJobFinishedTitle   = msgs.M("notify.jobFinishedTitle")

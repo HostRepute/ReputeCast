@@ -12,13 +12,16 @@ import (
 	"github.com/hostrepute/reputecast/internal/applang"
 	"github.com/hostrepute/reputecast/internal/audience"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/forms"
 	"github.com/hostrepute/reputecast/internal/i18n"
+	"github.com/hostrepute/reputecast/internal/imports"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/netguard"
 	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/readiness"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/verification"
+	"github.com/hostrepute/reputecast/internal/verification/adapter"
 )
 
 // Address verification services (design expansion, M24): the workspace's
@@ -35,6 +38,39 @@ func (a *App) verification() *verification.Service {
 		// The services are fixed public hosts; calls still go through the
 		// address guard like every provider call.
 		HTTP: guard.Client(75 * time.Second),
+	}
+}
+
+// formAddressChecks gives signup forms the real-time address checks.
+type formAddressChecks struct{ a *App }
+
+func (f formAddressChecks) CheckSignup(ctx context.Context, ws *store.Workspace, formKey, email string) forms.SignupAddress {
+	c := f.a.verification().CheckSignup(ctx, ws, formKey, email)
+	if !c.Checked() {
+		return forms.SignupAddress{Answer: c}
+	}
+	return forms.SignupAddress{Invalid: c.Answer.Result == adapter.Invalid, Disposable: c.Answer.Reason == adapter.ReasonDisposable, Answer: c}
+}
+
+func (f formAddressChecks) SignedUp(ctx context.Context, ws *store.Workspace, contactID uuid.UUID, a forms.SignupAddress) {
+	if c, ok := a.Answer.(verification.SignupCheck); ok {
+		f.a.verification().SignedUp(ctx, ws, contactID, c)
+	}
+}
+
+// verificationTray adds verification jobs to the background-jobs tray.
+func verificationTray(a *App) imports.JobSource {
+	return func(ctx context.Context, ws *store.Workspace) ([]imports.ImportJob, error) {
+		jobs, err := a.verification().TrayJobs(ctx, ws)
+		if err != nil {
+			return nil, err
+		}
+		out := make([]imports.ImportJob, 0, len(jobs))
+		for _, j := range jobs {
+			out = append(out, imports.ImportJob{ID: j.ID, Kind: "verification", Title: j.Title, Status: j.Status, Progress: j.Progress, Eta: j.Eta,
+				Detail: j.Detail, Href: j.Href, StartedAt: j.StartedAt, FinishedAt: j.FinishedAt})
+		}
+		return out, nil
 	}
 }
 

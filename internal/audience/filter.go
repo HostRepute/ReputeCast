@@ -27,6 +27,8 @@ type ContactFilter struct {
 	Segment string `json:"segment,omitempty" doc:"Segment id"`
 	// JoinedAfter is a date (2026-09-01).
 	JoinedAfter string `json:"joinedAfter,omitempty" maxLength:"10"`
+	// Check is the latest address check's result, or never checked.
+	Check string `json:"check,omitempty" enum:"valid,invalid,risky,unknown,never"`
 }
 
 // Empty reports whether the filter matches everyone.
@@ -95,6 +97,13 @@ func (s *Service) applyFilter(ctx context.Context, wsID uuid.UUID, out *filterSQ
 			return api.Invalid("joinedAfter", "Use a date like 2026-09-01.")
 		}
 		out.add("c.created_at >= ?", d)
+	}
+	switch f.Check {
+	case "":
+	case "never":
+		out.add("NOT EXISTS (SELECT 1 FROM contact_address_checks ac WHERE ac.contact_id = c.id)")
+	default:
+		out.add("EXISTS (SELECT 1 FROM contact_address_checks ac WHERE ac.contact_id = c.id AND ac.result = ?)", f.Check)
 	}
 	if f.Segment != "" {
 		id, err := uuid.Parse(f.Segment)

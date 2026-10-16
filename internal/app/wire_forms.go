@@ -52,6 +52,7 @@ func (a *App) formsService() *forms.Service {
 		Mail:   func() mailer.Sender { return a.Mail },
 		Tokens: a.Links, URLs: a.URLs, DNS: resolver,
 		Turnstile: &forms.Turnstile{Client: guard.Client(10 * time.Second)},
+		Addresses: formAddressChecks{a: a},
 	}
 	formsServices[a] = s
 	return s
