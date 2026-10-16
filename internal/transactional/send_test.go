@@ -679,14 +679,25 @@ func TestOutboxFailover(t *testing.T) {
 	s := newSendEnv(t)
 	s.webhook()
 	_, secret := s.key("Production", map[string]any{"preset": "send_only"})
-	// Nothing listens: every attempt fails with a connection error.
+	// The provider is down: every connection gets 421, a temporary error.
+	// The server keeps its port for the whole test (a port closed again
+	// could be taken by another package's server meanwhile).
 	ln, err := (&net.ListenConfig{}).Listen(s.ctx, "tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
 	}
-	closed := ln.Addr().String()
-	_ = ln.Close()
-	s.env.App.TransactionalOutbox().DevSMTP = closed
+	t.Cleanup(func() { _ = ln.Close() })
+	go func() {
+		for {
+			c, err := ln.Accept()
+			if err != nil {
+				return
+			}
+			_, _ = c.Write([]byte("421 4.3.2 Service not available, closing transmission channel\r\n"))
+			_ = c.Close()
+		}
+	}()
+	s.env.App.TransactionalOutbox().DevSMTP = ln.Addr().String()
 
 	var res sendResult
 	s.call(secret, "/messages", "", resetBody("sam.rivera@outlook.com")).MustStatus(t, 202).JSON(t, &res)
