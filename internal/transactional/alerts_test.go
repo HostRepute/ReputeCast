@@ -61,6 +61,7 @@ type overview struct {
 		Domains  []struct {
 			Domain string
 			Count  int64
+			TypoOf string
 		}
 	}
 	Incidents []struct {
@@ -93,6 +94,10 @@ func TestDeliveryAlerts(t *testing.T) {
 	if len(ov.Alerts) != 1 || ov.Alerts[0].Kind != "bounce_rate" || ov.Alerts[0].Template.ID != "magic-link" || ov.Alerts[0].Value != 10 ||
 		len(ov.Alerts[0].Domains) != 2 || ov.Alerts[0].Domains[0].Domain != "gmial.com" {
 		t.Fatalf("alert: %+v", ov.Alerts)
+	}
+	// Both look like typos of common domains: bad addresses at sign-up.
+	if ov.Alerts[0].Domains[0].TypoOf != "gmail.com" || ov.Alerts[0].Domains[1].TypoOf != "yahoo.com" {
+		t.Fatalf("typos: %+v", ov.Alerts[0].Domains)
 	}
 	// Members with transactional:view are told once; the next check keeps it.
 	var body string

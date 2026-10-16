@@ -8670,6 +8670,8 @@ export interface components {
             /** Format: int64 */
             count: number;
             domain: string;
+            /** @description The common domain this one looks like a typo of */
+            typoOf?: string;
         };
         ApplyInput: {
             block?: string;

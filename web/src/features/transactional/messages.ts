@@ -119,6 +119,7 @@ export const mo = defineMessages('transactional.overview', {
   incidentBounce: 'Bounce alert on {template}',
   incidentBounceDetail: '{when} · {value} in one hour (limit {limit}){domains}',
   incidentDomains: ' · mostly {domains}',
+  incidentDomainsTypos: ' · mostly {domains}, typos at sign-up',
   incidentFailed: 'Failed messages on {template}',
   incidentFailedDetail: '{when} · {value, plural, one {# message} other {# messages}} failed in one hour (limit {limit})',
   incidentMedian: 'Slow delivery on {template}',

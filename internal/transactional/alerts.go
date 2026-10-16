@@ -15,6 +15,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/emailaddr"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -61,6 +62,9 @@ type alertDetail struct {
 type alertDomain struct {
 	Domain string `json:"domain"`
 	Count  int64  `json:"count"`
+	// TypoOf is the common domain this one looks like a typo of (gmial.com:
+	// gmail.com), set when the alert is read.
+	TypoOf string `json:"typoOf,omitempty" doc:"The common domain this one looks like a typo of"`
 }
 
 // CheckAlerts opens and ends the delivery alerts of every workspace that
@@ -297,6 +301,11 @@ func alertOf(r store.TxnAlertsRow) TransactionalAlert {
 	var d alertDetail
 	_ = json.Unmarshal(r.Detail, &d)
 	a.Sent, a.Bounced, a.Hard, a.Domains, a.Messages, a.Lost, a.Fallback, a.MedianMs = d.Sent, d.Bounced, d.Hard, d.Domains, d.Messages, d.Lost, d.Fallback, d.MedianMs
+	for i := range a.Domains {
+		if fix, ok := emailaddr.TypoFix(a.Domains[i].Domain); ok {
+			a.Domains[i].TypoOf = fix
+		}
+	}
 	return a
 }
 

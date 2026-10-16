@@ -11,6 +11,7 @@ import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Note } from '@/components/ui/Note'
 import { Segmented } from '@/components/ui/Tabs'
 import { toast } from '@/components/ui/Toast'
+import { TableScroll } from '@/components/ui/Table'
 import { T, useT } from '@/i18n'
 import { ago, clock, count, dayMonthDate } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
@@ -27,7 +28,7 @@ import {
   lastSent,
   MiniSpark,
   secs,
-  txTabs,
+  TxTabs,
   VersionBadges,
   type CodeLang,
   type TxPeriod,
@@ -52,8 +53,7 @@ export function TransactionalOverviewPage({ period, onPeriod }: { period: TxPeri
   return (
     <Page
       title={t(mt.title)}
-      tabs={txTabs(slug, t)}
-      tabsLabel={t(mt.tabsLabel)}
+      filters={<TxTabs />}
       actions={
         canEdit ? (
           <>
@@ -326,7 +326,7 @@ function TemplatesCard({ q, period }: { q: { data?: Schemas['TransactionalTempla
           ) : (
             <>
               <div className="tx-no-phone">
-                <div style={{ overflowX: 'auto' }}>
+                <TableScroll label={t(mo.tableLabel)}>
                   <table className="tbl" aria-label={t(mo.tableLabel)}>
                     <thead>
                       <tr>
@@ -395,7 +395,7 @@ function TemplatesCard({ q, period }: { q: { data?: Schemas['TransactionalTempla
                       })}
                     </tbody>
                   </table>
-                </div>
+                </TableScroll>
               </div>
               <div className="tx-only-phone">
                 {shown.map((it) => (
@@ -540,9 +540,10 @@ function alertTemplate(a: Alert) {
   return a.template?.name ?? ''
 }
 
+/** An outage reads as its span ("9 Oct, 14:02–14:06"), an alert as when it fired ("3 Oct, 09:15"). */
 function incidentWhen(a: Alert) {
   const start = new Date(a.startedAt)
-  const end = a.endedAt ? new Date(a.endedAt) : null
+  const end = a.kind === 'failover' && a.endedAt ? new Date(a.endedAt) : null
   return end ? `${dayMonthDate(start)}, ${clock(start)}–${clock(end)}` : `${dayMonthDate(start)}, ${clock(start)}`
 }
 
@@ -571,8 +572,8 @@ function IncidentsCard({ o }: { o: Overview }) {
         {o.incidents.length === 0 ? <p className="k my-2">{t(mo.noIncidents)}</p> : null}
         {o.incidents.map((a) => (
           <div key={a.id} className="tx-ev">
-            <span className="ic" style={{ background: a.kind === 'failover' ? '#DBEAFE' : '#FEF3C7' }}>
-              <Icon name={a.kind === 'failover' ? 'refresh' : 'alert'} size={14} />
+            <span className="ic" style={a.kind === 'failover' ? { background: '#DBEAFE', color: '#1E40AF' } : { background: '#FEF3C7', color: '#92400E' }}>
+              <Icon name={a.kind === 'failover' ? 'arrowRight' : 'clock'} size={14} />
             </span>
             <div className="tx">
               <span className="font-semibold">{incidentTitle(t, a)}</span>
@@ -604,12 +605,15 @@ function incidentDetail(t: ReturnType<typeof useT>, a: Alert) {
     case 'failover':
       return t(mo.incidentFailoverDetail, { when, messages: a.messages ?? a.value, to: a.fallback ?? '', lost: a.lost ?? 0 })
     case 'bounce_rate': {
-      const domains = (a.domains ?? []).slice(0, 2).map((d) => d.domain)
+      const top = (a.domains ?? []).slice(0, 2)
+      const domains = top.map((d) => d.domain)
+      // Mistyped domains (gmial.com) mean bad addresses at sign-up, not a provider problem.
+      const typos = top.length > 0 && top.every((d) => d.typoOf)
       return t(mo.incidentBounceDetail, {
         when,
         value: `${a.value}%`,
         limit: `${a.threshold}%`,
-        domains: domains.length ? t(mo.incidentDomains, { domains: domains.join(' and ') }) : '',
+        domains: domains.length ? t(typos ? mo.incidentDomainsTypos : mo.incidentDomains, { domains: domains.join(' and ') }) : '',
       })
     }
     case 'failed':

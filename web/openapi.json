@@ -2483,6 +2483,10 @@
           },
           "domain": {
             "type": "string"
+          },
+          "typoOf": {
+            "description": "The common domain this one looks like a typo of",
+            "type": "string"
           }
         },
         "required": [
