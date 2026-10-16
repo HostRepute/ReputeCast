@@ -148,6 +148,34 @@ func (s *Service) Save(ctx context.Context, in MemberLanguage) (MemberLanguage, 
 	return Choices(saved), nil
 }
 
+// SuggestionAnswer is how a member answered "Your browser prefers …".
+type SuggestionAnswer struct {
+	Answer   string `json:"answer" enum:"use,keep,dismiss" doc:"use switched to the language; keep and dismiss didn't"`
+	Language string `json:"language" enum:"en,vi" doc:"The language the browser suggested"`
+}
+
+// AnswerSuggestion records that a member answered the browser's language
+// suggestion, so no browser offers it again (it is offered once per
+// member). Using the language is saved separately, with Save. Audited as
+// account.language_suggestion_answered.
+func (s *Service) AnswerSuggestion(ctx context.Context, in SuggestionAnswer) error {
+	u := api.UserFrom(ctx)
+	if u == nil {
+		return api.Err(401, api.CodeUnauthenticated, "Sign in to continue.")
+	}
+	if u.LanguagePromptedAt != nil {
+		return nil
+	}
+	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+		q := store.New(tx)
+		if err := q.AppLangSetPrompted(ctx, u.ID); err != nil {
+			return err
+		}
+		return s.Audit.LogWith(ctx, q, audit.Event{Action: "account.language_suggestion_answered", TargetType: "user", TargetID: u.ID.String(), TargetName: u.Name,
+			Metadata: map[string]any{"answer": in.Answer, "language": in.Language}})
+	})
+}
+
 // ErrUnknownLanguage is an instance default or invitation language
 // ReputeCast isn't translated into.
 var ErrUnknownLanguage = errors.New("applang: unknown language")

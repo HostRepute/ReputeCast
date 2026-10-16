@@ -2,6 +2,7 @@ package applang
 
 import (
 	"context"
+	"net/http"
 
 	"github.com/danielgtaylor/huma/v2"
 
@@ -29,5 +30,17 @@ func Register(h huma.API, s *Service) {
 			return nil, err
 		}
 		return api.OK(out), nil
+	})
+
+	api.Put(h, api.Op{
+		ID:          "answer-language-suggestion",
+		Path:        "/me/language/suggestion",
+		Summary:     "Answer the browser's language suggestion",
+		Description: "Records that you answered \"Your browser prefers …\", so it isn't offered again on any device.",
+		Tags:        []string{"Account"},
+		Access:      api.Access{Kind: api.AccessUser, HumansOnly: true, AllowPending: true},
+		Status:      http.StatusNoContent,
+	}, func(ctx context.Context, in *struct{ Body SuggestionAnswer }) (*api.Empty, error) {
+		return api.NoContent, s.AnswerSuggestion(ctx, in.Body)
 	})
 }

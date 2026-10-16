@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { errorMessage } from '@/api/client'
+import { errorMessage, http } from '@/api/client'
 import { Button } from '@/components/ui/Button'
 import { toast } from '@/components/ui/Toast'
 import { browserLanguage, languageName, useI18n, useT, useTIn, type AppLocale } from '@/i18n'
@@ -38,17 +38,25 @@ const Cross = () => (
   </svg>
 )
 
+/** Tells the server the suggestion was answered, so no other browser offers it again. */
+function report(answer: 'use' | 'keep' | 'dismiss', language: AppLocale) {
+  void http.PUT('/api/v1/me/language/suggestion', { body: { answer, language: language as 'en' | 'vi' } }).catch(() => {
+    // This browser remembers the answer anyway.
+  })
+}
+
 /**
  * "Your browser prefers Tiếng Việt. Use ReputeCast in Tiếng Việt?": offered
- * once, when the browser prefers a language the app has and the member
- * hasn't chosen one (connect-and-reach brief §3.7, LanguageRegion board).
- * The question also reads in the language it offers.
+ * once per member, when the browser prefers a language the app has and the
+ * member hasn't chosen one (connect-and-reach brief §3.7, LanguageRegion
+ * board). The question also reads in the language it offers.
  */
 export function LanguageSuggestion() {
   const { me, choices, languages } = useMemberLanguage()
   const { locale } = useI18n()
   const [hidden, setHidden] = useState(answered)
-  const offer: AppLocale | undefined = me && choices.language === 'default' && !hidden ? browserLanguage(languages) : undefined
+  const offer: AppLocale | undefined =
+    me && choices.language === 'default' && !hidden && !me.user.languageSuggestionAnswered ? browserLanguage(languages) : undefined
   const show = offer !== undefined && offer !== locale
   const t = useT()
   const tIn = useTIn(show ? offer : undefined)
@@ -56,13 +64,15 @@ export function LanguageSuggestion() {
   if (!show || !offer) return null
   const name = languageName(offer)
 
-  const close = () => {
+  const close = (how: 'keep' | 'dismiss') => {
     answer('dismissed')
     setHidden(true)
+    report(how, offer)
   }
   const use = async () => {
     answer(offer)
     setHidden(true)
+    report('use', offer)
     try {
       await save({ ...choices, language: offer })
       toast({ kind: 'success', title: t(m.switched, { language: name }) })
@@ -84,10 +94,10 @@ export function LanguageSuggestion() {
         <Button variant="primary" size="sm" lang={offer} onClick={() => void use()}>
           {tIn(m.suggestUse, { language: name })}
         </Button>
-        <Button size="sm" onClick={close}>
+        <Button size="sm" onClick={() => close('keep')}>
           {t(m.suggestKeep, { language: languageName(locale) })}
         </Button>
-        <Button size="sm" iconOnly aria-label={t(m.dismiss)} onClick={close} style={{ width: 30, padding: 0 }}>
+        <Button size="sm" iconOnly aria-label={t(m.dismiss)} onClick={() => close('dismiss')} style={{ width: 30, padding: 0 }}>
           <Cross />
         </Button>
       </div>

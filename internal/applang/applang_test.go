@@ -335,3 +335,34 @@ func linkAfter(t *testing.T, text, prefix string) string {
 	}
 	return tok
 }
+
+// The browser's suggestion is offered once per member, whatever the
+// browser: answering it is remembered on the server and audited once.
+func TestLanguageSuggestionAnsweredOnce(t *testing.T) {
+	env := apptest.New(t)
+	env.CreateUser(apptest.UserOpts{Email: "linh@acme.io", Name: "Linh Nguyen"})
+	c := env.Client()
+	c.SignIn("linh@acme.io", "")
+
+	var me struct {
+		User struct {
+			Answered bool `json:"languageSuggestionAnswered"`
+		} `json:"user"`
+	}
+	c.Do("GET", "/me", nil).MustStatus(t, 200).JSON(t, &me)
+	if me.User.Answered {
+		t.Fatal("a new member hasn't answered the suggestion")
+	}
+	c.Do("PUT", "/me/language/suggestion", map[string]any{"answer": "keep", "language": "vi"}).MustStatus(t, 204)
+	c.Do("PUT", "/me/language/suggestion", map[string]any{"answer": "dismiss", "language": "vi"}).MustStatus(t, 204)
+	c.Do("GET", "/me", nil).MustStatus(t, 200).JSON(t, &me)
+	if !me.User.Answered {
+		t.Fatal("/me should say the suggestion was answered")
+	}
+	rows := auditRows(t, env, "account.language_suggestion_answered")
+	if len(rows) != 1 || rows[0]["metadata"].(map[string]any)["answer"] != "keep" || rows[0]["metadata"].(map[string]any)["language"] != "vi" {
+		t.Fatalf("audit: %+v", rows)
+	}
+	c.Do("PUT", "/me/language/suggestion", map[string]any{"answer": "maybe", "language": "vi"}).MustStatus(t, 422)
+	env.Client().Do("PUT", "/me/language/suggestion", map[string]any{"answer": "keep", "language": "vi"}).MustStatus(t, 401)
+}

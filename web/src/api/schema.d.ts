@@ -942,6 +942,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/language/suggestion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Answer the browser's language suggestion
+         * @description Records that you answered "Your browser prefers …", so it isn't offered again on any device.
+         */
+        put: operations["answer-language-suggestion"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/notification-preferences": {
         parameters: {
             query?: never;
@@ -12199,6 +12219,7 @@ export interface components {
             hasPassword: boolean;
             id: string;
             isInstanceAdmin: boolean;
+            languageSuggestionAnswered?: boolean;
             name: string;
             /** Format: int64 */
             passkeys: number;
@@ -15540,6 +15561,18 @@ export interface components {
             listText: {
                 [key: string]: string;
             };
+        };
+        SuggestionAnswer: {
+            /**
+             * @description use switched to the language; keep and dismiss didn't
+             * @enum {string}
+             */
+            answer: "use" | "keep" | "dismiss";
+            /**
+             * @description The language the browser suggested
+             * @enum {string}
+             */
+            language: "en" | "vi";
         };
         SunsetPolicy: {
             /** Format: int64 */
@@ -19378,6 +19411,37 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["MemberLanguage"];
                 };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "answer-language-suggestion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SuggestionAnswer"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Error */
             default: {

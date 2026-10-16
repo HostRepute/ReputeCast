@@ -19115,6 +19115,9 @@
           "isInstanceAdmin": {
             "type": "boolean"
           },
+          "languageSuggestionAnswered": {
+            "type": "boolean"
+          },
           "name": {
             "type": "string"
           },
@@ -30985,6 +30988,33 @@
         ],
         "type": "object"
       },
+      "SuggestionAnswer": {
+        "additionalProperties": false,
+        "properties": {
+          "answer": {
+            "description": "use switched to the language; keep and dismiss didn't",
+            "enum": [
+              "use",
+              "keep",
+              "dismiss"
+            ],
+            "type": "string"
+          },
+          "language": {
+            "description": "The language the browser suggested",
+            "enum": [
+              "en",
+              "vi"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "answer",
+          "language"
+        ],
+        "type": "object"
+      },
       "SunsetPolicy": {
         "additionalProperties": false,
         "properties": {
@@ -40048,6 +40078,47 @@
           }
         ],
         "summary": "Change your app language and region format",
+        "tags": [
+          "Account"
+        ],
+        "x-access": "user"
+      }
+    },
+    "/api/v1/me/language/suggestion": {
+      "put": {
+        "description": "Records that you answered \"Your browser prefers …\", so it isn't offered again on any device.",
+        "operationId": "answer-language-suggestion",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SuggestionAnswer"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Answer the browser's language suggestion",
         "tags": [
           "Account"
         ],

@@ -31,6 +31,9 @@ type MeUser struct {
 	// Preferences are the app language and region format the person chose
 	// (Account & security › Language & region).
 	Preferences applang.MemberLanguage `json:"preferences,omitempty"`
+	// LanguageSuggestionAnswered: the member answered "Your browser prefers …",
+	// so it isn't offered again.
+	LanguageSuggestionAnswered bool `json:"languageSuggestionAnswered,omitempty"`
 }
 
 // MeWorkspace is one workspace the person belongs to.
@@ -100,6 +103,7 @@ func (s *Service) Me(ctx context.Context) (Me, error) {
 	me.Instance = MeInstance{Name: st.Name, PublicURL: st.PublicUrl, Version: version.Get().Version, SetupComplete: st.SetupCompletedAt != nil,
 		DefaultLanguage: st.DefaultLanguage, DefaultRegionFormat: st.DefaultRegionFormat, Languages: applang.Languages()}
 	me.User.Preferences = applang.Choices(*u)
+	me.User.LanguageSuggestionAnswered = u.LanguagePromptedAt != nil
 	if len(st.LatestRelease) > 0 {
 		var rel struct {
 			Tag string `json:"tag"`
