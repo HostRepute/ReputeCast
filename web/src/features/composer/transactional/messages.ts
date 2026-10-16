@@ -394,6 +394,8 @@ export const mp = defineMessages('transactional.publish', {
   rejectedBy: '{name} rejected it: “{comment}”',
   changesBy: '{name} asked for changes: “{comment}”',
   approvedBy: 'Approved by {name} {when}. Publishing this draft is all that is left.',
+  askedJustNow: 'just now',
+  askedOn: 'on {date}',
   // Versions
   versionsTitle: 'Versions · {name}',
   versionsLead: 'Publishing an older version makes it live again; the newer ones stay in the history.',

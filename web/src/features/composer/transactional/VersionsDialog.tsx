@@ -133,7 +133,9 @@ function VersionList({ onCompare }: { onCompare: (a: number, b: number) => void 
                   </span>
                 </Td>
                 <Td nowrap>{t(mp.when, { date: dayMonthYear(v.publishedAt), time: clock(v.publishedAt) })}</Td>
-                <Td wrap>{v.change}</Td>
+                <Td wrap className="txe-change">
+                  {v.change}
+                </Td>
                 <Td align="right" nowrap>
                   <span className="inline-flex gap-1.5">
                     {v.live ? (
@@ -200,7 +202,7 @@ export function VersionsDialog({ target, onTarget }: { target: CompareTarget | '
   const open = target !== null
   return (
     <Dialog
-      className="txe-dlg"
+      className="txe-dlg wide"
       open={open}
       onOpenChange={(o) => !o && onTarget(null)}
       size="lg"

@@ -130,9 +130,9 @@ func txSeedTemplates() []txSeedTemplate {
 	trialVars := []transactional.TransactionalVariable{tv("first_name", "text", false, "Priya", "there", false), tv("days_left", "number", true, "3", "", false), tv("upgrade_url", "url", true, "https://app.acme.io/billing/plans", "", false)}
 	trial := txSeedContent{subject: "Your Acme Cloud trial ends in {{ days_left }} days", preheader: "Upgrade to keep your projects.", vars: trialVars,
 		mjml: acmeCloudMJML("Your trial ends in {{ days_left }} days", []string{`Hi {{ first_name | default: "there" }}, upgrade before then to keep your projects and your teammates.`}, "Upgrade now", "{{ upgrade_url }}", "", true)}
-	trialDraft := txSeedContent{subject: `Your Acme Cloud trial ends on {{ trial_end_date | date: "%-d %b %Y" }}`, preheader: "Choose a plan to keep your projects.",
-		vars: []transactional.TransactionalVariable{tv("first_name", "text", false, "Priya", "there", false), tv("trial_end_date", "date", true, "2026-10-18", "", false), tv("upgrade_url", "url", true, "https://app.acme.io/billing/plans", "", false)},
-		mjml: acmeCloudMJML(`Your trial ends on {{ trial_end_date | date: "%-d %b %Y" }}`, []string{`Hi {{ first_name | default: "there" }}, choose a plan before then to keep your projects and your teammates.`}, "Choose a plan", "{{ upgrade_url }}", "", true)}
+	trialDraft := txSeedContent{subject: "Your Acme Cloud trial ends on {{ trial_end_date }}", preheader: "Choose a plan to keep your projects.",
+		vars: []transactional.TransactionalVariable{tv("first_name", "text", false, "Priya", "there", false), tv("trial_end_date", "date", true, "18 Oct 2026", "", false), tv("upgrade_url", "url", true, "https://app.acme.io/billing/plans", "", false)},
+		mjml: acmeCloudMJML("Your trial ends on {{ trial_end_date }}", []string{`Hi {{ first_name | default: "there" }}, choose a plan before then to keep your projects and your teammates.`}, "Choose a plan", "{{ upgrade_url }}", "", true)}
 	usageVars := []transactional.TransactionalVariable{tv("first_name", "text", false, "Sam", "there", false), tv("projects", "number", true, "3", "", false), tv("deploys", "number", true, "41", "", false), tv("usage_url", "url", true, "https://app.acme.io/usage", "", false)}
 	usage := func(heading string) txSeedContent {
 		return txSeedContent{subject: "Your week in Acme Cloud", preheader: "{{ projects }} projects, {{ deploys }} deploys.", vars: usageVars,
@@ -163,8 +163,8 @@ func txSeedTemplates() []txSeedTemplate {
 			versions: []txSeedVersion{{trial, "marcus@acme.io", 43 * day, "First version"}},
 			draft:    &trialDraft, draftBy: "daniel@acme.io", draftAt: 25 * time.Minute,
 			testData: []transactional.TransactionalTestData{
-				{Name: "Trial user", Data: map[string]any{"first_name": "Priya", "trial_end_date": "2026-10-18", "upgrade_url": "https://app.acme.io/billing/plans"}},
-				{Name: "No first name", Data: map[string]any{"trial_end_date": "2026-10-18", "upgrade_url": "https://app.acme.io/billing/plans"}},
+				{Name: "Trial user", Data: map[string]any{"first_name": "Priya", "trial_end_date": "18 Oct 2026", "upgrade_url": "https://app.acme.io/billing/plans"}},
+				{Name: "No first name", Data: map[string]any{"trial_end_date": "18 Oct 2026", "upgrade_url": "https://app.acme.io/billing/plans"}},
 			}},
 		{key: "usage-summary", name: "Weekly usage summary", description: "Every Monday: projects and deploys", category: "Product updates", liveSince: 21 * day,
 			versions: func() []txSeedVersion {

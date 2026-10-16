@@ -366,7 +366,13 @@
   background: #fff;
 }
 
-/* Publish dialog */
+/* Publish and versions dialogs */
+.dlg.txe-dlg.wide {
+  max-width: 980px;
+}
+.txe-change {
+  min-width: 220px;
+}
 .txe-busy {
   display: flex;
   align-items: center;
