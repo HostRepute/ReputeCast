@@ -32,6 +32,11 @@ const (
 	// Integrations hub (design expansion, phase 2).
 	KindIntegrationAttention = "integration_attention" // an integration needs attention
 	KindPostDraftCreated     = "post_draft_created"    // a WordPress post became a campaign draft
+	// Recurring digests (design expansion, phase 3).
+	KindDigestIssueHeld   = "digest_issue_held"   // Send Readiness blocked a digest issue: it waits for a person
+	KindDigestPaused      = "digest_paused"       // a digest paused (by a person, its owner's permissions, the feed)
+	KindDigestFeedFailing = "digest_feed_failing" // a digest's feed failed at preparation, then the issue was skipped
+	KindDigestDraftReady  = "digest_draft_ready"  // draft mode: an issue is a draft to send through Review & send
 )
 
 // Notification is what appears in the notification center.

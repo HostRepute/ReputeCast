@@ -1157,6 +1157,8 @@ const sendingDueScheduled = `-- name: SendingDueScheduled :many
 SELECT c.id FROM campaigns c
 WHERE c.status = 'scheduled' AND c.scheduled_at <= $1 AND c.deleted_at IS NULL
   AND NOT EXISTS (SELECT 1 FROM campaign_incidents i WHERE i.campaign_id = c.id AND i.kind = 'recheck_blocked' AND i.resolved_at IS NULL)
+  -- A recurring digest starts its own issues (internal/digests).
+  AND NOT EXISTS (SELECT 1 FROM digest_issues di WHERE di.campaign_id = c.id AND di.mode = 'auto')
 ORDER BY c.scheduled_at
 LIMIT 50
 `

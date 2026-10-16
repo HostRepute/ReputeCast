@@ -810,6 +810,7 @@ type DigestIssue struct {
 	SkippedBy   *uuid.UUID      `json:"skippedBy"`
 	FeedTries   json.RawMessage `json:"feedTries"`
 	ItemCount   int32           `json:"itemCount"`
+	Basis       json.RawMessage `json:"basis"`
 	Notified    []string        `json:"notified"`
 	CreatedAt   time.Time       `json:"createdAt"`
 	UpdatedAt   time.Time       `json:"updatedAt"`

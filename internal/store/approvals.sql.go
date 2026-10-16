@@ -374,6 +374,8 @@ SELECT c.id, c.workspace_id, c.scheduled_at, i.tripped_at
 FROM campaign_incidents i
 JOIN campaigns c ON c.id = i.campaign_id AND c.deleted_at IS NULL AND c.status = 'scheduled'
 WHERE i.kind = 'recheck_blocked' AND i.resolved_at IS NULL
+  -- A held digest issue waits for a person to release it (internal/digests).
+  AND NOT EXISTS (SELECT 1 FROM digest_issues di WHERE di.campaign_id = c.id AND di.mode = 'auto')
 `
 
 type ApprovalHeldCampaignsRow struct {

@@ -128,6 +128,8 @@ var Categories = []AuditCategory{
 	{Key: "team", Label: "Team & access", Groups: []string{"team", "member", "role", "apikey", "agent", "auth", "invitation", "user", "session", "sso"}},
 	{Key: "settings", Label: "Settings", Groups: []string{"workspace", "webhook", "audit", "settings", "mcp", "instance"}},
 	{Key: "integrations", Label: "Integrations", Groups: []string{"integration", "wordpress", "hostrepute"}},
+	// Recurring digests (design expansion, phase 3).
+	{Key: "digests", Label: "Digests", Groups: []string{"digest"}},
 }
 
 // Filter narrows the log.

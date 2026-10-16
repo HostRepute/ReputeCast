@@ -160,6 +160,9 @@ CREATE TABLE digest_issues (
     -- Reads that failed at preparation: [{"at":"…","error":"timed out"}].
     feed_tries    jsonb       NOT NULL DEFAULT '[]',
     item_count    integer     NOT NULL DEFAULT 0,
+    -- What the issue was built on, for "since the last approved issue":
+    -- {"template_version":7,"audience":{…},"route":{…},"schedule":"…","sender":"…"}.
+    basis         jsonb       NOT NULL DEFAULT '{}',
     -- Notifications already sent for this issue (held, feed, draft).
     notified      text[]      NOT NULL DEFAULT '{}',
     created_at    timestamptz NOT NULL DEFAULT now(),

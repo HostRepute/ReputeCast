@@ -36,7 +36,11 @@ type IssueData struct {
 func (d IssueData) vars(escape bool) map[string]any {
 	esc := func(s string) string {
 		if escape {
-			return html.EscapeString(s)
+			return braces.Replace(html.EscapeString(s))
+		}
+		// Plain text (the subject) keeps Liquid in a post's words literal.
+		if strings.Contains(s, "{{") || strings.Contains(s, "{%") {
+			return "{% raw %}" + s + "{% endraw %}"
 		}
 		return s
 	}

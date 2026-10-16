@@ -58,6 +58,8 @@ func (q *Queries) OverviewCampaignRoutes(ctx context.Context, campaignID uuid.UU
 const overviewDraftCount = `-- name: OverviewDraftCount :one
 SELECT count(*)::bigint FROM campaigns
 WHERE workspace_id = $1 AND deleted_at IS NULL AND status IN ('draft', 'approval', 'approved')
+  -- A digest's template and its next issue aren't drafts (internal/digests).
+  AND digest_role IN ('', 'issue')
 `
 
 func (q *Queries) OverviewDraftCount(ctx context.Context, workspaceID uuid.UUID) (int64, error) {

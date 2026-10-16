@@ -168,7 +168,11 @@ const (
 	divider  = "#E3E6EB"
 )
 
-func esc(s string) string { return html.EscapeString(s) }
+// esc writes text for the email: HTML-escaped, and Liquid's braces as
+// entities, so a post titled "{{ x }}" can't become a token.
+func esc(s string) string { return braces.Replace(html.EscapeString(s)) }
+
+var braces = strings.NewReplacer("{", "&#123;", "}", "&#125;")
 
 // RenderBlock writes the block for an issue's posts as MJML sections, one
 // per post (two per row in the grid), each marked css-class="rc-feed-item".
@@ -218,7 +222,7 @@ func RenderBlock(b DigestFeedBlock, items []BlockItem, loc *time.Location) strin
 	return out.String()
 }
 
-func meta(b DigestFeedBlock, it BlockItem, loc *time.Location, short bool) string {
+func blockMeta(b DigestFeedBlock, it BlockItem, loc *time.Location, short bool) string {
 	parts := []string{}
 	if b.has(FieldDate) && it.Published != nil {
 		layout := "Monday 2 January 2006"
@@ -236,7 +240,7 @@ func meta(b DigestFeedBlock, it BlockItem, loc *time.Location, short bool) strin
 	return fmt.Sprintf(`<mj-text font-family="%s" font-size="12px" line-height="1.5" color="%s" padding="0px 0px 4px">%s</mj-text>`, plex, metaText, strings.Join(parts, " · "))
 }
 
-func title(b DigestFeedBlock, it BlockItem, size string, linkColor string, underline bool) string {
+func blockTitle(b DigestFeedBlock, it BlockItem, size string, linkColor string, underline bool) string {
 	if !b.has(FieldTitle) {
 		return ""
 	}
@@ -252,7 +256,7 @@ func title(b DigestFeedBlock, it BlockItem, size string, linkColor string, under
 		size, inkColor, size, t)
 }
 
-func categories(b DigestFeedBlock, it BlockItem) string {
+func blockCategories(b DigestFeedBlock, it BlockItem) string {
 	if !b.has(FieldCategories) || len(it.Categories) == 0 {
 		return ""
 	}
@@ -263,14 +267,14 @@ func categories(b DigestFeedBlock, it BlockItem) string {
 	return fmt.Sprintf(`<mj-text font-family="%s" font-size="12px" font-weight="600" color="%s" padding="0px 0px 6px">%s</mj-text>`, plex, teal, strings.Join(cats, " · "))
 }
 
-func excerpt(b DigestFeedBlock, it BlockItem, words int) string {
+func blockExcerpt(b DigestFeedBlock, it BlockItem, words int) string {
 	if !b.has(FieldExcerpt) || it.Excerpt == "" {
 		return ""
 	}
 	return fmt.Sprintf(`<mj-text font-size="14px" line-height="1.55" color="%s" padding="0px 0px 12px">%s</mj-text>`, bodyText, esc(feed.Words(it.Excerpt, words)))
 }
 
-func button(b DigestFeedBlock, it BlockItem) string {
+func blockButton(b DigestFeedBlock, it BlockItem) string {
 	if !b.has(FieldButton) || it.URL == "" {
 		return ""
 	}
@@ -278,7 +282,7 @@ func button(b DigestFeedBlock, it BlockItem) string {
 		esc(it.URL), teal, plex, esc(b.ButtonText))
 }
 
-func image(b DigestFeedBlock, it BlockItem, width int) string {
+func blockImage(b DigestFeedBlock, it BlockItem, width int) string {
 	if !b.has(FieldImage) || it.Image == "" {
 		return ""
 	}
@@ -290,15 +294,15 @@ func image(b DigestFeedBlock, it BlockItem, width int) string {
 }
 
 func cardCell(b DigestFeedBlock, it BlockItem, loc *time.Location) string {
-	return image(b, it, 552) + meta(b, it, loc, false) + title(b, it, "17px", inkColor, false) + categories(b, it) + excerpt(b, it, b.ExcerptWords) + button(b, it)
+	return blockImage(b, it, 552) + blockMeta(b, it, loc, false) + blockTitle(b, it, "17px", inkColor, false) + blockCategories(b, it) + blockExcerpt(b, it, b.ExcerptWords) + blockButton(b, it)
 }
 
 func listCell(b DigestFeedBlock, it BlockItem, loc *time.Location) string {
-	return title(b, it, "17px", teal, true) + meta(b, it, loc, false) + categories(b, it) + excerpt(b, it, b.ExcerptWords)
+	return blockTitle(b, it, "17px", teal, true) + blockMeta(b, it, loc, false) + blockCategories(b, it) + blockExcerpt(b, it, b.ExcerptWords)
 }
 
 func gridCell(b DigestFeedBlock, it BlockItem, loc *time.Location) string {
-	return image(b, it, 264) + meta(b, it, loc, true) + title(b, it, "17px", inkColor, false) + categories(b, it) + excerpt(b, it, max(10, b.ExcerptWords/2)) + button(b, it)
+	return blockImage(b, it, 264) + blockMeta(b, it, loc, true) + blockTitle(b, it, "17px", inkColor, false) + blockCategories(b, it) + blockExcerpt(b, it, max(10, b.ExcerptWords/2)) + blockButton(b, it)
 }
 
 // blockMarker finds the Feed items block of a template.

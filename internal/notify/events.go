@@ -30,6 +30,11 @@ var Events = []EventType{
 	{Key: KindHostReputeAlert, Label: "HostRepute alerts", Audience: "Everyone with deliverability:view", Short: "HostRepute alerts", DefaultEmail: false, Kinds: []string{KindHostReputeAlert}},
 	{Key: KindIntegrationAttention, Label: "Integration needs attention", Audience: "Everyone with integrations:manage", Short: "integration problems", DefaultEmail: true, Kinds: []string{KindIntegrationAttention}},
 	{Key: KindPostDraftCreated, Label: "Post draft created", Audience: "When a WordPress post-draft rule names you", Short: "post drafts", DefaultEmail: true, Kinds: []string{KindPostDraftCreated}},
+	// Recurring digests (design expansion, phase 3).
+	{Key: KindDigestIssueHeld, Label: "Digest issue held", Audience: "The owner, and approvers with a request open", Short: "held digest issues", DefaultEmail: true, Kinds: []string{KindDigestIssueHeld}},
+	{Key: KindDigestPaused, Label: "Digest paused", Audience: "The owner, or everyone with campaigns:send", Short: "paused digests", DefaultEmail: true, Kinds: []string{KindDigestPaused}},
+	{Key: KindDigestFeedFailing, Label: "Digest feed failing", Audience: "The digest's owner", Short: "failing digest feeds", DefaultEmail: true, Kinds: []string{KindDigestFeedFailing}},
+	{Key: KindDigestDraftReady, Label: "Digest draft ready", Audience: "The owner and everyone with campaigns:send", Short: "digest drafts", DefaultEmail: true, Kinds: []string{KindDigestDraftReady}},
 }
 
 // otherEvent covers kinds without a preference row (send finished, jobs):
@@ -62,7 +67,7 @@ const (
 
 var categoryKinds = map[string][]string{
 	CategoryApprovals:    {KindApprovalRequested, KindApprovalDecided, KindApprovalInvalidated},
-	CategorySending:      {KindSendPaused, KindSendBlocked, KindSendFinished},
+	CategorySending:      {KindSendPaused, KindSendBlocked, KindSendFinished, KindDigestIssueHeld, KindDigestPaused, KindDigestFeedFailing, KindDigestDraftReady},
 	CategoryProviders:    {KindProviderDown, KindProviderDegraded, KindWebhooksSilent},
 	CategoryTeam:         {KindInviteAccepted, KindInviteRequested},
 	CategoryHostRepute:   {KindHostReputeAlert},
