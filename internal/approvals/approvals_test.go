@@ -335,7 +335,8 @@ func TestReadinessRunAndFixes(t *testing.T) {
 	}
 	runs := n.audit("readiness.run", digest)
 	linh.Do("POST", ws+"/campaigns/"+digest+"/readiness", nil).MustStatus(t, 200).JSON(t, &run)
-	if run.ID == "" || run.Counts.Total < 20 || len(run.Groups) != 7 {
+	// Seven groups of 1.0 and Accessibility (design expansion).
+	if run.ID == "" || run.Counts.Total < 20 || len(run.Groups) != 8 {
 		t.Fatalf("run: %+v", run)
 	}
 	if n.audit("readiness.run", digest) != runs+1 {

@@ -12,6 +12,7 @@ import { EmptyGallery } from './Gallery'
 import { ToolIcon } from './icons'
 import { contentIssues } from './RightPanel'
 import { StateCards } from './StateCards'
+import { AccessibilityOverlays } from '@/features/accessibility/composer/Overlays'
 
 interface Box {
   top: number
@@ -21,7 +22,7 @@ interface Box {
 }
 
 /** Position of an element of the canvas frame, relative to `host`. */
-function boxOf(editor: Editor, el: Element | null | undefined, host: HTMLElement | null): Box | null {
+export function boxOf(editor: Editor, el: Element | null | undefined, host: HTMLElement | null): Box | null {
   if (!el || !host || !el.isConnected) return null
   const frame = editor.Canvas.getFrameEl()
   if (!frame) return null
@@ -718,6 +719,7 @@ export function CanvasArea({
               </div>
             )}
             <WarningOverlays host={host} tick={tick} />
+            <AccessibilityOverlays host={host} tick={tick} boxOf={boxOf} />
             <SelectionOverlay host={host} tick={tick} />
             <RteToolbar host={host} tick={tick} />
           </div>

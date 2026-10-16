@@ -2,6 +2,9 @@ import { useState } from 'react'
 import type { Schemas } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
+import { m as am } from '@/features/accessibility/messages'
+import { NewBadge, newGroups } from '@/features/accessibility/review'
+import { useT } from '@/i18n'
 import { cn } from '@/lib/cn'
 import { bySeverity, checksByGroup, flatGroupLabels, flatTitle, groupTitles, type Check, type Fix, type Run } from './logic'
 import { CheckBadge, CheckRow, FixButtons } from './parts'
@@ -10,6 +13,8 @@ type Actions = {
   busy?: string
   reasonFor: (f: Fix) => string | undefined
   onApply: (c: Check, f: Fix) => void
+  /** "Run again" on a check that couldn't run (the Accessibility group's). */
+  onRerun?: () => void
 }
 
 /**
@@ -29,26 +34,42 @@ function ByGroup({ run, ...actions }: { run: Run } & Actions) {
   return (
     <>
       {checksByGroup(run).map(({ group, checks }) => (
-        <GroupRows key={group.key} title={group.title} caption={group.caption} checks={checks} {...actions} />
+        <GroupRows key={group.key} group={group.key} title={group.title} caption={group.caption} checks={checks} {...actions} />
       ))}
     </>
   )
 }
 
-function GroupRows({ title, caption, checks, ...actions }: { title: string; caption: string; checks: Check[] } & Actions) {
+function GroupRows({ group, title, caption, checks, ...actions }: { group: string; title: string; caption: string; checks: Check[] } & Actions) {
   return (
     <>
       <div className="rv-grp">
-        <h2 className="h2">{title}</h2>
+        <h2 className="h2 flex items-center gap-2">
+          {title}
+          {newGroups.has(group) ? <NewBadge /> : null}
+        </h2>
         {caption ? <span className="k">{caption}</span> : null}
       </div>
-      {checks.map((c) => (
-        <CheckRow key={c.key} check={c}>
-          {c.note ? <span className="k ml-auto">{c.note}</span> : null}
-          <FixButtons check={c} {...actions} />
-        </CheckRow>
-      ))}
+      {checks.map((c) => {
+        const rerun = c.status === 'unknown' && newGroups.has(c.group)
+        return (
+          <CheckRow key={c.key} check={c} alert={rerun}>
+            {c.note ? <span className="k ml-auto">{c.note}</span> : null}
+            <FixButtons check={c} {...actions} />
+            {rerun && actions.onRerun ? <RerunButton onRerun={actions.onRerun} /> : null}
+          </CheckRow>
+        )
+      })}
     </>
+  )
+}
+
+function RerunButton({ onRerun }: { onRerun: () => void }) {
+  const t = useT()
+  return (
+    <Button size="sm" variant="primary" onClick={onRerun}>
+      {t(am.runAgain)}
+    </Button>
   )
 }
 

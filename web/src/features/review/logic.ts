@@ -56,9 +56,12 @@ export function blockedLine(c: Counts, checks: Check[]): string {
   return `${head} Sending stays disabled until every block is fixed.${tail}`
 }
 
-/** The one-click fix a "fix all" button applies for a check: its first apply fix. */
+/**
+ * The one-click fix a "fix all" button applies for a check: its first apply
+ * fix. Marking an image decorative is a judgment, never applied in bulk.
+ */
 export function primaryFix(c: Check): Fix | undefined {
-  return c.fixes.find((f) => f.kind === 'apply')
+  return c.fixes.find((f) => f.kind === 'apply' && f.action !== 'accessibility_decorative')
 }
 
 /** "Fix both warnings", "Apply all 3 fixes". */
@@ -266,11 +269,25 @@ export function checksByGroup(run: Run): { group: Group; checks: Check[] }[] {
  * Warnings people confirm before sending (keys and sentences); the ones
  * with a one-click alternative ("Exclude them instead") come first.
  */
-export function acknowledgements(run: Run): { key: string; text: string; fix?: Fix }[] {
-  return run.checks
-    .filter((c) => c.status === 'warn')
-    .map((c) => ({ key: c.key, text: c.ack || `I understand: ${c.title}.`, fix: c.fixes.find((f) => f.kind === 'apply' && f.action === 'exclude_sunset') }))
-    .sort((a, b) => Number(Boolean(b.fix)) - Number(Boolean(a.fix)))
+export function acknowledgements(run: Run): { key: string; keys: string[]; text: string; fix?: Fix }[] {
+  const out: { key: string; keys: string[]; text: string; fix?: Fix }[] = []
+  for (const c of run.checks.filter((x) => x.status === 'warn')) {
+    const text = c.ack || `I understand: ${c.title}.`
+    // Warnings confirmed in the same words (the serious accessibility
+    // issues) are one checkbox that confirms them all.
+    const same = out.find((a) => a.text === text)
+    if (same) {
+      same.keys.push(c.key)
+      continue
+    }
+    out.push({ key: c.key, keys: [c.key], text, fix: c.fixes.find((f) => f.kind === 'apply' && f.action === 'exclude_sunset') })
+  }
+  return out.sort((a, b) => Number(Boolean(b.fix)) - Number(Boolean(a.fix)))
+}
+
+/** The warning keys the checked confirmations cover. */
+export function acknowledgedKeys(acks: { key: string; keys: string[] }[], checked: string[]): string[] {
+  return acks.filter((a) => checked.includes(a.key)).flatMap((a) => a.keys)
 }
 
 /** "Nov 4, 2026" in a zone. */
@@ -305,6 +322,7 @@ export const groupWords: Record<string, string> = {
   compliance: 'compliance',
   audience: 'audience quality',
   routing: 'routing',
+  accessibility: 'accessibility',
 }
 
 /** Group headings: "Sender reputation", "Audience quality". */
@@ -316,6 +334,7 @@ export const groupTitles: Record<string, string> = {
   compliance: 'Compliance',
   audience: 'Audience quality',
   routing: 'Routing',
+  accessibility: 'Accessibility',
 }
 
 /** Group names that start a one-line row: "Audience: 0 recently bounced, …". */
@@ -325,7 +344,7 @@ export const flatGroupLabels: Record<string, string> = { ...groupTitles, audienc
  * The order of blocks and warnings when they're listed by severity: legal
  * requirements and what filters every recipient first, then the rest.
  */
-export const severityOrder = ['compliance', 'links', 'content', 'authentication', 'reputation', 'audience', 'routing']
+export const severityOrder = ['compliance', 'links', 'content', 'accessibility', 'authentication', 'reputation', 'audience', 'routing']
 
 export function bySeverity(a: Check, b: Check): number {
   return severityOrder.indexOf(a.group) - severityOrder.indexOf(b.group)

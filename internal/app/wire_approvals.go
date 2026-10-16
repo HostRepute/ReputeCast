@@ -36,9 +36,17 @@ func readinessService(a *App) *readiness.Service {
 		Translations: campaignTranslations(a),
 	}
 	_, dl := deliverabilityServices(a)
-	return &readiness.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Log: a.Log, Campaigns: cs, Deliverability: dl, URLs: a.URLs, Segments: a.segments(),
+	rs := &readiness.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Log: a.Log, Campaigns: cs, Deliverability: dl, URLs: a.URLs, Segments: a.segments(),
 		Languages: languagesService(a)}
+	if acc := readinessAccessibility(a); acc != nil {
+		rs.Accessibility = acc
+	}
+	return rs
 }
+
+// readinessAccessibility runs the Accessibility group of Send Readiness; the
+// accessibility domain replaces it from its wire file. Nil leaves it out.
+var readinessAccessibility = func(*App) readiness.AccessibilityChecker { return nil }
 
 // newApprovals builds the approvals service with its own Send Readiness.
 func newApprovals(a *App) *approvals.Service {
@@ -56,8 +64,9 @@ func newApprovals(a *App) *approvals.Service {
 				}
 				return a.Jobs
 			},
-			Mailer: automationMailer(a),
-			Gate:   automations.NoApproval{},
+			Mailer:        automationMailer(a),
+			Gate:          automations.NoApproval{},
+			Accessibility: automationAccessibility(a),
 		},
 	}
 	// Fixes and send settings re-check open approvals; so do composer saves.

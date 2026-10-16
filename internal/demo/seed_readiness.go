@@ -154,6 +154,8 @@ func probed(entries ...[3]string) []contentcheck.ContentCheckLink {
 // storeRun saves a run assembled from facts as the campaign's latest.
 func (r *readinessSeed) storeRun(ctx context.Context, id uuid.UUID, f readiness.Facts, ranAt time.Time, by *uuid.UUID, trigger string) (readiness.ReadinessResult, uuid.UUID, error) {
 	s := r.s
+	// The Accessibility group (design expansion) checks the sample content.
+	f = demoAccessibilityFacts(ctx, r, id, f)
 	res := readiness.Assemble(f)
 	checks, est, err := readiness.EncodeResult(res)
 	if err != nil {

@@ -27,6 +27,7 @@ var (
 	seedIntegrationsHub = noop // integrations hub: Zapier, n8n, WordPress sites (seed_integrations_hub.go)
 	// transactional templates of the editor and publish boards, welcome prompts (seed_transactional_templates.go)
 	seedTransactionalTemplates = noop
+	seedAccessibility          = noop // accessibility policy, Weekly Digest #143, the gallery's and the publish dialog's issues (seed_accessibility.go)
 	seedAppLanguages           = noop // app languages: instance defaults, Marcus's region format, the invitation's language (seed_app_languages.go)
 )
 
