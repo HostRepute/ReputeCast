@@ -226,4 +226,8 @@ export const entries: Entry[] = [
   { board: 'StressReviewVi', manual: true },
   { board: 'StressReviewPseudo', manual: true },
   { board: 'StressReviewPseudoPhone', manual: true },
+  // X08 · content languages of forms, public pages and contacts. The builder in Spanish; its
+  // FormsStates frames (the consent text after English changes, Vietnamese not set up) come from
+  // changing the English consent text and picking Tiếng Việt.
+  { board: 'FormBuilderLanguages', path: `${ws}/forms?form={form:Newsletter signup}&language=es`, widths: [1440] },
 ]

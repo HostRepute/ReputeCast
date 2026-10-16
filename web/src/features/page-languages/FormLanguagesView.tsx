@@ -497,15 +497,9 @@ export function CopyByLanguage({
           <div key={l.code} className="pl-row">
             <span className="flex min-w-0 flex-col gap-px">
               {linkFor ? (
-                <Link
-                  to="/w/$workspace/forms"
-                  params={{ workspace: slug }}
-                  search={linkFor(l.code)}
-                  className="font-semibold"
-                  lang={l.code}
-                  aria-label={t(mf.rowEdit, { language: name(l.code) })}
-                >
-                  {l.native}
+                <Link to="/w/$workspace/forms" params={{ workspace: slug }} search={linkFor(l.code)} className="font-semibold">
+                  <span lang={l.code}>{l.native}</span>
+                  <span className="vh"> · {t(mf.rowEdit, { language: name(l.code) })}</span>
                 </Link>
               ) : (
                 <span className="font-semibold" lang={l.code}>

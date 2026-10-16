@@ -304,6 +304,19 @@
   }
 }
 
+/* Narrower than three columns: the settings and the preview side by side,
+   the form's languages under them. */
+@media (max-width: 1199px) {
+  .pl-center {
+    flex-basis: 340px;
+  }
+  .pl-right {
+    flex-basis: 100%;
+    max-width: none;
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+}
 @media (max-width: 767px) {
   .pl-left,
   .pl-right {
