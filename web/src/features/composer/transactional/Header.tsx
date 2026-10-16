@@ -83,7 +83,7 @@ function SaveState() {
   )
 }
 
-/** Who is looking, on the read-only header: "Aisha Bello · Viewer". */
+/** Who is looking when their role can't edit or publish (TransactionalTemplateStates · permissions): "Daniel Park · Content Writer". */
 function ViewerLine() {
   const t = useT()
   const ws = useOptionalWorkspace()
@@ -184,7 +184,7 @@ export function TxHeader() {
       <Badge tone={tpl.category?.kind === 'optional' ? 'info' : 'neutral'}>{category}</Badge>
       <VersionBadge />
       {tx.canEdit ? null : <Badge tone="neutral">{t(m.readOnly)}</Badge>}
-      {tx.canEdit ? null : <ViewerLine />}
+      {tx.canEdit && tx.canPublish ? null : <ViewerLine />}
       <SaveState />
       <div className="flex flex-wrap items-center gap-2" style={{ marginLeft: 'auto' }}>
         <Button onClick={tx.openVersions}>{t(m.versions)}</Button>
