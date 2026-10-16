@@ -1262,6 +1262,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/placement/oauth/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * OAuth return from Google or Microsoft for a seed (browser redirect)
+         * @description Exchanges the code, checks the mailbox, seals the tokens and redirects to Seed mailboxes. Requires the signed-in person who started it, holding placement:manage in its workspace.
+         */
+        get: operations["seed-oauth-callback"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/setup": {
         parameters: {
             query?: never;
@@ -6000,6 +6020,238 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/placement/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Campaigns, templates and transactional templates a test can send */
+        get: operations["search-placement-content"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/placement/plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** What a test would send: providers, senders, seeds, copies and cost (nothing is sent) */
+        post: operations["plan-placement-test"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/placement/seeds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Seed mailboxes (passwords and tokens are never returned) */
+        get: operations["list-seed-mailboxes"];
+        put?: never;
+        /**
+         * Add a seed mailbox with an IMAP password, after checking the sign-in (audited)
+         * @description The password is sealed at once and never returned. Answers 422 with meta.kind refused or unreachable when the sign-in fails.
+         */
+        post: operations["add-seed-mailbox"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/placement/seeds/oauth": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start Google's or Microsoft's consent for a seed (OAuth with PKCE)
+         * @description Returns the consent URL. The browser comes back to /api/v1/placement/oauth/callback, which adds or reconnects the seed.
+         */
+        post: operations["start-seed-oauth"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/placement/seeds/{seed}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a seed and its password or tokens (audited) */
+        delete: operations["remove-seed-mailbox"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/placement/seeds/{seed}/reconnect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reconnect a seed with a new IMAP password (audited) */
+        post: operations["reconnect-seed-mailbox"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/placement/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** When copies are deleted from the seeds (audited) */
+        put: operations["set-placement-settings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/placement/tests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Placement tests, newest first, with results per provider */
+        get: operations["list-placement-tests"];
+        put?: never;
+        /**
+         * Start a placement test: one copy to each seed (audited)
+         * @description Answers 409 placement_not_ready with the problems (meta.problems) when the plan can't start. People only: agents can't hold placement:run.
+         */
+        post: operations["start-placement-test"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/placement/tests/{test}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One placement test: its copies, the matrix and the guidance */
+        get: operations["get-placement-test"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/placement/tests/{test}/copies/{copy}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One copy: where it landed, its headers and the provider's events */
+        get: operations["get-placement-copy"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/placement/tests/{test}/delete-copies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Delete a test's copies from the seeds now, by test token (audited) */
+        post: operations["delete-placement-copies"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/placement/tests/{test}/run-again": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Run a test again with the same content and choices (audited) */
+        post: operations["rerun-placement-test"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/placement/tests/{test}/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stop waiting: copies not found yet are Not arrived (audited) */
+        post: operations["stop-placement-test"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/provider-events": {
         parameters: {
             query?: never;
@@ -7479,6 +7731,265 @@ export interface paths {
         put?: never;
         /** Make another member the Owner; you become an Admin */
         post: operations["transfer-workspace"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/verification/contacts/{contact}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A contact's latest address check and what Verify now would use */
+        get: operations["get-contact-address-check"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/verification/contacts/{contact}/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check one contact's address now (audited) */
+        post: operations["verify-contact"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/verification/estimate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** What a use would check and cost, for its dialog and notice */
+        post: operations["estimate-verification"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/verification/forms/{form}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A form's real-time address check and its 30-day numbers */
+        get: operations["get-form-address-check"];
+        /** Turn a form's real-time address check on or off (also needs forms:edit; audited) */
+        put: operations["set-form-address-check"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/verification/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send addresses to the verification service and start a job (audited) */
+        post: operations["start-verification"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/verification/jobs/{job}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A verification job's progress and results */
+        get: operations["get-verification-job"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/verification/jobs/{job}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stop a job; the results so far are kept */
+        post: operations["cancel-verification-job"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/verification/jobs/{job}/results.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A job's results as CSV: addresses, so it's an export (audited) */
+        get: operations["download-verification-results"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/verification/jobs/{job}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Continue a job that stopped for credits or an outage */
+        post: operations["resume-verification-job"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/verification/services": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Verification services, their connections and uses */
+        get: operations["list-verification-services"];
+        put?: never;
+        /** Connect a verification service with the workspace's own API key */
+        post: operations["connect-verification-service"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/verification/services/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Test a service's API key by reading its balance (no address is sent) */
+        post: operations["test-verification-key"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/verification/services/{service}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One verification service */
+        get: operations["get-verification-service"];
+        put?: never;
+        post?: never;
+        /** Disconnect a service; results already on contacts stay */
+        delete: operations["disconnect-verification-service"];
+        options?: never;
+        head?: never;
+        /** Change a service's price per check, region and default uses */
+        patch: operations["update-verification-service"];
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/verification/services/{service}/key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Replace a service's API key (write-only) */
+        put: operations["replace-verification-key"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/verification/services/{service}/realtime": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A service's real-time checks by form and by day */
+        get: operations["get-verification-realtime"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/verification/services/{service}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Read a connected service's balance again (no address is sent) */
+        post: operations["test-verification-service"];
         delete?: never;
         options?: never;
         head?: never;
@@ -10951,6 +11462,34 @@ export interface components {
         ContactActivityProvider: {
             adapter: string;
             name: string;
+        };
+        ContactAddressCheck: {
+            /** Format: int64 */
+            balance?: number;
+            canVerify: boolean;
+            checked: boolean;
+            /** Format: date-time */
+            checkedAt?: string;
+            code?: string;
+            connected: boolean;
+            email: string;
+            helpers: string[];
+            /** Format: double */
+            price: number;
+            reason?: string;
+            /** Format: date-time */
+            recheckFrom?: string;
+            regionLabel?: string;
+            /** @enum {string} */
+            result?: "valid" | "invalid" | "risky" | "unknown" | "";
+            service?: string;
+            serviceName?: string;
+            suppressed: boolean;
+            /** Format: date-time */
+            suppressedAt?: string;
+            tag?: string;
+            verifyService?: string;
+            verifyServiceName?: string;
         };
         ContactBulkFailure: {
             email: string;
@@ -14736,6 +15275,642 @@ export interface components {
             /** @example First name */
             label: string;
         };
+        PlacementAuthCheck: {
+            aligned?: boolean;
+            detail?: string;
+            domain?: string;
+            ip?: string;
+            result: string;
+            selector?: string;
+        };
+        PlacementAuthCount: {
+            /** Format: int64 */
+            fail: number;
+            /** Format: int64 */
+            pass: number;
+        };
+        PlacementAuthReadiness: {
+            /** @description The blocking checks, in the reader's language */
+            blocking: string[];
+            /** Format: int64 */
+            blocks: number;
+            /** @description One sentence per blocking check */
+            evidence: string[];
+            /** Format: int64 */
+            passed: number;
+            /** Format: int64 */
+            warnings: number;
+        };
+        PlacementAuthSummary: {
+            /** Format: int64 */
+            checked: number;
+            dkim: components["schemas"]["PlacementAuthCount"];
+            dkimDomain?: string;
+            dkimSelector?: string;
+            dmarc: components["schemas"]["PlacementAuthCount"];
+            spf: components["schemas"]["PlacementAuthCount"];
+            spfDomain?: string;
+        };
+        PlacementContentList: {
+            items: components["schemas"]["PlacementContentOption"][];
+        };
+        PlacementContentOption: {
+            /** Format: date-time */
+            at: string;
+            id: string;
+            /** @enum {string} */
+            kind: "campaign" | "template" | "transactional";
+            name: string;
+            /** @description A campaign's status, template, or a transactional template's key */
+            note: string;
+        };
+        PlacementContentRef: {
+            /** @description A campaign, template or transactional template id */
+            id: string;
+            /** @enum {string} */
+            kind: "campaign" | "template" | "transactional";
+        };
+        PlacementContentView: {
+            audience?: string;
+            category?: string;
+            fallbackGreeting?: string;
+            id: string;
+            key?: string;
+            /** @enum {string} */
+            kind: "campaign" | "template" | "transactional";
+            languages: components["schemas"]["PlacementLanguage"][];
+            name: string;
+            /** Format: int64 */
+            recipients?: number;
+            /** Format: date-time */
+            scheduledAt?: string;
+            sensitive: string[];
+            /** Format: date-time */
+            sentAt?: string;
+            status?: string;
+            testData: string[];
+            testValues: components["schemas"]["PlacementTestValue"][];
+            variants: components["schemas"]["PlacementVariant"][];
+            /** Format: int64 */
+            version?: number;
+        };
+        PlacementCopyCost: {
+            /** Format: int64 */
+            copies: number;
+            /** Format: double */
+            cost: number;
+            /** Format: int64 */
+            planMonthly?: number;
+            /** @enum {string} */
+            pricing: "metered" | "plan" | "self_hosted";
+            providerId: string;
+            /** Format: int64 */
+            sentToday?: number;
+            short: string;
+            /** Format: int64 */
+            todayCap?: number;
+            /** Format: int64 */
+            warmDay?: number;
+        };
+        PlacementCopyDetail: {
+            copy: components["schemas"]["PlacementCopyView"];
+            dkim?: components["schemas"]["PlacementAuthCheck"];
+            dmarc?: components["schemas"]["PlacementAuthCheck"];
+            events: components["schemas"]["PlacementEvent"][];
+            headers: string;
+            keyHeaders: string;
+            path?: string;
+            providerMessageId?: string;
+            /** @enum {string} */
+            readVia: "imap" | "graph" | "gmail";
+            spf?: components["schemas"]["PlacementAuthCheck"];
+            testStatus: string;
+            /** Format: date-time */
+            waitUntil?: string;
+        };
+        PlacementCopyView: {
+            /** Format: int64 */
+            arriveMs?: number;
+            /** Format: int64 */
+            deferrals: number;
+            dkim?: string;
+            dmarc?: string;
+            /** @description Why the provider refused the copy */
+            error?: string;
+            first: boolean;
+            /** @enum {string} */
+            folder?: "inbox" | "tab" | "spam" | "";
+            /** @description The mailbox's own name: Junk Email, Bulk, Spamverdacht */
+            folderName?: string;
+            /** Format: date-time */
+            handedAt?: string;
+            id: string;
+            lastEvent?: components["schemas"]["PlacementEvent"];
+            late: boolean;
+            /** Format: date-time */
+            lateUntil?: string;
+            providerId?: string;
+            providerName: string;
+            /** @enum {string} */
+            reason?: "signin_failed" | "signin_expired" | "seed_removed" | "stopped" | "unsent" | "";
+            /** Format: date-time */
+            reasonAt?: string;
+            /** Format: date-time */
+            receivedAt?: string;
+            /** Format: int64 */
+            round: number;
+            seedEmail: string;
+            seedId?: string;
+            seedProvider: string;
+            seedProviderName: string;
+            /** Format: date-time */
+            sendAt: string;
+            spf?: string;
+            /** @enum {string} */
+            status: "queued" | "sent" | "failed" | "found" | "not_arrived" | "not_checked";
+            /** @description Primary, Promotions, Focused, Other */
+            tab?: string;
+        };
+        PlacementCounts: {
+            /** Format: int64 */
+            copies: number;
+            /** Format: int64 */
+            failed: number;
+            /** Format: int64 */
+            found: number;
+            /** Format: int64 */
+            inbox: number;
+            /** Format: int64 */
+            notArrived: number;
+            /** Format: int64 */
+            notChecked: number;
+            notCheckedSeeds: components["schemas"]["PlacementNotChecked"][];
+            /** Format: int64 */
+            spam: number;
+            /** Format: int64 */
+            tab: number;
+            tabs: string[];
+            /** Format: int64 */
+            unsent: number;
+            /** Format: int64 */
+            waiting: number;
+        };
+        PlacementEarlier: {
+            contentName: string;
+            /** Format: int64 */
+            copies: number;
+            /** Format: int64 */
+            inbox: number;
+            /** Format: date-time */
+            startedAt: string;
+            testId: string;
+        };
+        PlacementEvent: {
+            /** Format: date-time */
+            at: string;
+            code?: string;
+            diagnostic?: string;
+            host?: string;
+            /** @description delivered, deferred, soft_bounce, hard_bounce, complaint, rejected… */
+            type: string;
+        };
+        PlacementFacet: {
+            id: string;
+            name: string;
+        };
+        PlacementFolder: {
+            label: string;
+            name: string;
+            /** @enum {string} */
+            role: "inbox" | "tab" | "spam";
+        };
+        PlacementGuidance: {
+            at: string[];
+            auth: components["schemas"]["PlacementAuthSummary"];
+            /** Format: int64 */
+            authProviders: number;
+            /** @enum {string} */
+            cause: "readiness" | "auth" | "warmup" | "reputation";
+            /** Format: int64 */
+            copies: number;
+            earlier?: components["schemas"]["PlacementEarlier"];
+            hostRepute: boolean;
+            ip?: string;
+            other?: components["schemas"]["PlacementOther"];
+            providerId: string;
+            providerName: string;
+            readiness?: components["schemas"]["PlacementAuthReadiness"];
+            /** Format: int64 */
+            spam: number;
+            status: string;
+            /** Format: int64 */
+            warmDay?: number;
+            /** Format: int64 */
+            warmDays?: number;
+        };
+        PlacementLanguage: {
+            code: string;
+            source: boolean;
+        };
+        PlacementNotChecked: {
+            email: string;
+            /** @description The seed's mailbox provider (iCloud) */
+            name: string;
+            provider: string;
+            /** @enum {string} */
+            reason: "signin_failed" | "signin_expired" | "seed_removed" | "stopped" | "unsent";
+        };
+        PlacementOAuthInput: {
+            email?: string;
+            /** @enum {string} */
+            provider: "gmail" | "google_workspace" | "outlook" | "microsoft_365";
+            seedId?: string;
+        };
+        PlacementOAuthStart: {
+            url: string;
+        };
+        PlacementOther: {
+            /** Format: int64 */
+            copies: number;
+            /** Format: int64 */
+            inbox: number;
+            name: string;
+            providerId: string;
+            /** Format: int64 */
+            spam: number;
+        };
+        PlacementPlan: {
+            alone?: string;
+            canRun: boolean;
+            canStart: boolean;
+            chosen: string[];
+            compareProblem?: string;
+            content: components["schemas"]["PlacementContentView"];
+            /** Format: int64 */
+            copies: number;
+            costs: components["schemas"]["PlacementCopyCost"][];
+            problems: string[];
+            providers: components["schemas"]["PlacementProviderOption"][];
+            route: components["schemas"]["PlacementRouteShare"][];
+            runHelpers: string[];
+            seeds: components["schemas"]["PlacementSeedChoice"][];
+            sender?: string;
+            senderAlternatives?: string[];
+            senderDomain?: string;
+            senderMissing?: string[];
+            senderProblem?: string;
+            senders: components["schemas"]["PlacementSenderOption"][];
+            /** @enum {string} */
+            stream: "broadcast" | "automation" | "system" | "transactional";
+            warmupDays: number[];
+        };
+        PlacementProviderOption: {
+            adapter: string;
+            available: boolean;
+            color: string;
+            /** Format: double */
+            costPerCopy: number;
+            /** @description us-east-1, mta.acme.io, the Transactional stream */
+            detail: string;
+            downReason?: string;
+            /** Format: date-time */
+            downSince?: string;
+            id: string;
+            name: string;
+            /** Format: int64 */
+            planMonthly?: number;
+            /** @enum {string} */
+            pricing: "metered" | "plan" | "self_hosted";
+            /** Format: int64 */
+            sentToday?: number;
+            short: string;
+            /** @enum {string} */
+            status: "healthy" | "degraded" | "down" | "sandbox" | "warming_up" | "paused";
+            streamOnly?: string;
+            /** Format: int64 */
+            todayCap?: number;
+            /** Format: int64 */
+            warmDay?: number;
+            /** Format: int64 */
+            warmDays?: number;
+        };
+        PlacementProviderResult: {
+            adapter: string;
+            auth: components["schemas"]["PlacementAuthSummary"];
+            color: string;
+            /** Format: double */
+            cost: number;
+            counts: components["schemas"]["PlacementCounts"];
+            detail: string;
+            fastest?: components["schemas"]["PlacementTiming"];
+            id: string;
+            ip?: string;
+            /** Format: int64 */
+            medianMs?: number;
+            name: string;
+            short: string;
+            slowest?: components["schemas"]["PlacementTiming"];
+            status: string;
+            /** Format: int64 */
+            warmDay?: number;
+            /** Format: int64 */
+            warmDays?: number;
+        };
+        PlacementReconnectInput: {
+            host?: string;
+            password: string;
+            /** Format: int64 */
+            port?: number;
+            username?: string;
+        };
+        PlacementResultSeed: {
+            email: string;
+            id?: string;
+            /** Format: int64 */
+            position: number;
+            provider: string;
+            providerName: string;
+            /** @description The seed's status now (removed when it's gone) */
+            status: string;
+            /** Format: date-time */
+            statusAt?: string;
+        };
+        PlacementRouteShare: {
+            fallback?: string;
+            providerId: string;
+            reasons: string[];
+            seeds: string[];
+        };
+        PlacementRunInput: {
+            content: components["schemas"]["PlacementContentRef"];
+            language?: string;
+            /** @enum {string} */
+            origin?: "placement" | "review" | "composer" | "warmup" | "template" | "";
+            providers?: string[];
+            seeds?: string[];
+            senderId?: string;
+            testData?: string;
+            /** @enum {string} */
+            through: "route" | "provider" | "compare";
+            variant?: string;
+        };
+        PlacementSeedCheck: {
+            folders: components["schemas"]["PlacementFolder"][];
+            seed: components["schemas"]["PlacementSeedView"];
+        };
+        PlacementSeedChoice: {
+            email: string;
+            id: string;
+            provider: string;
+            providerName: string;
+            selected: boolean;
+            status: string;
+            /** Format: date-time */
+            statusAt?: string;
+        };
+        PlacementSeedInput: {
+            /** Format: email */
+            email: string;
+            host?: string;
+            password: string;
+            /** Format: int64 */
+            port?: number;
+            /** @enum {string} */
+            provider: "gmail" | "google_workspace" | "outlook" | "microsoft_365" | "yahoo" | "aol" | "icloud" | "gmx" | "webde";
+            username?: string;
+        };
+        PlacementSeedList: {
+            /**
+             * Format: int64
+             * @description Seeds whose sign-in failed or expired
+             */
+            attention: number;
+            canManage: boolean;
+            canRun: boolean;
+            /** Format: int64 */
+            connected: number;
+            /** @enum {string} */
+            deleteAfter: "24h" | "finished" | "never";
+            manageHelpers: string[];
+            oauthGoogle: boolean;
+            oauthMicrosoft: boolean;
+            providers: components["schemas"]["PlacementSeedProvider"][];
+            redirectUri: string;
+            runHelpers: string[];
+            seeds: components["schemas"]["PlacementSeedView"][];
+        };
+        PlacementSeedProvider: {
+            /** @description Who runs the mailboxes (Apple for iCloud) */
+            company: string;
+            host: string;
+            imapHelp?: string;
+            inboxName: string;
+            key: string;
+            name: string;
+            /** @enum {string} */
+            oauth?: "google" | "microsoft" | "";
+            password: string;
+            passwordHelp?: string;
+            /** Format: int64 */
+            port: number;
+            spamName: string;
+            tabs: string[];
+            usernameLabel: string;
+        };
+        PlacementSeedView: {
+            /** Format: date-time */
+            addedAt: string;
+            addedBy: string;
+            /** @enum {string} */
+            auth: "password" | "oauth";
+            /** Format: date-time */
+            checkedAt?: string;
+            company: string;
+            email: string;
+            folders: components["schemas"]["PlacementFolder"][];
+            host?: string;
+            id: string;
+            lastTest?: string;
+            lastTestId?: string;
+            /** Format: date-time */
+            lastUsedAt?: string;
+            passwordLabel: string;
+            /** Format: int64 */
+            port?: number;
+            /** @enum {string} */
+            provider: "gmail" | "google_workspace" | "outlook" | "microsoft_365" | "yahoo" | "aol" | "icloud" | "gmx" | "webde";
+            providerName: string;
+            /** @enum {string} */
+            status: "connected" | "expired" | "failed" | "unchecked";
+            /** Format: date-time */
+            statusAt?: string;
+            username?: string;
+        };
+        PlacementSenderOption: {
+            default: boolean;
+            domain: string;
+            email: string;
+            id: string;
+            name: string;
+            /** @description Verified on every provider the test uses */
+            verified: boolean;
+        };
+        PlacementSettingsInput: {
+            /** @enum {string} */
+            deleteAfter: "24h" | "finished" | "never";
+        };
+        PlacementTestDetail: {
+            canRun: boolean;
+            /**
+             * Format: date-time
+             * @description When the campaign is scheduled or was sent
+             */
+            contentAt?: string;
+            contentId?: string;
+            contentKey?: string;
+            /** @enum {string} */
+            contentKind: "campaign" | "template" | "digest" | "transactional";
+            contentName: string;
+            /** @description draft, scheduled, sent, template or the transactional template's key */
+            contentNote: string;
+            /** Format: int64 */
+            contentVersion?: number;
+            copies: components["schemas"]["PlacementCopyView"][];
+            /** Format: date-time */
+            copiesDeletedAt?: string;
+            copiesDeletedBy?: string;
+            counts: components["schemas"]["PlacementCounts"];
+            /** @enum {string} */
+            deleteAfter: "24h" | "finished" | "never";
+            /** Format: date-time */
+            deleteAt?: string;
+            fallbackGreeting?: string;
+            /** @enum {string} */
+            finishReason?: "all_found" | "timeout" | "stopped" | "";
+            /** Format: date-time */
+            finishedAt?: string;
+            fromEmail: string;
+            fromName: string;
+            /** Format: int64 */
+            gapMinutes: number;
+            guidance: components["schemas"]["PlacementGuidance"][];
+            hostRepute: boolean;
+            id: string;
+            language?: string;
+            /** Format: date-time */
+            lastSentAt?: string;
+            /**
+             * Format: date-time
+             * @description Late copies found until then update the result
+             */
+            lateUntil?: string;
+            name: string;
+            /** @enum {string} */
+            origin: "placement" | "review" | "composer" | "warmup" | "template";
+            personalization: string;
+            providers: components["schemas"]["PlacementProviderResult"][];
+            /** Format: int64 */
+            rounds: number;
+            runHelpers: string[];
+            seeds: components["schemas"]["PlacementResultSeed"][];
+            /** Format: date-time */
+            startedAt: string;
+            startedBy: string;
+            startedById?: string;
+            /** @enum {string} */
+            status: "sending" | "waiting" | "finished" | "stopped";
+            /** Format: date-time */
+            stoppedAt?: string;
+            stoppedBy?: string;
+            stream: string;
+            subject: string;
+            /** @enum {string} */
+            through: "route" | "provider" | "compare";
+            variant?: string;
+            /**
+             * Format: date-time
+             * @description Copies missing then are Not arrived
+             */
+            waitUntil?: string;
+        };
+        PlacementTestList: {
+            attention: components["schemas"]["PlacementSeedView"][];
+            canManage: boolean;
+            canRun: boolean;
+            /** @enum {string} */
+            deleteAfter: "24h" | "finished" | "never";
+            manageHelpers: string[];
+            providers: components["schemas"]["PlacementFacet"][];
+            runHelpers: string[];
+            /** Format: int64 */
+            seedsConnected: number;
+            /** Format: int64 */
+            seedsTotal: number;
+            starters: components["schemas"]["PlacementFacet"][];
+            tests: components["schemas"]["PlacementTestRow"][];
+        };
+        PlacementTestRow: {
+            /**
+             * Format: date-time
+             * @description When the campaign is scheduled or was sent
+             */
+            contentAt?: string;
+            contentId?: string;
+            contentKey?: string;
+            /** @enum {string} */
+            contentKind: "campaign" | "template" | "digest" | "transactional";
+            contentName: string;
+            /** @description draft, scheduled, sent, template or the transactional template's key */
+            contentNote: string;
+            /** Format: int64 */
+            contentVersion?: number;
+            counts: components["schemas"]["PlacementCounts"];
+            /** Format: date-time */
+            finishedAt?: string;
+            id: string;
+            /** Format: date-time */
+            lastSentAt?: string;
+            /**
+             * Format: date-time
+             * @description Late copies found until then update the result
+             */
+            lateUntil?: string;
+            name: string;
+            /** @enum {string} */
+            origin: "placement" | "review" | "composer" | "warmup" | "template";
+            personalization: string;
+            providers: components["schemas"]["PlacementProviderResult"][];
+            /** Format: date-time */
+            startedAt: string;
+            startedBy: string;
+            startedById?: string;
+            /** @enum {string} */
+            status: "sending" | "waiting" | "finished" | "stopped";
+            /** @enum {string} */
+            through: "route" | "provider" | "compare";
+            /**
+             * Format: date-time
+             * @description Copies missing then are Not arrived
+             */
+            waitUntil?: string;
+        };
+        PlacementTestValue: {
+            name: string;
+            value: string;
+        };
+        PlacementTiming: {
+            /** @enum {string} */
+            folder: "inbox" | "tab" | "spam";
+            folderName: string;
+            /** Format: int64 */
+            ms: number;
+            seedProvider: string;
+            seedProviderName: string;
+        };
+        PlacementVariant: {
+            key: string;
+            subject: string;
+        };
         PreferenceLinkResult: {
             url: string;
         };
@@ -15511,7 +16686,7 @@ export interface components {
         };
         ReadinessFix: {
             /** @enum {string} */
-            action?: "exclude_sunset" | "route_only" | "insert_footer" | "replace_link" | "use_subject" | "minify" | "mark_language_up_to_date" | "mark_language_translated" | "hold_language" | "release_language" | "accessibility_decorative" | "accessibility_color" | "accessibility_one_click";
+            action?: "exclude_sunset" | "route_only" | "insert_footer" | "replace_link" | "use_subject" | "minify" | "mark_language_up_to_date" | "mark_language_translated" | "hold_language" | "release_language" | "accessibility_decorative" | "accessibility_color" | "accessibility_one_click" | "exclude_risky" | "verify_addresses";
             href?: string;
             /** @enum {string} */
             kind: "apply" | "link";
@@ -15530,7 +16705,7 @@ export interface components {
         };
         ReadinessFixRequest: {
             /** @enum {string} */
-            action: "exclude_sunset" | "route_only" | "insert_footer" | "replace_link" | "use_subject" | "minify" | "mark_language_up_to_date" | "mark_language_translated" | "hold_language" | "release_language" | "accessibility_decorative" | "accessibility_color" | "accessibility_one_click";
+            action: "exclude_sunset" | "route_only" | "insert_footer" | "replace_link" | "use_subject" | "minify" | "mark_language_up_to_date" | "mark_language_translated" | "hold_language" | "release_language" | "accessibility_decorative" | "accessibility_color" | "accessibility_one_click" | "exclude_risky" | "verify_addresses";
             params?: {
                 [key: string]: string;
             };
@@ -19016,6 +20191,378 @@ export interface components {
             /** @enum {string} */
             where: "subject" | "preheader" | "body" | "text";
         };
+        VerificationCapabilities: {
+            bulkLists: boolean;
+            catchAll: boolean;
+            creditBalance: boolean;
+            dataRegion: boolean;
+            realTime: boolean;
+        };
+        VerificationConnectInput: {
+            apiKey: string;
+            defaultBulk: boolean;
+            defaultForms: boolean;
+            /**
+             * Format: double
+             * @description Price per check in dollars
+             */
+            price: number;
+            /** @enum {string} */
+            region?: "us" | "eu" | "";
+            /** @enum {string} */
+            service: "zerobounce" | "kickbox" | "neverbounce" | "bouncer" | "emailable";
+        };
+        VerificationDisconnectResult: {
+            bulk: boolean;
+            forms: string[];
+            service: string;
+        };
+        VerificationEstimate: {
+            /** Format: int64 */
+            after?: number;
+            /** Format: int64 */
+            balance?: number;
+            /** Format: date-time */
+            balanceAt?: string;
+            canManage: boolean;
+            canVerify: boolean;
+            connected: boolean;
+            /** Format: int64 */
+            contacts: number;
+            /** Format: double */
+            cost: number;
+            enough: boolean;
+            kind: string;
+            label: string;
+            manageHelpers: string[];
+            /** Format: double */
+            price: number;
+            regionLabel?: string;
+            service?: string;
+            serviceName?: string;
+            services: components["schemas"]["VerificationServiceChoice"][];
+            skipRecent: boolean;
+            /** Format: int64 */
+            skipped: number;
+            /** Format: date-time */
+            skippedOn?: string;
+            skippedService?: string;
+            /** Format: int64 */
+            toCheck: number;
+            verifyHelpers: string[];
+        };
+        VerificationEstimateInput: {
+            /** @enum {string} */
+            service?: "zerobounce" | "kickbox" | "neverbounce" | "bouncer" | "emailable" | "";
+            /** @description Skip addresses checked in the last 90 days (default true) */
+            skipRecent?: boolean;
+            target: components["schemas"]["VerificationTarget"];
+        };
+        VerificationFormCount: {
+            /** Format: int64 */
+            checks: number;
+            formKey: string;
+            /** Format: int64 */
+            invalid: number;
+            name: string;
+            /** Format: int64 */
+            noAnswer: number;
+            /** Format: int64 */
+            risky: number;
+            /** Format: int64 */
+            unknown: number;
+            /** Format: int64 */
+            valid: number;
+        };
+        VerificationFormInput: {
+            enabled: boolean;
+        };
+        VerificationFormSetting: {
+            /** Format: int64 */
+            askedToFix: number;
+            canChange: boolean;
+            down: boolean;
+            enabled: boolean;
+            formKey: string;
+            helpers: string[];
+            /** Format: double */
+            price: number;
+            /** @description The forms default service; empty when there is none */
+            service?: string;
+            serviceName?: string;
+            /** Format: int64 */
+            waiting: number;
+        };
+        VerificationJobView: {
+            /** Format: int64 */
+            balanceAfter?: number;
+            /** Format: int64 */
+            balanceBefore?: number;
+            campaignId?: string;
+            canExport: boolean;
+            canVerify: boolean;
+            /** Format: int64 */
+            checked: number;
+            /** Format: double */
+            cost: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            errorSince?: string;
+            /** Format: double */
+            estimated: number;
+            /** Format: int64 */
+            etaSeconds?: number;
+            /** Format: date-time */
+            finishedAt?: string;
+            id: string;
+            importId?: string;
+            /** Format: int64 */
+            invalid: number;
+            /** @enum {string} */
+            kind: "import" | "list" | "segment" | "tier" | "selection" | "contact";
+            label: string;
+            lastError?: string;
+            listId?: string;
+            /** Format: date-time */
+            nextTryAt?: string;
+            origin: string;
+            /** Format: double */
+            price: number;
+            reasons: {
+                [key: string]: number;
+            };
+            /** Format: date-time */
+            recheckFrom?: string;
+            regionLabel: string;
+            /** Format: date-time */
+            retryUntil?: string;
+            /** Format: int64 */
+            risky: number;
+            service: string;
+            serviceName: string;
+            /** Format: int64 */
+            skipped: number;
+            /** Format: date-time */
+            startedAt?: string;
+            startedBy: string;
+            /** @enum {string} */
+            status: "queued" | "running" | "paused" | "stopped" | "cancelled" | "finished";
+            /** @enum {string} */
+            stopReason: "" | "no_credits" | "service_down" | "key_rejected" | "cancelled";
+            stoppedBy?: string;
+            /** Format: int64 */
+            suppressed: number;
+            tiers: string[];
+            /** Format: int64 */
+            total: number;
+            /** Format: int64 */
+            unknown: number;
+            /** Format: int64 */
+            valid: number;
+        };
+        VerificationKeyInput: {
+            apiKey: string;
+            /** @enum {string} */
+            region?: "us" | "eu" | "";
+            /** @enum {string} */
+            service: "zerobounce" | "kickbox" | "neverbounce" | "bouncer" | "emailable";
+        };
+        VerificationKeyTest: {
+            /** Format: date-time */
+            at: string;
+            /** Format: int64 */
+            balance?: number;
+            /** Format: date-time */
+            error?: string;
+            /** @enum {string} */
+            kind?: "key_rejected" | "no_credits" | "unreachable" | "";
+            ok: boolean;
+            problem?: string;
+            /**
+             * Format: int64
+             * @description The service's HTTP status when it refused
+             */
+            status?: number;
+        };
+        VerificationMapping: {
+            codes: string[];
+            reason?: string;
+            /** @enum {string} */
+            result: "valid" | "invalid" | "risky" | "unknown";
+            tag?: string;
+        };
+        VerificationOverview: {
+            canManage: boolean;
+            canVerify: boolean;
+            defaultBulk?: string;
+            defaultForms?: string;
+            manageHelpers: string[];
+            services: components["schemas"]["VerificationServiceView"][];
+            uses: components["schemas"]["VerificationUse"][];
+            verifyHelpers: string[];
+        };
+        VerificationRealtime: {
+            /** Format: int64 */
+            askedToFix: number;
+            /** Format: int64 */
+            checks: number;
+            days: components["schemas"]["VerificationRealtimeDay"][];
+            forms: components["schemas"]["VerificationFormCount"][];
+            service: string;
+            /** Format: date-time */
+            since?: string;
+            /** Format: double */
+            spent: number;
+            total: components["schemas"]["VerificationFormCount"];
+            /** Format: int64 */
+            waiting: number;
+        };
+        VerificationRealtimeDay: {
+            /** Format: int64 */
+            checks: number;
+            /** @description YYYY-MM-DD */
+            day: string;
+        };
+        VerificationRegion: {
+            key: string;
+            label: string;
+        };
+        VerificationReplaceKeyInput: {
+            apiKey: string;
+        };
+        VerificationServiceChoice: {
+            /** Format: int64 */
+            balance?: number;
+            default: boolean;
+            key: string;
+            name: string;
+            /** Format: double */
+            price: number;
+            regionLabel: string;
+        };
+        VerificationServiceView: {
+            /** Format: int64 */
+            balance?: number;
+            /** Format: date-time */
+            balanceAt?: string;
+            /** Format: int64 */
+            bulkUses30d: number;
+            capabilities: components["schemas"]["VerificationCapabilities"];
+            /** Format: int64 */
+            checks30d: number;
+            connected: boolean;
+            /** Format: date-time */
+            connectedAt?: string;
+            connectedBy?: string;
+            defaultBulk: boolean;
+            defaultForms: boolean;
+            down: boolean;
+            initials: string;
+            /** @enum {string} */
+            key: "zerobounce" | "kickbox" | "neverbounce" | "bouncer" | "emailable";
+            keyHelp: string;
+            lastError?: string;
+            /** Format: date-time */
+            lastErrorAt?: string;
+            /** Format: date-time */
+            lastErrorSince?: string;
+            /** Format: date-time */
+            lastSuccessAt?: string;
+            lastSuccessWhat?: string;
+            /** Format: date-time */
+            lastUsedAt?: string;
+            lastUsedBy?: string;
+            lastUsedWhat?: string;
+            mappings: components["schemas"]["VerificationMapping"][];
+            name: string;
+            /** Format: int64 */
+            needed?: number;
+            neededLabel?: string;
+            pausedJob?: string;
+            /**
+             * Format: double
+             * @description Price per check in dollars, from the workspace's plan
+             */
+            price: number;
+            /** @description Who entered the price */
+            priceBy?: string;
+            region: string;
+            regionLabel: string;
+            regions: components["schemas"]["VerificationRegion"][];
+            /** Format: double */
+            spent30d: number;
+            /** @enum {string} */
+            status: "not_connected" | "connected" | "low_credits" | "error";
+            testOk?: boolean;
+            /** Format: date-time */
+            testedAt?: string;
+            website: string;
+        };
+        VerificationSettingsInput: {
+            defaultBulk: boolean;
+            defaultForms: boolean;
+            /** Format: double */
+            price: number;
+            /** @enum {string} */
+            region?: "us" | "eu" | "";
+        };
+        VerificationStartInput: {
+            campaignId?: string;
+            /** @enum {string} */
+            origin?: "list_health" | "readiness" | "contacts" | "profile" | "import" | "segments" | "growth" | "";
+            /** @enum {string} */
+            service?: "zerobounce" | "kickbox" | "neverbounce" | "bouncer" | "emailable" | "";
+            skipRecent?: boolean;
+            target: components["schemas"]["VerificationTarget"];
+        };
+        VerificationTarget: {
+            contactId?: string;
+            contactIds?: string[];
+            filter?: components["schemas"]["ContactFilter"];
+            importId?: string;
+            /** @enum {string} */
+            kind: "list" | "segment" | "tier" | "selection" | "contact" | "import";
+            label?: string;
+            listId?: string;
+            segmentId?: string;
+            tiers?: string[];
+        };
+        VerificationUse: {
+            /** Format: int64 */
+            addresses: number;
+            /** Format: date-time */
+            at: string;
+            by: string;
+            /** Format: double */
+            cost: number;
+            /** Format: date-time */
+            finishedAt?: string;
+            forms: components["schemas"]["VerificationFormCount"][];
+            id: string;
+            /** Format: int64 */
+            invalid: number;
+            /** @enum {string} */
+            kind: "import" | "list" | "segment" | "tier" | "selection" | "contact" | "realtime";
+            label: string;
+            /** Format: int64 */
+            noAnswer: number;
+            /** Format: int64 */
+            risky: number;
+            service: string;
+            serviceName: string;
+            status: string;
+            /** Format: int64 */
+            suppressed: number;
+            /** Format: int64 */
+            unknown: number;
+            /** Format: int64 */
+            valid: number;
+        };
+        VerifyContactInput: {
+            /** @enum {string} */
+            service?: "zerobounce" | "kickbox" | "neverbounce" | "bouncer" | "emailable" | "";
+        };
         WarmupCampaignUse: {
             /** Format: int64 */
             count: number;
@@ -22384,6 +23931,40 @@ export interface operations {
             };
         };
     };
+    "seed-oauth-callback": {
+        parameters: {
+            query?: {
+                code?: string;
+                state?: string;
+                error?: string;
+                error_description?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    "Cache-Control"?: string;
+                    Location?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "get-setup": {
         parameters: {
             query?: never;
@@ -23847,7 +25428,7 @@ export interface operations {
                 /** @description Action group (routing) or action (routing.updated) */
                 action?: string;
                 /** @description A group of actions, as in the action filter */
-                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations";
+                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "verification" | "placement";
                 result?: "allowed" | "denied" | "error";
                 range?: "24h" | "7d" | "30d" | "90d" | "all";
                 /** @description Overrides range */
@@ -23929,7 +25510,7 @@ export interface operations {
                 /** @description Action group (routing) or action (routing.updated) */
                 action?: string;
                 /** @description A group of actions, as in the action filter */
-                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations";
+                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "verification" | "placement";
                 result?: "allowed" | "denied" | "error";
                 range?: "24h" | "7d" | "30d" | "90d" | "all";
                 /** @description Overrides range */
@@ -33386,6 +34967,512 @@ export interface operations {
             };
         };
     };
+    "search-placement-content": {
+        parameters: {
+            query?: {
+                /** @description Words of the name */
+                q?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlacementContentList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "plan-placement-test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlacementRunInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlacementPlan"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-seed-mailboxes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlacementSeedList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "add-seed-mailbox": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlacementSeedInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlacementSeedCheck"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "start-seed-oauth": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlacementOAuthInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlacementOAuthStart"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-seed-mailbox": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                seed: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "reconnect-seed-mailbox": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlacementReconnectInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlacementSeedCheck"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-placement-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlacementSettingsInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlacementSettingsInput"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-placement-tests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlacementTestList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "start-placement-test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlacementRunInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlacementTestDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-placement-test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                test: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlacementTestDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-placement-copy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                copy: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlacementCopyDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-placement-copies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                test: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlacementTestDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "rerun-placement-test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                test: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlacementTestDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "stop-placement-test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                test: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlacementTestDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "list-provider-events": {
         parameters: {
             query?: {
@@ -37102,6 +39189,649 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-contact-address-check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                contact: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactAddressCheck"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "verify-contact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerifyContactInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactAddressCheck"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "estimate-verification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerificationEstimateInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationEstimate"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-form-address-check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description A form's id, or subscribe_page */
+                form: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationFormSetting"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-form-address-check": {
+        parameters: {
+            query?: {
+                /** @description The form's name, for the audit log */
+                name?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerificationFormInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationFormSetting"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "start-verification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerificationStartInput"];
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationJobView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-verification-job": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                job: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationJobView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "cancel-verification-job": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                job: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationJobView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "download-verification-results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                job: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Content-Disposition"?: string;
+                    "Content-Type"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "resume-verification-job": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                job: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationJobView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-verification-services": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationOverview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "connect-verification-service": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerificationConnectInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationServiceView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "test-verification-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerificationKeyInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationKeyTest"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-verification-service": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                service: "zerobounce" | "kickbox" | "neverbounce" | "bouncer" | "emailable";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationServiceView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "disconnect-verification-service": {
+        parameters: {
+            query?: {
+                /** @description The forms that stop checking, as the dialog listed them */
+                forms?: string[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationDisconnectResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-verification-service": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerificationSettingsInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationServiceView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "replace-verification-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerificationReplaceKeyInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationServiceView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-verification-realtime": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                service: "zerobounce" | "kickbox" | "neverbounce" | "bouncer" | "emailable";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationRealtime"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "test-verification-service": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                service: "zerobounce" | "kickbox" | "neverbounce" | "bouncer" | "emailable";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationKeyTest"];
+                };
             };
             /** @description Error */
             default: {
