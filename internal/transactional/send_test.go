@@ -654,8 +654,18 @@ func TestSendKeysAndPeople(t *testing.T) {
 	if p["code"] != "agents_never_send" {
 		t.Fatalf("agent: %v", p)
 	}
-	// The Owner sends from a session (the first-send guide does).
-	s.owner.Do("POST", base+"/messages", resetBody("linh@acme.io")).MustStatus(t, 202)
+	// The Owner sends from a session (the first-send guide does): the
+	// message says who sent it, with no key.
+	var sent struct{ ID string }
+	s.owner.Do("POST", base+"/messages", resetBody("linh@acme.io")).MustStatus(t, 202).JSON(t, &sent)
+	var d struct {
+		SentBy string          `json:"sentBy"`
+		KeyRef json.RawMessage `json:"keyRef"`
+	}
+	s.owner.Do("GET", base+"/messages/"+sent.ID, nil).MustStatus(t, 200).JSON(t, &d)
+	if d.SentBy != "Linh Nguyen" || len(d.KeyRef) != 0 {
+		t.Fatalf("sent from a session: %+v", d)
+	}
 }
 
 func TestSendRateLimit(t *testing.T) {

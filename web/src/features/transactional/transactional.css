@@ -1,0 +1,409 @@
+/*
+ * Transactional (Templates, Messages, Setup and Settings tabs, the
+ * first-send guide): the Transactional* boards' expansion components,
+ * copied value for value and prefixed `tx-` so they never collide with the
+ * shared vocabulary in app.css or the editor's `txe-` classes.
+ */
+@layer components {
+  .tx-num {
+    font-variant-numeric: tabular-nums;
+  }
+  .tx-ttl {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+  }
+  .tx-lead {
+    margin: 0;
+    color: var(--ink-2);
+    font-size: 14px;
+    max-width: 760px;
+  }
+  .tx-lnk {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+    font-size: 13px;
+  }
+
+  /* The header's numbers. */
+  .tx-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+  }
+  .tx-stat {
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .tx-stat .v {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.25;
+    margin-top: 2px;
+  }
+  .tx-stat .s {
+    font-size: 12px;
+    color: var(--ink-3);
+    font-weight: 500;
+  }
+  .tx-stat.hot {
+    border-color: var(--bad-line);
+    background: var(--bad-tint);
+  }
+
+  /* The route at a glance: Postmark → Amazon SES. */
+  .tx-flowr {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    font-size: 13px;
+  }
+  .tx-flowr .arw {
+    color: #9aa3b2;
+  }
+  .tx-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 28px;
+    padding: 0 10px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: var(--ground-3);
+    font-size: 12.5px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  /* Filter rows and status chips. */
+  .tx-filters {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--line-2);
+  }
+  .tx-fchips {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--line-2);
+  }
+  .tx-fchip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 30px;
+    padding: 0 11px;
+    border-radius: 999px;
+    border: 1px solid var(--line-strong);
+    background: var(--surface);
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--ink-nav);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .tx-fchip b {
+    font-weight: 600;
+    color: var(--ink-3);
+    font-variant-numeric: tabular-nums;
+  }
+  .tx-fchip.on {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: #fff;
+  }
+  .tx-fchip.on b {
+    color: var(--line-hover);
+  }
+  .tx-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 34px;
+    padding: 0 10px;
+    border: 1px solid var(--line-input);
+    border-radius: 8px;
+    background: var(--surface);
+    width: 240px;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  .tx-search input {
+    border: 0;
+    outline: 0;
+    font: inherit;
+    font-size: 13px;
+    flex: 1;
+    min-width: 0;
+    background: none;
+  }
+  .tx-search:focus-within {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  /* Live updates of the log. */
+  .tx-live {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--ok-fg);
+  }
+  .tx-live .dot {
+    box-shadow: 0 0 0 4px rgba(22, 101, 52, 0.15);
+  }
+  .tx-live.off {
+    color: var(--ink-3);
+  }
+  .tx-live.off .dot {
+    box-shadow: none;
+  }
+
+  .tx-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 12px 18px;
+    border-top: 1px solid var(--line-2);
+  }
+
+  /* Lines of a list inside a card (keys that can send). */
+  .tx-vline {
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+    padding: 8px 0;
+    border-top: 1px solid var(--line-2);
+    font-size: 13px;
+  }
+  .tx-vline:first-child {
+    border-top: 0;
+  }
+
+  /* Timelines and incidents. */
+  .tx-ev {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    padding: 12px 0;
+    border-top: 1px solid var(--line-2);
+  }
+  .tx-ev:first-child {
+    border-top: 0;
+  }
+  .tx-ev .ic {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+  }
+  .tx-ev .tx {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    flex: 1;
+  }
+  .tx-ev .tm {
+    font-family: var(--font-mono, 'IBM Plex Mono', ui-monospace, monospace);
+    font-size: 12px;
+    color: var(--ink-3);
+    flex: none;
+    padding-top: 5px;
+  }
+
+  /* Code samples: a dark box with language buttons and Copy. */
+  .tx-cbx {
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--dark-line);
+    background: var(--ink);
+    min-width: 0;
+  }
+  .tx-cbh {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--dark-line);
+    background: var(--dark-surface);
+    flex-wrap: wrap;
+  }
+  .tx-cbh button {
+    height: 28px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: 6px;
+    background: none;
+    color: #b4bac4;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .tx-cbh button.on {
+    background: #273244;
+    color: #fff;
+  }
+  .tx-cbh .cp {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--dark-text);
+    border: 1px solid #374151;
+  }
+  .tx-cbx pre {
+    margin: 0;
+    padding: 12px 14px;
+    font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--dark-text);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  .tx-cbx .c1 {
+    color: #93c5fd;
+  }
+  .tx-cbx .c2 {
+    color: #86efac;
+  }
+  .tx-cbx .c3 {
+    color: #fcd34d;
+  }
+  .tx-cbx .c4,
+  .tx-cbx .cm {
+    color: #9ca3af;
+  }
+  .tx-cbx .c5 {
+    color: #f9a8d4;
+  }
+
+  /* Values kept out of the log. */
+  .tx-mask {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 12.5px;
+    color: var(--ink-2);
+    white-space: nowrap;
+  }
+  .tx-tok {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0 6px;
+    border-radius: 5px;
+    background: var(--purple-bg);
+    color: var(--purple-fg);
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 0.86em;
+    font-weight: 500;
+    line-height: 1.55;
+    white-space: nowrap;
+    vertical-align: baseline;
+  }
+  .tx-tok.s {
+    background: var(--warn-bg);
+    color: var(--warn-fg);
+  }
+  .tx-mk {
+    display: inline-flex;
+    align-items: center;
+    height: 22px;
+    padding: 0 7px;
+    border-radius: 6px;
+    background: var(--neutral-bg);
+    color: var(--ink-nav);
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  /* Empty states. */
+  .tx-empty {
+    padding: 44px 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 12px;
+    border-style: dashed;
+  }
+  .tx-empty .tt {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .tx-empty .ds {
+    color: var(--ink-2);
+    max-width: 560px;
+  }
+
+  /* Table rows: a selected row and an expanded explanation. */
+  .tbl tr.tx-sel td {
+    background: var(--accent-tint);
+  }
+  .tbl tr.tx-xp td {
+    background: #fbfbfc;
+  }
+  .tbl tr.tx-click {
+    cursor: pointer;
+  }
+  .tbl tr.tx-click:hover td {
+    background: var(--ground-3);
+  }
+
+  /* Phones show lists instead of tables. */
+  .tx-only-phone {
+    display: none;
+  }
+  @media (max-width: 767px) {
+    .tx-stats {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .tx-ttl {
+      font-size: 19px;
+    }
+    .tx-only-phone {
+      display: flex;
+      flex-direction: column;
+    }
+    .tx-no-phone {
+      display: none;
+    }
+    .tx-ev .tm {
+      display: none;
+    }
+    .tx-cbx pre {
+      font-size: 11.5px;
+    }
+    .tx-search {
+      width: 100%;
+    }
+  }
+}
