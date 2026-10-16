@@ -37831,9 +37831,6 @@
           "provider": {
             "type": "string"
           },
-          "providerAdapter": {
-            "type": "string"
-          },
           "raw": {
             "type": "boolean"
           },

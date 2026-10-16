@@ -84,8 +84,6 @@ function look(status: Message['status']): { bg: string; fg: string; icon: IconNa
   return { bg: '#EEF0F3', fg: '#4B5563', icon: 'ban' }
 }
 
-const dot: Record<string, string> = { ses: 'var(--chart-ses)', postal: 'var(--chart-postal)', postmark: 'var(--chart-postmark)' }
-
 /** "Delivered Password reset [Transactional] via Postmark · Today 10:42 · Acme Cloud · 1.3 s after the call". */
 export function TransactionalActivityRow({ m, when, product, canViewContent }: { m: Message; when: (iso: string) => string; product: string; canViewContent: boolean }) {
   const t = useT()
@@ -108,14 +106,7 @@ export function TransactionalActivityRow({ m, when, product, canViewContent }: {
           {m.provider ? (
             <>
               {` ${t(mc.via)} `}
-              {m.providerAdapter === 'ses' ? (
-                <span className="badge pur h-5">{m.provider}</span>
-              ) : (
-                <span className="badge mut h-5">
-                  <span className="dot" style={{ color: dot[m.providerAdapter ?? ''] ?? 'var(--chart-other)' }} aria-hidden="true" />
-                  {m.provider}
-                </span>
-              )}
+              <span className="badge mut h-5">{m.provider}</span>
             </>
           ) : null}
         </span>
@@ -131,7 +122,9 @@ export function NotificationsRow({ tx, product, essential }: { tx: Activity; pro
   return (
     <li className="ev">
       <span className="ic" style={{ background: '#EEF0F3', color: '#4B5563' }}>
-        <Icon name="bell" size={13} />
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+          <path d="M3 8h10" />
+        </svg>
       </span>
       <div className="flex flex-1 flex-col gap-0.5">
         <span>

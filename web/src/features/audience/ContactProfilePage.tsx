@@ -10,7 +10,7 @@ import { ErrorPanel, Loading, Skeleton } from '@/components/ui/Feedback'
 import { Field, Input } from '@/components/ui/Field'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
-import { clock, count, dayMonthDate, shortDate } from '@/lib/format'
+import { clock, count, dayMonthDate, notificationTime, shortDate, usDate } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { useInvalidateAudience } from './ContactDialogs'
 import { fileName, saveBlob } from './download'
@@ -28,7 +28,8 @@ const fullDate = (iso: string) => {
   const d = new Date(iso)
   return `${dayMonthDate(d)} ${d.getFullYear()}`
 }
-const dateTime = (iso: string) => `${shortDate(iso)} ${clock(iso)}`
+/** "Today 10:42", else "Tue 7 Oct 09:41". */
+const dateTime = (iso: string) => (usDate(iso) === usDate(new Date()) ? notificationTime(iso) : `${shortDate(iso)} ${clock(iso)}`)
 const fullDateTime = (iso: string) => `${fullDate(iso)} ${clock(iso)}`
 
 function initials(p: Profile) {

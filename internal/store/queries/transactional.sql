@@ -630,7 +630,7 @@ DELETE FROM transactional_rejected_calls WHERE at < @before::timestamptz;
 -- name: TxnContactMessages :many
 -- A contact's transactional messages for its activity timeline.
 SELECT t.message_id, t.accepted_at, t.template_key, t.template_name, t.source, t.subject, t.test, t.reject_reason, t.category_name,
-       coalesce(p.name, '')::text AS provider_name, coalesce(p.adapter, '')::text AS provider_adapter, m.delivered_at,
+       coalesce(p.name, '')::text AS provider_name, m.delivered_at,
        (CASE WHEN t.test THEN 'test'
              WHEN t.reject_reason <> '' OR m.status IN ('rejected', 'cancelled') THEN 'rejected'
              WHEN m.status = 'held' THEN 'queued'

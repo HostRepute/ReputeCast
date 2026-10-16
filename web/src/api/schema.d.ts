@@ -18734,7 +18734,6 @@ export interface components {
             deliveryMs?: number;
             id: string;
             provider?: string;
-            providerAdapter?: string;
             raw: boolean;
             /** @enum {string} */
             status: "queued" | "sent" | "delivered" | "deferred" | "bounced" | "complained" | "rejected" | "failed" | "test";
