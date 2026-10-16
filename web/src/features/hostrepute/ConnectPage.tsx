@@ -301,7 +301,7 @@ function BackCard({ conn }: { conn: Connection }) {
           ]}
         />
         {limit ? <Note tone="neutral" className={plainNote}>{limit} ReputeCast stays fully usable.</Note> : null}
-        <ButtonLink size="sm" variant="primary" className="self-start" to="/w/$workspace/settings/integrations" params={{ workspace: slug }}>
+        <ButtonLink size="sm" variant="primary" className="self-start" to="/w/$workspace/settings/integrations/hostrepute" params={{ workspace: slug }}>
           Finish
         </ButtonLink>
       </div>

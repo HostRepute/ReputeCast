@@ -141,7 +141,11 @@ func TestCampaignReport(t *testing.T) {
 	if len(h.SentBy) != 2 || h.SentBy[0].Short != "SES" || h.SentBy[0].Count != 43182 || h.SentBy[1].Count != 4798 {
 		t.Fatalf("sent by: %+v", h.SentBy)
 	}
-	if !r.Campaign.Final || r.Campaign.Audience != "All subscribers" || len(r.Campaign.Notes) == 0 || r.Campaign.Notes[0] != "A/B subject, winner B" {
+	// The demo's October Product Update finished 72 hours before 12:41 New
+	// York time on its "today", which starts at 11:00, so between 11:00 and
+	// 12:41 its results are not final yet.
+	final := r.Campaign.FinalAt != nil && !time.Now().Before(*r.Campaign.FinalAt)
+	if r.Campaign.Final != final || r.Campaign.Audience != "All subscribers" || len(r.Campaign.Notes) == 0 || r.Campaign.Notes[0] != "A/B subject, winner B" {
 		t.Fatalf("campaign: %+v", r.Campaign)
 	}
 	if !r.Engagement.Available || len(r.Engagement.Points) != 73 || r.Engagement.HumanWithin6h < 61.5 || r.Engagement.HumanWithin6h >= 62.5 ||

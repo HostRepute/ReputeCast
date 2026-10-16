@@ -170,6 +170,9 @@ func (s *Service) Confirm(ctx context.Context, ws *store.Workspace, contactID uu
 				if err := automations.EmitFormSubmitted(ctx, q, ws.ID, contactID, *r.FormID); err != nil {
 					return err
 				}
+				if err := emitFormSubmitted(ctx, tx, ws, *r.FormID, contactID, nil, r.CreatedAt, ev.At); err != nil {
+					return err
+				}
 			}
 		}
 		return nil

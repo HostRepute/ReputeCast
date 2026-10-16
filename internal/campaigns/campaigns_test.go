@@ -35,9 +35,10 @@ func TestListCampaigns(t *testing.T) {
 	c.Do("GET", "/workspaces/acme-newsletter/campaigns?pageSize=9", nil).MustStatus(t, 200).JSON(t, &list)
 	// 48 campaigns of the Campaigns board plus the approval sample data:
 	// November Product Update (waiting for approval), two of Daniel's drafts
-	// and the Beta Program launch invite (sent); and the accessibility
-	// sample's draft, Weekly Digest #143.
-	if list.Total != 53 || list.Counts.All != 53 || list.Counts.Drafts != 6 || list.Counts.Scheduled != 1 || list.Counts.Sent != 46 {
+	// and the Beta Program launch invite (sent). The integrations hub adds
+	// the draft blog.acme.io made from a post (Scheduled rollouts are here),
+	// and the accessibility sample its draft, Weekly Digest #143.
+	if list.Total != 54 || list.Counts.All != 54 || list.Counts.Drafts != 7 || list.Counts.Scheduled != 1 || list.Counts.Sent != 46 {
 		t.Fatalf("counts: total %d %+v", list.Total, list.Counts)
 	}
 	if len(list.Items) != 9 {
@@ -55,14 +56,20 @@ func TestListCampaigns(t *testing.T) {
 	}
 	// Drafts follow their last save (Weekly Digest #143's is relative to the
 	// clock), so the drafts below are found by name.
-	var flash, oct = list.Items[0], list.Items[0]
+	var post, flash, oct = list.Items[0], list.Items[0], list.Items[0]
 	for _, it := range list.Items {
 		switch it.Name {
+		case "Scheduled rollouts are here":
+			post = it
 		case "Flash sale: 48 hours only":
 			flash = it
 		case "October Product Update":
 			oct = it
 		}
+	}
+	// The integrations hub's post draft.
+	if post.Name != "Scheduled rollouts are here" || post.Status != "draft" {
+		t.Fatalf("post draft: %+v", post)
 	}
 	// "3 blocking issues", as on the board and on Review & send: its two
 	// warnings aren't counted.
@@ -74,7 +81,7 @@ func TestListCampaigns(t *testing.T) {
 	}
 
 	c.Do("GET", "/workspaces/acme-newsletter/campaigns?status=drafts", nil).MustStatus(t, 200).JSON(t, &list)
-	if list.Total != 6 {
+	if list.Total != 7 {
 		t.Fatalf("drafts: %d", list.Total)
 	}
 	c.Do("GET", "/workspaces/acme-newsletter/campaigns?q=flash", nil).MustStatus(t, 200).JSON(t, &list)

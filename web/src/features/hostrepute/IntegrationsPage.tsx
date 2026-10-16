@@ -10,11 +10,12 @@ import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Note } from '@/components/ui/Note'
 import { Table, Td, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
-import { settingsTabs } from '@/features/settings/SettingsTabs'
+import { m as hub } from '@/features/integrations/messages'
+import { useT } from '@/i18n'
 import { ago, clock, count, monthDay, trimPct, usDate } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { ConnectCard } from './ConnectCard'
-import { numberWord, plainNote, roleLabel, ShieldMark, useIntegrations, useRefreshConnection, useStartOAuth, type Connection, type Integrations } from './shared'
+import { numberWord, plainNote, roleLabel, ShieldMark, useIntegrations, useRefreshConnection, useStartOAuth, type Connection } from './shared'
 
 /** The answer to "Add to monitoring" when the HostRepute plan is full. */
 interface Limit {
@@ -26,13 +27,27 @@ interface Limit {
   swapRole?: string
 }
 
-/** Settings › Integrations: HostRepute and the other integrations. */
+/**
+ * Settings › Integrations › HostRepute (SettingsIntegrations): today's
+ * connected view, now the HostRepute card's page in the integrations hub.
+ * The other integrations it used to list are cards of the catalog.
+ */
 export function IntegrationsPage() {
   const { slug } = useWorkspace()
+  const t = useT()
   const q = useIntegrations()
   const [limit, setLimit] = useState<Limit | null>(null)
+  const name = t(hub.hostrepute)
   return (
-    <Page title="Settings" documentTitle="Integrations · Settings" tabs={settingsTabs(slug)}>
+    <Page
+      title={name}
+      documentTitle={`${name} · ${t(hub.title)}`}
+      breadcrumb={[
+        { label: t(hub.settings), to: '/w/$workspace/settings', params: { workspace: slug } },
+        { label: t(hub.title), to: '/w/$workspace/settings/integrations', params: { workspace: slug } },
+        { label: name },
+      ]}
+    >
       {q.isError ? (
         <ErrorPanel title="Couldn't load integrations" actions={<Button onClick={() => q.refetch()}>Retry</Button>}>
           {errorMessage(q.error)} Nothing was changed.
@@ -50,7 +65,6 @@ export function IntegrationsPage() {
         <>
           <HostReputeSection conn={q.data.hostRepute} onLimit={setLimit} />
           {limit ? <LimitCard limit={limit} onClose={() => setLimit(null)} /> : null}
-          <OtherIntegrations d={q.data} />
         </>
       )}
     </Page>
@@ -95,6 +109,7 @@ function assetStatus(a: Connection['assets'][number], sources: number) {
 /** Connected (SettingsIntegrations): account, scopes, monitored assets. */
 function HostReputeCard({ conn, onLimit }: { conn: Connection; onLimit: (l: Limit | null) => void }) {
   const { slug } = useWorkspace()
+  const t = useT()
   const refresh = useRefreshConnection()
   const reason = usePermissionReason('integrations:hostrepute')
   const [adding, setAdding] = useState<string>()
@@ -188,6 +203,7 @@ function HostReputeCard({ conn, onLimit }: { conn: Connection; onLimit: (l: Limi
               </>,
             ],
             ['Sent to HostRepute', 'Sending domains and dedicated IPs to monitor. Never contacts, never email content.'],
+            [t(hub.hrAdds), t(hub.hrAddsValue)],
             ['Alerts', conn.alertsToNotifications ? 'Delivered into ReputeCast notifications (in-app and email per member preference)' : 'Not delivered into ReputeCast notifications'],
           ]}
         />
@@ -399,104 +415,5 @@ function DisconnectDialog({ open, onOpenChange, team }: { open: boolean; onOpenC
         <li>Every other feature, including provider health, routing, guarded sending and reports</li>
       </ul>
     </Dialog>
-  )
-}
-
-/** Other integrations: webhooks, MCP, Postmaster and SNDS. */
-function OtherIntegrations({ d }: { d: Integrations }) {
-  const { slug } = useWorkspace()
-  const params = { workspace: slug }
-  const via = (v: string) =>
-    v === 'hostrepute' ? <Badge tone="ok">Via HostRepute</Badge> : v === 'direct' ? <Badge tone="ok">Connected directly</Badge> : <Badge tone="neutral">Not connected</Badge>
-  return (
-    <section className="card" aria-labelledby="h-other">
-      <div className="sec">
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <h2 className="h2" id="h-other">
-            Other integrations
-          </h2>
-          <span className="k">Everything here is part of the open-source edition</span>
-        </div>
-      </div>
-      <Table density="compact" className="[&_td]:!whitespace-normal [&_td_.badge]:!whitespace-nowrap" caption="Other integrations">
-        <thead>
-          <tr>
-            <Th>Integration</Th>
-            <Th>Status</Th>
-            <Th>Used for</Th>
-            <Th>
-              <span className="vh">Actions</span>
-            </Th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <Td>
-              <span className="font-semibold">Outgoing webhooks</span>
-            </Td>
-            <Td>
-              {d.webhooks.endpoints ? (
-                <Badge tone="ok">
-                  {count(d.webhooks.endpoints)} {d.webhooks.endpoints === 1 ? 'endpoint' : 'endpoints'}
-                  {d.webhooks.failing ? ` · ${count(d.webhooks.failing)} failing` : ''}
-                </Badge>
-              ) : (
-                <Badge tone="neutral">No endpoints</Badge>
-              )}
-            </Td>
-            <Td>Normalized events to your systems and Slack</Td>
-            <Td>
-              <ButtonLink size="sm" to="/w/$workspace/settings/webhooks" params={params}>
-                Manage
-              </ButtonLink>
-            </Td>
-          </tr>
-          <tr>
-            <Td>
-              <span className="font-semibold">MCP server</span>
-            </Td>
-            <Td>
-              {d.mcp.agents ? (
-                <Badge tone="ok">
-                  On · {count(d.mcp.agents)} {d.mcp.agents === 1 ? 'agent' : 'agents'}
-                </Badge>
-              ) : (
-                <Badge tone="neutral">No agents</Badge>
-              )}
-            </Td>
-            <Td>AI agents with scoped permissions</Td>
-            <Td>
-              <ButtonLink size="sm" to="/w/$workspace/settings/keys" params={params}>
-                Manage
-              </ButtonLink>
-            </Td>
-          </tr>
-          <tr>
-            <Td>
-              <span className="font-semibold">Google Postmaster Tools</span>
-            </Td>
-            <Td>{via(d.postmaster.via)}</Td>
-            <Td>Domain reputation, spam rate, feedback loop</Td>
-            <Td>
-              <ButtonLink size="sm" to="/w/$workspace/deliverability" params={params}>
-                View
-              </ButtonLink>
-            </Td>
-          </tr>
-          <tr>
-            <Td>
-              <span className="font-semibold">Microsoft SNDS</span>
-            </Td>
-            <Td>{via(d.snds.via)}</Td>
-            <Td>IP reputation for Outlook.com</Td>
-            <Td>
-              <ButtonLink size="sm" to="/w/$workspace/deliverability" params={params}>
-                View
-              </ButtonLink>
-            </Td>
-          </tr>
-        </tbody>
-      </Table>
-    </section>
   )
 }

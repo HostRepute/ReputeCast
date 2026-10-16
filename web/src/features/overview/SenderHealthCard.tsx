@@ -23,7 +23,7 @@ function ReasonAction({ a }: { a: Schemas['OverviewHealthAction'] }) {
       )
     case 'integrations':
       return (
-        <Link to="/w/$workspace/settings/integrations" params={params}>
+        <Link to="/w/$workspace/settings/integrations/hostrepute" params={params}>
           {a.label}
         </Link>
       )

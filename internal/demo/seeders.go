@@ -23,7 +23,9 @@ var (
 	seedNotifications  = noop // notification center items
 	seedAudit          = noop // audit history
 	seedTransactional  = noop // transactional email: Acme Cloud's templates, keys, messages, relay (seed_transactional.go)
-	seedAccessibility  = noop // accessibility policy, Weekly Digest #143, the gallery's and the publish dialog's issues (seed_accessibility.go)
+	// Design expansion (append-only).
+	seedIntegrationsHub = noop // integrations hub: Zapier, n8n, WordPress sites (seed_integrations_hub.go)
+	seedAccessibility   = noop // accessibility policy, Weekly Digest #143, the gallery's and the publish dialog's issues (seed_accessibility.go)
 )
 
 func noop(context.Context, *Seeder) error { return nil }

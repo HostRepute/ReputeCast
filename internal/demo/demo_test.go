@@ -44,9 +44,10 @@ func TestSeed(t *testing.T) {
 	if err := pool.QueryRow(ctx, `SELECT count(*) FROM campaigns`).Scan(&campaigns); err != nil {
 		t.Fatal(err)
 	}
-	// The Campaigns board's 48 plus the approval inbox's sample campaigns
-	// and the accessibility sample's Weekly Digest #143.
-	if campaigns != 53 {
-		t.Fatalf("want 53 demo campaigns, got %d", campaigns)
+	// The Campaigns board's 48 plus the approval inbox's sample campaigns,
+	// the draft blog.acme.io made from a post (integrations hub) and the
+	// accessibility sample's Weekly Digest #143.
+	if campaigns != 54 {
+		t.Fatalf("want 54 demo campaigns, got %d", campaigns)
 	}
 }
