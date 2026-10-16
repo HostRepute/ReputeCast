@@ -1,0 +1,162 @@
+import { defineMessages } from '@/i18n'
+
+/**
+ * The composer's accessibility (5.11, 5.12): the Accessibility tab, the
+ * canvas tags, the status bar, the color picker's contrast chip, Text role
+ * and the template gallery's results.
+ */
+export const m = defineMessages('accessibilityComposer', {
+  tab: 'Accessibility',
+  tabCount: 'Accessibility · {count}',
+
+  // Summary.
+  summaryBoth: '{count, plural, one {# issue} other {# issues}}: {serious} serious, {moderate} moderate',
+  summarySerious: '{count, plural, one {# serious issue} other {# serious issues}}',
+  summaryModerate: '{count, plural, one {# moderate issue} other {# moderate issues}}',
+  checkedLine: 'In {languages} · checked {time}, as you edit',
+  noIssues: 'No issues',
+  noIssuesDetail: 'lang, dir and layout tables were set for you. {name}, in {languages}.',
+
+  // Notes above the list.
+  policyWarn: 'They’re warnings in Review & send. Your workspace doesn’t block on them.',
+  policyBlock: 'Your workspace blocks sends with serious accessibility issues.',
+  policyBlockBy: 'Your workspace blocks sends with serious accessibility issues. Changed by {name} at {time}.',
+  policyBlockOn: 'Your workspace blocks sends with serious accessibility issues. Changed by {name} on {date}.',
+  policyLink: 'Policy',
+  readOnly: 'Read-only · {name}, {role}. Fixing needs campaigns:edit.',
+  readOnlyAsk: 'Read-only · {name}, {role}. Fixing needs campaigns:edit. Ask {helpers}.',
+  sent: 'This campaign can’t change any more. The issues are listed for the next one.',
+  htmlEmail: 'This email is written in HTML, so its fixes are made in the code: each issue opens it.',
+  variant: 'The checks read variant A. Switch to it to fix these.',
+
+  // Filters.
+  filterLabel: 'Show',
+  filterAll: 'All · {count}',
+  filterSerious: 'Serious · {count}',
+  filterModerate: 'Moderate · {count}',
+  languageLabel: 'Languages',
+  allLanguages: 'All languages',
+  filteredOut: 'Nothing here with these filters.',
+
+  // An issue.
+  serious: 'Serious',
+  seriousBlocks: 'Serious · blocks sending',
+  moderate: 'Moderate',
+  in: 'In',
+  showOnCanvas: 'Show on canvas',
+  showInCode: 'Show in code',
+  altLabel: 'Alt text in {language}',
+  altPlaceholder: 'Describe the image',
+  save: 'Save',
+  decorative: 'Decorative image',
+  altOthers: '{languages} get their own alt text when you switch to them.',
+  colorShared: 'The color is shared, so one fix covers every language.',
+  reasonOtherButtons: 'Your other buttons',
+  reasonNearestAA: 'Nearest that passes AA',
+  reasonAAA: 'Passes AAA',
+  use: 'Use',
+  useColor: 'Use {color}',
+  useTitle: 'Use “{title}”',
+  writeOwn: 'Write your own',
+  linkLabel: 'Link text in {language}',
+  linkPlaceholder: 'Say where the link goes',
+  headingOne: 'Change it to Heading {level}',
+  headingBoth: 'Change both to Heading {level}',
+  headingAll: 'Change all {count} to Heading {level}',
+  keepsLook: 'The text keeps its look.',
+  setSize: 'Set to {px} px',
+
+  // Passing checks.
+  passingTitle: 'Passing checks · {count}',
+  passingCaption: 'added for you, or already right',
+  passLangDir: '`lang` and `dir` added to every version',
+  passTables: '`role="presentation"` on {count, plural, one {# layout table} other {# layout tables}}',
+  passTablesAdded: 'added where MJML missed it',
+  passTablesNone: 'MJML marked every one',
+  passImages: '{ok} of {count, plural, one {# image has} other {# images have}} alt text',
+  passLinks: '{ok} of {count, plural, one {# link says} other {# links say}} where they go',
+  passNothing: 'nothing to fix',
+  passNamedAbove: '{name} is listed above',
+  passAbove: '{count, plural, one {# is listed above} other {# are listed above}}',
+
+  // Fixed in this session.
+  fixedTitle: 'Fixed · {count}',
+  undo: 'Undo',
+  undoGone: 'You edited the email after this fix',
+  undoGoneDetail: 'Undo it with ⌘Z, or change it back by hand.',
+  fixFailed: 'Couldn’t apply the fix',
+  fixedAlt: '{name} has alt text now',
+  fixedDecorative: '{name} is marked decorative',
+  fixedColor: '“{label}” is {color} now',
+  fixedLink: 'The link says “{text}” now',
+  fixedHeadingOne: '“{text}” is Heading {level} now',
+  fixedHeadingMany: '{subject} are Heading {level} now',
+  fixedSize: '{subject} is {px} px now',
+  fixedIn: '{fix}, in {language}',
+  toastHeadings: '{count, plural, one {Changed a heading to Heading {level}} other {Changed # headings to Heading {level}}}',
+
+  // Checking, and when it can't.
+  checking: 'Checking {languages}…',
+  checkingEmail: 'Checking the email…',
+  checkingAfter: 'After your edit at {time} · usually under a second',
+  checkingFirst: 'Usually under a second',
+  errorTitle: 'Couldn’t check the email',
+  errorDetail: 'Your edits are saved.',
+  errorDetailLast: 'Your edits are saved. The last check, at {time}, found {count, plural, =0 {no issues} one {# issue} other {# issues}}.',
+  tryAgain: 'Try again',
+  reference: 'request {ref}',
+
+  // Status bar.
+  statusAllClear: 'Accessibility: all clear',
+  statusIssues: '{count, plural, one {# accessibility issue} other {# accessibility issues}}',
+  statusIssuesSerious: '{count, plural, one {# accessibility issue} other {# accessibility issues}} ({serious} serious)',
+
+  // Text role.
+  textRole: 'Text role',
+  roleParagraph: 'Paragraph',
+  roleHeading: 'Heading {level}',
+  roleHelp: 'Screen readers announce headings and their level. The text keeps its look.',
+  roleDefaults: 'The Hero block’s headline is Heading 1 and the Article card’s title is Heading 2 by default.',
+  roleMixed: 'This text has several paragraphs. A heading gets its own Text block.',
+
+  // Color picker.
+  pickerLabel: '{field} picker',
+  hue: 'Hue',
+  shade: 'Saturation and brightness',
+  eyedropper: 'Pick a color from the screen',
+  chipFails: '{ratio} · Fails AA',
+  chipFailsShort: '{ratio} · Fails',
+  chipAA: '{ratio} · Passes AA',
+  chipAAA: '{ratio} · Passes AAA',
+  chipLarge: '{ratio} · Passes AA for large text',
+  asYouDrag: 'updates as you drag',
+  againstBackground: '{what} {color} on this background',
+  againstText: '{what} in this color on {color}',
+  buttonText: 'Button text',
+  bodyText: 'Text',
+  textOf: '{what}, {px} px{bold, select, true { bold} other {}}',
+  colText: 'Text',
+  colAA: 'AA',
+  colAAA: 'AAA',
+  normalNeeds: 'Normal needs 4.5 · 7',
+  largeNeeds: 'Large needs 3 · 4.5',
+  pass: 'Pass',
+  fail: 'Fail',
+  suggestions: 'Suggestions',
+  suggestionsHelp: 'Click one to apply it.',
+  nothingToSuggest: 'Nothing to suggest: this color passes for its size.',
+  passesAll: 'Passes AA and AAA, for normal and large text.',
+  largeNote: 'The text is {px} px{bold, select, true { bold} other {}}, so 3:1 is enough for AA. Body text in this color would fail.',
+  cantCheck: 'Can’t check',
+  overImage: '{what} over {image}',
+  overImageDetail: 'Contrast can’t be checked over an image. Check it by eye, or set a background color behind the image.',
+  notCounted: 'Not counted as an issue.',
+  worstFirst: 'Each text color inside, the lowest first',
+
+  // Template gallery.
+  galleryChecked: 'Checked in {language}, the templates’ language · built-in templates and starters are all clear',
+  galleryCheckedSome: 'Checked in {language}, the templates’ language',
+  allClear: 'All clear',
+  galleryIssues: '{count, plural, one {# issue} other {# issues}}',
+  galleryIssuesSerious: '{count, plural, one {# issue} other {# issues}} · {serious} serious',
+})

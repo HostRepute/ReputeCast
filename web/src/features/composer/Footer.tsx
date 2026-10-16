@@ -6,6 +6,8 @@ import { useComposer } from './context'
 import { ancestry, mjChildren, sectionLabel, tagOf } from './editor/labels'
 import { kb } from './format'
 import { contentIssues } from './RightPanel'
+import { useAccessibility } from '@/features/accessibility/composer/state'
+import { AccessibilityChip, AccessibilityClear, useAccessibilityIssueCount } from '@/features/accessibility/composer/Status'
 
 function plural(n: number, one: string, many = `${one}s`) {
   return `${n} ${n === 1 ? one : many}`
@@ -77,27 +79,39 @@ export function Breadcrumb() {
 /** Size, images and links of the whole email, from the last check. */
 export function SizeSummary() {
   const c = useComposer()
+  // The Accessibility chip covers alt text when its checks run.
+  const a11y = useAccessibility()?.enabled
   const r = c.checks
   if (!r) return <span className="k" style={{ marginLeft: 'auto' }}>Checking…</span>
   const issues = contentIssues(r.issues)
-  const images = !r.images ? 'no images' : r.imagesMissingAlt ? `${r.imagesMissingAlt} of ${plural(r.images, 'image')} missing alt text` : `${plural(r.images, 'image')}, all with alt text`
+  const images = !r.images
+    ? 'no images'
+    : a11y
+      ? plural(r.images, 'image')
+      : r.imagesMissingAlt
+        ? `${r.imagesMissingAlt} of ${plural(r.images, 'image')} missing alt text`
+        : `${plural(r.images, 'image')}, all with alt text`
   const extra = [r.linksBlocklisted ? `${r.linksBlocklisted} blocklisted` : '', r.linksBroken ? `${r.linksBroken} broken` : ''].filter(Boolean).join(', ')
   const links = `${plural(r.links, 'link')}${extra ? `, ${extra}` : ''}`
   const near = r.sizeBytes >= 85 * 1024
   return (
-    <span className="k" style={{ marginLeft: 'auto', ...(issues.length && (near || r.imagesMissingAlt || extra) ? { color: '#92400E', fontWeight: 600 } : {}) }}>
+    <span className="k" style={{ marginLeft: 'auto', ...(issues.length && (near || (!a11y && r.imagesMissingAlt) || extra) ? { color: '#92400E', fontWeight: 600 } : {}) }}>
       {kb(r.sizeBytes)} of 102 KB · {images} · {links}
+      <AccessibilityClear />
     </span>
   )
 }
 
 export function ChecksBadge() {
   const c = useComposer()
+  const a11y = useAccessibilityIssueCount()
   const r = c.checks
   if (!r) return null
   const issues = contentIssues(r.issues)
   const blocks = issues.filter((i) => i.severity === 'block').length
   const warns = issues.length - blocks
+  // With accessibility issues the status bar shows their chip instead.
+  if (!issues.length && a11y) return null
   if (!issues.length)
     return (
       <Badge tone="ok" dot>
@@ -141,6 +155,7 @@ export function Footer() {
       {code ? <span className="k">{c.view === 'mjml' ? 'Editing MJML directly · the Visual view re-parses on Apply' : 'Compiled HTML · read only · what the providers receive, before tracking'}</span> : <Breadcrumb />}
       <SizeSummary />
       <ChecksBadge />
+      <AccessibilityChip />
       {code ? null : <VersionLink />}
     </footer>
   )

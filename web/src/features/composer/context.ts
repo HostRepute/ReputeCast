@@ -85,8 +85,8 @@ export interface ComposerState {
 
   checks: Checks | undefined
   checksPending: boolean
-  rightTab: 'style' | 'settings' | 'deliverability'
-  setRightTab(t: 'style' | 'settings' | 'deliverability'): void
+  rightTab: 'style' | 'settings' | 'deliverability' | 'accessibility'
+  setRightTab(t: 'style' | 'settings' | 'deliverability' | 'accessibility'): void
   leftTab: 'blocks' | 'layers' | 'templates'
   setLeftTab(t: 'blocks' | 'layers' | 'templates'): void
   openDialog(d: ComposerDialog): void

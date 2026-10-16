@@ -27,8 +27,7 @@ export const Route = createFileRoute('/w/$workspace/campaigns/$campaignId/edit')
     return (
       <ComposerPage
         campaignId={campaignId}
-        // Until the composer has its Accessibility panel, its issues open in Deliverability.
-        search={{ ...s, panel: s.panel === 'accessibility' ? 'deliverability' : s.panel }}
+        search={s}
         onSearch={(next) =>
           void navigate({
             // The deep link is used once: later changes drop it.
