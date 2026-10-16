@@ -152,8 +152,7 @@ export const mr = defineMessages('languages.review', {
 /** The composer's language versions (ComposerLanguages, ComposerCompare, LanguageStates). */
 export const mz = defineMessages('languages.composer', {
   switcherLabel: 'Language version: {language}, {status}. Change language',
-  switcherSourceLabel:
-    'Language version: {language}, the source. {have} of {total, plural, one {# workspace language has} other {# workspace languages have}} a version. Change language',
+  switcherSourceLabel: 'Language version: {language}, Source · {have} of {total, plural, one {# language} other {# languages}} have a version. Change language',
   sourceChip: 'Source · {have} of {total, plural, one {# language} other {# languages}}',
   listLabel: 'Language versions of {name}',
   versions: 'Language versions',

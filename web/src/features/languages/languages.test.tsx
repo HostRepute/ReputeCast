@@ -116,8 +116,8 @@ describe('the composer’s language switcher', () => {
 
   it('counts the languages with a version on the source, as on Weekly Digest #142', () => {
     render(<LanguageSwitcher campaignName="Weekly Digest #143" data={versions} language="en" onPick={noop} onCompare={noop} onAdd={noop} />)
-    const button = screen.getByRole('button', { name: 'Language version: English, the source. 3 of 4 workspace languages have a version. Change language' })
-    expect(button).toHaveTextContent('EnglishSource · 3 of 4 languages')
+    const button = screen.getByRole('button', { name: 'Language version: English, Source · 3 of 4 languages have a version. Change language' })
+    expect(button).toHaveTextContent('English Source · 3 of 4 languages')
   })
 
   it('names a version and its status, and lists every language with its readers', () => {

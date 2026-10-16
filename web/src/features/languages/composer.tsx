@@ -162,7 +162,7 @@ export function LanguageSwitcher({
             }
           >
             <Icon name="globe" size={16} />
-            <span>{current.name}</span>
+            <span>{current.name}</span>{' '}
             <Badge tone={chip.tone}>{onSource ? t(mz.sourceChip, { have, total: offered.length }) : chip.short}</Badge>
             <Icon name="chevronDown" size={14} />
           </button>
