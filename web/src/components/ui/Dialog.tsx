@@ -1,7 +1,10 @@
 import { Dialog as RDialog } from 'radix-ui'
 import type { ReactNode } from 'react'
+import { useT } from '@/i18n'
+import { common } from '@/i18n/common'
 import { cn } from '@/lib/cn'
 import { Icon } from '../icons/Icon'
+import { m } from './messages'
 
 export interface DialogProps {
   open: boolean
@@ -49,6 +52,7 @@ export function Dialog({
   layout = 'standard',
   onOpenAutoFocus,
 }: DialogProps) {
+  const t = useT()
   if (layout !== 'standard') {
     return (
       <RDialog.Root open={open} onOpenChange={onOpenChange}>
@@ -65,7 +69,7 @@ export function Dialog({
               {description ? (
                 <RDialog.Description className="cd">{description}</RDialog.Description>
               ) : (
-                <RDialog.Description className="vh">{typeof title === 'string' ? title : 'Dialog'}</RDialog.Description>
+                <RDialog.Description className="vh">{typeof title === 'string' ? title : t(m.dialog)}</RDialog.Description>
               )}
               {children}
               {footer ? <div className="dacts">{footer}</div> : null}
@@ -91,12 +95,12 @@ export function Dialog({
               <div className="flex items-start justify-between gap-3">
                 <RDialog.Title className="m-0 text-[18px] font-bold tracking-[-0.01em]">{title}</RDialog.Title>
                 {hideClose ? null : (
-                  <RDialog.Close className="btn sm ic -mr-1.5 -mt-0.5 border-transparent" aria-label="Close">
+                  <RDialog.Close className="btn sm ic -mr-1.5 -mt-0.5 border-transparent" aria-label={t(common.close)}>
                     <Icon name="close" size={14} />
                   </RDialog.Close>
                 )}
               </div>
-              {description ? <RDialog.Description className="text-ink-2">{description}</RDialog.Description> : <RDialog.Description className="vh">{typeof title === 'string' ? title : 'Dialog'}</RDialog.Description>}
+              {description ? <RDialog.Description className="text-ink-2">{description}</RDialog.Description> : <RDialog.Description className="vh">{typeof title === 'string' ? title : t(m.dialog)}</RDialog.Description>}
             </div>
             {children ? <div className="db">{children}</div> : null}
             {footer ? <div className="df">{footer}</div> : null}
