@@ -130,10 +130,12 @@ export function validate(schema, value, at = 'body', spec = loadSpec()) {
   }
   if (typeOf(value) === 'object') {
     for (const r of s.required ?? []) {
-      if (!(r in value)) errors.push(`${at}.${r}: required`)
+      if (value[r] === undefined) errors.push(`${at}.${r}: required`)
     }
     const props = s.properties ?? {}
     for (const [k, v] of Object.entries(value)) {
+      // As JSON sends it: a property set to undefined isn't there.
+      if (v === undefined) continue
       if (k in props) {
         errors.push(...validate(props[k], v, `${at}.${k}`, spec))
       } else if (s.additionalProperties === false) {
