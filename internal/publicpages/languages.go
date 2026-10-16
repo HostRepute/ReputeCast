@@ -227,11 +227,15 @@ func (h *Handler) defaultLang(ctx context.Context, s *site) string {
 }
 
 // withLang is the request's own address with ?lang= set: the same page in
-// another language.
+// another language. The pages answering a Turnstile check have no address
+// of their own: theirs offer the form again.
 func withLang(r *http.Request, code string) string {
-	q := r.URL.Query()
+	path, q := r.URL.EscapedPath(), r.URL.Query()
+	if strings.HasSuffix(path, "/subscribe/challenge") && q.Get("c") == "" {
+		path = strings.TrimSuffix(path, "/challenge")
+	}
 	q.Set(langParam, code)
-	return r.URL.EscapedPath() + "?" + q.Encode()
+	return path + "?" + q.Encode()
 }
 
 // setLang shows a page in a language: its lang and dir, its labels and

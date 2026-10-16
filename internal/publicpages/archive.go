@@ -727,7 +727,7 @@ func (h *Handler) issueBar(s *site, pl pageLang, docLang, meta string, also []la
 		mark = `<span class="rcia-mark rcia-logo"><img src="` + esc(s.links.Logo(b.Logo.Hash)) + `" alt="" width="28" height="28"></span>`
 	}
 	p := b.Palette
-	style := fmt.Sprintf(`<style>.rcia{--rcia-accent:%s;--rcia-hover:%s;--rcia-on:%s;--rcia-ground:%s}</style>`, p.Accent, p.Hover, p.OnAccent, p.Background)
+	style := fmt.Sprintf(`<style>.rcia{--rcia-accent:%s;--rcia-hover:%s;--rcia-on:%s;--rcia-ground:%s;--rcia-text:%s}</style>`, p.Accent, p.Hover, p.OnAccent, p.Background, p.Text)
 	var out strings.Builder
 	out.WriteString("\n" + style + `<header class="rcia"` + langAttrs(pl, docLang) + `><div class="rcia-in"><a class="rcia-home" href="` + esc(s.links.Archive()) + `">` + mark +
 		`<span>` + esc(b.PublisherName) + ` · ` + esc(l.Text("archive.heading", nil)) + `</span></a><a class="rcia-sub" href="` + esc(s.links.Subscribe("")) + `">` +

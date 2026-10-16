@@ -575,6 +575,10 @@ func (h *Handler) renderChallenge(w http.ResponseWriter, r *http.Request, s *sit
 	body := challengeBody{ID: id, SiteKey: s.set.TurnstileSiteKey(), Action: s.links.Challenge(), ErrorURL: s.links.TurnstileError(), Alert: alert}
 	v := h.view(s, pageTitle(pl, s, "challenge.title"), body)
 	h.setLang(v, r, s, pl, nil)
+	for i := range v.Menu {
+		// The check itself in another language, whichever form led here.
+		v.Menu[i].Href = s.links.Challenge() + "?" + url.Values{"c": {id}, langParam: {v.Menu[i].Code}}.Encode()
+	}
 	v.Scripts = []string{s.links.Static("challenge.js?v=" + h.version), forms.TurnstileScript}
 	h.render(w, r, s, "challenge", http.StatusOK, v, csp{scripts: []string{forms.TurnstileOrigin}, frames: []string{forms.TurnstileOrigin}}, true)
 }
