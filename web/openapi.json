@@ -12231,6 +12231,10 @@
             "description": "open or click",
             "type": "string"
           },
+          "lastOpen": {
+            "format": "date-time",
+            "type": "string"
+          },
           "lost": {
             "format": "int64",
             "type": "integer"

@@ -313,9 +313,23 @@ func (n *names) describe(key string) GrowthSource {
 
 // sortSources orders sources as the table lists them: forms and the
 // subscribe page, API keys, integrations, people, imports (newest first),
-// then the sources imports carried; biggest first within each group.
-func sortSources(rows []GrowthSourceRow) {
+// then the sources imports carried; biggest first within each group. With
+// one list picked, the sources that brought members come by how many,
+// imports and carried sources last.
+func sortSources(rows []GrowthSourceRow, oneList bool) {
 	slices.SortStableFunc(rows, func(a, b GrowthSourceRow) int {
+		if oneList {
+			ai, bi := a.Source.Order >= kindOf(KindImport).Order, b.Source.Order >= kindOf(KindImport).Order
+			if ai != bi {
+				if ai {
+					return 1
+				}
+				return -1
+			}
+			if !ai && a.sortJoined != b.sortJoined {
+				return int(b.sortJoined - a.sortJoined)
+			}
+		}
 		if a.Source.Order != b.Source.Order {
 			return a.Source.Order - b.Source.Order
 		}

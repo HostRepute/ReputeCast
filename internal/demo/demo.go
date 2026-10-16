@@ -73,6 +73,9 @@ type Seeder struct {
 // verification, seeded with the senders but needing the providers).
 func (s *Seeder) After(fn func(context.Context, *Seeder) error) { s.after = append(s.after, fn) }
 
+// seedClock is the demo's "now"; tests seed other days with it.
+var seedClock = time.Now
+
 // ID returns a fresh UUIDv7.
 func ID() uuid.UUID { return uuid.Must(uuid.NewV7()) }
 
@@ -100,7 +103,7 @@ func Seed(ctx context.Context, pool *pgxpool.Pool, cfg *config.Config, box *secr
 	}
 	defer tx.Rollback(ctx) //nolint:errcheck
 	s := &Seeder{
-		Tx: tx, Q: store.New(tx), Box: box, Cfg: cfg, Now: time.Now(), Log: log,
+		Tx: tx, Q: store.New(tx), Box: box, Cfg: cfg, Now: seedClock(), Log: log,
 		Users: map[string]store.User{}, Workspaces: map[string]store.Workspace{}, Roles: map[string]store.Role{},
 		Lists: map[string]uuid.UUID{}, Providers: map[string]uuid.UUID{}, Campaigns: map[string]uuid.UUID{},
 		Senders: map[string]uuid.UUID{}, Domains: map[string]uuid.UUID{}, Extra: map[string]any{},
@@ -136,6 +139,7 @@ func Seed(ctx context.Context, pool *pgxpool.Pool, cfg *config.Config, box *secr
 		{"accessibility", seedAccessibility},
 		{"languages", seedLanguages},
 		{"app_languages", seedAppLanguages},
+		{"scoring and growth", seedScoringGrowth},
 	}
 	for _, st := range steps {
 		if err := st.fn(ctx, s); err != nil {

@@ -11375,6 +11375,8 @@ export interface components {
             lastActivity?: string;
             /** @description open or click */
             lastActivityKind?: string;
+            /** Format: date-time */
+            lastOpen?: string;
             /** Format: int64 */
             lost: number;
             /** Format: int64 */

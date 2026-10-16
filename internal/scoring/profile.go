@@ -76,6 +76,9 @@ type ContactScoreDecay struct {
 	// LastActivity is the last human open or click, and which.
 	LastActivity     *time.Time `json:"lastActivity,omitempty"`
 	LastActivityKind string     `json:"lastActivityKind,omitempty" doc:"open or click"`
+	// LastOpen is the last human open, which the decay row names ("None ·
+	// last human open Tue 7 Oct").
+	LastOpen *time.Time `json:"lastOpen,omitempty"`
 }
 
 // ContactScorePoint is the score at the end of a day (nil before the
@@ -258,6 +261,13 @@ func (s *Service) ContactScore(ctx context.Context, ws *store.Workspace, contact
 			}
 		}
 		out.Decay.QuietWeeks = int(asOf.Sub(*res.ActiveAt).Hours() / (24 * 7))
+	}
+	for i := len(res.Events) - 1; i >= 0; i-- {
+		if res.Events[i].Kind == KindOpen {
+			at := res.Events[i].At
+			out.Decay.LastOpen = &at
+			break
+		}
 	}
 	// The last change of the score itself (events at 100 change nothing).
 	last := -1

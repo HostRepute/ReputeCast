@@ -93,7 +93,8 @@ type GrowthSourceRow struct {
 	Joined *int64 `json:"joined,omitempty"`
 	Left   int64  `json:"left"`
 	Net    *int64 `json:"net,omitempty"`
-	// Contacts is how many contacts (or members) came from the source.
+	// Contacts is how many contacts came from the source; with one list
+	// picked, how many members it brought to the list in the period.
 	Contacts  int64 `json:"contacts"`
 	Sent      int64 `json:"sent"`
 	Delivered int64 `json:"delivered"`
@@ -614,6 +615,12 @@ func (g *gather) joinsAndDepartures(ctx context.Context) error {
 	for k := range keys {
 		src := g.describe(k)
 		row := GrowthSourceRow{Source: src, Left: g.left[k], Contacts: g.contacts[k]}
+		if g.list != uuid.Nil {
+			// With one list picked, a source's rates are about the members
+			// it brought to that list in the period: under 50 of them read
+			// "Too few to compare".
+			row.Contacts = g.joined[k]
+		}
 		j := g.joined[k]
 		row.sortJoined = j
 		if src.Imported && !g.in.Imports {
@@ -626,7 +633,7 @@ func (g *gather) joinsAndDepartures(ctx context.Context) error {
 		p.Sources = append(p.Sources, row)
 	}
 	p.Total.Net = p.Total.Joined - p.Total.Left
-	sortSources(p.Sources)
+	sortSources(p.Sources, g.list != uuid.Nil)
 	return nil
 }
 
