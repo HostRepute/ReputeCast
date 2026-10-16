@@ -193,6 +193,32 @@ samples, CLI output, "MCP", "2FA", "TOTP", "IdP", "SSO", "JIT", "A/B",
 | 14 /s | 14/giây |
 | Cost · Time | Chi phí · Thời gian |
 
+## Transactional templates
+
+| English | Tiếng Việt |
+|---|---|
+| transactional template · transactional email | mẫu giao dịch · email giao dịch |
+| draft · publish · v3 live | bản nháp · xuất bản · v3 đang chạy |
+| version · Publish again | phiên bản · Xuất bản lại |
+| variable · declare · required · optional | biến · khai báo · bắt buộc · không bắt buộc |
+| Sensitive | Nhạy cảm |
+| sample value · default | giá trị mẫu · mặc định |
+| test data (set) | (bộ) dữ liệu thử |
+| render · test renders | kết xuất · kết xuất thử |
+| Checks · Ready to publish | Kiểm tra · Sẵn sàng xuất bản |
+| breaking change | thay đổi gây lỗi |
+| Subject · Preheader | Tiêu đề · Dòng xem trước |
+| canvas | khung thiết kế |
+| Visual · Text (views) | Trực quan · Văn bản |
+| plain text | văn bản thuần |
+| call (an API call) | lệnh gọi |
+| Essential · Optional (categories) | Thiết yếu · Tùy chọn |
+| autosaved 09:41 · conflict | tự lưu lúc 09:41 · xung đột |
+| Import templates · Needs a manual fix | Nhập mẫu · Cần sửa thủ công |
+
+"payload", "Liquid", "MJML", "Mustachio", "Handlebars", "cURL" and "JSON"
+stay as they are.
+
 ## Team
 
 | English | Tiếng Việt |
