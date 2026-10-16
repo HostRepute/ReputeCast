@@ -661,7 +661,7 @@ func (q *Queries) TxnContactByEmail(ctx context.Context, arg TxnContactByEmailPa
 
 const txnContactMessages = `-- name: TxnContactMessages :many
 SELECT t.message_id, t.accepted_at, t.template_key, t.template_name, t.source, t.subject, t.test, t.reject_reason, t.category_name,
-       coalesce(p.name, '')::text AS provider_name, m.delivered_at,
+       coalesce(p.name, '')::text AS provider_name, coalesce(p.adapter, '')::text AS provider_adapter, m.delivered_at,
        (CASE WHEN t.test THEN 'test'
              WHEN t.reject_reason <> '' OR m.status IN ('rejected', 'cancelled') THEN 'rejected'
              WHEN m.status = 'held' THEN 'queued'
@@ -682,18 +682,19 @@ type TxnContactMessagesParams struct {
 }
 
 type TxnContactMessagesRow struct {
-	MessageID    uuid.UUID  `json:"messageId"`
-	AcceptedAt   time.Time  `json:"acceptedAt"`
-	TemplateKey  string     `json:"templateKey"`
-	TemplateName string     `json:"templateName"`
-	Source       string     `json:"source"`
-	Subject      string     `json:"subject"`
-	Test         bool       `json:"test"`
-	RejectReason string     `json:"rejectReason"`
-	CategoryName string     `json:"categoryName"`
-	ProviderName string     `json:"providerName"`
-	DeliveredAt  *time.Time `json:"deliveredAt"`
-	Status       string     `json:"status"`
+	MessageID       uuid.UUID  `json:"messageId"`
+	AcceptedAt      time.Time  `json:"acceptedAt"`
+	TemplateKey     string     `json:"templateKey"`
+	TemplateName    string     `json:"templateName"`
+	Source          string     `json:"source"`
+	Subject         string     `json:"subject"`
+	Test            bool       `json:"test"`
+	RejectReason    string     `json:"rejectReason"`
+	CategoryName    string     `json:"categoryName"`
+	ProviderName    string     `json:"providerName"`
+	ProviderAdapter string     `json:"providerAdapter"`
+	DeliveredAt     *time.Time `json:"deliveredAt"`
+	Status          string     `json:"status"`
 }
 
 // A contact's transactional messages for its activity timeline.
@@ -722,6 +723,7 @@ func (q *Queries) TxnContactMessages(ctx context.Context, arg TxnContactMessages
 			&i.RejectReason,
 			&i.CategoryName,
 			&i.ProviderName,
+			&i.ProviderAdapter,
 			&i.DeliveredAt,
 			&i.Status,
 		); err != nil {

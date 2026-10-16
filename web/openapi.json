@@ -37821,10 +37821,17 @@
           "category": {
             "type": "string"
           },
+          "deliveryMs": {
+            "format": "int64",
+            "type": "integer"
+          },
           "id": {
             "type": "string"
           },
           "provider": {
+            "type": "string"
+          },
+          "providerAdapter": {
             "type": "string"
           },
           "raw": {

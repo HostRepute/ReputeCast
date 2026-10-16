@@ -1298,7 +1298,11 @@ type TransactionalContactMessage struct {
 	Subject  string                    `json:"subject"`
 	Status   string                    `json:"status" enum:"queued,sent,delivered,deferred,bounced,complained,rejected,failed,test"`
 	Provider string                    `json:"provider,omitempty"`
-	Category string                    `json:"category,omitempty"`
+	// ProviderAdapter colours the provider's badge (ses, postmark, postal).
+	ProviderAdapter string `json:"providerAdapter,omitempty"`
+	Category        string `json:"category,omitempty"`
+	// DeliveryMs: from the call to the delivery event, once delivered.
+	DeliveryMs *int64 `json:"deliveryMs,omitempty"`
 }
 
 // TransactionalContactOptOut is an Optional category an address turned off.
@@ -1332,7 +1336,11 @@ func (s *Service) ContactActivity(ctx context.Context, ws *store.Workspace, cont
 		return out, err
 	}
 	for _, r := range rows {
-		m := TransactionalContactMessage{ID: r.MessageID.String(), At: r.AcceptedAt, Subject: r.Subject, Status: r.Status, Provider: r.ProviderName, Category: r.CategoryName}
+		m := TransactionalContactMessage{ID: r.MessageID.String(), At: r.AcceptedAt, Subject: r.Subject, Status: r.Status, Provider: r.ProviderName,
+			ProviderAdapter: r.ProviderAdapter, Category: r.CategoryName}
+		if r.Status == "delivered" || r.Status == "complained" {
+			m.DeliveryMs = ms(r.AcceptedAt, r.DeliveredAt)
+		}
 		if r.TemplateKey == "" && r.Source == "smtp" {
 			m.Raw = true
 		} else {

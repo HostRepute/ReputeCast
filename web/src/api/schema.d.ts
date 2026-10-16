@@ -18730,8 +18730,11 @@ export interface components {
             /** Format: date-time */
             at: string;
             category?: string;
+            /** Format: int64 */
+            deliveryMs?: number;
             id: string;
             provider?: string;
+            providerAdapter?: string;
             raw: boolean;
             /** @enum {string} */
             status: "queued" | "sent" | "delivered" | "deferred" | "bounced" | "complained" | "rejected" | "failed" | "test";

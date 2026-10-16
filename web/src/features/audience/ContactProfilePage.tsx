@@ -15,6 +15,7 @@ import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { useInvalidateAudience } from './ContactDialogs'
 import { fileName, saveBlob } from './download'
 import { consentLabel, consentTone, mailboxColor, providerColor, tierClass, tierLabel, type Consent, type Tier } from './labels'
+import { NotificationsRow, TransactionalActivityRow, transactionalCount, useContactTransactional, withTransactional } from '@/features/transactional/ContactActivity'
 import './audience.css'
 
 type Profile = Schemas['ContactProfile']
@@ -485,7 +486,12 @@ function ActivityCard({ contactId, total }: { contactId: string; total: number }
     { pageParamName: 'cursor', initialPageParam: '', getNextPageParam: (last) => last.nextCursor || undefined },
   )
   const items = q.data?.pages.flatMap((pg) => pg.items) ?? []
-  const shown = q.data?.pages[0]?.total ?? (filter === 'all' ? total : 0)
+  // Transactional mail joins the deliveries; the Optional categories, consent.
+  const tx = useContactTransactional(contactId)
+  const entries = withTransactional(items, tx.data, filter, !q.hasNextPage)
+  const txCount = transactionalCount(tx.data, filter)
+  const shown = (q.data?.pages[0]?.total ?? (filter === 'all' ? total : 0)) + txCount
+  const listed = entries.filter((e) => e.kind !== 'notifications').length
   return (
     <section className="card flex min-w-0 flex-[1.4_1_480px] flex-col" aria-labelledby="activity-h">
       <div className="flex flex-wrap items-center justify-between gap-2 px-4.5 py-3.5">
@@ -525,21 +531,27 @@ function ActivityCard({ contactId, total }: { contactId: string; total: number }
             </div>
           ))}
         </Loading>
-      ) : items.length === 0 ? (
+      ) : entries.length === 0 ? (
         <div className="border-t border-line-2 px-4.5 py-8 text-center text-ink-3">
           {filter === 'all' ? 'No activity yet. Deliveries, opens, clicks and consent changes appear here.' : `No ${filter} events.`}
         </div>
       ) : (
         <ol className="m-0 list-none p-0">
-          {items.map((it) => (
-            <ActivityRow key={it.id} it={it} />
-          ))}
+          {entries.map((e) =>
+            e.kind === 'item' ? (
+              <ActivityRow key={e.it.id} it={e.it} />
+            ) : e.kind === 'tx' ? (
+              <TransactionalActivityRow key={`tx-${e.m.id}`} m={e.m} when={dateTime} product={tx.product} canViewContent={Boolean(tx.data?.canViewContent)} />
+            ) : tx.data ? (
+              <NotificationsRow key="tx-notifications" tx={tx.data} product={tx.product} essential={tx.essential} />
+            ) : null,
+          )}
         </ol>
       )}
-      {items.length > 0 ? (
+      {entries.length > 0 ? (
         <div className="flex items-center justify-between border-t border-line-2 px-4.5 py-2.5">
           <span className="k" role="status">
-            {count(items.length)} of {count(shown)} events
+            {count(listed)} of {count(shown)} events
           </span>
           {q.hasNextPage ? (
             <Button size="sm" loading={q.isFetchingNextPage} onClick={() => void q.fetchNextPage()}>
