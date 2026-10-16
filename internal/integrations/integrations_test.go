@@ -1229,10 +1229,11 @@ func TestSendTransactionalEmail(t *testing.T) {
 	ctx := context.Background()
 	c := env.Client()
 	c.SignInDemo("linh@acme.io")
-	// A published template with a sensitive variable (the starter's reset_url).
+	// A published template with a sensitive variable (the starter's
+	// reset_url), next to the demo's own templates.
 	var tpl struct{ DraftRevision int }
-	c.Do("POST", ws+"/transactional/templates", map[string]any{"name": "Password reset", "key": "password-reset", "starter": "password-reset"}).MustStatus(t, 201).JSON(t, &tpl)
-	c.Do("POST", ws+"/transactional/templates/password-reset/publish", map[string]any{"baseRevision": tpl.DraftRevision}).MustStatus(t, 200)
+	c.Do("POST", ws+"/transactional/templates", map[string]any{"name": "Zap reset", "key": "zap-reset", "starter": "password-reset"}).MustStatus(t, 201).JSON(t, &tpl)
+	c.Do("POST", ws+"/transactional/templates/zap-reset/publish", map[string]any{"baseRevision": tpl.DraftRevision}).MustStatus(t, 200)
 
 	// n8n, reconnected with "Send a transactional email" only.
 	c.Do("POST", ws+"/integrations/connections/"+connectionID(t, c, "n8n")+"/disconnect", map[string]any{}).MustStatus(t, 204)
@@ -1250,23 +1251,29 @@ func TestSendTransactionalEmail(t *testing.T) {
 		}
 	}
 	call(t, env, key.Secret, "GET", ws+"/integration/templates", nil, nil).MustStatus(t, 200).JSON(t, &list)
-	if len(list.Items) != 1 || list.Items[0].Key != "password-reset" || list.Items[0].Version != 1 {
+	mine := -1
+	for i, it := range list.Items {
+		if it.Key == "zap-reset" {
+			mine = i
+		}
+	}
+	if mine < 0 || list.Items[mine].Version != 1 {
 		t.Fatalf("templates: %+v", list.Items)
 	}
 	sensitive := false
-	for _, v := range list.Items[0].Variables {
+	for _, v := range list.Items[mine].Variables {
 		if v.Name == "reset_url" && v.Sensitive {
 			sensitive = true
 		}
 	}
 	if !sensitive {
-		t.Errorf("reset_url is sensitive: %+v", list.Items[0].Variables)
+		t.Errorf("reset_url is sensitive: %+v", list.Items[mine].Variables)
 	}
 
 	// Sending goes through X02's send API; whatever it answers, the call
 	// log keeps the request with the sensitive variable masked.
 	r := call(t, env, key.Secret, "POST", ws+"/transactional/messages",
-		map[string]any{"template": "password-reset", "to": map[string]any{"email": "sam.rivera@outlook.com"},
+		map[string]any{"template": "zap-reset", "to": map[string]any{"email": "sam.rivera@outlook.com"},
 			"data": map[string]any{"first_name": "Sam", "reset_url": "https://app.example.com/reset/secret-token", "expires_in": "30 minutes"}},
 		map[string]string{"X-ReputeCast-Workflow": "Acme Cloud: password reset; id=wf_r1", "Idempotency-Key": "reset-1"})
 	if r.Status == http.StatusForbidden && code(t, r) == "integration_operation_denied" {

@@ -258,6 +258,14 @@ export function TransactionalComposer({
     return joinMjml(withHeadMeta(headRef.current, { title: subject, preview: preheader }), canvasBody())
   }, [htmlMode, empty, subject, preheader, canvasBody])
 
+  // The MJML the checks read: the subject and preheader have their own
+  // checks, so their copies in mj-title and mj-preview are blanked (the
+  // lines stay, so body line numbers match the MJML view).
+  const checkedMjml = useCallback(() => {
+    if (htmlMode || (empty && !geRef.current)) return ''
+    return joinMjml(withHeadMeta(headRef.current, { title: ' ', preview: ' ' }), canvasBody())
+  }, [htmlMode, empty, canvasBody])
+
   const compileCurrent = useCallback(() => {
     const inst = geRef.current
     const src = currentMjml()
@@ -587,7 +595,7 @@ export function TransactionalComposer({
               subject,
               preheader,
               editorMode,
-              ...(ready ? { mjml: currentMjml(), html: htmlMode ? html : (compiled?.html ?? '') } : {}),
+              ...(ready ? { mjml: checkedMjml(), html: htmlMode ? html : (compiled?.html ?? '') } : {}),
               plainText,
               variables,
               testData,

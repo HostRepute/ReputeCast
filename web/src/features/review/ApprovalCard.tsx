@@ -8,7 +8,7 @@ import { count, monthDayTime } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
 import { useMe, useWorkspace } from '@/lib/session'
 import { approverNames, DiffLines, MiniBanner, PersonLine, unchangedSentence } from '@/features/approvals/parts'
-import { acknowledgements, agoWords, countsShort, linkParts, plural, scheduleShort, verdictTitle, waitWords, type Review, type Run } from './logic'
+import { acknowledgedKeys, acknowledgements, agoWords, countsShort, linkParts, plural, scheduleShort, verdictTitle, waitWords, type Review, type Run } from './logic'
 import { AppHref, whenText } from './parts'
 
 export type ApprovalMode = 'none' | 'required' | 'waiting' | 'approved' | 'invalidated'
@@ -547,7 +547,7 @@ export function BypassDialog({
     if (blocked || busy) return
     setBusy(true)
     setError(undefined)
-    const err = await onConfirm({ reason: reason.trim(), password: needsPassword ? password : undefined, acknowledged: checked })
+    const err = await onConfirm({ reason: reason.trim(), password: needsPassword ? password : undefined, acknowledged: acknowledgedKeys(acks, checked) })
     setBusy(false)
     if (err) setError(err)
     else close(false)

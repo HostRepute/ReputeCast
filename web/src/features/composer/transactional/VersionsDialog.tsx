@@ -108,7 +108,7 @@ function VersionList({ onCompare }: { onCompare: (a: number, b: number) => void 
   if (!items.length) return <p className="k">{t(mp.noVersions)}</p>
   return (
     <>
-      <Table caption={t(mp.versionsCaption)} density="compact">
+      <Table caption={t(mp.versionsCaption)}>
         <thead>
           <tr>
             <Th>{t(mp.colVersion)}</Th>
@@ -132,10 +132,13 @@ function VersionList({ onCompare }: { onCompare: (a: number, b: number) => void 
                     <span>{v.publishedBy}</span>
                   </span>
                 </Td>
-                <Td nowrap>{t(mp.when, { date: dayMonthYear(v.publishedAt), time: clock(v.publishedAt) })}</Td>
-                <Td wrap>{v.change}</Td>
-                <Td align="right" nowrap>
-                  <span className="inline-flex gap-1.5">
+                {/* The date stays whole; a narrow table breaks the line before the time. */}
+                <Td>{t(mp.when, { date: dayMonthYear(v.publishedAt).replace(/ /g, '\u00a0'), time: clock(v.publishedAt) })}</Td>
+                <Td wrap className="txe-change">
+                  {v.change}
+                </Td>
+                <Td align="right">
+                  <span className="inline-flex flex-wrap justify-end gap-1.5">
                     {v.live ? (
                       older ? (
                         <Button size="sm" onClick={() => onCompare(older.version, v.version)}>
@@ -200,6 +203,7 @@ export function VersionsDialog({ target, onTarget }: { target: CompareTarget | '
   const open = target !== null
   return (
     <Dialog
+      className="txe-dlg wide"
       open={open}
       onOpenChange={(o) => !o && onTarget(null)}
       size="lg"

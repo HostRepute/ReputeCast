@@ -176,4 +176,29 @@ export const entries: Entry[] = [
   { board: 'IntegrationsWordPress', path: `${ws}/settings/integrations/wordpress` },
   { board: 'IntegrationsConnect', manual: true },
   { board: 'IntegrationsStates', manual: true },
+  // X03 · transactional templates. The editor board has reset_url's row open (click it in Variables).
+  // The editor's states need edits, Daniel (SSO only) or Aisha; the publish states need the approval
+  // rule on or a conflict; the import needs its steps (in development the Postmark token
+  // pm-0f3c-recorded-8a21 answers from the recorded sample account).
+  { board: 'TransactionalTemplate', path: `${ws}/transactional/templates/password-reset`, widths: [1440] },
+  { board: 'TransactionalTemplateStates', manual: true },
+  { board: 'TransactionalPublish', path: `${ws}/transactional/templates/trial-ending?publish=1`, widths: [1440] },
+  { board: 'TransactionalPublishStates', manual: true },
+  { board: 'TransactionalImport', manual: true },
+  { board: 'TransactionalImportStates', manual: true },
+  // X06 · accessibility. Settings › General shows the Accessibility card (and X05's Languages card); the board is
+  // the page scrolled to them. Review & send of Weekly Digest #143 has the Accessibility group (X05 adds Languages).
+  { board: 'SettingsLanguages', path: `${ws}/settings` },
+  { board: 'SettingsLanguagesTablet', path: `${ws}/settings`, widths: [834] },
+  { board: 'SettingsLanguagesPhone', path: `${ws}/settings`, widths: [390] },
+  { board: 'SendReadinessAccessibility', path: `${ws}/campaigns/{campaign:Weekly Digest #143}/review`, widths: [1440, 834] },
+  { board: 'SendReadinessAccessibilityPhone', path: `${ws}/campaigns/{campaign:Weekly Digest #143}/review`, widths: [390] },
+  // The policy set to Block, the one-click preview, the checks running or failing: switch the policy on
+  // Settings › General or through PUT …/accessibility/policy, then reproduce by hand.
+  { board: 'AccessibilityStates', manual: true },
+  // X06 · the composer's Accessibility tab on Weekly Digest #143; the color picker opens from a field (manual).
+  { board: 'ComposerAccessibility', path: `${ws}/campaigns/{campaign:Weekly Digest #143}/edit?select=1-0-0&panel=accessibility`, widths: [1440] },
+  { board: 'ComposerAccessibilityTablet', path: `${ws}/campaigns/{campaign:Weekly Digest #143}/edit?panel=accessibility`, widths: [834] },
+  { board: 'ComposerAccessibilityPhone', path: `${ws}/campaigns/{campaign:Weekly Digest #143}/edit?panel=accessibility`, widths: [390] },
+  { board: 'ComposerContrast', manual: true },
 ]

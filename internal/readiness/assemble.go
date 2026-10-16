@@ -77,6 +77,7 @@ func Assemble(f Facts) ReadinessResult {
 	b.authentication()
 	b.content()
 	b.languages()
+	b.accessibility()
 	b.links()
 	b.compliance()
 	b.audience()
@@ -733,8 +734,10 @@ func (b *builder) content() {
 		size.Fixes = append(size.Fixes, link("Open in editor", b.editor(nil, "deliverability")))
 	}
 	b.add(size)
+	// Alt text is an accessibility check when the Accessibility group runs.
 	alt := ReadinessCheck{Key: "content.alt_text", Group: GroupContent, Status: Pass, Label: "Alt text"}
 	switch {
+	case b.f.Accessibility.Ran:
 	case r.Images == 0:
 		alt.Title, alt.Short = "No images, so no alt text needed", "no images"
 	case r.ImagesMissingAlt == 0:
@@ -759,7 +762,9 @@ func (b *builder) content() {
 		alt.Ack = fmt.Sprintf("I understand %d %s no alt text.", r.ImagesMissingAlt, Plural(int64(r.ImagesMissingAlt), "image has", "images have"))
 		alt.Fixes = []ReadinessFix{link("Open in editor", b.editor(path, "deliverability"))}
 	}
-	b.add(alt)
+	if !b.f.Accessibility.Ran {
+		b.add(alt)
+	}
 	if strings.TrimSpace(r.PlainText) != "" {
 		ptKB := int(math.Max(1, math.Round(float64(len(r.PlainText))/1024)))
 		b.add(ReadinessCheck{Key: "content.plain_text", Group: GroupContent, Status: Pass, Title: "Plain-text version generated",
@@ -1490,6 +1495,9 @@ func (b *builder) groups() []ReadinessGroup {
 		grp.Caption = b.caption(g, grp)
 		grp.Summary = b.summary(g, passes)
 		grp.Running = b.running(g)
+		if g == GroupAccessibility {
+			grp.Note = b.accessibilityNote()
+		}
 		out = append(out, grp)
 	}
 	return out
@@ -1541,6 +1549,8 @@ func (b *builder) caption(g string, grp ReadinessGroup) string {
 		return fmt.Sprintf("%s · %s contacts", firstNonEmpty(a.GroupLabel, a.BaseLabel), Count(a.Base))
 	case GroupRouting:
 		return streamLabel(b.f.Route.Stream) + " stream"
+	case GroupAccessibility:
+		return b.accessibilityCaption()
 	}
 	return ""
 }
@@ -1628,6 +1638,8 @@ func (b *builder) running(g string) string {
 		return "provider health, terms and tracking settings"
 	case GroupLanguages:
 		return "who gets which version, outdated and draft versions, page copy"
+	case GroupAccessibility:
+		return accessibilityRunning
 	}
 	return ""
 }
@@ -1651,6 +1663,8 @@ func RunningText(g string) string {
 		return "provider health, terms and tracking settings"
 	case GroupLanguages:
 		return "who gets which version, outdated and draft versions, page copy"
+	case GroupAccessibility:
+		return accessibilityRunning
 	}
 	return ""
 }

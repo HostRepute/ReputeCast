@@ -26,6 +26,10 @@ import (
 // publishing never needs one.
 var transactionalGate = func(*App) transactional.PublishGate { return nil }
 
+// transactionalAccessibility adds the Accessibility group to a template's
+// checks; the accessibility domain replaces it from its wire file.
+var transactionalAccessibility = func(*App) transactional.AccessibilityChecker { return nil }
+
 // The service keeps per-process state (each key's send rate), so each App
 // has exactly one; so does the outbox (the engine's provider call logs).
 var (
@@ -50,6 +54,7 @@ func transactionalService(a *App) *transactional.Service {
 		// the transaction that queued them.
 		Outbox: func(ctx context.Context, tx pgx.Tx) error { return transactionalOutbox(a).Wake(ctx, tx) },
 	}
+	s.Accessibility = transactionalAccessibility(a)
 	v, _ := transactionalServices.LoadOrStore(a, s)
 	return v.(*transactional.Service)
 }

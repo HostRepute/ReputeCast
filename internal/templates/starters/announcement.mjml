@@ -13,10 +13,10 @@
     </mj-section>
     <mj-section background-color="#ffffff" padding="24px 24px 28px">
       <mj-column>
-        <mj-text font-size="28px" line-height="1.15" font-weight="700" color="#0B1220" padding="0px 0px 12px">One big announcement</mj-text>
+        <mj-text font-size="28px" line-height="1.15" font-weight="700" color="#0B1220" padding="0px 0px 12px"><h1 style="margin:0;font-size:28px;line-height:1.15;font-weight:700">One big announcement</h1></mj-text>
         <mj-text font-size="15px" line-height="1.55" padding="0px 0px 12px">Hi {{ first_name | default: "there" }}, lead with the news, then the one detail that makes it matter.</mj-text>
         <mj-text font-size="15px" line-height="1.55" padding="0px 0px 18px">Add the date, the price or the deadline if there is one.</mj-text>
-        <mj-button href="https://example.com/announcement" align="left" background-color="#0F766E" color="#ffffff" font-family="'IBM Plex Sans', Helvetica, Arial, sans-serif" font-size="14px" font-weight="600" border-radius="6px" inner-padding="11px 18px" padding="0px">Find out more</mj-button>
+        <mj-button href="https://example.com/announcement" align="left" background-color="#0F766E" color="#ffffff" font-family="'IBM Plex Sans', Helvetica, Arial, sans-serif" font-size="14px" font-weight="600" border-radius="6px" inner-padding="11px 18px" padding="0px">Read the announcement</mj-button>
       </mj-column>
     </mj-section>
     <!-- rc:footer -->

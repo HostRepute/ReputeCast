@@ -1,0 +1,384 @@
+/* The composer's Accessibility tab (ComposerAccessibility, AccessibilityStates). */
+@layer components {
+  .a11y-panel {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .a11y-head {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--line-2);
+  }
+  .a11y-head .note {
+    flex-wrap: nowrap;
+  }
+  .a11y-filters {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--line-2);
+  }
+  .a11y-empty {
+    margin: 0;
+    padding: 12px 14px;
+  }
+  .a11y-iss {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--line-2);
+  }
+  .a11y-iss.on {
+    background: #f8faff;
+    box-shadow: inset 3px 0 0 #1d4ed8;
+  }
+  .a11y-t {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  .a11y-t .badge {
+    height: 20px;
+    font-size: 11px;
+    flex: none;
+  }
+  .a11y-t > span:last-child {
+    font-size: 13px;
+    line-height: 1.4;
+    flex: 1;
+    min-width: 0;
+  }
+  .a11y-in {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .a11y-lang {
+    display: inline-flex;
+    align-items: center;
+    height: 20px;
+    padding: 0 7px;
+    border-radius: 5px;
+    background: var(--ground);
+    border: 1px solid var(--line);
+    color: var(--ink-nav);
+    font-size: 11.5px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .a11y-show {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border: 0;
+    background: none;
+    padding: 0;
+    margin-left: auto;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    cursor: pointer;
+    min-height: 24px;
+    white-space: nowrap;
+  }
+  .a11y-show:hover {
+    color: var(--accent-hover);
+    text-decoration: underline;
+  }
+  .a11y-loc {
+    font-size: 11.5px;
+    color: var(--ink-3);
+    overflow-wrap: anywhere;
+    line-height: 1.5;
+  }
+  .a11y-fix {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .a11y-sugs {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .a11y-sug {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 8px 7px 7px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fff;
+    font-size: 12.5px;
+    min-width: 0;
+  }
+  button.a11y-sug {
+    width: 100%;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  button.a11y-sug:hover {
+    border-color: var(--accent);
+  }
+  .a11y-aa {
+    width: 30px;
+    height: 30px;
+    border-radius: 6px;
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    box-shadow: inset 0 0 0 1px rgba(11, 18, 32, 0.12);
+  }
+  .a11y-fixed {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--line-2);
+    background: var(--ok-tint);
+  }
+  .a11y-fixed .a11y-show {
+    margin-left: 0;
+  }
+  .a11y-pass > summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    cursor: pointer;
+    list-style: none;
+  }
+  .a11y-pass > summary::-webkit-details-marker {
+    display: none;
+  }
+  .a11y-pass > summary svg {
+    transition: transform var(--duration-fast) var(--ease-standard);
+  }
+  .a11y-pass[open] > summary svg {
+    transform: rotate(90deg);
+  }
+  .a11y-pass-rows {
+    padding: 0 14px 10px;
+  }
+  .a11y-pass-row {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    padding: 5px 0;
+  }
+  .a11y-pass-row svg {
+    flex: none;
+    margin-top: 2px;
+  }
+  .a11y-checking {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--line-2);
+  }
+  .a11y-checking .spin {
+    margin-top: 2px;
+  }
+  .a11y-error {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 14px;
+    margin: 12px 14px;
+    border: 1px solid var(--bad-line);
+    border-radius: 8px;
+    background: var(--bad-tint);
+  }
+  .a11y-chip {
+    border: 0;
+    background: none;
+    padding: 0;
+    cursor: pointer;
+    display: inline-flex;
+  }
+}
+
+/* The color picker with contrast (ComposerContrast). */
+@layer components {
+  .a11y-swatch {
+    cursor: pointer;
+  }
+  .a11y-picker {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    margin-top: 4px;
+    border: 1px solid var(--line-strong);
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 12px 32px rgba(11, 18, 32, 0.16);
+  }
+  .a11y-sv {
+    position: relative;
+    height: 150px;
+    border-radius: 8px;
+    touch-action: none;
+    cursor: crosshair;
+  }
+  .a11y-sv:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .a11y-sv-dot {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    margin: -8px 0 0 -8px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow:
+      0 0 0 1px rgba(11, 18, 32, 0.5),
+      0 2px 6px rgba(11, 18, 32, 0.3);
+    pointer-events: none;
+  }
+  .a11y-hue {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 100%;
+    height: 12px;
+    margin: 0;
+    border-radius: 999px;
+    background: linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00);
+  }
+  .a11y-hue::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 1px rgba(11, 18, 32, 0.5);
+    background: transparent;
+    cursor: pointer;
+  }
+  .a11y-hue::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 1px rgba(11, 18, 32, 0.5);
+    background: transparent;
+    cursor: pointer;
+  }
+  .a11y-cp-sec {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 10px;
+    border-top: 1px solid var(--line-2);
+  }
+  .a11y-cchip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 24px;
+    padding: 0 9px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+    flex: none;
+    font-variant-numeric: tabular-nums;
+    align-self: center;
+  }
+  .a11y-cp-sec .a11y-cchip {
+    align-self: flex-start;
+  }
+  .a11y-cchip.f {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+  .a11y-cchip.p {
+    background: #dcfce7;
+    color: #166534;
+  }
+  .a11y-cchip.u {
+    background: var(--line-2);
+    color: var(--ink-2);
+  }
+  .a11y-wcag {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+  }
+  .a11y-wcag th,
+  .a11y-wcag td {
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--line-2);
+    text-align: left;
+    white-space: nowrap;
+  }
+  .a11y-wcag th {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .a11y-wcag tr:last-child td {
+    border-bottom: 0;
+  }
+  .a11y-pf {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-weight: 600;
+  }
+  .a11y-pf.y {
+    color: #166534;
+  }
+  .a11y-pf.n {
+    color: #991b1b;
+  }
+  .a11y-sug-h {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink-2);
+    margin-top: 2px;
+  }
+}
+
+/* The template gallery's results (ComposerEmpty, AccessibilityStates). */
+@layer components {
+  .a11y-gres {
+    align-self: flex-start;
+  }
+}
+.tpl.a11y-tpl-warn {
+  border-color: #fcd34d;
+}
+
+/* The right panel is 360 px wide on the Accessibility boards, and whenever
+   it has four tabs (300 px otherwise). Unlayered, like the composer's own
+   styles it widens. */
+.cpanel.right.a11y-wide {
+  flex-basis: 360px;
+  max-width: 360px;
+}
+/* Four tabs fit on one line, as on ComposerAccessibility. */
+.cpanel.right.a11y-wide .ptab button {
+  padding: 0 6px;
+  white-space: nowrap;
+}
+@media (max-width: 1100px) {
+  .cpanel.right.a11y-wide {
+    max-width: none;
+  }
+}

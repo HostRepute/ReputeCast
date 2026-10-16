@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/hostrepute/reputecast/internal/accessibility"
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
@@ -157,6 +158,13 @@ func (s *Service) SaveIn(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		}
 		if settings.Minify && html != "" {
 			html = contentcheck.Minify(html)
+		}
+		// lang, dir and the layout tables' role (accessibility).
+		html = accessibility.FinalizeStored(ctx, q, ws.ID, accessibility.OwnerCampaign, id, 0, html)
+		if in.ABTest != nil {
+			for i := range in.ABTest.Variants {
+				in.ABTest.Variants[i].HTML = accessibility.FinalizeStored(ctx, q, ws.ID, accessibility.OwnerCampaign, id, 0, in.ABTest.Variants[i].HTML)
+			}
 		}
 		ab := in.ABTest.toDB()
 		plain := contentcheck.PlainText(html)

@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/hostrepute/reputecast/internal/accessibility"
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
@@ -25,7 +26,7 @@ import (
 
 // ReadinessFixRequest is one fix to apply.
 type ReadinessFixRequest struct {
-	Action string            `json:"action" enum:"exclude_sunset,route_only,insert_footer,replace_link,use_subject,minify,mark_language_up_to_date,mark_language_translated,hold_language,release_language"`
+	Action string            `json:"action" enum:"exclude_sunset,route_only,insert_footer,replace_link,use_subject,minify,mark_language_up_to_date,mark_language_translated,hold_language,release_language,accessibility_decorative,accessibility_color,accessibility_one_click"`
 	Params map[string]string `json:"params,omitempty"`
 }
 
@@ -114,6 +115,8 @@ func (s *Service) ApplyFixes(ctx context.Context, ws *store.Workspace, p *authz.
 	// Content fixes are applied together as one new version.
 	src, subject, content := c.Mjml, c.Subject, false
 	labels := []string{}
+	var a11y []accessibility.FixChange
+	var a11yFixes []ReadinessFixRequest
 	for i, fx := range in.Fixes {
 		field := fmt.Sprintf("body.fixes[%d]", i)
 		switch fx.Action {
@@ -179,6 +182,19 @@ func (s *Service) ApplyFixes(ctx context.Context, ws *store.Workspace, p *authz.
 				return out, err
 			}
 			out.Applied = append(out.Applied, label)
+		case FixAccessibilityDecorative, FixAccessibilityColor, FixAccessibilityOneClick:
+			if s.Accessibility == nil {
+				return out, api.Conflict("Accessibility fixes aren't available in this process.")
+			}
+			next, change, err := s.Accessibility.FixMJML(ctx, ws, src, fx.Action, fx.Params)
+			if err != nil {
+				return out, api.Invalid(field, sentence(capitalize(err.Error())))
+			}
+			src, content = next, true
+			labels = append(labels, change.Label)
+			out.Applied = append(out.Applied, change.Applied)
+			a11y = append(a11y, change)
+			a11yFixes = append(a11yFixes, fx)
 		default:
 			return out, api.Invalid(field+".action", "Unknown fix.")
 		}
@@ -198,6 +214,21 @@ func (s *Service) ApplyFixes(ctx context.Context, ws *store.Workspace, p *authz.
 			return out, err
 		}
 		out.Version = saved.Version
+		if len(a11y) > 0 {
+			// The language versions get the same fixes: they need no words.
+			var a11yLabels []string
+			for _, ch := range a11y {
+				a11yLabels = append(a11yLabels, ch.Label)
+			}
+			versions, err := s.fixLanguageVersions(ctx, ws, p, id, a11yFixes, strings.Join(a11yLabels, ", ")+" from Review & send")
+			if err != nil {
+				return out, err
+			}
+			langs := append([]string{accessibility.EmailLanguage(ctx, s.Q, ws.ID, accessibility.OwnerCampaign, id, 0)}, versions...)
+			if err := s.Accessibility.RecordFix(ctx, ws, p, id, c.Name, saved.ContentHash, langs, a11y); err != nil {
+				return out, err
+			}
+		}
 	}
 	s.changed(ctx, ws, id)
 	return out, nil
