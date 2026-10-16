@@ -219,6 +219,18 @@ samples, CLI output, "MCP", "2FA", "TOTP", "IdP", "SSO", "JIT", "A/B",
 "payload", "Liquid", "MJML", "Mustachio", "Handlebars", "cURL" and "JSON"
 stay as they are.
 
+## Content languages
+
+| English | Tiếng Việt |
+|---|---|
+| language version · Source | phiên bản ngôn ngữ · Bản gốc |
+| Default language · Fallback language | Ngôn ngữ mặc định · Ngôn ngữ dự phòng |
+| Up to date · Outdated · Draft · Missing · Held | Đã cập nhật · Lỗi thời · Bản nháp · Thiếu · Tạm giữ |
+| Mark as translated · Mark as up to date | Đánh dấu đã dịch · Đánh dấu đã cập nhật |
+| readers (of a language) | người đọc |
+| page copy · built-in labels | nội dung trang · nhãn có sẵn |
+| Results per language · click map | Kết quả theo ngôn ngữ · bản đồ lượt nhấp |
+
 ## Accessibility
 
 | English | Tiếng Việt |
