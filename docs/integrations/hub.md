@@ -10,6 +10,16 @@ tags **Integration API**, **Contacts**, **WordPress sites** and
 
 Everything here is free and part of the open-source edition.
 
+## The apps
+
+Each app lives in this repository, with its own README (install, configure,
+test, publish) and tests:
+
+- [Zapier](../../integrations/zapier/README.md): the Zapier Platform CLI app, with instant triggers (REST hooks) and the five actions.
+- [Make](../../integrations/make/README.md): the Make custom app, with instant triggers (attached webhooks), actions and dynamic fields.
+- [n8n](../../integrations/n8n/README.md): the community node package `n8n-nodes-reputecast`, with the ReputeCast and ReputeCast Trigger nodes.
+- [WordPress](../../integrations/wordpress/README.md): the "ReputeCast" plugin, with the signup-form block and shortcode, report-in, post drafts and the status endpoint.
+
 ## Keys
 
 Connecting creates a key for the integration: a normal API key with an
@@ -60,9 +70,22 @@ X-ReputeCast-Workflow: Beta application (Typeform) → ReputeCast contact; id=28
 ```
 
 `name="…"` and RFC 8187 `name*=UTF-8''…` forms are accepted; a percent-encoded
-name is decoded. ReputeCast lists the workflows seen in the last 30 days on the
-integration's page ("Zaps using ReputeCast"), with calls, errors and last run.
-A call without a name is listed as "Unnamed Zap" (scenario, workflow).
+name is decoded. Header values are ASCII, so the apps percent-encode (UTF-8) a
+name's characters outside printable ASCII and `%`, `;`, `=` and `"`, and keep
+the rest as typed: `Stripe payment failed %E2%86%92 payment-failed email;
+id=284113907`. The call log shows the header decoded. ReputeCast lists the
+workflows seen in the last 30 days on the integration's page ("Zaps using
+ReputeCast"), with calls, errors and last run. A call without a name is listed
+as "Unnamed Zap" (scenario, workflow).
+
+What each platform gives its app:
+
+| App | Name | ID |
+|---|---|---|
+| Zapier | Zapier doesn't give apps the Zap's name: each step has an optional "Zap name" field | the Zap's ID (`bundle.meta.zap.id`) |
+| Make | the scenario's name (`scenario.name`) | the scenario's ID (`scenario.id`) |
+| n8n | the workflow's name | the workflow's ID |
+| WordPress | — (the plugin isn't a workflow tool) | — |
 
 ## Test connection
 
@@ -125,8 +148,17 @@ answer**:
 
 ```
 DELETE /api/v1/workspaces/{workspace}/integration/hooks/{id}      → 204
+GET    /api/v1/workspaces/{workspace}/integration/hooks/{id}      → the webhook without its secret; 404 once it's gone
 GET    /api/v1/workspaces/{workspace}/integration/samples/{event} → { "event", "payload" }
+GET    /api/v1/workspaces/{workspace}/integration/forms           → { "items": [{ "id": "frm_8c2e1a", "name", "status" }] }
 ```
+
+- n8n checks a workflow's webhook when the workflow is turned on and when n8n
+  starts; a 404 (the endpoint answered 410 Gone, or the integration was
+  reconnected) makes it subscribe again.
+- The forms list fills the "Form" filter of the Form submitted trigger:
+  deliveries carry `form_id`, and the apps drop the other forms' submissions.
+  Only keys with that trigger on can call it.
 
 - The trigger must be on for the key (`403 integration_operation_denied`
   otherwise).
@@ -298,10 +330,45 @@ The site's post-draft rule, set in ReputeCast, decides. It answers
 (the post already has a draft). The draft takes the title as its subject and
 the excerpt as its preheader; the template's post section gets
 `{{ post.title }}`, `{{ post.excerpt }}`, `{{ post.image_url }}` and
-`{{ post.url }}`. Drafts only: nothing is sent until a person reviews it.
+`{{ post.url }}` (a post without a featured image leaves out the template's
+`mj-image` of `{{ post.image_url }}`). Drafts only: nothing is sent until a
+person reviews it.
+
+**Translations (plugin 1.3.0, WPML or Polylang).** The plugin sends the post in
+the site's default language with its published translations:
+
+```
+"translations": [{ "id": "813", "language": "es", "url": "https://blog.acme.io/es/despliegues/",
+                   "title": "Los despliegues programados ya están aquí", "excerpt": "…", "imageUrl": "…" }]
+```
+
+- The draft is written in the post's `language` when the workspace offers it.
+- Each translation in a language the workspace offers becomes a language
+  version: the template's post section filled with the translation (its
+  featured image, else the post's), marked Up to date. Other languages are left
+  out. The answer lists the versions added in `languages`.
+- A translation published later is sent with the post again: the answer is
+  `exists`, and the new translation joins the draft while the campaign is
+  still editable. The post's draft is found through any of its translations'
+  ids, so a group of translations makes one draft.
 
 ### Check now
 
 "Check now" calls `GET {site}/wp-json/reputecast/v1/status` once, through the
 SSRF guard, with a 10-second limit. The plugin should answer 200 quickly. A site
 behind a firewall or basic auth can't be checked, but its reports still arrive.
+
+The call is signed with the site's key, so the plugin answers only the
+workspace it's connected to:
+
+```
+X-ReputeCast-Timestamp: 1792138920
+X-ReputeCast-Signature: 45f9841e69974b8168b517da522ad7c914b7464255f7dfeb4612923d5d6cb199
+```
+
+The signature is the hex HMAC-SHA256 of `{timestamp}.status`, keyed with the
+SHA-256 digest (32 raw bytes) of the site's key: ReputeCast keeps only that
+digest, and the plugin computes it from the key it holds. During a rotation
+the header carries one signature per live key, comma-separated. The plugin
+answers 401 to a call without a valid signature or more than 5 minutes off,
+and 200 with its plugin, WordPress and PHP versions otherwise.

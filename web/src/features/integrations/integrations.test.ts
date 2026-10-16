@@ -59,6 +59,11 @@ describe('targetText', () => {
     expect(targetText(t, call({ kind: 'test' }))).toBe('Test connection')
   })
 
+  it('words n8n checking its webhook like turning a trigger on', () => {
+    const endpoint = 'https://n8n.acme.io/webhook/7c1e…/reputecast'
+    expect(targetText(t, call({ kind: 'hook', event: 'contact.unsubscribed', endpoint }))).toBe(`contact.unsubscribed → ${endpoint}`)
+  })
+
   it('hides addresses from members who can not see contacts, and erased ones', () => {
     expect(targetText(t, call({ kind: 'add_tag', tag: 'customer' }, 'contact'))).toBe('customer on a contact')
     expect(targetText(t, call({ kind: 'upsert_contact', list: 'Beta Program' }, 'erased'))).toBe('Erased contact · Beta Program')

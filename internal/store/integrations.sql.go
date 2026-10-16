@@ -2124,7 +2124,7 @@ func (q *Queries) IntegrationWebhookInsert(ctx context.Context, arg IntegrationW
 }
 
 const integrationWebhookOf = `-- name: IntegrationWebhookOf :one
-SELECT iw.webhook_id, iw.event, h.url FROM integration_webhooks iw
+SELECT iw.webhook_id, iw.event, h.url, h.created_at FROM integration_webhooks iw
 JOIN webhooks h ON h.id = iw.webhook_id
 WHERE iw.webhook_id = $1 AND iw.integration_id = $2
 `
@@ -2138,12 +2138,18 @@ type IntegrationWebhookOfRow struct {
 	WebhookID uuid.UUID `json:"webhookId"`
 	Event     string    `json:"event"`
 	Url       string    `json:"url"`
+	CreatedAt time.Time `json:"createdAt"`
 }
 
 func (q *Queries) IntegrationWebhookOf(ctx context.Context, arg IntegrationWebhookOfParams) (IntegrationWebhookOfRow, error) {
 	row := q.db.QueryRow(ctx, integrationWebhookOf, arg.WebhookID, arg.IntegrationID)
 	var i IntegrationWebhookOfRow
-	err := row.Scan(&i.WebhookID, &i.Event, &i.Url)
+	err := row.Scan(
+		&i.WebhookID,
+		&i.Event,
+		&i.Url,
+		&i.CreatedAt,
+	)
 	return i, err
 }
 
@@ -2872,6 +2878,35 @@ type WordPressSiteInsertParams struct {
 func (q *Queries) WordPressSiteInsert(ctx context.Context, arg WordPressSiteInsertParams) error {
 	_, err := q.db.Exec(ctx, wordPressSiteInsert, arg.IntegrationID, arg.WorkspaceID, arg.Address)
 	return err
+}
+
+const wordPressSiteKeyHashes = `-- name: WordPressSiteKeyHashes :many
+SELECT token_hash FROM api_keys
+WHERE integration_id = $1 AND (revoked_at IS NULL OR grace_until > now())
+ORDER BY created_at DESC
+`
+
+// The hashes of a site's live keys, newest first (a rotated key keeps
+// working for 24 hours): "Check now" signs its call with them, so the
+// plugin answers only the workspace it's connected to.
+func (q *Queries) WordPressSiteKeyHashes(ctx context.Context, integrationID *uuid.UUID) ([][]byte, error) {
+	rows, err := q.db.Query(ctx, wordPressSiteKeyHashes, integrationID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := [][]byte{}
+	for rows.Next() {
+		var token_hash []byte
+		if err := rows.Scan(&token_hash); err != nil {
+			return nil, err
+		}
+		items = append(items, token_hash)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const wordPressSiteReport = `-- name: WordPressSiteReport :exec

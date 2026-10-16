@@ -1,0 +1,22 @@
+[
+  {
+    "name": "instanceUrl",
+    "type": "url",
+    "label": "Instance URL",
+    "required": true,
+    "help": "Your ReputeCast address, as ReputeCast shows it when you connect Make (Settings › Integrations › Make › Connect), for example https://reputecast.acme.io. Without a trailing slash.",
+    "validate": {
+      "pattern": "^https?://[^/\\s]+(/[^\\s]*[^/\\s])?$"
+    }
+  },
+  {
+    "name": "apiKey",
+    "type": "password",
+    "label": "Key",
+    "required": true,
+    "help": "The key ReputeCast showed once when you connected Make. It starts with rc_live_ and works only for the triggers and actions you turned on.",
+    "validate": {
+      "pattern": "^rc_[a-z]+_[A-Za-z0-9]{16,}$"
+    }
+  }
+]

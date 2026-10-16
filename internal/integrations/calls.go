@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"maps"
 	"regexp"
 	"strings"
 	"time"
@@ -84,6 +85,8 @@ func itemOf(kind, op string) string {
 		return "create_drafts"
 	case OpLists:
 		return "upsert_contact"
+	case OpForms:
+		return "form.submitted"
 	}
 	return ""
 }
@@ -137,7 +140,7 @@ func (s *Service) Record(ctx context.Context, c api.IntegrationCall) {
 		ID: uuid.Must(uuid.NewV7()), IntegrationID: ik.ID, WorkspaceID: ik.WorkspaceID, ApiKeyID: &keyID, OccurredAt: c.At,
 		WorkflowKey: wf.Key(), WorkflowName: wf.Name, Operation: c.Operation, Item: item, Method: c.Method, Path: c.Path,
 		Status: int32(c.Status), Code: code, Detail: clip(detail, 1000), DurationMs: int32(c.Duration.Milliseconds()),
-		Target: target, ContactID: contactID, Request: requestLog(c.Headers, s.maskBody(ctx, ik.WorkspaceID, c.Operation, c.Request)),
+		Target: target, ContactID: contactID, Request: requestLog(readableHeaders(c.Headers, wf), s.maskBody(ctx, ik.WorkspaceID, c.Operation, c.Request)),
 		Response: jsonOrNil(c.Response), Ip: c.IP, Client: clientLabel(c.UserAgent),
 	})
 	if err != nil {
@@ -278,6 +281,22 @@ func (s *Service) describe(ctx context.Context, wsID uuid.UUID, c api.Integratio
 type CallRequest struct {
 	Headers map[string]string `json:"headers"`
 	Body    json.RawMessage   `json:"body,omitempty"`
+}
+
+// readableHeaders shows the workflow header as a person reads it: the apps
+// percent-encode a name that isn't plain ASCII ("Stripe payment failed
+// %E2%86%92 payment-failed email; id=284113907"), the call log shows
+// "Stripe payment failed → payment-failed email; id=284113907".
+func readableHeaders(headers map[string]string, wf Workflow) map[string]string {
+	raw, ok := headers[api.HeaderWorkflow]
+	if !ok || raw == "" {
+		return headers
+	}
+	out := maps.Clone(headers)
+	if s := wf.String(); s != "" {
+		out[api.HeaderWorkflow] = s
+	}
+	return out
 }
 
 func requestLog(headers map[string]string, body json.RawMessage) json.RawMessage {

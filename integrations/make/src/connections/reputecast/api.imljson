@@ -1,0 +1,25 @@
+{
+  "url": "{{parameters.instanceUrl}}/api/v1/integration",
+  "method": "GET",
+  "headers": {
+    "Authorization": "Bearer {{parameters.apiKey}}",
+    "Accept": "application/json",
+    "User-Agent": "ReputeCast-Make/1.0.4"
+  },
+  "response": {
+    "data": {
+      "workspace": "{{body.workspace}}",
+      "workspaceName": "{{body.workspaceName}}"
+    },
+    "metadata": {
+      "type": "text",
+      "value": "{{body.key}} ({{body.workspaceName}})"
+    },
+    "error": {
+      "message": "{{ifempty(body.detail, 'ReputeCast answered HTTP ' + statusCode + '. Check the instance URL and the key.')}}"
+    }
+  },
+  "log": {
+    "sanitize": ["request.headers.authorization"]
+  }
+}

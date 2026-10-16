@@ -22,6 +22,7 @@ func (a *App) integrations() *integrations.Service {
 		URLCheck:     a.accountsForSSO(),
 		Confirm:      a.audience(),
 		AllowPrivate: func() bool { return cfg.Webhooks.AllowPrivateNetworks },
+		Languages:    draftLanguages{languagesService(a)},
 	}
 }
 

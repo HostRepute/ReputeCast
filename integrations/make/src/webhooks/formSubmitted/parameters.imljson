@@ -1,0 +1,10 @@
+[
+  {
+    "name": "form",
+    "type": "select",
+    "label": "Form",
+    "options": "rpc://listForms",
+    "required": false,
+    "help": "Only this form's signups start the scenario. Leave it empty for every form."
+  }
+]

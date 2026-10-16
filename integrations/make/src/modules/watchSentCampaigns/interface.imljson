@@ -1,0 +1,79 @@
+[
+  {
+    "name": "id",
+    "type": "text",
+    "label": "Event ID"
+  },
+  {
+    "name": "type",
+    "type": "text",
+    "label": "Event"
+  },
+  {
+    "name": "created_at",
+    "type": "date",
+    "label": "Event time"
+  },
+  {
+    "name": "workspace",
+    "type": "text",
+    "label": "Workspace"
+  },
+  {
+    "name": "data",
+    "type": "collection",
+    "label": "Data",
+    "spec": [
+      {
+        "name": "campaign_id",
+        "type": "text",
+        "label": "Campaign ID"
+      },
+      {
+        "name": "name",
+        "type": "text",
+        "label": "Campaign name"
+      },
+      {
+        "name": "subject",
+        "type": "text",
+        "label": "Subject"
+      },
+      {
+        "name": "status",
+        "type": "text",
+        "label": "Status"
+      },
+      {
+        "name": "sent",
+        "type": "uinteger",
+        "label": "Sent"
+      },
+      {
+        "name": "delivered",
+        "type": "uinteger",
+        "label": "Delivered"
+      },
+      {
+        "name": "bounced",
+        "type": "uinteger",
+        "label": "Bounced"
+      },
+      {
+        "name": "complained",
+        "type": "uinteger",
+        "label": "Complained"
+      },
+      {
+        "name": "started_at",
+        "type": "date",
+        "label": "Started at"
+      },
+      {
+        "name": "completed_at",
+        "type": "date",
+        "label": "Completed at"
+      }
+    ]
+  }
+]

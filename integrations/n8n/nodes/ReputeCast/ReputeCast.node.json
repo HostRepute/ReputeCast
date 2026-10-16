@@ -1,0 +1,18 @@
+{
+	"node": "n8n-nodes-reputecast.reputeCast",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"categories": ["Marketing & Content", "Communication"],
+	"resources": {
+		"credentialDocumentation": [
+			{
+				"url": "https://github.com/hostrepute/reputecast/blob/main/integrations/n8n/README.md#credentials"
+			}
+		],
+		"primaryDocumentation": [
+			{
+				"url": "https://github.com/hostrepute/reputecast/blob/main/integrations/n8n/README.md"
+			}
+		]
+	}
+}

@@ -270,6 +270,7 @@ export function targetText(t: ReturnType<typeof useT>, c: Call): string {
       return t(m.callTest)
     case 'subscribe':
     case 'unsubscribe':
+    case 'hook':
       return t(m.callHook, { event: tg.event ?? '', endpoint: tg.endpoint ?? '' })
     case 'report':
       return t(m.callReport, { version: tg.version ?? '' })

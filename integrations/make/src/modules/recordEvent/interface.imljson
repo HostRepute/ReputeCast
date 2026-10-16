@@ -1,0 +1,17 @@
+[
+  {
+    "name": "accepted",
+    "type": "boolean",
+    "label": "Accepted"
+  },
+  {
+    "name": "contactId",
+    "type": "text",
+    "label": "Contact ID"
+  },
+  {
+    "name": "flows",
+    "type": "uinteger",
+    "label": "Automations started"
+  }
+]
