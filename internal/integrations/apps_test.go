@@ -210,3 +210,96 @@ func TestStatusSignature(t *testing.T) {
 		t.Errorf("signature: %q, want %q", got, want)
 	}
 }
+
+// Plugin 1.3.0: a post's WPML or Polylang translations become its draft's
+// language versions, marked up to date; one published later joins the
+// draft.
+func TestPostTranslationsBecomeLanguageVersions(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	c := env.Client()
+	c.SignInDemo("marcus@acme.io")
+	for _, code := range []string{"es", "de"} {
+		c.Do("POST", ws+"/languages", map[string]any{"code": code}).MustStatus(t, 200)
+	}
+	site := connect(t, c, "wordpress", map[string]any{"items": []string{"list_forms", "create_drafts"}, "address": "news.example.org"})
+	ids := lists(t, env)
+	var tpl string
+	_ = env.App.Pool.QueryRow(context.Background(), `SELECT id FROM templates WHERE name = 'Blog post'`).Scan(&tpl)
+	c.Do("PUT", ws+"/integrations/connections/"+site.IntegrationID+"/rule", map[string]any{"enabled": true, "categories": []string{"news"},
+		"listIds": []string{ids["Product Updates"]}, "templateId": tpl}).MustStatus(t, 200)
+
+	es := map[string]any{"id": "91", "language": "es", "url": "https://news.example.org/es/despliegues/", "title": "Los despliegues programados ya están aquí",
+		"excerpt": "Elige la hora y nosotros hacemos el resto."}
+	fr := map[string]any{"id": "92", "language": "fr-FR", "title": "Les déploiements programmés sont là"}
+	post := map[string]any{"id": "90", "url": "https://news.example.org/rollouts/", "title": "Scheduled rollouts are here", "excerpt": "Pick the time; we do the rest.",
+		"categories": []string{"news"}, "language": "en-US", "translations": []any{es, fr}}
+	type result struct {
+		Created    bool
+		Reason     string
+		CampaignID string
+		Languages  []string
+	}
+	send := func(p map[string]any) result {
+		var out result
+		call(t, env, site.Secret, "POST", ws+"/wordpress/drafts", map[string]any{"post": p}, nil).MustStatus(t, 200).JSON(t, &out)
+		return out
+	}
+	draft := send(post)
+	// French isn't one of the workspace's languages: it's left out.
+	if !draft.Created || strings.Join(draft.Languages, ",") != "es" {
+		t.Fatalf("draft: %+v", draft)
+	}
+	versions := func(id string) map[string]string {
+		var out struct {
+			Source   string
+			Versions []struct{ Language, Status string }
+		}
+		c.Do("GET", ws+"/campaigns/"+id+"/languages", nil).MustStatus(t, 200).JSON(t, &out)
+		m := map[string]string{"source": out.Source}
+		for _, v := range out.Versions {
+			m[v.Language] = v.Status
+		}
+		return m
+	}
+	if v := versions(draft.CampaignID); v["source"] != "en" || v["es"] != "up_to_date" || v["de"] != "missing" || v["fr"] != "" {
+		t.Errorf("versions: %v", v)
+	}
+	var spanish struct{ Subject, Preheader, MJML string }
+	c.Do("GET", ws+"/campaigns/"+draft.CampaignID+"?language=es", nil).MustStatus(t, 200).JSON(t, &spanish)
+	if spanish.Subject != "Los despliegues programados ya están aquí" || spanish.Preheader != "Elige la hora y nosotros hacemos el resto." ||
+		!strings.Contains(spanish.MJML, "https://news.example.org/es/despliegues/") || strings.Contains(spanish.MJML, "Scheduled rollouts") {
+		t.Errorf("the Spanish version: %+v", spanish)
+	}
+	// Without a featured image, the template's post image is left out.
+	if strings.Contains(spanish.MJML, "<mj-image") {
+		t.Errorf("an empty post image: %s", spanish.MJML)
+	}
+
+	// The German translation, published later, joins the draft.
+	de := map[string]any{"id": "93", "language": "de", "title": "Geplante Rollouts sind da"}
+	post["translations"] = []any{es, fr, de}
+	if joined := send(post); joined.Created || joined.Reason != "exists" || joined.CampaignID != draft.CampaignID || strings.Join(joined.Languages, ",") != "de" {
+		t.Errorf("a translation published later: %+v", joined)
+	}
+	// A translation's own publish finds the draft through the post.
+	german := send(map[string]any{"id": "93", "title": "Geplante Rollouts sind da", "language": "de",
+		"translations": []any{map[string]any{"id": "90", "language": "en", "title": "Scheduled rollouts are here"}}})
+	if german.Created || german.Reason != "exists" || german.CampaignID != draft.CampaignID || len(german.Languages) != 0 {
+		t.Errorf("the German post itself: %+v", german)
+	}
+	if v := versions(draft.CampaignID); v["en"] != "source" || v["es"] != "up_to_date" || v["de"] != "up_to_date" || len(v) != 4 {
+		t.Errorf("versions: %v", v)
+	}
+	var drafts int
+	_ = env.App.Pool.QueryRow(context.Background(), `SELECT count(*) FROM wordpress_drafts WHERE integration_id = $1`, site.IntegrationID).Scan(&drafts)
+	if drafts != 1 {
+		t.Errorf("one draft for the post and its translations: %d", drafts)
+	}
+
+	// A post in a language the workspace offers is written in it.
+	neu := send(map[string]any{"id": "95", "title": "Neue Funktionen", "categories": []string{"news"}, "language": "de-DE"})
+	if v := versions(neu.CampaignID); !neu.Created || v["source"] != "de" || len(neu.Languages) != 0 {
+		t.Errorf("a German post: %+v %v", neu, v)
+	}
+}

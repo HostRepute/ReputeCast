@@ -18924,6 +18924,7 @@ export interface components {
         WordPressDraftResult: {
             campaignId?: string;
             created: boolean;
+            languages?: string[];
             name?: string;
             /** @enum {string} */
             reason?: "no_rule" | "rule_off" | "category" | "exists" | "";
@@ -18969,6 +18970,17 @@ export interface components {
             language?: string;
             /** Format: date-time */
             publishedAt?: string;
+            title: string;
+            /** @description The post's translations (plugin 1.3.0, WPML or Polylang): they become the draft's language versions */
+            translations?: components["schemas"]["WordPressPostTranslation"][];
+            url?: string;
+        };
+        WordPressPostTranslation: {
+            excerpt?: string;
+            id: string;
+            imageUrl?: string;
+            /** @example es */
+            language: string;
             title: string;
             url?: string;
         };
