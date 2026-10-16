@@ -264,6 +264,7 @@ func TestSending(t *testing.T) {
 	t.Run("BestTime", func(t *testing.T) { testBestTime(t, s.fixture(t, "Best time")) })
 	t.Run("AudienceFromSeveralLists", func(t *testing.T) { testSeveralLists(t, s.fixture(t, "Several lists")) })
 	t.Run("Languages", func(t *testing.T) { testLanguages(t, s.fixture(t, "Languages")) })
+	t.Run("AutomationLanguages", func(t *testing.T) { testAutomationLanguages(t, s.fixture(t, "Automation languages")) })
 }
 
 // testBestTime sends at each recipient's best time: a contact who usually

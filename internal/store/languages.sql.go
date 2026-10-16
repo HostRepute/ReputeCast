@@ -755,25 +755,31 @@ func (q *Queries) ContentTranslations(ctx context.Context, arg ContentTranslatio
 const contentTranslationsCopy = `-- name: ContentTranslationsCopy :exec
 INSERT INTO content_translations (id, workspace_id, owner_kind, owner_id, owner_version, language, status, held, subject, preheader, mjml, html, plain_text,
     ab_test, links, version, content_hash, translated_from, translated_by, translated_at, created_by, created_at, updated_by, updated_at, autosaved_at)
-SELECT gen_random_uuid(), src.workspace_id, src.owner_kind, src.owner_id, $1, src.language, src.status, src.held, src.subject, src.preheader,
+SELECT ($1::uuid[])[array_position($2::text[], src.language)], src.workspace_id, src.owner_kind, src.owner_id, $3, src.language,
+    src.status, src.held, src.subject, src.preheader,
     src.mjml, src.html, src.plain_text, src.ab_test, src.links, src.version, src.content_hash, src.translated_from, src.translated_by, src.translated_at,
     src.created_by, src.created_at, src.updated_by, src.updated_at, src.autosaved_at
 FROM content_translations src
-WHERE src.owner_kind = $2 AND src.owner_id = $3 AND src.owner_version = $4
+WHERE src.owner_kind = $4 AND src.owner_id = $5 AND src.owner_version = $6 AND src.language = ANY($2::text[])
 ON CONFLICT (owner_kind, owner_id, owner_version, language) DO NOTHING
 `
 
 type ContentTranslationsCopyParams struct {
-	ToVersion   int32     `json:"toVersion"`
-	OwnerKind   string    `json:"ownerKind"`
-	OwnerID     uuid.UUID `json:"ownerId"`
-	FromVersion int32     `json:"fromVersion"`
+	Ids         []uuid.UUID `json:"ids"`
+	Languages   []string    `json:"languages"`
+	ToVersion   int32       `json:"toVersion"`
+	OwnerKind   string      `json:"ownerKind"`
+	OwnerID     uuid.UUID   `json:"ownerId"`
+	FromVersion int32       `json:"fromVersion"`
 }
 
 // Carries an automation email's or template's language versions to its
-// next version (their versions are immutable).
+// next version (their versions are immutable), with ids made in Go: one
+// per language.
 func (q *Queries) ContentTranslationsCopy(ctx context.Context, arg ContentTranslationsCopyParams) error {
 	_, err := q.db.Exec(ctx, contentTranslationsCopy,
+		arg.Ids,
+		arg.Languages,
 		arg.ToVersion,
 		arg.OwnerKind,
 		arg.OwnerID,
@@ -807,6 +813,112 @@ func (q *Queries) LanguagesAdd(ctx context.Context, arg LanguagesAddParams) erro
 		arg.PageCopyStatus,
 	)
 	return err
+}
+
+const languagesAutomationEmailCopyVersion = `-- name: LanguagesAutomationEmailCopyVersion :exec
+INSERT INTO automation_email_versions (email_id, version, subject, preheader, mjml, html, plain_text, created_by)
+SELECT src.email_id, $1, src.subject, src.preheader, src.mjml, src.html, src.plain_text, $2
+FROM automation_email_versions src
+WHERE src.email_id = $3 AND src.version = $4
+`
+
+type LanguagesAutomationEmailCopyVersionParams struct {
+	ToVersion   int32      `json:"toVersion"`
+	CreatedBy   *uuid.UUID `json:"createdBy"`
+	EmailID     uuid.UUID  `json:"emailId"`
+	FromVersion int32      `json:"fromVersion"`
+}
+
+// The email's next version: a copy of one of its versions, its translations
+// to be written.
+func (q *Queries) LanguagesAutomationEmailCopyVersion(ctx context.Context, arg LanguagesAutomationEmailCopyVersionParams) error {
+	_, err := q.db.Exec(ctx, languagesAutomationEmailCopyVersion,
+		arg.ToVersion,
+		arg.CreatedBy,
+		arg.EmailID,
+		arg.FromVersion,
+	)
+	return err
+}
+
+const languagesAutomationEmailLock = `-- name: LanguagesAutomationEmailLock :one
+SELECT latest_version FROM automation_emails
+WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL
+FOR UPDATE
+`
+
+type LanguagesAutomationEmailLockParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	ID          uuid.UUID `json:"id"`
+}
+
+// Locks an automation email to give it its next version.
+func (q *Queries) LanguagesAutomationEmailLock(ctx context.Context, arg LanguagesAutomationEmailLockParams) (int32, error) {
+	row := q.db.QueryRow(ctx, languagesAutomationEmailLock, arg.WorkspaceID, arg.ID)
+	var latest_version int32
+	err := row.Scan(&latest_version)
+	return latest_version, err
+}
+
+const languagesAutomationEmailSetLatest = `-- name: LanguagesAutomationEmailSetLatest :exec
+UPDATE automation_emails SET latest_version = $1, updated_at = now() WHERE id = $2
+`
+
+type LanguagesAutomationEmailSetLatestParams struct {
+	Version int32     `json:"version"`
+	ID      uuid.UUID `json:"id"`
+}
+
+func (q *Queries) LanguagesAutomationEmailSetLatest(ctx context.Context, arg LanguagesAutomationEmailSetLatestParams) error {
+	_, err := q.db.Exec(ctx, languagesAutomationEmailSetLatest, arg.Version, arg.ID)
+	return err
+}
+
+const languagesAutomationEmailSource = `-- name: LanguagesAutomationEmailSource :one
+SELECT e.id, e.name, e.latest_version, v.version, v.subject, v.preheader, v.mjml, v.html, v.created_at,
+       coalesce(u.name, '')::text AS created_by_name
+FROM automation_emails e
+JOIN automation_email_versions v ON v.email_id = e.id
+LEFT JOIN users u ON u.id = v.created_by
+WHERE e.workspace_id = $1 AND e.id = $2 AND v.version = $3 AND e.deleted_at IS NULL
+`
+
+type LanguagesAutomationEmailSourceParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	ID          uuid.UUID `json:"id"`
+	Version     int32     `json:"version"`
+}
+
+type LanguagesAutomationEmailSourceRow struct {
+	ID            uuid.UUID `json:"id"`
+	Name          string    `json:"name"`
+	LatestVersion int32     `json:"latestVersion"`
+	Version       int32     `json:"version"`
+	Subject       string    `json:"subject"`
+	Preheader     string    `json:"preheader"`
+	Mjml          string    `json:"mjml"`
+	Html          string    `json:"html"`
+	CreatedAt     time.Time `json:"createdAt"`
+	CreatedByName string    `json:"createdByName"`
+}
+
+// An automation email version as the source of its language versions.
+func (q *Queries) LanguagesAutomationEmailSource(ctx context.Context, arg LanguagesAutomationEmailSourceParams) (LanguagesAutomationEmailSourceRow, error) {
+	row := q.db.QueryRow(ctx, languagesAutomationEmailSource, arg.WorkspaceID, arg.ID, arg.Version)
+	var i LanguagesAutomationEmailSourceRow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.LatestVersion,
+		&i.Version,
+		&i.Subject,
+		&i.Preheader,
+		&i.Mjml,
+		&i.Html,
+		&i.CreatedAt,
+		&i.CreatedByName,
+	)
+	return i, err
 }
 
 const languagesCampaignSendContent = `-- name: LanguagesCampaignSendContent :one
@@ -956,6 +1068,23 @@ func (q *Queries) LanguagesContactCodes(ctx context.Context, workspaceID uuid.UU
 		return nil, err
 	}
 	return items, nil
+}
+
+const languagesContactLanguage = `-- name: LanguagesContactLanguage :one
+SELECT language FROM contacts WHERE workspace_id = $1 AND id = $2 AND erased_at IS NULL
+`
+
+type LanguagesContactLanguageParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	ID          uuid.UUID `json:"id"`
+}
+
+// A contact's language code ("" for none), for a transactional send.
+func (q *Queries) LanguagesContactLanguage(ctx context.Context, arg LanguagesContactLanguageParams) (string, error) {
+	row := q.db.QueryRow(ctx, languagesContactLanguage, arg.WorkspaceID, arg.ID)
+	var language string
+	err := row.Scan(&language)
+	return language, err
 }
 
 const languagesEnsureDefault = `-- name: LanguagesEnsureDefault :exec
@@ -1147,6 +1276,61 @@ func (q *Queries) LanguagesMessageResults(ctx context.Context, campaignID *uuid.
 	return items, nil
 }
 
+const languagesPreviewContacts = `-- name: LanguagesPreviewContacts :many
+SELECT DISTINCT ON (lower(split_part(replace(c.language, '_', '-'), '-', 1)))
+       c.id, c.email, c.first_name, c.last_name, c.language
+FROM contacts c
+WHERE c.workspace_id = $1 AND c.erased_at IS NULL AND c.status = 'active' AND c.language <> ''
+  AND (cardinality($2::uuid[]) = 0 OR EXISTS (
+    SELECT 1 FROM list_memberships m
+    WHERE m.contact_id = c.id AND m.status = 'subscribed'
+      AND m.list_id = ANY(ARRAY(SELECT ll.id FROM lists ll WHERE ll.id = ANY($2::uuid[]) AND ll.deleted_at IS NULL))))
+ORDER BY lower(split_part(replace(c.language, '_', '-'), '-', 1)), (c.first_name = '') ASC, c.last_open_at DESC NULLS LAST, c.email
+LIMIT 200
+`
+
+type LanguagesPreviewContactsParams struct {
+	WorkspaceID uuid.UUID   `json:"workspaceId"`
+	Lists       []uuid.UUID `json:"lists"`
+}
+
+type LanguagesPreviewContactsRow struct {
+	ID        uuid.UUID `json:"id"`
+	Email     string    `json:"email"`
+	FirstName string    `json:"firstName"`
+	LastName  string    `json:"lastName"`
+	Language  string    `json:"language"`
+}
+
+// "Preview as" in the composer: one active contact per contact language
+// (its base code), from the given lists when there are any, people with a
+// first name first.
+func (q *Queries) LanguagesPreviewContacts(ctx context.Context, arg LanguagesPreviewContactsParams) ([]LanguagesPreviewContactsRow, error) {
+	rows, err := q.db.Query(ctx, languagesPreviewContacts, arg.WorkspaceID, arg.Lists)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []LanguagesPreviewContactsRow{}
+	for rows.Next() {
+		var i LanguagesPreviewContactsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Email,
+			&i.FirstName,
+			&i.LastName,
+			&i.Language,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const languagesRemove = `-- name: LanguagesRemove :execrows
 UPDATE workspace_languages SET removed_at = $1, removed_by = $2
 WHERE workspace_id = $3 AND code = $4 AND removed_at IS NULL AND NOT is_default AND NOT is_fallback
@@ -1206,6 +1390,29 @@ func (q *Queries) LanguagesSetFallback(ctx context.Context, arg LanguagesSetFall
 	return result.RowsAffected(), nil
 }
 
+const languagesSetMessageLanguage = `-- name: LanguagesSetMessageLanguage :exec
+UPDATE messages SET language = $1, contact_language = $2, language_reason = $3
+WHERE id = $4
+`
+
+type LanguagesSetMessageLanguageParams struct {
+	Language        string    `json:"language"`
+	ContactLanguage string    `json:"contactLanguage"`
+	LanguageReason  string    `json:"languageReason"`
+	ID              uuid.UUID `json:"id"`
+}
+
+// The language version a transactional message was sent in, and why.
+func (q *Queries) LanguagesSetMessageLanguage(ctx context.Context, arg LanguagesSetMessageLanguageParams) error {
+	_, err := q.db.Exec(ctx, languagesSetMessageLanguage,
+		arg.Language,
+		arg.ContactLanguage,
+		arg.LanguageReason,
+		arg.ID,
+	)
+	return err
+}
+
 const languagesSetPageCopy = `-- name: LanguagesSetPageCopy :execrows
 UPDATE workspace_languages
 SET page_copy_status = $1, page_copy_missing = $2, page_copy_by = $3, page_copy_at = $4
@@ -1236,19 +1443,77 @@ func (q *Queries) LanguagesSetPageCopy(ctx context.Context, arg LanguagesSetPage
 	return result.RowsAffected(), nil
 }
 
+const languagesTemplateSource = `-- name: LanguagesTemplateSource :one
+SELECT t.id, t.workspace_id, t.key, t.name, t.subject, t.preheader, t.mjml, t.html, t.plain_text, t.draft_revision, t.draft_saved_at,
+       t.archived_at, t.live_version, coalesce(u.name, '')::text AS saved_by_name
+FROM transactional_templates t
+LEFT JOIN users u ON u.id = t.draft_saved_by
+WHERE t.workspace_id = $1 AND (t.id = $2 OR ($3::text <> '' AND t.key = $3::text)) AND t.deleted_at IS NULL
+`
+
+type LanguagesTemplateSourceParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	ID          uuid.UUID `json:"id"`
+	Key         string    `json:"key"`
+}
+
+type LanguagesTemplateSourceRow struct {
+	ID            uuid.UUID  `json:"id"`
+	WorkspaceID   uuid.UUID  `json:"workspaceId"`
+	Key           string     `json:"key"`
+	Name          string     `json:"name"`
+	Subject       string     `json:"subject"`
+	Preheader     string     `json:"preheader"`
+	Mjml          string     `json:"mjml"`
+	Html          string     `json:"html"`
+	PlainText     string     `json:"plainText"`
+	DraftRevision int32      `json:"draftRevision"`
+	DraftSavedAt  time.Time  `json:"draftSavedAt"`
+	ArchivedAt    *time.Time `json:"archivedAt"`
+	LiveVersion   *int32     `json:"liveVersion"`
+	SavedByName   string     `json:"savedByName"`
+}
+
+// A transactional template's draft as the source of its language versions,
+// by its id or its key.
+func (q *Queries) LanguagesTemplateSource(ctx context.Context, arg LanguagesTemplateSourceParams) (LanguagesTemplateSourceRow, error) {
+	row := q.db.QueryRow(ctx, languagesTemplateSource, arg.WorkspaceID, arg.ID, arg.Key)
+	var i LanguagesTemplateSourceRow
+	err := row.Scan(
+		&i.ID,
+		&i.WorkspaceID,
+		&i.Key,
+		&i.Name,
+		&i.Subject,
+		&i.Preheader,
+		&i.Mjml,
+		&i.Html,
+		&i.PlainText,
+		&i.DraftRevision,
+		&i.DraftSavedAt,
+		&i.ArchivedAt,
+		&i.LiveVersion,
+		&i.SavedByName,
+	)
+	return i, err
+}
+
 const languagesVersionsIn = `-- name: LanguagesVersionsIn :many
 SELECT t.owner_kind, t.owner_id, t.owner_version, t.status, t.held,
-       coalesce(c.name, ae.name, '')::text AS name,
+       coalesce(c.name, ae.name, tt.key, '')::text AS name,
        coalesce(c.status, '')::text AS campaign_status,
        coalesce(a.name, '')::text AS automation_name,
-       coalesce(a.id, '00000000-0000-0000-0000-000000000000'::uuid)::uuid AS automation_id
+       coalesce(a.id, '00000000-0000-0000-0000-000000000000'::uuid)::uuid AS automation_id,
+       coalesce(tt.live_version, 0)::int AS live_version
 FROM content_translations t
 LEFT JOIN campaigns c ON t.owner_kind = 'campaign' AND c.id = t.owner_id AND c.deleted_at IS NULL
 LEFT JOIN automation_emails ae ON t.owner_kind = 'automation_email' AND ae.id = t.owner_id AND ae.deleted_at IS NULL
 LEFT JOIN automations a ON a.id = ae.automation_id
+LEFT JOIN transactional_templates tt ON t.owner_kind = 'transactional_template' AND tt.id = t.owner_id AND tt.deleted_at IS NULL
 WHERE t.workspace_id = $1 AND t.language = $2
   AND (t.owner_kind <> 'campaign' OR c.status IN ('draft','approval','approved','scheduled','sending','paused'))
   AND (t.owner_kind <> 'automation_email' OR ae.id IS NOT NULL)
+  AND (t.owner_kind <> 'transactional_template' OR tt.id IS NOT NULL)
 ORDER BY t.owner_kind, t.updated_at DESC
 `
 
@@ -1267,6 +1532,7 @@ type LanguagesVersionsInRow struct {
 	CampaignStatus string    `json:"campaignStatus"`
 	AutomationName string    `json:"automationName"`
 	AutomationID   uuid.UUID `json:"automationId"`
+	LiveVersion    int32     `json:"liveVersion"`
 }
 
 // What has a version in a language (the Remove dialog): unsent campaigns,
@@ -1290,6 +1556,7 @@ func (q *Queries) LanguagesVersionsIn(ctx context.Context, arg LanguagesVersions
 			&i.CampaignStatus,
 			&i.AutomationName,
 			&i.AutomationID,
+			&i.LiveVersion,
 		); err != nil {
 			return nil, err
 		}

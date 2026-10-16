@@ -8,6 +8,7 @@ import { statusWord } from './format'
 import { ToolIcon } from './icons'
 import { AudiencePicker, SenderPicker } from './Pickers'
 import { SendTestButton } from './SendTest'
+import { ComposerLanguageSwitcher, versionLanguage, withoutVersion } from '@/features/languages/composerParts'
 
 const routeColors: Record<string, string> = { ses: 'var(--chart-ses)', postal: 'var(--chart-postal)', postmark: 'var(--chart-postmark)' }
 
@@ -127,8 +128,12 @@ export function Header({ onReview }: { onReview: () => void }) {
         )}
       </div>
       <Badge id="cstatus" tone={status.kind === 'offline' || status.kind === 'error' ? 'bad' : status.kind === 'conflict' ? 'warn' : 'neutral'} role="status">
-        {preview ? `${statusWord(campaign.status)} · v${status.kind === 'new' ? 1 : status.version}` : statusText(status, campaign.status)}
+        {withoutVersion(
+          preview ? `${statusWord(campaign.status)} · v${status.kind === 'new' ? 1 : status.version}` : statusText(status, campaign.status),
+          Boolean(versionLanguage(campaign) || c.missingLanguage),
+        )}
       </Badge>
+      {preview ? null : <ComposerLanguageSwitcher />}
       {preview ? null : (
         <div className="flex flex-wrap gap-2" style={{ marginLeft: 12 }}>
           <AudiencePicker />

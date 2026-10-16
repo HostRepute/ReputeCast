@@ -24,6 +24,9 @@ import { ConfirmSend, type SendIntent } from './ConfirmSend'
 import { confirmNote, fixAllLabel, plural, primaryFix, scheduleSentence, sendLabel, type Check, type Fix, type Review, type Schedule, type Thresholds } from './logic'
 import { fixReason, whenText } from './parts'
 import { IncompleteBanner, RunningBanner, ScheduledBanner, ScheduledTiles, StaleBanner, VerdictBanner } from './Verdict'
+import { ByVersion, EACH, languageRows, sentVersions } from '@/features/languages/review'
+import { mr } from '@/features/languages/messages'
+import { useT } from '@/i18n'
 import './review.css'
 
 const reviewPath = '/api/v1/workspaces/{workspace}/campaigns/{campaignId}/review' as const
@@ -143,6 +146,8 @@ function ReviewBody({
   const { slug } = useWorkspace()
   const { data: me } = useMe()
   const navigate = useNavigate()
+  const t = useT()
+  const versions = sentVersions(languageRows(d.run?.checks))
   const campaignId = d.campaign.id
   const path = { workspace: slug, campaignId }
   const [busy, setBusy] = useState<Busy>()
@@ -200,9 +205,10 @@ function ReviewBody({
     }
   }
 
-  const sendTest = async (to: string): Promise<boolean> => {
+  const sendTest = async (to: string, language?: string): Promise<boolean> => {
     try {
-      const { data } = await http.POST('/api/v1/workspaces/{workspace}/campaigns/{campaignId}/test', { params: { path }, body: { to: [to] } })
+      const lang = language === EACH ? { eachLanguage: true } : language ? { language } : {}
+      const { data } = await http.POST('/api/v1/workspaces/{workspace}/campaigns/{campaignId}/test', { params: { path }, body: { to: [to], ...lang } })
       toast({ kind: 'success', title: `Test sent to ${data?.sent.join(', ') ?? to}`, detail: data?.provider ? `via ${data.provider}` : undefined })
       await refresh()
       return true
@@ -573,7 +579,9 @@ function ReviewBody({
           ) : null}
         </div>
         <aside className="rv-aside" aria-label="Audience, route and send settings">
-          <AudienceCard audience={run.estimates.audience} />
+          <AudienceCard audience={run.estimates.audience}>
+            <ByVersion checks={run.checks} />
+          </AudienceCard>
           <RouteCard route={run.estimates.route} startAt={startAt} />
           <ThrottlingCard throttling={run.estimates.throttling} note={!blocked} />
           <ThresholdsCard
@@ -602,6 +610,7 @@ function ReviewBody({
               toOthers={a.canSendTestToOthers}
               disabledReason={c.editable ? undefined : 'This campaign already went out.'}
               onSend={sendTest}
+              versions={versions}
             />
           ) : null}
           {showCTA ? (
@@ -619,7 +628,9 @@ function ReviewBody({
                 <Button variant="primary" className="rv-cta" disabledReason={sendReason} onClick={openSend}>
                   {label}
                 </Button>
-                <span className="k text-center">{confirmNote(run.counts.warnings)}</span>
+                <span className="k text-center">
+                  {versions.length > 1 ? t(mr.confirmNoteLanguages, { count: run.counts.warnings }) : confirmNote(run.counts.warnings)}
+                </span>
               </>
             )
           ) : null}

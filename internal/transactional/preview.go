@@ -178,6 +178,8 @@ func (s *Service) Preview(ctx context.Context, ws *store.Workspace, ref string, 
 type TransactionalRenderInput struct {
 	Data map[string]any        `json:"data,omitempty" doc:"The template's variables"`
 	To   *TransactionalAddress `json:"to,omitempty" doc:"Fills to.email and to.name"`
+	// Language picks a language version, as a send does.
+	Language string `json:"language,omitempty" maxLength:"16" example:"es" doc:"The language version to render; the linked contact's language, then the fallback, when omitted"`
 }
 
 // TransactionalRendered is a rendered live version.
@@ -187,6 +189,8 @@ type TransactionalRendered struct {
 	Subject  string `json:"subject"`
 	HTML     string `json:"html"`
 	Text     string `json:"text"`
+	// Language is the language version rendered.
+	Language string `json:"language,omitempty" example:"es"`
 }
 
 // liveTemplate is a template's live version, as the API sends it.
@@ -264,9 +268,13 @@ func (s *Service) Render(ctx context.Context, ws *store.Workspace, key string, i
 	if in.To != nil {
 		to = recipient{Email: strings.ToLower(strings.TrimSpace(in.To.Email)), Name: in.To.Name}
 	}
-	r, err := render(lt.Content, data, to, map[string]string{"unsubscribe_url": "#unsubscribe", "preferences_url": "#preferences"})
+	cnt, lang, err := s.renderLanguage(ctx, ws, lt, in.Language, to.Email)
+	if err != nil {
+		return TransactionalRendered{}, err
+	}
+	r, err := render(cnt, data, to, map[string]string{"unsubscribe_url": "#unsubscribe", "preferences_url": "#preferences"})
 	if err != nil {
 		return TransactionalRendered{}, problem(http.StatusUnprocessableEntity, CodeTemplateDoesntRun, fmt.Sprintf("%s v%d doesn't render with this data: %s", lt.Key, lt.Version, err))
 	}
-	return TransactionalRendered{Template: lt.Key, Version: lt.Version, Subject: r.Subject, HTML: r.HTML, Text: r.Text}, nil
+	return TransactionalRendered{Template: lt.Key, Version: lt.Version, Subject: r.Subject, HTML: r.HTML, Text: r.Text, Language: lang}, nil
 }

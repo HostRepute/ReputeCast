@@ -54,6 +54,8 @@ type ReviewTestSend struct {
 	Provider string    `json:"provider"`
 	// Delivered names the mailbox provider that accepted it, when known ("Gmail").
 	Delivered string `json:"delivered,omitempty"`
+	// Languages are the language versions sent ("en", "es", "de").
+	Languages []string `json:"languages,omitempty"`
 }
 
 // ReviewScheduled is who scheduled the campaign and when.
@@ -174,8 +176,9 @@ func (s *Service) Review(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	if rows, err := s.Q.ReadinessTestSends(ctx, store.ReadinessTestSendsParams{WorkspaceID: &ws.ID, CampaignID: c.ID.String()}); err == nil {
 		for _, r := range rows {
 			var after struct {
-				To       []string `json:"to"`
-				Provider string   `json:"provider"`
+				To        []string `json:"to"`
+				Provider  string   `json:"provider"`
+				Languages []string `json:"languages"`
 			}
 			var meta struct {
 				Delivered map[string]string `json:"delivered"`
@@ -183,7 +186,8 @@ func (s *Service) Review(ctx context.Context, ws *store.Workspace, p *authz.Prin
 			_ = json.Unmarshal(r.After, &after)
 			_ = json.Unmarshal(r.Metadata, &meta)
 			for _, to := range after.To {
-				out.TestSends = append(out.TestSends, ReviewTestSend{To: to, At: r.OccurredAt, By: r.ActorName, Provider: after.Provider, Delivered: meta.Delivered[to]})
+				out.TestSends = append(out.TestSends, ReviewTestSend{To: to, At: r.OccurredAt, By: r.ActorName, Provider: after.Provider, Delivered: meta.Delivered[to],
+					Languages: after.Languages})
 			}
 		}
 		if len(out.TestSends) > 4 {

@@ -2,6 +2,9 @@ import { useMemo } from 'react'
 import { useNow } from '@/lib/hooks'
 import { useComposer } from './context'
 import { inboxTime } from './format'
+import { useT } from '@/i18n'
+import { useVersionName } from '@/features/languages/composerParts'
+import { mz } from '@/features/languages/messages'
 
 /** Subject of the variant being edited (A is the campaign itself). */
 export function useVariantSubject(): [string, (v: string) => void] {
@@ -20,6 +23,7 @@ export function useVariantSubject(): [string, (v: string) => void] {
 /** Subject and preheader with the inbox preview (Gmail on desktop, iPhone Mail on mobile). */
 export function SubjectBar() {
   const c = useComposer()
+  const t = useT()
   const [subject, setSubject] = useVariantSubject()
   const now = useNow(60_000)
   const time = inboxTime(c.campaign.scheduledAt ?? now)
@@ -28,7 +32,10 @@ export function SubjectBar() {
   const spam = heuristics.length > 0 && subject.trim() !== ''
   const empty = !subject.trim() && !c.preheader.trim()
   const mobile = c.device === 'mobile'
-  const subjectLabel = spam
+  const language = useVersionName()
+  const subjectLabel = language
+    ? t(mz.subjectIn, { language })
+    : spam
     ? `Subject · ${heuristics.length} spam ${heuristics.length === 1 ? 'heuristic' : 'heuristics'}: ${heuristics.join(', ')}`
     : c.abTest && c.abTest.kind === 'subject'
       ? `Subject · Variant ${c.variant}`
@@ -51,7 +58,7 @@ export function SubjectBar() {
         />
       </label>
       <label style={{ flex: '2 1 320px' }}>
-        <span className="k">Preheader</span>
+        <span className="k">{language ? t(mz.preheaderIn, { language }) : 'Preheader'}</span>
         <input
           className="in"
           value={c.preheader}
@@ -63,7 +70,7 @@ export function SubjectBar() {
       </label>
       <div style={{ flex: '3 1 360px' }}>
         <span className="k" id="inbox-label">
-          Inbox preview · {mobile ? 'iPhone Mail' : 'Gmail'}
+          {language ? t(mz.inboxIn, { client: mobile ? 'iPhone Mail' : 'Gmail', language }) : `Inbox preview · ${mobile ? 'iPhone Mail' : 'Gmail'}`}
         </span>
         {empty ? (
           <div className="cmp-inbox empty" aria-labelledby="inbox-label">

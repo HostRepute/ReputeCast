@@ -22,8 +22,8 @@ func TestNormalize(t *testing.T) {
 			t.Errorf("Normalize(%q) = %q, want refused", bad, got)
 		}
 	}
-	if Suggest("Spansih") != "es" || Suggest("Germna") != "de" {
-		t.Errorf("suggestions: %q %q", Suggest("Spansih"), Suggest("Germna"))
+	if Suggest("Spanosh") != "es" || Suggest("Germna") != "de" {
+		t.Errorf("suggestions: %q %q", Suggest("Spanosh"), Suggest("Germna"))
 	}
 	if Base("es-MX") != "es" || Base("") != "" {
 		t.Error("base")
