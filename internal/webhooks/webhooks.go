@@ -92,6 +92,7 @@ var Events = []WebhookEventInfo{
 	{"message.failed", "Transactional messages", "Every provider in the route failed after the retries."},
 	{"message.opened", "Transactional messages", "The message was opened (templates with open tracking)."},
 	{"message.clicked", "Transactional messages", "A tracked link was clicked (templates with click tracking)."},
+	{"form.submitted", "Forms", "A signup was confirmed (at once for single opt-in), with the form and the answers."},
 }
 
 // ValidEvent reports whether name is a known event or wildcard ("email.*", "*").
@@ -123,6 +124,53 @@ type Service struct {
 	Now          func() time.Time
 	// HTTP overrides the delivery client (tests).
 	HTTP *http.Client
+	// Managed knows the endpoints integrations manage (internal/integrations):
+	// they can't be edited by hand, other API keys don't see them, and one
+	// that answers 410 Gone is removed.
+	Managed Managed
+}
+
+// WebhookManagedBy names the integration that manages an endpoint.
+type WebhookManagedBy struct {
+	IntegrationID string `json:"integrationId"`
+	Kind          string `json:"kind" example:"n8n"`
+	Name          string `json:"name" example:"n8n"`
+	// Workflow is the workflow that created it ("Unsubscribes → Acme Cloud CRM").
+	Workflow string `json:"workflow,omitempty"`
+	// Endpoint is its URL masked, as the integration's page shows it: a
+	// workflow tool's webhook address often carries a token.
+	Endpoint string `json:"endpoint,omitempty" example:"https://n8n.acme.io/webhook/7c1e…/reputecast"`
+}
+
+// Managed tells which endpoints integrations manage.
+type Managed interface {
+	ManagedHooks(ctx context.Context, workspaceID uuid.UUID) (map[uuid.UUID]WebhookManagedBy, error)
+	ManagedHook(ctx context.Context, webhookID uuid.UUID) (*WebhookManagedBy, error)
+	// Gone removes a managed endpoint that answered 410 Gone.
+	Gone(ctx context.Context, webhookID uuid.UUID)
+}
+
+// refuseManaged answers 409 for hand edits of an endpoint an integration manages.
+func (s *Service) refuseManaged(ctx context.Context, id uuid.UUID) error {
+	if s.Managed == nil {
+		return nil
+	}
+	m, err := s.Managed.ManagedHook(ctx, id)
+	if err != nil {
+		return err
+	}
+	if m != nil {
+		return api.Err(http.StatusConflict, "managed_by_integration", fmt.Sprintf("This endpoint is managed by %s. To change it, change the workflow in %s, or disconnect %s.", m.Name, m.Name, m.Name)).
+			WithMeta("integration", m.Kind)
+	}
+	return nil
+}
+
+// hidesManaged reports whether the caller is a key: endpoints an integration
+// created are only for people and the integration itself.
+func hidesManaged(ctx context.Context) bool {
+	p := api.PrincipalFrom(ctx)
+	return p != nil && p.Type != authz.ActorUser
 }
 
 func (s *Service) now() time.Time {
@@ -197,6 +245,12 @@ func Verify(secret, signature string, timestamp int64, body []byte, now time.Tim
 	return hmac.Equal([]byte(want), []byte(signature))
 }
 
+// NewSecret returns a new signing secret ("whsec_…").
+func NewSecret() string { return newSecret() }
+
+// SecretAD is the associated data an endpoint's secret is sealed with.
+func SecretAD(id uuid.UUID) string { return secretAD(id) }
+
 func newSecret() string {
 	b := make([]byte, 32)
 	if _, err := rand.Read(b); err != nil {
@@ -225,6 +279,9 @@ type WebhookView struct {
 	Total24h        int64      `json:"total24h" doc:"Deliveries attempted in the last 24 hours"`
 	Success24h      *float64   `json:"success24h,omitempty" doc:"Percent delivered in the last 24 hours"`
 	Queued          int64      `json:"queued" doc:"Deliveries waiting for an attempt or a retry"`
+	// ManagedBy is set for endpoints an integration created: their URL,
+	// events and secret change only in the integration.
+	ManagedBy *WebhookManagedBy `json:"managedBy,omitempty"`
 }
 
 // WebhookList is the outgoing webhooks card.
@@ -274,10 +331,28 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace) (WebhookList, e
 		return WebhookList{}, err
 	}
 	out := WebhookList{Items: []WebhookView{}, Events: Events, SignatureHeader: HeaderSignature, TimestampHeader: HeaderTimestamp, MaxAttempts: MaxAttempts}
+	managed, err := s.managed(ctx, ws.ID)
+	if err != nil {
+		return WebhookList{}, err
+	}
 	for _, r := range rows {
-		out.Items = append(out.Items, toView(r))
+		v := toView(r)
+		if m, ok := managed[r.ID]; ok {
+			if hidesManaged(ctx) {
+				continue
+			}
+			v.ManagedBy = &m
+		}
+		out.Items = append(out.Items, v)
 	}
 	return out, nil
+}
+
+func (s *Service) managed(ctx context.Context, wsID uuid.UUID) (map[uuid.UUID]WebhookManagedBy, error) {
+	if s.Managed == nil {
+		return map[uuid.UUID]WebhookManagedBy{}, nil
+	}
+	return s.Managed.ManagedHooks(ctx, wsID)
 }
 
 // WebhookInput creates or updates an endpoint.
@@ -351,6 +426,9 @@ func (s *Service) Update(ctx context.Context, ws *store.Workspace, id uuid.UUID,
 	if err != nil {
 		return WebhookView{}, api.MapError(err, "Webhook")
 	}
+	if err := s.refuseManaged(ctx, id); err != nil {
+		return WebhookView{}, err
+	}
 	u, events, err := s.validate(in)
 	if err != nil {
 		return WebhookView{}, err
@@ -381,6 +459,9 @@ func (s *Service) Delete(ctx context.Context, ws *store.Workspace, id uuid.UUID)
 	if err != nil {
 		return api.MapError(err, "Webhook")
 	}
+	if err := s.refuseManaged(ctx, id); err != nil {
+		return err
+	}
 	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		if _, err := q.HooksDelete(ctx, store.HooksDeleteParams{ID: id, WorkspaceID: ws.ID}); err != nil {
@@ -401,6 +482,9 @@ func (s *Service) RotateSecret(ctx context.Context, ws *store.Workspace, id uuid
 	old, err := s.Q.HooksGet(ctx, store.HooksGetParams{ID: id, WorkspaceID: ws.ID})
 	if err != nil {
 		return WebhookSecretResult{}, api.MapError(err, "Webhook")
+	}
+	if err := s.refuseManaged(ctx, id); err != nil {
+		return WebhookSecretResult{}, err
 	}
 	secret := newSecret()
 	enc, err := s.Box.SealString(secret, secretAD(id))
@@ -424,6 +508,9 @@ func (s *Service) SetEnabled(ctx context.Context, ws *store.Workspace, id uuid.U
 	old, err := s.Q.HooksGet(ctx, store.HooksGetParams{ID: id, WorkspaceID: ws.ID})
 	if err != nil {
 		return api.MapError(err, "Webhook")
+	}
+	if err := s.refuseManaged(ctx, id); err != nil {
+		return err
 	}
 	if old.Enabled == enabled {
 		return nil
@@ -486,7 +573,8 @@ func endpointLabel(raw string) string {
 	if err != nil {
 		return raw
 	}
-	return strings.TrimSuffix(u.Host+u.EscapedPath(), "/")
+	// A label, not a link: "…" in a masked address reads as typed.
+	return strings.TrimSuffix(u.Host+u.Path, "/")
 }
 
 func deliveryView(id, webhookID uuid.UUID, hookURL, event, subtype, state string, code, dur *int32, errText string, attempts, maxAttempts int32, created time.Time, last, next *time.Time) WebhookDeliveryView {
@@ -516,14 +604,33 @@ func (s *Service) Deliveries(ctx context.Context, ws *store.Workspace, webhookID
 		return WebhookDeliveryList{}, err
 	}
 	out := WebhookDeliveryList{Items: []WebhookDeliveryView{}, Queued: map[string]int64{}}
+	// Keys don't see the endpoints integrations manage; people see their
+	// addresses masked, as on the integration's page.
+	managed, err := s.managed(ctx, ws.ID)
+	if err != nil {
+		return WebhookDeliveryList{}, err
+	}
+	hide := hidesManaged(ctx)
 	for _, r := range rows {
-		out.Items = append(out.Items, deliveryView(r.ID, r.WebhookID, r.WebhookUrl, r.Event, r.Subtype, r.State, r.StatusCode, r.DurationMs, r.Error, r.Attempt, r.MaxAttempts, r.CreatedAt, r.LastAttemptAt, r.NextAttemptAt))
+		url := r.WebhookUrl
+		if m, ok := managed[r.WebhookID]; ok {
+			if hide {
+				continue
+			}
+			if m.Endpoint != "" {
+				url = m.Endpoint
+			}
+		}
+		out.Items = append(out.Items, deliveryView(r.ID, r.WebhookID, url, r.Event, r.Subtype, r.State, r.StatusCode, r.DurationMs, r.Error, r.Attempt, r.MaxAttempts, r.CreatedAt, r.LastAttemptAt, r.NextAttemptAt))
 	}
 	hooks, err := s.Q.HooksList(ctx, ws.ID)
 	if err != nil {
 		return WebhookDeliveryList{}, err
 	}
 	for _, h := range hooks {
+		if _, ok := managed[h.ID]; ok && hide {
+			continue
+		}
 		out.Queued[h.ID.String()] = h.Queued
 	}
 	return out, nil
@@ -548,8 +655,19 @@ func (s *Service) Delivery(ctx context.Context, ws *store.Workspace, id uuid.UUI
 		} `json:"data"`
 	}
 	_ = json.Unmarshal(d.Payload, &sub)
+	url := d.WebhookUrl
+	if s.Managed != nil {
+		if m, err := s.Managed.ManagedHook(ctx, d.WebhookID); err == nil && m != nil {
+			if hidesManaged(ctx) {
+				return WebhookDeliveryDetail{}, api.NotFound("Delivery")
+			}
+			if m.Endpoint != "" {
+				url = m.Endpoint
+			}
+		}
+	}
 	return WebhookDeliveryDetail{
-		Delivery: deliveryView(d.ID, d.WebhookID, d.WebhookUrl, d.Event, sub.Data.Subtype, d.State, d.StatusCode, d.DurationMs, d.Error, d.Attempt, d.MaxAttempts, d.CreatedAt, d.LastAttemptAt, d.NextAttemptAt),
+		Delivery: deliveryView(d.ID, d.WebhookID, url, d.Event, sub.Data.Subtype, d.State, d.StatusCode, d.DurationMs, d.Error, d.Attempt, d.MaxAttempts, d.CreatedAt, d.LastAttemptAt, d.NextAttemptAt),
 		Payload:  d.Payload, Response: d.Response,
 	}, nil
 }
@@ -701,6 +819,12 @@ func (s *Service) finish(ctx context.Context, d store.HooksClaimDeliveryRow, cod
 		}
 		return q.HooksRecordResult(ctx, store.HooksRecordResultParams{ID: d.WebhookID, LastStatus: status, Ok: ok})
 	})
+	if err == nil && code != nil && *code == http.StatusGone && s.Managed != nil {
+		// Zapier's REST Hooks: a 410 means the workflow is gone. Managed
+		// endpoints are removed; others keep retrying as usual.
+		s.Managed.Gone(ctx, d.WebhookID)
+		return nil, nil
+	}
 	return next, err
 }
 

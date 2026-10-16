@@ -12,6 +12,7 @@ import { ConfirmDialog, DialogRow } from '@/components/ui/ConfirmDialog'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { EmptyRow, Td, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
+import { MemberIntegrations, useMemberIntegrations } from '@/features/integrations/MemberIntegrations'
 import { FullPageState } from '@/components/shell/SystemScreens'
 import { ago, monthDay, usDate } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
@@ -385,6 +386,7 @@ function RemoveDialog({ member, keys, open, onOpenChange }: { member: Schemas['T
   const { slug, me } = useWorkspace()
   const navigate = useNavigate()
   const qc = useQueryClient()
+  const integrations = useMemberIntegrations([member.userId])
   return (
     <ConfirmDialog
       open={open}
@@ -396,6 +398,7 @@ function RemoveDialog({ member, keys, open, onOpenChange }: { member: Schemas['T
       confirmLabel={`Remove ${member.name.split(' ')[0]}`}
       busyLabel="Removing…"
       onConfirm={async () => {
+        await integrations.apply('')
         await http.DELETE('/api/v1/workspaces/{workspace}/members/{memberId}', { params: { path: { workspace: slug, memberId: member.id } } })
         toast({ kind: 'deleted', title: `${member.name} removed`, detail: 'logged as member.removed' })
         void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/members'] })
@@ -413,6 +416,7 @@ function RemoveDialog({ member, keys, open, onOpenChange }: { member: Schemas['T
       <DialogRow tone="ok" label="Keeps">
         Campaigns, templates and approvals they made stay in the workspace
       </DialogRow>
+      <MemberIntegrations state={integrations} name={member.name.split(' ')[0]} />
     </ConfirmDialog>
   )
 }

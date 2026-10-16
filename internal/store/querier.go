@@ -648,6 +648,121 @@ type Querier interface {
 	InstanceAuditStreamState(ctx context.Context) (InstanceAuditStreamStateRow, error)
 	// Workspaces that stream their own log, for "Streaming" on the instance view.
 	InstanceAuditWorkspaceStreams(ctx context.Context) ([]InstanceAuditWorkspaceStreamsRow, error)
+	IntegrationActiveByKind(ctx context.Context, arg IntegrationActiveByKindParams) (IntegrationActiveByKindRow, error)
+	IntegrationCallCounts(ctx context.Context, arg IntegrationCallCountsParams) (IntegrationCallCountsRow, error)
+	IntegrationCallGet(ctx context.Context, arg IntegrationCallGetParams) (IntegrationCallGetRow, error)
+	IntegrationCallInsert(ctx context.Context, arg IntegrationCallInsertParams) error
+	// The call log, newest first. Errors are answers of 400 and above.
+	IntegrationCalls(ctx context.Context, arg IntegrationCallsParams) ([]IntegrationCallsRow, error)
+	// Calls and errors per workflow in the window.
+	IntegrationCallsByWorkflow(ctx context.Context, arg IntegrationCallsByWorkflowParams) ([]IntegrationCallsByWorkflowRow, error)
+	// Bodies of calls about a contact who has since been erased.
+	IntegrationCallsForgetErased(ctx context.Context) (int64, error)
+	// The last hour, for "more than half of the calls failing".
+	IntegrationCallsHealth(ctx context.Context, arg IntegrationCallsHealthParams) (IntegrationCallsHealthRow, error)
+	// Successful calls after an error from the same workflow and action: the
+	// error is resolved.
+	IntegrationCallsLater(ctx context.Context, arg IntegrationCallsLaterParams) ([]time.Time, error)
+	IntegrationCallsPurge(ctx context.Context, before time.Time) (int64, error)
+	// Calls refused since a key stopped working (revoked, expired, owner left).
+	IntegrationCallsRejected(ctx context.Context, arg IntegrationCallsRejectedParams) ([]IntegrationCallsRejectedRow, error)
+	IntegrationConsentEvent(ctx context.Context, arg IntegrationConsentEventParams) error
+	IntegrationContactInsert(ctx context.Context, arg IntegrationContactInsertParams) (IntegrationContactInsertRow, error)
+	IntegrationContactUpdate(ctx context.Context, arg IntegrationContactUpdateParams) error
+	IntegrationCustomFields(ctx context.Context, workspaceID uuid.UUID) ([]IntegrationCustomFieldsRow, error)
+	IntegrationDeadLetters(ctx context.Context, webhookID uuid.UUID) ([]IntegrationDeadLettersRow, error)
+	IntegrationDisconnect(ctx context.Context, arg IntegrationDisconnectParams) (int64, error)
+	// A campaign draft created from a WordPress post.
+	IntegrationDraftInsert(ctx context.Context, arg IntegrationDraftInsertParams) error
+	IntegrationDraftVersion(ctx context.Context, arg IntegrationDraftVersionParams) error
+	// Contacts for event payloads, with their lists.
+	IntegrationEventContacts(ctx context.Context, ids []uuid.UUID) ([]IntegrationEventContactsRow, error)
+	// Live automations with their trigger and graph, to name the flows an API
+	// event starts or ends ("which starts the Onboarding automation").
+	IntegrationEventFlows(ctx context.Context, workspaceID uuid.UUID) ([]IntegrationEventFlowsRow, error)
+	// The first call made with a key (the "waiting for a first call" timeline).
+	IntegrationFirstCall(ctx context.Context, arg IntegrationFirstCallParams) (IntegrationFirstCallRow, error)
+	IntegrationGet(ctx context.Context, arg IntegrationGetParams) (IntegrationGetRow, error)
+	IntegrationInsert(ctx context.Context, arg IntegrationInsertParams) error
+	IntegrationInstanceAdmins(ctx context.Context) ([]IntegrationInstanceAdminsRow, error)
+	// Adds a contact to a list, or confirms a pending one. Never touches a
+	// membership the contact left: the caller refuses those first.
+	IntegrationJoinList(ctx context.Context, arg IntegrationJoinListParams) error
+	IntegrationKeyInsert(ctx context.Context, arg IntegrationKeyInsertParams) error
+	// What the authenticator needs about an integration key's connection.
+	IntegrationKeyLimit(ctx context.Context, id uuid.UUID) (IntegrationKeyLimitRow, error)
+	// Revokes a key; with grace_until it keeps working until then (rotation).
+	IntegrationKeyRevoke(ctx context.Context, arg IntegrationKeyRevokeParams) (int64, error)
+	// Who revoked a key in Keys & MCP, and when.
+	IntegrationKeyRevokedBy(ctx context.Context, arg IntegrationKeyRevokedByParams) (IntegrationKeyRevokedByRow, error)
+	IntegrationKeySetName(ctx context.Context, arg IntegrationKeySetNameParams) error
+	IntegrationKeySetPermissions(ctx context.Context, arg IntegrationKeySetPermissionsParams) error
+	IntegrationKeySetScope(ctx context.Context, arg IntegrationKeySetScopeParams) error
+	IntegrationKeyStopGrace(ctx context.Context, integrationID *uuid.UUID) (int64, error)
+	// Gives the connection's live keys (and a rotated one still in its grace
+	// period) a new owner; the secret stays the same.
+	IntegrationKeyTakeOver(ctx context.Context, arg IntegrationKeyTakeOverParams) error
+	IntegrationKeyTouchClient(ctx context.Context, arg IntegrationKeyTouchClientParams) error
+	// The keys of a connection, newest first: the current key, then rotated ones.
+	IntegrationKeys(ctx context.Context, integrationID *uuid.UUID) ([]IntegrationKeysRow, error)
+	// Every key of the workspace's active connections (Keys & MCP's second table).
+	IntegrationKeysInWorkspace(ctx context.Context, workspaceID uuid.UUID) ([]IntegrationKeysInWorkspaceRow, error)
+	IntegrationKeysRevokeAll(ctx context.Context, arg IntegrationKeysRevokeAllParams) ([]IntegrationKeysRevokeAllRow, error)
+	// The newest attempt of a failing managed webhook ("Attempt 4 of 8 · 502").
+	IntegrationLastAttempt(ctx context.Context, webhookID uuid.UUID) (IntegrationLastAttemptRow, error)
+	// The label the first automation platform was connected with ("Acme ops"),
+	// to suggest the next key's name.
+	IntegrationLastLabel(ctx context.Context, workspaceID uuid.UUID) (string, error)
+	// When and how a contact left a list ("left Beta Program on 2 Oct").
+	IntegrationLastLeft(ctx context.Context, arg IntegrationLastLeftParams) (IntegrationLastLeftRow, error)
+	IntegrationListNames(ctx context.Context, workspaceID uuid.UUID) ([]IntegrationListNamesRow, error)
+	IntegrationListSizes(ctx context.Context, workspaceID uuid.UUID) ([]IntegrationListSizesRow, error)
+	IntegrationManagedHook(ctx context.Context, webhookID uuid.UUID) (IntegrationManagedHookRow, error)
+	// Endpoints of the workspace an integration manages (the Webhooks page).
+	IntegrationManagedHooks(ctx context.Context, workspaceID uuid.UUID) ([]IntegrationManagedHooksRow, error)
+	// Active members, Admins first then Owners, with their role (helpers and pickers).
+	IntegrationMembers(ctx context.Context, workspaceID uuid.UUID) ([]IntegrationMembersRow, error)
+	IntegrationMembership(ctx context.Context, arg IntegrationMembershipParams) (IntegrationMembershipRow, error)
+	// A new key after a revoked or expired one: waiting for its first call again.
+	IntegrationReconnected(ctx context.Context, id uuid.UUID) error
+	IntegrationReleaseGet(ctx context.Context, kind string) (IntegrationRelease, error)
+	IntegrationReleaseSet(ctx context.Context, arg IntegrationReleaseSetParams) error
+	IntegrationSenders(ctx context.Context, workspaceID uuid.UUID) ([]IntegrationSendersRow, error)
+	IntegrationSetAttention(ctx context.Context, arg IntegrationSetAttentionParams) error
+	IntegrationSetItems(ctx context.Context, arg IntegrationSetItemsParams) error
+	IntegrationSetLabel(ctx context.Context, arg IntegrationSetLabelParams) error
+	IntegrationSetSettings(ctx context.Context, arg IntegrationSetSettingsParams) error
+	IntegrationTemplate(ctx context.Context, arg IntegrationTemplateParams) (IntegrationTemplateRow, error)
+	// A transactional template's live variables, to mask its sensitive ones in
+	// the call log.
+	IntegrationTemplateVariables(ctx context.Context, arg IntegrationTemplateVariablesParams) (json.RawMessage, error)
+	// Saved templates for the post-draft rule (kind template, not deleted).
+	IntegrationTemplates(ctx context.Context, workspaceID uuid.UUID) ([]IntegrationTemplatesRow, error)
+	IntegrationTouchCall(ctx context.Context, arg IntegrationTouchCallParams) error
+	// Published transactional templates with their live version's variables,
+	// for "Send a transactional email" in the apps.
+	IntegrationTransactionalTemplates(ctx context.Context, workspaceID uuid.UUID) ([]IntegrationTransactionalTemplatesRow, error)
+	IntegrationWebhookCounts(ctx context.Context, workspaceID uuid.UUID) (IntegrationWebhookCountsRow, error)
+	// Deleting the endpoint deletes its queued and dead-letter deliveries too.
+	IntegrationWebhookDelete(ctx context.Context, id uuid.UUID) (int64, error)
+	IntegrationWebhookInsert(ctx context.Context, arg IntegrationWebhookInsertParams) error
+	IntegrationWebhookOf(ctx context.Context, arg IntegrationWebhookOfParams) (IntegrationWebhookOfRow, error)
+	// Deliveries a disconnect removes: queued, retrying and dead-lettered.
+	IntegrationWebhookQueued(ctx context.Context, integrationID uuid.UUID) (IntegrationWebhookQueuedRow, error)
+	// The webhooks a connection manages, with 24-hour delivery counts.
+	IntegrationWebhooks(ctx context.Context, integrationID uuid.UUID) ([]IntegrationWebhooksRow, error)
+	IntegrationWebhooksDeleteAll(ctx context.Context, integrationID uuid.UUID) ([]IntegrationWebhooksDeleteAllRow, error)
+	IntegrationWorkflow(ctx context.Context, arg IntegrationWorkflowParams) (IntegrationWorkflow, error)
+	IntegrationWorkflowSeen(ctx context.Context, arg IntegrationWorkflowSeenParams) error
+	IntegrationWorkflows(ctx context.Context, arg IntegrationWorkflowsParams) ([]IntegrationWorkflow, error)
+	IntegrationWorkflowsPurge(ctx context.Context, before time.Time) (int64, error)
+	// Integrations hub: connections, their keys, the 7-day call log, the
+	// workflows seen, managed webhooks and WordPress sites (internal/integrations).
+	IntegrationsActive(ctx context.Context, workspaceID uuid.UUID) ([]IntegrationsActiveRow, error)
+	// Every connection of the instance, for the health job.
+	IntegrationsAllActive(ctx context.Context) ([]Integration, error)
+	// Connections whose live key a member owns (deactivate or remove dialog).
+	IntegrationsOwnedBy(ctx context.Context, arg IntegrationsOwnedByParams) ([]IntegrationsOwnedByRow, error)
 	InvalidatePasswordResets(ctx context.Context, userID uuid.UUID) error
 	KeysAgentActions(ctx context.Context, arg KeysAgentActionsParams) ([]KeysAgentActionsRow, error)
 	KeysByToken(ctx context.Context, tokenHash []byte) (KeysByTokenRow, error)
@@ -1476,11 +1591,14 @@ type Querier interface {
 	// Team: members, invitations, sign-in methods and member detail.
 	TeamListMembers(ctx context.Context, workspaceID uuid.UUID) ([]TeamListMembersRow, error)
 	TeamMarkInvitationSent(ctx context.Context, arg TeamMarkInvitationSentParams) error
+	// Integrations' keys are listed apart: the deactivate and remove dialogs
+	// take them over or disconnect them.
 	TeamMemberAPIKeys(ctx context.Context, arg TeamMemberAPIKeysParams) ([]TeamMemberAPIKeysRow, error)
 	TeamMemberActivity(ctx context.Context, arg TeamMemberActivityParams) ([]TeamMemberActivityRow, error)
 	TeamMemberEmails(ctx context.Context, arg TeamMemberEmailsParams) ([]string, error)
 	TeamPendingInviteEmails(ctx context.Context, arg TeamPendingInviteEmailsParams) ([]string, error)
 	TeamRevokeInvitation(ctx context.Context, arg TeamRevokeInvitationParams) (int64, error)
+	// Integrations' keys stay: deactivating takes them over or disconnects them.
 	TeamRevokeKeysCreatedBy(ctx context.Context, arg TeamRevokeKeysCreatedByParams) ([]TeamRevokeKeysCreatedByRow, error)
 	TeamRevokeUserSessions(ctx context.Context, userID uuid.UUID) (int64, error)
 	TeamSetMemberRole(ctx context.Context, arg TeamSetMemberRoleParams) error
@@ -1698,6 +1816,8 @@ type Querier interface {
 	WarmupSetProgress(ctx context.Context, arg WarmupSetProgressParams) error
 	WarmupSetStatus(ctx context.Context, arg WarmupSetStatusParams) error
 	WarmupUpdateSettings(ctx context.Context, arg WarmupUpdateSettingsParams) error
+	// The next contact events to deliver; deleted as they are taken.
+	WebhookContactEventsTake(ctx context.Context, lim int32) ([]WebhookContactEvent, error)
 	WelcomeDismiss(ctx context.Context, arg WelcomeDismissParams) error
 	WelcomeDismissedLists(ctx context.Context, workspaceID uuid.UUID) ([]uuid.UUID, error)
 	WelcomeForm(ctx context.Context, arg WelcomeFormParams) (WelcomeFormRow, error)
@@ -1707,6 +1827,20 @@ type Querier interface {
 	// Welcome-series prompts (add-on transactional §6).
 	// The workspace's lists, newest first.
 	WelcomeLists(ctx context.Context, workspaceID uuid.UUID) ([]WelcomeListsRow, error)
+	WordPressDraftByPost(ctx context.Context, arg WordPressDraftByPostParams) (WordpressDraft, error)
+	WordPressDraftInsert(ctx context.Context, arg WordPressDraftInsertParams) error
+	WordPressDrafts(ctx context.Context, arg WordPressDraftsParams) ([]WordPressDraftsRow, error)
+	WordPressDraftsWeek(ctx context.Context, arg WordPressDraftsWeekParams) (int64, error)
+	// The workspace's signup forms, for the block and the site page.
+	WordPressForms(ctx context.Context, workspaceID uuid.UUID) ([]WordPressFormsRow, error)
+	WordPressSite(ctx context.Context, integrationID uuid.UUID) (WordpressSite, error)
+	WordPressSiteChecked(ctx context.Context, arg WordPressSiteCheckedParams) error
+	// A site connects to one workspace: another active connection of the same address.
+	WordPressSiteElsewhere(ctx context.Context, arg WordPressSiteElsewhereParams) (WordPressSiteElsewhereRow, error)
+	WordPressSiteInsert(ctx context.Context, arg WordPressSiteInsertParams) error
+	WordPressSiteReport(ctx context.Context, arg WordPressSiteReportParams) error
+	WordPressSiteSetRule(ctx context.Context, arg WordPressSiteSetRuleParams) error
+	WordPressSites(ctx context.Context, workspaceID uuid.UUID) ([]WordPressSitesRow, error)
 	WorkspaceProviders(ctx context.Context, workspaceID uuid.UUID) ([]WorkspaceProvidersRow, error)
 	WorkspaceTierHistory(ctx context.Context, arg WorkspaceTierHistoryParams) ([]WorkspaceTierHistoryRow, error)
 	WsAuditSettings(ctx context.Context, id uuid.UUID) (WsAuditSettingsRow, error)

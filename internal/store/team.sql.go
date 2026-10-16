@@ -657,7 +657,7 @@ func (q *Queries) TeamMarkInvitationSent(ctx context.Context, arg TeamMarkInvita
 const teamMemberAPIKeys = `-- name: TeamMemberAPIKeys :many
 SELECT k.id, k.kind, k.name, k.prefix, k.permissions, k.scope, k.created_at, k.expires_at, k.revoked_at, k.last_used_at
 FROM api_keys k
-WHERE k.workspace_id = $1 AND k.created_by = $2
+WHERE k.workspace_id = $1 AND k.created_by = $2 AND k.integration_id IS NULL
 ORDER BY k.revoked_at IS NOT NULL, k.created_at DESC
 `
 
@@ -679,6 +679,8 @@ type TeamMemberAPIKeysRow struct {
 	LastUsedAt  *time.Time      `json:"lastUsedAt"`
 }
 
+// Integrations' keys are listed apart: the deactivate and remove dialogs
+// take them over or disconnect them.
 func (q *Queries) TeamMemberAPIKeys(ctx context.Context, arg TeamMemberAPIKeysParams) ([]TeamMemberAPIKeysRow, error) {
 	rows, err := q.db.Query(ctx, teamMemberAPIKeys, arg.WorkspaceID, arg.UserID)
 	if err != nil {
@@ -845,7 +847,7 @@ func (q *Queries) TeamRevokeInvitation(ctx context.Context, arg TeamRevokeInvita
 
 const teamRevokeKeysCreatedBy = `-- name: TeamRevokeKeysCreatedBy :many
 UPDATE api_keys SET revoked_at = now()
-WHERE workspace_id = $1 AND created_by = $2 AND revoked_at IS NULL
+WHERE workspace_id = $1 AND created_by = $2 AND revoked_at IS NULL AND integration_id IS NULL
 RETURNING id, name, kind
 `
 
@@ -860,6 +862,7 @@ type TeamRevokeKeysCreatedByRow struct {
 	Kind string    `json:"kind"`
 }
 
+// Integrations' keys stay: deactivating takes them over or disconnects them.
 func (q *Queries) TeamRevokeKeysCreatedBy(ctx context.Context, arg TeamRevokeKeysCreatedByParams) ([]TeamRevokeKeysCreatedByRow, error) {
 	rows, err := q.db.Query(ctx, teamRevokeKeysCreatedBy, arg.WorkspaceID, arg.UserID)
 	if err != nil {

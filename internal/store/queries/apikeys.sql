@@ -10,6 +10,8 @@ LEFT JOIN users u ON u.id = k.created_by
 WHERE k.workspace_id = @workspace_id AND k.kind = @kind
   AND (k.revoked_at IS NULL)
   AND (k.expires_at IS NULL OR k.expires_at > now() - interval '90 days')
+  -- Integrations' keys are listed apart ("Managed by integrations").
+  AND k.integration_id IS NULL
 ORDER BY (k.expires_at IS NOT NULL AND k.expires_at <= now()), coalesce(k.last_used_at, k.created_at) DESC, k.created_at DESC;
 
 -- name: KeysGet :one
@@ -79,4 +81,5 @@ LIMIT @lim;
 
 -- name: KeysCountActive :one
 SELECT count(*) FILTER (WHERE kind = 'api_key')::bigint AS api_keys, count(*) FILTER (WHERE kind = 'mcp_agent')::bigint AS agents
-FROM api_keys WHERE workspace_id = @workspace_id AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at > now());
+FROM api_keys WHERE workspace_id = @workspace_id AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at > now())
+  AND integration_id IS NULL;

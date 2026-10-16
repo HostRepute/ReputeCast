@@ -92,7 +92,7 @@ export function ConnectCard({
         </div>
         {status === 'connected' ? (
           <div className="row gap-2.5">
-            <ButtonLink variant="primary" to="/w/$workspace/settings/integrations" params={{ workspace: slug }}>
+            <ButtonLink variant="primary" to="/w/$workspace/settings/integrations/hostrepute" params={{ workspace: slug }}>
               Open Settings › Integrations
             </ButtonLink>
             <span className="k">Connected to team “{conn?.teamName}”</span>

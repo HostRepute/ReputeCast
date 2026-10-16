@@ -562,6 +562,12 @@ func (s *Service) Rotate(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	if err != nil {
 		return APIKeyCreated{}, api.MapError(err, noun(kind))
 	}
+	// An integration's key rotates in Integrations, where the old one keeps
+	// working for 24 hours (integrations hub, M16).
+	if k, err := s.Q.GetAPIKey(ctx, store.GetAPIKeyParams{ID: id, WorkspaceID: ws.ID}); err == nil && k.IntegrationID != nil {
+		return APIKeyCreated{}, api.Err(http.StatusConflict, "managed_by_integration",
+			"This key belongs to an integration. Rotate it in Settings › Integrations, where the old key keeps working for 24 hours.")
+	}
 	wanted := make([]authz.Permission, 0, len(old.Permissions))
 	for _, k := range old.Permissions {
 		if pk := authz.Permission(k); authz.Valid(pk) {

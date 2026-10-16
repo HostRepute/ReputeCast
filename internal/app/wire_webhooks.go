@@ -10,6 +10,8 @@ func (a *App) webhooks() *webhooks.Service {
 	return &webhooks.Service{
 		Pool: a.Pool, Q: a.Q, Audit: a.Audit, Box: a.Secrets, Jobs: a.Jobs,
 		AllowPrivate: func() bool { return a.Cfg.Webhooks.AllowPrivateNetworks },
+		// Endpoints integrations manage (integrations hub, M16).
+		Managed: a.integrations(),
 	}
 }
 

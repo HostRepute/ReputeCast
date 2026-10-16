@@ -26,6 +26,8 @@ var Events = []EventType{
 	{Key: KindWebhooksSilent, Label: "Webhooks silent", Short: "silent webhooks", DefaultEmail: false, Kinds: []string{KindWebhooksSilent}},
 	{Key: KindInviteAccepted, Label: "Invite accepted", Audience: "Inviter only", Short: "invites", DefaultEmail: false, Kinds: []string{KindInviteAccepted, KindInviteRequested}},
 	{Key: KindHostReputeAlert, Label: "HostRepute alerts", Audience: "Everyone with deliverability:view", Short: "HostRepute alerts", DefaultEmail: false, Kinds: []string{KindHostReputeAlert}},
+	{Key: KindIntegrationAttention, Label: "Integration needs attention", Audience: "Everyone with integrations:manage", Short: "integration problems", DefaultEmail: true, Kinds: []string{KindIntegrationAttention}},
+	{Key: KindPostDraftCreated, Label: "Post draft created", Audience: "When a WordPress post-draft rule names you", Short: "post drafts", DefaultEmail: true, Kinds: []string{KindPostDraftCreated}},
 }
 
 // otherEvent covers kinds without a preference row (send finished, jobs):
@@ -52,23 +54,27 @@ const (
 	CategoryTeam       = "team"
 	CategoryHostRepute = "hostrepute"
 	CategoryOther      = "other"
+	// CategoryIntegrations holds the integrations hub's notifications.
+	CategoryIntegrations = "integrations"
 )
 
 var categoryKinds = map[string][]string{
-	CategoryApprovals:  {KindApprovalRequested, KindApprovalDecided, KindApprovalInvalidated},
-	CategorySending:    {KindSendPaused, KindSendBlocked, KindSendFinished},
-	CategoryProviders:  {KindProviderDown, KindProviderDegraded, KindWebhooksSilent},
-	CategoryTeam:       {KindInviteAccepted, KindInviteRequested},
-	CategoryHostRepute: {KindHostReputeAlert},
+	CategoryApprovals:    {KindApprovalRequested, KindApprovalDecided, KindApprovalInvalidated},
+	CategorySending:      {KindSendPaused, KindSendBlocked, KindSendFinished},
+	CategoryProviders:    {KindProviderDown, KindProviderDegraded, KindWebhooksSilent},
+	CategoryTeam:         {KindInviteAccepted, KindInviteRequested},
+	CategoryHostRepute:   {KindHostReputeAlert},
+	CategoryIntegrations: {KindIntegrationAttention, KindPostDraftCreated},
 }
 
 var categoryLabels = map[string]string{
-	CategoryApprovals:  "Approvals",
-	CategorySending:    "Sending",
-	CategoryProviders:  "Providers",
-	CategoryTeam:       "Team",
-	CategoryHostRepute: "HostRepute",
-	CategoryOther:      "Other",
+	CategoryApprovals:    "Approvals",
+	CategorySending:      "Sending",
+	CategoryProviders:    "Providers",
+	CategoryTeam:         "Team",
+	CategoryHostRepute:   "HostRepute",
+	CategoryOther:        "Other",
+	CategoryIntegrations: "Integrations",
 }
 
 // CategoryOf returns the center tab a kind is listed under.

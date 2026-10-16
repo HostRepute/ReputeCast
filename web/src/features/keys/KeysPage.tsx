@@ -8,6 +8,7 @@ import { CardSection } from '@/components/ui/Card'
 import { ErrorPanel } from '@/components/ui/Feedback'
 import { Note } from '@/components/ui/Note'
 import { EmptyRow, Td, Th } from '@/components/ui/Table'
+import { ManagedKeysCard } from '@/features/integrations/ManagedKeys'
 import { settingsTabs } from '@/features/settings/SettingsTabs'
 import { createdTime, logTime } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
@@ -46,7 +47,10 @@ export function KeysPage() {
     >
       {!canKeys && !canAgents ? <ForbiddenState permission="apikeys:manage" title="Your role can't manage API keys or MCP agents" /> : null}
       {!canKeys && !canAgents ? null : canKeys ? (
-        <KeysCard q={keys} onCreate={() => setCreate('api_key')} onAction={(k, action) => setAct({ k, action })} />
+        <>
+          <KeysCard q={keys} onCreate={() => setCreate('api_key')} onAction={(k, action) => setAct({ k, action })} />
+          <ManagedKeysCard />
+        </>
       ) : (
         <Note tone="neutral">{deniedReason('apikeys:manage')}</Note>
       )}

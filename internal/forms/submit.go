@@ -333,6 +333,14 @@ func (s *Service) accept(ctx context.Context, ws *store.Workspace, set *Settings
 				if err := automations.EmitFormSubmitted(ctx, q, ws.ID, res.ContactID, *formID); err != nil {
 					return err
 				}
+				// The form.submitted webhook event fires at the same moment.
+				answers := map[string]string{FieldFirstName: sub.FirstName, FieldLastName: sub.LastName, FieldCompany: sub.Company}
+				for k, v := range fields {
+					answers[k] = v
+				}
+				if err := emitFormSubmitted(ctx, tx, ws, *formID, res.ContactID, answers, now, now); err != nil {
+					return err
+				}
 			}
 		}
 		return nil

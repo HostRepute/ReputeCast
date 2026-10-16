@@ -131,9 +131,11 @@ SELECT id, name FROM lists WHERE workspace_id = @workspace_id AND deleted_at IS 
 SELECT domain FROM sending_domains WHERE workspace_id = @workspace_id ORDER BY domain;
 
 -- name: TeamMemberAPIKeys :many
+-- Integrations' keys are listed apart: the deactivate and remove dialogs
+-- take them over or disconnect them.
 SELECT k.id, k.kind, k.name, k.prefix, k.permissions, k.scope, k.created_at, k.expires_at, k.revoked_at, k.last_used_at
 FROM api_keys k
-WHERE k.workspace_id = @workspace_id AND k.created_by = @user_id
+WHERE k.workspace_id = @workspace_id AND k.created_by = @user_id AND k.integration_id IS NULL
 ORDER BY k.revoked_at IS NOT NULL, k.created_at DESC;
 
 -- name: TeamApprovalsGiven :many
@@ -161,6 +163,7 @@ ORDER BY occurred_at DESC, id DESC
 LIMIT @lim;
 
 -- name: TeamRevokeKeysCreatedBy :many
+-- Integrations' keys stay: deactivating takes them over or disconnects them.
 UPDATE api_keys SET revoked_at = now()
-WHERE workspace_id = @workspace_id AND created_by = @user_id AND revoked_at IS NULL
+WHERE workspace_id = @workspace_id AND created_by = @user_id AND revoked_at IS NULL AND integration_id IS NULL
 RETURNING id, name, kind;
