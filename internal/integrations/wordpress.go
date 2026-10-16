@@ -355,6 +355,9 @@ func (s *Service) CreateDraft(ctx context.Context, ws *store.Workspace, p *authz
 	if err != nil {
 		return WordPressDraftResult{}, api.MapError(err, "Site")
 	}
+	if s.PostReported != nil {
+		s.PostReported(ctx, ik.ID)
+	}
 	rule := parseRule(site.Rule)
 	host := siteBareHost(firstNonEmpty(site.SiteUrl, site.Address))
 	if d, ok := s.postDraft(ctx, ik.ID, post); ok {

@@ -37,8 +37,10 @@ type Service struct {
 	Languages *languages.Service
 	// Accessibility reads campaigns' accessibility issues (nil: unavailable).
 	Accessibility AccessibilityReader
-	PublicURL     func(context.Context) string
-	Now           func() time.Time
+	// Digests reads recurring digests and their issues (nil: unavailable).
+	Digests   DigestReader
+	PublicURL func(context.Context) string
+	Now       func() time.Time
 
 	limiters sync.Map // agent id → *limiter
 }
@@ -81,6 +83,8 @@ var Tools = []MCPToolInfo{
 	{"send_test_email", "Send a test of a campaign to a member of the workspace.", string(authz.CampaignsEdit), true},
 	{"get_campaign_languages", "A campaign's language versions: each one's status (up to date, outdated, draft, missing) and who gets it.", string(authz.CampaignsView), false},
 	{"get_accessibility_issues", "Accessibility issues of a campaign in every language: what is serious, where it is and how to fix it.", string(authz.CampaignsView), false},
+	{"list_digests", "Recurring digests with their status, schedule, next issue and owner. Agents can't turn a digest on.", string(authz.CampaignsView), false},
+	{"get_digest_issues", "A digest's issues: sent, skipped, held and waiting, each with its posts and results. Agents can't release or skip an issue.", string(authz.CampaignsView), false},
 }
 
 // Settings are the per-workspace MCP options.

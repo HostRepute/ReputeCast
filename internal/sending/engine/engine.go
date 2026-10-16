@@ -63,6 +63,11 @@ type Engine struct {
 	// QuietDemo makes the demo transport report no delivery or engagement
 	// events (throughput measurements of the send path alone).
 	QuietDemo bool
+	// SystemActor names the system that starts and completes a campaign
+	// no one pressed Send for, such as a recurring digest's issue ("System ·
+	// Engineering blog roundup, turned on by Sofia Rossi"). Nil, or a nil
+	// result, is plain "System".
+	SystemActor func(ctx context.Context, campaignID uuid.UUID) *audit.Actor
 
 	mu       sync.Mutex
 	calls    map[routeKey]*callLog
