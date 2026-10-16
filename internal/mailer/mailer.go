@@ -9,6 +9,8 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
+
+	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
 // ErrNoSystemProvider means no provider is connected to the System stream yet.
@@ -24,6 +26,10 @@ type Message struct {
 	HTML        string
 	// Kind tags the message for logs and the event timeline ("password_reset", "invite").
 	Kind string
+	// Lang is the language of the layout around the body (why it was sent,
+	// who sent it): the member's app language for team mail. English when
+	// unset.
+	Lang i18n.Lang
 }
 
 // Sender delivers system mail. It returns the name of the provider used.

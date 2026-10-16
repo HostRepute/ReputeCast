@@ -10,6 +10,7 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 
 	"github.com/hostrepute/reputecast/internal/api"
+	"github.com/hostrepute/reputecast/internal/applang"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/version"
 )
@@ -36,6 +37,11 @@ type InstanceInfo struct {
 	Passkeys      bool        `json:"passkeys"`
 	Social        []string    `json:"social" doc:"Enabled social sign-in providers" enum:"google,microsoft,github"`
 	SSO           []SSOOption `json:"sso"`
+	// The sign-in page reads in the instance default unless the browser
+	// prefers a language ReputeCast has, or the visitor picks one.
+	DefaultLanguage     string                   `json:"defaultLanguage,omitempty" example:"en"`
+	DefaultRegionFormat string                   `json:"defaultRegionFormat,omitempty" example:"standard"`
+	Languages           []applang.LanguageOption `json:"languages,omitempty"`
 }
 
 // Service reads the instance settings.
@@ -56,6 +62,8 @@ func (s *Service) Get(ctx context.Context) (InstanceInfo, error) {
 		SetupComplete: st.SetupCompletedAt != nil,
 		Social:        []string{},
 		SSO:           []SSOOption{},
+
+		DefaultLanguage: st.DefaultLanguage, DefaultRegionFormat: st.DefaultRegionFormat, Languages: applang.Languages(),
 	}
 	if st.LogoSvg != nil {
 		info.LogoSVG = *st.LogoSvg

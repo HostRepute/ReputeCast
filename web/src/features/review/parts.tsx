@@ -7,7 +7,9 @@ import { clock, shortDate } from '@/lib/format'
 import { deniedReason } from '@/lib/session'
 import { CodeText, Swatch } from '@/features/accessibility/review'
 import { CheckRowsGrid } from '@/features/languages/review'
+import { t } from '@/i18n'
 import { statusWord, type Check, type CheckStatus, type Fix } from './logic'
+import { m } from './messages'
 
 /** The 40px verdict mark of the banners (warn, bad, ok) and the 36px error mark. */
 export function VerdictIcon({ kind, size = 40 }: { kind: 'warn' | 'bad' | 'ok' | 'error'; size?: number }) {
@@ -64,8 +66,8 @@ export function AppHref({ href, className, children }: { href: string; className
 
 /** Who may apply a fix: route changes need campaigns:send, the rest campaigns:edit. */
 export function fixReason(f: Fix, can: { edit: boolean; send: boolean; editable: boolean }, helpers: string[]): string | undefined {
-  if (!can.editable) return 'This campaign already started sending, so it can’t change.'
-  if (f.action === 'route_only' && !can.send) return deniedReason('campaigns:send', helpers).replace('Sending needs', 'Changing the route of a send needs')
+  if (!can.editable) return t(m.alreadySendingNoChange)
+  if (f.action === 'route_only' && !can.send) return deniedReason('campaigns:send', helpers, t(m.routeChange))
   if (!can.edit) return deniedReason('campaigns:edit', helpers)
   return undefined
 }

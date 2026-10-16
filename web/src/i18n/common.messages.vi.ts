@@ -1,0 +1,31 @@
+import { common } from './common'
+import { translate } from './define'
+
+export default translate(common, {
+  save: 'Lưu',
+  saveChanges: 'Lưu thay đổi',
+  cancel: 'Hủy',
+  close: 'Đóng',
+  delete: 'Xóa',
+  edit: 'Sửa',
+  back: 'Quay lại',
+  next: 'Tiếp',
+  done: 'Xong',
+  retry: 'Thử lại',
+  tryAgain: 'Thử lại',
+  loading: 'Đang tải…',
+  search: 'Tìm',
+  copy: 'Sao chép',
+  copied: 'Đã sao chép',
+  learnMore: 'Tìm hiểu thêm',
+  showMore: 'Xem thêm',
+  showLess: 'Thu gọn',
+  viewAll: 'Xem tất cả',
+  on: 'Bật',
+  off: 'Tắt',
+  yes: 'Có',
+  no: 'Không',
+  none: 'Không có',
+  optional: 'Không bắt buộc',
+  required: 'Bắt buộc',
+})

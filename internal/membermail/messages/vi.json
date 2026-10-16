@@ -1,0 +1,57 @@
+{
+  "reason.default": "Đây là thư tự động từ {brand}.",
+  "reason.password_reset": "Bạn nhận được email này vì có người yêu cầu đặt lại mật khẩu của tài khoản này. Nếu không phải bạn, hãy bỏ qua email.",
+  "reason.email_change": "Bạn nhận được email này vì có người muốn đăng nhập bằng địa chỉ này. Nếu không phải bạn, hãy bỏ qua email.",
+  "reason.email_changed": "Gửi đến địa chỉ cũ của bạn, để một thay đổi bạn không thực hiện không bị bỏ sót.",
+  "reason.invite": "Bạn nhận được email này vì một thành viên của không gian làm việc đã mời địa chỉ này.",
+  "reason.campaign_test": "Đây là bản gửi thử của một chiến dịch; người đăng ký sẽ nhận bản cuối cùng.",
+  "reason.test": "Đây là thư gửi thử trong lúc kết nối nhà cung cấp gửi thư.",
+
+  "footer.sentBy": "Gửi từ {instance}",
+  "footer.sentByHost": "Gửi từ {instance} · {host}",
+  "footer.sentFor": "Gửi từ {instance} cho {workspace}",
+  "footer.sentForHost": "Gửi từ {instance} cho {workspace} · {host}",
+
+  "linkLine": "{label}: {url}",
+
+  "invite.subject": "{inviter} đã mời bạn vào {workspace}",
+  "invite.lead": "{inviter} đã mời bạn tham gia {workspace} trên ReputeCast với vai trò {role}.",
+  "invite.action": "Chấp nhận lời mời",
+  "invite.expires": "Liên kết có hiệu lực đến {date}.",
+
+  "reset.subject": "Đặt lại mật khẩu {instance} của bạn",
+  "reset.lead": "Có người yêu cầu đặt lại mật khẩu của <b>{email}</b> trên {instance}.",
+  "reset.action": "Đặt mật khẩu mới",
+  "reset.note": "Liên kết chỉ dùng được một lần và hết hạn sau 15 phút. Nếu không phải bạn, hãy bỏ qua email này; mật khẩu của bạn vẫn giữ nguyên.",
+
+  "resetSso.subject": "Cách bạn đăng nhập vào {instance}",
+  "resetSso.lead": "Có người yêu cầu đặt lại mật khẩu của <b>{email}</b> trên {instance}. Tài khoản này không có mật khẩu: nó đăng nhập bằng {provider}.",
+  "resetSso.action": "Đăng nhập",
+  "resetSso.note": "Nếu không phải bạn, hãy bỏ qua email này.",
+
+  "adminReset.subject": "Đặt lại mật khẩu {instance} của bạn",
+  "adminReset.lead": "{admin}, quản trị viên hệ thống, đã gửi cho bạn liên kết để đặt mật khẩu mới cho <b>{email}</b> trên {instance}.",
+  "adminReset.action": "Đặt mật khẩu mới",
+  "adminReset.note": "Liên kết chỉ dùng được một lần và hết hạn sau 15 phút. Mật khẩu hiện tại vẫn dùng được cho đến khi bạn dùng liên kết.",
+
+  "emailChange.subject": "Xác nhận email mới của bạn cho {instance}",
+  "emailChange.lead": "{email} muốn từ nay đăng nhập vào {instance} bằng địa chỉ này.",
+  "emailChange.action": "Xác nhận thay đổi",
+  "emailChange.note": "Liên kết có hiệu lực trong 24 giờ. Nếu bạn không yêu cầu, hãy bỏ qua email này.",
+
+  "emailChanged.subject": "Email {instance} của bạn đã được thay đổi",
+  "emailChanged.lead": "Tài khoản dùng {old} trên {instance} giờ đăng nhập bằng {new}. Nếu bạn không thực hiện thay đổi này, hãy liên hệ ngay quản trị viên hệ thống.",
+
+  "twofaReset.subject": "Xác thực hai lớp trên tài khoản {instance} của bạn đã được đặt lại",
+  "twofaReset.lead": "{admin}, quản trị viên hệ thống, đã đặt lại xác thực hai lớp trên tài khoản <b>{email}</b> của bạn.",
+  "twofaReset.reason": "Lý do: {reason}",
+  "twofaReset.note": "Hãy đăng nhập bằng mật khẩu và thiết lập lại ứng dụng xác thực trước {date}. Nếu bạn không yêu cầu, hãy báo ngay cho quản trị viên.",
+
+  "notify.subject": "[{workspace}] {title}",
+  "notify.digestSubject": "{count, plural, other {# thông báo}}",
+  "notify.open": "Mở trong ReputeCast",
+  "notify.openShort": "Mở",
+  "notify.openText": "Mở: {url}",
+  "notify.why": "Bạn nhận được email này theo <link>tùy chọn thông báo</link> của bạn.",
+  "notify.whyText": "Bạn nhận được email này theo tùy chọn thông báo của bạn: {url}"
+}

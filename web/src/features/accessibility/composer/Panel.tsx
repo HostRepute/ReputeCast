@@ -299,7 +299,8 @@ function Fixes({ issue, report, lang }: { issue: Issue; report: Report; lang: st
           {f.suggestions.map((s) => (
             <div key={s.color} className="a11y-sug">
               <span className="a11y-aa" style={{ background: f.target === 'background' ? s.color : (f.against ?? '#FFFFFF'), color: f.target === 'background' ? (f.against ?? '#FFFFFF') : s.color }} aria-hidden="true">
-                Aa
+                {/* A sample of the letters, the same in every language. */}
+                {'Aa'}
               </span>
               <span className="flex min-w-0 flex-1 flex-col">
                 <span className="mono font-semibold">{s.color}</span>

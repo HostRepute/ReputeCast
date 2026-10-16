@@ -9,7 +9,9 @@ import {
   type SelectHTMLAttributes,
   type TextareaHTMLAttributes,
 } from 'react'
+import { useT } from '@/i18n'
 import { cn } from '@/lib/cn'
+import { m } from './messages'
 
 /**
  * A labelled form control: label above, helper or error below, wired with
@@ -35,6 +37,7 @@ export function Field({
   size?: 'md' | 'lg'
   optional?: boolean
 }) {
+  const t = useT()
   const id = useId()
   const ok = success && !error ? success : undefined
   const hintId = hint || ok ? `${id}-hint` : undefined
@@ -52,7 +55,7 @@ export function Field({
     <div className={cn('lbl', size === 'lg' && 'lg', className)}>
       <label htmlFor={children.props.id ?? id}>
         {label}
-        {optional ? <span className="k font-medium"> · optional</span> : null}
+        {optional ? <span className="k font-medium"> · {t(m.optional)}</span> : null}
       </label>
       {control}
       {error ? (

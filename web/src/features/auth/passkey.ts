@@ -7,6 +7,8 @@ import {
   type PublicKeyCredentialRequestOptionsJSON,
 } from '@simplewebauthn/browser'
 import { ApiError, errorMessage, http, type Schemas } from '@/api/client'
+import { t } from '@/i18n'
+import { m } from './parts.messages'
 
 /**
  * Passkeys (WebAuthn) through @simplewebauthn/browser. The server sends the
@@ -49,19 +51,19 @@ export function passkeyCancelled(e: unknown): boolean {
 /** A sentence for a failed passkey ceremony. */
 export function passkeyErrorMessage(e: unknown, action: 'sign-in' | 'add'): string {
   if (e instanceof ApiError) return e.message
-  if (!passkeysSupported()) return "This browser doesn't support passkeys. Use another browser, or sign in with your password."
+  if (!passkeysSupported()) return t(m.passkeyUnsupported)
   if (passkeyCancelled(e)) {
     return action === 'add'
-      ? 'Adding the passkey was cancelled or timed out. Try again when your device is ready.'
-      : 'The passkey prompt was closed or timed out. Try again, or use your password.'
+      ? t(m.passkeyAddCancelled)
+      : t(m.passkeySignInCancelled)
   }
   if (e instanceof WebAuthnError) {
     switch (e.code) {
       case 'ERROR_AUTHENTICATOR_PREVIOUSLY_REGISTERED':
-        return 'This device already has a passkey for your account.'
+        return t(m.passkeyAlreadyRegistered)
       case 'ERROR_INVALID_DOMAIN':
       case 'ERROR_INVALID_RP_ID':
-        return "Passkeys only work on the instance's public URL. Open ReputeCast at that address and try again."
+        return t(m.passkeyWrongDomain)
     }
   }
   return errorMessage(e)

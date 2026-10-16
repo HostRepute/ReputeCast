@@ -121,6 +121,8 @@ export const m = defineMessages('accessibilityComposer', {
 
   // Color picker.
   pickerLabel: '{field} picker',
+  // The placeholder of an empty color field.
+  noColor: 'none',
   hue: 'Hue',
   shade: 'Saturation and brightness',
   eyedropper: 'Pick a color from the screen',

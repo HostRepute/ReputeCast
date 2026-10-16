@@ -1,7 +1,9 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { createContext, useContext, useMemo, type ReactNode } from 'react'
 import { http, type Schemas } from '@/api/client'
+import { t, type MessageDescriptor } from '@/i18n'
 import { orList } from './format'
+import { m } from './session.messages'
 
 export type Me = Schemas['Me']
 export type WorkspaceMe = Schemas['WorkspaceMe']
@@ -60,38 +62,16 @@ export function useCan(perm: Permission): boolean {
   return Boolean(ws?.me.permissions.includes(perm))
 }
 
-/** Plain-language action names for "X needs the … permission". */
-const actions: Record<string, string> = {
-  'campaigns:send': 'Sending',
-  'campaigns:pause': 'Pausing a send',
-  'campaigns:approve': 'Approving',
-  'campaigns:edit': 'Editing campaigns',
-  'subscribers:export': 'Exporting contacts',
-  'subscribers:import': 'Importing contacts',
-  'subscribers:delete': 'Erasing personal data',
-  'providers:manage': 'Managing providers',
-  'domains:manage': 'Managing domains',
-  'team:invite': 'Inviting members',
-  'team:manage': 'Managing the team',
-  'segments:sql': 'Writing SQL segments',
-  'apikeys:manage': 'Managing API keys',
-  'mcp:manage': 'Managing MCP agents',
-  'automations:publish': 'Publishing automations',
-  'workspace:manage': 'Changing workspace settings',
-  'webhooks:manage': 'Managing webhooks',
-  'integrations:hostrepute': 'Connecting HostRepute',
-  'forms:edit': 'Editing forms',
-  'reports:share': 'Sharing reports',
-}
-
 /**
  * Explains a missing permission (principle 7): "Sending needs the
- * campaigns:send permission. Ask Marcus Chen or Linh Nguyen."
+ * campaigns:send permission. Ask Marcus Chen or Linh Nguyen." `action`
+ * names a narrower action than the permission's own ("Changing the route of
+ * a send"), in the app's language.
  */
-export function deniedReason(perm: Permission, helpers: string[] = []): string {
-  const action = actions[perm] ?? 'This'
-  const ask = helpers.length ? ` Ask ${orList(helpers)}.` : ''
-  return `${action} needs the ${perm} permission.${ask}`
+export function deniedReason(perm: Permission, helpers: string[] = [], action?: string): string {
+  const named = (m as Record<string, MessageDescriptor | undefined>)[perm]
+  const what = action ?? t(named ?? m.this)
+  return helpers.length ? t(m.deniedAsk, { action: what, permission: perm, helpers: orList(helpers) }) : t(m.denied, { action: what, permission: perm })
 }
 
 /**

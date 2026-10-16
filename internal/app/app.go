@@ -206,6 +206,8 @@ func NewHumaConfig() huma.Config {
 	cfg.DocsPath = ""
 	cfg.SchemasPath = ""
 	cfg.CreateHooks = nil // no $schema links in bodies
+	// Access problems read in the request's language (Accept-Language).
+	cfg.Transformers = append(cfg.Transformers, api.LocalizeProblem)
 	cfg.Components.Schemas = huma.NewMapRegistry("#/components/schemas/", api.SchemaNamer())
 	cfg.Components.SecuritySchemes = map[string]*huma.SecurityScheme{
 		"session": {Type: "apiKey", In: "cookie", Name: "rc_session", Description: "Browser session cookie"},

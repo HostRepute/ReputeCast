@@ -1,0 +1,33 @@
+import { translate } from '@/i18n/define'
+import { m } from './format.messages'
+
+export default translate(m, {
+  never: 'chưa bao giờ',
+  neverTitle: 'Chưa bao giờ',
+  now: 'vừa xong',
+  minutesAgo: '{n} phút trước',
+  hoursAgo: '{n} giờ trước',
+  yesterday: 'hôm qua',
+  daysAgo: '{n, plural, other {# ngày trước}}',
+  inMinutes: 'sau {n} phút',
+  inHoursMinutes: 'sau {h} giờ {m} phút',
+  inDaysHours: '{days, plural, other {sau # ngày {h} giờ}}',
+  inHours: 'sau {n} giờ',
+  inDays: '{n, plural, other {sau # ngày}}',
+  expired: 'đã hết hạn',
+  minutes: '{n} phút',
+  hours: '{h} giờ',
+  hoursMinutes: '{h} giờ {m} phút',
+  perSecond: '{n}/giây',
+  spanHours: '{n, plural, other {# giờ}}',
+  spanMinutes: '{n, plural, other {# phút}}',
+  countdownMinutes: 'sau {n} phút',
+  countdownOneMinute: 'sau 1 phút',
+  countdownSeconds: '{n, plural, other {sau # giây}}',
+  todayAt: 'Hôm nay {time}',
+  yesterdayAt: 'hôm qua, {time}',
+  thisMorning: 'sáng nay',
+  thisAfternoon: 'chiều nay',
+  thisEvening: 'tối nay',
+  onDate: 'ngày {date}',
+})

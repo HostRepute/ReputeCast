@@ -1,0 +1,11 @@
+{
+  "audience.all": "Tất cả người đăng ký",
+  "audience.segments": "{count} phân khúc",
+
+  "note.ab": "A/B {kind, select, subject {tiêu đề} content {nội dung} send_time {giờ gửi} other {{kindName}}}",
+  "note.abWinner": "A/B {kind, select, subject {tiêu đề} content {nội dung} send_time {giờ gửi} other {{kindName}}}, {winner} thắng",
+
+  "note.autoPaused": "tự tạm dừng {count, plural, =1 {một lần} other {# lần}}",
+  "note.autoPausedOn": "tự tạm dừng {count, plural, =1 {một lần} other {# lần}} vì {mailbox} {metric, select, deferral {hoãn nhận} complaint {khiếu nại} bounce {trả lại thư} other {{metricName}}}",
+  "mailbox.other": "Khác"
+}

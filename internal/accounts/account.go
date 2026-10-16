@@ -3,7 +3,6 @@ package accounts
 import (
 	"context"
 	"fmt"
-	"html"
 	"net/http"
 	"slices"
 	"strings"
@@ -13,11 +12,13 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/api"
+	"github.com/hostrepute/reputecast/internal/applang"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authn"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
-	"github.com/hostrepute/reputecast/internal/mailer"
+	"github.com/hostrepute/reputecast/internal/i18n"
+	"github.com/hostrepute/reputecast/internal/membermail"
 	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -153,7 +154,7 @@ func (s *Service) Overview(ctx context.Context) (AccountOverview, error) {
 		Passkeys:      []AccountPasskey{},
 		Identities:    []AccountIdentity{},
 		Workspaces:    []AccountWorkspace{},
-		SessionPolicy: AccountSessionPolicy{Lifetime: humanDuration(st.SessionLifetime), Idle: humanDuration(st.SessionIdle)},
+		SessionPolicy: AccountSessionPolicy{Lifetime: humanDuration(langOf(ctx), st.SessionLifetime), Idle: humanDuration(langOf(ctx), st.SessionIdle)},
 	}
 	if pe, err := s.Q.GetPendingEmailChange(ctx, u.ID); err == nil {
 		out.Profile.PendingEmail = &AccountPendingEmail{Email: pe.NewEmail, SentAt: pe.CreatedAt, ExpiresAt: pe.ExpiresAt}
@@ -200,10 +201,10 @@ func (s *Service) Overview(ctx context.Context) (AccountOverview, error) {
 			row.LinkURL = "/api/v1/auth/social/" + kind + "/start?intent=link"
 		} else {
 			row.Linked, row.ID, row.Username, row.Email = true, linked.ID.String(), linked.Username, linked.Email
-			row.Notes = identityNotes(linked.Details)
+			row.Notes = identityNotes(ctx, linked.Details)
 			row.CanUnlink, row.OnlyMethod = !only, only
 			if only {
-				row.UnlinkReason = "Add a passkey or password first"
+				row.UnlinkReason = say(ctx, mUnlinkFirst)
 			}
 		}
 		out.Identities = append(out.Identities, row)
@@ -213,27 +214,30 @@ func (s *Service) Overview(ctx context.Context) (AccountOverview, error) {
 		if i.Kind != "sso" {
 			continue
 		}
-		name := i.ProviderName
+		name, label := i.ProviderName, ""
 		if name == "" {
-			name = "Single sign-on"
+			name = say(ctx, mSSOUnnamed)
+			label = name
+		} else {
+			label = say(ctx, mSSOName, "provider", name)
 		}
 		ssoName = name
-		row := AccountIdentity{Kind: "sso", Name: name + " SSO", Preset: i.ProviderPreset, Linked: true, ID: i.ID.String(), Email: i.Email, Notes: []string{}}
+		row := AccountIdentity{Kind: "sso", Name: label, Preset: i.ProviderPreset, Linked: true, ID: i.ID.String(), Email: i.Email, Notes: []string{}}
 		if row.Email == "" {
 			row.Email = u.Email
 		}
 		row.Notes = append(row.Notes, emailDomain(row.Email))
 		managed := slices.Contains(i.EnforceDomains, domain) && i.ProviderStatus == "enabled"
 		if managed && u.BreakGlass && u.PasswordHash != nil {
-			row.Notes = append(row.Notes, "break-glass password kept")
+			row.Notes = append(row.Notes, say(ctx, mNoteBreakGlass))
 		}
 		switch {
 		case only:
 			row.OnlyMethod = true
-			row.UnlinkReason = "Add a passkey or password first"
+			row.UnlinkReason = say(ctx, mUnlinkFirst)
 		case managed:
 			row.Managed = true
-			row.UnlinkReason = "SSO is enforced for " + domain + "; the identity is managed by your organization"
+			row.UnlinkReason = say(ctx, mSSOManaged, "domain", domain)
 		default:
 			row.CanUnlink = true
 		}
@@ -269,7 +273,7 @@ func (s *Service) Overview(ctx context.Context) (AccountOverview, error) {
 	for _, m := range ms {
 		w := AccountWorkspace{ID: m.WorkspaceID.String(), Slug: m.Slug, Name: m.Name, RoleKey: m.RoleKey, RoleName: m.RoleName, Members: m.MemberCount, CanLeave: true}
 		if m.RoleKey == authz.RoleOwner && m.OwnerCount <= 1 {
-			w.CanLeave, w.LeaveReason = false, "Transfer ownership before leaving: the last Owner can't leave"
+			w.CanLeave, w.LeaveReason = false, say(ctx, mLastOwner)
 		}
 		out.Workspaces = append(out.Workspaces, w)
 	}
@@ -278,7 +282,7 @@ func (s *Service) Overview(ctx context.Context) (AccountOverview, error) {
 	if err != nil {
 		return AccountOverview{}, err
 	}
-	out.Notifications = notify.Summarize(prefs)
+	out.Notifications = notify.SummarizeIn(langOf(ctx), prefs)
 	return out, nil
 }
 
@@ -294,13 +298,13 @@ func passkeyView(k store.UserPasskey, sessionPasskey *uuid.UUID) AccountPasskey 
 		ThisSession: sessionPasskey != nil && *sessionPasskey == k.ID}
 }
 
-func identityNotes(details []byte) []string {
+func identityNotes(ctx context.Context, details []byte) []string {
 	var d struct {
 		Org string `json:"org"`
 	}
 	notes := []string{}
 	if jsonUnmarshal(details, &d) == nil && d.Org != "" {
-		notes = append(notes, "org "+d.Org)
+		notes = append(notes, say(ctx, mNoteOrg, "org", d.Org))
 	}
 	return notes
 }
@@ -312,18 +316,15 @@ func avatarURL(u store.User) string {
 	return fmt.Sprintf("/api/v1/users/%s/avatar?v=%d", u.ID, u.AvatarUpdatedAt.Unix())
 }
 
-// humanDuration writes "14 days", "12 hours", "45 minutes".
-func humanDuration(d time.Duration) string {
+// humanDuration writes "14 days", "12 hours", "45 minutes" in a language.
+func humanDuration(l i18n.Lang, d time.Duration) string {
 	switch {
 	case d >= 24*time.Hour && d%(24*time.Hour) == 0:
-		n := int(d / (24 * time.Hour))
-		return fmt.Sprintf("%d %s", n, plural(n, "day", "days"))
+		return mDays.Text(l, i18n.Args{"n": int(d / (24 * time.Hour))})
 	case d >= time.Hour && d%time.Hour == 0:
-		n := int(d / time.Hour)
-		return fmt.Sprintf("%d %s", n, plural(n, "hour", "hours"))
+		return mHours.Text(l, i18n.Args{"n": int(d / time.Hour)})
 	default:
-		n := int(d / time.Minute)
-		return fmt.Sprintf("%d %s", n, plural(n, "minute", "minutes"))
+		return mMinutes.Text(l, i18n.Args{"n": int(d / time.Minute)})
 	}
 }
 
@@ -409,13 +410,8 @@ func (s *Service) RequestEmailChange(ctx context.Context, in AccountEmailChangeI
 	expires := s.now().Add(emailChangeTTL)
 	link := s.publicURL(ctx) + s.accountPath(ctx, u.ID) + "?verifyEmail=" + token
 	st, _ := s.policy(ctx)
-	msg := mailer.Message{
-		To: email, ToName: u.Name, Kind: "email_change",
-		Subject: "Confirm your new email for " + st.Name,
-		Text:    fmt.Sprintf("%s asked to sign in to %s with this address from now on.\n\nConfirm the change: %s\n\nThe link works for 24 hours. If you didn't ask for this, ignore this email.\n", u.Email, st.Name, link),
-		HTML: fmt.Sprintf(`<p style="font:14px/1.5 sans-serif">%s asked to sign in to %s with this address from now on.</p><p style="font:14px sans-serif"><a href="%s">Confirm the change</a></p><p style="font:13px/1.5 sans-serif;color:#5B6472">The link works for 24 hours. If you didn't ask for this, ignore this email.</p>`,
-			html.EscapeString(u.Email), html.EscapeString(st.Name), html.EscapeString(link)),
-	}
+	msg := membermail.EmailChange(applang.ForUser(ctx, s.Q, *u), st.Name, u.Email, link)
+	msg.To, msg.ToName = email, u.Name
 	if _, err := s.mail().SendSystem(ctx, msg); err != nil {
 		s.Log.WarnContext(ctx, "email change verification not sent", "user", u.ID, "err", err)
 		return AccountEmailChangeStarted{}, unsent
@@ -497,9 +493,9 @@ func (s *Service) ConfirmEmailChange(ctx context.Context, token string) (Account
 	}
 	// Tell the old address, so a takeover doesn't go unnoticed.
 	st, _ := s.policy(ctx)
-	_, _ = s.mail().SendSystem(ctx, mailer.Message{To: u.Email, ToName: u.Name, Kind: "email_changed",
-		Subject: "Your " + st.Name + " email was changed",
-		Text:    fmt.Sprintf("The account that used %s on %s now signs in with %s. If you didn't do this, contact your instance admin right away.\n", u.Email, st.Name, ch.NewEmail)})
+	notice := membermail.EmailChanged(applang.ForUser(ctx, s.Q, *u), st.Name, u.Email, ch.NewEmail)
+	notice.To, notice.ToName = u.Email, u.Name
+	_, _ = s.mail().SendSystem(ctx, notice)
 	return AccountEmailChanged{Email: ch.NewEmail}, nil
 }
 

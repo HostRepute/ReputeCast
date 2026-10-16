@@ -4,11 +4,14 @@ import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { Dialog } from '@/components/ui/Dialog'
 import { Field, Textarea } from '@/components/ui/Field'
-import { count, monthDayTime } from '@/lib/format'
+import { T, t as tr, useT } from '@/i18n'
+import { common } from '@/i18n/common'
+import { monthDayTime } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
 import { useMe, useWorkspace } from '@/lib/session'
 import { approverNames, DiffLines, MiniBanner, PersonLine, unchangedSentence } from '@/features/approvals/parts'
-import { acknowledgedKeys, acknowledgements, agoWords, countsShort, linkParts, plural, scheduleShort, verdictTitle, waitWords, type Review, type Run } from './logic'
+import { acknowledgedKeys, acknowledgements, agoWords, countsShort, linkParts, scheduleShort, statusWord, verdictTitle, waitWords, type Review, type Run } from './logic'
+import { m } from './messages'
 import { AppHref, whenText } from './parts'
 
 export type ApprovalMode = 'none' | 'required' | 'waiting' | 'approved' | 'invalidated'
@@ -40,6 +43,7 @@ export function approvalMode(r: Review): ApprovalMode {
 type Card = { review: Review; run: Run; children: ReactNode; title: string; id: string }
 
 function Shell({ review, run, title, id, children }: Card) {
+  const t = useT()
   return (
     <section className="card" aria-labelledby={id}>
       <div className="sec">
@@ -47,9 +51,7 @@ function Shell({ review, run, title, id, children }: Card) {
           <h2 className="h2" id={id}>
             {title}
           </h2>
-          <span className="k">
-            Review &amp; send · {review.campaign.name} · {count(run.estimates.audience.final)} recipients
-          </span>
+          <span className="k">{t(m.shellCaption, { name: review.campaign.name, recipients: run.estimates.audience.final })}</span>
         </div>
       </div>
       <div className="pad col gap-3.5!">{children}</div>
@@ -63,7 +65,8 @@ function Foot({ children }: { children: ReactNode }) {
 
 /** "You don't hold campaigns:send · Content Writer" when the reader is the author. */
 function ruleText(rule: Schemas['ApprovalRuleMatch'], me?: string): string {
-  if (rule.key === 'author_lacks_send' && rule.author && rule.author === me) return `You don't hold campaigns:send${rule.role ? ` · ${rule.role}` : ''}`
+  if (rule.key === 'author_lacks_send' && rule.author && rule.author === me) return rule.role ? tr(m.ruleNoSendRole, { role: rule.role }) : tr(m.ruleNoSend)
+  // The other rules come from the server, as written there.
   return rule.label
 }
 
@@ -83,6 +86,7 @@ export function RequiredCard({
   onBypass?: () => void
   onSaveDraft: (note: string) => void
 }) {
+  const t = useT()
   const { data: me } = useMe()
   const a = review.approval
   const storeKey = `rc-approval-note:${review.campaign.id}`
@@ -106,48 +110,47 @@ export function RequiredCard({
   const approvers = a.approvers.filter((p) => p.name !== myName)
   const prev = a.request && ['changes_requested', 'rejected'].includes(a.request.status) ? a.request : undefined
   return (
-    <Shell review={review} run={run} title="Approval required" id="rv-approval">
+    <Shell review={review} run={run} title={t(m.requiredTitle)} id="rv-approval">
       <MiniBanner tone="warn" title={verdictTitle(run.verdict)}>
         {countsShort(run.counts)}
       </MiniBanner>
       {prev ? (
         <div className="note i" role="status">
-          <Badge tone="info">{prev.status === 'rejected' ? 'Rejected' : 'Changes requested'}</Badge>
+          <Badge tone="info">{prev.status === 'rejected' ? t(m.badgeRejected) : t(m.badgeChanges)}</Badge>
           <span>
-            {prev.decidedBy || 'An approver'} {prev.status === 'rejected' ? 'rejected' : 'asked for changes to'} v{prev.version}
-            {prev.comment ? `: “${prev.comment}”` : '.'} Make the changes, then request approval again.
+            {t(
+              prev.status === 'rejected' ? (prev.comment ? m.prevRejectedComment : m.prevRejected) : prev.comment ? m.prevChangesComment : m.prevChanges,
+              { name: prev.decidedBy || t(m.anApprover), version: prev.version, comment: prev.comment ?? '' },
+            )}
           </span>
         </div>
       ) : null}
       <div className="card ap-inner i-warn">
         <div className="row gap-2!">
-          <span className="font-semibold">Approval required before this send</span>
-          <Badge tone="warn">
-            {a.rules.length} {plural(a.rules.length, 'rule', 'rules')} matched
-          </Badge>
+          <span className="font-semibold">{t(m.requiredBefore)}</span>
+          <Badge tone="warn">{t(m.rulesMatched, { count: a.rules.length })}</Badge>
         </div>
         <ul className="ap-list">
           {a.rules.map((r) => (
             <li key={r.key}>{ruleText(r, myName)}</li>
           ))}
         </ul>
-        <Field label="Note for approvers" optional>
+        <Field label={t(m.noteForApprovers)} optional>
           <Textarea rows={2} className="min-h-0" value={note} maxLength={2000} onChange={(e) => keep(e.target.value)} />
         </Field>
         <span className="k">
-          Approvers: {approverNames(approvers, 'comma') || 'none yet'} · {a.needed} {plural(a.needed, 'approval', 'approvals')} needed
-          {isAuthor ? " · you can't approve your own campaign" : ''}
+          {t(m.approversLine, { names: approverNames(approvers, 'comma') || t(m.noneYet), needed: a.needed, author: isAuthor ? 'yes' : 'no' })}
         </span>
       </div>
       <Foot>
-        <Button onClick={() => onSaveDraft(note)}>Save draft</Button>
+        <Button onClick={() => onSaveDraft(note)}>{t(m.saveDraft)}</Button>
         {onBypass ? (
           <Button variant="danger" onClick={onBypass}>
-            Send without approval
+            {t(m.sendWithoutApproval)}
           </Button>
         ) : null}
-        <Button variant="primary" disabledReason={a.canRequest ? undefined : a.requestReason || 'Approval can’t be requested right now.'} loading={busy} onClick={() => onRequest(note.trim())}>
-          Request approval
+        <Button variant="primary" disabledReason={a.canRequest ? undefined : a.requestReason || t(m.cantRequest)} loading={busy} onClick={() => onRequest(note.trim())}>
+          {t(m.requestApproval)}
         </Button>
       </Foot>
     </Shell>
@@ -170,36 +173,35 @@ export function WaitingCard({
   onCancel: () => void
   onBypass?: () => void
 }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const { data: me } = useMe()
   const now = useNow()
   const a = review.approval
   const req = a.request!
   const mine = req.requestedBy.name === me?.user.name
-  const wait = a.medianWaitMinutes != null ? `; median wait is ${waitWords(a.medianWaitMinutes)}` : ''
   return (
-    <Shell review={review} run={run} title="Waiting for approval" id="rv-approval">
+    <Shell review={review} run={run} title={t(m.waitingTitle)} id="rv-approval">
       <MiniBanner tone="warn" title={verdictTitle(run.verdict)}>
-        Snapshot v{req.version} · locked while the request is open
+        {t(m.snapshotLocked, { version: req.version })}
       </MiniBanner>
       <div className="card ap-inner">
         <div className="row gap-2.5!">
-          <Badge tone="warn">Pending</Badge>
+          <Badge tone="warn">{t(m.pending)}</Badge>
           <span className="font-semibold">
-            Requested {agoWords(req.requestedAt, now)} · {req.given} of {req.needed} approvals
-            {mine ? '' : ` · by ${req.requestedBy.name}`}
+            {t(m.requestedLine, { when: agoWords(req.requestedAt, now), given: req.given, needed: req.needed, mine: mine ? 'yes' : 'no', name: req.requestedBy.name })}
           </span>
         </div>
         <div className="row gap-3!">
           {a.approvers
             .filter((p) => p.id !== req.requestedBy.id)
             .map((p) => (
-              <PersonLine key={p.id} person={p} line={`approver · ${p.presence ?? 'away'}`} />
+              <PersonLine key={p.id} person={p} line={t(m.approverLine, { presence: p.presence ?? t(m.away) })} />
             ))}
         </div>
         <div className="note n text-[12.5px]">
           <span>
-            Editing the content, audience, route or schedule restarts the request. Approvers were notified in-app and by email{wait}.
+            {t(m.restartsNote, { hasWait: a.medianWaitMinutes != null ? 'yes' : 'no', wait: a.medianWaitMinutes != null ? waitWords(a.medianWaitMinutes) : '' })}
           </span>
         </div>
       </div>
@@ -207,29 +209,29 @@ export function WaitingCard({
         {mine ? (
           <>
             <ButtonLink to="/w/$workspace/campaigns/$campaignId/edit" params={{ workspace: slug, campaignId: review.campaign.id }}>
-              Edit campaign (restarts approval)
+              {t(m.editRestarts)}
             </ButtonLink>
             <Button loading={busy === 'remind'} onClick={onRemind}>
-              Remind approvers
+              {t(m.remind)}
             </Button>
             <Button variant="danger" loading={busy === 'cancel'} onClick={onCancel}>
-              Cancel request
+              {t(m.cancelRequest)}
             </Button>
           </>
         ) : (
           <>
             {onBypass ? (
               <Button variant="danger" onClick={onBypass}>
-                Send without approval
+                {t(m.sendWithoutApproval)}
               </Button>
             ) : null}
             {review.access.isOwner ? (
               <Button variant="danger" loading={busy === 'cancel'} onClick={onCancel}>
-                Cancel request
+                {t(m.cancelRequest)}
               </Button>
             ) : null}
             <ButtonLink variant="primary" to="/w/$workspace/approvals/$approvalId" params={{ workspace: slug, approvalId: req.id }}>
-              {review.access.canApprove ? 'Review request' : 'Open request'}
+              {review.access.canApprove ? t(m.reviewRequest) : t(m.openRequest)}
             </ButtonLink>
           </>
         )}
@@ -252,49 +254,56 @@ export function ApprovedCard({
   onTest: () => void
   onSchedule: () => void
 }) {
+  const t = useT()
   const now = useNow()
   const req = review.approval.request!
   const snap = req.snapshot
   const decided = req.decidedAt ? whenText(req.decidedAt, now) : ''
-  const route = snap.routeLabel ? `, route ${snap.routeLabel}` : ''
-  const sched = snap.scheduleMode === 'now' ? ', send now' : `, schedule ${snap.scheduleText}`
-  const reason = review.access.canEdit ? undefined : 'Scheduling an approved campaign needs campaigns:edit.'
+  const reason = review.access.canEdit ? undefined : t(m.needsEdit)
   return (
-    <Shell review={review} run={run} title="Approved" id="rv-approval">
-      <MiniBanner tone="ok" title="Approved · ready to schedule">
-        Approved by {req.decidedBy || 'an approver'}
-        {decided ? `, ${decided}` : ''}
-        {req.comment ? ` · comment: “${req.comment}”` : ''}
+    <Shell review={review} run={run} title={t(m.approvedTitle)} id="rv-approval">
+      <MiniBanner tone="ok" title={t(m.approvedBanner)}>
+        {t(m.approvedBy, {
+          name: req.decidedBy || t(m.anApproverLower),
+          hasWhen: decided ? 'yes' : 'no',
+          when: decided,
+          hasComment: req.comment ? 'yes' : 'no',
+          comment: req.comment ?? '',
+        })}
       </MiniBanner>
       <div className="card ap-inner">
         <dl className="kv m-0 text-[13px]">
-          <dt>Approved snapshot</dt>
+          <dt>{t(m.approvedSnapshot)}</dt>
           <dd>
-            v{req.version} · subject, content, audience {count(snap.audienceCount)}
-            {route}
-            {sched}
+            {t(m.snapshotValue, {
+              version: req.version,
+              audience: snap.audienceCount,
+              hasRoute: snap.routeLabel ? 'yes' : 'no',
+              route: snap.routeLabel ?? '',
+              mode: snap.scheduleMode === 'now' ? 'now' : 'at',
+              schedule: snap.scheduleText ?? '',
+            })}
           </dd>
-          <dt>Valid until</dt>
-          <dd>Any change to the snapshot, or the audience moving more than 10%</dd>
-          <dt>At send time</dt>
-          <dd>Send Readiness runs again; a Block stops the send and notifies everyone</dd>
+          <dt>{t(m.validUntil)}</dt>
+          <dd>{t(m.validUntilValue)}</dd>
+          <dt>{t(m.atSendTime)}</dt>
+          <dd>{t(m.atSendTimeValue)}</dd>
         </dl>
         {req.audit ? (
           <div className="note g text-[12.5px]">
-            <Badge tone="ok">Logged</Badge>
+            <Badge tone="ok">{t(m.logged)}</Badge>
             <span>
-              {req.audit.action} · {req.audit.actor} · {whenText(req.audit.at, now)}
-              {req.audit.ip ? ` · from ${req.audit.ip}` : ''}
+              {t(m.auditLine, { action: req.audit.action, actor: req.audit.actor, when: whenText(req.audit.at, now), hasIp: req.audit.ip ? 'yes' : 'no', ip: req.audit.ip ?? '' })}
             </span>
           </div>
         ) : null}
       </div>
       <Foot>
         <Button loading={busy === 'test'} onClick={onTest}>
-          Send a test
+          {t(m.sendTest)}
         </Button>
         <Button variant="primary" disabledReason={reason} onClick={onSchedule}>
-          {review.schedule.mode === 'now' ? 'Send now' : `Schedule for ${scheduleShort(review.schedule)}`}
+          {review.schedule.mode === 'now' ? t(m.sendNowButton) : t(m.scheduleFor, { when: scheduleShort(review.schedule) })}
         </Button>
       </Foot>
     </Shell>
@@ -315,49 +324,54 @@ export function InvalidatedCard({
   onRestore?: () => void
   onRequest: () => void
 }) {
+  const t = useT()
   const now = useNow()
   const { data: me } = useMe()
   const req = review.approval.request!
-  const who = req.invalidatedBy && req.invalidatedBy === me?.user.name ? 'You' : req.invalidatedBy || 'Someone'
-  const fields = req.invalidatedReason?.replace(/ changed$/, '') ?? 'the campaign'
+  const who = req.invalidatedBy && req.invalidatedBy === me?.user.name ? t(m.you) : req.invalidatedBy || t(m.someone)
+  // The server says what changed in English ("subject changed").
+  const fields = req.invalidatedReason?.replace(/ changed$/, '') ?? t(m.theCampaign)
   const moved = req.changes.some((c) => c.field === 'audience_count')
-  const approvedBy = req.decidedBy ? `${req.decidedBy}'s approval covered v${req.version}.` : `The request covered v${req.version}.`
+  const approvedBy = req.decidedBy ? t(m.coveredBy, { name: req.decidedBy, version: req.version }) : t(m.coveredRequest, { version: req.version })
   const edit = moved
-    ? ` The audience moved more than 10% since the request.`
-    : ` ${who} edited the ${fields}${req.invalidatedAt ? ` at ${whenText(req.invalidatedAt, now)}` : ''} (v${review.campaign.version}).`
-  const scheduled = review.campaign.scheduledAt ? 'The scheduled time stays reserved but the send' : 'The send'
+    ? t(m.audienceMoved)
+    : t(m.editedFields, {
+        who,
+        fields,
+        hasAt: req.invalidatedAt ? 'yes' : 'no',
+        at: req.invalidatedAt ? whenText(req.invalidatedAt, now) : '',
+        version: review.campaign.version,
+      })
   return (
-    <Shell review={review} run={run} title="Approval invalidated" id="rv-approval">
-      <MiniBanner tone="bad" title={`Approval invalidated: ${req.invalidatedReason || 'the campaign changed'}`}>
-        {approvedBy}
-        {edit}
+    <Shell review={review} run={run} title={t(m.invalidatedTitle)} id="rv-approval">
+      <MiniBanner tone="bad" title={t(m.invalidatedBanner, { reason: req.invalidatedReason || t(m.campaignChanged) })}>
+        {approvedBy} {edit}
       </MiniBanner>
       <div className="card ap-inner">
         {req.changes.length ? <DiffLines changes={req.changes} /> : null}
         <span className="k">
-          {unchangedSentence(req.changes)} {scheduled} won't start without a new approval; approvers see this diff.
+          {[unchangedSentence(req.changes), t(m.invalidatedNote, { scheduled: review.campaign.scheduledAt ? 'yes' : 'no' })].filter(Boolean).join(' ')}
         </span>
       </div>
       <Foot>
         {onRestore ? (
           <Button loading={busy === 'restore'} onClick={onRestore}>
-            Restore v{req.version} {restoreWhat(req.changes)}(keeps approval)
+            {t(m.restore, { version: req.version, what: restoreWhat(req.changes) })}
           </Button>
         ) : null}
         <Button variant="primary" loading={busy === 'request'} disabledReason={review.approval.canRequest ? undefined : review.approval.requestReason} onClick={onRequest}>
-          Request approval again
+          {t(m.requestAgain)}
         </Button>
       </Foot>
     </Shell>
   )
 }
 
-/** "subject ", "subject and link ", "" — what Restore puts back. */
+/** What Restore puts back when it's one thing: "subject", "link"; "all" otherwise. */
 function restoreWhat(changes: Schemas['ApprovalChange'][]): string {
   const f = [...new Set(changes.map((c) => (c.field === 'link' ? 'link' : c.field)))]
-  if (f.length === 1 && ['subject', 'preheader', 'schedule', 'audience'].includes(f[0]!)) return `${f[0]} `
-  if (f.length === 1 && f[0] === 'link') return 'link '
-  return ''
+  if (f.length === 1 && ['subject', 'preheader', 'schedule', 'audience', 'link'].includes(f[0]!)) return f[0]!
+  return 'all'
 }
 
 /** Changes Restore can undo: content, audience and schedule (not route or drift). */
@@ -379,16 +393,17 @@ export function HeldCard({
   notified?: ReactNode
   children?: ReactNode
 }) {
+  const t = useT()
   return (
     <section className="card border-bad-line" aria-labelledby="rv-held">
       <div className="sec">
         <div className="col gap-0.5!">
           <h2 className="h2" id="rv-held">
-            Send-time recheck turned Blocked
+            {t(m.heldTitle)}
           </h2>
-          <span className="k">{scheduledAt ? `${monthDayTime(scheduledAt)} · the send did not start` : 'The send did not start'}</span>
+          <span className="k">{scheduledAt ? t(m.heldCaption, { when: monthDayTime(scheduledAt) }) : t(m.heldCaptionNoTime)}</span>
         </div>
-        <Badge tone="bad">Blocked</Badge>
+        <Badge tone="bad">{verdictTitle('blocked')}</Badge>
       </div>
       <div className="pad col gap-3!">
         {held.blocks.length ? (
@@ -396,7 +411,7 @@ export function HeldCard({
             const [group, ...rest] = (b.flatTitle || b.title).split(': ')
             return (
               <div key={b.key} className="note b" role="alert">
-                <Badge tone="bad">Block</Badge>
+                <Badge tone="bad">{statusWord('block')}</Badge>
                 <span>
                   {rest.length ? (
                     <>
@@ -412,25 +427,25 @@ export function HeldCard({
           })
         ) : (
           <div className="note b" role="alert">
-            <Badge tone="bad">Block</Badge>
-            <span>{held.reason}. The approved send was held.</span>
+            <Badge tone="bad">{statusWord('block')}</Badge>
+            <span>{t(m.heldReason, { reason: held.reason })}</span>
           </div>
         )}
         <dl className="kv m-0 text-[12.5px]">
           {approved ? (
             <>
-              <dt>Approved</dt>
+              <dt>{t(m.approved)}</dt>
               <dd>{approved}</dd>
             </>
           ) : null}
           {notified ? (
             <>
-              <dt>Notified</dt>
+              <dt>{t(m.notified)}</dt>
               <dd>{notified}</dd>
             </>
           ) : null}
-          <dt>Schedule</dt>
-          <dd>Held · resumes only after a passing recheck</dd>
+          <dt>{t(m.schedule)}</dt>
+          <dd>{t(m.heldSchedule)}</dd>
         </dl>
         <div className="note n">
           <span>{heldNote(held.blocks)}</span>
@@ -444,19 +459,15 @@ export function HeldCard({
 /** "Sending would hurt inbox placement for every recipient, so the approved send was held." */
 export function heldSentence(detail?: string): string {
   const d = detail?.trim().replace(/[.\s]+$/, '')
-  return d ? `${d}, so the approved send was held.` : 'The approved send was held.'
+  return d ? tr(m.heldSentence, { detail: d }) : tr(m.heldPlain)
 }
 
 /** What fixing the blocks does to the approval, for the held card. */
 export function heldNote(blocks: Schemas['ReadinessCheck'][]): string {
   const groups = new Set(blocks.map((b) => b.group))
-  if (groups.size === 1 && groups.has('links')) {
-    return 'Fixing the link changes the content, so the approval will be invalidated and re-requested automatically with the diff attached. Delisting the domain keeps the approval intact.'
-  }
-  if (groups.size === 1 && groups.has('routing')) {
-    return 'Changing the route invalidates the approval and re-requests it automatically with the diff attached. Bringing the provider back keeps the approval intact.'
-  }
-  return 'Fixing a block in the campaign invalidates the approval and re-requests it automatically with the diff attached. Fixing it outside the campaign keeps the approval intact.'
+  if (groups.size === 1 && groups.has('links')) return tr(m.heldLinks)
+  if (groups.size === 1 && groups.has('routing')) return tr(m.heldRouting)
+  return tr(m.heldOther)
 }
 
 /** Text with its web addresses set in mono. */
@@ -478,6 +489,7 @@ function Mono({ text }: { text: string }) {
 
 /** Fix links and buttons for the held card. */
 export function HeldActions({ held, onApply, onCancel, busy }: { held: Schemas['ReviewHeld']; onApply: (b: Schemas['ReadinessCheck'], f: Schemas['ReadinessFix']) => void; onCancel?: () => void; busy?: string }) {
+  const t = useT()
   return (
     <>
       {held.blocks.flatMap((b) =>
@@ -488,14 +500,14 @@ export function HeldActions({ held, onApply, onCancel, busy }: { held: Schemas['
             </AppHref>
           ) : (
             <Button key={`${b.key}-${i}`} size="sm" loading={busy === `${b.key}:${f.action}`} onClick={() => onApply(b, f)}>
-              {f.label} (re-request approval)
+              {t(m.reRequest, { label: f.label })}
             </Button>
           ),
         ),
       )}
       {onCancel ? (
         <Button size="sm" variant="danger" onClick={onCancel}>
-          Cancel send
+          {t(m.cancelSend)}
         </Button>
       ) : null}
     </>
@@ -516,6 +528,7 @@ export function BypassDialog({
   run: Run
   onConfirm: (input: { reason: string; password?: string; acknowledged: string[] }) => Promise<string | undefined>
 }) {
+  const t = useT()
   const { data: me } = useMe()
   const [reason, setReason] = useState('')
   const [password, setPassword] = useState('')
@@ -527,11 +540,11 @@ export function BypassDialog({
   const rules = review.approval.rules.map((r) => r.short).join(' · ')
   const needsPassword = review.access.hasPassword
   const blocked = !reason.trim()
-    ? 'A reason is required'
+    ? t(m.reasonRequired)
     : acks.some((x) => !checked.includes(x.key))
-      ? 'Confirm each warning first'
+      ? t(m.confirmEach)
       : needsPassword && !password
-        ? 'Enter your password'
+        ? t(m.enterPassword)
         : undefined
   const close = (v: boolean) => {
     if (busy) return
@@ -558,19 +571,24 @@ export function BypassDialog({
       onOpenChange={close}
       dismissible={false}
       hideClose
-      eyebrow={<span className="k">Dialog · Owner only · emergency bypass</span>}
-      title="Send without approval?"
+      eyebrow={<span className="k">{t(m.bypassEyebrow)}</span>}
+      title={t(m.bypassTitle)}
       description={
         <span className="text-[13.5px]">
-          “{review.campaign.name}” · {count(run.estimates.audience.final)} recipients · rules matched: {rules}. {me?.user.name ? `${me.user.name}, you` : 'You'} can bypass the
-          approval policy as Owner.
+          {t(m.bypassDescription, {
+            campaign: review.campaign.name,
+            recipients: run.estimates.audience.final,
+            rules,
+            hasName: me?.user.name ? 'yes' : 'no',
+            name: me?.user.name ?? '',
+          })}
         </span>
       }
       footer={
         <>
-          <Button onClick={() => close(false)}>Cancel</Button>
+          <Button onClick={() => close(false)}>{t(common.cancel)}</Button>
           <Button variant="primary" disabledReason={blocked} loading={busy} onClick={() => void submit()}>
-            {review.schedule.mode === 'now' ? 'Send now without approval' : 'Schedule without approval'}
+            {review.schedule.mode === 'now' ? t(m.sendNowWithout) : t(m.scheduleWithout)}
           </Button>
         </>
       }
@@ -578,7 +596,7 @@ export function BypassDialog({
       <Field
         label={
           <>
-            Reason <span className="k font-medium">· required</span>
+            {t(m.reason)} <span className="k font-medium">· {t(m.requiredLower)}</span>
           </>
         }
       >
@@ -587,7 +605,7 @@ export function BypassDialog({
           className="min-h-0"
           value={reason}
           maxLength={1000}
-          placeholder="e.g. Customer-facing outage notice, approved verbally by Marcus at 09:12; he is unavailable to click"
+          placeholder={t(m.reasonPlaceholder)}
           onChange={(e) => setReason(e.target.value)}
         />
       </Field>
@@ -598,14 +616,16 @@ export function BypassDialog({
         </label>
       ))}
       <div className="note w">
-        <Badge tone="warn">Logged</Badge>
+        <Badge tone="warn">{t(m.logged)}</Badge>
         <span>
-          Recorded as <span className="mono">campaign.approval_bypassed</span> with your reason, IP and the campaign snapshot. Every approver is notified now
-          {others.length ? `: ${approverNames(others, 'and')}` : ''}. Send Readiness still runs and a Blocked result still stops the send.
+          <T
+            msg={m.bypassLogged}
+            values={{ hasOthers: others.length ? 'yes' : 'no', others: approverNames(others, 'and'), mono: (c) => <span className="mono">{c}</span> }}
+          />
         </span>
       </div>
       {needsPassword ? (
-        <Field label="Confirm with your password">
+        <Field label={t(m.confirmPassword)}>
           <input className="in" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
         </Field>
       ) : null}

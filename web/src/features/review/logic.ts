@@ -1,5 +1,7 @@
 import type { Schemas } from '@/api/client'
-import { count } from '@/lib/format'
+import { t } from '@/i18n'
+import { calendarDate, decimal, inZone, money, pct } from '@/lib/format'
+import { m } from './messages'
 
 export type Review = Schemas['CampaignReview']
 export type Run = Schemas['ReadinessRun']
@@ -18,22 +20,39 @@ export function plural(n: number, one: string, many: string): string {
 
 /** "Ready", "Ready with warnings", "Blocked". */
 export function verdictTitle(v: Verdict): string {
-  return v === 'blocked' ? 'Blocked' : v === 'warnings' ? 'Ready with warnings' : 'Ready'
+  return v === 'blocked' ? t(m.verdictBlocked) : v === 'warnings' ? t(m.verdictWarnings) : t(m.verdictReady)
+}
+
+/** A campaign's status in the header badge: "Draft", "Waiting for approval", "Scheduled". */
+export function campaignWord(status: string): string {
+  const words: Record<string, Parameters<typeof t>[0]> = {
+    draft: m.campaignDraft,
+    approval: m.campaignApproval,
+    approved: m.campaignApproved,
+    scheduled: m.campaignScheduled,
+    sending: m.campaignSending,
+    paused: m.campaignPaused,
+    sent: m.campaignSent,
+    cancelled: m.campaignCancelled,
+    failed: m.campaignFailed,
+  }
+  const d = words[status]
+  return d ? t(d) : status
 }
 
 /** The badge word of a check row. */
 export function statusWord(s: CheckStatus): string {
-  return s === 'pass' ? 'Pass' : s === 'warn' ? 'Warn' : s === 'block' ? 'Block' : 'Unknown'
+  return s === 'pass' ? t(m.statusPass) : s === 'warn' ? t(m.statusWarn) : s === 'block' ? t(m.statusBlock) : t(m.statusUnknown)
 }
 
 /** "27 checks passed, 2 warnings, 0 blocks". */
 export function countsLine(c: Counts): string {
-  return `${c.passed} ${plural(c.passed, 'check', 'checks')} passed, ${c.warnings} ${plural(c.warnings, 'warning', 'warnings')}, ${c.blocks} ${plural(c.blocks, 'block', 'blocks')}`
+  return t(m.countsLine, { passed: c.passed, warnings: c.warnings, blocks: c.blocks })
 }
 
 /** "25 passed · 2 warnings · 0 blocks" (the approval cards). */
 export function countsShort(c: { passed: number; warnings: number; blocks: number }): string {
-  return `${c.passed} passed · ${c.warnings} ${plural(c.warnings, 'warning', 'warnings')} · ${c.blocks} ${plural(c.blocks, 'block', 'blocks')}`
+  return t(m.countsShort, { passed: c.passed, warnings: c.warnings, blocks: c.blocks })
 }
 
 /**
@@ -44,16 +63,16 @@ export function countsShort(c: { passed: number; warnings: number; blocks: numbe
 export function blockedLine(c: Counts, checks: Check[]): string {
   const blocks = checks.filter((x) => x.status === 'block')
   const fixable = blocks.filter((x) => primaryFix(x)).length
-  const head = `${c.blocks} blocking ${plural(c.blocks, 'issue', 'issues')}, ${c.warnings} ${plural(c.warnings, 'warning', 'warnings')}, ${c.passed} ${plural(c.passed, 'check', 'checks')} passed.`
+  const head = t(m.blockedHead, { blocks: c.blocks, warnings: c.warnings, passed: c.passed })
   const tail =
     fixable === 0
       ? ''
       : fixable === blocks.length
         ? blocks.length === 1
-          ? ' It has a one-click fix below.'
-          : ' Each one has a one-click fix below.'
-        : ` ${fixable} of them ${plural(fixable, 'has', 'have')} a one-click fix below.`
-  return `${head} Sending stays disabled until every block is fixed.${tail}`
+          ? t(m.blockedTailOne)
+          : t(m.blockedTailEach)
+        : t(m.blockedTailSome, { fixable })
+  return tail ? `${head} ${tail}` : head
 }
 
 /**
@@ -66,98 +85,79 @@ export function primaryFix(c: Check): Fix | undefined {
 
 /** "Fix both warnings", "Apply all 3 fixes". */
 export function fixAllLabel(kind: 'warn' | 'block', n: number): string {
-  if (kind === 'block') return n === 1 ? 'Apply the fix' : n === 2 ? 'Apply both fixes' : `Apply all ${n} fixes`
-  return n === 1 ? 'Fix the warning' : n === 2 ? 'Fix both warnings' : `Fix all ${n} warnings`
+  return kind === 'block' ? t(m.fixAllBlocks, { n }) : t(m.fixAllWarnings, { n })
 }
 
 /** "Schedule send to 31,604 recipients" or "Send to 47,842 recipients". */
 export function sendLabel(mode: Schedule['mode'], recipients: number): string {
-  return `${mode === 'now' ? 'Send' : 'Schedule send'} to ${count(recipients)} ${plural(recipients, 'recipient', 'recipients')}`
+  return mode === 'now' ? t(m.sendNow, { recipients }) : t(m.sendScheduled, { recipients })
 }
-
-const smallWords = ['', 'one', 'two', 'three']
 
 /** "You'll confirm the audience and the two warnings on the next step." */
 export function confirmNote(warnings: number): string {
-  if (warnings === 0) return "You'll confirm the audience on the next step."
-  if (warnings === 1) return "You'll confirm the audience and the warning on the next step."
-  return `You'll confirm the audience and the ${smallWords[warnings] ?? warnings} warnings on the next step.`
+  return t(m.confirmNote, { warnings })
 }
-
-/** When the next check runs, for the verdict banner. */
-export function recheckText(mode: Schedule['mode']): string {
-  return mode === 'now' ? 'and will run again when the send starts' : 'and will run again 15 minutes before the scheduled send'
-}
-
-const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 /** "Wednesday 14 Oct 2026" from a local "2026-10-14" (no timezone shift). */
 export function localDateWords(date: string): string {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date)
-  if (!m) return date
-  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])))
-  return `${weekdays[d.getUTCDay()]} ${d.getUTCDate()} ${months[d.getUTCMonth()]} ${d.getUTCFullYear()}`
+  return calendarDate(date, 'longDate')
 }
 
 /** "Nov 4" from a local "2026-11-04". */
 export function localMonthDay(date: string): string {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date)
-  if (!m) return date
-  return `${months[Number(m[2]) - 1]} ${Number(m[3])}`
+  return calendarDate(date, 'monthDay')
 }
 
 /** "Tuesday 14 Oct 2026 · 09:00 · America/New_York" (Scheduling card). */
 export function scheduleCaption(s: Schedule): string {
-  if (!s.date || !s.time) return 'Pick a date and a time'
-  return `${localDateWords(s.date)} · ${s.time} · ${s.timezone ?? ''}`.replace(/ · $/, '')
+  if (!s.date || !s.time) return t(m.pickDateTime)
+  return [localDateWords(s.date), s.time, s.timezone].filter(Boolean).join(' · ')
 }
 
 /** "Tuesday 14 Oct 2026 at 09:00 America/New_York" (confirmation). */
 export function scheduleSentence(s: Schedule): string {
   if (!s.date || !s.time) return ''
-  return `${localDateWords(s.date)} at ${s.time} ${s.timezone ?? ''}`.trim()
+  return t(m.scheduleSentence, { date: localDateWords(s.date), time: s.time, timezone: s.timezone ?? '' }).trim()
 }
 
 /** "Nov 4, 09:00" (the approved card's schedule button). */
 export function scheduleShort(s: Schedule): string {
-  if (s.mode === 'now' || !s.date || !s.time) return 'now'
+  if (s.mode === 'now' || !s.date || !s.time) return t(m.now)
   return `${localMonthDay(s.date)}, ${s.time}`
 }
 
 /** "1 d 22 h 19 m" until a time; "now" once it passed. */
 export function sendsIn(at: string | number | Date, now: Date = new Date()): string {
   const total = Math.max(0, Math.floor((new Date(at).getTime() - now.getTime()) / 60_000))
-  if (total <= 0) return 'now'
+  if (total <= 0) return t(m.now)
   const d = Math.floor(total / 1440)
   const h = Math.floor((total % 1440) / 60)
-  const m = total % 60
-  return [d ? `${d} d` : '', d || h ? `${h} h` : '', `${m} m`].filter(Boolean).join(' ')
+  const mins = total % 60
+  return [d ? t(m.days, { n: d }) : '', d || h ? t(m.hours, { n: h }) : '', t(m.minutes, { n: mins })].filter(Boolean).join(' ')
 }
 
 /** "about 3 hours", "about 45 minutes" (median wait). */
 export function waitWords(minutes: number): string {
-  if (minutes < 60) return `about ${Math.max(1, Math.round(minutes))} ${plural(Math.round(minutes), 'minute', 'minutes')}`
-  const h = Math.round(minutes / 60)
-  return `about ${h} ${plural(h, 'hour', 'hours')}`
+  if (minutes < 60) return t(m.waitMinutes, { n: Math.max(1, Math.round(minutes)) })
+  return t(m.waitHours, { n: Math.round(minutes / 60) })
 }
 
 /** "2 h 40 min" (median wait in the inbox). */
 export function waitShort(minutes: number): string {
-  if (minutes < 60) return `${Math.max(1, Math.round(minutes))} min`
+  if (minutes < 60) return t(m.durMinutes, { m: Math.max(1, Math.round(minutes)) })
   const h = Math.floor(minutes / 60)
-  const m = Math.round(minutes % 60)
-  return m ? `${h} h ${m} min` : `${h} h`
+  const rest = Math.round(minutes % 60)
+  return rest ? t(m.durHoursMinutes, { h, m: rest }) : t(m.durHours, { h })
 }
 
 /** "bounce 2.0% · complaint 0.10%". */
-export function thresholdsLine(t: Thresholds): string {
-  return `bounce ${t.bounce.toFixed(1)}% · complaint ${t.complaint.toFixed(2)}%`
+export function thresholdsLine(th: Thresholds): string {
+  return t(m.thresholdsLine, { bounce: pct(th.bounce, 1), complaint: pct(th.complaint, 2) })
 }
 
 /** The thresholds inputs show "2.0 %", "0.10 %", "5 %". */
 export function percentText(v: number, digits: number): string {
-  return `${v.toFixed(digits)} %`
+  return `${decimal(v, digits)} %`
 }
 
 /** Reads "2.5", "2,5 %" or "2.5%"; null when it isn't a number. */
@@ -172,19 +172,47 @@ export type ThresholdField = 'bounce' | 'complaint' | 'mailboxComplaint' | 'prov
 
 /** Limits of each threshold (the API's), with the sentence when outside. */
 export const thresholdLimits: Record<ThresholdField, { min: number; max: number; digits: number; label: string }> = {
-  bounce: { min: 0.1, max: 20, digits: 1, label: 'Bounce rate' },
-  complaint: { min: 0.01, max: 5, digits: 2, label: 'Complaint rate' },
-  mailboxComplaint: { min: 0.01, max: 5, digits: 2, label: 'Complaints, per mailbox provider' },
-  providerErrors: { min: 1, max: 100, digits: 0, label: 'Provider errors over 3 min' },
+  bounce: {
+    min: 0.1,
+    max: 20,
+    digits: 1,
+    get label() {
+      return t(m.thresholdBounce)
+    },
+  },
+  complaint: {
+    min: 0.01,
+    max: 5,
+    digits: 2,
+    get label() {
+      return t(m.thresholdComplaint)
+    },
+  },
+  mailboxComplaint: {
+    min: 0.01,
+    max: 5,
+    digits: 2,
+    get label() {
+      return t(m.thresholdMailbox)
+    },
+  },
+  providerErrors: {
+    min: 1,
+    max: 100,
+    digits: 0,
+    get label() {
+      return t(m.thresholdErrors)
+    },
+  },
 }
 
 /** Validates one threshold value; returns the error sentence or undefined. */
-export function thresholdError(field: ThresholdField, v: number | null, t: Thresholds): string | undefined {
+export function thresholdError(field: ThresholdField, v: number | null, th: Thresholds): string | undefined {
   const l = thresholdLimits[field]
-  if (v === null) return 'Enter a percentage, for example 2.0.'
-  if (v < l.min || v > l.max) return `Keep it between ${l.min} % and ${l.max} %.`
-  if (field === 'mailboxComplaint' && v > t.complaint * 5) return 'Keep it within five times the overall complaint rate.'
-  if (field === 'complaint' && t.mailboxComplaint > v * 5) return 'The per-mailbox threshold would be more than five times this; lower it first.'
+  if (v === null) return t(m.errPercent, { example: decimal(2, 1) })
+  if (v < l.min || v > l.max) return t(m.errRange, { min: l.min, max: l.max })
+  if (field === 'mailboxComplaint' && v > th.complaint * 5) return t(m.errFiveTimes)
+  if (field === 'complaint' && th.mailboxComplaint > v * 5) return t(m.errLowerFirst)
   return undefined
 }
 
@@ -243,16 +271,16 @@ export const providerColor: Record<string, string> = {
 }
 
 /** "34 min", "1 h 12 min". */
-export function minutes(m: number): string {
-  if (m < 60) return `${Math.max(1, m)} min`
-  const h = Math.floor(m / 60)
-  const r = m % 60
-  return r ? `${h} h ${r} min` : `${h} h`
+export function minutes(n: number): string {
+  if (n < 60) return t(m.durMinutes, { m: Math.max(1, n) })
+  const h = Math.floor(n / 60)
+  const r = n % 60
+  return r ? t(m.durHoursMinutes, { h, m: r }) : t(m.durHours, { h })
 }
 
-/** Prices on the boards: "$2.84", "$0.00". */
+/** Prices on the boards: "$2.84", "$0.00" (2,84 US$ in Vietnamese). */
 export function dollars(v: number): string {
-  return `$${v.toFixed(2)}`
+  return money(v, 2)
 }
 
 /** A check's title with its group, for lists ordered by severity. */
@@ -272,7 +300,7 @@ export function checksByGroup(run: Run): { group: Group; checks: Check[] }[] {
 export function acknowledgements(run: Run): { key: string; keys: string[]; text: string; fix?: Fix }[] {
   const out: { key: string; keys: string[]; text: string; fix?: Fix }[] = []
   for (const c of run.checks.filter((x) => x.status === 'warn')) {
-    const text = c.ack || `I understand: ${c.title}.`
+    const text = c.ack || t(m.ackDefault, { title: c.title })
     // Warnings confirmed in the same words (the serious accessibility
     // issues) are one checkbox that confirms them all.
     const same = out.find((a) => a.text === text)
@@ -292,20 +320,12 @@ export function acknowledgedKeys(acks: { key: string; keys: string[] }[], checke
 
 /** "Nov 4, 2026" in a zone. */
 export function zonedDate(at: string | Date, tz?: string): string {
-  try {
-    return new Intl.DateTimeFormat('en-US', { timeZone: tz || undefined, month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(at))
-  } catch {
-    return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(at))
-  }
+  return inZone(at, tz).date
 }
 
 /** "09:00" in a zone. */
 export function zonedTime(at: string | Date, tz?: string): string {
-  try {
-    return new Intl.DateTimeFormat('en-GB', { timeZone: tz || undefined, hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(at))
-  } catch {
-    return new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(at))
-  }
+  return inZone(at, tz).time
 }
 
 /** "Nov 4, 2026 · 09:00 America/New_York". */
@@ -313,32 +333,42 @@ export function zonedWhen(at: string | Date, tz?: string): string {
   return `${zonedDate(at, tz)} · ${zonedTime(at, tz)}${tz ? ` ${tz}` : ''}`
 }
 
+/** Words by group key, read in the app's language when used. */
+function wordsOf(map: Record<string, Parameters<typeof t>[0]>): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const [k, d] of Object.entries(map)) Object.defineProperty(out, k, { get: () => t(d), enumerable: true })
+  return out
+}
+
 /** Group names in running text: "Reputation, authentication, content, compliance and routing". */
-export const groupWords: Record<string, string> = {
-  reputation: 'reputation',
-  authentication: 'authentication',
-  content: 'content',
-  links: 'links',
-  compliance: 'compliance',
-  audience: 'audience quality',
-  routing: 'routing',
-  accessibility: 'accessibility',
+export const groupWords: Record<string, string> = wordsOf({
+  reputation: m.wordReputation,
+  authentication: m.wordAuthentication,
+  content: m.wordContent,
+  links: m.wordLinks,
+  compliance: m.wordCompliance,
+  audience: m.wordAudience,
+  routing: m.wordRouting,
+  accessibility: m.wordAccessibility,
+})
+
+const groupTitleMessages = {
+  reputation: m.groupReputation,
+  authentication: m.groupAuthentication,
+  content: m.groupContent,
+  links: m.groupLinks,
+  compliance: m.groupCompliance,
+  audience: m.groupAudience,
+  routing: m.groupRouting,
+  accessibility: m.groupAccessibility,
+  languages: m.groupLanguages,
 }
 
 /** Group headings: "Sender reputation", "Audience quality". */
-export const groupTitles: Record<string, string> = {
-  reputation: 'Sender reputation',
-  authentication: 'Authentication',
-  content: 'Content',
-  links: 'Links',
-  compliance: 'Compliance',
-  audience: 'Audience quality',
-  routing: 'Routing',
-  accessibility: 'Accessibility',
-}
+export const groupTitles: Record<string, string> = wordsOf(groupTitleMessages)
 
 /** Group names that start a one-line row: "Audience: 0 recently bounced, …". */
-export const flatGroupLabels: Record<string, string> = { ...groupTitles, audience: 'Audience' }
+export const flatGroupLabels: Record<string, string> = wordsOf({ ...groupTitleMessages, audience: m.groupAudienceShort })
 
 /**
  * The order of blocks and warnings when they're listed by severity: legal
@@ -352,13 +382,13 @@ export function bySeverity(a: Check, b: Check): number {
 
 /** "just now", "12 minutes ago", "2 hours ago", "yesterday", "3 days ago". */
 export function agoWords(d: string | number | Date, now: Date = new Date()): string {
-  const m = Math.round((now.getTime() - new Date(d).getTime()) / 60_000)
-  if (m < 1) return 'just now'
-  if (m < 60) return `${m} ${plural(m, 'minute', 'minutes')} ago`
-  const h = Math.round(m / 60)
-  if (h < 24) return `${h} ${plural(h, 'hour', 'hours')} ago`
+  const mins = Math.round((now.getTime() - new Date(d).getTime()) / 60_000)
+  if (mins < 1) return t(m.agoJustNow)
+  if (mins < 60) return t(m.agoMinutes, { n: mins })
+  const h = Math.round(mins / 60)
+  if (h < 24) return t(m.agoHours, { n: h })
   const days = Math.round(h / 24)
-  return days === 1 ? 'yesterday' : `${days} days ago`
+  return days === 1 ? t(m.agoYesterday) : t(m.agoDays, { n: days })
 }
 
 /** Splits text so web addresses ("bit.ly/3xK9tQ", "acme.io/blog/…") can be set in mono. */
