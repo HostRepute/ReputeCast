@@ -7,13 +7,14 @@ import { mx } from './messages'
 import './languages.css'
 
 type PublishLanguage = Schemas['TransactionalPublishLanguage']
+type LanguageChange = Schemas['TransactionalLanguageChange']
 
 /**
  * The publish dialog's languages (TransactionalPublish): "Publishes English,
  * Spanish and German together", then any outdated version, sent as it is,
  * and any draft, whose recipients get the fallback.
  */
-export function PublishLanguages({ languages }: { languages?: PublishLanguage[] | null }) {
+export function PublishLanguages({ languages, changes }: { languages?: PublishLanguage[] | null; changes?: LanguageChange[] | null }) {
   const t = useT()
   if (!languages || languages.length < 2) return null
   const source = languages[0]!
@@ -21,6 +22,13 @@ export function PublishLanguages({ languages }: { languages?: PublishLanguage[] 
   return (
     <div className="flex flex-col gap-2">
       <span className="font-semibold">{t(mx.publishTogether, { languages: formatList(sent.map((l) => l.name)), count: sent.length })}</span>
+      {changes?.length ? (
+        <ul className="lng-changes">
+          {changes.map((c) => (
+            <li key={c.language}>{t(mx.languageChange, { language: c.name, change: c.change })}</li>
+          ))}
+        </ul>
+      ) : null}
       {languages
         .filter((l) => l.status === 'outdated')
         .map((l) => (

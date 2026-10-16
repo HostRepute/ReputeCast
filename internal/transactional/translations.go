@@ -31,6 +31,9 @@ type Translations interface {
 	// Publish publishes the draft's language versions with a new version
 	// of the template, in the publish transaction.
 	Publish(ctx context.Context, q *store.Queries, ws *store.Workspace, templateID uuid.UUID, version int) error
+	// Changes lists the language versions the draft adds, changes or
+	// removes since a published version, read with q.
+	Changes(ctx context.Context, q *store.Queries, ws *store.Workspace, templateID uuid.UUID, version int) ([]TransactionalLanguageChange, error)
 	// Choose picks the language version of a published template version a
 	// message uses.
 	Choose(ctx context.Context, q *store.Queries, ws *store.Workspace, templateID uuid.UUID, version int, requested string, contactID *uuid.UUID) (LanguageChoice, error)
@@ -95,6 +98,24 @@ type TransactionalPublishLanguage struct {
 	// a draft; GetsName names it.
 	Gets     string `json:"gets"`
 	GetsName string `json:"getsName"`
+}
+
+// TransactionalLanguageChange is a language version the draft adds,
+// changes or removes since the live version (publishing one is a change).
+type TransactionalLanguageChange struct {
+	Language string `json:"language"`
+	Name     string `json:"name"`
+	Change   string `json:"change" enum:"added,changed,removed"`
+}
+
+// languageChangeSummary names the language changes in the version
+// history ("Spanish added · German changed").
+func languageChangeSummary(changes []TransactionalLanguageChange) string {
+	parts := make([]string, 0, len(changes))
+	for _, c := range changes {
+		parts = append(parts, c.Name+" "+c.Change)
+	}
+	return strings.Join(parts, " · ")
 }
 
 // withLanguage applies a language version's text to a version's content.

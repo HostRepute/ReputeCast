@@ -285,6 +285,41 @@ func (t Transactional) Publish(ctx context.Context, q *store.Queries, ws *store.
 	return copyVersions(ctx, q, OwnerTransactional, id, 0, version)
 }
 
+// Changes lists the language versions the draft adds, changes (its
+// content, or marked translated) or removes since a published version.
+func (t Transactional) Changes(ctx context.Context, q *store.Queries, ws *store.Workspace, id uuid.UUID, version int) ([]transactional.TransactionalLanguageChange, error) {
+	draft, err := q.ContentTranslations(ctx, store.ContentTranslationsParams{OwnerKind: OwnerTransactional, OwnerID: id, OwnerVersion: 0})
+	if err != nil {
+		return nil, err
+	}
+	live, err := q.ContentTranslations(ctx, store.ContentTranslationsParams{OwnerKind: OwnerTransactional, OwnerID: id, OwnerVersion: int32(version)})
+	if err != nil {
+		return nil, err
+	}
+	was := map[string]store.ContentTranslationsRow{}
+	for _, r := range live {
+		was[r.Language] = r
+	}
+	out := []transactional.TransactionalLanguageChange{}
+	seen := map[string]bool{}
+	for _, r := range draft {
+		seen[r.Language] = true
+		p, ok := was[r.Language]
+		switch {
+		case !ok:
+			out = append(out, transactional.TransactionalLanguageChange{Language: r.Language, Name: NameOf(r.Language), Change: "added"})
+		case p.ContentHash != r.ContentHash || p.Status != r.Status || p.Held != r.Held:
+			out = append(out, transactional.TransactionalLanguageChange{Language: r.Language, Name: NameOf(r.Language), Change: "changed"})
+		}
+	}
+	for _, r := range live {
+		if !seen[r.Language] {
+			out = append(out, transactional.TransactionalLanguageChange{Language: r.Language, Name: NameOf(r.Language), Change: "removed"})
+		}
+	}
+	return out, nil
+}
+
 // Choose picks the language version of a published template version a
 // message uses: the language asked for, else the linked contact's, else
 // the fallback (the source when the fallback has no version).

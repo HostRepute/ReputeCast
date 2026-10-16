@@ -17877,6 +17877,7 @@ export interface components {
             changed: boolean;
             content: components["schemas"]["TransactionalDiffLine"][];
             contentSummary: string;
+            languages?: components["schemas"]["TransactionalLanguageChange"][];
             preheader?: components["schemas"]["TransactionalTextChange"];
             settings: string[];
             subject?: components["schemas"]["TransactionalTextChange"];
@@ -17924,6 +17925,12 @@ export interface components {
             savedAt: string;
             /** Format: int64 */
             sizeBytes: number;
+        };
+        TransactionalLanguageChange: {
+            /** @enum {string} */
+            change: "added" | "changed" | "removed";
+            language: string;
+            name: string;
         };
         TransactionalMakeOptional: {
             default: string;

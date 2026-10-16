@@ -427,3 +427,10 @@ label.lng-rad.two input {
     max-width: none;
   }
 }
+
+/* The publish dialog's language changes. */
+.lng-changes {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--ink-nav);
+}

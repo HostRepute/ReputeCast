@@ -57,6 +57,8 @@ type TransactionalDiff struct {
 	// Settings lists other changes (sender, reply-to, tracking).
 	Settings []string `json:"settings"`
 	Changed  bool     `json:"changed"`
+	// Languages are the language versions added, changed or removed.
+	Languages []TransactionalLanguageChange `json:"languages,omitempty"`
 }
 
 // TransactionalBreakingVariable is a variable that would make recent calls fail.
@@ -554,6 +556,12 @@ func (s *Service) publishPreview(ctx context.Context, q *store.Queries, ws *stor
 		if out.Languages, err = s.Translations.Publishing(ctx, q, ws, t.ID); err != nil {
 			return out, err
 		}
+		if t.LiveVersion != nil {
+			if out.Diff.Languages, err = s.Translations.Changes(ctx, q, ws, t.ID, int(*t.LiveVersion)); err != nil {
+				return out, err
+			}
+			out.Diff.Changed = out.Diff.Changed || len(out.Diff.Languages) > 0
+		}
 	}
 	calls, err := q.TxnRecentCallKeys(ctx, store.TxnRecentCallKeysParams{TemplateID: &t.ID, Since: s.now().Add(-BreakingWindow)})
 	if err != nil {
@@ -705,6 +713,9 @@ func (s *Service) Publish(ctx context.Context, ws *store.Workspace, p *authz.Pri
 		change := strings.TrimSpace(in.Note)
 		if change == "" {
 			change = changeSummary(pv.Diff, in.MakeOptional, t.LiveVersion == nil)
+		}
+		if change == "" && len(pv.Diff.Languages) > 0 {
+			change = languageChangeSummary(pv.Diff.Languages)
 		}
 		if err := q.TxnVersionInsert(ctx, store.TxnVersionInsertParams{TemplateID: id, Version: version, Subject: t.Subject, Preheader: t.Preheader, EditorMode: t.EditorMode,
 			Mjml: t.Mjml, Html: html, PlainText: t.PlainText, Variables: mustJSON(vars), TestData: t.TestData, SenderID: t.SenderID, ReplyTo: t.ReplyTo,

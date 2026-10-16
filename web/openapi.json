@@ -36211,6 +36211,12 @@
           "contentSummary": {
             "type": "string"
           },
+          "languages": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionalLanguageChange"
+            },
+            "type": "array"
+          },
           "preheader": {
             "$ref": "#/components/schemas/TransactionalTextChange"
           },
@@ -36384,6 +36390,31 @@
           "sizeBytes",
           "html",
           "plainText"
+        ],
+        "type": "object"
+      },
+      "TransactionalLanguageChange": {
+        "additionalProperties": false,
+        "properties": {
+          "change": {
+            "enum": [
+              "added",
+              "changed",
+              "removed"
+            ],
+            "type": "string"
+          },
+          "language": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "language",
+          "name",
+          "change"
         ],
         "type": "object"
       },

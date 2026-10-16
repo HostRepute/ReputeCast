@@ -401,7 +401,7 @@ function PublishFlow({ onClose }: { onClose: () => void }) {
             </div>
             {first ? <span className="k">{t(mp.firstVersion)}</span> : preview.diff.changed ? <Diff preview={preview} full={full} /> : <span className="k">{t(mp.noChanges, { version: preview.liveVersion ?? 0 })}</span>}
           </div>
-          <PublishLanguages languages={preview.languages} />
+          <PublishLanguages languages={preview.languages} changes={preview.diff.languages} />
           {blocking.length ? (
             <div className="note b" role="alert">
               <Icon name="alertCircle" size={16} />

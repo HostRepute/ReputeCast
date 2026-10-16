@@ -347,5 +347,6 @@ export const mx = defineMessages('languages.transactional', {
   publishOutdated:
     '{language} is outdated: {count, plural, one {# change} other {# changes}} in {source} since it was translated. Its recipients get it as it is.',
   publishDraft: '{language} is a draft: its recipients get {fallback} until someone marks it translated.',
+  languageChange: '{change, select, added {{language}: a new version} removed {{language}: removed, its recipients get the fallback} other {{language}: changed}}',
   apiLanguage: 'Send <mono>language</mono> to pick a version ({codes}). Without it, the linked contact’s language is used, then {fallback}.',
 })

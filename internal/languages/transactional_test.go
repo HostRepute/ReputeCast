@@ -235,6 +235,19 @@ func TestTransactionalLanguages(t *testing.T) {
 		t.Fatalf("v1 still sends Spanish: %s %q", l, s)
 	}
 
+	// Removing it is a change to publish, not "No changes since v1".
+	var pv2 struct {
+		Diff struct {
+			Changed   bool
+			Languages []struct{ Language, Change string }
+		}
+		Blocking []string
+	}
+	linh.Do("POST", tpl+"/publish-preview", map[string]any{}).MustStatus(t, 200).JSON(t, &pv2)
+	if !pv2.Diff.Changed || len(pv2.Diff.Languages) != 1 || pv2.Diff.Languages[0].Change != "removed" || len(pv2.Blocking) != 0 {
+		t.Fatalf("removing Spanish is a change: %+v", pv2)
+	}
+
 	// Archived templates can't change.
 	linh.Do("POST", tpl+"/archive", nil).MustStatus(t, 200)
 	linh.Do("POST", tpl+"/languages", map[string]any{"language": "de"}).MustStatus(t, 409)
@@ -280,7 +293,9 @@ func TestDemoTemplateLanguages(t *testing.T) {
 		t.Fatalf("Remove German names password-reset: %+v", removal.Has)
 	}
 
-	var pc struct{ Items []struct{ Name, Language string } }
+	var pc struct {
+		Items []struct{ Name, Language string }
+	}
 	linh.Do("GET", ws+"/campaigns/"+campaignByName(t, env, "Weekly Digest #142")+"/languages/preview-contacts", nil).MustStatus(t, 200).JSON(t, &pc)
 	names := []string{}
 	for _, it := range pc.Items {

@@ -170,7 +170,8 @@ export function LanguageSwitcher({
       >
         <div className="mh flex justify-between">
           <span>{t(mz.versions)}</span>
-          <span>{t(mz.readers)}</span>
+          {/* A template has no audience: no readers to count. */}
+          {data.readers !== undefined && data.readers !== null ? <span>{t(mz.readers)}</span> : null}
         </div>
         <div role="listbox" aria-label={t(mz.listLabel, { name: campaignName })}>
           {data.versions.map((l) => {
