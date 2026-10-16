@@ -685,7 +685,8 @@
               "link_text",
               "color",
               "heading",
-              "text_size"
+              "text_size",
+              "text_role"
             ],
             "type": "string"
           },
@@ -700,6 +701,18 @@
             },
             "maxItems": 12,
             "type": "array"
+          },
+          "role": {
+            "enum": [
+              "p",
+              "h1",
+              "h2",
+              "h3",
+              "h4",
+              "h5",
+              "h6"
+            ],
+            "type": "string"
           },
           "target": {
             "enum": [
@@ -41810,7 +41823,7 @@
     },
     "/api/v1/workspaces/{workspace}/accessibility/fix": {
       "post": {
-        "description": "The composer's fixes: alt text, decorative images, link text, a color, heading levels, a text size. Returns the changed MJML; nothing is saved, the composer's autosave stores it.",
+        "description": "The composer's fixes: alt text, decorative images, link text, a color, heading levels, a text size, and a Text block's role. Returns the changed MJML; nothing is saved, the composer's autosave stores it.",
         "operationId": "apply-accessibility-fix",
         "parameters": [
           {

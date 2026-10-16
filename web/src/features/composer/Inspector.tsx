@@ -25,6 +25,7 @@ import {
 } from './editor/attrs'
 import { mjChildren, sectionLabel, sectionOf, tagOf } from './editor/labels'
 import { withVisibilityStyles } from './editor/mjmlDoc'
+import { TextRoleProp } from '@/features/accessibility/composer/TextRole'
 
 /** A text input that edits a draft and commits on Enter or blur (one undo step per edit). */
 function DraftInput({
@@ -734,6 +735,7 @@ export function SettingsFields({ c }: { c: Component }) {
       rows.push(<LinkProp key="href" c={c} />)
       break
     case 'mj-text': {
+      rows.push(<TextRoleProp key="role" c={c} />)
       const links = textLinks(c)
       if (links.length)
         rows.push(

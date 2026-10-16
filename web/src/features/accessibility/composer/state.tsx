@@ -34,6 +34,8 @@ export interface AccessibilityState {
   busy?: string
   policy?: Schemas['AccessibilityPolicy']
   fix(issue: Issue, body: FixBody, summary: string, toastTitle?: string): Promise<boolean>
+  /** Changes the canvas the way a fix does, for edits that aren't fixes (Text role). */
+  transform(body: FixBody): Promise<boolean>
   undo(entry: FixedEntry): void
   recheck(): void
 }
@@ -122,22 +124,46 @@ export function AccessibilityProvider({ language, children }: { language?: strin
     [ge, t],
   )
 
+  /** Applies a fix to the canvas through the server; the body before and after. */
+  const apply = useCallback(
+    async (body: FixBody): Promise<{ before: string; after: string } | null> => {
+      if (!ge || !canEdit) return null
+      if (ge.isEditingText()) await ge.flushEditing()
+      const before = ge.getBody()
+      const { data } = await http.POST('/api/v1/workspaces/{workspace}/accessibility/fix', {
+        params: { path: { workspace: slug } },
+        body: { ...body, mjml: currentMjml() },
+      })
+      if (!data) return null
+      ge.setBody(splitMjml(data.mjml).body)
+      // The canvas is rebuilt: select the same element again.
+      const target = atPath(ge.editor.getWrapper()?.findType('mj-body')[0], body.path)
+      if (target) ge.editor.select(target)
+      return { before, after: ge.getBody() }
+    },
+    [ge, canEdit, slug, currentMjml],
+  )
+
+  const transform = useCallback(
+    async (body: FixBody): Promise<boolean> => {
+      try {
+        return (await apply(body)) !== null
+      } catch (e) {
+        toast({ kind: 'error', title: t(m.fixFailed), detail: errorMessage(e) })
+        return false
+      }
+    },
+    [apply, t],
+  )
+
   const fix = useCallback(
     async (issue: Issue, body: FixBody, summary: string, toastTitle?: string): Promise<boolean> => {
       if (!ge || !canEdit) return false
       setBusy(issue.id)
       try {
-        if (ge.isEditingText()) await ge.flushEditing()
-        const before = ge.getBody()
-        const { data } = await http.POST('/api/v1/workspaces/{workspace}/accessibility/fix', {
-          params: { path: { workspace: slug } },
-          body: { ...body, mjml: currentMjml() },
-        })
-        if (!data) return false
-        ge.setBody(splitMjml(data.mjml).body)
-        const after = ge.getBody()
-        const target = atPath(ge.editor.getWrapper()?.findType('mj-body')[0], body.path ?? issue.path)
-        if (target) ge.editor.select(target)
+        const done = await apply({ ...body, path: body.path ?? issue.path })
+        if (!done) return false
+        const { before, after } = done
         const entry: FixedEntry = { id: nextId.current++, summary, before, after }
         setFixed((list) => [entry, ...list])
         toast({ kind: 'success', title: toastTitle ?? summary, undo: () => undo(entry) })
@@ -149,12 +175,12 @@ export function AccessibilityProvider({ language, children }: { language?: strin
         setBusy(undefined)
       }
     },
-    [ge, canEdit, slug, currentMjml, undo, t],
+    [ge, canEdit, apply, undo, t],
   )
 
   const value = useMemo<AccessibilityState>(
-    () => ({ enabled, report: enabled ? report : undefined, checking, editedAt, error, last, fixed, busy, policy: policy.data, fix, undo, recheck }),
-    [enabled, report, checking, editedAt, error, last, fixed, busy, policy.data, fix, undo, recheck],
+    () => ({ enabled, report: enabled ? report : undefined, checking, editedAt, error, last, fixed, busy, policy: policy.data, fix, transform, undo, recheck }),
+    [enabled, report, checking, editedAt, error, last, fixed, busy, policy.data, fix, transform, undo, recheck],
   )
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

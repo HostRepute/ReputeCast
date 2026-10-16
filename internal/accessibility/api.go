@@ -38,7 +38,7 @@ type checkInput struct {
 // AccessibilityFixInput applies one fix to the composer's MJML.
 type AccessibilityFixInput struct {
 	MJML string `json:"mjml" maxLength:"2000000"`
-	Kind string `json:"kind" enum:"alt_text,decorative,link_text,color,heading,text_size"`
+	Kind string `json:"kind" enum:"alt_text,decorative,link_text,color,heading,text_size,text_role"`
 	// Path is the element (mj-body element-index path); Index the nth link
 	// or image inside a text or Raw HTML block.
 	Path  []int `json:"path" maxItems:"12"`
@@ -51,6 +51,8 @@ type AccessibilityFixInput struct {
 	From     string                       `json:"from,omitempty" maxLength:"60"`
 	Headings []AccessibilityHeadingChange `json:"headings,omitempty" maxItems:"50"`
 	ToPx     int                          `json:"toPx,omitempty"`
+	// Role is a Text block's new role (Settings › Text role).
+	Role string `json:"role,omitempty" enum:"p,h1,h2,h3,h4,h5,h6"`
 }
 
 // AccessibilityFixed is the MJML after a fix.
@@ -67,7 +69,7 @@ type fixInput struct {
 // change the email the way Review & send's fixes do. Nothing is saved.
 func FixContent(in AccessibilityFixInput) (AccessibilityFixed, error) {
 	out, err := ApplyFix(in.MJML, FixRequest{Kind: in.Kind, Path: in.Path, Index: in.Index, Value: in.Value, Target: in.Target, From: in.From,
-		Headings: in.Headings, ToPx: in.ToPx})
+		Headings: in.Headings, ToPx: in.ToPx, Role: in.Role})
 	if err != nil {
 		return AccessibilityFixed{}, api.Invalid("body", sentenceOf(fixError(err).Error()))
 	}
@@ -128,7 +130,7 @@ func Register(h huma.API, s *Service) {
 			return api.OK(out), err
 		})
 	api.Post(h, api.Op{ID: "apply-accessibility-fix", Path: "/workspaces/{workspace}/accessibility/fix", Summary: "Apply an accessibility fix to MJML",
-		Description: "The composer's fixes: alt text, decorative images, link text, a color, heading levels, a text size. Returns the changed MJML; nothing is saved, the composer's autosave stores it.",
+		Description: "The composer's fixes: alt text, decorative images, link text, a color, heading levels, a text size, and a Text block's role. Returns the changed MJML; nothing is saved, the composer's autosave stores it.",
 		Tags:        tags, Access: api.Workspace(authz.CampaignsEdit), MaxBodyBytes: 3 << 20},
 		func(_ context.Context, in *fixInput) (*api.Body[AccessibilityFixed], error) {
 			out, err := FixContent(in.Body)

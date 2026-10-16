@@ -43,6 +43,8 @@ type FixRequest struct {
 	Headings []AccessibilityHeadingChange
 	// ToPx is the text size of a text-size fix.
 	ToPx int
+	// Role is a text-role change's element: p, or h1 to h6.
+	Role string
 }
 
 // ErrFixTarget means the element a fix points at isn't in the email any more.
@@ -57,6 +59,12 @@ func ApplyFix(src string, f FixRequest) (string, error) {
 	switch f.Kind {
 	case FixHeading:
 		return fixHeadings(d, f.Headings)
+	case FixTextRole:
+		n := d.node(f.Path)
+		if n == nil {
+			return src, ErrFixTarget
+		}
+		return fixTextRole(d, n, f.Role)
 	}
 	n := d.node(f.Path)
 	if n == nil {
@@ -122,6 +130,7 @@ type htmlElement struct {
 	closeStart     int // the matching end tag, -1 when it has none
 	closeEnd       int
 	href           bool
+	depth          int // 0 for the fragment's top-level elements
 }
 
 // elementsOf lists the elements of an HTML fragment with their offsets.
@@ -145,7 +154,7 @@ func elementsOf(content string) []*htmlElement {
 		case xhtml.StartTagToken, xhtml.SelfClosingTagToken:
 			name, more := z.TagName()
 			tag := strings.ToLower(string(name))
-			el := &htmlElement{tag: tag, start: start, nameEnd: start + 1 + len(name), tagEnd: off, closeStart: -1, closeEnd: -1}
+			el := &htmlElement{tag: tag, start: start, nameEnd: start + 1 + len(name), tagEnd: off, closeStart: -1, closeEnd: -1, depth: len(stack)}
 			for more {
 				var k []byte
 				k, _, more = z.TagAttr()

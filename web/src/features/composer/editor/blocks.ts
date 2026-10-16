@@ -77,7 +77,7 @@ export function blockDefs(address: string): BlockDef[] {
       group: 'layout',
       icon: 'hero',
       kind: 'section',
-      content: `<mj-hero mode="fixed-height" height="280px" background-width="600px" background-height="280px" background-url="/media/starters/banner.png" background-color="#0B1220" padding="60px 24px"><mj-text align="center" font-size="28px" font-weight="700" color="#ffffff" padding="0px 0px 12px">A headline over an image</mj-text>${button('Find out more', 'https://example.com', 'center')}</mj-hero>`,
+      content: `<mj-hero mode="fixed-height" height="280px" background-width="600px" background-height="280px" background-url="/media/starters/banner.png" background-color="#0B1220" padding="60px 24px"><mj-text align="center" font-size="28px" font-weight="700" color="#ffffff" padding="0px 0px 12px"><h1 style="margin:0;font-size:28px;font-weight:700">A headline over an image</h1></mj-text>${button('Find out more', 'https://example.com', 'center')}</mj-hero>`,
       keywords: 'banner background image',
     },
     {
@@ -161,7 +161,7 @@ export function blockDefs(address: string): BlockDef[] {
       group: 'reputecast',
       icon: 'rcArticle',
       kind: 'section',
-      content: `<!-- rc:article-card --><mj-section background-color="#ffffff" padding="16px 24px"><mj-column><mj-image src="/media/starters/hero.png" alt="Describe the article's image" width="552px" padding="0px 0px 12px"></mj-image><mj-text font-size="17px" line-height="1.3" font-weight="700" color="#0B1220" padding="0px 0px 6px">Article title</mj-text><mj-text font-size="14px" line-height="1.5" color="#374151" padding="0px 0px 10px">One or two sentences that make people want to read the rest.</mj-text>${button('Read more')}</mj-column></mj-section>`,
+      content: `<!-- rc:article-card --><mj-section background-color="#ffffff" padding="16px 24px"><mj-column><mj-image src="/media/starters/hero.png" alt="Describe the article's image" width="552px" padding="0px 0px 12px"></mj-image><mj-text font-size="17px" line-height="1.3" font-weight="700" color="#0B1220" padding="0px 0px 6px"><h2 style="margin:0;font-size:17px;font-weight:700">Article title</h2></mj-text><mj-text font-size="14px" line-height="1.5" color="#374151" padding="0px 0px 10px">One or two sentences that make people want to read the rest.</mj-text>${button('Read more')}</mj-column></mj-section>`,
       keywords: 'post story blog',
     },
     {

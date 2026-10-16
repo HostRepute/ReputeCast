@@ -139,3 +139,42 @@ func TestFixErrors(t *testing.T) {
 		t.Errorf("a heading that changed since: %v", err)
 	}
 }
+
+// Text role: a Text block becomes a heading or a paragraph and keeps its look.
+func TestTextRole(t *testing.T) {
+	wrap := func(text string) string {
+		return `<mjml><mj-body><mj-section><mj-column>` + text + `</mj-column></mj-section></mj-body></mjml>`
+	}
+	role := func(src, r string) (string, error) {
+		return ApplyFix(wrap(src), FixRequest{Kind: FixTextRole, Path: []int{0, 0, 0}, Role: r})
+	}
+	cases := []struct{ in, role, want string }{
+		// Plain words: wrapped, with the look of the block's own text.
+		{`<mj-text font-size="17px" font-weight="700">Article title</mj-text>`, "h2", `<h2 style="margin:0;font-size:17px;font-weight:700">Article title</h2>`},
+		{`<mj-text>Plain</mj-text>`, "h1", `<h1 style="margin:0;font-size:13px;font-weight:normal">Plain</h1>`},
+		{`<mj-text>Just words</mj-text>`, "p", `<p style="margin:0">Just words</p>`},
+		// A paragraph becomes a heading with a paragraph's size, margin and weight.
+		{`<mj-text><p>Hello</p></mj-text>`, "h2", `<h2 style="font-size:1em;margin:1em 0;font-weight:inherit">Hello</h2>`},
+		// A heading becomes a paragraph; what its style sets stays.
+		{`<mj-text><h3 style="margin:0">T</h3></mj-text>`, "p", `<p style="margin:0;font-size:1.17em;font-weight:bold">T</p>`},
+		// Heading to heading: only the size and margin differ.
+		{`<mj-text><h3>T</h3></mj-text>`, "h2", `<h2 style="font-size:1.17em;margin:1em 0">T</h2>`},
+		// The same role changes nothing.
+		{`<mj-text><h2>T</h2></mj-text>`, "h2", `<h2>T</h2>`},
+	}
+	for _, c := range cases {
+		out, err := role(c.in, c.role)
+		if err != nil || !strings.Contains(out, c.want) {
+			t.Errorf("%s → %s: %v %s", c.in, c.role, err, out)
+		}
+	}
+	if _, err := role(`<mj-text><p>A</p><p>B</p></mj-text>`, "h2"); !errors.Is(err, ErrMixedText) {
+		t.Errorf("several paragraphs: %v", err)
+	}
+	if _, err := role(`<mj-text><p>A</p></mj-text>`, "h9"); err == nil {
+		t.Error("a role that doesn't exist")
+	}
+	if _, err := ApplyFix(wrap(`<mj-button>Go</mj-button>`), FixRequest{Kind: FixTextRole, Path: []int{0, 0, 0}, Role: "h2"}); !errors.Is(err, ErrFixTarget) {
+		t.Errorf("not a Text block: %v", err)
+	}
+}

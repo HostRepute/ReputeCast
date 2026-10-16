@@ -1355,7 +1355,7 @@ export interface paths {
         put?: never;
         /**
          * Apply an accessibility fix to MJML
-         * @description The composer's fixes: alt text, decorative images, link text, a color, heading levels, a text size. Returns the changed MJML; nothing is saved, the composer's autosave stores it.
+         * @description The composer's fixes: alt text, decorative images, link text, a color, heading levels, a text size, and a Text block's role. Returns the changed MJML; nothing is saved, the composer's autosave stores it.
          */
         post: operations["apply-accessibility-fix"];
         delete?: never;
@@ -7076,9 +7076,11 @@ export interface components {
             /** Format: int64 */
             index?: number;
             /** @enum {string} */
-            kind: "alt_text" | "decorative" | "link_text" | "color" | "heading" | "text_size";
+            kind: "alt_text" | "decorative" | "link_text" | "color" | "heading" | "text_size" | "text_role";
             mjml: string;
             path: number[];
+            /** @enum {string} */
+            role?: "p" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
             /** @enum {string} */
             target?: "background" | "text";
             /** Format: int64 */
