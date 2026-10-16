@@ -559,6 +559,34 @@ func TestTransactionalTemplates(t *testing.T) {
 	var saved struct{ DraftRevision int }
 	linh.Do("PUT", tx+"/a11y-reset/draft", map[string]any{"baseRevision": tpl.DraftRevision, "subject": "Choose a new password", "editorMode": "mjml", "mjml": fixed}).
 		MustStatus(t, 200).JSON(t, &saved)
+
+	// The Accessibility group comes after the other checks; the publish
+	// dialog keeps "No accessibility issues" of its passing checks.
+	passes := func(list []check) []string {
+		var out []string
+		for _, c := range list {
+			if c.Severity == "pass" {
+				out = append(out, c.ID)
+			}
+		}
+		return out
+	}
+	linh.Do("POST", tx+"/a11y-reset/checks", map[string]any{}).MustStatus(t, 200).JSON(t, &checks)
+	tab := passes(checks.Checks)
+	if n := len(tab); n < 4 || strings.HasPrefix(tab[0], "accessibility.") || strings.Join(tab[n-3:], ",") != "accessibility.ok,accessibility.lang_dir,accessibility.layout_tables" {
+		t.Fatalf("Checks tab: %v", tab)
+	}
+	var dialog struct {
+		Checks struct {
+			Passed int
+			Checks []check
+		}
+	}
+	linh.Do("POST", tx+"/a11y-reset/publish-preview", map[string]any{}).MustStatus(t, 200).JSON(t, &dialog)
+	shown := passes(dialog.Checks.Checks)
+	if n := len(shown); n == 0 || dialog.Checks.Passed != n || shown[n-1] != "accessibility.ok" || strings.HasPrefix(shown[0], "accessibility.") || strings.Contains(strings.Join(shown, ","), "lang_dir") {
+		t.Fatalf("publish dialog: %d %v", dialog.Checks.Passed, shown)
+	}
 	linh.Do("POST", tx+"/a11y-reset/publish", map[string]any{"baseRevision": saved.DraftRevision}).MustStatus(t, 200)
 }
 

@@ -250,8 +250,13 @@ func (s *Service) runChecks(ctx context.Context, cs checkSubject) TransactionalC
 	if err != nil {
 		add(TransactionalCheck{ID: "content.compile", Severity: SevBlock, Group: "Content", Title: "The MJML doesn't compile", Detail: sentenceCase(err.Error()) + "."})
 	}
-	// Accessibility: alt text, link text, contrast, headings and text size.
-	a11y := err == nil && s.accessibilityChecks(ctx, cs, html, add)
+	// Accessibility: alt text, link text, contrast, headings and text size,
+	// listed after the other checks.
+	var a11yChecks []TransactionalCheck
+	a11y := false
+	if err == nil {
+		a11yChecks, a11y = s.accessibilityChecks(ctx, cs, html)
+	}
 	checker := s.Checker
 	if checker == nil {
 		checker = &contentcheck.Checker{}
@@ -317,6 +322,9 @@ func (s *Service) runChecks(ctx context.Context, cs checkSubject) TransactionalC
 	}
 	if len(out.Variables.Undeclared) == 0 && len(cs.Variables) > 0 {
 		add(TransactionalCheck{ID: "variables.ok", Severity: SevPass, Group: "Variables", Title: fmt.Sprintf("%d %s declared and used", len(usedNames), plural(len(usedNames), "variable", "variables"))})
+	}
+	for _, c := range a11yChecks {
+		add(c)
 	}
 
 	slices.SortStableFunc(out.Checks, func(a, b TransactionalCheck) int { return sevRank(a.Severity) - sevRank(b.Severity) })

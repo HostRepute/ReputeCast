@@ -20,11 +20,11 @@ type AccessibilityChecker interface {
 	TemplateChecks(ctx context.Context, wsID, templateID uuid.UUID, mjml, html string) ([]TransactionalCheck, error)
 }
 
-// accessibilityChecks adds the Accessibility group. It reports whether the
+// accessibilityChecks runs the Accessibility group. It reports whether the
 // checks ran: they then cover the images' alt text.
-func (s *Service) accessibilityChecks(ctx context.Context, cs checkSubject, html string, add func(TransactionalCheck)) bool {
+func (s *Service) accessibilityChecks(ctx context.Context, cs checkSubject, html string) ([]TransactionalCheck, bool) {
 	if s.Accessibility == nil || (strings.TrimSpace(cs.MJML) == "" && strings.TrimSpace(html) == "") {
-		return false
+		return nil, false
 	}
 	mj := cs.MJML
 	if cs.EditorMode == "html" {
@@ -35,10 +35,24 @@ func (s *Service) accessibilityChecks(ctx context.Context, cs checkSubject, html
 		if s.Log != nil {
 			s.Log.WarnContext(ctx, "transactional accessibility checks", "err", err)
 		}
-		return false
+		return nil, false
 	}
-	for _, c := range checks {
-		add(c)
+	return checks, true
+}
+
+// publishChecks is the checks as the publish dialog lists them: of the
+// Accessibility group, its issues and "No accessibility issues". The
+// additions made on save (lang and dir, the layout tables' role) stay in the
+// Checks tab.
+func publishChecks(r TransactionalChecks) TransactionalChecks {
+	kept := make([]TransactionalCheck, 0, len(r.Checks))
+	for _, c := range r.Checks {
+		if c.Group == GroupAccessibility && c.Severity == SevPass && c.ID != "accessibility.ok" {
+			r.Passed--
+			continue
+		}
+		kept = append(kept, c)
 	}
-	return true
+	r.Checks = kept
+	return r
 }

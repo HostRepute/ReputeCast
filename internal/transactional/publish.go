@@ -557,7 +557,7 @@ func (s *Service) publishPreview(ctx context.Context, q *store.Queries, ws *stor
 	cs := s.draftSubject(ctx, ws, t)
 	cs.Variables = vars
 	cs.ProbeLinks = true
-	out.Checks = s.runChecks(ctx, cs)
+	out.Checks = publishChecks(s.runChecks(ctx, cs))
 	out.TestRenders = append(out.TestRenders, out.Checks.TestData...)
 	if len(calls) > 0 {
 		c := calls[0]
