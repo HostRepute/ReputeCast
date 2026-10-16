@@ -36,6 +36,8 @@ type Service struct {
 	Campaigns *campaigns.Service
 	// Languages handles campaigns' language versions; nil leaves them out.
 	Languages *languages.Service
+	// Accessibility reads campaigns' accessibility issues (nil: unavailable).
+	Accessibility AccessibilityReader
 	// Transactional lists templates, renders previews and reads the log
 	// for agents (they never send).
 	Transactional *transactional.Service
@@ -82,6 +84,7 @@ var Tools = []MCPToolInfo{
 	{"get_deliverability", "Domain authentication, blocklists and Postmaster reputation.", string(authz.DeliverabilityView), false},
 	{"send_test_email", "Send a test of a campaign to a member of the workspace.", string(authz.CampaignsEdit), true},
 	{"get_campaign_languages", "A campaign's language versions: each one's status (up to date, outdated, draft, missing) and who gets it.", string(authz.CampaignsView), false},
+	{"get_accessibility_issues", "Accessibility issues of a campaign in every language: what is serious, where it is and how to fix it.", string(authz.CampaignsView), false},
 	{"list_transactional_templates", "Transactional templates with their category, live version and numbers.", string(authz.TransactionalView), false},
 	{"render_transactional_template", "Render a transactional template with test data or given data. Nothing is sent or stored.", string(authz.TransactionalView), false},
 	{"search_transactional_messages", "Search the transactional message log by status, template or recipient, without message content.", string(authz.TransactionalView), false},

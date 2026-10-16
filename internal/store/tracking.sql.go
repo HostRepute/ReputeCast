@@ -15,12 +15,13 @@ import (
 )
 
 const trackingAutomationLinks = `-- name: TrackingAutomationLinks :many
-SELECT position, url FROM automation_email_links WHERE email_id = $1 AND version = $2 ORDER BY position
+SELECT position, url FROM automation_email_links WHERE email_id = $1 AND version = $2 AND language = $3 ORDER BY position
 `
 
 type TrackingAutomationLinksParams struct {
-	EmailID uuid.UUID `json:"emailId"`
-	Version int32     `json:"version"`
+	EmailID  uuid.UUID `json:"emailId"`
+	Version  int32     `json:"version"`
+	Language string    `json:"language"`
 }
 
 type TrackingAutomationLinksRow struct {
@@ -29,7 +30,7 @@ type TrackingAutomationLinksRow struct {
 }
 
 func (q *Queries) TrackingAutomationLinks(ctx context.Context, arg TrackingAutomationLinksParams) ([]TrackingAutomationLinksRow, error) {
-	rows, err := q.db.Query(ctx, trackingAutomationLinks, arg.EmailID, arg.Version)
+	rows, err := q.db.Query(ctx, trackingAutomationLinks, arg.EmailID, arg.Version, arg.Language)
 	if err != nil {
 		return nil, err
 	}
@@ -49,17 +50,23 @@ func (q *Queries) TrackingAutomationLinks(ctx context.Context, arg TrackingAutom
 }
 
 const trackingBumpAutomationLink = `-- name: TrackingBumpAutomationLink :exec
-UPDATE automation_email_links SET clicks = clicks + 1 WHERE email_id = $1 AND version = $2 AND position = $3
+UPDATE automation_email_links SET clicks = clicks + 1 WHERE email_id = $1 AND version = $2 AND language = $3 AND position = $4
 `
 
 type TrackingBumpAutomationLinkParams struct {
 	EmailID  uuid.UUID `json:"emailId"`
 	Version  int32     `json:"version"`
+	Language string    `json:"language"`
 	Position int32     `json:"position"`
 }
 
 func (q *Queries) TrackingBumpAutomationLink(ctx context.Context, arg TrackingBumpAutomationLinkParams) error {
-	_, err := q.db.Exec(ctx, trackingBumpAutomationLink, arg.EmailID, arg.Version, arg.Position)
+	_, err := q.db.Exec(ctx, trackingBumpAutomationLink,
+		arg.EmailID,
+		arg.Version,
+		arg.Language,
+		arg.Position,
+	)
 	return err
 }
 

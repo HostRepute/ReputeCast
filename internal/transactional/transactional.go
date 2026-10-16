@@ -142,6 +142,11 @@ type Service struct {
 	Checker *contentcheck.Checker
 	// Gate decides whether publishing needs an approval (nil: never).
 	Gate PublishGate
+	// Accessibility adds the Accessibility group to the checks (nil: none).
+	Accessibility AccessibilityChecker
+	// Translations are the templates' language versions (nil: every
+	// template is in one language).
+	Translations Translations
 	// Mail sends system mail (alert emails go through notify instead).
 	Mail func() mailer.Sender
 	// Outbox wakes the sending engine's transactional outbox in the

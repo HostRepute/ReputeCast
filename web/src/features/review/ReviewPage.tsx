@@ -14,6 +14,9 @@ import { useNow } from '@/lib/hooks'
 import { deniedReason, useMe, useWorkspace } from '@/lib/session'
 import { statusWord as campaignWord } from '@/features/composer/format'
 import { approverNames, deciderFirst } from '@/features/approvals/parts'
+import { m as am } from '@/features/accessibility/messages'
+import { accessibilityBlock, OneClickDialog } from '@/features/accessibility/review'
+import { useT } from '@/i18n'
 import { approvalMode, ApprovedCard, BypassDialog, canRestore, HeldActions, HeldCard, InvalidatedCard, RequiredCard, WaitingCard } from './ApprovalCard'
 import { AudienceCard, finalCount, RouteCard, ScheduleNote, SchedulingCard, TestSendsCard, ThresholdsCard, ThrottlingCard } from './Aside'
 import { Checklist, RunningList, UnknownList } from './Checklist'
@@ -21,6 +24,9 @@ import { ConfirmSend, type SendIntent } from './ConfirmSend'
 import { confirmNote, fixAllLabel, plural, primaryFix, scheduleSentence, sendLabel, type Check, type Fix, type Review, type Schedule, type Thresholds } from './logic'
 import { fixReason, whenText } from './parts'
 import { IncompleteBanner, RunningBanner, ScheduledBanner, ScheduledTiles, StaleBanner, VerdictBanner } from './Verdict'
+import { ByVersion, EACH, languageRows, sentVersions } from '@/features/languages/review'
+import { mr } from '@/features/languages/messages'
+import { useT } from '@/i18n'
 import './review.css'
 
 const reviewPath = '/api/v1/workspaces/{workspace}/campaigns/{campaignId}/review' as const
@@ -140,12 +146,17 @@ function ReviewBody({
   const { slug } = useWorkspace()
   const { data: me } = useMe()
   const navigate = useNavigate()
+  const t = useT()
+  const versions = sentVersions(languageRows(d.run?.checks))
   const campaignId = d.campaign.id
   const path = { workspace: slug, campaignId }
   const [busy, setBusy] = useState<Busy>()
   const [confirm, setConfirm] = useState<'send' | 'approved' | null>(null)
   const [bypass, setBypass] = useState(false)
   const [unschedule, setUnschedule] = useState(false)
+  // "Fix 2 in one click" shows what it changes first.
+  const [oneClick, setOneClick] = useState<{ check: Check; fix: Fix }>()
+  const tr = useT()
 
   // The checks run on their own when the campaign changed since the last
   // run (or never ran): once per visit, for people who may run them.
@@ -194,9 +205,10 @@ function ReviewBody({
     }
   }
 
-  const sendTest = async (to: string): Promise<boolean> => {
+  const sendTest = async (to: string, language?: string): Promise<boolean> => {
     try {
-      const { data } = await http.POST('/api/v1/workspaces/{workspace}/campaigns/{campaignId}/test', { params: { path }, body: { to: [to] } })
+      const lang = language === EACH ? { eachLanguage: true } : language ? { language } : {}
+      const { data } = await http.POST('/api/v1/workspaces/{workspace}/campaigns/{campaignId}/test', { params: { path }, body: { to: [to], ...lang } })
       toast({ kind: 'success', title: `Test sent to ${data?.sent.join(', ') ?? to}`, detail: data?.provider ? `via ${data.provider}` : undefined })
       await refresh()
       return true
@@ -353,7 +365,8 @@ function ReviewBody({
   const showScheduled = scheduled && mode === 'none'
   const can = { edit: a.canEdit, send: a.canSend, editable: c.editable }
   const reasonFor = (f: Fix) => fixReason(f, can, helpers)
-  const apply = (check: Check, fix: Fix) => void applyFixes([{ check, fix }], `${check.key}:${fix.action}`)
+  const apply = (check: Check, fix: Fix) =>
+    fix.action === 'accessibility_one_click' ? setOneClick({ check, fix }) : void applyFixes([{ check, fix }], `${check.key}:${fix.action}`)
   const fixAll = (status: 'warn' | 'block') => {
     const items = run.checks.filter((x) => x.status === status).flatMap((x) => {
       const f = primaryFix(x)
@@ -478,7 +491,12 @@ function ReviewBody({
         actions={
           blocked ? (
             <>
-              {blockFixes.length ? (
+              {accessibilityBlock(run) ? (
+                // Alt text and colors are fixed in the composer, where the issues are listed.
+                <ButtonLink to="/w/$workspace/campaigns/$campaignId/edit" params={{ workspace: slug, campaignId }} search={{ panel: 'accessibility' }}>
+                  {tr(am.openInComposer)}
+                </ButtonLink>
+              ) : blockFixes.length ? (
                 <Button variant="danger-primary" loading={busy === 'all'} onClick={() => void applyFixes(blockFixes, 'all')}>
                   {fixAllLabel('block', blockFixes.length)}
                 </Button>
@@ -551,10 +569,19 @@ function ReviewBody({
       <div className="flex flex-wrap items-start gap-5">
         <div className="flex min-w-0 flex-[1_1_560px] flex-col gap-5">
           {approvalCard}
-          <Checklist run={run} busy={busy} reasonFor={reasonFor} onApply={apply} />
+          <Checklist run={run} busy={busy} reasonFor={reasonFor} onApply={apply} onRerun={a.canEdit && c.editable ? () => void runChecks() : undefined} />
+          {oneClick ? (
+            <OneClickDialog
+              campaignId={campaignId}
+              onOpenChange={(open) => (open ? undefined : setOneClick(undefined))}
+              onConfirm={() => applyFixes([oneClick], `${oneClick.check.key}:${oneClick.fix.action}`)}
+            />
+          ) : null}
         </div>
         <aside className="rv-aside" aria-label="Audience, route and send settings">
-          <AudienceCard audience={run.estimates.audience} />
+          <AudienceCard audience={run.estimates.audience}>
+            <ByVersion checks={run.checks} />
+          </AudienceCard>
           <RouteCard route={run.estimates.route} startAt={startAt} />
           <ThrottlingCard throttling={run.estimates.throttling} note={!blocked} />
           <ThresholdsCard
@@ -583,6 +610,7 @@ function ReviewBody({
               toOthers={a.canSendTestToOthers}
               disabledReason={c.editable ? undefined : 'This campaign already went out.'}
               onSend={sendTest}
+              versions={versions}
             />
           ) : null}
           {showCTA ? (
@@ -600,7 +628,9 @@ function ReviewBody({
                 <Button variant="primary" className="rv-cta" disabledReason={sendReason} onClick={openSend}>
                   {label}
                 </Button>
-                <span className="k text-center">{confirmNote(run.counts.warnings)}</span>
+                <span className="k text-center">
+                  {versions.length > 1 ? t(mr.confirmNoteLanguages, { count: run.counts.warnings }) : confirmNote(run.counts.warnings)}
+                </span>
               </>
             )
           ) : null}

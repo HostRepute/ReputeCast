@@ -1,0 +1,436 @@
+/* Content languages (SettingsLanguages, LanguageStates, ComposerLanguages,
+   ComposerCompare): the boards' option rows, table rows and footers. */
+
+label.lng-rad {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  cursor: pointer;
+}
+label.lng-rad input {
+  margin-top: 3px;
+  flex: none;
+}
+label.lng-rad.on {
+  border-color: var(--accent);
+  background: var(--accent-tint);
+}
+label.lng-rad.off {
+  background: var(--ground-3);
+  cursor: not-allowed;
+}
+/* A title and its detail beside the radio. */
+label.lng-rad.two {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 10px;
+  row-gap: 2px;
+}
+label.lng-rad.two input {
+  grid-row: span 2;
+}
+
+.lng-tbl tr.nob td {
+  border-bottom: 0;
+}
+.lng-tbl tr.subr td {
+  padding-top: 0;
+}
+
+.lng-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 12px 18px;
+  border-top: 1px solid var(--line-2);
+}
+
+/* "How contacts get a language" */
+.lng-how {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
+  gap: 10px;
+  align-items: stretch;
+}
+.lng-how > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  min-width: 0;
+}
+
+.lng-box {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--ground-3);
+}
+
+/* Review & send: the "Recipients per language" rows and Audience › By version. */
+.lng-lb {
+  display: grid;
+  grid-template-columns: minmax(84px, max-content) minmax(56px, max-content) minmax(0, 1fr);
+  gap: 4px 14px;
+  margin-top: 6px;
+  font-size: 13px;
+}
+.lng-lb .ld {
+  color: var(--ink-nav);
+}
+@media (max-width: 767px) {
+  .lng-lb {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0 12px;
+  }
+  .lng-lb .ld {
+    grid-column: 1 / -1;
+    margin: 0 0 8px;
+  }
+}
+.lng-bar {
+  display: flex;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  gap: 2px;
+}
+.lng-legend {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.lng-legend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.lng-legend i {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+/* The composer's language switcher (ComposerLanguages). */
+.lng-sw-wrap {
+  position: relative;
+}
+.btn.lng-sw {
+  gap: 8px;
+}
+.lng-sw .badge {
+  height: 20px;
+  font-size: 11px;
+}
+.menu.lng-menu {
+  width: 372px;
+  max-width: calc(100vw - 24px);
+}
+.lng-opt {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+  gap: 2px 10px;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  outline: none;
+}
+.lng-opt:hover,
+.lng-opt:focus-visible {
+  background: var(--ground);
+}
+.lng-opt:focus-visible {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+.lng-opt.on {
+  background: var(--accent-tint);
+}
+.lng-opt .nm {
+  font-weight: 600;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.lng-opt .rc {
+  font-size: 12px;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+.lng-opt .sub {
+  grid-column: 2 / 4;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+@media (max-width: 767px) {
+  .lng-sw-wrap {
+    flex: 1 1 100%;
+  }
+}
+
+/* Above the canvas. */
+.lng-banner-wrap {
+  max-width: 100%;
+  margin: 0 auto;
+}
+.lng-banner {
+  margin: 0 0 16px;
+  width: 100%;
+  box-sizing: border-box;
+}
+.lng-ok {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 12px;
+  color: var(--ok-fg, #166534);
+}
+.lng-missing {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 48px 16px;
+  background: var(--canvas, #e9ecf0);
+}
+.card.lng-empty {
+  width: 600px;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 44px 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  border-style: dashed;
+}
+.lng-empty .tt {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.lng-empty .ds {
+  color: var(--ink-nav);
+  max-width: 560px;
+}
+
+/* The compare view (ComposerCompare). */
+.lng-cmp-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #e9ecf0;
+  padding: 20px 24px 28px;
+  min-width: 0;
+  overflow: auto;
+}
+.lng-cmp {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-width: 1240px;
+  width: 100%;
+  margin: 0 auto;
+}
+.lng-cmp-head {
+  display: flex;
+  align-items: center;
+  gap: 12px 18px;
+  flex-wrap: wrap;
+  padding: 14px 18px;
+  background: #fff;
+  border-bottom: 1px solid var(--line);
+}
+.lng-cmph,
+.lng-cmpc {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+.lng-cmph > div {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 10px 18px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  background: var(--ground-3);
+  border-bottom: 1px solid var(--line);
+}
+.lng-cmph .badge {
+  text-transform: none;
+  letter-spacing: 0;
+}
+.lng-cmph > div + div {
+  border-left: 1px solid var(--line);
+}
+.lng-cmpr {
+  border-bottom: 1px solid var(--line-2);
+}
+.lng-cmpr.att {
+  background: #fffdf5;
+}
+.lng-cmpr.new {
+  background: #f8fbff;
+}
+.lng-cmpr.rem {
+  background: #fbfbfc;
+}
+.lng-cmpr .rh {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px 18px 0;
+}
+.lng-cmpr .rh .bn {
+  font-weight: 600;
+  font-size: 13px;
+}
+.lng-cmpr .rh .ra {
+  margin-left: auto;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.lng-cmpc > div {
+  padding: 8px 18px 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.lng-cmpc > div + div {
+  border-left: 1px solid var(--line-2);
+}
+.lng-cmpc .tl {
+  display: none;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink-3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 2px;
+}
+.lng-cmpc .src {
+  color: var(--ink-nav);
+  /* In line with the text inside the version's box. */
+  padding-top: 17px;
+}
+.lng-text {
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--ground-3);
+}
+.lng-da {
+  background: #dcfce7;
+  color: #166534;
+  border-radius: 3px;
+  padding: 0 2px;
+}
+.lng-dl {
+  background: #fee2e2;
+  color: #991b1b;
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+  border-radius: 3px;
+  padding: 0 2px;
+}
+.lng-cmp-foot {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 12px 18px;
+  background: #fff;
+  position: sticky;
+  bottom: 0;
+  border-top: 1px solid var(--line);
+}
+@media (max-width: 1100px) {
+  .lng-cmph {
+    grid-template-columns: 1fr;
+  }
+  .lng-cmph > div + div {
+    display: none;
+  }
+  .lng-cmpc {
+    grid-template-columns: 1fr;
+  }
+  .lng-cmpc > div + div {
+    border-left: 0;
+    padding-top: 0;
+  }
+  .lng-cmpc .tl {
+    display: block;
+  }
+  .lng-cmpc .src {
+    padding-top: 8px;
+  }
+  .lng-cmp-wrap {
+    padding: 12px;
+  }
+}
+
+/* The canvas tag of a block still in the source language (LanguageStates). */
+.wtag.n {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #c9ced6;
+}
+
+/* The canvas toolbar's "Preview as" (ComposerLanguages). */
+.lng-pvas {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-nav);
+}
+.lng-pvas > span {
+  white-space: nowrap;
+}
+.lng-pvas select {
+  height: 30px;
+  max-width: 230px;
+}
+@media (max-width: 767px) {
+  .lng-pvas {
+    flex: 1 1 100%;
+  }
+  .lng-pvas select {
+    flex: 1 1 0;
+    width: 0;
+    max-width: none;
+  }
+}
+
+/* The publish dialog's language changes. */
+.lng-changes {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--ink-nav);
+}

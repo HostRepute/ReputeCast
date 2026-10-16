@@ -17,6 +17,7 @@ import { useCan, useMe, usePermissionReason, useWorkspace } from '@/lib/session'
 import { AccessTable } from '@/features/access/parts'
 import { HeldCard, HeldActions } from '@/features/review/ApprovalCard'
 import { agoWords, countsShort, groupTitles, groupWords, linkParts, minutes, providerColor, verdictTitle, zonedWhen } from '@/features/review/logic'
+import { PreviewLanguagePicker } from '@/features/languages/approvals'
 import { AppHref, CheckBadge, whenText } from '@/features/review/parts'
 import { TransactionalApprovalCard, TransactionalDecisionDetail, TransactionalDecisionNote } from '@/features/transactional-templates/ApprovalCard'
 import { ApprovalStatusBadge, approverNames, decidedText, deciderFirst, DiffLines, requestTone, unchangedText, type Change } from './parts'
@@ -374,7 +375,13 @@ function CampaignCard({ detail: d, busy, onTest }: { detail: Detail; busy: boole
   const { slug } = useWorkspace()
   const now = useNow()
   const [open, setOpen] = useState(false)
-  const preview = $api.useQuery('get', '/api/v1/workspaces/{workspace}/approvals/{approvalId}/preview', { params: { path: { workspace: slug, approvalId: d.id } } })
+  const [language, setLanguage] = useState<string>()
+  const preview = $api.useQuery(
+    'get',
+    '/api/v1/workspaces/{workspace}/approvals/{approvalId}/preview',
+    { params: { path: { workspace: slug, approvalId: d.id }, query: language ? { language } : {} } },
+    { placeholderData: (prev) => prev },
+  )
   const c = d.campaign!
   return (
     <Sec id="ap-campaign" title="Campaign" caption="Snapshot the approval covers">
@@ -407,6 +414,7 @@ function CampaignCard({ detail: d, busy, onTest }: { detail: Detail; busy: boole
           )}
         </div>
         <div className="row gap-2!">
+          <PreviewLanguagePicker preview={preview.data} onChange={setLanguage} />
           <Button size="sm" onClick={() => setOpen(true)} disabledReason={preview.data ? undefined : 'The preview is loading.'}>
             Open full preview
           </Button>

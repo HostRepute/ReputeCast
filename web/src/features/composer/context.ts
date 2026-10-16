@@ -85,14 +85,16 @@ export interface ComposerState {
 
   checks: Checks | undefined
   checksPending: boolean
-  rightTab: 'style' | 'settings' | 'deliverability'
-  setRightTab(t: 'style' | 'settings' | 'deliverability'): void
+  rightTab: 'style' | 'settings' | 'deliverability' | 'accessibility'
+  setRightTab(t: 'style' | 'settings' | 'deliverability' | 'accessibility'): void
   leftTab: 'blocks' | 'layers' | 'templates'
   setLeftTab(t: 'blocks' | 'layers' | 'templates'): void
   openDialog(d: ComposerDialog): void
   /** Bumped on every canvas change; components re-read the editor when it changes. */
   rev: number
   canEdit: boolean
+  /** A language picked that has no version (internal/languages): the canvas gives way to "No … version". */
+  missingLanguage?: string
 }
 
 export type ComposerDialog = 'versions' | 'assets' | 'import' | 'sendTest' | 'saveTemplate' | 'shortcuts' | 'compare' | null

@@ -219,7 +219,7 @@ func (e *Engine) linkCount(ctx context.Context, q *store.Queries, m store.Sendin
 		var ref contentRef
 		_ = json.Unmarshal(tm.ContentRef, &ref)
 		if ref.Email != uuid.Nil {
-			ls, err := q.TrackingAutomationLinks(ctx, store.TrackingAutomationLinksParams{EmailID: ref.Email, Version: int32(ref.Version)})
+			ls, err := q.TrackingAutomationLinks(ctx, store.TrackingAutomationLinksParams{EmailID: ref.Email, Version: int32(ref.Version), Language: ref.Language})
 			if err != nil {
 				return 0, err
 			}
@@ -235,4 +235,6 @@ type contentRef struct {
 	Email   uuid.UUID `json:"email"`
 	Version int       `json:"version"`
 	Subject string    `json:"subject,omitempty"`
+	// Language is the language version sent ("" is the source).
+	Language string `json:"language,omitempty"`
 }

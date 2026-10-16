@@ -9,6 +9,7 @@ import { useCan, useWorkspace } from '@/lib/session'
 import { ComposerSkeleton } from '../ComposerPage'
 import { mt } from './page.messages'
 import { TransactionalComposer, type TxSearch } from './TransactionalComposer'
+import { useOpenTemplateLanguage } from '@/features/languages/composerParts'
 import '../composer.css'
 
 /** 403, 404 and 500 of the full-screen editor, in a centred frame (as the composer's). */
@@ -61,10 +62,13 @@ export function TransactionalTemplatePage({ templateId, search, onSearch }: { te
   const t = useT()
   const { slug } = useWorkspace()
   const canCampaigns = useCan('campaigns:view')
-  const path = { params: { path: { workspace: slug, template: templateId } } }
+  // ?language= opens a language version (internal/languages).
+  const lang = useOpenTemplateLanguage(templateId, search.language)
+  const path = { params: { path: { workspace: slug, template: templateId }, query: lang.load ? { language: lang.load } : undefined } }
   const tpl = $api.useQuery('get', '/api/v1/workspaces/{workspace}/transactional/templates/{template}', path, {
     refetchOnWindowFocus: false,
     retry: (n, e) => !(e as unknown as ApiError)?.status && n < 2,
+    enabled: lang.ready,
   })
   const settings = $api.useQuery('get', '/api/v1/workspaces/{workspace}/transactional/settings', { params: { path: { workspace: slug } } }, { staleTime: 60_000 })
   const categories = $api.useQuery('get', '/api/v1/workspaces/{workspace}/transactional/categories', { params: { path: { workspace: slug } } }, { staleTime: 60_000 })
@@ -75,7 +79,7 @@ export function TransactionalTemplatePage({ templateId, search, onSearch }: { te
   if (waiting) return <ComposerSkeleton title={t(mt.opening)} detail={t(mt.openingDetail)} />
   return (
     <TransactionalComposer
-      key={tpl.data.id}
+      key={`${tpl.data.id}:${tpl.data.language}`}
       template={tpl.data}
       settings={settings.data}
       categories={categories.data?.items ?? []}

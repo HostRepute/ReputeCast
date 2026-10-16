@@ -9,6 +9,7 @@ import { useComposer } from '../context'
 import { ToolIcon } from '../icons'
 import { m } from './messages'
 import { useTx } from './state'
+import { ComposerLanguageSwitcher } from '@/features/languages/composerParts'
 
 /** "Account · Essential" */
 export function useCategoryLabel(): string {
@@ -186,6 +187,7 @@ export function TxHeader() {
       {tx.canEdit ? null : <Badge tone="neutral">{t(m.readOnly)}</Badge>}
       {tx.canEdit && tx.canPublish ? null : <ViewerLine />}
       <SaveState />
+      <ComposerLanguageSwitcher />
       <div className="flex flex-wrap items-center gap-2" style={{ marginLeft: 'auto' }}>
         <Button onClick={tx.openVersions}>{t(m.versions)}</Button>
         <PublishButton />

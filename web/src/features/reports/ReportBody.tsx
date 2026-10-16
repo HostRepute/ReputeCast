@@ -7,6 +7,7 @@ import { TableScroll } from '@/components/ui/Table'
 import { cn } from '@/lib/cn'
 import { clock, count, money } from '@/lib/format'
 import { providerColor } from '../providers/common'
+import { LanguageClickMap, ResultsPerLanguage, sentByLanguage } from '@/features/languages/report'
 import { ClickMap } from './ClickMap'
 import { EngagementChart } from './EngagementChart'
 import {
@@ -59,7 +60,7 @@ export function HeadlineTiles({ r }: { r: CampaignReport }) {
   const current = lag ? 'current' : undefined
   return (
     <Grid min={240} gap={12} className={cn(lag && 'opacity-75')}>
-      <Tile label="Sent" value={count(h.sent)} sub={sentByLine(h) || '—'} />
+      <Tile label="Sent" value={count(h.sent)} sub={sentByLanguage(r.languages) ?? (sentByLine(h) || '—')} />
       <Tile label="Delivered" value={count(h.delivered)} sub={pct1(h.deliveredRate)} behind={Boolean(lag)} asOf={lag} />
       <Tile label="Human opens" value={count(h.humanOpens)} sub={current ?? `${pct1(h.humanOpenRate)} of delivered`} />
       <Tile label="Machine opens" value={count(h.machineOpens)} muted sub={current ?? `${pct1(h.machineOpenRate)} · Apple Mail prefetch, scanners`} />
@@ -377,12 +378,15 @@ export function ReportBody({ r, actions }: { r: CampaignReport; actions?: Report
       <HeadlineTiles r={r} />
       <div className="flex flex-wrap items-stretch gap-5">
         <EngagementChart e={r.engagement} startedAt={r.campaign.startedAt} final={r.campaign.final} />
-        <ClickMap m={r.clickMap} clicks={r.headline.clicks} imported={Boolean(r.campaign.origin)} />
+        <LanguageClickMap r={r} campaignId={r.campaign.id}>
+          {(m, picker, note) => <ClickMap m={m} clicks={r.headline.clicks} imported={Boolean(r.campaign.origin)} picker={picker} languageNote={note} />}
+        </LanguageClickMap>
       </div>
       <div className="flex flex-wrap items-start gap-5">
         <MailboxTable rows={r.mailboxes} />
         {r.providers.columns.length ? <ProviderTable t={r.providers} /> : null}
       </div>
+      {r.languages ? <ResultsPerLanguage r={r} /> : null}
       <div className="flex flex-wrap items-start gap-5">
         <BounceTable b={r.bounces} headlineBounces={r.headline.bounces} actions={actions} />
         <Unsubscribes u={r.unsubscribes} imported={Boolean(r.campaign.origin)} />

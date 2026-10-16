@@ -16,6 +16,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/hostrepute/reputecast/internal/accessibility"
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
@@ -84,6 +85,10 @@ type TransactionalTemplate struct {
 	CreatedAt time.Time                   `json:"createdAt"`
 	UpdatedAt time.Time                   `json:"updatedAt"`
 	Access    TransactionalTemplateAccess `json:"access"`
+	// Language is the language of the content returned (?language=) and
+	// SourceLanguage the one the template is written in (internal/languages).
+	Language       string `json:"language"`
+	SourceLanguage string `json:"sourceLanguage"`
 }
 
 // draftHash fingerprints what a version would send: content, variables,
@@ -294,6 +299,8 @@ func (s *Service) CreateTemplate(ctx context.Context, ws *store.Workspace, p *au
 		}
 		c.HTML = html
 	}
+	// lang, dir and the layout tables' role (accessibility).
+	c.HTML = accessibility.FinalizeStored(ctx, s.Q, ws.ID, accessibility.OwnerTransactional, uuid.Nil, 0, c.HTML)
 	origin := in.Origin
 	if origin == nil {
 		origin = map[string]any{}
@@ -629,6 +636,8 @@ func (s *Service) SaveDraft(ctx context.Context, ws *store.Workspace, p *authz.P
 			}
 			c.HTML = html
 		}
+		// lang, dir and the layout tables' role (accessibility).
+		c.HTML = accessibility.FinalizeStored(ctx, q, ws.ID, accessibility.OwnerTransactional, id, 0, c.HTML)
 		_ = contentChanged
 		hash := draftHash(c.Subject, c.Preheader, c.EditorMode, c.MJML, c.HTML, c.Text, c.Variables, sender, replyTo, opens, clicks)
 		rev := cur.DraftRevision + 1

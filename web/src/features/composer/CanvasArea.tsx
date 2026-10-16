@@ -3,6 +3,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, typ
 import { Badge } from '@/components/ui/Badge'
 import { Popover } from '@/components/ui/Menu'
 import { clock, count } from '@/lib/format'
+import { CanvasPreviewAs, ComposerLanguageBanner, LanguageTags } from '@/features/languages/composerParts'
 import { useComposer, type Issue } from './context'
 import { DEVICES, type DeviceId } from './editor/grapes'
 import { componentLabel, mjChildren, tagOf } from './editor/labels'
@@ -12,6 +13,7 @@ import { EmptyGallery } from './Gallery'
 import { ToolIcon } from './icons'
 import { contentIssues } from './RightPanel'
 import { StateCards } from './StateCards'
+import { AccessibilityOverlays } from '@/features/accessibility/composer/Overlays'
 
 interface Box {
   top: number
@@ -21,7 +23,7 @@ interface Box {
 }
 
 /** Position of an element of the canvas frame, relative to `host`. */
-function boxOf(editor: Editor, el: Element | null | undefined, host: HTMLElement | null): Box | null {
+export function boxOf(editor: Editor, el: Element | null | undefined, host: HTMLElement | null): Box | null {
   if (!el || !host || !el.isConnected) return null
   const frame = editor.Canvas.getFrameEl()
   if (!frame) return null
@@ -179,6 +181,7 @@ function Toolbar({ zoom }: { zoom: number }) {
     <div className="cmp-tools">
       <DeviceSeg />
       <ViewSeg />
+      <CanvasPreviewAs />
       {issues.length ? (
         <>
           {blocks ? (
@@ -703,6 +706,7 @@ export function CanvasArea({
       <div className="cmp-canvas" id={c.view === 'visual' ? 'main' : undefined} tabIndex={-1}>
         <div className="cmp-stage" ref={setStage}>
           {slots?.cards ?? <StateCards saved={savedCard} onCloseSaved={onCloseSaved} onReview={onReview} />}
+          <ComposerLanguageBanner width={frameWidth} />
           <div ref={setHost} className="relative">
             <div ref={setContainer} role="region" aria-label={`Email canvas, ${c.device === 'mobile' ? 'mobile 375 px' : 'desktop 600 px'}`} />
             {ed ? null : (
@@ -718,6 +722,8 @@ export function CanvasArea({
               </div>
             )}
             <WarningOverlays host={host} tick={tick} />
+            <AccessibilityOverlays host={host} tick={tick} boxOf={boxOf} />
+            <LanguageTags host={host} tick={tick} />
             <SelectionOverlay host={host} tick={tick} />
             <RteToolbar host={host} tick={tick} />
           </div>

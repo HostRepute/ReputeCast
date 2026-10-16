@@ -66,17 +66,20 @@ GROUP BY 1;
 -- What has a version in a language (the Remove dialog): unsent campaigns,
 -- automation emails used by a flow, transactional templates.
 SELECT t.owner_kind, t.owner_id, t.owner_version, t.status, t.held,
-       coalesce(c.name, ae.name, '')::text AS name,
+       coalesce(c.name, ae.name, tt.key, '')::text AS name,
        coalesce(c.status, '')::text AS campaign_status,
        coalesce(a.name, '')::text AS automation_name,
-       coalesce(a.id, '00000000-0000-0000-0000-000000000000'::uuid)::uuid AS automation_id
+       coalesce(a.id, '00000000-0000-0000-0000-000000000000'::uuid)::uuid AS automation_id,
+       coalesce(tt.live_version, 0)::int AS live_version
 FROM content_translations t
 LEFT JOIN campaigns c ON t.owner_kind = 'campaign' AND c.id = t.owner_id AND c.deleted_at IS NULL
 LEFT JOIN automation_emails ae ON t.owner_kind = 'automation_email' AND ae.id = t.owner_id AND ae.deleted_at IS NULL
 LEFT JOIN automations a ON a.id = ae.automation_id
+LEFT JOIN transactional_templates tt ON t.owner_kind = 'transactional_template' AND tt.id = t.owner_id AND tt.deleted_at IS NULL
 WHERE t.workspace_id = @workspace_id AND t.language = @language
   AND (t.owner_kind <> 'campaign' OR c.status IN ('draft','approval','approved','scheduled','sending','paused'))
   AND (t.owner_kind <> 'automation_email' OR ae.id IS NOT NULL)
+  AND (t.owner_kind <> 'transactional_template' OR tt.id IS NOT NULL)
 ORDER BY t.owner_kind, t.updated_at DESC;
 
 -- name: ContentSource :one
@@ -180,14 +183,16 @@ WHERE v.translation_id = @translation_id AND v.version > 1 AND v.label = '' AND 
 
 -- name: ContentTranslationsCopy :exec
 -- Carries an automation email's or template's language versions to its
--- next version (their versions are immutable).
+-- next version (their versions are immutable), with ids made in Go: one
+-- per language.
 INSERT INTO content_translations (id, workspace_id, owner_kind, owner_id, owner_version, language, status, held, subject, preheader, mjml, html, plain_text,
     ab_test, links, version, content_hash, translated_from, translated_by, translated_at, created_by, created_at, updated_by, updated_at, autosaved_at)
-SELECT gen_random_uuid(), src.workspace_id, src.owner_kind, src.owner_id, @to_version, src.language, src.status, src.held, src.subject, src.preheader,
+SELECT (@ids::uuid[])[array_position(@languages::text[], src.language)], src.workspace_id, src.owner_kind, src.owner_id, @to_version, src.language,
+    src.status, src.held, src.subject, src.preheader,
     src.mjml, src.html, src.plain_text, src.ab_test, src.links, src.version, src.content_hash, src.translated_from, src.translated_by, src.translated_at,
     src.created_by, src.created_at, src.updated_by, src.updated_at, src.autosaved_at
 FROM content_translations src
-WHERE src.owner_kind = @owner_kind AND src.owner_id = @owner_id AND src.owner_version = @from_version
+WHERE src.owner_kind = @owner_kind AND src.owner_id = @owner_id AND src.owner_version = @from_version AND src.language = ANY(@languages::text[])
 ON CONFLICT (owner_kind, owner_id, owner_version, language) DO NOTHING;
 
 -- name: ContentSourceCopy :exec
@@ -243,3 +248,62 @@ LIMIT 1;
 
 -- name: LanguagesCampaignSendContent :one
 SELECT content FROM campaign_sends WHERE campaign_id = @campaign_id;
+
+-- name: LanguagesAutomationEmailSource :one
+-- An automation email version as the source of its language versions.
+SELECT e.id, e.name, e.latest_version, v.version, v.subject, v.preheader, v.mjml, v.html, v.created_at,
+       coalesce(u.name, '')::text AS created_by_name
+FROM automation_emails e
+JOIN automation_email_versions v ON v.email_id = e.id
+LEFT JOIN users u ON u.id = v.created_by
+WHERE e.workspace_id = @workspace_id AND e.id = @id AND v.version = @version AND e.deleted_at IS NULL;
+
+-- name: LanguagesAutomationEmailLock :one
+-- Locks an automation email to give it its next version.
+SELECT latest_version FROM automation_emails
+WHERE workspace_id = @workspace_id AND id = @id AND deleted_at IS NULL
+FOR UPDATE;
+
+-- name: LanguagesAutomationEmailCopyVersion :exec
+-- The email's next version: a copy of one of its versions, its translations
+-- to be written.
+INSERT INTO automation_email_versions (email_id, version, subject, preheader, mjml, html, plain_text, created_by)
+SELECT src.email_id, @to_version, src.subject, src.preheader, src.mjml, src.html, src.plain_text, sqlc.narg(created_by)
+FROM automation_email_versions src
+WHERE src.email_id = @email_id AND src.version = @from_version;
+
+-- name: LanguagesAutomationEmailSetLatest :exec
+UPDATE automation_emails SET latest_version = @version, updated_at = now() WHERE id = @id;
+
+-- name: LanguagesPreviewContacts :many
+-- "Preview as" in the composer: one active contact per contact language
+-- (its base code), from the given lists when there are any, people with a
+-- first name first.
+SELECT DISTINCT ON (lower(split_part(replace(c.language, '_', '-'), '-', 1)))
+       c.id, c.email, c.first_name, c.last_name, c.language
+FROM contacts c
+WHERE c.workspace_id = @workspace_id AND c.erased_at IS NULL AND c.status = 'active' AND c.language <> ''
+  AND (cardinality(@lists::uuid[]) = 0 OR EXISTS (
+    SELECT 1 FROM list_memberships m
+    WHERE m.contact_id = c.id AND m.status = 'subscribed'
+      AND m.list_id = ANY(ARRAY(SELECT ll.id FROM lists ll WHERE ll.id = ANY(@lists::uuid[]) AND ll.deleted_at IS NULL))))
+ORDER BY lower(split_part(replace(c.language, '_', '-'), '-', 1)), (c.first_name = '') ASC, c.last_open_at DESC NULLS LAST, c.email
+LIMIT 200;
+
+-- name: LanguagesTemplateSource :one
+-- A transactional template's draft as the source of its language versions,
+-- by its id or its key.
+SELECT t.id, t.workspace_id, t.key, t.name, t.subject, t.preheader, t.mjml, t.html, t.plain_text, t.draft_revision, t.draft_saved_at,
+       t.archived_at, t.live_version, coalesce(u.name, '')::text AS saved_by_name
+FROM transactional_templates t
+LEFT JOIN users u ON u.id = t.draft_saved_by
+WHERE t.workspace_id = @workspace_id AND (t.id = @id OR (@key::text <> '' AND t.key = @key::text)) AND t.deleted_at IS NULL;
+
+-- name: LanguagesContactLanguage :one
+-- A contact's language code ("" for none), for a transactional send.
+SELECT language FROM contacts WHERE workspace_id = @workspace_id AND id = @id AND erased_at IS NULL;
+
+-- name: LanguagesSetMessageLanguage :exec
+-- The language version a transactional message was sent in, and why.
+UPDATE messages SET language = @language, contact_language = @contact_language, language_reason = @language_reason
+WHERE id = @id;

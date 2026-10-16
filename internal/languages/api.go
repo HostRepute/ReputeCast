@@ -51,13 +51,15 @@ type fallbackInput struct {
 	Code string `query:"code" pattern:"^[a-z]{2,3}$" required:"true"`
 }
 
-// campaignPath is {workspace}/campaigns/{campaignId}.
-type campaignPath struct {
+// CampaignPath is {workspace}/campaigns/{campaignId}. Inputs embed it, so
+// it is exported: Huma binds no path field promoted through an unexported
+// embedded struct.
+type CampaignPath struct {
 	api.WorkspaceInput
 	CampaignID string `path:"campaignId" format:"uuid"`
 }
 
-func (in campaignPath) id() (uuid.UUID, error) {
+func (in CampaignPath) id() (uuid.UUID, error) {
 	id, err := uuid.Parse(in.CampaignID)
 	if err != nil {
 		return uuid.Nil, api.NotFound("Campaign")
@@ -65,49 +67,49 @@ func (in campaignPath) id() (uuid.UUID, error) {
 	return id, nil
 }
 
-// campaignLangPath adds a {language}.
-type campaignLangPath struct {
-	campaignPath
+// CampaignLanguagePath adds a {language}.
+type CampaignLanguagePath struct {
+	CampaignPath
 	Language string `path:"language" pattern:"^[a-z]{2,3}$"`
 }
 
 type addVersionInput struct {
-	campaignPath
+	CampaignPath
 	Body AddLanguageInput
 }
 
 type markInput struct {
-	campaignLangPath
+	CampaignLanguagePath
 	Body MarkInput
 }
 
 type holdInput struct {
-	campaignLangPath
+	CampaignLanguagePath
 	Body HoldInput
 }
 
 type keepInput struct {
-	campaignPath
+	CampaignPath
 	Body KeepUpToDateInput
 }
 
 type applyInput struct {
-	campaignPath
+	CampaignPath
 	Body ApplyInput
 }
 
 type sourceInput struct {
-	campaignPath
+	CampaignPath
 	Body SourceInput
 }
 
 type blockInput struct {
-	campaignLangPath
+	CampaignLanguagePath
 	Body BlockInput
 }
 
 type historyInput struct {
-	campaignLangPath
+	CampaignLanguagePath
 	Limit int `query:"limit" minimum:"1" maximum:"300" default:"50"`
 }
 
@@ -162,6 +164,184 @@ func Register(h huma.API, s *Service) {
 		})
 
 	registerCampaign(h, s)
+	registerAutomation(h, s)
+	registerTransactional(h, s)
+}
+
+// TemplatePath names a transactional template by its ID (password-reset)
+// or its UUID.
+type TemplatePath struct {
+	api.WorkspaceInput
+	Template string `path:"template" maxLength:"64" doc:"The template's ID, such as password-reset, or its UUID" example:"password-reset"`
+}
+
+// TemplateLanguagePath adds a {language}.
+type TemplateLanguagePath struct {
+	TemplatePath
+	Language string `path:"language" pattern:"^[a-z]{2,3}$"`
+}
+
+type templateAddInput struct {
+	TemplatePath
+	Body AddLanguageInput
+}
+
+type templateMarkInput struct {
+	TemplateLanguagePath
+	Body MarkInput
+}
+
+func registerTransactional(h huma.API, s *Service) {
+	tags := []string{"Transactional templates"}
+	view, edit := api.Workspace(authz.TransactionalView), api.Workspace(authz.TransactionalEdit)
+	base := "/workspaces/{workspace}/transactional/templates/{template}/languages"
+	publish := "Publishing the template publishes every language version with it; each send picks the version its recipient gets."
+
+	api.Get(h, api.Op{ID: "list-transactional-template-languages", Path: base, Summary: "A template draft's language versions with their status",
+		Description: "Every workspace language is listed: the source, versions that are Up to date, Outdated or Draft, and Missing ones, whose recipients get the fallback. " + publish,
+		Tags:        tags, Access: view},
+		func(ctx context.Context, in *TemplatePath) (*api.Body[EmailLanguages], error) {
+			out, err := s.TemplateLanguages(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Template)
+			return api.OK(out), err
+		})
+	api.Post(h, api.Op{ID: "add-transactional-template-language", Path: base, Summary: "Add a language version (a Draft) to a template's draft",
+		Description: "It starts from a copy of the source (layout and text) or from the layout only. A Draft is never sent: its recipients get the fallback until it is marked translated. Edit it with ?language= on the template and its draft.",
+		Tags:        tags, Access: edit, Status: http.StatusCreated},
+		func(ctx context.Context, in *templateAddInput) (*api.Body[EmailLanguages], error) {
+			out, err := s.AddTemplateLanguage(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Template, in.Body)
+			return api.OK(out), err
+		})
+	api.Delete(h, api.Op{ID: "remove-transactional-template-language", Path: base + "/{language}", Summary: "Remove a language version from a template's draft",
+		Description: "Published versions keep theirs until the next publish.", Tags: tags, Access: edit, Status: http.StatusOK},
+		func(ctx context.Context, in *TemplateLanguagePath) (*api.Body[EmailLanguages], error) {
+			out, err := s.RemoveTemplateLanguage(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Template, in.Language)
+			return api.OK(out), err
+		})
+	api.Post(h, api.Op{ID: "mark-transactional-template-language-translated", Path: base + "/{language}/mark-translated", Summary: "Mark a Draft translated",
+		Description: "It is sent once the template is published again.", Tags: tags, Access: edit},
+		func(ctx context.Context, in *templateMarkInput) (*api.Body[EmailLanguages], error) {
+			out, err := s.MarkTemplateLanguage(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Template, in.Language, true, in.Body)
+			return api.OK(out), err
+		})
+	api.Post(h, api.Op{ID: "mark-transactional-template-language-up-to-date", Path: base + "/{language}/mark-up-to-date", Summary: "Mark an Outdated version up to date",
+		Description: "For source changes that need no translating, such as a typo.", Tags: tags, Access: edit},
+		func(ctx context.Context, in *templateMarkInput) (*api.Body[EmailLanguages], error) {
+			out, err := s.MarkTemplateLanguage(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Template, in.Language, false, in.Body)
+			return api.OK(out), err
+		})
+}
+
+// AutomationEmailPath is {workspace}/automation-emails/{id}.
+type AutomationEmailPath struct {
+	api.WorkspaceInput
+	EmailID string `path:"id" format:"uuid"`
+}
+
+func (in AutomationEmailPath) id() (uuid.UUID, error) {
+	id, err := uuid.Parse(in.EmailID)
+	if err != nil {
+		return uuid.Nil, api.NotFound("Email")
+	}
+	return id, nil
+}
+
+// AutomationEmailLanguagePath adds a {language}.
+type AutomationEmailLanguagePath struct {
+	AutomationEmailPath
+	Language string `path:"language" pattern:"^[a-z]{2,3}$"`
+}
+
+type automationVersionInput struct {
+	AutomationEmailPath
+	Version int `query:"version" minimum:"1" required:"true" doc:"The email version a step sends"`
+}
+
+type automationLanguageInput struct {
+	AutomationEmailLanguagePath
+	Version int `query:"version" minimum:"1" required:"true" doc:"The email version a step sends"`
+}
+
+type automationSaveInput struct {
+	AutomationEmailLanguagePath
+	Body AutomationLanguageSave
+}
+
+// AutomationLanguageMark names the email version whose language version is marked.
+type AutomationLanguageMark struct {
+	Version int `json:"version" minimum:"1"`
+}
+
+type automationMarkInput struct {
+	AutomationEmailLanguagePath
+	Body AutomationLanguageMark
+}
+
+func registerAutomation(h huma.API, s *Service) {
+	tags := []string{"Automations"}
+	view, edit := api.Workspace(authz.AutomationsView), api.Workspace(authz.AutomationsEdit)
+	base := "/workspaces/{workspace}/automation-emails/{id}/languages"
+	next := "Writing makes the email's next version, with every language version carried over; a step sends it once the flow is published."
+
+	api.Get(h, api.Op{ID: "list-automation-email-languages", Path: base, Summary: "An automation email version's language versions with their status",
+		Tags: tags, Access: view},
+		func(ctx context.Context, in *automationVersionInput) (*api.Body[EmailLanguages], error) {
+			id, err := in.id()
+			if err != nil {
+				return nil, err
+			}
+			out, err := s.AutomationEmailLanguages(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id, in.Version)
+			return api.OK(out), err
+		})
+	api.Get(h, api.Op{ID: "get-automation-email-language", Path: base + "/{language}", Summary: "One language version of an automation email version",
+		Tags: tags, Access: view},
+		func(ctx context.Context, in *automationLanguageInput) (*api.Body[AutomationEmailLanguage], error) {
+			id, err := in.id()
+			if err != nil {
+				return nil, err
+			}
+			out, err := s.AutomationEmailLanguageContent(ctx, api.WorkspaceFrom(ctx), id, in.Version, in.Language)
+			return api.OK(out), err
+		})
+	api.Put(h, api.Op{ID: "save-automation-email-language", Path: base + "/{language}", Summary: "Write a language version of an automation email, adding it when missing",
+		Description: next, Tags: tags, Access: edit, MaxBodyBytes: 1 << 20},
+		func(ctx context.Context, in *automationSaveInput) (*api.Body[AutomationLanguageSaved], error) {
+			id, err := in.id()
+			if err != nil {
+				return nil, err
+			}
+			out, err := s.SaveAutomationEmailLanguage(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id, in.Language, in.Body)
+			return api.OK(out), err
+		})
+	api.Post(h, api.Op{ID: "mark-automation-email-language-up-to-date", Path: base + "/{language}/mark-up-to-date", Summary: "Mark an automation email's Outdated language version up to date",
+		Description: next, Tags: tags, Access: edit},
+		func(ctx context.Context, in *automationMarkInput) (*api.Body[AutomationLanguageSaved], error) {
+			id, err := in.id()
+			if err != nil {
+				return nil, err
+			}
+			out, err := s.MarkAutomationEmailLanguage(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id, in.Language, in.Body.Version, false)
+			return api.OK(out), err
+		})
+	api.Post(h, api.Op{ID: "mark-automation-email-language-translated", Path: base + "/{language}/mark-translated", Summary: "Mark an automation email's Draft language version translated, so it is sent",
+		Description: next, Tags: tags, Access: edit},
+		func(ctx context.Context, in *automationMarkInput) (*api.Body[AutomationLanguageSaved], error) {
+			id, err := in.id()
+			if err != nil {
+				return nil, err
+			}
+			out, err := s.MarkAutomationEmailLanguage(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id, in.Language, in.Body.Version, true)
+			return api.OK(out), err
+		})
+	api.Delete(h, api.Op{ID: "remove-automation-email-language", Path: base + "/{language}", Summary: "Remove an automation email's language version",
+		Description: next, Tags: tags, Access: edit, Status: http.StatusOK},
+		func(ctx context.Context, in *automationLanguageInput) (*api.Body[AutomationLanguageSaved], error) {
+			id, err := in.id()
+			if err != nil {
+				return nil, err
+			}
+			out, err := s.RemoveAutomationEmailLanguage(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id, in.Language, in.Version)
+			return api.OK(out), err
+		})
 }
 
 func registerCampaign(h huma.API, s *Service) {
@@ -172,12 +352,23 @@ func registerCampaign(h huma.API, s *Service) {
 	api.Get(h, api.Op{ID: "list-campaign-languages", Path: base, Summary: "A campaign's language versions with their status and readers",
 		Description: "Every workspace language is listed: the source, versions that are Up to date, Outdated (with the blocks that changed) or Draft, and Missing ones, whose readers get the fallback.",
 		Tags:        tags, Access: view},
-		func(ctx context.Context, in *campaignPath) (*api.Body[EmailLanguages], error) {
+		func(ctx context.Context, in *CampaignPath) (*api.Body[EmailLanguages], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
 			}
 			out, err := s.CampaignLanguages(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id)
+			return api.OK(out), err
+		})
+	api.Get(h, api.Op{ID: "list-campaign-language-preview-contacts", Path: base + "/preview-contacts", Summary: "Contacts to preview a campaign as, one per language",
+		Description: "One contact per workspace language among the audience's lists, in the workspace's order, then one whose language the workspace doesn't offer, each with the version they get.",
+		Tags:        tags, Access: api.Workspace(authz.SubscribersView)},
+		func(ctx context.Context, in *CampaignPath) (*api.Body[PreviewContactList], error) {
+			id, err := in.id()
+			if err != nil {
+				return nil, err
+			}
+			out, err := s.CampaignPreviewContacts(ctx, api.WorkspaceFrom(ctx), id)
 			return api.OK(out), err
 		})
 	api.Post(h, api.Op{ID: "add-campaign-language", Path: base, Summary: "Add a language version (a Draft) to a campaign",
@@ -193,7 +384,7 @@ func registerCampaign(h huma.API, s *Service) {
 		})
 	api.Delete(h, api.Op{ID: "remove-campaign-language", Path: base + "/{language}", Summary: "Remove a campaign's language version",
 		Tags: tags, Access: edit, Status: http.StatusOK},
-		func(ctx context.Context, in *campaignLangPath) (*api.Body[EmailLanguages], error) {
+		func(ctx context.Context, in *CampaignLanguagePath) (*api.Body[EmailLanguages], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -203,7 +394,7 @@ func registerCampaign(h huma.API, s *Service) {
 		})
 	api.Post(h, api.Op{ID: "mark-campaign-language-translated", Path: base + "/{language}/mark-translated", Summary: "Mark a Draft language version translated, so it is sent",
 		Tags: tags, Access: edit},
-		func(ctx context.Context, in *campaignLangPath) (*api.Body[EmailLanguages], error) {
+		func(ctx context.Context, in *CampaignLanguagePath) (*api.Body[EmailLanguages], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -263,7 +454,7 @@ func registerCampaign(h huma.API, s *Service) {
 		})
 	api.Get(h, api.Op{ID: "compare-campaign-language", Path: base + "/{language}/compare", Summary: "Compare a language version with the source, block by block",
 		Tags: tags, Access: view},
-		func(ctx context.Context, in *campaignLangPath) (*api.Body[LanguageCompare], error) {
+		func(ctx context.Context, in *CampaignLanguagePath) (*api.Body[LanguageCompare], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err

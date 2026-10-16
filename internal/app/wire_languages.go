@@ -6,8 +6,10 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
+	"github.com/hostrepute/reputecast/internal/automations"
 	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/store"
+	"github.com/hostrepute/reputecast/internal/transactional"
 )
 
 // Content languages (M17): workspace languages and the language versions
@@ -40,4 +42,6 @@ func init() {
 	apiRegistrars = append(apiRegistrars, func(a *App, h huma.API) {
 		languages.Register(h, languagesService(a))
 	})
+	automationLanguages = func(a *App) automations.EmailLanguages { return languagesService(a) }
+	transactionalTranslations = func(a *App) transactional.Translations { return languages.Transactional{S: languagesService(a)} }
 }

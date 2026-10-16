@@ -4,7 +4,10 @@ import { ApiError } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { count } from '@/lib/format'
-import { acknowledgements, minutes, plural, scheduleSentence, thresholdsLine, verdictTitle, type Review, type Run } from './logic'
+import { confirmLanguages } from '@/features/languages/review'
+import { mr } from '@/features/languages/messages'
+import { useT } from '@/i18n'
+import { acknowledgedKeys, acknowledgements, minutes, plural, scheduleSentence, thresholdsLine, verdictTitle, type Review, type Run } from './logic'
 
 export type SendIntent = { acknowledged: string[]; confirm?: string }
 
@@ -33,6 +36,8 @@ export function ConfirmSend({
   onExclude?: () => void
 }) {
   const id = useId()
+  const t = useT()
+  const languages = confirmLanguages(run.checks, t)
   const c = review.campaign
   const recipients = run.estimates.audience.final
   const acks = acknowledgements(run)
@@ -62,7 +67,7 @@ export function ConfirmSend({
     setBusy(true)
     setError(undefined)
     try {
-      await onConfirm({ acknowledged: checked, confirm: large ? typed : undefined })
+      await onConfirm({ acknowledged: acknowledgedKeys(acks, checked), confirm: large ? typed : undefined })
       setBusy(false)
       close(false)
     } catch (e) {
@@ -85,6 +90,7 @@ export function ConfirmSend({
     ['From', c.from || '—'],
     ['Reply-to', c.replyTo || 'same as From'],
     ['Subject', c.subject],
+    ...(languages ? [[t(mr.confirmLabel), languages] as [string, string]] : []),
     ['A/B', c.ab ? c.ab.label : 'No test'],
     ['Route', shares.map((s) => `${s.short} ${count(s.recipients)}`).join(' · ')],
     ['Cost · duration', `$${route.totalCost.toFixed(2)} · about ${minutes(route.totalMinutes)}`],

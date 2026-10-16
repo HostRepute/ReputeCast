@@ -1405,6 +1405,90 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/accessibility/fix": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Apply an accessibility fix to MJML
+         * @description The composer's fixes: alt text, decorative images, link text, a color, heading levels, a text size, and a Text block's role. Returns the changed MJML; nothing is saved, the composer's autosave stores it.
+         */
+        post: operations["apply-accessibility-fix"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/accessibility/policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The workspace's accessibility policy
+         * @description Whether serious issues only warn or block sends and publishing, and the smallest text size.
+         */
+        get: operations["get-accessibility-policy"];
+        /**
+         * Change the accessibility policy
+         * @description Block makes Send Readiness turn Blocked on serious issues and stops publishing automations and transactional templates that have them. Live automations and published templates keep sending.
+         */
+        put: operations["update-accessibility-policy"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/accessibility/policy/impact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * What a policy would affect now
+         * @description Scheduled campaigns that would be held at their send-time recheck, and drafts and automation drafts with serious issues. Nothing is saved.
+         */
+        post: operations["preview-accessibility-policy"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/accessibility/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Accessibility results of the template gallery
+         * @description Each starter, saved template and the last sent campaign, checked in the workspace's default language.
+         */
+        get: operations["template-gallery-accessibility"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/adapters": {
         parameters: {
             query?: never;
@@ -1957,6 +2041,88 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/automation-emails/{id}/languages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** An automation email version's language versions with their status */
+        get: operations["list-automation-email-languages"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automation-emails/{id}/languages/{language}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One language version of an automation email version */
+        get: operations["get-automation-email-language"];
+        /**
+         * Write a language version of an automation email, adding it when missing
+         * @description Writing makes the email's next version, with every language version carried over; a step sends it once the flow is published.
+         */
+        put: operations["save-automation-email-language"];
+        post?: never;
+        /**
+         * Remove an automation email's language version
+         * @description Writing makes the email's next version, with every language version carried over; a step sends it once the flow is published.
+         */
+        delete: operations["remove-automation-email-language"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automation-emails/{id}/languages/{language}/mark-translated": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark an automation email's Draft language version translated, so it is sent
+         * @description Writing makes the email's next version, with every language version carried over; a step sends it once the flow is published.
+         */
+        post: operations["mark-automation-email-language-translated"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automation-emails/{id}/languages/{language}/mark-up-to-date": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark an automation email's Outdated language version up to date
+         * @description Writing makes the email's next version, with every language version carried over; a step sends it once the flow is published.
+         */
+        post: operations["mark-automation-email-language-up-to-date"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/automations": {
         parameters: {
             query?: never;
@@ -2354,6 +2520,30 @@ export interface paths {
         patch: operations["update-campaign"];
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/accessibility": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Accessibility issues of a campaign as saved
+         * @description Every language version's compiled HTML is checked; an issue in several versions is listed once with its languages.
+         */
+        get: operations["get-campaign-accessibility"];
+        put?: never;
+        /**
+         * Check the composer's current content for accessibility issues
+         * @description The composer calls it as you edit. The version being edited is checked with your unsaved changes, the others as saved. Nothing is saved.
+         */
+        post: operations["check-campaign-accessibility"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/approval": {
         parameters: {
             query?: never;
@@ -2500,6 +2690,26 @@ export interface paths {
         put?: never;
         /** Keep every language version up to date after a source edit that needs no translating */
         post: operations["keep-campaign-languages-up-to-date"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/languages/preview-contacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Contacts to preview a campaign as, one per language
+         * @description One contact per workspace language among the audience's lists, in the workspace's order, then one whose language the workspace doesn't offer, each with the version they get.
+         */
+        get: operations["list-campaign-language-preview-contacts"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -7164,6 +7374,90 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}/languages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A template draft's language versions with their status
+         * @description Every workspace language is listed: the source, versions that are Up to date, Outdated or Draft, and Missing ones, whose recipients get the fallback. Publishing the template publishes every language version with it; each send picks the version its recipient gets.
+         */
+        get: operations["list-transactional-template-languages"];
+        put?: never;
+        /**
+         * Add a language version (a Draft) to a template's draft
+         * @description It starts from a copy of the source (layout and text) or from the layout only. A Draft is never sent: its recipients get the fallback until it is marked translated. Edit it with ?language= on the template and its draft.
+         */
+        post: operations["add-transactional-template-language"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}/languages/{language}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove a language version from a template's draft
+         * @description Published versions keep theirs until the next publish.
+         */
+        delete: operations["remove-transactional-template-language"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}/languages/{language}/mark-translated": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark a Draft translated
+         * @description It is sent once the template is published again.
+         */
+        post: operations["mark-transactional-template-language-translated"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/transactional/templates/{template}/languages/{language}/mark-up-to-date": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark an Outdated version up to date
+         * @description For source changes that need no translating, such as a typo.
+         */
+        post: operations["mark-transactional-template-language-up-to-date"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/transactional/templates/{template}/preview": {
         parameters: {
             query?: never;
@@ -7817,6 +8111,234 @@ export interface components {
             roleName: string;
             /** @example Viewer */
             yourRole: string;
+        };
+        AccessibilityCheckRequest: {
+            html?: string;
+            /** @description The language version being edited (the source when empty) */
+            lang?: string;
+            mjml?: string;
+        };
+        AccessibilityColorSuggestion: {
+            /** @example #0F766E */
+            color: string;
+            /**
+             * Format: double
+             * @description Contrast ratio, rounded down to one decimal
+             */
+            ratio: number;
+            /** @enum {string} */
+            reason: "other_buttons" | "nearest_aa" | "aaa";
+        };
+        AccessibilityCounts: {
+            /** Format: int64 */
+            dataTables: number;
+            /** @enum {string} */
+            dir: "ltr";
+            /** Format: int64 */
+            images: number;
+            /** Format: int64 */
+            imagesOk: number;
+            languages: string[];
+            /** Format: int64 */
+            layoutTables: number;
+            /** Format: int64 */
+            links: number;
+            /** Format: int64 */
+            linksOk: number;
+            /** Format: int64 */
+            overImage: number;
+            /** Format: int64 */
+            roleAdded: number;
+        };
+        AccessibilityElement: {
+            /** Format: int64 */
+            count: number;
+            href?: string;
+            /** Format: int64 */
+            index: number;
+            label?: string;
+            /** @enum {string} */
+            role: "image" | "linked_image" | "button" | "link" | "text" | "heading";
+            section?: string;
+            src?: string;
+            tag: string;
+        };
+        AccessibilityFixInput: {
+            from?: string;
+            headings?: components["schemas"]["AccessibilityHeadingChange"][];
+            /** Format: int64 */
+            index?: number;
+            /** @enum {string} */
+            kind: "alt_text" | "decorative" | "link_text" | "color" | "heading" | "text_size" | "text_role";
+            mjml: string;
+            path: number[];
+            /** @enum {string} */
+            role?: "p" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
+            /** @enum {string} */
+            target?: "background" | "text";
+            /** Format: int64 */
+            toPx?: number;
+            value?: string;
+        };
+        AccessibilityFixSpec: {
+            against?: string;
+            decorative: boolean;
+            from?: string;
+            /** Format: double */
+            fromPx?: number;
+            headings: components["schemas"]["AccessibilityHeadingChange"][];
+            /** @enum {string} */
+            kind: "alt_text" | "link_text" | "color" | "heading" | "text_size";
+            large?: boolean;
+            links: components["schemas"]["AccessibilityLinkTarget"][];
+            /** Format: double */
+            needs?: number;
+            oneClick: boolean;
+            perLanguage: boolean;
+            /** Format: double */
+            ratio?: number;
+            subject?: string;
+            suggestions: components["schemas"]["AccessibilityColorSuggestion"][];
+            /** @enum {string} */
+            target?: "background" | "text";
+            /** Format: int64 */
+            toPx?: number;
+        };
+        AccessibilityFixed: {
+            mjml: string;
+        };
+        AccessibilityGallery: {
+            language: string;
+            lastCampaign?: components["schemas"]["AccessibilityTemplateResult"];
+            templates: components["schemas"]["AccessibilityTemplateResult"][];
+        };
+        AccessibilityHeadingChange: {
+            /** Format: int64 */
+            from: number;
+            /**
+             * Format: int64
+             * @description The nth heading of the text block, from 0
+             */
+            index: number;
+            path: number[];
+            text: string;
+            /** Format: int64 */
+            to: number;
+        };
+        AccessibilityImpact: {
+            campaigns: components["schemas"]["AccessibilityImpactCampaign"][];
+            flows: components["schemas"]["AccessibilityImpactFlow"][];
+            /** Format: int64 */
+            held: number;
+            /** @enum {string} */
+            onSerious: "warn" | "block";
+        };
+        AccessibilityImpactCampaign: {
+            held: boolean;
+            id: string;
+            name: string;
+            /** Format: date-time */
+            scheduledAt?: string;
+            /** Format: int64 */
+            serious: number;
+            /** @enum {string} */
+            status: "draft" | "approval" | "approved" | "scheduled";
+            summary: string;
+        };
+        AccessibilityImpactFlow: {
+            automationId: string;
+            /** Format: int64 */
+            liveVersion?: number;
+            name: string;
+            /** Format: int64 */
+            serious: number;
+            step: string;
+            summary: string;
+            /** Format: int64 */
+            version: number;
+        };
+        AccessibilityIssue: {
+            detail?: string;
+            element: components["schemas"]["AccessibilityElement"];
+            fix: components["schemas"]["AccessibilityFixSpec"];
+            id: string;
+            /** @enum {string} */
+            kind: "alt_text" | "link_no_text" | "contrast" | "link_text" | "heading" | "text_size";
+            languages: string[];
+            location: string[];
+            path: number[];
+            paths: number[][];
+            /** @enum {string} */
+            severity: "serious" | "moderate";
+            short: string;
+            tag: string;
+            title: string;
+            versions: components["schemas"]["AccessibilityIssueVersion"][];
+        };
+        AccessibilityIssueVersion: {
+            lang: string;
+            suggestion?: string;
+            text?: string;
+        };
+        AccessibilityLanguage: {
+            /** @example es */
+            code: string;
+            /** @example Spanish */
+            name: string;
+            source: boolean;
+        };
+        AccessibilityLinkTarget: {
+            href: string;
+            /**
+             * Format: int64
+             * @description The nth link of the text block, from 0
+             */
+            index: number;
+            path: number[];
+        };
+        AccessibilityPolicy: {
+            canManage: boolean;
+            helpers: string[];
+            /** Format: int64 */
+            minTextPx: number;
+            /** @enum {string} */
+            onSerious: "warn" | "block";
+            /** Format: date-time */
+            updatedAt?: string;
+            updatedBy?: string;
+        };
+        AccessibilityPolicyInput: {
+            /** Format: int64 */
+            minTextPx: number;
+            /** @enum {string} */
+            onSerious: "warn" | "block";
+        };
+        AccessibilityReport: {
+            /** Format: date-time */
+            checkedAt: string;
+            counts: components["schemas"]["AccessibilityCounts"];
+            /** Format: int64 */
+            durationMs: number;
+            issues: components["schemas"]["AccessibilityIssue"][];
+            languages: components["schemas"]["AccessibilityLanguage"][];
+            /** Format: int64 */
+            minTextPx: number;
+            /** @enum {string} */
+            mode: "mjml" | "html";
+            /** Format: int64 */
+            moderate: number;
+            /** @enum {string} */
+            policy: "warn" | "block";
+            /** Format: int64 */
+            serious: number;
+        };
+        AccessibilityTemplateResult: {
+            id: string;
+            /** Format: int64 */
+            issues: number;
+            /** Format: int64 */
+            serious: number;
+            summary?: string;
         };
         AccountAvatarInput: {
             /** @description PNG or JPEG, up to 2 MB, base64 */
@@ -8970,6 +9492,17 @@ export interface components {
             name: string;
             subject?: string;
         };
+        AutomationEmailLanguage: {
+            html: string;
+            language: string;
+            name: string;
+            preheader: string;
+            /** @enum {string} */
+            status: "up_to_date" | "outdated" | "draft";
+            subject: string;
+            /** Format: int64 */
+            version: number;
+        };
         AutomationEmailOption: {
             id: string;
             /** Format: int64 */
@@ -9051,6 +9584,23 @@ export interface components {
             nodeId?: string;
             /** @enum {string} */
             severity: "error" | "warning";
+        };
+        AutomationLanguageMark: {
+            /** Format: int64 */
+            version: number;
+        };
+        AutomationLanguageSave: {
+            html: string;
+            preheader?: string;
+            subject: string;
+            translated?: boolean;
+            /** Format: int64 */
+            version: number;
+        };
+        AutomationLanguageSaved: {
+            languages: components["schemas"]["EmailLanguages"];
+            /** Format: int64 */
+            version: number;
         };
         AutomationList: {
             alerts: components["schemas"]["AutomationAlert"][];
@@ -9437,6 +9987,19 @@ export interface components {
             index?: number;
             key?: string;
         };
+        BlockSegment: {
+            alt?: string;
+            /** Format: int64 */
+            column: number;
+            /** Format: int64 */
+            heading: number;
+            html?: string;
+            kind: string;
+            path: number[];
+            strong: boolean;
+            text: string;
+            url?: string;
+        };
         CallTarget: {
             email?: string;
             endpoint?: string;
@@ -9596,7 +10159,7 @@ export interface components {
             /** Format: int64 */
             index: number;
             name: string;
-            segments: components["schemas"]["Segment"][];
+            segments: components["schemas"]["BlockSegment"][];
             text: string;
         };
         CompareRow: {
@@ -9654,6 +10217,8 @@ export interface components {
             canSend: boolean;
             canSendTestToOthers: boolean;
             canViewContacts: boolean;
+            /** @description Members who hold campaigns:edit (when the caller can't edit) */
+            editHelpers?: string[];
             editable: boolean;
             readOnlyReason?: string;
             /** @description Members who hold campaigns:send */
@@ -9834,6 +10399,7 @@ export interface components {
         ComposerPreviewRequest: {
             /** Format: uuid */
             contactId?: string;
+            editing?: string;
             html?: string;
             language?: string;
             preheader?: string;
@@ -14257,6 +14823,18 @@ export interface components {
             lists: string[];
             pause: boolean;
         };
+        PreviewContact: {
+            email: string;
+            gets: string;
+            /** Format: uuid */
+            id: string;
+            language: string;
+            name: string;
+            offered: boolean;
+        };
+        PreviewContactList: {
+            items: components["schemas"]["PreviewContact"][];
+        };
         Problem: {
             /** @description Stable error code, e.g. permission_denied */
             code?: string;
@@ -14969,7 +15547,7 @@ export interface components {
             fixes: components["schemas"]["ReadinessFix"][];
             flatTitle: string;
             /** @enum {string} */
-            group: "reputation" | "authentication" | "content" | "languages" | "links" | "compliance" | "audience" | "routing";
+            group: "reputation" | "authentication" | "content" | "languages" | "links" | "compliance" | "audience" | "routing" | "accessibility";
             key: string;
             label?: string;
             mono?: boolean;
@@ -14984,7 +15562,10 @@ export interface components {
             /** Format: int64 */
             count: number;
             detail: string;
+            gets?: string;
+            getsName?: string;
             label: string;
+            language?: string;
         };
         ReadinessCounts: {
             /** Format: int64 */
@@ -15005,7 +15586,7 @@ export interface components {
         };
         ReadinessFix: {
             /** @enum {string} */
-            action?: "exclude_sunset" | "route_only" | "insert_footer" | "replace_link" | "use_subject" | "minify" | "mark_language_up_to_date" | "mark_language_translated" | "hold_language" | "release_language";
+            action?: "exclude_sunset" | "route_only" | "insert_footer" | "replace_link" | "use_subject" | "minify" | "mark_language_up_to_date" | "mark_language_translated" | "hold_language" | "release_language" | "accessibility_decorative" | "accessibility_color" | "accessibility_one_click";
             href?: string;
             /** @enum {string} */
             kind: "apply" | "link";
@@ -15024,7 +15605,7 @@ export interface components {
         };
         ReadinessFixRequest: {
             /** @enum {string} */
-            action: "exclude_sunset" | "route_only" | "insert_footer" | "replace_link" | "use_subject" | "minify" | "mark_language_up_to_date" | "mark_language_translated" | "hold_language" | "release_language";
+            action: "exclude_sunset" | "route_only" | "insert_footer" | "replace_link" | "use_subject" | "minify" | "mark_language_up_to_date" | "mark_language_translated" | "hold_language" | "release_language" | "accessibility_decorative" | "accessibility_color" | "accessibility_one_click";
             params?: {
                 [key: string]: string;
             };
@@ -15035,7 +15616,8 @@ export interface components {
         ReadinessGroup: {
             caption: string;
             /** @enum {string} */
-            key: "reputation" | "authentication" | "content" | "languages" | "links" | "compliance" | "audience" | "routing";
+            key: "reputation" | "authentication" | "content" | "languages" | "links" | "compliance" | "audience" | "routing" | "accessibility";
+            note?: string;
             /** Format: int64 */
             passed: number;
             running: string;
@@ -15073,7 +15655,7 @@ export interface components {
             /** Format: int64 */
             done: number;
             /** @enum {string} */
-            key: "reputation" | "authentication" | "content" | "languages" | "links" | "compliance" | "audience" | "routing";
+            key: "reputation" | "authentication" | "content" | "languages" | "links" | "compliance" | "audience" | "routing" | "accessibility";
             /** @enum {string} */
             status: "queued" | "running" | "pass" | "warn" | "block" | "unknown";
             text: string;
@@ -15204,11 +15786,19 @@ export interface components {
             suggested: boolean;
         };
         RemovalItem: {
-            detail: string;
+            /** Format: int64 */
+            changed?: number;
             id: string;
             /** @enum {string} */
             kind: "campaign" | "automation_email" | "transactional_template";
+            languages?: string[];
+            /** Format: int64 */
+            liveVersion?: number;
             name: string;
+            /** @enum {string} */
+            state?: "draft" | "scheduled" | "waiting" | "sending";
+            /** @enum {string} */
+            status?: "up_to_date" | "outdated" | "draft" | "held";
         };
         RemoveSuppressionInput: {
             reason: string;
@@ -15763,6 +16353,7 @@ export interface components {
             at: string;
             by: string;
             delivered?: string;
+            languages?: string[];
             provider: string;
             to: string;
         };
@@ -16473,19 +17064,6 @@ export interface components {
         ScopedList: {
             id: string;
             name: string;
-        };
-        Segment: {
-            alt?: string;
-            /** Format: int64 */
-            column: number;
-            /** Format: int64 */
-            heading: number;
-            html?: string;
-            kind: string;
-            path: number[];
-            strong: boolean;
-            text: string;
-            url?: string;
         };
         SegmentCatalog: {
             fields: components["schemas"]["SegmentCatalogField"][];
@@ -17930,7 +18508,7 @@ export interface components {
             detail?: string;
             fixes: components["schemas"]["TransactionalCheckFix"][];
             /** @enum {string} */
-            group: "Content" | "Links" | "Compliance" | "Subject" | "Variables" | "Test data" | "Privacy";
+            group: "Content" | "Links" | "Compliance" | "Subject" | "Variables" | "Test data" | "Privacy" | "Accessibility";
             /** @example variables.undeclared */
             id: string;
             /** Format: int64 */
@@ -18045,6 +18623,7 @@ export interface components {
             changed: boolean;
             content: components["schemas"]["TransactionalDiffLine"][];
             contentSummary: string;
+            languages?: components["schemas"]["TransactionalLanguageChange"][];
             preheader?: components["schemas"]["TransactionalTextChange"];
             settings: string[];
             subject?: components["schemas"]["TransactionalTextChange"];
@@ -18147,6 +18726,12 @@ export interface components {
             medianMs?: number;
             /** Format: int64 */
             sent: number;
+        };
+        TransactionalLanguageChange: {
+            /** @enum {string} */
+            change: "added" | "changed" | "removed";
+            language: string;
+            name: string;
         };
         TransactionalLimits: {
             /** Format: int64 */
@@ -18479,6 +19064,16 @@ export interface components {
             note?: string;
             publishAnyway?: boolean;
         };
+        TransactionalPublishLanguage: {
+            /** Format: int64 */
+            attention: number;
+            gets: string;
+            getsName: string;
+            language: string;
+            name: string;
+            /** @enum {string} */
+            status: "source" | "up_to_date" | "outdated" | "draft";
+        };
         TransactionalPublishPreview: {
             approval: components["schemas"]["TransactionalPublishApproval"];
             blocking: string[];
@@ -18493,6 +19088,7 @@ export interface components {
             draftSavedAt: string;
             draftSavedBy: string;
             key: string;
+            languages: components["schemas"]["TransactionalPublishLanguage"][];
             liveBy?: string;
             /** Format: date-time */
             liveSince?: string;
@@ -18560,11 +19156,18 @@ export interface components {
             data?: {
                 [key: string]: unknown;
             };
+            /**
+             * @description The language version to render; the linked contact's language, then the fallback, when omitted
+             * @example es
+             */
+            language?: string;
             /** @description Fills to.email and to.name */
             to?: components["schemas"]["TransactionalAddress"];
         };
         TransactionalRendered: {
             html: string;
+            /** @example es */
+            language?: string;
             subject: string;
             /** @example password-reset */
             template: string;
@@ -18624,6 +19227,11 @@ export interface components {
             };
             /** @description A verified Transactional sender, as an address or "Name <address>"; the template's sender when omitted */
             from?: string;
+            /**
+             * @description The language version to send; the linked contact's language, then the fallback, when omitted
+             * @example es
+             */
+            language?: string;
             metadata?: {
                 [key: string]: string;
             };
@@ -18846,6 +19454,7 @@ export interface components {
             /** @description The ID the API sends, fixed after the first publish */
             key: string;
             keyLocked: boolean;
+            language: string;
             liveBy?: string;
             /** Format: date-time */
             liveSince?: string;
@@ -18860,6 +19469,7 @@ export interface components {
             preheader: string;
             replyTo: string;
             sender?: components["schemas"]["TransactionalSenderRef"];
+            sourceLanguage: string;
             subject: string;
             testData: components["schemas"]["TransactionalTestData"][];
             trackClicks: boolean;
@@ -22756,6 +23366,178 @@ export interface operations {
             };
         };
     };
+    "apply-accessibility-fix": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccessibilityFixInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessibilityFixed"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-accessibility-policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessibilityPolicy"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-accessibility-policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccessibilityPolicyInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessibilityPolicy"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "preview-accessibility-policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccessibilityPolicyInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessibilityImpact"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "template-gallery-accessibility": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessibilityGallery"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "list-adapters": {
         parameters: {
             query?: never;
@@ -24076,6 +24858,230 @@ export interface operations {
             };
         };
     };
+    "list-automation-email-languages": {
+        parameters: {
+            query: {
+                /** @description The email version a step sends */
+                version: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailLanguages"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-automation-email-language": {
+        parameters: {
+            query: {
+                /** @description The email version a step sends */
+                version: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+                language: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationEmailLanguage"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-automation-email-language": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+                language: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AutomationLanguageSave"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationLanguageSaved"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-automation-email-language": {
+        parameters: {
+            query: {
+                /** @description The email version a step sends */
+                version: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+                language: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationLanguageSaved"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "mark-automation-email-language-translated": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+                language: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AutomationLanguageMark"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationLanguageSaved"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "mark-automation-email-language-up-to-date": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+                language: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AutomationLanguageMark"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationLanguageSaved"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "list-automations": {
         parameters: {
             query?: {
@@ -25102,6 +26108,76 @@ export interface operations {
             };
         };
     };
+    "get-campaign-accessibility": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessibilityReport"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "check-campaign-accessibility": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccessibilityCheckRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessibilityReport"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "request-approval": {
         parameters: {
             query?: never;
@@ -25323,7 +26399,11 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -25356,7 +26436,11 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -25389,7 +26473,11 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -25418,11 +26506,48 @@ export interface operations {
             };
         };
     };
+    "list-campaign-language-preview-contacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreviewContactList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "set-campaign-source-language": {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -25456,6 +26581,9 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
                 language: string;
             };
             cookie?: never;
@@ -25487,6 +26615,9 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
                 language: string;
             };
             cookie?: never;
@@ -25517,7 +26648,12 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+                language: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -25550,7 +26686,12 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+                language: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -25584,6 +26725,9 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
                 language: string;
             };
             cookie?: never;
@@ -25614,7 +26758,12 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+                language: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -25647,7 +26796,12 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+                language: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -25682,7 +26836,12 @@ export interface operations {
                 limit?: number;
             };
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+                language: string;
+            };
             cookie?: never;
         };
         requestBody?: never;
@@ -36148,7 +37307,10 @@ export interface operations {
     };
     "get-transactional-template": {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description A language version's content in place of the draft's (internal/languages) */
+                language?: string;
+            };
             header?: never;
             path: {
                 /** @description Workspace slug */
@@ -36396,7 +37558,10 @@ export interface operations {
     };
     "save-transactional-template-draft": {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Saves a language version instead of the draft (internal/languages) */
+                language?: string;
+            };
             header?: never;
             path: {
                 /** @description Workspace slug */
@@ -36419,6 +37584,191 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TransactionalDraftSaved"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-transactional-template-languages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The template's ID, such as password-reset, or its UUID */
+                template: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailLanguages"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "add-transactional-template-language": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The template's ID, such as password-reset, or its UUID */
+                template: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddLanguageInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailLanguages"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-transactional-template-language": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The template's ID, such as password-reset, or its UUID */
+                template: string;
+                language: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailLanguages"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "mark-transactional-template-language-translated": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The template's ID, such as password-reset, or its UUID */
+                template: string;
+                language: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MarkInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailLanguages"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "mark-transactional-template-language-up-to-date": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The template's ID, such as password-reset, or its UUID */
+                template: string;
+                language: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MarkInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailLanguages"];
                 };
             };
             /** @description Error */

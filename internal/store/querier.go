@@ -18,6 +18,21 @@ type Querier interface {
 	// Access requests from the "403 · no permission" screen (internal/accessrequests).
 	// The member's latest request for this role in the last day (one a day).
 	AccessRequestsLatest(ctx context.Context, arg AccessRequestsLatestParams) (time.Time, error)
+	AccessibilityCampaign(ctx context.Context, arg AccessibilityCampaignParams) (AccessibilityCampaignRow, error)
+	// Automations with a draft version that isn't live yet.
+	AccessibilityDraftAutomations(ctx context.Context, workspaceID uuid.UUID) ([]AccessibilityDraftAutomationsRow, error)
+	AccessibilityInsertFix(ctx context.Context, arg AccessibilityInsertFixParams) error
+	AccessibilityLatestFix(ctx context.Context, campaignID uuid.UUID) (AccessibilityLatestFixRow, error)
+	AccessibilityLinkTitles(ctx context.Context, urls []string) ([]AccessibilityLinkTitlesRow, error)
+	// Campaigns that haven't started: drafts, waiting for or holding an
+	// approval, and scheduled sends.
+	AccessibilityPendingCampaigns(ctx context.Context, workspaceID uuid.UUID) ([]AccessibilityPendingCampaignsRow, error)
+	// Accessibility checks (X06): the workspace policy, linked pages' titles
+	// and the fixes applied from Review & send.
+	AccessibilityPolicy(ctx context.Context, workspaceID uuid.UUID) (AccessibilityPolicyRow, error)
+	AccessibilityTemplates(ctx context.Context, workspaceID uuid.UUID) ([]AccessibilityTemplatesRow, error)
+	AccessibilityUpsertLinkTitle(ctx context.Context, arg AccessibilityUpsertLinkTitleParams) error
+	AccessibilityUpsertPolicy(ctx context.Context, arg AccessibilityUpsertPolicyParams) error
 	// The draft or running import the wizard resumes.
 	ActiveImport(ctx context.Context, workspaceID uuid.UUID) (Import, error)
 	AddSegmentMembers(ctx context.Context, arg AddSegmentMembersParams) error
@@ -269,7 +284,8 @@ type Querier interface {
 	// The language versions of an email, with who translated and last saved them.
 	ContentTranslations(ctx context.Context, arg ContentTranslationsParams) ([]ContentTranslationsRow, error)
 	// Carries an automation email's or template's language versions to its
-	// next version (their versions are immutable).
+	// next version (their versions are immutable), with ids made in Go: one
+	// per language.
 	ContentTranslationsCopy(ctx context.Context, arg ContentTranslationsCopyParams) error
 	CountActiveOwners(ctx context.Context, workspaceID uuid.UUID) (int64, error)
 	CountAutomationHeldMessages(ctx context.Context, automationID *uuid.UUID) (int64, error)
@@ -785,6 +801,14 @@ type Querier interface {
 	KeysTouch(ctx context.Context, arg KeysTouchParams) error
 	// Adding a language that was removed brings it back with its page copy.
 	LanguagesAdd(ctx context.Context, arg LanguagesAddParams) error
+	// The email's next version: a copy of one of its versions, its translations
+	// to be written.
+	LanguagesAutomationEmailCopyVersion(ctx context.Context, arg LanguagesAutomationEmailCopyVersionParams) error
+	// Locks an automation email to give it its next version.
+	LanguagesAutomationEmailLock(ctx context.Context, arg LanguagesAutomationEmailLockParams) (int32, error)
+	LanguagesAutomationEmailSetLatest(ctx context.Context, arg LanguagesAutomationEmailSetLatestParams) error
+	// An automation email version as the source of its language versions.
+	LanguagesAutomationEmailSource(ctx context.Context, arg LanguagesAutomationEmailSourceParams) (LanguagesAutomationEmailSourceRow, error)
 	LanguagesCampaignSendContent(ctx context.Context, campaignID uuid.UUID) (json.RawMessage, error)
 	// What a campaign's source is: its content and who saved it last.
 	LanguagesCampaignSource(ctx context.Context, arg LanguagesCampaignSourceParams) (LanguagesCampaignSourceRow, error)
@@ -795,6 +819,8 @@ type Querier interface {
 	// Contacts per language code as stored ("es-MX", "" for none), erased
 	// contacts left out, as on Contacts.
 	LanguagesContactCodes(ctx context.Context, workspaceID uuid.UUID) ([]LanguagesContactCodesRow, error)
+	// A contact's language code ("" for none), for a transactional send.
+	LanguagesContactLanguage(ctx context.Context, arg LanguagesContactLanguageParams) (string, error)
 	// A workspace that never chose its default writes in English: English
 	// becomes its default (and its fallback unless it has one).
 	LanguagesEnsureDefault(ctx context.Context, workspaceID uuid.UUID) error
@@ -809,10 +835,19 @@ type Querier interface {
 	LanguagesLock(ctx context.Context, workspaceID uuid.UUID) ([]string, error)
 	// Results of a sent campaign per language version and why readers got it.
 	LanguagesMessageResults(ctx context.Context, campaignID *uuid.UUID) ([]LanguagesMessageResultsRow, error)
+	// "Preview as" in the composer: one active contact per contact language
+	// (its base code), from the given lists when there are any, people with a
+	// first name first.
+	LanguagesPreviewContacts(ctx context.Context, arg LanguagesPreviewContactsParams) ([]LanguagesPreviewContactsRow, error)
 	LanguagesRemove(ctx context.Context, arg LanguagesRemoveParams) (int64, error)
 	LanguagesSetDefault(ctx context.Context, arg LanguagesSetDefaultParams) (int64, error)
 	LanguagesSetFallback(ctx context.Context, arg LanguagesSetFallbackParams) (int64, error)
+	// The language version a transactional message was sent in, and why.
+	LanguagesSetMessageLanguage(ctx context.Context, arg LanguagesSetMessageLanguageParams) error
 	LanguagesSetPageCopy(ctx context.Context, arg LanguagesSetPageCopyParams) (int64, error)
+	// A transactional template's draft as the source of its language versions,
+	// by its id or its key.
+	LanguagesTemplateSource(ctx context.Context, arg LanguagesTemplateSourceParams) (LanguagesTemplateSourceRow, error)
 	// What has a version in a language (the Remove dialog): unsent campaigns,
 	// automation emails used by a flow, transactional templates.
 	LanguagesVersionsIn(ctx context.Context, arg LanguagesVersionsInParams) ([]LanguagesVersionsInRow, error)
@@ -1383,6 +1418,9 @@ type Querier interface {
 	// Messages that will never be sent: rejected by the provider, failed after
 	// every retry, or dropped (suppressed during the send, contact erased).
 	SendingMarkUnsent(ctx context.Context, arg SendingMarkUnsentParams) error
+	// A queued automation email whose language version stopped being sent (its
+	// language was removed) goes out in the source instead.
+	SendingMessageToSource(ctx context.Context, arg SendingMessageToSourceParams) error
 	// Moves what is left of one provider's share to another provider.
 	SendingMoveRemaining(ctx context.Context, arg SendingMoveRemainingParams) (int64, error)
 	SendingNextSimEvent(ctx context.Context) (time.Time, error)

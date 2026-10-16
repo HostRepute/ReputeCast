@@ -382,8 +382,19 @@ type RemovalItem struct {
 	Kind string `json:"kind" enum:"campaign,automation_email,transactional_template"`
 	ID   string `json:"id"`
 	Name string `json:"name"`
-	// Detail says what it is and where its version stands ("Campaign draft · German is outdated").
-	Detail string `json:"detail"`
+	// State is a campaign's: a draft, scheduled, waiting to send (approval)
+	// or sending.
+	State string `json:"state,omitempty" enum:"draft,scheduled,waiting,sending"`
+	// Status is where a campaign's version stands, with the blocks that
+	// changed in the source when it's outdated ("Campaign draft · German is
+	// outdated").
+	Status  string `json:"status,omitempty" enum:"up_to_date,outdated,draft,held"`
+	Changed int    `json:"changed,omitempty"`
+	// LiveVersion and Languages are a transactional template's live
+	// version and the languages it sends ("v4 live in English, Spanish
+	// and German").
+	LiveVersion int      `json:"liveVersion,omitempty"`
+	Languages   []string `json:"languages,omitempty"`
 }
 
 // LanguageRemoval is what removing a language affects.
@@ -422,16 +433,19 @@ func (s *Service) Removal(ctx context.Context, ws *store.Workspace, code string)
 	for _, r := range rows {
 		item := RemovalItem{Kind: r.OwnerKind, ID: r.OwnerID.String(), Name: r.Name}
 		switch r.OwnerKind {
-		case "campaign":
-			item.Detail = campaignStatusWord(r.CampaignStatus)
-		case "automation_email":
+		case OwnerCampaign:
+			item.State = campaignState(r.CampaignStatus)
+			item.Status, item.Changed = s.campaignVersionStatus(ctx, ws, r.OwnerID, code)
+		case OwnerAutomationEmail:
 			// One row per automation: its emails' versions are listed together.
 			if r.AutomationName != "" {
 				item.Name, item.ID = r.AutomationName, r.AutomationID.String()
 			}
-			item.Detail = "Automation email"
-		case "transactional_template":
-			item.Detail = "Transactional template"
+		case OwnerTransactional:
+			if r.LiveVersion > 0 && !seen[r.OwnerKind+":"+item.ID] {
+				item.LiveVersion = int(r.LiveVersion)
+				item.Languages = s.liveLanguages(ctx, st, r.OwnerID, item.LiveVersion)
+			}
 		}
 		key := r.OwnerKind + ":" + item.ID
 		if seen[key] {
@@ -443,16 +457,65 @@ func (s *Service) Removal(ctx context.Context, ws *store.Workspace, code string)
 	return out, nil
 }
 
-func campaignStatusWord(status string) string {
+// liveLanguages names the languages a template's live version sends, its
+// source first.
+func (s *Service) liveLanguages(ctx context.Context, st Settings, id uuid.UUID, version int) []string {
+	source := st.Default
+	if row, err := s.Q.ContentSource(ctx, store.ContentSourceParams{OwnerKind: OwnerTransactional, OwnerID: id, OwnerVersion: int32(version)}); err == nil {
+		source = row.Language
+	}
+	rows, err := s.Q.ContentTranslations(ctx, store.ContentTranslationsParams{OwnerKind: OwnerTransactional, OwnerID: id, OwnerVersion: int32(version)})
+	if err != nil {
+		return nil
+	}
+	states := make([]VersionState, 0, len(rows))
+	for _, r := range rows {
+		states = append(states, VersionState{Language: r.Language, Status: r.Status, Held: r.Held})
+	}
+	ch := NewChooser(source, st, states)
+	out := []string{NameOf(source)}
+	for _, l := range st.Languages {
+		if l != source && ch.Ready(l) {
+			out = append(out, NameOf(l))
+		}
+	}
+	return out
+}
+
+func campaignState(status string) string {
 	switch status {
 	case "scheduled":
-		return "Scheduled campaign"
+		return "scheduled"
 	case "approval", "approved":
-		return "Campaign waiting to send"
+		return "waiting"
 	case "sending", "paused":
-		return "Campaign sending"
+		return "sending"
 	}
-	return "Campaign draft"
+	return "draft"
+}
+
+// campaignVersionStatus is where a campaign's version in lang stands, with
+// the blocks to look at when it's outdated; "" when it can't be told.
+func (s *Service) campaignVersionStatus(ctx context.Context, ws *store.Workspace, id uuid.UUID, lang string) (string, int) {
+	status, changed := "", 0
+	_ = s.campaignTx(ctx, ws, id, false, func(q *store.Queries, o Owner, _ Source, _ store.LanguagesCampaignSourceRow, st sourceState, _ Settings) error {
+		v, err := s.loadView(ctx, q, o, st, lang)
+		if err != nil {
+			return err
+		}
+		switch {
+		case v.row.Held:
+			status = "held"
+		case v.progress.Status == StatusOutdated:
+			status, changed = "outdated", v.progress.Attention
+		case v.progress.Status == StatusDraft:
+			status = "draft"
+		default:
+			status = "up_to_date"
+		}
+		return nil
+	})
+	return status, changed
 }
 
 func refusal(st Settings, code string) string {

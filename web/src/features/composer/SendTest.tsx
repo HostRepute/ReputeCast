@@ -4,11 +4,12 @@ import { Popover } from '@/components/ui/Menu'
 import { toast } from '@/components/ui/Toast'
 import { useMe } from '@/lib/session'
 import { useComposer } from './context'
+import { TestLanguagePicker, testLanguageBody } from '@/features/languages/composerParts'
 
-async function sendTest(slug: string, campaignId: string, to: string[], variant: string) {
+async function sendTest(slug: string, campaignId: string, to: string[], variant: string, language?: string) {
   const { data } = await http.POST('/api/v1/workspaces/{workspace}/campaigns/{campaignId}/test', {
     params: { path: { workspace: slug, campaignId } },
-    body: { to, variant: variant === 'A' ? undefined : (variant as 'B' | 'C') },
+    body: { to, variant: variant === 'A' ? undefined : (variant as 'B' | 'C'), ...testLanguageBody(language) },
   })
   return data!
 }
@@ -16,12 +17,12 @@ async function sendTest(slug: string, campaignId: string, to: string[], variant:
 function useSend() {
   const c = useComposer()
   const [busy, setBusy] = useState(false)
-  const run = async (to: string[]) => {
+  const run = async (to: string[], language = c.campaign.language) => {
     setBusy(true)
     try {
       // Tests use the saved content.
       await c.save()
-      const r = await sendTest(c.slug, c.campaign.id, to, c.variant)
+      const r = await sendTest(c.slug, c.campaign.id, to, c.variant, language)
       toast({ kind: 'success', title: `Test sent to ${r.sent.join(', ')}`, detail: r.provider ? `via ${r.provider}` : undefined })
       return true
     } catch (e) {
@@ -46,6 +47,7 @@ export function SendTestButton({ disabled, toMe }: { disabled?: boolean; toMe?: 
   const [open, setOpen] = useState(false)
   const [picked, setPicked] = useState<string[]>([])
   const [extra, setExtra] = useState('')
+  const [language, setLanguage] = useState(c.campaign.language)
   if (disabled) {
     return (
       <button type="button" className="btn" disabled style={{ opacity: 0.5 }}>
@@ -88,6 +90,7 @@ export function SendTestButton({ disabled, toMe }: { disabled?: boolean; toMe?: 
           </span>
         </label>
       ))}
+      <TestLanguagePicker value={language} onChange={setLanguage} />
       <label className="lbl px-2.5 py-1.5">
         Other addresses
         <input className="in" value={extra} onChange={(e) => setExtra(e.target.value)} placeholder="name@example.com" />
@@ -99,7 +102,7 @@ export function SendTestButton({ disabled, toMe }: { disabled?: boolean; toMe?: 
           className="btn pri sm"
           disabled={!recipients.length || recipients.length > 10}
           aria-busy={busy || undefined}
-          onClick={() => void run(recipients).then((ok) => ok && setOpen(false))}
+          onClick={() => void run(recipients, language).then((ok) => ok && setOpen(false))}
         >
           Send
         </button>

@@ -2,10 +2,14 @@ import type { Component } from 'grapesjs'
 import { useEffect, useState } from 'react'
 import { Badge } from '@/components/ui/Badge'
 import { PanelTabs, TabPanel } from '@/components/ui/Tabs'
+import { LanguageBlockPanel } from '@/features/languages/composerParts'
 import { useComposer, type Issue } from './context'
 import { mjChildren, sectionOf, tagOf } from './editor/labels'
 import { applyFix, bodyOf, reveal } from './fixes'
 import { describe, SettingsFields, StyleFields } from './Inspector'
+import { AccessibilityPanel } from '@/features/accessibility/composer/Panel'
+import { useAccessibility } from '@/features/accessibility/composer/state'
+import { accessibilityTab } from '@/features/accessibility/composer/Status'
 
 /** Issues the Deliverability tab counts: blocks and warnings about the content (the subject has its own line). */
 export function contentIssues(issues: Issue[] | undefined): Issue[] {
@@ -194,6 +198,7 @@ function DeliverabilityTab() {
 /** Right panel: Style · Settings · Deliverability. */
 export function RightPanel() {
   const c = useComposer()
+  const a11y = useAccessibility()
   const issues = contentIssues(c.checks?.issues)
   const tab = c.rightTab === 'deliverability' && !issues.length && !(c.checks?.issues ?? []).some((i) => i.severity === 'warn' || i.severity === 'block') ? 'style' : c.rightTab
   if (c.isEmpty) {
@@ -213,14 +218,16 @@ export function RightPanel() {
   }
   const sel = c.selected && tagOf(c.selected) ? c.selected : null
   const footer = c.device === 'mobile' ? <MobileChecks selected={sel} /> : <SectionHealth selected={sel} />
-  const items: { value: 'style' | 'settings' | 'deliverability'; label: string }[] = [
+  const items: { value: 'style' | 'settings' | 'deliverability' | 'accessibility'; label: string }[] = [
     { value: 'style', label: 'Style' },
     { value: 'settings', label: 'Settings' },
   ]
   const allWarn = (c.checks?.issues ?? []).filter((i) => i.severity === 'block' || i.severity === 'warn')
   if (allWarn.length) items.push({ value: 'deliverability', label: `Deliverability · ${issues.length || allWarn.length}` })
+  const a11yTab = accessibilityTab(a11y)
+  if (a11yTab) items.push({ value: 'accessibility', label: a11yTab })
   return (
-    <aside className="cpanel right" aria-label="Style, settings and deliverability">
+    <aside className={tab === 'accessibility' || items.length > 3 ? 'cpanel right a11y-wide' : 'cpanel right'} aria-label="Style, settings, deliverability and accessibility">
       <PanelTabs value={tab} onChange={c.setRightTab} label="Inspector" items={items} className="flex flex-1 flex-col">
         <TabPanel value="style" className="flex flex-1 flex-col" tabIndex={-1}>
           {sel ? (
@@ -242,6 +249,9 @@ export function RightPanel() {
               <fieldset disabled={!c.canEdit} className="contents">
                 <SettingsFields key={sel.cid} c={sel} />
               </fieldset>
+              <div className="px-3 pb-3">
+                <LanguageBlockPanel />
+              </div>
             </>
           ) : (
             <NothingSelected />
@@ -250,6 +260,9 @@ export function RightPanel() {
         </TabPanel>
         <TabPanel value="deliverability" className="flex flex-1 flex-col" tabIndex={-1}>
           <DeliverabilityTab />
+        </TabPanel>
+        <TabPanel value="accessibility" className="flex flex-1 flex-col" tabIndex={-1}>
+          <AccessibilityPanel />
         </TabPanel>
       </PanelTabs>
     </aside>

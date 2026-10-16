@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/hostrepute/reputecast/internal/accessibility"
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
@@ -57,6 +58,8 @@ type TransactionalDiff struct {
 	// Settings lists other changes (sender, reply-to, tracking).
 	Settings []string `json:"settings"`
 	Changed  bool     `json:"changed"`
+	// Languages are the language versions added, changed or removed.
+	Languages []TransactionalLanguageChange `json:"languages,omitempty"`
 }
 
 // TransactionalBreakingVariable is a variable that would make recent calls fail.
@@ -109,6 +112,9 @@ type TransactionalPublishPreview struct {
 	// data that doesn't render); empty when it can.
 	Blocking   []string `json:"blocking"`
 	CanPublish bool     `json:"canPublish"`
+	// Languages are the language versions published with it, the source
+	// first (empty for a template in one language).
+	Languages []TransactionalPublishLanguage `json:"languages"`
 }
 
 // TransactionalMakeOptional turns a required variable into an optional one
@@ -541,11 +547,22 @@ func (s *Service) publishPreview(ctx context.Context, q *store.Queries, ws *stor
 		TemplateID: t.ID.String(), Key: t.Key, Name: t.Name, Category: categoryRef(t.CategoryID, t.CategoryName, t.CategoryKind), NextVersion: next,
 		LiveSince: t.LiveSince, LiveBy: t.LiveByName, DraftRevision: int(t.DraftRevision), DraftSavedAt: t.DraftSavedAt, DraftSavedBy: t.DraftSavedByName,
 		Diff: buildDiff(live, draft), TestRenders: []TransactionalTestRender{}, Blocking: []string{},
-		Approval: TransactionalPublishApproval{Approvers: []string{}},
+		Approval: TransactionalPublishApproval{Approvers: []string{}}, Languages: []TransactionalPublishLanguage{},
 	}
 	if t.LiveVersion != nil {
 		v := int(*t.LiveVersion)
 		out.LiveVersion = &v
+	}
+	if s.Translations != nil {
+		if out.Languages, err = s.Translations.Publishing(ctx, q, ws, t.ID); err != nil {
+			return out, err
+		}
+		if t.LiveVersion != nil {
+			if out.Diff.Languages, err = s.Translations.Changes(ctx, q, ws, t.ID, int(*t.LiveVersion)); err != nil {
+				return out, err
+			}
+			out.Diff.Changed = out.Diff.Changed || len(out.Diff.Languages) > 0
+		}
 	}
 	calls, err := q.TxnRecentCallKeys(ctx, store.TxnRecentCallKeysParams{TemplateID: &t.ID, Since: s.now().Add(-BreakingWindow)})
 	if err != nil {
@@ -556,7 +573,7 @@ func (s *Service) publishPreview(ctx context.Context, q *store.Queries, ws *stor
 	cs := s.draftSubject(ctx, ws, t)
 	cs.Variables = vars
 	cs.ProbeLinks = true
-	out.Checks = s.runChecks(ctx, cs)
+	out.Checks = publishChecks(s.runChecks(ctx, cs))
 	out.TestRenders = append(out.TestRenders, out.Checks.TestData...)
 	if len(calls) > 0 {
 		c := calls[0]
@@ -693,16 +710,28 @@ func (s *Service) Publish(ctx context.Context, ws *store.Workspace, p *authz.Pri
 		if strings.TrimSpace(html) == "" {
 			html, _ = content{Subject: t.Subject, Preheader: t.Preheader, MJML: t.Mjml}.compiledHTML()
 		}
+		// lang, dir and the layout tables' role (accessibility): already there
+		// when the draft was saved through the API, added to HTML stored
+		// before them.
+		html = accessibility.FinalizeStored(ctx, q, ws.ID, accessibility.OwnerTransactional, id, 0, html)
 		hash := draftHash(t.Subject, t.Preheader, t.EditorMode, t.Mjml, t.Html, t.PlainText, vars, t.SenderID, t.ReplyTo, t.TrackOpens, t.TrackClicks)
 		change := strings.TrimSpace(in.Note)
 		if change == "" {
 			change = changeSummary(pv.Diff, in.MakeOptional, t.LiveVersion == nil)
+		}
+		if change == "" && len(pv.Diff.Languages) > 0 {
+			change = languageChangeSummary(pv.Diff.Languages)
 		}
 		if err := q.TxnVersionInsert(ctx, store.TxnVersionInsertParams{TemplateID: id, Version: version, Subject: t.Subject, Preheader: t.Preheader, EditorMode: t.EditorMode,
 			Mjml: t.Mjml, Html: html, PlainText: t.PlainText, Variables: mustJSON(vars), TestData: t.TestData, SenderID: t.SenderID, ReplyTo: t.ReplyTo,
 			TrackOpens: t.TrackOpens, TrackClicks: t.TrackClicks, ContentHash: hash, SizeBytes: int32(len(html)), Change: change, Note: strings.TrimSpace(in.Note),
 			PublishedBy: userRef(p), PublishedAt: now}); err != nil {
 			return err
+		}
+		if s.Translations != nil {
+			if err := s.Translations.Publish(ctx, q, ws, id, int(version)); err != nil {
+				return err
+			}
 		}
 		if err := q.TxnTemplatePublish(ctx, store.TxnTemplatePublishParams{WorkspaceID: ws.ID, ID: id, Version: &version, Now: now, LiveBy: userRef(p), Variables: mustJSON(vars)}); err != nil {
 			return err

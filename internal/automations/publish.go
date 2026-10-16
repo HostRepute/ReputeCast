@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 
@@ -138,6 +139,7 @@ func (s *Service) loadPublish(ctx context.Context, q *store.Queries, ws *store.W
 		FromRefs: st.refs, ToVersion: int(a.DraftVersion), Loc: workspaceLoc(ws), Failures: st.failures,
 		Check: func(emailID string, version int) string { return s.checkEmail(ctx, q, ws.ID, emailID, version) },
 	})
+	st.items = s.languageDiff(ctx, q, ws, from, st.draft, st.items)
 	st.issues = Validate(st.draft, st.refs)
 	if st.inflow, err = q.CountAutomationInFlowByNode(ctx, a.ID); err != nil {
 		return nil, err
@@ -185,11 +187,19 @@ func (s *Service) PublishPreview(ctx context.Context, ws *store.Workspace, id uu
 		return out, err
 	}
 	out.Checks = s.publishChecks(ctx, ws, st, route)
+	a11y, err := s.accessibility(ctx, s.Q, ws, automationOf(a), st.draft)
+	if err != nil {
+		return out, err
+	}
+	out.Checks = append(out.Checks, a11y.Checks...)
 	out.CanPublish = true
 	for _, c := range out.Checks {
 		if c.Status == "bad" {
 			out.CanPublish = false
 			out.Blocker = c.Label
+			if a11y.Blocked && slices.ContainsFunc(a11y.Checks, func(x AutomationPublishCheck) bool { return x.Label == c.Label }) {
+				out.Blocker = a11y.Blocker
+			}
 			break
 		}
 	}
@@ -294,7 +304,7 @@ func (s *Service) publishChecks(ctx context.Context, ws *store.Workspace, st *pu
 	if other != "" {
 		out = append(out, AutomationPublishCheck{Status: "bad", Label: other})
 	}
-	return out
+	return append(out, s.languageChecks(ctx, ws, st.draft)...)
 }
 
 // remaining is the longest time a contact can still spend in the flow from
@@ -474,6 +484,11 @@ func (s *Service) Publish(ctx context.Context, ws *store.Workspace, by uuid.UUID
 			return api.Err(http.StatusUnprocessableEntity, api.CodeValidation, errs[0].Message+" Fix it on the canvas, then publish.").
 				WithMeta("issues", errs)
 		}
+		if v, err := s.accessibility(ctx, q, ws, a, st.draft); err != nil {
+			return err
+		} else if v.Blocked {
+			return api.Err(http.StatusConflict, CodeAccessibilityBlocked, v.Blocker)
+		}
 		dec, err := s.gate().Check(ctx, tx, PublishRequest{WorkspaceID: ws.ID, AutomationID: id, Name: a.Name, Version: version, Migration: migration, By: by, Changes: st.items})
 		if err != nil {
 			return err
@@ -514,6 +529,11 @@ func (s *Service) CompletePublish(ctx context.Context, ws *store.Workspace, by u
 		}
 		if errs := Errors(st.issues); len(errs) > 0 {
 			return api.Err(http.StatusUnprocessableEntity, api.CodeValidation, errs[0].Message)
+		}
+		if v, err := s.accessibility(ctx, q, ws, a, st.draft); err != nil {
+			return err
+		} else if v.Blocked {
+			return api.Err(http.StatusConflict, CodeAccessibilityBlocked, v.Blocker)
 		}
 		return s.publishTx(ctx, tx, ws, a, st, by, migration)
 	})

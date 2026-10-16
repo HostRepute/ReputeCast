@@ -144,8 +144,8 @@ func overview(st sourceState, views []view, settings Settings, readers map[strin
 		}
 		choice := ch.Pick(lang)
 		e.Gets = choice.Language
-		switch {
-		case lang == st.Language:
+		switch lang {
+		case st.Language:
 			e.Status, e.Blocks, e.UpToDate = StatusSource, len(st.Blocks), len(st.Blocks)
 			e.Gets = lang
 		default:
