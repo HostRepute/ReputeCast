@@ -20,6 +20,8 @@ export const ms = defineMessages('transactional.setup', {
   idempotencyValue: '{header} header · a retry within {hours} hours never sends twice',
   size: 'Message size',
   sizeValue: "Up to {size} with attachments on this route ({provider}'s limit)",
+  sizeValueOthers: "Up to {size} with attachments on this route ({provider}'s limit; {others})",
+  sizeAllows: '{provider} allows {size}',
   sizeValueNoProvider: 'Up to {size} with attachments on this route',
   rate: 'Rate',
   rateValue: '{rate} requests per second per key, set on each key',

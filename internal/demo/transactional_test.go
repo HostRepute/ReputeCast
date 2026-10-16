@@ -181,13 +181,22 @@ func TestTransactionalDemo(t *testing.T) {
 		t.Fatalf("categories: %v", got)
 	}
 
-	// Setup: the keys that can send, the verified senders, the relay.
+	// Setup: the keys that can send, the verified senders, the relay, and
+	// "Up to 10 MB … (Postmark's limit; SES allows 40 MB)".
 	var setup struct {
 		Keys    []struct{ Name, Preset, Mode string }
 		Senders []struct{ Email string }
 		Relay   struct {
 			Enabled bool
 			State   string
+		}
+		Limits struct {
+			RouteLimitBytes    int64
+			RouteLimitProvider string
+			RouteLimitOthers   []struct {
+				Provider string
+				Bytes    int64
+			}
 		}
 	}
 	c.Do("GET", base+"/setup", nil).MustStatus(t, 200).JSON(t, &setup)
@@ -198,6 +207,10 @@ func TestTransactionalDemo(t *testing.T) {
 	if strings.Join(keys, ", ") != "Acme Cloud · production:send_only:live, Acme Cloud · staging:send_only:test, Billing service (SMTP):smtp:live" ||
 		len(setup.Senders) != 2 || !setup.Relay.Enabled || setup.Relay.State != "ok" {
 		t.Fatalf("setup: %+v", setup)
+	}
+	if l := setup.Limits; l.RouteLimitBytes != 10<<20 || l.RouteLimitProvider != "Postmark" || len(l.RouteLimitOthers) != 1 ||
+		l.RouteLimitOthers[0].Provider != "SES" || l.RouteLimitOthers[0].Bytes != 40<<20 {
+		t.Fatalf("setup limits: %+v", l)
 	}
 
 	// The demo's relay is on with passing checks, but nothing listens

@@ -162,9 +162,15 @@ function ApiCard({ s }: { s: Setup }) {
           </dd>
           <dt>{t(ms.size)}</dt>
           <dd>
-            {s.limits.routeLimitProvider
-              ? t(ms.sizeValue, { size: mb(s.limits.routeLimitBytes), provider: s.limits.routeLimitProvider })
-              : t(ms.sizeValueNoProvider, { size: mb(s.limits.routeLimitBytes) })}
+            {!s.limits.routeLimitProvider
+              ? t(ms.sizeValueNoProvider, { size: mb(s.limits.routeLimitBytes) })
+              : s.limits.routeLimitOthers.length > 0
+                ? t(ms.sizeValueOthers, {
+                    size: mb(s.limits.routeLimitBytes),
+                    provider: s.limits.routeLimitProvider,
+                    others: s.limits.routeLimitOthers.map((o) => t(ms.sizeAllows, { provider: o.provider, size: mb(o.bytes) })).join('; '),
+                  })
+                : t(ms.sizeValue, { size: mb(s.limits.routeLimitBytes), provider: s.limits.routeLimitProvider })}
           </dd>
           <dt>{t(ms.rate)}</dt>
           <dd>{t(ms.rateValue, { rate: s.limits.ratePerSecond })}</dd>
@@ -234,7 +240,7 @@ function KeysCard({ s, onCreate }: { s: Setup; onCreate: () => void }) {
             />
           </span>
           <div className="row" style={{ justifyContent: 'space-between', gap: 8 }}>
-            <span className="k" style={{ color: '#374151' }}>
+            <span className="k" style={{ color: 'var(--ink-nav)' }}>
               {k.lastUsedAt ? (k.lastUsedIp ? t(ms.lastUsed, { when: ago(k.lastUsedAt, now), ip: k.lastUsedIp }) : t(ms.lastUsedNoIp, { when: ago(k.lastUsedAt, now) })) : t(ms.neverUsed)}
             </span>
             {s.canManageKeys ? (
@@ -386,7 +392,9 @@ function RelayCard({ s, onCreate }: { s: Setup; onCreate: () => void }) {
           </>
         ) : (
           <>
-            <p className="m-0">{t(ms.relayIntro)}</p>
+            <p className="k m-0" style={{ color: 'var(--ink-nav)' }}>
+              {t(ms.relayIntro)}
+            </p>
             {r.state === 'unreachable' ? <Note tone="bad">{t(ms.relayUnreachableBody)}</Note> : null}
             <dl className="kv">
               <dt>{t(ms.relayHost)}</dt>
@@ -474,7 +482,7 @@ function EventsCard() {
       </div>
       <div className="pad flex flex-col gap-2.5">
         {hook ? (
-          <span className="k" style={{ color: '#374151' }}>
+          <span className="k" style={{ color: 'var(--ink-nav)' }}>
             {t(ms.eventsEndpoint)} <span className="mono">{hook.url}</span>{' '}
             {some ? (
               <T msg={ms.eventsSome} values={{ events: <>{some.map((e, i) => <span key={e}>{i ? (i === some.length - 1 ? t(ms.and) : ', ') : ''}<span className="mono">{e}</span></span>)}</> }} />

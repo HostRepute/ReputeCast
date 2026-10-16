@@ -38379,6 +38379,12 @@
             "format": "int64",
             "type": "integer"
           },
+          "routeLimitOthers": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionalProviderLimit"
+            },
+            "type": "array"
+          },
           "routeLimitProvider": {
             "type": "string"
           },
@@ -38395,6 +38401,7 @@
           "maxBatch",
           "ratePerSecond",
           "routeLimitBytes",
+          "routeLimitOthers",
           "idempotencyHours",
           "scheduleHours",
           "smtpRecipients"
@@ -39374,6 +39381,26 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "TransactionalProviderLimit": {
+        "additionalProperties": false,
+        "properties": {
+          "bytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "provider": {
+            "examples": [
+              "SES"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider",
+          "bytes"
+        ],
         "type": "object"
       },
       "TransactionalPublishApproval": {

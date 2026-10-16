@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/routing"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -22,9 +23,18 @@ type TransactionalLimits struct {
 	// (attachments included); RouteLimitProvider is the smallest's name.
 	RouteLimitBytes    int64  `json:"routeLimitBytes"`
 	RouteLimitProvider string `json:"routeLimitProvider,omitempty"`
-	IdempotencyHours   int    `json:"idempotencyHours"`
-	ScheduleHours      int    `json:"scheduleHours"`
-	SMTPRecipients     int    `json:"smtpRecipients"`
+	// RouteLimitOthers are the route's providers that accept more ("SES
+	// allows 40 MB"), in route order.
+	RouteLimitOthers []TransactionalProviderLimit `json:"routeLimitOthers"`
+	IdempotencyHours int                          `json:"idempotencyHours"`
+	ScheduleHours    int                          `json:"scheduleHours"`
+	SMTPRecipients   int                          `json:"smtpRecipients"`
+}
+
+// TransactionalProviderLimit is the largest message one provider accepts.
+type TransactionalProviderLimit struct {
+	Provider string `json:"provider" example:"SES"`
+	Bytes    int64  `json:"bytes"`
 }
 
 // TransactionalErrorCode is one row of the error table.
@@ -91,7 +101,7 @@ func (s *Service) Setup(ctx context.Context, ws *store.Workspace, p *authz.Princ
 	base := s.URLs.Base()
 	out := TransactionalSetup{BaseURL: base + "/api/v1/workspaces/" + ws.Slug + "/transactional", OpenAPIURL: base + "/api/openapi.json",
 		Limits: TransactionalLimits{MaxBatch: MaxBatch, RatePerSecond: 50, IdempotencyHours: int(IdempotencyTTL / time.Hour), ScheduleHours: int(MaxScheduleAge / time.Hour),
-			SMTPRecipients: MaxRawRecipients}, Errors: errorTable, Headers: []string{"X-ReputeCast-Tags", "X-ReputeCast-Category"}, KeyHelpers: []string{}}
+			SMTPRecipients: MaxRawRecipients, RouteLimitOthers: []TransactionalProviderLimit{}}, Errors: errorTable, Headers: []string{"X-ReputeCast-Tags", "X-ReputeCast-Category"}, KeyHelpers: []string{}}
 	keys, err := s.sendingKeys(ctx, ws.ID)
 	if err != nil {
 		return out, err
@@ -107,12 +117,15 @@ func (s *Service) Setup(ctx context.Context, ws *store.Workspace, p *authz.Princ
 			out.Senders = append(out.Senders, sn)
 		}
 	}
-	// The route's size limit: the smallest of its providers'.
+	// The route's size limit: the smallest of its providers', and the ones
+	// that accept more.
 	if set, err := routing.Load(ctx, s.Q, ws.ID); err == nil {
 		provs, err := s.Q.ProvListActive(ctx, ws.ID)
 		if err != nil {
 			return out, err
 		}
+		var route []store.Provider
+		seen := map[string]bool{}
 		for _, r := range set.StreamRules(routing.StreamTransactional) {
 			ids := []string{}
 			for _, sp := range r.Splits {
@@ -121,15 +134,23 @@ func (s *Service) Setup(ctx context.Context, ws *store.Workspace, p *authz.Princ
 			if r.Fallback != nil {
 				ids = append(ids, r.Fallback.String())
 			}
-			for _, pr := range provs {
-				for _, id := range ids {
-					if pr.ID.String() == id {
-						l := providerLimit(pr.Adapter)
-						if out.Limits.RouteLimitProvider == "" || l < out.Limits.RouteLimitBytes {
-							out.Limits.RouteLimitBytes, out.Limits.RouteLimitProvider = l, pr.Name
-						}
+			for _, id := range ids {
+				for _, pr := range provs {
+					if pr.ID.String() == id && !seen[id] {
+						seen[id] = true
+						route = append(route, pr)
 					}
 				}
+			}
+		}
+		for _, pr := range route {
+			if l := providerLimit(pr.Adapter); out.Limits.RouteLimitProvider == "" || l < out.Limits.RouteLimitBytes {
+				out.Limits.RouteLimitBytes, out.Limits.RouteLimitProvider = l, state.Short(pr.Name, pr.Adapter)
+			}
+		}
+		for _, pr := range route {
+			if l := providerLimit(pr.Adapter); l > out.Limits.RouteLimitBytes {
+				out.Limits.RouteLimitOthers = append(out.Limits.RouteLimitOthers, TransactionalProviderLimit{Provider: state.Short(pr.Name, pr.Adapter), Bytes: l})
 			}
 		}
 	}

@@ -18894,6 +18894,7 @@ export interface components {
             ratePerSecond: number;
             /** Format: int64 */
             routeLimitBytes: number;
+            routeLimitOthers: components["schemas"]["TransactionalProviderLimit"][];
             routeLimitProvider?: string;
             /** Format: int64 */
             scheduleHours: number;
@@ -19210,6 +19211,12 @@ export interface components {
              * @example https://example.com/errors/example
              */
             type: string;
+        };
+        TransactionalProviderLimit: {
+            /** Format: int64 */
+            bytes: number;
+            /** @example SES */
+            provider: string;
         };
         TransactionalPublishApproval: {
             approvers: string[];
