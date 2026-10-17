@@ -1,6 +1,6 @@
 {{define "content"}}{{with .Body}}<main class="card g18" id="main">
   {{template "brand" $}}
-  <div class="col4"><h1 class="h26">{{$.T "prefs.heading"}}</h1><span class="sub">{{$.H "prefs.for" "email" .Email "href" .NotYouHref}}</span></div>
+  <div class="col4"><h1 class="h26">{{$.T "prefs.heading"}}</h1><span class="sub">{{if .NotYouHref}}{{$.H "prefs.for" "email" .Email "href" .NotYouHref}}{{else}}{{$.T "prefs.forOnly" "email" .Email}}{{end}}</span></div>
   {{with .Saved}}<div class="notice ok" role="status">{{.}}</div>{{end}}
   {{with .Alert}}<div class="alert" role="alert">{{.}}</div>{{end}}
   <form class="col18" method="post" action="{{.Action}}">
@@ -9,6 +9,13 @@
       {{range .Lists}}<label class="row"><input type="checkbox" name="list" value="{{.ID}}"{{if .Checked}} checked{{end}}><span><span class="nm">{{.Name}}</span>{{with .Text}}<br><span class="ds">{{.}}</span>{{end}}</span></label>
       {{end}}<input type="hidden" name="shown" value="{{.Shown}}">
     </fieldset>
+    {{end}}{{with .Notifications}}<fieldset class="group">
+      <legend class="t13b">{{.Title}}</legend>
+      {{range .Items}}<label class="row"><input type="checkbox" name="category" value="{{.ID}}"{{if .Checked}} checked{{end}}><span><span class="nm">{{.Name}}</span>{{with .Text}}<br><span class="ds">{{.}}</span>{{end}}</span></label>
+      {{end}}<input type="hidden" name="categories_shown" value="{{.Shown}}">
+      <span class="t13">{{$.T "prefs.notificationsNote"}}</span>
+    </fieldset>
+    {{end}}{{with .Note}}<div class="aside"><span>{{.}}</span></div>
     {{end}}{{if .Frequencies}}<fieldset class="group">
       <legend class="t13b">{{$.T "prefs.howOften"}}</legend>
       <div class="pills">
@@ -35,7 +42,7 @@
     {{end}}{{if .AskName}}<div class="col8"><label class="field">{{$.T "prefs.firstName"}}<input class="in h44" type="text" name="first_name" value="{{.FirstName}}" autocomplete="given-name" maxlength="100"></label></div>
     {{end}}<button class="btn-pri" type="submit"{{if $.Preview}} disabled{{end}}>{{$.T "prefs.save"}}</button>
   </form>
-  <div class="split"><span>{{$.T "prefs.applies"}}</span><a class="plain" href="{{.UnsubscribeHref}}">{{$.T "prefs.unsubscribeAll"}}</a></div>
+  <div class="split"><span>{{$.T "prefs.applies"}}</span>{{with .UnsubscribeHref}}<a class="plain" href="{{.}}">{{$.T "prefs.unsubscribeAll"}}</a>{{end}}</div>
 </main>{{end}}{{end}}
 {{define "foot"}}<footer class="foot">
   {{- with .Privacy}}<a href="{{.}}">{{$.T "page.privacy"}}</a>{{end}}

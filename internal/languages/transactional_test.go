@@ -105,11 +105,15 @@ func TestTransactionalLanguages(t *testing.T) {
 			t.Fatalf("%s: %v", sql, err)
 		}
 	}
-	// A Transactional sender, and the route.
-	dom := uuid.Must(uuid.NewV7())
-	exec(`INSERT INTO sending_domains (id, workspace_id, domain, status, transactional) VALUES ($1, $2, 'notify.acme.io', 'verified', true)`, dom, wsID)
-	exec(`INSERT INTO senders (id, workspace_id, domain_id, name, email, reply_to) VALUES ($1, $2, $3, 'Acme Cloud', 'no-reply@notify.acme.io', 'support@acme.io')`,
-		uuid.Must(uuid.NewV7()), wsID, dom)
+	// A Transactional sender (the demo's Acme Cloud on notify.acme.io), and the route.
+	exec(`INSERT INTO sending_domains (id, workspace_id, domain, status, transactional) VALUES ($1, $2, 'notify.acme.io', 'verified', true) ON CONFLICT DO NOTHING`,
+		uuid.Must(uuid.NewV7()), wsID)
+	var dom uuid.UUID
+	if err := env.App.Pool.QueryRow(ctx, `SELECT id FROM sending_domains WHERE workspace_id = $1 AND domain = 'notify.acme.io'`, wsID).Scan(&dom); err != nil {
+		t.Fatal(err)
+	}
+	exec(`INSERT INTO senders (id, workspace_id, domain_id, name, email, reply_to) SELECT $1, $2, $3, 'Acme Cloud', 'no-reply@notify.acme.io', 'support@acme.io'
+		WHERE NOT EXISTS (SELECT 1 FROM senders WHERE workspace_id = $2 AND email = 'no-reply@notify.acme.io')`, uuid.Must(uuid.NewV7()), wsID, dom)
 	var postmark, ses string
 	if err := env.App.Pool.QueryRow(ctx, `SELECT (SELECT id::text FROM providers WHERE workspace_id = $1 AND adapter = 'postmark'),
 		(SELECT id::text FROM providers WHERE workspace_id = $1 AND adapter = 'ses')`, wsID).Scan(&postmark, &ses); err != nil {

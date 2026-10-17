@@ -9,9 +9,10 @@ import (
 
 // The transactional templates the editor and publish boards show come out
 // of the demo seed in their states: password-reset v3 matching its draft,
-// welcome's draft with an undeclared and an unused variable, trial-ending's
-// draft v2 breaking the 71 calls of the last 7 days, and usage-summary
-// ready to publish v7.
+// welcome's draft matching v5 (the Templates tab counts one draft with
+// changes; the editor's undeclared and unused variable states are made by
+// editing it), trial-ending's draft v2 breaking the 71 calls of the last 7
+// days, and usage-summary's next version 7.
 func TestTransactionalTemplateSeed(t *testing.T) {
 	env := apptest.New(t)
 	env.SeedDemo()
@@ -39,7 +40,7 @@ func TestTransactionalTemplateSeed(t *testing.T) {
 		}
 	}
 	linh.Do("POST", ws+"welcome/checks", map[string]any{}).MustStatus(t, 200).JSON(t, &checks)
-	if len(checks.Variables.Undeclared) != 1 || checks.Variables.Undeclared[0].Name != "company_name" || len(checks.Variables.Unused) != 1 || checks.Variables.Unused[0] != "plan_name" {
+	if len(checks.Variables.Undeclared) != 0 || len(checks.Variables.Unused) != 0 {
 		t.Fatalf("welcome checks: %+v", checks)
 	}
 

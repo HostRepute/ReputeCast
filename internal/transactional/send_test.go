@@ -254,10 +254,10 @@ func (s *sendEnv) events(id string) []string {
 	return out
 }
 
-// unfold undoes quoted-printable soft line breaks so a test can look for
-// a value in a received message.
+// unfold undoes quoted-printable soft line breaks and folded headers so a
+// test can look for a value in a received message.
 func unfold(data string) string {
-	return strings.NewReplacer("=\r\n", "", "=3D", "=").Replace(data)
+	return strings.NewReplacer("=\r\n", "", "=3D", "=", "\r\n ", "", "\r\n\t", "").Replace(data)
 }
 
 func TestSendAndDeliver(t *testing.T) {
@@ -654,8 +654,18 @@ func TestSendKeysAndPeople(t *testing.T) {
 	if p["code"] != "agents_never_send" {
 		t.Fatalf("agent: %v", p)
 	}
-	// The Owner sends from a session (the first-send guide does).
-	s.owner.Do("POST", base+"/messages", resetBody("linh@acme.io")).MustStatus(t, 202)
+	// The Owner sends from a session (the first-send guide does): the
+	// message says who sent it, with no key.
+	var sent struct{ ID string }
+	s.owner.Do("POST", base+"/messages", resetBody("linh@acme.io")).MustStatus(t, 202).JSON(t, &sent)
+	var d struct {
+		SentBy string          `json:"sentBy"`
+		KeyRef json.RawMessage `json:"keyRef"`
+	}
+	s.owner.Do("GET", base+"/messages/"+sent.ID, nil).MustStatus(t, 200).JSON(t, &d)
+	if d.SentBy != "Linh Nguyen" || len(d.KeyRef) != 0 {
+		t.Fatalf("sent from a session: %+v", d)
+	}
 }
 
 func TestSendRateLimit(t *testing.T) {
@@ -679,14 +689,25 @@ func TestOutboxFailover(t *testing.T) {
 	s := newSendEnv(t)
 	s.webhook()
 	_, secret := s.key("Production", map[string]any{"preset": "send_only"})
-	// Nothing listens: every attempt fails with a connection error.
+	// The provider is down: every connection gets 421, a temporary error.
+	// The server keeps its port for the whole test (a port closed again
+	// could be taken by another package's server meanwhile).
 	ln, err := (&net.ListenConfig{}).Listen(s.ctx, "tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
 	}
-	closed := ln.Addr().String()
-	_ = ln.Close()
-	s.env.App.TransactionalOutbox().DevSMTP = closed
+	t.Cleanup(func() { _ = ln.Close() })
+	go func() {
+		for {
+			c, err := ln.Accept()
+			if err != nil {
+				return
+			}
+			_, _ = c.Write([]byte("421 4.3.2 Service not available, closing transmission channel\r\n"))
+			_ = c.Close()
+		}
+	}()
+	s.env.App.TransactionalOutbox().DevSMTP = ln.Addr().String()
 
 	var res sendResult
 	s.call(secret, "/messages", "", resetBody("sam.rivera@outlook.com")).MustStatus(t, 202).JSON(t, &res)

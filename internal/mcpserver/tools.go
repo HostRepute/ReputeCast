@@ -645,6 +645,7 @@ func (s *Service) addTools(srv *mcp.Server) {
 	}, nil)
 
 	s.addLanguageTools(srv)
+	s.addTransactionalTools(srv)
 }
 
 func healthyLine(names []string) []string {

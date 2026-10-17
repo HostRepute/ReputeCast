@@ -220,6 +220,10 @@ type preferencesBody struct {
 	// name, the contact's checked.
 	Languages    []choiceView
 	LanguageNote string
+	// Notifications is transactional mail's Optional categories; Note
+	// stands in for it when there are none.
+	Notifications *notificationsView
+	Note          string
 }
 
 func (h *Handler) preferencesPage(w http.ResponseWriter, r *http.Request) {
@@ -235,6 +239,11 @@ func (h *Handler) preferencesPage(w http.ResponseWriter, r *http.Request) {
 	}
 	pc, err := h.Audience.LoadPublicContact(r.Context(), h.Q, s.ws, c.ContactID)
 	if errors.Is(err, audience.ErrContactGone) {
+		// Transactional mail reaches people who aren't contacts.
+		if m, ok, terr := h.transactionalMessage(r.Context(), s, c); terr == nil && ok {
+			h.notificationsPage(w, r, s, c, m, token, r.URL.Query().Get("saved") == "1", http.StatusOK)
+			return
+		}
 		h.notFound(w, r, s)
 		return
 	}
@@ -290,6 +299,9 @@ func (h *Handler) preferencesBody(ctx context.Context, s *site, pc audience.Publ
 		shown = append(shown, pl2.ID.String())
 	}
 	b.Shown = strings.Join(shown, ",")
+	if b.Notifications, err = h.notificationsSection(ctx, s, pc.Email, l); err != nil {
+		return b, err
+	}
 	if p.Frequency {
 		for _, f := range []struct{ v, key string }{{"all", "prefs.all"}, {"weekly", "prefs.weekly"}, {"monthly", "prefs.monthly"}} {
 			b.Frequencies = append(b.Frequencies, choiceView{Value: f.v, Label: l.Text(f.key, nil), Checked: pc.Frequency == f.v})
@@ -336,6 +348,28 @@ func (h *Handler) preferencesPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	f := r.PostForm
+	catOn, catShown := notificationsForm(r)
+	if c.ContactID == uuid.Nil {
+		// Someone who got transactional mail but isn't a contact.
+		m, ok, err := h.transactionalMessage(r.Context(), s, c)
+		if err != nil {
+			h.serverError(w, r, s, err)
+			return
+		}
+		if !ok {
+			h.notFound(w, r, s)
+			return
+		}
+		mid := c.MessageID
+		if err := db.Tx(r.Context(), h.Pool, func(tx pgx.Tx) error {
+			return h.Notifications.Save(r.Context(), tx, s.ws, m.Email, catOn, catShown, &mid)
+		}); err != nil {
+			h.serverError(w, r, s, err)
+			return
+		}
+		http.Redirect(w, r, s.links.Preferences(token)+"?saved=1", http.StatusSeeOther) //nolint:gosec // our own origin; the token was verified and is path-escaped
+		return
+	}
 	in := audience.PreferencesInput{Frequency: f.Get("frequency"), PauseDays: -1}
 	if f.Has("language") {
 		lang := f.Get("language")
@@ -365,7 +399,19 @@ func (h *Handler) preferencesPost(w http.ResponseWriter, r *http.Request) {
 	}
 	err := db.Tx(r.Context(), h.Pool, func(tx pgx.Tx) error {
 		_, err := h.Audience.SavePreferences(r.Context(), tx, s.ws, c.ContactID, in, h.evidence(r, audience.SourcePreferences))
-		return err
+		if err != nil || h.Notifications == nil || len(catShown) == 0 {
+			return err
+		}
+		pc, err := h.Audience.LoadPublicContact(r.Context(), store.New(tx), s.ws, c.ContactID)
+		if err != nil {
+			return err
+		}
+		var mid *uuid.UUID
+		if c.MessageID != uuid.Nil {
+			id := c.MessageID
+			mid = &id
+		}
+		return h.Notifications.Save(r.Context(), tx, s.ws, pc.Email, catOn, catShown, mid)
 	})
 	var fe *audience.FieldError
 	switch {
@@ -523,6 +569,10 @@ func (h *Handler) unsubscribePage(w http.ResponseWriter, r *http.Request) {
 		h.notFound(w, r, s)
 		return
 	}
+	// A transactional email's link turns off just its category.
+	if h.categoryUnsubscribe(w, r, s, c) {
+		return
+	}
 	pc, err := h.Audience.LoadPublicContact(r.Context(), h.Q, s.ws, c.ContactID)
 	if errors.Is(err, audience.ErrContactGone) {
 		h.notFound(w, r, s)
@@ -616,6 +666,9 @@ func (h *Handler) unsubscribePost(w http.ResponseWriter, r *http.Request) {
 	}
 	if !h.parseForm(w, r, 16<<10) {
 		http.Error(w, h.visitorLang(nil, r, s, nil).Labels.Text("unsub.unreadable", nil), http.StatusBadRequest)
+		return
+	}
+	if h.categoryPost(w, r, s, c) {
 		return
 	}
 	f := r.PostForm

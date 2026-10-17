@@ -162,7 +162,8 @@ func TestAudienceDemo(t *testing.T) {
 			Sources []struct{ Value, Label string }
 		}
 		c.Do(http.MethodGet, ws+"/suppressions", nil).MustStatus(t, 200).JSON(t, &l)
-		if l.Counts.Total != 1874 || l.Counts.HardBounce != 1402 || l.Counts.Complaint != 96 || l.Counts.Unsubscribe != 331 || l.Counts.Manual != 45 {
+		// The board's 1,874 and billing@northwind.example's role entry (Transactional).
+		if l.Counts.Total != 1875 || l.Counts.HardBounce != 1402 || l.Counts.Complaint != 96 || l.Counts.Unsubscribe != 331 || l.Counts.Manual != 45 {
 			t.Fatalf("counts %+v", l.Counts)
 		}
 		var group bool
@@ -208,8 +209,8 @@ func TestAudienceDemo(t *testing.T) {
 		}
 		viewer.Do(http.MethodGet, ws+"/suppressions/export", nil).MustStatus(t, 403)
 		r := c.Do(http.MethodGet, ws+"/suppressions/export", nil).MustStatus(t, 200)
-		if lines := strings.Count(string(r.Body), "\n"); lines != 1874+1 {
-			t.Fatalf("export has %d lines, want header + 1,874", lines)
+		if lines := strings.Count(string(r.Body), "\n"); lines != 1875+1 {
+			t.Fatalf("export has %d lines, want header + 1,875", lines)
 		}
 	})
 

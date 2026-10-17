@@ -24,6 +24,8 @@ export interface SuppressionsSearch {
   reason?: SuppressionReason
   source?: string
   since?: '7d' | '30d'
+  /** All mail (every stream, transactional too) or Marketing only (Broadcasts and Automations). */
+  appliesTo?: 'all' | 'marketing'
   import?: string
   page?: number
 }
@@ -54,7 +56,7 @@ export function SuppressionsPage({ search }: { search: SuppressionsSearch }) {
     {
       params: {
         path: { workspace: slug },
-        query: { q: search.q, reason: search.reason, source: search.source, since: search.since, import: search.import, page, pageSize: 10 },
+        query: { q: search.q, reason: search.reason, source: search.source, since: search.since, appliesTo: search.appliesTo, import: search.import, page, pageSize: 10 },
       },
     },
     { placeholderData: keepPreviousData },
@@ -67,7 +69,7 @@ export function SuppressionsPage({ search }: { search: SuppressionsSearch }) {
   const setFilter = (patch: Partial<SuppressionsSearch>) => go({ ...search, ...patch, page: undefined })
   const d = list.data
   if (!d && list.error instanceof ApiError && list.error.status === 403) throw list.error
-  const filtered = Boolean(search.q || search.reason || search.source || search.since || search.import)
+  const filtered = Boolean(search.q || search.reason || search.source || search.since || search.appliesTo || search.import)
   return (
     <Page
       title="Audience"
@@ -99,6 +101,12 @@ export function SuppressionsPage({ search }: { search: SuppressionsSearch }) {
           <SyncStrip d={d} />
           <Filters search={search} d={d} onChange={setFilter} />
           {search.import ? <GroupNote d={d} onBack={() => setFilter({ import: undefined })} /> : null}
+          <Note tone="info">
+            <span>
+              <b>All mail</b> blocks every stream, transactional included: bounces, complaints, spam traps, invalid, manual and imported entries. <b>Marketing only</b> blocks
+              Broadcasts and Automations: unsubscribes and role addresses. Password resets and receipts still reach those addresses.
+            </span>
+          </Note>
           <Table
             d={d}
             page={page}
@@ -139,12 +147,12 @@ function Counts({ d }: { d: List }) {
   const names = d.sync.map((s) => shortProvider(s.name))
   const cards: [string, number, string][] = [
     ['Suppressed, all providers', d.counts.total, names.length > 0 ? `one list, enforced on ${andList(names)}` : 'one list, enforced on every provider you connect'],
-    ['Hard bounces', d.counts.hardBounce, 'all streams blocked'],
-    ['Complaints', d.counts.complaint, 'all streams blocked'],
-    ['Unsubscribed', d.counts.unsubscribe, 'Broadcasts and Automations blocked, System allowed'],
+    ['Hard bounces', d.counts.hardBounce, 'all mail blocked, transactional too'],
+    ['Complaints', d.counts.complaint, 'all mail blocked, transactional too'],
+    ['Unsubscribed', d.counts.unsubscribe, 'marketing only: transactional and System mail still arrive'],
     ['Manual', d.counts.manual, 'added by the team or API'],
   ]
-  if (d.counts.other > 0) cards.push(['Spam traps and invalid', d.counts.other, 'all streams blocked'])
+  if (d.counts.other > 0) cards.push(['Spam traps and invalid', d.counts.other, 'all mail blocked, transactional too'])
   return (
     <div className="grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(200px,1fr))] max-md:[grid-template-columns:repeat(auto-fit,minmax(140px,1fr))]">
       {cards.map(([k, n, note]) => (
@@ -260,6 +268,16 @@ function Filters({ search, d, onChange }: { search: SuppressionsSearch; d: List;
           </option>
         ))}
       </select>
+      <select
+        className={sel}
+        aria-label="Applies to"
+        value={search.appliesTo ?? ''}
+        onChange={(e) => onChange({ appliesTo: (e.target.value || undefined) as 'all' | 'marketing' | undefined })}
+      >
+        <option value="">All mail and marketing only</option>
+        <option value="all">All mail</option>
+        <option value="marketing">Marketing only</option>
+      </select>
       <select className={sel} aria-label="Date" value={search.since ?? ''} onChange={(e) => onChange({ since: (e.target.value || undefined) as '7d' | '30d' | undefined })}>
         <option value="">Any time</option>
         <option value="7d">Last 7 days</option>
@@ -331,12 +349,10 @@ function Table({
           <thead>
             <tr>
               <th scope="col">Address</th>
-              <th scope="col">Reason</th>
-              <th scope="col">Source provider</th>
-              <th scope="col">Original code</th>
-              <th scope="col">When</th>
-              <th scope="col">Campaign or flow</th>
-              <th scope="col">Scope</th>
+              <th scope="col">Reason · original code</th>
+              <th scope="col">Source</th>
+              <th scope="col">When · campaign or flow</th>
+              <th scope="col">Applies to</th>
               <th scope="col">
                 <span className="vh">Actions</span>
               </th>
@@ -345,17 +361,29 @@ function Table({
           <tbody>
             {d.items.map((it) => (
               <tr key={it.id}>
-                <td className="mono">{it.group ? `${it.address} · ${count(it.rows)} rows` : it.address}</td>
+                <td className="mono" style={{ whiteSpace: 'normal', maxWidth: 230, overflowWrap: 'anywhere' }}>
+                  {it.group ? `${it.address} · ${count(it.rows)} rows` : it.address}
+                </td>
                 <td>
-                  <ReasonBadge reasons={it.reasons} />
+                  <div className="flex flex-col items-start gap-1">
+                    <ReasonBadge reasons={it.reasons} />
+                    {it.originalCode ? (
+                      <span className="mono k" style={{ fontSize: 12, whiteSpace: 'normal' }}>
+                        {it.originalCode}
+                      </span>
+                    ) : null}
+                  </div>
                 </td>
                 <td>
                   <SourceBadge s={it.source} />
                 </td>
-                <td className="mono text-[12px]">{it.originalCode || '–'}</td>
-                <td>{suppressedWhen(it.at)}</td>
-                <td>{it.context || '–'}</td>
-                <td className="k">{it.scope === 'marketing' ? 'Broadcasts, Automations' : 'All streams'}</td>
+                <td>
+                  <div className="flex flex-col gap-0.5">
+                    <span>{suppressedWhen(it.at)}</span>
+                    {it.context ? <span className="k">{it.context}</span> : null}
+                  </div>
+                </td>
+                <td>{it.scope === 'marketing' ? <Badge tone="info">Marketing only</Badge> : <Badge tone="neutral">All mail</Badge>}</td>
                 <td>
                   {it.group && it.importId ? (
                     <Button size="sm" onClick={() => onGroup(it.importId!)} aria-label={`View rows: the ${count(it.rows)} rows from ${it.address}`}>
@@ -371,7 +399,7 @@ function Table({
             ))}
             {d.items.length === 0 ? (
               <tr>
-                <td colSpan={8} className="py-8 text-center text-ink-3">
+                <td colSpan={6} className="py-8 text-center text-ink-3">
                   {filtered ? (
                     <>
                       No suppressed addresses match these filters.{' '}

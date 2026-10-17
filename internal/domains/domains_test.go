@@ -60,8 +60,15 @@ func TestSendersOverview(t *testing.T) {
 	for i, s := range ov.Senders {
 		by[s.Email] = i
 	}
-	if len(ov.Senders) != 6 {
+	// SettingsSenders: Acme Cloud and Acme Billing on notify.acme.io, the
+	// Transactional domain, besides the newsletter's senders.
+	if len(ov.Senders) != 8 {
 		t.Fatalf("senders: %d", len(ov.Senders))
+	}
+	cloud, billing := ov.Senders[by["no-reply@notify.acme.io"]], ov.Senders[by["billing@notify.acme.io"]]
+	if cloud.Name != "Acme Cloud" || cloud.ReplyTo != "support@acme.io" || len(cloud.DefaultFor) != 1 || cloud.DefaultFor[0] != "transactional" ||
+		billing.Name != "Acme Billing" || billing.Verification[0].Text != "Verified" || billing.Verification[1].Text != "Verified" || billing.Verification[2].Text != "Not used" {
+		t.Fatalf("notify.acme.io senders: %+v %+v", cloud, billing)
 	}
 	digest := ov.Senders[by["digest@news.acme.io"]]
 	if digest.Name != "Acme Newsletter" || digest.ReplyTo != "hello@acme.io" || len(digest.DefaultFor) != 1 || digest.DefaultFor[0] != "broadcast" {
@@ -80,7 +87,7 @@ func TestSendersOverview(t *testing.T) {
 	if marcus.Note != "personal sends" || !marcus.Pending || marcus.Verification[0].Text != "Pending · acme.io DKIM" || marcus.Verification[1].Text != "Not set up" {
 		t.Fatalf("marcus: %+v", marcus)
 	}
-	if len(ov.Domains) != 2 {
+	if len(ov.Domains) != 3 {
 		t.Fatalf("domains: %+v", ov.Domains)
 	}
 	news := ov.Domains[0]
@@ -89,7 +96,12 @@ func TestSendersOverview(t *testing.T) {
 		strings.Join(news.UsedBy, " · ") != "SES · Postmark · Postal" || news.Note != "primary sending domain" {
 		t.Fatalf("news.acme.io: %+v", news)
 	}
-	acme := ov.Domains[1]
+	notify := ov.Domains[1]
+	if notify.Domain != "notify.acme.io" || notify.Note != "transactional mail only" || notify.DKIM.Text != "2 of 2 providers" || notify.SPF.Text != "pass · -all" ||
+		notify.DMARC.Text != "p=quarantine" || notify.ReturnPath.Text != "pm-bounces. · bounce." || notify.Tracking.Text != "Off · no tracking" || notify.BIMI.Text != "Not set" {
+		t.Fatalf("notify.acme.io: %+v", notify)
+	}
+	acme := ov.Domains[2]
 	if acme.DKIM.Text != "Pending CNAME 2 of 3" || acme.DKIM.Tone != "warn" || acme.ReturnPath.Text != "Default" || strings.Join(acme.UsedBy, ",") != "SES" ||
 		acme.SPF.Text != "pass" || acme.DMARC.Text != "p=none" || acme.DMARC.Tone != "warn" {
 		t.Fatalf("acme.io: %+v", acme)

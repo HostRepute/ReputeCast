@@ -78,6 +78,8 @@ func DeliverabilityDNSZone() (*dnscheck.Zone, []string) {
 	z.Add(deliverabilityPostmarkSel+"._domainkey.news.acme.io", "TXT", "k=rsa; p="+deliverabilityDemoKey)
 	z.Add(deliverabilityPostalSel+"._domainkey.news.acme.io", "TXT", "v=DKIM1; t=s; h=sha256; p="+deliverabilityDemoKey)
 	sendersDemoZone(z) // the other sending domains' records (seed_senders.go)
+	// notify.acme.io and the SMTP relay's host (seed_transactional.go)
+	transactionalDemoZone(z)
 	owned := []string{"acme.io"}
 	for _, l := range dnscheck.Builtin {
 		for _, a := range []string{"news.acme.io", "203.0.113.25"} {

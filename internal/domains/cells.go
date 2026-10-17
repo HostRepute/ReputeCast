@@ -112,6 +112,10 @@ func domainRow(d store.SendingDomain, provs []store.Provider) SendingDomainRow {
 	row.DMARC = dmarcCell(sum.DMARC)
 	row.ReturnPath = returnPathCell(det.MailFrom, d.Domain)
 	row.Tracking = trackingCell(d.TrackingDomain, d.TrackingStatus)
+	if d.Transactional && d.TrackingDomain == "" {
+		// Transactional templates track nothing by default (SettingsSenders).
+		row.Tracking = cell("Off · no tracking", "neutral")
+	}
 	row.BIMI = bimiCell(sum.BIMI)
 	if d.LastCheckedAt == nil {
 		row.SPF, row.DMARC, row.BIMI = cell("Not checked", "neutral"), cell("Not checked", "neutral"), cell("Not checked", "neutral")

@@ -287,3 +287,40 @@ func TestArchiveLanguages(t *testing.T) {
 		must(t, r, 200, `<html lang="es" dir="ltr">`, "<title>Novedades de octubre</title>", "Hola Sam")
 	})
 }
+
+// A transactional message's category unsubscribe page and the preference
+// center of someone who isn't a contact (X02's pages) come in the language
+// the message was sent in, with the menu, like every public page.
+func TestNotificationPagesLanguage(t *testing.T) {
+	env, ids := demo(t)
+	var msg uuid.UUID
+	var email string
+	if err := env.App.Pool.QueryRow(context.Background(), `SELECT m.id, m.email FROM messages m JOIN transactional_messages tm ON tm.message_id = m.id
+		JOIN transactional_categories c ON c.id = tm.category_id
+		WHERE m.workspace_id = $1 AND c.kind = 'optional' AND NOT EXISTS (SELECT 1 FROM contacts ct WHERE ct.workspace_id = m.workspace_id AND ct.email = m.email)
+		ORDER BY m.queued_at DESC LIMIT 1`, ids.ws).Scan(&msg, &email); err != nil {
+		t.Fatalf("a transactional message of an Optional category to someone who isn't a contact: %v", err)
+	}
+	if _, err := env.App.Pool.Exec(context.Background(), `UPDATE messages SET language = 'de' WHERE id = $1`, msg); err != nil {
+		t.Fatal(err)
+	}
+	unsub := "/p/acme-newsletter/unsubscribe/" + sign(env, linktoken.Unsubscribe, ids.ws, uuid.Nil, msg)
+	r := get(t, env, unsub)
+	must(t, r, 200, `<html lang="de" dir="ltr">`, "nicht mehr", "Konto- und Rechnungs-E-Mails kommen weiterhin an", "Aus Versehen ausgeschaltet?",
+		"wieder einschalten", "Warum hast du es ausgeschaltet?", "Zu oft", "Andere Benachrichtigungen: ", "Der Abmelde-Button in deiner Mail-App macht dasselbe.",
+		`<nav class="langs" aria-label="Sprache">`, `aria-current="true">Deutsch</a>`)
+	lacks(t, r, "Turned it off by mistake?", "You won't get")
+	// The menu's pick beats the message's language; turning it back on
+	// answers in the language picked.
+	r = do(t, env, http.MethodPost, unsub+"?lang=es", url.Values{"action": {"on"}}, nil)
+	must(t, r, 200, `<html lang="es" dir="ltr">`, "vuelve a estar activado", "Desactivar ")
+	prefs := "/p/acme-newsletter/preferences/" + sign(env, linktoken.Preferences, ids.ws, uuid.Nil, msg)
+	r = get(t, env, prefs)
+	must(t, r, 200, `<html lang="de" dir="ltr">`, "E-Mail-Einstellungen", "für "+email, "Benachrichtigungen von ")
+	lacks(t, r, "Notifications from", "nicht du?")
+	// Without a language on the message, the fallback's pages.
+	if _, err := env.App.Pool.Exec(context.Background(), `UPDATE messages SET language = '' WHERE id = $1`, msg); err != nil {
+		t.Fatal(err)
+	}
+	must(t, do(t, env, http.MethodGet, prefs, nil, hdr{"Accept-Language": "de"}), 200, `<html lang="en" dir="ltr">`, "Notifications from ")
+}

@@ -12,7 +12,11 @@ WHERE k.workspace_id = @workspace_id AND k.kind = @kind
   AND (k.expires_at IS NULL OR k.expires_at > now() - interval '90 days')
   -- Integrations' keys are listed apart ("Managed by integrations").
   AND k.integration_id IS NULL
-ORDER BY (k.expires_at IS NOT NULL AND k.expires_at <= now()), coalesce(k.last_used_at, k.created_at) DESC, k.created_at DESC;
+-- Expired keys last; the keys that send transactional mail (send-only
+-- and SMTP presets) first, as they were created; the rest by last use.
+ORDER BY (k.expires_at IS NOT NULL AND k.expires_at <= now()), (k.preset = ''),
+         CASE WHEN k.preset <> '' THEN k.created_at END,
+         coalesce(k.last_used_at, k.created_at) DESC, k.created_at DESC;
 
 -- name: KeysGet :one
 SELECT k.id, k.workspace_id, k.kind, k.name, k.description, k.prefix, k.permissions, k.scope, k.created_by, k.created_at,

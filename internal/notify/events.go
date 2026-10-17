@@ -30,6 +30,8 @@ var Events = []EventType{
 	{Key: KindHostReputeAlert, Label: "HostRepute alerts", Audience: "Everyone with deliverability:view", Short: "HostRepute alerts", DefaultEmail: false, Kinds: []string{KindHostReputeAlert}},
 	{Key: KindIntegrationAttention, Label: "Integration needs attention", Audience: "Everyone with integrations:manage", Short: "integration problems", DefaultEmail: true, Kinds: []string{KindIntegrationAttention}},
 	{Key: KindPostDraftCreated, Label: "Post draft created", Audience: "When a WordPress post-draft rule names you", Short: "post drafts", DefaultEmail: true, Kinds: []string{KindPostDraftCreated}},
+	{Key: KindTransactionalAlert, Label: "Transactional delivery alert", Audience: "Everyone with transactional:view", Short: "transactional delivery alerts", DefaultEmail: true, Kinds: []string{KindTransactionalAlert}},
+	{Key: KindSMTPRelayUnreachable, Label: "SMTP relay unreachable", Audience: "Instance admins only", Short: "SMTP relay outages", DefaultEmail: true, Urgent: true, Kinds: []string{KindSMTPRelayUnreachable}},
 }
 
 // otherEvent covers kinds without a preference row (send finished, jobs):
@@ -58,25 +60,30 @@ const (
 	CategoryOther      = "other"
 	// CategoryIntegrations holds the integrations hub's notifications.
 	CategoryIntegrations = "integrations"
+	// CategoryTransactional holds transactional mail's delivery alerts and
+	// the SMTP relay.
+	CategoryTransactional = "transactional"
 )
 
 var categoryKinds = map[string][]string{
-	CategoryApprovals:    {KindApprovalRequested, KindApprovalDecided, KindApprovalInvalidated},
-	CategorySending:      {KindSendPaused, KindSendBlocked, KindSendFinished},
-	CategoryProviders:    {KindProviderDown, KindProviderDegraded, KindWebhooksSilent},
-	CategoryTeam:         {KindInviteAccepted, KindInviteRequested},
-	CategoryHostRepute:   {KindHostReputeAlert},
-	CategoryIntegrations: {KindIntegrationAttention, KindPostDraftCreated},
+	CategoryApprovals:     {KindApprovalRequested, KindApprovalDecided, KindApprovalInvalidated},
+	CategorySending:       {KindSendPaused, KindSendBlocked, KindSendFinished},
+	CategoryProviders:     {KindProviderDown, KindProviderDegraded, KindWebhooksSilent},
+	CategoryTeam:          {KindInviteAccepted, KindInviteRequested},
+	CategoryHostRepute:    {KindHostReputeAlert},
+	CategoryIntegrations:  {KindIntegrationAttention, KindPostDraftCreated},
+	CategoryTransactional: {KindTransactionalAlert, KindSMTPRelayUnreachable},
 }
 
 var categoryLabels = map[string]string{
-	CategoryApprovals:    "Approvals",
-	CategorySending:      "Sending",
-	CategoryProviders:    "Providers",
-	CategoryTeam:         "Team",
-	CategoryHostRepute:   "HostRepute",
-	CategoryOther:        "Other",
-	CategoryIntegrations: "Integrations",
+	CategoryApprovals:     "Approvals",
+	CategorySending:       "Sending",
+	CategoryProviders:     "Providers",
+	CategoryTeam:          "Team",
+	CategoryHostRepute:    "HostRepute",
+	CategoryOther:         "Other",
+	CategoryIntegrations:  "Integrations",
+	CategoryTransactional: "Transactional",
 }
 
 // CategoryOf returns the center tab a kind is listed under.
