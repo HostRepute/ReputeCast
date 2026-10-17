@@ -15,7 +15,10 @@ type EventType struct {
 	// Urgent emails ignore quiet hours and digests ("Auto-pauses and
 	// provider outages always send immediately").
 	Urgent bool
-	Kinds  []string
+	// OffByDefault event types are neither in-app nor emailed until the
+	// person turns them on, and summaries leave them out while off.
+	OffByDefault bool
+	Kinds        []string
 }
 
 // Events lists the event types in the order of the preferences table.
@@ -32,6 +35,10 @@ var Events = []EventType{
 	{Key: KindPostDraftCreated, Label: "Post draft created", Audience: "When a WordPress post-draft rule names you", Short: "post drafts", DefaultEmail: true, Kinds: []string{KindPostDraftCreated}},
 	{Key: KindTransactionalAlert, Label: "Transactional delivery alert", Audience: "Everyone with transactional:view", Short: "transactional delivery alerts", DefaultEmail: true, Kinds: []string{KindTransactionalAlert}},
 	{Key: KindSMTPRelayUnreachable, Label: "SMTP relay unreachable", Audience: "Instance admins only", Short: "SMTP relay outages", DefaultEmail: true, Urgent: true, Kinds: []string{KindSMTPRelayUnreachable}},
+	{Key: KindPaymentsAttention, Label: "Payments: key rejected, webhook missing or silent", Audience: "Everyone with payments:manage", Short: "payment problems", DefaultEmail: true, Kinds: []string{KindPaymentsAttention}},
+	{Key: KindUnmappedPrice, Label: "Payments: a Stripe price isn't mapped to a tier", Audience: "Everyone with payments:manage", Short: "unmapped prices", DefaultEmail: false, Kinds: []string{KindUnmappedPrice}},
+	{Key: KindPaidImportDone, Label: "Paid members import finished", Audience: "Whoever ran the import", Short: "paid-members imports", DefaultEmail: false, Kinds: []string{KindPaidImportDone}},
+	{Key: KindFailedPayments, Label: "Failed payments · daily summary", Audience: "Everyone with earn:view · off by default", Short: "failed payments", OffByDefault: true, Kinds: []string{KindFailedPayments}},
 }
 
 // otherEvent covers kinds without a preference row (send finished, jobs):
@@ -63,6 +70,8 @@ const (
 	// CategoryTransactional holds transactional mail's delivery alerts and
 	// the SMTP relay.
 	CategoryTransactional = "transactional"
+	// CategoryEarn holds payments and paid members.
+	CategoryEarn = "earn"
 )
 
 var categoryKinds = map[string][]string{
@@ -73,6 +82,7 @@ var categoryKinds = map[string][]string{
 	CategoryHostRepute:    {KindHostReputeAlert},
 	CategoryIntegrations:  {KindIntegrationAttention, KindPostDraftCreated},
 	CategoryTransactional: {KindTransactionalAlert, KindSMTPRelayUnreachable},
+	CategoryEarn:          {KindPaymentsAttention, KindUnmappedPrice, KindPaidImportDone, KindFailedPayments},
 }
 
 var categoryLabels = map[string]string{
@@ -84,6 +94,7 @@ var categoryLabels = map[string]string{
 	CategoryOther:         "Other",
 	CategoryIntegrations:  "Integrations",
 	CategoryTransactional: "Transactional",
+	CategoryEarn:          "Earn",
 }
 
 // CategoryOf returns the center tab a kind is listed under.

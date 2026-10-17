@@ -457,6 +457,8 @@ type Client interface {
 	GetSubscription(ctx context.Context, id string) (Subscription, error)
 	// GetCharge reads a charge (a failed payment's reason).
 	GetCharge(ctx context.Context, id string) (Charge, error)
+	// GetCustomer reads a customer (the email a subscription belongs to).
+	GetCustomer(ctx context.Context, id string) (Customer, error)
 	// CancelSubscription cancels at the end of the period or now.
 	CancelSubscription(ctx context.Context, id string, atPeriodEnd bool) (Subscription, error)
 	ListSubscriptions(ctx context.Context, cursor string) (Page[Subscription], error)
@@ -471,6 +473,9 @@ type WebhookVerifier interface {
 	// (ErrBadSignature, also for a request signed outside the tolerance)
 	// and returns the normalized event.
 	ParseWebhook(header http.Header, body []byte, secret string, now time.Time) (Event, error)
+	// ParseEvent reads an event already verified (stored, or read from the
+	// provider's list of events).
+	ParseEvent(body []byte) (Event, error)
 }
 
 var parsers = map[string]WebhookVerifier{}

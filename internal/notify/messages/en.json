@@ -14,5 +14,9 @@
   "short.integration_attention": "integration problems",
   "short.post_draft_created": "post drafts",
   "short.transactional_alert": "transactional delivery alerts",
-  "short.smtp_relay_unreachable": "SMTP relay outages"
+  "short.smtp_relay_unreachable": "SMTP relay outages",
+  "short.payments_attention": "payment problems",
+  "short.payments_unmapped_price": "unmapped prices",
+  "short.paid_import_finished": "paid-members imports",
+  "short.failed_payments_daily": "failed payments"
 }

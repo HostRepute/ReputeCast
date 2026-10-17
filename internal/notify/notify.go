@@ -39,6 +39,11 @@ const (
 	// KindSMTPRelayUnreachable tells instance admins the SMTP relay can't
 	// be reached from the internet.
 	KindSMTPRelayUnreachable = "smtp_relay_unreachable"
+	// Earn (design expansion, phase 6).
+	KindPaymentsAttention = "payments_attention"      // a payment provider's key rejected, webhook missing or silent
+	KindUnmappedPrice     = "payments_unmapped_price" // a Stripe price isn't mapped to a tier
+	KindPaidImportDone    = "paid_import_finished"    // a paid-members import finished
+	KindFailedPayments    = "failed_payments_daily"   // the daily summary of failed payments (off by default)
 )
 
 // Notification is what appears in the notification center.

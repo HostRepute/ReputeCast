@@ -141,8 +141,11 @@ CREATE TABLE paid_subscriptions (
     -- Lifetime value: paid minus refunded, before tax.
     paid_cents             bigint      NOT NULL DEFAULT 0,
     refunded_cents         bigint      NOT NULL DEFAULT 0,
-    -- A failed payment: Stripe's reason and the next try.
+    -- A failed payment: Stripe's reason and the next try. access_paused is
+    -- set when the access rule ended access at once (it comes back when a
+    -- retry succeeds); with the default rule past due keeps access.
     failed_at              timestamptz,
+    access_paused          boolean     NOT NULL DEFAULT false,
     failure_reason         text        NOT NULL DEFAULT '',
     next_retry_at          timestamptz,
     stripe_customer_id     text        NOT NULL DEFAULT '',

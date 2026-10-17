@@ -658,6 +658,15 @@ func (c *Client) GetCharge(ctx context.Context, id string) (payments.Charge, err
 	return parseCharge(raw, nil)
 }
 
+// GetCustomer implements payments.Client.
+func (c *Client) GetCustomer(ctx context.Context, id string) (payments.Customer, error) {
+	var raw json.RawMessage
+	if err := c.call(ctx, http.MethodGet, "/v1/customers/"+url.PathEscape(id), nil, &raw); err != nil {
+		return payments.Customer{}, err
+	}
+	return parseCustomer(raw)
+}
+
 // CancelSubscription implements payments.Client.
 func (c *Client) CancelSubscription(ctx context.Context, id string, atPeriodEnd bool) (payments.Subscription, error) {
 	var raw json.RawMessage
@@ -773,6 +782,9 @@ func (Verifier) ParseWebhook(header http.Header, body []byte, secret string, now
 	}
 	return parseEvent(body)
 }
+
+// ParseEvent implements payments.WebhookVerifier.
+func (Verifier) ParseEvent(body []byte) (payments.Event, error) { return parseEvent(body) }
 
 // Verify checks one Stripe-Signature header.
 func Verify(sig string, body []byte, secret string, now time.Time) error {

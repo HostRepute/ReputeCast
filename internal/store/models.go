@@ -1422,6 +1422,7 @@ type PaidSubscription struct {
 	PaidCents            int64           `json:"paidCents"`
 	RefundedCents        int64           `json:"refundedCents"`
 	FailedAt             *time.Time      `json:"failedAt"`
+	AccessPaused         bool            `json:"accessPaused"`
 	FailureReason        string          `json:"failureReason"`
 	NextRetryAt          *time.Time      `json:"nextRetryAt"`
 	StripeCustomerID     string          `json:"stripeCustomerId"`

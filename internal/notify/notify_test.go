@@ -182,14 +182,14 @@ func TestSummarize(t *testing.T) {
 		p.Events = append(p.Events, notify.NotificationEventPreference{Type: e.Key, InApp: true, Email: e.DefaultEmail})
 	}
 	s := notify.Summarize(p)
-	if s.InApp != "All events" || s.Email != "Approvals, auto-pauses, provider down, integration problems, post drafts, transactional delivery alerts, SMTP relay outages" || s.QuietHours != "22:00–07:00 America/New_York, email only" {
+	if s.InApp != "All events" || s.Email != "Approvals, auto-pauses, provider down, integration problems, post drafts, transactional delivery alerts, SMTP relay outages, payment problems" || s.QuietHours != "22:00–07:00 America/New_York, email only" {
 		t.Fatalf("summary: %+v", s)
 	}
 
 	// In the member's app language, starting with a capital in any script.
 	vi := i18n.For(i18n.Vietnamese)
 	s = notify.SummarizeIn(vi, p)
-	if s.InApp != "Tất cả sự kiện" || s.Email != "Phê duyệt, tự tạm dừng, nhà cung cấp gặp sự cố, sự cố tích hợp, bản nháp bài viết, cảnh báo gửi email giao dịch, sự cố SMTP relay" ||
+	if s.InApp != "Tất cả sự kiện" || s.Email != "Phê duyệt, tự tạm dừng, nhà cung cấp gặp sự cố, sự cố tích hợp, bản nháp bài viết, cảnh báo gửi email giao dịch, sự cố SMTP relay, payment problems" ||
 		s.QuietHours != "22:00–07:00 America/New_York, chỉ email" {
 		t.Fatalf("Vietnamese summary: %+v", s)
 	}
