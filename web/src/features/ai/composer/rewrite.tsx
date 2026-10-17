@@ -208,6 +208,8 @@ export function RewritePanel() {
     }
     panel.component.components(done.html)
     outcome(done.requestId, edit ? 'accepted_edits' : 'accepted')
+    // The version history names it (Edit saves what the person makes of it later, as any edit).
+    if (!edit) void c.save({ label: t(ms.rewriteVersion, { action: panel.action }) })
     ca.closePanel()
     c.editor?.select(panel.component)
     if (edit) window.setTimeout(() => panel.component.trigger('active'), 50)

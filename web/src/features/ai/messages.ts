@@ -371,6 +371,13 @@ export const ms = defineMessages('ai.suggest', {
   usageNoCap: "{model} · {spent} this month. Sends only what you're working on, never contact data.",
   characters: '{count, plural, one {# character} other {# characters}}',
 
+  // ── Keys & MCP ───────────────────────────────────────────────────────
+  mcpAgents: "Agents can't use the AI assistant: AI features are for people, and agents bring their own model.",
+
+  // ── Version history: accepted suggestions name themselves ────────────
+  rewriteVersion: '{action, select, shorten {Text shortened} friendlier {Text made friendlier} formal {Text made more formal} direct {Text made more direct} other {Text rewritten}} from an AI suggestion',
+  altVersion: 'Alt text from an AI suggestion',
+
   // ── The Content Writer's banner, with the assistant ──────────────────
   bannerAssist: '<b>{name} · {role}.</b> You can edit this campaign and use the assistant. Sending needs <mono>campaigns:send</mono>, so it goes out after {helpers} approve it.',
   bannerAssistAlone: '<b>{name} · {role}.</b> You can edit this campaign and use the assistant. Sending needs <mono>campaigns:send</mono>, so it goes out after someone who holds it approves it.',

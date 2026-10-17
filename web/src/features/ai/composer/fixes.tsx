@@ -35,6 +35,12 @@ export function useAltTextAvailable(): boolean {
   return Boolean(ca?.assist.can && c.canEdit && c.kind !== 'transactional')
 }
 
+/** "Alt text from an AI suggestion": the version's name in the history. */
+export function useAltVersionLabel(): string {
+  const t = useT()
+  return t(ms.altVersion)
+}
+
 /** "Decorative image": an empty alt text, so screen readers skip the image (AIComposer · image settings). */
 export function DecorativeToggle({ component }: { component: Component }) {
   const t = useT()

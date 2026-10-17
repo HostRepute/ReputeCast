@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/Badge'
 import { T, useT, type MessageDescriptor } from '@/i18n'
 import type { AIFeature } from './api'
 import { langName } from './format'
-import { m } from './messages'
+import { m, ms } from './messages'
 
 type ActivityRow = Schemas['AIActivityRow']
 
@@ -143,4 +143,10 @@ export function LeavesNote({ provider }: { provider?: string }) {
       </div>
     </AINote>
   )
+}
+
+/** Under the MCP page's matrix (SettingsMCP): agents never use the assistant. */
+export function McpAssistantNote() {
+  const t = useT()
+  return <p className="k m-0 border-t border-line-2 px-4.5 py-2.5">{t(ms.mcpAgents)}</p>
 }

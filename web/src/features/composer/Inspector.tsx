@@ -1,7 +1,7 @@
 import type { Component } from 'grapesjs'
 import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { useComposer } from './context'
-import { AltTextAssist, DecorativeToggle, useAltTextAvailable } from '@/features/ai/composer/fixes'
+import { AltTextAssist, DecorativeToggle, useAltTextAvailable, useAltVersionLabel } from '@/features/ai/composer/fixes'
 import {
   columnsOf,
   columnWidth,
@@ -663,6 +663,8 @@ function AltProp({ c }: { c: Component }) {
   const alt = attrs.alt ?? ''
   // Suggest alt text (features/ai), for people who hold ai:use.
   const ai = useAltTextAvailable()
+  const ctx = useComposer()
+  const altVersion = useAltVersionLabel()
   return (
     <Prop title="Alt text" id={id}>
       <DraftInput id="insp-alt" label="Alt text" value={alt} placeholder="Describe the image" onCommit={(v) => setAttr(c, 'alt', v.trim())} />
@@ -674,6 +676,7 @@ function AltProp({ c }: { c: Component }) {
           beside={<DecorativeToggle component={c} />}
           onAccept={(text) => {
             c.addAttributes({ alt: text })
+            void ctx.save({ label: altVersion })
           }}
           onEdit={(text) => {
             c.addAttributes({ alt: text })

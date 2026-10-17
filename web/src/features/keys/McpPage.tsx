@@ -21,6 +21,7 @@ import { KeySecretDialog } from './KeySecretDialog'
 import { DashedEmpty, TableSkeleton } from './parts'
 import { McpIntegrationsNote } from '@/features/integrations/ManagedWebhook'
 import { im } from '@/features/digests/issueMessages'
+import { McpAssistantNote } from '@/features/ai/parts'
 import { useT } from '@/i18n'
 
 type Overview = Schemas['MCPOverview']
@@ -220,6 +221,7 @@ function AgentsMatrix({ o }: { o: Overview }) {
         </tbody>
       </Table>
       <AgentsDigestNote />
+      <McpAssistantNote />
     </section>
   )
 }
