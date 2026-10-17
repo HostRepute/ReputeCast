@@ -25,8 +25,11 @@ type body[T any] struct {
 	Body T
 }
 
+// idBody declares its fields itself: Huma skips an unexported embedded
+// struct, which would leave {id} unparsed.
 type idBody[T any] struct {
-	idPath
+	api.WorkspaceInput
+	ID   string `path:"id" format:"uuid" doc:"Id"`
 	Body T
 }
 

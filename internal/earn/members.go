@@ -78,8 +78,10 @@ type EarnMemberSource struct {
 	// GrantedBy and Reason name complimentary access.
 	GrantedBy string `json:"grantedBy,omitempty"`
 	Reason    string `json:"reason,omitempty"`
-	// Platform is the old platform of an import (substack).
+	// Platform is the old platform of an import (substack), ImportID the
+	// import that brought the paid member in.
 	Platform string `json:"platform,omitempty"`
+	ImportID string `json:"importId,omitempty"`
 }
 
 // EarnMemberRow is one paid member in the list.
@@ -308,11 +310,12 @@ func scanMember(rows pgx.Rows, listNames func(*uuid.UUID) []string) (EarnMemberR
 	r.Source.GrantedBy = grantedBy
 	var d struct {
 		Platform string `json:"platform"`
+		ImportID string `json:"import_id"`
 		From     string `json:"from"`
 		Months   int    `json:"months"`
 	}
 	_ = json.Unmarshal(detail, &d)
-	r.Source.Platform = d.Platform
+	r.Source.Platform, r.Source.ImportID = d.Platform, d.ImportID
 	if r.Kind == "gift" {
 		r.GiftFrom, r.GiftMonths = d.From, d.Months
 	}
