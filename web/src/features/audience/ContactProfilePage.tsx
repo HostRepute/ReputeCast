@@ -16,6 +16,7 @@ import { useInvalidateAudience } from './ContactDialogs'
 import { fileName, saveBlob } from './download'
 import { consentLabel, consentTone, mailboxColor, providerColor, tierClass, tierLabel, type Consent, type Tier } from './labels'
 import { NotificationsRow, TransactionalActivityRow, transactionalCount, useContactTransactional, withTransactional } from '@/features/transactional/ContactActivity'
+import { FieldSourceNote, useAnswerActivity, useFieldSources } from '@/features/polls/contact'
 import './audience.css'
 
 type Profile = Schemas['ContactProfile']
@@ -205,6 +206,8 @@ function fieldValue(f: Schemas['ContactProfileField']) {
 }
 
 function FieldsCard({ p }: { p: Profile }) {
+  // Fields a poll or a survey set say so (design expansion, X11).
+  const sources = useFieldSources(p.id)
   const [editing, setEditing] = useState(false)
   const [adding, setAdding] = useState(false)
   const reason = usePermissionReason('subscribers:edit')
@@ -231,7 +234,10 @@ function FieldsCard({ p }: { p: Profile }) {
             {f.label}
             {f.custom ? <> <span className="mono">{f.type === 'text' || f.type === 'select' ? 'custom' : `custom · ${f.type}`}</span></> : null}
           </span>
-          {fieldValue(f)}
+          <span>
+            {fieldValue(f)}
+            <FieldSourceNote source={sources.get(f.key)} />
+          </span>
         </div>
       ))}
       <div className="mt-2.5 flex flex-wrap gap-1.5">
@@ -604,6 +610,8 @@ const tone = {
 }
 
 function eventIcon(it: Item): [keyof typeof icons, keyof typeof tone] {
+  // Poll answers and survey responses (design expansion, X11).
+  if (it.type === 'poll_answer' || it.type === 'survey_response' || it.type === 'survey_started') return ['check', 'green']
   if (it.category === 'consent') {
     switch (it.type) {
       case 'confirmed':
@@ -669,11 +677,16 @@ const verb: Record<string, string> = {
 }
 
 function ActivityRow({ it }: { it: Item }) {
+  const answerActivity = useAnswerActivity()
   const [icon, t] = eventIcon(it)
   const c = tone[t]
   let title: ReactNode
   let meta: string[] = [dateTime(it.at)]
-  if (it.category === 'consent') {
+  const answer = answerActivity(it)
+  if (answer) {
+    title = <b>{answer.title}</b>
+    meta = [...meta, ...answer.meta]
+  } else if (it.category === 'consent') {
     switch (it.type) {
       case 'confirmed':
         title = (
