@@ -206,7 +206,7 @@ function SpreadTable({ buckets, after, bands }: { buckets: Bucket[]; after?: Buc
   const total = (after ?? buckets).reduce((s, b) => s + b.contacts, 0) || 1
   return (
     <TableScroll label={t(m.spreadTitle, { contacts: total })}>
-      <table className="tbl">
+      <table className="tbl sc-t11">
         <thead>
           <tr>
             <th scope="col">{t(m.colScore)}</th>

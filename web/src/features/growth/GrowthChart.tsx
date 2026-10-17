@@ -248,7 +248,7 @@ function ChartTable({ chart, bs, includeImports }: { chart: Chart; bs: Bucket[];
   const t = useT()
   return (
     <TableScroll label={t(m.chartTitle)}>
-      <table className="tbl">
+      <table className="tbl sc-t11">
         <thead>
           <tr>
             <th scope="col">{t(m.colDay)}</th>

@@ -82,7 +82,7 @@ export function RulesCard({
       <CardSection id="sc-rules" title={t(m.rulesTitle, { count: rules.length })} caption={t(m.rulesLead)} />
       <div className="sc-no-phone">
         <TableScroll label={t(m.rulesTableLabel)}>
-          <table className="tbl sc-rules">
+          <table className="tbl sc-t11 sc-rules">
             <thead>
               <tr>
                 <th scope="col">{t(m.colNumber)}</th>
@@ -145,7 +145,8 @@ export function RulesCard({
           return (
             <div key={r.id} className={differs(was, r) ? 'sc-prow sel' : 'sc-prow'}>
               <Points r={r} was={was} />
-              <button type="button" className="sc-prow-main" onClick={() => onEdit(i)} aria-label={t(canEdit ? m.editRuleN : m.viewRuleN, { n })}>
+              <button type="button" className="sc-prow-main" onClick={() => onEdit(i)}>
+                <span className="vh">{t(canEdit ? m.editRuleN : m.viewRuleN, { n })}: </span>
                 <span className="font-semibold">
                   <RuleWhen r={r} o={options} />
                 </span>

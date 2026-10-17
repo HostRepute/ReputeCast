@@ -286,8 +286,9 @@ function RateCell({ rate, flag, digits, open, onToggle, label }: { rate?: number
       <span className="gr-flagv">
         <span className="num">{ratePct(rate, digits)}</span>
         {onToggle ? (
-          <button type="button" className="badge warn gr-flagb gr-flagbtn" aria-expanded={open} aria-label={label} onClick={onToggle}>
+          <button type="button" className="badge warn gr-flagb gr-flagbtn" aria-expanded={open} onClick={onToggle}>
             {text}
+            {label ? <span className="vh">: {label}</span> : null}
           </button>
         ) : (
           <Badge tone="warn" className="gr-flagb">
@@ -344,7 +345,7 @@ function SourcesCard({ d }: { d: Data }) {
       />
       <div className="sc-no-phone">
         <TableScroll label={t(m.sourcesLabel)}>
-          <table className="tbl gr-srct">
+          <table className="tbl sc-t11 gr-srct">
             <thead>
               <tr>
                 <th scope="col">{t(m.colSource)}</th>
@@ -613,7 +614,7 @@ function CohortsCard({ d, onSource }: { d: Data; onSource: (key: string) => void
       />
       <div className="sc-no-phone">
         <TableScroll label={t(m.cohortsTitle)}>
-          <table className="tbl">
+          <table className="tbl sc-t11">
             <thead>
               <tr>
                 <th scope="col">{t(m.colJoinedIn)}</th>
@@ -751,7 +752,7 @@ function UtmCard({ d }: { d: Data }) {
           ) : null}
           <div className="sc-no-phone">
             <TableScroll label={withRates ? t(m.utmLabel) : t(m.referrersLabel)}>
-              <table className="tbl">
+              <table className="tbl sc-t11">
                 <thead>
                   <tr>
                     <th scope="col">{withRates ? t(m.colUtm) : t(m.colReferrer)}</th>

@@ -197,7 +197,7 @@ export function TiersCard({ page }: { page: ScoringPageData }) {
       <CardSection id="sc-tiers" title={t(m.tiersCardTitle)} caption={t(m.tiersCardLead)} />
       <div className="sc-no-phone">
         <TableScroll label={t(m.tiersCardTitle)}>
-          <table className="tbl">
+          <table className="tbl sc-t11">
             <thead>
               <tr>
                 <th scope="col">{t(m.colTier)}</th>

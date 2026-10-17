@@ -9,6 +9,12 @@
 }
 
 @layer components {
+  /* The boards' table cells: 11px above and below. */
+  .tbl.sc-t11 td {
+    padding-top: 11px;
+    padding-bottom: 11px;
+  }
+
   /* Band tiles. */
   .sc-tile {
     display: flex;
