@@ -24861,9 +24861,21 @@
           "campaignId": {
             "type": "string"
           },
+          "canClose": {
+            "type": "boolean"
+          },
+          "canExportAnswers": {
+            "type": "boolean"
+          },
           "changed": {
             "format": "int64",
             "type": "integer"
+          },
+          "closeHelpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "closedAsScheduled": {
             "type": "boolean"
@@ -24892,6 +24904,12 @@
           "delivered": {
             "format": "int64",
             "type": "integer"
+          },
+          "exportHelpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "field": {
             "type": "string"
@@ -24990,7 +25008,11 @@
           "breakdown",
           "overTime",
           "answerPage",
-          "names"
+          "names",
+          "canClose",
+          "closeHelpers",
+          "canExportAnswers",
+          "exportHelpers"
         ],
         "type": "object"
       },

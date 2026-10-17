@@ -15571,8 +15571,11 @@ export interface components {
             breakdown: components["schemas"]["PollBreakdowns"];
             campaign: string;
             campaignId?: string;
+            canClose: boolean;
+            canExportAnswers: boolean;
             /** Format: int64 */
             changed: number;
+            closeHelpers: string[];
             closedAsScheduled: boolean;
             /** Format: date-time */
             closedAt?: string;
@@ -15584,6 +15587,7 @@ export interface components {
             counts: components["schemas"]["PollAnswerCount"][];
             /** Format: int64 */
             delivered: number;
+            exportHelpers: string[];
             field?: string;
             high?: string;
             id: string;

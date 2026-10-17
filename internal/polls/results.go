@@ -13,8 +13,16 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audience"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/permcheck"
 	"github.com/hostrepute/reputecast/internal/store"
 )
+
+func nonNil(xs []string) []string {
+	if xs == nil {
+		return []string{}
+	}
+	return xs
+}
 
 // TooFew is the fewest answers a breakdown row compares: fewer read "Too
 // few to compare".
@@ -121,6 +129,12 @@ type PollResults struct {
 	// Names is true when comments carry the contacts' names
 	// (subscribers:view).
 	Names bool `json:"names"`
+	// CanClose (campaigns:edit) and CanExportAnswers (subscribers:export)
+	// are the viewer's; the helpers are members to ask when not.
+	CanClose         bool     `json:"canClose"`
+	CloseHelpers     []string `json:"closeHelpers"`
+	CanExportAnswers bool     `json:"canExportAnswers"`
+	ExportHelpers    []string `json:"exportHelpers"`
 }
 
 // PollResultsList are a campaign's polls with their results.
@@ -212,7 +226,14 @@ func (s *Service) PollResultsOf(ctx context.Context, ws *store.Workspace, p *aut
 	now := s.now()
 	out := PollResults{ID: r.ID.String(), BlockID: r.BlockID, Campaign: r.CampaignName, Kind: r.Kind, Question: r.Question, NPSWording: cfg.NPS,
 		Save: cfg.Save, Field: cfg.Field, Status: "open", ClosesAt: r.ClosesAt, ReopenedAt: r.ReopenedAt, StartedAt: r.CampaignStartedAt,
-		Counts: []PollAnswerCount{}, Names: p.Can(authz.SubscribersView)}
+		Counts: []PollAnswerCount{}, Names: p.Can(authz.SubscribersView), CanClose: p.Can(authz.CampaignsEdit), CloseHelpers: []string{},
+		CanExportAnswers: p.Can(authz.SubscribersExport), ExportHelpers: []string{}}
+	if !out.CanClose {
+		out.CloseHelpers = nonNil(permcheck.Helpers(ctx, s.Q, ws.ID, authz.CampaignsEdit))
+	}
+	if !out.CanExportAnswers {
+		out.ExportHelpers = nonNil(permcheck.Helpers(ctx, s.Q, ws.ID, authz.SubscribersExport))
+	}
 	if cfg.Kind == KindScale {
 		out.Low, out.High = cfg.Low, cfg.High
 	}
