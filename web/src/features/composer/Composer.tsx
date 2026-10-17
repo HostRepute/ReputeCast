@@ -24,6 +24,7 @@ import { PreviewView } from './PreviewView'
 import { RightPanel } from './RightPanel'
 import { SubjectBar } from './SubjectBar'
 import { AccessibilityProvider } from '@/features/accessibility/composer/state'
+import { ConditionalProvider } from '@/features/conditional/state'
 import { withoutAltText } from '@/features/accessibility/composer/Status'
 import { ComposerCompare, ComposerCompareFooter, ComposerMissingLanguage, versionLanguage } from '@/features/languages/composerParts'
 import { useLanguagesCache } from '@/features/languages/composer'
@@ -649,6 +650,7 @@ export function Composer({
   return (
     <ComposerCtx.Provider value={state}>
       <AccessibilityProvider>
+      <ConditionalProvider>
       <div className="cmp rc-app">
         <a href="#main" className="skip">
           Skip to content
@@ -697,6 +699,7 @@ export function Composer({
           }}
         />
       </div>
+      </ConditionalProvider>
       </AccessibilityProvider>
     </ComposerCtx.Provider>
   )

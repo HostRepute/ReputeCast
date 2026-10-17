@@ -84,6 +84,15 @@ const blocks: Record<string, ReactNode> = {
       <path d="M6 16h8" />
     </>
   ),
+  // The Poll block (design expansion, X11): a question over answer buttons.
+  rcPoll: (
+    <>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <path d="M7 8h10" />
+      <rect x="7" y="11" width="10" height="3" rx="1.5" />
+      <rect x="7" y="15.5" width="7" height="2" rx="1" />
+    </>
+  ),
   saved: <path d="M12 3v18M3 12h18" />,
   rcReceipt: (
     <>

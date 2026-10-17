@@ -64,6 +64,9 @@ function px(v: unknown): number {
 
 /** Names a top-level body section the way the layer tree and warnings do. */
 export function sectionLabel(c: Component): string {
+  // A block's own name (rc-name: "Beta corner"), set in its Settings.
+  const named = String((c.getAttributes() as Record<string, unknown>)['rc-name'] ?? '').trim()
+  if (named) return named
   const marker = markerOf(c)
   if (marker && !layoutMarkers.has(marker)) return markerLabels[marker] ?? marker.replace(/-/g, ' ')
   const tag = tagOf(c)

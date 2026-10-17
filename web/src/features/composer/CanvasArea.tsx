@@ -14,6 +14,7 @@ import { ToolIcon } from './icons'
 import { contentIssues } from './RightPanel'
 import { StateCards } from './StateCards'
 import { AccessibilityOverlays } from '@/features/accessibility/composer/Overlays'
+import { ConditionalOverlays, ConditionalToggle } from '@/features/conditional/Canvas'
 
 interface Box {
   top: number
@@ -182,6 +183,7 @@ function Toolbar({ zoom }: { zoom: number }) {
       <DeviceSeg />
       <ViewSeg />
       <CanvasPreviewAs />
+      <ConditionalToggle />
       {issues.length ? (
         <>
           {blocks ? (
@@ -723,6 +725,7 @@ export function CanvasArea({
             )}
             <WarningOverlays host={host} tick={tick} />
             <AccessibilityOverlays host={host} tick={tick} boxOf={boxOf} />
+            <ConditionalOverlays host={host} tick={tick} boxOf={boxOf} />
             <LanguageTags host={host} tick={tick} />
             <SelectionOverlay host={host} tick={tick} />
             <RteToolbar host={host} tick={tick} />

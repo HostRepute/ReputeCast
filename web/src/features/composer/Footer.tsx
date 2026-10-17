@@ -9,6 +9,7 @@ import { kb } from './format'
 import { contentIssues } from './RightPanel'
 import { useAccessibility } from '@/features/accessibility/composer/state'
 import { AccessibilityChip, AccessibilityClear, useAccessibilityIssueCount } from '@/features/accessibility/composer/Status'
+import { ConditionalFooter, useVersionSizes } from '@/features/conditional/Versions'
 
 function plural(n: number, one: string, many = `${one}s`) {
   return `${n} ${n === 1 ? one : many}`
@@ -83,6 +84,8 @@ export function SizeSummary() {
   // The Accessibility chip covers alt text when its checks run.
   const a11y = useAccessibility()?.enabled
   const language = useVersionName()
+  // With conditional content no one gets the whole email: each version's size.
+  const sizes = useVersionSizes()
   const r = c.checks
   if (!r) return <span className="k" style={{ marginLeft: 'auto' }}>Checking…</span>
   const issues = contentIssues(r.issues)
@@ -99,7 +102,7 @@ export function SizeSummary() {
   return (
     <span className="k" style={{ marginLeft: 'auto', ...(issues.length && (near || (!a11y && r.imagesMissingAlt) || extra) ? { color: '#92400E', fontWeight: 600 } : {}) }}>
       {language ? `${language} · ` : ''}
-      {kb(r.sizeBytes)} of 102 KB · {images} · {links}
+      {sizes ?? `${kb(r.sizeBytes)} of 102 KB`} · {images} · {links}
       <AccessibilityClear />
     </span>
   )
@@ -157,6 +160,7 @@ export function Footer() {
     <footer className="cmp-foot">
       {code ? <span className="k">{c.view === 'mjml' ? 'Editing MJML directly · the Visual view re-parses on Apply' : 'Compiled HTML · read only · what the providers receive, before tracking'}</span> : <Breadcrumb />}
       <SizeSummary />
+      {code ? null : <ConditionalFooter />}
       <ChecksBadge />
       <AccessibilityChip />
       {code ? null : <VersionLink />}
