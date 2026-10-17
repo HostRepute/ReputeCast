@@ -212,3 +212,11 @@ func (n verificationNotifier) CreditsLow(ctx context.Context, ws *store.Workspac
 			Link: fmt.Sprintf("/w/%s/settings/integrations/verification?service=%s", ws.Slug, svc.Service)})
 	}
 }
+
+// importChecks reads a verification service's answers for an import (the
+// verification service builds its own importer, so this one stays lazy).
+type importChecks struct{ a *App }
+
+func (c importChecks) ImportAnswers(ctx context.Context, ws *store.Workspace, importID uuid.UUID) (*imports.ImportChecks, error) {
+	return c.a.verification().ImportAnswers(ctx, ws, importID)
+}

@@ -12909,6 +12909,7 @@ export interface components {
             problem: string;
             /** Format: int64 */
             rows: number;
+            service?: string;
         };
         ImportJob: {
             detail?: string;
@@ -13000,6 +13001,7 @@ export interface components {
              * @description Unsubscribed, bounced or complained in the source
              */
             suppressed: number;
+            verification?: components["schemas"]["ImportVerification"];
             /**
              * Format: int64
              * @description New contacts, subscribed
@@ -13036,6 +13038,10 @@ export interface components {
         };
         ImportRiskyActions: {
             /** @enum {string} */
+            abuse?: "import" | "skip" | "";
+            /** @enum {string} */
+            catch_all?: "import" | "skip" | "";
+            /** @enum {string} */
             disposable: "skip" | "import";
             /** @enum {string} */
             role: "exclude_broadcasts" | "skip" | "import";
@@ -13045,14 +13051,22 @@ export interface components {
             trap: "skip" | "import";
             /** @enum {string} */
             typo: "fix" | "skip" | "import";
+            /** @enum {string} */
+            unknown?: "import" | "skip" | "";
         };
         ImportRiskyGroup: {
             action: string;
             actions: components["schemas"]["ImportFieldOption"][];
+            /** Format: int64 */
+            agree: number;
             examples: string;
             /** @enum {string} */
-            key: "role" | "disposable" | "typo" | "stale" | "trap";
+            key: "role" | "disposable" | "typo" | "stale" | "trap" | "catch_all" | "abuse" | "unknown";
             label: string;
+            /** Format: int64 */
+            more: number;
+            /** Format: int64 */
+            own: number;
             /** Format: int64 */
             rows: number;
             why: string;
@@ -13173,6 +13187,24 @@ export interface components {
             source?: "brevo" | "mailchimp" | "mailerlite" | "listmonk" | "keila" | "notifuse" | "csv" | "xlsx" | "";
             /** @enum {string} */
             step?: "source" | "fields" | "consent" | "preview" | "";
+        };
+        ImportVerification: {
+            /** Format: int64 */
+            checked: number;
+            /** Format: date-time */
+            checkedAt?: string;
+            /** Format: double */
+            cost: number;
+            /** Format: int64 */
+            fewer: number;
+            /** Format: int64 */
+            invalid: number;
+            jobId: string;
+            /** Format: int64 */
+            risky: number;
+            service: string;
+            serviceName: string;
+            status: string;
         };
         IncidentCause: {
             body: string;

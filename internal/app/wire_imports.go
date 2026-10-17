@@ -38,6 +38,9 @@ func (a *App) imports() *imports.Service {
 		// Verification jobs run in the background too (built when asked:
 		// the verification service uses this one).
 		JobSources: []imports.JobSource{verificationTray(a)},
+		// The optional "Verify the new addresses" folds a service's answers
+		// into the preview and the import (X14), read when asked.
+		Checks: importChecks{a: a},
 	}
 	if a.Secrets != nil {
 		s.Box = a.Secrets

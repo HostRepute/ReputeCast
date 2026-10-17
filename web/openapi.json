@@ -15635,6 +15635,9 @@
           "rows": {
             "format": "int64",
             "type": "integer"
+          },
+          "service": {
+            "type": "string"
           }
         },
         "required": [
@@ -15935,6 +15938,9 @@
             "format": "int64",
             "type": "integer"
           },
+          "verification": {
+            "$ref": "#/components/schemas/ImportVerification"
+          },
           "willImport": {
             "description": "New contacts, subscribed",
             "format": "int64",
@@ -16041,6 +16047,22 @@
       "ImportRiskyActions": {
         "additionalProperties": false,
         "properties": {
+          "abuse": {
+            "enum": [
+              "import",
+              "skip",
+              ""
+            ],
+            "type": "string"
+          },
+          "catch_all": {
+            "enum": [
+              "import",
+              "skip",
+              ""
+            ],
+            "type": "string"
+          },
           "disposable": {
             "enum": [
               "skip",
@@ -16078,6 +16100,14 @@
               "import"
             ],
             "type": "string"
+          },
+          "unknown": {
+            "enum": [
+              "import",
+              "skip",
+              ""
+            ],
+            "type": "string"
           }
         },
         "required": [
@@ -16101,6 +16131,10 @@
             },
             "type": "array"
           },
+          "agree": {
+            "format": "int64",
+            "type": "integer"
+          },
           "examples": {
             "type": "string"
           },
@@ -16110,12 +16144,23 @@
               "disposable",
               "typo",
               "stale",
-              "trap"
+              "trap",
+              "catch_all",
+              "abuse",
+              "unknown"
             ],
             "type": "string"
           },
           "label": {
             "type": "string"
+          },
+          "more": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "own": {
+            "format": "int64",
+            "type": "integer"
           },
           "rows": {
             "format": "int64",
@@ -16132,7 +16177,10 @@
           "why",
           "examples",
           "action",
-          "actions"
+          "actions",
+          "own",
+          "more",
+          "agree"
         ],
         "type": "object"
       },
@@ -16470,6 +16518,59 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "ImportVerification": {
+        "additionalProperties": false,
+        "properties": {
+          "checked": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "checkedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "cost": {
+            "format": "double",
+            "type": "number"
+          },
+          "fewer": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "invalid": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "jobId": {
+            "type": "string"
+          },
+          "risky": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "service": {
+            "type": "string"
+          },
+          "serviceName": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "jobId",
+          "service",
+          "serviceName",
+          "status",
+          "checked",
+          "cost",
+          "invalid",
+          "risky",
+          "fewer"
+        ],
         "type": "object"
       },
       "IncidentCause": {

@@ -1,17 +1,20 @@
 package demo
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"hash/fnv"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/hostrepute/reputecast/internal/emailaddr"
 	"github.com/hostrepute/reputecast/internal/placement"
 	"github.com/hostrepute/reputecast/internal/placement/seedbox"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -283,12 +286,18 @@ func seedVerificationDemo(ctx context.Context, s *Seeder) error {
 	if err := s.Tx.QueryRow(ctx, `SELECT id FROM imports WHERE workspace_id = $1 AND source = 'mailchimp' AND status = 'draft' ORDER BY created_at DESC LIMIT 1`, ws.ID).Scan(&imp); err == nil {
 		importID = &imp
 	}
+	importJob := ID()
 	if _, err := s.Tx.Exec(ctx, `INSERT INTO verification_jobs (id, workspace_id, service_id, service, kind, target, label, origin, import_id, status, skip_recent,
 			total, checked, valid, invalid, risky, unknown, suppressed, reasons, price_micros, balance_before, balance_after, started_by, created_at, started_at, finished_at)
 		VALUES ($1,$2,$3,'zerobounce','import',$4,$5,'import_preview',$6,'finished',false,11844,11844,10912,403,417,112,0,$7,8000,48500,36656,$8,$9,$9,$10)`,
-		ID(), ws.ID, zb, mustJSONB(map[string]any{"kind": "import", "importId": importIDString(importID)}), "Mailchimp “Acme Customers”", importID, importReasons,
+		importJob, ws.ID, zb, mustJSONB(map[string]any{"kind": "import", "importId": importIDString(importID)}), "Mailchimp “Acme Customers”", importID, importReasons,
 		linh.ID, importAt, importAt.Add(2*time.Minute+14*time.Second)); err != nil {
 		return err
+	}
+	if importID != nil {
+		if err := seedImportAnswers(ctx, s, ws.ID, *importID, importJob, importAt.Add(2*time.Minute+14*time.Second)); err != nil {
+			return err
+		}
 	}
 
 	// Kickbox checks three forms as people sign up, since Thu 2 Oct.
@@ -779,4 +788,90 @@ func fnv32(s string) uint32 {
 	h := fnv.New32a()
 	_, _ = h.Write([]byte(s))
 	return h.Sum32()
+}
+
+// seedImportAnswers gives the Mailchimp draft's check its answers, so the
+// preview shows ZeroBounce's share (VerificationStates, "After checking"):
+// ReputeCast's 27 role and 19 disposable rows, which ZeroBounce agrees
+// with, and 11,798 of the new addresses: 401 invalid, 2 spam traps, 352
+// catch-all, 19 more disposable, 112 unknown and 10,912 valid.
+func seedImportAnswers(ctx context.Context, s *Seeder, ws, importID, job uuid.UUID, at time.Time) error {
+	rows, err := s.Tx.Query(ctx, `SELECT r.email, r.status, coalesce((r.engagement->>'rating')::int, 0) FROM import_rows r
+		WHERE r.import_id = $1 AND NOT EXISTS (SELECT 1 FROM contacts c WHERE c.workspace_id = $2 AND c.email = lower(r.email))
+		ORDER BY r.row_no`, importID, ws)
+	if err != nil {
+		return err
+	}
+	var role, disposable, fresh []string
+	for rows.Next() {
+		var email, status string
+		var rating int
+		if err := rows.Scan(&email, &status, &rating); err != nil {
+			rows.Close()
+			return err
+		}
+		e, problem := emailaddr.Check(email)
+		if problem != "" || status != "subscribed" {
+			continue
+		}
+		domain := emailaddr.Domain(e)
+		_, typo := emailaddr.TypoFix(domain)
+		switch {
+		case emailaddr.TrapLike(e) || typo || strings.HasSuffix(domain, ".invalid"):
+		case emailaddr.IsDisposable(domain):
+			disposable = append(disposable, e)
+		case emailaddr.IsRole(e):
+			role = append(role, e)
+		case rating >= 2:
+			fresh = append(fresh, e)
+		}
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	// The new addresses in a fixed, spread-out order.
+	hash := func(v string) uint32 {
+		h := fnv.New32a()
+		_, _ = h.Write([]byte(v))
+		return h.Sum32()
+	}
+	slices.SortFunc(fresh, func(a, b string) int { return cmp.Compare(hash(a), hash(b)) })
+	if len(fresh) > 11798 {
+		fresh = fresh[:11798]
+	}
+	type answer struct{ result, reason, code string }
+	var buf [][]any
+	add := func(email string, a answer) {
+		buf = append(buf, []any{job, email, int32(len(buf) + 1), true, a.result, a.reason, a.code, at})
+	}
+	for _, e := range role {
+		add(e, answer{"risky", "role", "do_not_mail / role_based"})
+	}
+	for _, e := range disposable {
+		add(e, answer{"risky", "disposable", "do_not_mail / disposable"})
+	}
+	plan := []struct {
+		n int
+		a answer
+	}{
+		{401, answer{"invalid", "invalid_address", "invalid / mailbox_not_found"}},
+		{2, answer{"invalid", "spam_trap", "spamtrap"}},
+		{352, answer{"risky", "catch_all", "catch-all"}},
+		{19, answer{"risky", "disposable", "do_not_mail / disposable"}},
+		{112, answer{"unknown", "", "unknown / mail_server_did_not_respond"}},
+	}
+	i := 0
+	for _, p := range plan {
+		for k := 0; k < p.n && i < len(fresh); k++ {
+			add(fresh[i], p.a)
+			i++
+		}
+	}
+	for ; i < len(fresh); i++ {
+		add(fresh[i], answer{"valid", "", "valid"})
+	}
+	_, err = s.Tx.CopyFrom(ctx, pgx.Identifier{"verification_job_items"}, []string{"job_id", "email", "position", "done", "result", "reason", "code", "checked_at"},
+		pgx.CopyFromRows(buf))
+	return err
 }

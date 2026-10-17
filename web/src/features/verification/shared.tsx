@@ -51,9 +51,14 @@ export function useRealtime(key: ServiceKey | undefined, enabled: boolean) {
 
 const open = (s: Job['status']) => s === 'running' || s === 'queued' || s === 'paused'
 
-export function useJob(id: string) {
+export function useJob(id: string, enabled = true) {
   const { slug } = useWorkspace()
-  return $api.useQuery('get', `${base}/jobs/{job}`, { params: { path: { workspace: slug, job: id } } }, { refetchInterval: (q) => (q.state.data && open(q.state.data.status) ? 2000 : false) })
+  return $api.useQuery(
+    'get',
+    `${base}/jobs/{job}`,
+    { params: { path: { workspace: slug, job: id } } },
+    { enabled, refetchInterval: (q) => (q.state.data && open(q.state.data.status) ? 2000 : false) },
+  )
 }
 
 /** "$0.008", "$28.92". */
