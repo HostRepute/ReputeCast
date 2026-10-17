@@ -317,7 +317,7 @@ function ContentPicker({ onPick, onCancel }: { onPick: (c: ContentRef) => void; 
   const label = useId()
   return (
     <div className="flex flex-col gap-2">
-      <label className="pl-search" id={label}>
+      <label className="pl-search flex-none" id={label}>
         <Icon name="search" size={15} className="text-ink-3" />
         <input aria-label={t(m.contentSearch)} placeholder={t(m.contentSearch)} value={q} onChange={(e) => setQ(e.target.value)} autoFocus />
       </label>
@@ -379,7 +379,7 @@ function VersionRow({ plan, variant, language, onVariant, onLanguage }: { plan: 
   if (c.variants.length === 0 && c.languages.length <= 1) {
     return (
       <Row label={t(m.rowVersion)}>
-        <span className="pt-2 text-[13px] text-ink-2">{c.kind === 'campaign' ? t(m.noConditional) : t(m.noVersions)}</span>
+        <span className="pt-2 text-[13px] text-ink-2">{c.kind === 'campaign' || c.kind === 'digest' ? t(m.noConditional) : t(m.noVersions)}</span>
       </Row>
     )
   }
@@ -415,7 +415,7 @@ function VersionRow({ plan, variant, language, onVariant, onLanguage }: { plan: 
           </div>
         ) : null}
       </div>
-      {c.kind === 'campaign' ? <span className="k">{t(m.noConditional)}</span> : null}
+      {c.kind === 'campaign' || c.kind === 'digest' ? <span className="k">{t(m.noConditional)}</span> : null}
     </Row>
   )
 }
