@@ -37,6 +37,7 @@ var (
 	// contact scoring and growth sources: rules, scores, sources, "Sales-ready handoff" (seed_scoring_growth.go)
 	seedScoringGrowth = noop
 	seedDigests       = noop // recurring digests: Engineering blog roundup, its feed, issues #1–#3 (seed_digests.go)
+	seedEarn          = noop // payments and paid subscriptions: Stripe, tiers, paid members, the Substack import (seed_earn.go)
 	// address verification services and their uses, seed mailboxes and placement tests (seed_verification_placement.go)
 	seedVerificationPlacement = noop
 )

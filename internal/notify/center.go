@@ -36,7 +36,7 @@ type Service struct {
 type NotificationItem struct {
 	ID            string    `json:"id"`
 	Kind          string    `json:"kind"`
-	Category      string    `json:"category" enum:"approvals,sending,providers,team,hostrepute,other,integrations,transactional"`
+	Category      string    `json:"category" enum:"approvals,sending,providers,team,hostrepute,other,integrations,transactional,earn"`
 	CategoryLabel string    `json:"categoryLabel" example:"Approvals"`
 	Severity      string    `json:"severity" enum:"info,ok,warn,bad"`
 	Title         string    `json:"title" example:"Approval requested"`
@@ -219,7 +219,7 @@ func (s *Service) Preferences(ctx context.Context, user store.User, workspaceID 
 	}
 	out := NotificationPreferences{Events: make([]NotificationEventPreference, 0, len(Events)), Digest: "immediate", Timezone: user.Timezone}
 	for _, e := range Events {
-		p := NotificationEventPreference{Type: e.Key, Label: e.Label, Audience: e.Audience, InApp: true, Email: e.DefaultEmail}
+		p := NotificationEventPreference{Type: e.Key, Label: e.Label, Audience: e.Audience, InApp: !e.OffByDefault, Email: e.DefaultEmail && !e.OffByDefault}
 		if r, ok := saved[e.Key]; ok {
 			p.InApp, p.Email = r.InApp, r.Email
 		}
@@ -318,7 +318,10 @@ func SummarizeIn(l i18n.Lang, p NotificationPreferences) NotificationSummary {
 		var parts []string
 		for _, e := range p.Events {
 			if !on(e) {
-				all = false
+				// An event type that is off by default leaves "All events" as it is.
+				if !EventFor(e.Type).OffByDefault {
+					all = false
+				}
 				continue
 			}
 			switch e.Type {

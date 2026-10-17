@@ -58,7 +58,7 @@ func TestAccountOverviewDemo(t *testing.T) {
 		t.Fatalf("workspaces: %v", wss)
 	}
 	n := a["notifications"].(map[string]any)
-	if n["inApp"] != "All events" || n["email"] != "Approvals, auto-pauses, provider down, HostRepute alerts, integration problems, post drafts, transactional delivery alerts, SMTP relay outages, held digest issues, paused digests, failing digest feeds, digest drafts, verification jobs, low verification credits, seed sign-in failures" || n["quietHours"] != "22:00–07:00 America/New_York, email only" {
+	if n["inApp"] != "All events" || n["email"] != "Approvals, auto-pauses, provider down, HostRepute alerts, integration problems, post drafts, transactional delivery alerts, SMTP relay outages, held digest issues, paused digests, failing digest feeds, digest drafts, payment problems, verification jobs, low verification credits, seed sign-in failures" || n["quietHours"] != "22:00–07:00 America/New_York, email only" {
 		t.Fatalf("notifications: %v", n)
 	}
 	if sp := a["sessionPolicy"].(map[string]any); sp["lifetime"] != "14 days" || sp["idle"] != "12 hours" {

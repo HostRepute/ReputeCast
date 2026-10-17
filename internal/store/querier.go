@@ -538,6 +538,142 @@ type Querier interface {
 	DomUpdateNote(ctx context.Context, arg DomUpdateNoteParams) error
 	DomUpdateRecords(ctx context.Context, arg DomUpdateRecordsParams) error
 	DomUpdateTracking(ctx context.Context, arg DomUpdateTrackingParams) error
+	EarnCampaignName(ctx context.Context, id uuid.UUID) (string, error)
+	EarnCheckout(ctx context.Context, id uuid.UUID) (EarnCheckout, error)
+	EarnCheckoutBySession(ctx context.Context, stripeSessionID string) (EarnCheckout, error)
+	EarnCheckoutCanceled(ctx context.Context, id uuid.UUID) error
+	EarnCheckoutComplete(ctx context.Context, arg EarnCheckoutCompleteParams) error
+	// Live checkouts started and completed since a moment.
+	EarnCheckoutCounts(ctx context.Context, arg EarnCheckoutCountsParams) (EarnCheckoutCountsRow, error)
+	EarnCheckoutInsert(ctx context.Context, arg EarnCheckoutInsertParams) error
+	EarnCheckoutSetSession(ctx context.Context, arg EarnCheckoutSetSessionParams) error
+	EarnClearTestCheckouts(ctx context.Context, workspaceID uuid.UUID) error
+	// Test paid members and their timelines go; the contacts stay.
+	EarnClearTestData(ctx context.Context, workspaceID uuid.UUID) (int64, error)
+	EarnClearTestEvents(ctx context.Context, workspaceID uuid.UUID) error
+	EarnContactBrief(ctx context.Context, arg EarnContactBriefParams) (EarnContactBriefRow, error)
+	EarnContactByEmail(ctx context.Context, arg EarnContactByEmailParams) (EarnContactByEmailRow, error)
+	// Trials are for people who haven't had one before.
+	EarnContactHasHadTrial(ctx context.Context, contactID uuid.UUID) (bool, error)
+	// A contact a paid flow creates without joining a list (a tier with no
+	// lists, or an address suppressed for marketing).
+	EarnContactInsert(ctx context.Context, arg EarnContactInsertParams) (uuid.UUID, error)
+	// A paid member from an import: a new contact, or an existing one merged
+	// (its fields kept, its empty name filled).
+	EarnContactUpsertImport(ctx context.Context, arg EarnContactUpsertImportParams) (EarnContactUpsertImportRow, error)
+	// Erasing a contact removes its paid status and timeline from ReputeCast.
+	EarnErasePaid(ctx context.Context, contactID uuid.UUID) error
+	EarnEraseTimeline(ctx context.Context, contactID uuid.UUID) error
+	EarnEventInsert(ctx context.Context, arg EarnEventInsertParams) error
+	// Complimentary access whose date has passed, and paid access a
+	// disconnected account can no longer renew, past its period.
+	EarnGrantsToEnd(ctx context.Context, arg EarnGrantsToEndParams) ([]PaidSubscription, error)
+	EarnImportByID(ctx context.Context, id uuid.UUID) (EarnImport, error)
+	EarnImportCancel(ctx context.Context, arg EarnImportCancelParams) (int64, error)
+	EarnImportConflicts(ctx context.Context, importID uuid.UUID) ([]EarnImportRow, error)
+	EarnImportConsent(ctx context.Context, arg EarnImportConsentParams) error
+	// A few rows of a group, for the match step's cards.
+	EarnImportExamples(ctx context.Context, arg EarnImportExamplesParams) ([]EarnImportRow, error)
+	EarnImportFile(ctx context.Context, importID uuid.UUID) ([]byte, error)
+	EarnImportFileDelete(ctx context.Context, importID uuid.UUID) error
+	EarnImportFileInsert(ctx context.Context, arg EarnImportFileInsertParams) error
+	EarnImportFinish(ctx context.Context, arg EarnImportFinishParams) error
+	EarnImportGet(ctx context.Context, arg EarnImportGetParams) (EarnImportGetRow, error)
+	EarnImportGroupCounts(ctx context.Context, importID uuid.UUID) ([]EarnImportGroupCountsRow, error)
+	// Importing paid members (internal/earn): an export matched with the
+	// connected account's customers and subscriptions.
+	EarnImportInsert(ctx context.Context, arg EarnImportInsertParams) error
+	EarnImportLatest(ctx context.Context, workspaceID uuid.UUID) (EarnImportLatestRow, error)
+	EarnImportMatched(ctx context.Context, arg EarnImportMatchedParams) error
+	// Joins a list (a list the contact unsubscribed from stays unsubscribed).
+	EarnImportMembership(ctx context.Context, arg EarnImportMembershipParams) error
+	EarnImportPriceCounts(ctx context.Context, importID uuid.UUID) ([]EarnImportPriceCountsRow, error)
+	EarnImportProgress(ctx context.Context, arg EarnImportProgressParams) error
+	EarnImportRowInsert(ctx context.Context, arg []EarnImportRowInsertParams) (int64, error)
+	EarnImportRowMatch(ctx context.Context, arg EarnImportRowMatchParams) error
+	EarnImportRowResult(ctx context.Context, arg EarnImportRowResultParams) error
+	EarnImportRows(ctx context.Context, arg EarnImportRowsParams) ([]EarnImportRow, error)
+	EarnImportRowsClear(ctx context.Context, importID uuid.UUID) error
+	EarnImportSetColumns(ctx context.Context, arg EarnImportSetColumnsParams) error
+	EarnImportSetDecisions(ctx context.Context, arg EarnImportSetDecisionsParams) error
+	EarnImportStart(ctx context.Context, arg EarnImportStartParams) (int64, error)
+	EarnImportsRunning(ctx context.Context, workspaceID uuid.UUID) ([]EarnImport, error)
+	// The names of lists, in the order given.
+	EarnListNames(ctx context.Context, ids []uuid.UUID) ([]string, error)
+	// The workspace's lists, for the tier editor's "Paid members join".
+	EarnLists(ctx context.Context, workspaceID uuid.UUID) ([]EarnListsRow, error)
+	EarnMemberEmailSet(ctx context.Context, arg EarnMemberEmailSetParams) error
+	EarnMemberEmails(ctx context.Context, workspaceID uuid.UUID) ([]EarnMemberEmail, error)
+	EarnPageVisit(ctx context.Context, arg EarnPageVisitParams) error
+	EarnPageVisits(ctx context.Context, arg EarnPageVisitsParams) (int64, error)
+	EarnPrice(ctx context.Context, id uuid.UUID) (EarnPrice, error)
+	// The price a Stripe price id stands for, in a mode.
+	EarnPriceByStripeID(ctx context.Context, arg EarnPriceByStripeIDParams) (EarnPrice, error)
+	// Subscriptions per price and period that have access, for tier cards and legacy prices.
+	EarnPriceCounts(ctx context.Context, arg EarnPriceCountsParams) ([]EarnPriceCountsRow, error)
+	EarnPriceDelete(ctx context.Context, id uuid.UUID) error
+	EarnPriceInsert(ctx context.Context, arg EarnPriceInsertParams) error
+	EarnPriceRetire(ctx context.Context, arg EarnPriceRetireParams) error
+	EarnPriceSetStripe(ctx context.Context, arg EarnPriceSetStripeParams) error
+	// Every price of the workspace's tiers, current first.
+	EarnPrices(ctx context.Context, workspaceID uuid.UUID) ([]EarnPrice, error)
+	EarnSettings(ctx context.Context, workspaceID uuid.UUID) (EarnSetting, error)
+	EarnSettingsEnsure(ctx context.Context, workspaceID uuid.UUID) error
+	EarnSettingsSetAccess(ctx context.Context, arg EarnSettingsSetAccessParams) error
+	EarnSettingsSetCheckout(ctx context.Context, arg EarnSettingsSetCheckoutParams) error
+	EarnSettingsSetCurrency(ctx context.Context, arg EarnSettingsSetCurrencyParams) error
+	EarnSettingsSetPages(ctx context.Context, arg EarnSettingsSetPagesParams) error
+	EarnSettingsSetUpgradePage(ctx context.Context, arg EarnSettingsSetUpgradePageParams) error
+	// The highlighted tier, saved with the tier editor.
+	EarnSettingsSetUpgradePageOnly(ctx context.Context, arg EarnSettingsSetUpgradePageOnlyParams) (int64, error)
+	// Paid members (internal/earn): paid subscriptions, complimentary access
+	// and gifts, and each paid member's timeline.
+	EarnSubscription(ctx context.Context, arg EarnSubscriptionParams) (PaidSubscription, error)
+	EarnSubscriptionByStripeID(ctx context.Context, arg EarnSubscriptionByStripeIDParams) (PaidSubscription, error)
+	EarnSubscriptionCancelRequested(ctx context.Context, arg EarnSubscriptionCancelRequestedParams) error
+	EarnSubscriptionEmailed(ctx context.Context, arg EarnSubscriptionEmailedParams) error
+	EarnSubscriptionEnd(ctx context.Context, arg EarnSubscriptionEndParams) error
+	EarnSubscriptionFailed(ctx context.Context, arg EarnSubscriptionFailedParams) error
+	EarnSubscriptionForUpdate(ctx context.Context, id uuid.UUID) (PaidSubscription, error)
+	EarnSubscriptionInsert(ctx context.Context, arg EarnSubscriptionInsertParams) error
+	// A payment: lifetime value grows, any failure is cleared.
+	EarnSubscriptionPaid(ctx context.Context, arg EarnSubscriptionPaidParams) error
+	EarnSubscriptionRefunded(ctx context.Context, arg EarnSubscriptionRefundedParams) error
+	EarnSubscriptionSetAccessPaused(ctx context.Context, arg EarnSubscriptionSetAccessPausedParams) error
+	EarnSubscriptionSetBillingEmail(ctx context.Context, arg EarnSubscriptionSetBillingEmailParams) error
+	EarnSubscriptionSetGrant(ctx context.Context, arg EarnSubscriptionSetGrantParams) error
+	EarnSubscriptionSetSource(ctx context.Context, arg EarnSubscriptionSetSourceParams) error
+	// A subscription's state as the provider last reported it.
+	EarnSubscriptionSetState(ctx context.Context, arg EarnSubscriptionSetStateParams) error
+	// Every paid subscription of a contact, the ones with access first.
+	EarnSubscriptionsOfContact(ctx context.Context, arg EarnSubscriptionsOfContactParams) ([]EarnSubscriptionsOfContactRow, error)
+	EarnSubscriptionsOfCustomer(ctx context.Context, arg EarnSubscriptionsOfCustomerParams) ([]PaidSubscription, error)
+	EarnSubscriptionsOnStripePrice(ctx context.Context, arg EarnSubscriptionsOnStripePriceParams) ([]PaidSubscription, error)
+	EarnSubscriptionsSetPrice(ctx context.Context, arg EarnSubscriptionsSetPriceParams) error
+	// Earn (internal/earn): settings, tiers and prices, paid status and its
+	// timeline, checkouts, the upgrade page's visits and the member emails.
+	// Active members, Admins first then Owners, with their role (who can help).
+	EarnTeam(ctx context.Context, workspaceID uuid.UUID) ([]EarnTeamRow, error)
+	EarnTier(ctx context.Context, arg EarnTierParams) (EarnTier, error)
+	EarnTierBySlug(ctx context.Context, arg EarnTierBySlugParams) (EarnTier, error)
+	EarnTierDelete(ctx context.Context, arg EarnTierDeleteParams) error
+	EarnTierInsert(ctx context.Context, arg EarnTierInsertParams) error
+	EarnTierPrices(ctx context.Context, tierID uuid.UUID) ([]EarnPrice, error)
+	EarnTierSetProduct(ctx context.Context, arg EarnTierSetProductParams) error
+	EarnTierSlugTaken(ctx context.Context, arg EarnTierSlugTakenParams) (bool, error)
+	// Whether a tier has ever had paid members (it can't be deleted then).
+	EarnTierSubscriptions(ctx context.Context, tierID *uuid.UUID) (int64, error)
+	EarnTierSync(ctx context.Context, arg EarnTierSyncParams) error
+	EarnTierUpdate(ctx context.Context, arg EarnTierUpdateParams) error
+	EarnTiers(ctx context.Context, workspaceID uuid.UUID) ([]EarnTier, error)
+	// A paid member's timeline, newest first, with the person who acted.
+	EarnTimeline(ctx context.Context, arg EarnTimelineParams) ([]EarnTimelineRow, error)
+	EarnUnmappedPrice(ctx context.Context, arg EarnUnmappedPriceParams) (EarnUnmappedPrice, error)
+	EarnUnmappedPriceMapped(ctx context.Context, arg EarnUnmappedPriceMappedParams) error
+	EarnUnmappedPriceNotified(ctx context.Context, arg EarnUnmappedPriceNotifiedParams) error
+	EarnUnmappedPriceUpsert(ctx context.Context, arg EarnUnmappedPriceUpsertParams) (EarnUnmappedPriceUpsertRow, error)
+	EarnUnmappedPrices(ctx context.Context, workspaceID uuid.UUID) ([]EarnUnmappedPricesRow, error)
+	EarnUserName(ctx context.Context, id uuid.UUID) (string, error)
 	EmailTaken(ctx context.Context, arg EmailTakenParams) (bool, error)
 	EmailTemplateNameTaken(ctx context.Context, arg EmailTemplateNameTakenParams) (bool, error)
 	// Must run inside the same transaction as PurgeAuditEvents (retention job only).
@@ -1210,6 +1346,50 @@ type Querier interface {
 	PageCopySetPages(ctx context.Context, arg PageCopySetPagesParams) error
 	PageCopyUserName(ctx context.Context, id uuid.UUID) (string, error)
 	PauseAutomation(ctx context.Context, arg PauseAutomationParams) error
+	PayConnection(ctx context.Context, arg PayConnectionParams) (PayConnectionRow, error)
+	// The connection a webhook request is for.
+	PayConnectionByToken(ctx context.Context, webhookToken *string) (PaymentConnection, error)
+	// A key checked again (Check again, or a replaced key).
+	PayConnectionChecked(ctx context.Context, arg PayConnectionCheckedParams) error
+	// Disconnecting deletes the key and the signing secret from ReputeCast.
+	PayConnectionDisconnect(ctx context.Context, arg PayConnectionDisconnectParams) (int64, error)
+	PayConnectionFinish(ctx context.Context, arg PayConnectionFinishParams) error
+	PayConnectionGapChecked(ctx context.Context, arg PayConnectionGapCheckedParams) error
+	PayConnectionInsert(ctx context.Context, arg PayConnectionInsertParams) error
+	PayConnectionKeyRejected(ctx context.Context, arg PayConnectionKeyRejectedParams) error
+	PayConnectionSetPortal(ctx context.Context, arg PayConnectionSetPortalParams) error
+	PayConnectionSetReach(ctx context.Context, arg PayConnectionSetReachParams) error
+	PayConnectionSetStep(ctx context.Context, arg PayConnectionSetStepParams) error
+	// The endpoint registered in the provider (or added by hand), and its sealed secret.
+	PayConnectionSetWebhook(ctx context.Context, arg PayConnectionSetWebhookParams) error
+	// A verified event arrived: freshness for the webhook card.
+	PayConnectionTouchEvent(ctx context.Context, arg PayConnectionTouchEventParams) error
+	PayConnectionWebhookMissing(ctx context.Context, arg PayConnectionWebhookMissingParams) error
+	// Payments (internal/earn): payment provider connections and the payments
+	// event log.
+	// The workspace's connections that aren't disconnected, live first.
+	PayConnections(ctx context.Context, workspaceID uuid.UUID) ([]PayConnectionsRow, error)
+	// Every connection of the instance with a key, for the hourly check.
+	PayConnectionsActive(ctx context.Context) ([]PaymentConnection, error)
+	PayEventByProviderID(ctx context.Context, arg PayEventByProviderIDParams) (PaymentEvent, error)
+	PayEventFailed(ctx context.Context, arg PayEventFailedParams) error
+	PayEventGet(ctx context.Context, id uuid.UUID) (PaymentEvent, error)
+	// Stores an event once per provider event id: a replay or a duplicate
+	// delivery inserts nothing (no row comes back).
+	PayEventInsert(ctx context.Context, arg PayEventInsertParams) (uuid.UUID, error)
+	// One page of the payments event log, newest first.
+	PayEventLog(ctx context.Context, arg PayEventLogParams) ([]PayEventLogRow, error)
+	PayEventLogCount(ctx context.Context, arg PayEventLogCountParams) (int64, error)
+	PayEventResult(ctx context.Context, arg PayEventResultParams) error
+	// Events per type over the last day, for the webhook card.
+	PayEventTypes24h(ctx context.Context, arg PayEventTypes24hParams) ([]PayEventTypes24hRow, error)
+	// The event types in the log, for its filter.
+	PayEventTypesSeen(ctx context.Context, workspaceID uuid.UUID) ([]string, error)
+	// Events stored but not applied yet (a job that never ran), oldest first.
+	PayEventsPending(ctx context.Context, arg PayEventsPendingParams) ([]uuid.UUID, error)
+	// Raw events are kept 90 days.
+	PayEventsPurge(ctx context.Context, before time.Time) (int64, error)
+	PayRejectedSince(ctx context.Context, arg PayRejectedSinceParams) (int64, error)
 	// A campaign's translated language versions.
 	PlacementCampaignLanguages(ctx context.Context, ownerID uuid.UUID) ([]string, error)
 	PlacementCampaignTranslation(ctx context.Context, arg PlacementCampaignTranslationParams) (PlacementCampaignTranslationRow, error)

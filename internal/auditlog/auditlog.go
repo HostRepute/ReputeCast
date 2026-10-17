@@ -132,6 +132,8 @@ var Categories = []AuditCategory{
 	{Key: "scoring", Label: "Scoring", Groups: []string{"scoring"}},
 	// Recurring digests (design expansion, phase 3).
 	{Key: "digests", Label: "Digests", Groups: []string{"digest"}},
+	// Earn (design expansion, phase 6).
+	{Key: "earn", Label: "Earn", Groups: []string{"payments", "earn", "paid_member"}},
 	{Key: "verification", Label: "Verification", Groups: []string{"verification"}},
 	{Key: "placement", Label: "Placement tests", Groups: []string{"placement"}},
 }

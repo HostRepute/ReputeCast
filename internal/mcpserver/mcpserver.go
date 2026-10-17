@@ -38,6 +38,8 @@ type Service struct {
 	Languages *languages.Service
 	// Accessibility reads campaigns' accessibility issues (nil: unavailable).
 	Accessibility AccessibilityReader
+	// PaidMembers counts paid members (internal/earn; nil: unavailable).
+	PaidMembers PaidMembersReader
 	// Transactional lists templates, renders previews and reads the log
 	// for agents (they never send).
 	Transactional *transactional.Service
