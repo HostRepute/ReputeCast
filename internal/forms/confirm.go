@@ -156,6 +156,9 @@ func (s *Service) Confirm(ctx context.Context, ws *store.Workspace, contactID uu
 		if err != nil || len(res.Confirmed) == 0 {
 			return err
 		}
+		if err := s.signupConfirmed(ctx, tx, ws, ConfirmEvent{ContactID: contactID, Lists: res.Confirmed, IP: ev.IP, At: ev.At}); err != nil {
+			return err
+		}
 		q := store.New(tx)
 		rows, err := q.FormSubmissionsConfirm(ctx, store.FormSubmissionsConfirmParams{ContactID: contactID, At: ptrTime(ev.At)})
 		if err != nil {

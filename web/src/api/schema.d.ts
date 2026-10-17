@@ -16399,7 +16399,7 @@ export interface components {
             /** @description Full sentence for the notification center */
             body: string;
             /** @enum {string} */
-            category: "approvals" | "sending" | "providers" | "team" | "hostrepute" | "other" | "integrations" | "transactional";
+            category: "approvals" | "sending" | "providers" | "team" | "hostrepute" | "other" | "integrations" | "transactional" | "grow";
             /** @example Approvals */
             categoryLabel: string;
             /** Format: date-time */
@@ -37352,7 +37352,7 @@ export interface operations {
         parameters: {
             query?: {
                 /** @description Notification center tab */
-                filter?: "all" | "unread" | "approvals" | "sending" | "providers" | "team" | "hostrepute" | "transactional";
+                filter?: "all" | "unread" | "approvals" | "sending" | "providers" | "team" | "hostrepute" | "transactional" | "integrations" | "grow";
                 /** @description Opaque cursor from a previous page */
                 cursor?: string;
                 limit?: number;

@@ -1361,6 +1361,150 @@ type Querier interface {
 	RecordSignInSuccess(ctx context.Context, id uuid.UUID) error
 	RecordSignInThrottleFailure(ctx context.Context, arg RecordSignInThrottleFailureParams) (SignInThrottle, error)
 	RecoveryCodeStats(ctx context.Context, userID uuid.UUID) (RecoveryCodeStatsRow, error)
+	ReferralAddSignals(ctx context.Context, arg ReferralAddSignalsParams) error
+	// A contact's referrals waiting for their confirmation, with the program's
+	// rules.
+	ReferralAwaitingOfContact(ctx context.Context, contactID *uuid.UUID) ([]ReferralAwaitingOfContactRow, error)
+	// Codes ---------------------------------------------------------------------
+	ReferralCodeInsert(ctx context.Context, arg ReferralCodeInsertParams) (uuid.UUID, error)
+	ReferralCodeOf(ctx context.Context, id uuid.UUID) ([]byte, error)
+	// The oldest free code of a milestone, taken by a reward.
+	ReferralCodeTake(ctx context.Context, arg ReferralCodeTakeParams) (ReferralCodeTakeRow, error)
+	ReferralCodesLeft(ctx context.Context, milestoneID uuid.UUID) (int64, error)
+	ReferralCodesRemoveFree(ctx context.Context, arg ReferralCodesRemoveFreeParams) (int64, error)
+	ReferralCodesUploaded(ctx context.Context, milestoneID uuid.UUID) (int64, error)
+	ReferralContactOnList(ctx context.Context, arg ReferralContactOnListParams) (bool, error)
+	// A referrer's counted referrals in a program.
+	ReferralCountedOf(ctx context.Context, arg ReferralCountedOfParams) (int64, error)
+	// A milestone email is an automation email outside any flow.
+	ReferralEmailCreate(ctx context.Context, arg ReferralEmailCreateParams) error
+	ReferralEmailLatest(ctx context.Context, emailID uuid.UUID) (AutomationEmailVersion, error)
+	ReferralEmailRename(ctx context.Context, arg ReferralEmailRenameParams) error
+	ReferralEmailVersion(ctx context.Context, arg ReferralEmailVersionParams) (AutomationEmailVersion, error)
+	// Saving the milestone email adds a version; sends use the latest one.
+	ReferralEmailVersionInsert(ctx context.Context, arg ReferralEmailVersionInsertParams) (int32, error)
+	ReferralEmailVersions(ctx context.Context, emailID uuid.UUID) ([]ReferralEmailVersionsRow, error)
+	ReferralEventInsert(ctx context.Context, arg ReferralEventInsertParams) error
+	ReferralEventsOfContact(ctx context.Context, arg ReferralEventsOfContactParams) ([]ReferralEventsOfContactRow, error)
+	ReferralFileChunkInsert(ctx context.Context, arg ReferralFileChunkInsertParams) error
+	ReferralFileChunks(ctx context.Context, arg ReferralFileChunksParams) ([]ReferralFileChunksRow, error)
+	ReferralFileCounted(ctx context.Context, id uuid.UUID) error
+	ReferralFileGet(ctx context.Context, id uuid.UUID) (ReferralFileGetRow, error)
+	// Files ---------------------------------------------------------------------
+	ReferralFileInsert(ctx context.Context, arg ReferralFileInsertParams) error
+	ReferralFileRemove(ctx context.Context, arg ReferralFileRemoveParams) error
+	ReferralFiles(ctx context.Context, programID uuid.UUID) ([]ReferralFilesRow, error)
+	ReferralGet(ctx context.Context, arg ReferralGetParams) (Referral, error)
+	// Referrals of a link still in hold that a suspicion rule now covers:
+	// confirmed since a time, or matching ids.
+	ReferralHoldToReview(ctx context.Context, arg ReferralHoldToReviewParams) ([]uuid.UUID, error)
+	// Referrals -----------------------------------------------------------------
+	ReferralInsert(ctx context.Context, arg ReferralInsertParams) error
+	// Leaderboard ---------------------------------------------------------------
+	ReferralLeaderboardClear(ctx context.Context, programID uuid.UUID) error
+	ReferralLeaderboardComputedAt(ctx context.Context, programID uuid.UUID) (time.Time, error)
+	ReferralLeaderboardInsert(ctx context.Context, arg ReferralLeaderboardInsertParams) error
+	ReferralLinkBump(ctx context.Context, arg ReferralLinkBumpParams) error
+	ReferralLinkByCode(ctx context.Context, arg ReferralLinkByCodeParams) (ReferralLinkByCodeRow, error)
+	ReferralLinkCount(ctx context.Context, programID uuid.UUID) (int64, error)
+	ReferralLinkGet(ctx context.Context, arg ReferralLinkGetParams) (ReferralLinkGetRow, error)
+	// Links ---------------------------------------------------------------------
+	ReferralLinkInsert(ctx context.Context, arg ReferralLinkInsertParams) (uuid.UUID, error)
+	ReferralLinkOfContact(ctx context.Context, arg ReferralLinkOfContactParams) (ReferralLinkOfContactRow, error)
+	ReferralLinkSeenIP(ctx context.Context, arg ReferralLinkSeenIPParams) error
+	ReferralLinkSetChoices(ctx context.Context, arg ReferralLinkSetChoicesParams) error
+	ReferralLinkSetStatus(ctx context.Context, arg ReferralLinkSetStatusParams) error
+	// Confirmed subscribers of the program's list without a link yet.
+	ReferralLinksMissing(ctx context.Context, arg ReferralLinksMissingParams) ([]uuid.UUID, error)
+	ReferralLinksOfContact(ctx context.Context, contactID uuid.UUID) ([]ReferralLinksOfContactRow, error)
+	ReferralListSubscribers(ctx context.Context, listID uuid.UUID) (int64, error)
+	// Lists a program can use, with their subscribers and whether a program
+	// already has them.
+	ReferralListsOffered(ctx context.Context, workspaceID uuid.UUID) ([]ReferralListsOfferedRow, error)
+	ReferralMilestoneByID(ctx context.Context, id uuid.UUID) (ReferralMilestone, error)
+	ReferralMilestoneCodesAlerted(ctx context.Context, arg ReferralMilestoneCodesAlertedParams) error
+	ReferralMilestoneDelete(ctx context.Context, arg ReferralMilestoneDeleteParams) error
+	ReferralMilestoneEmailOn(ctx context.Context, arg ReferralMilestoneEmailOnParams) error
+	ReferralMilestoneGet(ctx context.Context, arg ReferralMilestoneGetParams) (ReferralMilestone, error)
+	// Milestones --------------------------------------------------------------
+	ReferralMilestoneInsert(ctx context.Context, arg ReferralMilestoneInsertParams) error
+	// How many referrers reached a milestone since a time (the pace of a code
+	// reward).
+	ReferralMilestoneReachedSince(ctx context.Context, arg ReferralMilestoneReachedSinceParams) (int64, error)
+	// Autosave of the milestone email's draft, refused when someone saved since
+	// base_revision.
+	ReferralMilestoneSaveEmail(ctx context.Context, arg ReferralMilestoneSaveEmailParams) (int32, error)
+	ReferralMilestoneSetEmail(ctx context.Context, arg ReferralMilestoneSetEmailParams) error
+	ReferralMilestoneSetSecret(ctx context.Context, arg ReferralMilestoneSetSecretParams) error
+	// Per milestone: reached (rewards given), sent, used, waiting and failed.
+	ReferralMilestoneStats(ctx context.Context, programID uuid.UUID) ([]ReferralMilestoneStatsRow, error)
+	ReferralMilestoneUpdate(ctx context.Context, arg ReferralMilestoneUpdateParams) error
+	ReferralMilestoneWebhookAlerted(ctx context.Context, arg ReferralMilestoneWebhookAlertedParams) error
+	ReferralMilestoneWebhookResult(ctx context.Context, arg ReferralMilestoneWebhookResultParams) error
+	ReferralMilestones(ctx context.Context, programID uuid.UUID) ([]ReferralMilestone, error)
+	// A link's other referrals with their addresses (the numbered-address rule).
+	ReferralNumberedPeers(ctx context.Context, arg ReferralNumberedPeersParams) ([]ReferralNumberedPeersRow, error)
+	ReferralOfContact(ctx context.Context, arg ReferralOfContactParams) (Referral, error)
+	// A program of any workspace (jobs, public pages).
+	ReferralProgramByID(ctx context.Context, id uuid.UUID) (ReferralProgram, error)
+	ReferralProgramDelete(ctx context.Context, arg ReferralProgramDeleteParams) error
+	ReferralProgramForList(ctx context.Context, listID uuid.UUID) (ReferralProgram, error)
+	ReferralProgramGet(ctx context.Context, arg ReferralProgramGetParams) (ReferralProgramGetRow, error)
+	// Referral programs (internal/referrals): programs, milestones and rewards,
+	// links, referrals and their log, visits, codes, files and the leaderboard.
+	ReferralProgramInsert(ctx context.Context, arg ReferralProgramInsertParams) error
+	ReferralProgramLock(ctx context.Context, id uuid.UUID) (ReferralProgram, error)
+	ReferralProgramReviewNotified(ctx context.Context, arg ReferralProgramReviewNotifiedParams) error
+	ReferralProgramSetLeaderboard(ctx context.Context, arg ReferralProgramSetLeaderboardParams) error
+	ReferralProgramSetList(ctx context.Context, arg ReferralProgramSetListParams) error
+	ReferralProgramSetStatus(ctx context.Context, arg ReferralProgramSetStatusParams) error
+	ReferralProgramSetStep(ctx context.Context, arg ReferralProgramSetStepParams) error
+	ReferralProgramUpdate(ctx context.Context, arg ReferralProgramUpdateParams) error
+	// Programs the minute job looks after: every program not deleted (counting
+	// and rewards go on while a program is off).
+	ReferralProgramsActive(ctx context.Context) ([]ReferralProgram, error)
+	ReferralProgramsOf(ctx context.Context, workspaceID uuid.UUID) ([]ReferralProgramsOfRow, error)
+	// A link's referrals confirmed since a time, still in hold or review (the
+	// burst rule).
+	ReferralRecentConfirmed(ctx context.Context, arg ReferralRecentConfirmedParams) ([]ReferralRecentConfirmedRow, error)
+	// A link's referrals that signed up from an address since a time.
+	ReferralRecentFromIP(ctx context.Context, arg ReferralRecentFromIPParams) ([]ReferralRecentFromIPRow, error)
+	// Whether ip is an address the referrer used in the last 30 days: to open
+	// their hub or a page of their link, or to subscribe or confirm.
+	ReferralReferrerIPMatch(ctx context.Context, arg ReferralReferrerIPMatchParams) (bool, error)
+	ReferralReferrerIPsPrune(ctx context.Context, before time.Time) error
+	ReferralRewardAddress(ctx context.Context, arg ReferralRewardAddressParams) error
+	ReferralRewardByID(ctx context.Context, id uuid.UUID) (ReferralReward, error)
+	ReferralRewardEmailSent(ctx context.Context, arg ReferralRewardEmailSentParams) error
+	ReferralRewardFulfill(ctx context.Context, arg ReferralRewardFulfillParams) error
+	ReferralRewardGet(ctx context.Context, arg ReferralRewardGetParams) (ReferralReward, error)
+	// Rewards -------------------------------------------------------------------
+	ReferralRewardInsert(ctx context.Context, arg ReferralRewardInsertParams) (uuid.UUID, error)
+	ReferralRewardLock(ctx context.Context, id uuid.UUID) (ReferralReward, error)
+	ReferralRewardResent(ctx context.Context, arg ReferralRewardResentParams) error
+	ReferralRewardSet(ctx context.Context, arg ReferralRewardSetParams) error
+	ReferralRewardUsed(ctx context.Context, arg ReferralRewardUsedParams) error
+	ReferralRewardsAddressPurge(ctx context.Context, now time.Time) error
+	// Rewards to deliver: webhook calls due, codes that may have arrived,
+	// coupons waiting for a payment provider.
+	ReferralRewardsDue(ctx context.Context, arg ReferralRewardsDueParams) ([]ReferralReward, error)
+	ReferralRewardsExpire(ctx context.Context, now time.Time) error
+	ReferralRewardsOfContact(ctx context.Context, arg ReferralRewardsOfContactParams) ([]ReferralRewardsOfContactRow, error)
+	ReferralRewardsToFulfill(ctx context.Context, programID uuid.UUID) ([]ReferralRewardsToFulfillRow, error)
+	ReferralSetConfirmed(ctx context.Context, arg ReferralSetConfirmedParams) error
+	ReferralSetCounted(ctx context.Context, arg ReferralSetCountedParams) error
+	ReferralSetNotCounted(ctx context.Context, arg ReferralSetNotCountedParams) error
+	ReferralVisitBump(ctx context.Context, arg ReferralVisitBumpParams) error
+	// Visits --------------------------------------------------------------------
+	// Records the day's visit key; a row comes back only for the first visit.
+	ReferralVisitKey(ctx context.Context, arg ReferralVisitKeyParams) ([]byte, error)
+	ReferralVisitKeysPrune(ctx context.Context, before time.Time) error
+	// Referrals whose hold has ended, with what decides whether they count.
+	ReferralsHoldDue(ctx context.Context, arg ReferralsHoldDueParams) ([]ReferralsHoldDueRow, error)
+	// Referrals still waiting for their confirmation after 7 days.
+	ReferralsNeverConfirmed(ctx context.Context, arg ReferralsNeverConfirmedParams) ([]ReferralsNeverConfirmedRow, error)
+	// After 90 days an address is reduced to its network.
+	ReferralsReduceIPs(ctx context.Context, arg ReferralsReduceIPsParams) error
 	RefreshInvitation(ctx context.Context, arg RefreshInvitationParams) (Invitation, error)
 	RelayACMEDelete(ctx context.Context, key string) error
 	RelayACMEGet(ctx context.Context, key string) ([]byte, error)
@@ -1632,8 +1776,9 @@ type Querier interface {
 	SendingAutomationEmail(ctx context.Context, arg SendingAutomationEmailParams) (SendingAutomationEmailRow, error)
 	SendingAutomationEmailLatest(ctx context.Context, id uuid.UUID) (int32, error)
 	SendingAutomationLinkCount(ctx context.Context, arg SendingAutomationLinkCountParams) (int64, error)
-	// The workspace's default sender (automation emails come from it).
-	SendingAutomationSender(ctx context.Context, workspaceID uuid.UUID) (SendingAutomationSenderRow, error)
+	// The sender of an automation email: its own (milestone emails come from
+	// their program's sender), else the workspace's default sender.
+	SendingAutomationSender(ctx context.Context, arg SendingAutomationSenderParams) (SendingAutomationSenderRow, error)
 	SendingBumpCounters(ctx context.Context, arg SendingBumpCountersParams) error
 	SendingCampaign(ctx context.Context, id uuid.UUID) (Campaign, error)
 	// A campaign with its sender and workspace, for building messages.

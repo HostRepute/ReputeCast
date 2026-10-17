@@ -27236,7 +27236,8 @@
               "hostrepute",
               "other",
               "integrations",
-              "transactional"
+              "transactional",
+              "grow"
             ],
             "type": "string"
           },
@@ -27381,7 +27382,7 @@
             "items": {
               "$ref": "#/components/schemas/NotificationEventChoice"
             },
-            "maxItems": 20,
+            "maxItems": 60,
             "type": "array"
           },
           "quietHours": {
@@ -77388,7 +77389,9 @@
                 "providers",
                 "team",
                 "hostrepute",
-                "transactional"
+                "transactional",
+                "integrations",
+                "grow"
               ],
               "type": "string"
             }

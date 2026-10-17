@@ -46,6 +46,11 @@ const (
 	KindDigestPaused      = "digest_paused"       // a digest paused (by a person, its owner's permissions, the feed)
 	KindDigestFeedFailing = "digest_feed_failing" // a digest's feed failed at preparation, then the issue was skipped
 	KindDigestDraftReady  = "digest_draft_ready"  // draft mode: an issue is a draft to send through Review & send
+	// Grow (design expansion, phase 5).
+	KindReferralsHeld        = "referrals_held"         // referrals wait in the review queue (grow:review)
+	KindRewardCodesLow       = "reward_codes_low"       // a code reward is running low or out of codes (grow:edit)
+	KindRewardWebhookFailing = "reward_webhook_failing" // a webhook reward's endpoint keeps failing (grow:edit)
+	KindPartnerLinkProblem   = "partner_link_problem"   // a partner link is invalid or unreachable (grow:connect)
 )
 
 // Notification is what appears in the notification center.

@@ -75,8 +75,13 @@ func (m AutomationMailer) QueueAutomationEmail(ctx context.Context, tx pgx.Tx, o
 	}
 	ref, _ := json.Marshal(cr)
 	node := o.NodeID
+	// Milestone emails (Grow) are automation emails outside any flow.
+	var automation *uuid.UUID
+	if o.AutomationID != uuid.Nil {
+		automation = &o.AutomationID
+	}
 	if err := q.SendingInsertAutomationMessage(ctx, store.SendingInsertAutomationMessageParams{
-		ID: out.MessageID, WorkspaceID: o.WorkspaceID, AutomationID: &o.AutomationID, AutomationNode: &node, ContactID: &o.ContactID,
+		ID: out.MessageID, WorkspaceID: o.WorkspaceID, AutomationID: automation, AutomationNode: &node, ContactID: &o.ContactID,
 		Email: o.To, ProviderID: provider, MailboxProvider: mbp, Status: status, QueuedAt: m.E.now(), ContentRef: ref,
 		Language: ml.Language, ContactLanguage: ml.Contact, LanguageReason: ml.Reason,
 	}); err != nil {
@@ -395,7 +400,7 @@ func (e *Engine) composeAutomation(ctx context.Context, r *runRoute, row store.S
 					}
 				}
 			}
-			ot.sender, _ = e.Q.SendingAutomationSender(ctx, em.WorkspaceID)
+			ot.sender, _ = e.Q.SendingAutomationSender(ctx, store.SendingAutomationSenderParams{WorkspaceID: em.WorkspaceID, EmailID: ref.Email})
 			if ot.sender.Email == "" && ot.missing == "" {
 				ot.missing = "the workspace has no default sender; set one in Settings › General"
 			}

@@ -19,5 +19,9 @@
   "short.digest_issue_held": "held digest issues",
   "short.digest_paused": "paused digests",
   "short.digest_feed_failing": "failing digest feeds",
-  "short.digest_draft_ready": "digest drafts"
+  "short.digest_draft_ready": "digest drafts",
+  "short.referrals_held": "held referrals",
+  "short.reward_codes_low": "reward codes running low",
+  "short.reward_webhook_failing": "failing reward webhooks",
+  "short.partner_link_problem": "partner link problems"
 }

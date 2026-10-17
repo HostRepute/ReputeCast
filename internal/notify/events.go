@@ -38,6 +38,11 @@ var Events = []EventType{
 	{Key: KindDigestPaused, Label: "Digest paused", Audience: "The owner, or everyone with campaigns:send", Short: "paused digests", DefaultEmail: true, Kinds: []string{KindDigestPaused}},
 	{Key: KindDigestFeedFailing, Label: "Digest feed failing", Audience: "The digest's owner", Short: "failing digest feeds", DefaultEmail: true, Kinds: []string{KindDigestFeedFailing}},
 	{Key: KindDigestDraftReady, Label: "Digest draft ready", Audience: "The owner and everyone with campaigns:send", Short: "digest drafts", DefaultEmail: true, Kinds: []string{KindDigestDraftReady}},
+	// Grow (design expansion, phase 5).
+	{Key: KindReferralsHeld, Label: "Referrals held for review", Audience: "Everyone with grow:review · then at most once a day while the queue isn't empty", Short: "held referrals", DefaultEmail: true, Kinds: []string{KindReferralsHeld}},
+	{Key: KindRewardCodesLow, Label: "Reward codes running low or out", Audience: "Everyone with grow:edit", Short: "reward codes running low", DefaultEmail: true, Kinds: []string{KindRewardCodesLow}},
+	{Key: KindRewardWebhookFailing, Label: "Reward webhook failing", Audience: "Everyone with grow:edit", Short: "failing reward webhooks", DefaultEmail: true, Kinds: []string{KindRewardWebhookFailing}},
+	{Key: KindPartnerLinkProblem, Label: "Partner link invalid or unreachable", Audience: "Everyone with grow:connect", Short: "partner link problems", DefaultEmail: true, Kinds: []string{KindPartnerLinkProblem}},
 }
 
 // otherEvent covers kinds without a preference row (send finished, jobs):
@@ -69,6 +74,8 @@ const (
 	// CategoryTransactional holds transactional mail's delivery alerts and
 	// the SMTP relay.
 	CategoryTransactional = "transactional"
+	// CategoryGrow holds referrals' and partner links' notifications.
+	CategoryGrow = "grow"
 )
 
 var categoryKinds = map[string][]string{
@@ -79,6 +86,7 @@ var categoryKinds = map[string][]string{
 	CategoryHostRepute:    {KindHostReputeAlert},
 	CategoryIntegrations:  {KindIntegrationAttention, KindPostDraftCreated},
 	CategoryTransactional: {KindTransactionalAlert, KindSMTPRelayUnreachable},
+	CategoryGrow:          {KindReferralsHeld, KindRewardCodesLow, KindRewardWebhookFailing, KindPartnerLinkProblem},
 }
 
 var categoryLabels = map[string]string{
@@ -90,6 +98,7 @@ var categoryLabels = map[string]string{
 	CategoryOther:         "Other",
 	CategoryIntegrations:  "Integrations",
 	CategoryTransactional: "Transactional",
+	CategoryGrow:          "Grow",
 }
 
 // CategoryOf returns the center tab a kind is listed under.

@@ -58,6 +58,9 @@ type Service struct {
 	// Turnstile verifies challenge tokens with Cloudflare.
 	Turnstile *Turnstile
 	Now       func() time.Time
+	// Hooks are told about signups and confirmations (Grow's referrals),
+	// read at call time.
+	Hooks func() []SignupHook
 
 	limitsOnce sync.Once
 	limits     *limiter
