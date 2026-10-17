@@ -253,6 +253,9 @@ func (s *Service) Translate(ctx context.Context, ws *store.Workspace, p *authz.P
 				sug = source
 			}
 			fixed, kept := restore(source, sug)
+			if seg.Kind == "text" || seg.Kind == "table" {
+				fixed = linkAttrs(source, fixed)
+			}
 			blk.Tokens += kept.Tokens
 			blk.TokensRestored += kept.TokensRestored
 			blk.Links += kept.Links
@@ -537,7 +540,8 @@ func segmentEdit(src string, n *mjml.Node, seg AIAcceptedSegment) (edit, bool) {
 	if seg.Kind != "text" && seg.Kind != "table" {
 		text = html.EscapeString(plain(text))
 	} else {
-		text = sanitize(text)
+		// The links keep the source's look: sanitize leaves only their address.
+		text = linkAttrs(src[open+1:open+closeAt], sanitize(text))
 	}
 	return edit{start: open + 1, end: open + closeAt, text: text}, true
 }

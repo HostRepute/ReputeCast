@@ -133,6 +133,55 @@ func restore(src, got string) (string, keepResult) {
 	return got, r
 }
 
+var (
+	anchorOpenRe = regexp.MustCompile(`(?is)<a\b([^>]*)>`)
+	// lookAttrRe are the attributes that make a link look like the email's
+	// links: sanitize keeps only the address, the source has the rest.
+	lookAttrRe = regexp.MustCompile(`(?is)(?:^|\s)((?:style|class|target|rel|title)\s*=\s*(?:"[^"]*"|'[^']*'))`)
+)
+
+// linkAttrs gives each link of got the look of the source's link to the
+// same address (its style, class, target, rel and title), in order when
+// the source links to an address more than once. Links the source doesn't
+// have keep only their address.
+func linkAttrs(src, got string) string {
+	byHref := map[string][]string{}
+	for _, m := range anchorOpenRe.FindAllStringSubmatch(src, -1) {
+		h := hrefAttrRe.FindStringSubmatch(m[1])
+		if h == nil {
+			continue
+		}
+		href := html.UnescapeString(strings.Trim(h[1], `"'`))
+		attrs := []string{}
+		for _, a := range lookAttrRe.FindAllStringSubmatch(m[1], -1) {
+			attrs = append(attrs, a[1])
+		}
+		byHref[href] = append(byHref[href], strings.Join(attrs, " "))
+	}
+	if len(byHref) == 0 {
+		return got
+	}
+	used := map[string]int{}
+	return anchorOpenRe.ReplaceAllStringFunc(got, func(m string) string {
+		sub := anchorOpenRe.FindStringSubmatch(m)
+		h := hrefAttrRe.FindStringSubmatch(sub[1])
+		if h == nil || lookAttrRe.MatchString(sub[1]) {
+			return m
+		}
+		href := html.UnescapeString(strings.Trim(h[1], `"'`))
+		list := byHref[href]
+		if len(list) == 0 {
+			return m
+		}
+		i := min(used[href], len(list)-1)
+		used[href]++
+		if list[i] == "" {
+			return m
+		}
+		return strings.TrimSuffix(m, ">") + " " + list[i] + ">"
+	})
+}
+
 func sameMultiset(a, b []string) bool {
 	if len(a) != len(b) {
 		return false

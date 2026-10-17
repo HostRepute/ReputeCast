@@ -275,6 +275,9 @@ func (s *Service) Rewrite(ctx context.Context, ws *store.Workspace, p *authz.Pri
 		return out, problem(ctx, http.StatusBadGateway, codeProviderError, mUnreadable, map[string]any{"provider": res.conn.providerName()})
 	}
 	got, kept := restore(src, got)
+	if in.Field == "" {
+		got = linkAttrs(src, got)
+	}
 	out.HTML, out.WordsAfter, out.TokensRestored, out.Links, out.LinksRestored = got, words(got), kept.TokensRestored, kept.Links, kept.LinksRestored
 	return out, nil
 }
