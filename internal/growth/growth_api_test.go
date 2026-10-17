@@ -64,6 +64,34 @@ func TestGrowthAPI(t *testing.T) {
 	if list.Total != 272 {
 		t.Fatalf("utm_campaign flags-ga: %d", list.Total)
 	}
+	// Sorted by score, each score comes with its band; every demo contact
+	// has a score, so "No score" matches nobody.
+	var scored struct {
+		Items []struct {
+			Score     *int
+			ScoreBand string
+		}
+	}
+	c.Do("GET", "/workspaces/acme-newsletter/contacts?sort=score&band=hot", nil).MustStatus(t, 200).JSON(t, &scored)
+	if len(scored.Items) == 0 || scored.Items[0].Score == nil || *scored.Items[0].Score != 100 || scored.Items[0].ScoreBand != "hot" {
+		t.Fatalf("hot contacts by score: %+v", scored.Items)
+	}
+	c.Do("GET", "/workspaces/acme-newsletter/contacts?band=none", nil).MustStatus(t, 200).JSON(t, &list)
+	if list.Total != 0 {
+		t.Fatalf("contacts without a score: %d", list.Total)
+	}
+	// One list: a form that offers several lists says the member picked it.
+	var beta growth.GrowthPage
+	c.Do("GET", "/workspaces/acme-newsletter/growth?list="+betaList(t, env), nil).MustStatus(t, 200).JSON(t, &beta)
+	picks := map[string]bool{}
+	for _, r := range beta.Sources {
+		if r.Source.Kind == growth.KindForm {
+			picks[r.Source.Name] = r.Source.ListChoice
+		}
+	}
+	if !picks["Newsletter signup"] || picks["Beta apply"] {
+		t.Fatalf("list choice: %v", picks)
+	}
 	// The export: totals, never an address, and an audit entry.
 	r := c.Do("GET", "/workspaces/acme-newsletter/growth/export", nil).MustStatus(t, 200)
 	body := string(r.Body)
@@ -77,4 +105,15 @@ func TestGrowthAPI(t *testing.T) {
 	// An unknown list is a 404; a period that ends before it starts, a 422.
 	c.Do("GET", "/workspaces/acme-newsletter/growth?list=0199c0de-0000-7000-8000-000000000000", nil).MustStatus(t, 404)
 	c.Do("GET", "/workspaces/acme-newsletter/growth?period=custom&from=2026-10-10&to=2026-10-01", nil).MustStatus(t, 422)
+}
+
+// betaList is the demo's Beta Program list.
+func betaList(t *testing.T, env *apptest.Env) string {
+	t.Helper()
+	var id string
+	if err := env.App.Pool.QueryRow(context.Background(), `SELECT l.id::text FROM lists l JOIN workspaces w ON w.id = l.workspace_id
+		WHERE w.slug = 'acme-newsletter' AND l.name = 'Beta Program'`).Scan(&id); err != nil {
+		t.Fatal(err)
+	}
+	return id
 }

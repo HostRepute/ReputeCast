@@ -19,7 +19,8 @@ import (
 // ScoreGrowthFilter narrows contacts by their score and by how they first
 // joined. Saved views keep it with the rest of the filter.
 type ScoreGrowthFilter struct {
-	Band string `json:"band,omitempty" enum:"cold,warm,hot"`
+	// Band is a score band, or "none" for contacts without a score.
+	Band string `json:"band,omitempty" enum:"cold,warm,hot,none"`
 	// ScoreFrom and ScoreTo are a range of scores (0–100), both included.
 	ScoreFrom string `json:"scoreFrom,omitempty" maxLength:"3"`
 	ScoreTo   string `json:"scoreTo,omitempty" maxLength:"3"`
@@ -36,7 +37,7 @@ type ScoreGrowthFilter struct {
 
 // ScoreGrowthQuery is the same filter as query parameters.
 type ScoreGrowthQuery struct {
-	Band            string `query:"band" enum:"cold,warm,hot,"`
+	Band            string `query:"band" enum:"cold,warm,hot,none,"`
 	ScoreFrom       string `query:"scoreFrom" maxLength:"3"`
 	ScoreTo         string `query:"scoreTo" maxLength:"3"`
 	GrowthSource    string `query:"growthSource" maxLength:"200"`
@@ -67,7 +68,15 @@ func (s *Service) scoreGrowthFilter(ctx context.Context, wsID uuid.UUID, out *fi
 		if err != nil {
 			return err
 		}
-		if !ok {
+		if f.Band == "none" && f.ScoreFrom == "" && f.ScoreTo == "" {
+			// Without scoring nobody has a score; with it, contacts added
+			// since the last update don't have one yet.
+			if ok {
+				out.add("NOT EXISTS (SELECT 1 FROM contact_scores cs WHERE cs.contact_id = c.id)")
+			}
+			return s.growthFilter(out, f)
+		}
+		if !ok || f.Band == "none" {
 			// No scoring: nobody has a score or a band.
 			out.add("false")
 			return nil
@@ -95,6 +104,11 @@ func (s *Service) scoreGrowthFilter(ctx context.Context, wsID uuid.UUID, out *fi
 			out.add(score+" <= ?", n)
 		}
 	}
+	return s.growthFilter(out, f)
+}
+
+// growthFilter appends the source, UTM and referring-domain conditions of f.
+func (s *Service) growthFilter(out *filterSQL, f ScoreGrowthFilter) error {
 	growth := func(cond string, vals ...any) {
 		out.add("EXISTS (SELECT 1 FROM contact_growth g WHERE g.contact_id = c.id AND "+cond+")", vals...)
 	}

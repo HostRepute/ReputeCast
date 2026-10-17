@@ -35,8 +35,9 @@ type ContactListItem struct {
 	Source          string     `json:"source"`
 	SourceLabel     string     `json:"sourceLabel"`
 	Suppressed      bool       `json:"suppressed"`
-	// Score is null while the workspace has no scoring.
-	Score *int `json:"score,omitempty"`
+	// Score is null while the workspace has no scoring; ScoreBand is its band.
+	Score     *int   `json:"score,omitempty"`
+	ScoreBand string `json:"scoreBand,omitempty" enum:"cold,warm,hot"`
 }
 
 // ContactList is one page of contacts.
@@ -64,7 +65,7 @@ func (s *Service) ListContacts(ctx context.Context, ws *store.Workspace, f Conta
 		return out, err
 	}
 	args := append(fs.args, pageSize, (page-1)*pageSize)
-	_, scored, err := scoring.AppliedBands(ctx, s.Q, ws.ID)
+	bands, scored, err := scoring.AppliedBands(ctx, s.Q, ws.ID)
 	if err != nil {
 		return out, err
 	}
@@ -90,7 +91,7 @@ func (s *Service) ListContacts(ctx context.Context, ws *store.Workspace, f Conta
 			return out, err
 		}
 		if scored {
-			it.Score = &score
+			it.Score, it.ScoreBand = &score, bands.Band(score)
 		}
 		it.ID = id.String()
 		it.Name = strings.TrimSpace(first + " " + last)

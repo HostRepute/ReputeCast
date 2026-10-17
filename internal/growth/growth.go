@@ -130,6 +130,8 @@ type GrowthSource struct {
 	Imported bool `json:"imported"`
 	// FormKind is embedded, popup or hosted.
 	FormKind string `json:"formKind,omitempty"`
+	// ListChoice is true when the form offers more than one list to pick.
+	ListChoice bool `json:"listChoice,omitempty"`
 	// Hosts are the sites a form's signups came from in the period.
 	Hosts []string `json:"hosts"`
 	// URL is the subscribe page's or a hosted form's address.
@@ -256,7 +258,7 @@ func (n *names) describe(key string) GrowthSource {
 	switch kind {
 	case KindForm:
 		if f, ok := n.forms[id]; ok {
-			out.Name, out.FormKind = f.Name, f.Kind
+			out.Name, out.FormKind, out.ListChoice = f.Name, f.Kind, f.ListChoice && len(f.ListIds) > 1
 		}
 	case KindSubscribePage:
 		out.URL = n.subscribeURL

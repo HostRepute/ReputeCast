@@ -11448,7 +11448,8 @@
             "enum": [
               "cold",
               "warm",
-              "hot"
+              "hot",
+              "none"
             ],
             "type": "string"
           },
@@ -11725,6 +11726,14 @@
           "score": {
             "format": "int64",
             "type": "integer"
+          },
+          "scoreBand": {
+            "enum": [
+              "cold",
+              "warm",
+              "hot"
+            ],
+            "type": "string"
           },
           "source": {
             "type": "string"
@@ -15358,6 +15367,9 @@
           },
           "kind": {
             "type": "string"
+          },
+          "listChoice": {
+            "type": "boolean"
           },
           "name": {
             "type": "string"
@@ -61672,6 +61684,7 @@
                 "cold",
                 "warm",
                 "hot",
+                "none",
                 ""
               ],
               "type": "string"

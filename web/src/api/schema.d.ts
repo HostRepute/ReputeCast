@@ -11360,7 +11360,7 @@ export interface components {
         };
         ContactFilter: {
             /** @enum {string} */
-            band?: "cold" | "warm" | "hot";
+            band?: "cold" | "warm" | "hot" | "none";
             /** @enum {string} */
             consent?: "double" | "single" | "pending";
             growthSource?: string;
@@ -11440,6 +11440,8 @@ export interface components {
             name: string;
             /** Format: int64 */
             score?: number;
+            /** @enum {string} */
+            scoreBand?: "cold" | "warm" | "hot";
             source: string;
             sourceLabel: string;
             suppressed: boolean;
@@ -12464,6 +12466,7 @@ export interface components {
             key: string;
             keyPrefix?: string;
             kind: string;
+            listChoice?: boolean;
             name: string;
             /** Format: int64 */
             tookImportDay?: number;
@@ -29681,7 +29684,7 @@ export interface operations {
                 /** @description Segment id */
                 segment?: string;
                 joinedAfter?: string;
-                band?: "cold" | "warm" | "hot" | "";
+                band?: "cold" | "warm" | "hot" | "none" | "";
                 scoreFrom?: string;
                 scoreTo?: string;
                 growthSource?: string;
