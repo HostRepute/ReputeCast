@@ -1,0 +1,26 @@
+{
+  "version": "https://jsonfeed.org/version/1.1",
+  "title": "Acme changelog",
+  "home_page_url": "https://changelog.acme.io/",
+  "feed_url": "https://changelog.acme.io/feed.json",
+  "authors": [{ "name": "Acme Product" }],
+  "items": [
+    {
+      "id": "2026-10-01-services-back-to-postgres",
+      "url": "https://changelog.acme.io/services-postgres",
+      "title": "Why we moved three services back to Postgres",
+      "content_html": "<p>Two years ago we gave three services their own document stores.</p><img src=\"https://changelog.acme.io/img/services-postgres.png\" alt=\"Three services, one database\">",
+      "date_published": "2026-10-01T09:00:00-04:00",
+      "authors": [{ "name": "Ana Lima" }],
+      "tags": ["Engineering", "postgres"]
+    },
+    {
+      "id": 42,
+      "url": "https://changelog.acme.io/load-testing",
+      "title": "Load-testing with production traffic",
+      "summary": "We replay a sample of production traffic against every release candidate.",
+      "image": "https://changelog.acme.io/img/load.png",
+      "date_published": "2026-09-30T09:00:00-04:00"
+    }
+  ]
+}

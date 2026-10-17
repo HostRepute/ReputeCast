@@ -14,5 +14,10 @@
   "short.integration_attention": "integration problems",
   "short.post_draft_created": "post drafts",
   "short.transactional_alert": "transactional delivery alerts",
-  "short.smtp_relay_unreachable": "SMTP relay outages"
+  "short.smtp_relay_unreachable": "SMTP relay outages",
+  "short.score_recalculated": "score recalculations",
+  "short.digest_issue_held": "held digest issues",
+  "short.digest_paused": "paused digests",
+  "short.digest_feed_failing": "failing digest feeds",
+  "short.digest_draft_ready": "digest drafts"
 }

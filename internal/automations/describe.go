@@ -55,6 +55,8 @@ func TriggerKindLabel(kind string) string {
 		return "API event"
 	case TriggerDateField:
 		return "Date field"
+	case TriggerScoreCrosses:
+		return "Score crosses…"
 	case TriggerPollAnswered:
 		return "Answered a poll or survey"
 	}
@@ -87,6 +89,8 @@ func TriggerRef(t *AutomationTrigger, refs *Refs) string {
 		return t.Event
 	case TriggerDateField:
 		return t.Field
+	case TriggerScoreCrosses:
+		return scoreTriggerRef(t)
 	case TriggerPollAnswered:
 		if refs != nil {
 			if n, ok := refs.Polls[t.Poll]; ok {
@@ -260,6 +264,8 @@ func conditionPhrase(g AutomationGraph, c *AutomationCondition, refs *Refs) stri
 			return fmt.Sprintf("%s isn't %s", c.Field, c.Value)
 		case "contains":
 			return fmt.Sprintf("%s contains %s", c.Field, c.Value)
+		case "is_one_of":
+			return fmt.Sprintf("%s is %s", c.Field, orValues(c.Value))
 		}
 		return fmt.Sprintf("%s is %s", c.Field, c.Value)
 	}

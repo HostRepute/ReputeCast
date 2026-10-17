@@ -45,10 +45,11 @@ func TestSeed(t *testing.T) {
 		t.Fatal(err)
 	}
 	// The Campaigns board's 48 plus the approval inbox's sample campaigns,
-	// the draft blog.acme.io made from a post (integrations hub) and the
-	// accessibility sample's Weekly Digest #143, and the survey's email,
-	// Beta Program: October check-in (polls and surveys).
-	if campaigns != 55 {
-		t.Fatalf("want 55 demo campaigns, got %d", campaigns)
+	// the draft blog.acme.io made from a post (integrations hub), the
+	// accessibility sample's Weekly Digest #143, the recurring digest's
+	// template and sent issues #1 and #2, and the survey's email, Beta
+	// Program: October check-in (polls and surveys).
+	if campaigns != 58 {
+		t.Fatalf("want 58 demo campaigns, got %d", campaigns)
 	}
 }

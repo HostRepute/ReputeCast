@@ -34,7 +34,9 @@ import { Route as WWorkspaceAppAdminWorkspacesRouteImport } from './routes/w/$wo
 import { Route as WWorkspaceAppApprovalsIndexRouteImport } from './routes/w/$workspace/_app/approvals/index'
 import { Route as WWorkspaceAppApprovalsApprovalIdRouteImport } from './routes/w/$workspace/_app/approvals/$approvalId'
 import { Route as WWorkspaceAppAudienceIndexRouteImport } from './routes/w/$workspace/_app/audience/index'
+import { Route as WWorkspaceAppAudienceGrowthRouteImport } from './routes/w/$workspace/_app/audience/growth'
 import { Route as WWorkspaceAppAudienceHealthRouteImport } from './routes/w/$workspace/_app/audience/health'
+import { Route as WWorkspaceAppAudienceScoringRouteImport } from './routes/w/$workspace/_app/audience/scoring'
 import { Route as WWorkspaceAppAudienceSuppressionsRouteImport } from './routes/w/$workspace/_app/audience/suppressions'
 import { Route as WWorkspaceAppAutomationsIndexRouteImport } from './routes/w/$workspace/_app/automations/index'
 import { Route as WWorkspaceAppCampaignsIndexRouteImport } from './routes/w/$workspace/_app/campaigns/index'
@@ -97,6 +99,8 @@ import { Route as WWorkspaceAppSettingsTeamIndexRouteImport } from './routes/w/$
 import { Route as WWorkspaceAppSettingsTeamMemberIdRouteImport } from './routes/w/$workspace/_app/settings/team/$memberId'
 import { Route as WWorkspaceAppTransactionalMessagesIndexRouteImport } from './routes/w/$workspace/_app/transactional/messages/index'
 import { Route as WWorkspaceAppTransactionalMessagesMessageIdRouteImport } from './routes/w/$workspace/_app/transactional/messages/$messageId'
+import { Route as WWorkspaceAppCampaignsDigestsDigestIdIndexRouteImport } from './routes/w/$workspace/_app/campaigns/digests/$digestId/index'
+import { Route as WWorkspaceAppCampaignsDigestsDigestIdSettingsRouteImport } from './routes/w/$workspace/_app/campaigns/digests/$digestId/settings'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -231,10 +235,22 @@ const WWorkspaceAppAudienceIndexRoute =
     path: '/audience/',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
+const WWorkspaceAppAudienceGrowthRoute =
+  WWorkspaceAppAudienceGrowthRouteImport.update({
+    id: '/audience/growth',
+    path: '/audience/growth',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
 const WWorkspaceAppAudienceHealthRoute =
   WWorkspaceAppAudienceHealthRouteImport.update({
     id: '/audience/health',
     path: '/audience/health',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppAudienceScoringRoute =
+  WWorkspaceAppAudienceScoringRouteImport.update({
+    id: '/audience/scoring',
+    path: '/audience/scoring',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
 const WWorkspaceAppAudienceSuppressionsRoute =
@@ -606,6 +622,18 @@ const WWorkspaceAppTransactionalMessagesMessageIdRoute =
     path: '/transactional/messages/$messageId',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
+const WWorkspaceAppCampaignsDigestsDigestIdIndexRoute =
+  WWorkspaceAppCampaignsDigestsDigestIdIndexRouteImport.update({
+    id: '/campaigns/digests/$digestId/',
+    path: '/campaigns/digests/$digestId/',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppCampaignsDigestsDigestIdSettingsRoute =
+  WWorkspaceAppCampaignsDigestsDigestIdSettingsRouteImport.update({
+    id: '/campaigns/digests/$digestId/settings',
+    path: '/campaigns/digests/$digestId/settings',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -630,7 +658,9 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/admin/users': typeof WWorkspaceAppAdminUsersRoute
   '/w/$workspace/admin/workspaces': typeof WWorkspaceAppAdminWorkspacesRoute
   '/w/$workspace/approvals/$approvalId': typeof WWorkspaceAppApprovalsApprovalIdRoute
+  '/w/$workspace/audience/growth': typeof WWorkspaceAppAudienceGrowthRoute
   '/w/$workspace/audience/health': typeof WWorkspaceAppAudienceHealthRoute
+  '/w/$workspace/audience/scoring': typeof WWorkspaceAppAudienceScoringRoute
   '/w/$workspace/audience/suppressions': typeof WWorkspaceAppAudienceSuppressionsRoute
   '/w/$workspace/deliverability/connect': typeof WWorkspaceAppDeliverabilityConnectRoute
   '/w/$workspace/forms/archive': typeof WWorkspaceAppFormsArchiveRoute
@@ -695,6 +725,8 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/settings/senders/': typeof WWorkspaceAppSettingsSendersIndexRoute
   '/w/$workspace/settings/team/': typeof WWorkspaceAppSettingsTeamIndexRoute
   '/w/$workspace/transactional/messages/': typeof WWorkspaceAppTransactionalMessagesIndexRoute
+  '/w/$workspace/campaigns/digests/$digestId/settings': typeof WWorkspaceAppCampaignsDigestsDigestIdSettingsRoute
+  '/w/$workspace/campaigns/digests/$digestId/': typeof WWorkspaceAppCampaignsDigestsDigestIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -718,7 +750,9 @@ export interface FileRoutesByTo {
   '/w/$workspace/admin/users': typeof WWorkspaceAppAdminUsersRoute
   '/w/$workspace/admin/workspaces': typeof WWorkspaceAppAdminWorkspacesRoute
   '/w/$workspace/approvals/$approvalId': typeof WWorkspaceAppApprovalsApprovalIdRoute
+  '/w/$workspace/audience/growth': typeof WWorkspaceAppAudienceGrowthRoute
   '/w/$workspace/audience/health': typeof WWorkspaceAppAudienceHealthRoute
+  '/w/$workspace/audience/scoring': typeof WWorkspaceAppAudienceScoringRoute
   '/w/$workspace/audience/suppressions': typeof WWorkspaceAppAudienceSuppressionsRoute
   '/w/$workspace/deliverability/connect': typeof WWorkspaceAppDeliverabilityConnectRoute
   '/w/$workspace/forms/archive': typeof WWorkspaceAppFormsArchiveRoute
@@ -783,6 +817,8 @@ export interface FileRoutesByTo {
   '/w/$workspace/settings/senders': typeof WWorkspaceAppSettingsSendersIndexRoute
   '/w/$workspace/settings/team': typeof WWorkspaceAppSettingsTeamIndexRoute
   '/w/$workspace/transactional/messages': typeof WWorkspaceAppTransactionalMessagesIndexRoute
+  '/w/$workspace/campaigns/digests/$digestId/settings': typeof WWorkspaceAppCampaignsDigestsDigestIdSettingsRoute
+  '/w/$workspace/campaigns/digests/$digestId': typeof WWorkspaceAppCampaignsDigestsDigestIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -809,7 +845,9 @@ export interface FileRoutesById {
   '/w/$workspace/_app/admin/users': typeof WWorkspaceAppAdminUsersRoute
   '/w/$workspace/_app/admin/workspaces': typeof WWorkspaceAppAdminWorkspacesRoute
   '/w/$workspace/_app/approvals/$approvalId': typeof WWorkspaceAppApprovalsApprovalIdRoute
+  '/w/$workspace/_app/audience/growth': typeof WWorkspaceAppAudienceGrowthRoute
   '/w/$workspace/_app/audience/health': typeof WWorkspaceAppAudienceHealthRoute
+  '/w/$workspace/_app/audience/scoring': typeof WWorkspaceAppAudienceScoringRoute
   '/w/$workspace/_app/audience/suppressions': typeof WWorkspaceAppAudienceSuppressionsRoute
   '/w/$workspace/_app/deliverability/connect': typeof WWorkspaceAppDeliverabilityConnectRoute
   '/w/$workspace/_app/forms/archive': typeof WWorkspaceAppFormsArchiveRoute
@@ -874,6 +912,8 @@ export interface FileRoutesById {
   '/w/$workspace/_app/settings/senders/': typeof WWorkspaceAppSettingsSendersIndexRoute
   '/w/$workspace/_app/settings/team/': typeof WWorkspaceAppSettingsTeamIndexRoute
   '/w/$workspace/_app/transactional/messages/': typeof WWorkspaceAppTransactionalMessagesIndexRoute
+  '/w/$workspace/_app/campaigns/digests/$digestId/settings': typeof WWorkspaceAppCampaignsDigestsDigestIdSettingsRoute
+  '/w/$workspace/_app/campaigns/digests/$digestId/': typeof WWorkspaceAppCampaignsDigestsDigestIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -900,7 +940,9 @@ export interface FileRouteTypes {
     | '/w/$workspace/admin/users'
     | '/w/$workspace/admin/workspaces'
     | '/w/$workspace/approvals/$approvalId'
+    | '/w/$workspace/audience/growth'
     | '/w/$workspace/audience/health'
+    | '/w/$workspace/audience/scoring'
     | '/w/$workspace/audience/suppressions'
     | '/w/$workspace/deliverability/connect'
     | '/w/$workspace/forms/archive'
@@ -965,6 +1007,8 @@ export interface FileRouteTypes {
     | '/w/$workspace/settings/senders/'
     | '/w/$workspace/settings/team/'
     | '/w/$workspace/transactional/messages/'
+    | '/w/$workspace/campaigns/digests/$digestId/settings'
+    | '/w/$workspace/campaigns/digests/$digestId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -988,7 +1032,9 @@ export interface FileRouteTypes {
     | '/w/$workspace/admin/users'
     | '/w/$workspace/admin/workspaces'
     | '/w/$workspace/approvals/$approvalId'
+    | '/w/$workspace/audience/growth'
     | '/w/$workspace/audience/health'
+    | '/w/$workspace/audience/scoring'
     | '/w/$workspace/audience/suppressions'
     | '/w/$workspace/deliverability/connect'
     | '/w/$workspace/forms/archive'
@@ -1053,6 +1099,8 @@ export interface FileRouteTypes {
     | '/w/$workspace/settings/senders'
     | '/w/$workspace/settings/team'
     | '/w/$workspace/transactional/messages'
+    | '/w/$workspace/campaigns/digests/$digestId/settings'
+    | '/w/$workspace/campaigns/digests/$digestId'
   id:
     | '__root__'
     | '/'
@@ -1078,7 +1126,9 @@ export interface FileRouteTypes {
     | '/w/$workspace/_app/admin/users'
     | '/w/$workspace/_app/admin/workspaces'
     | '/w/$workspace/_app/approvals/$approvalId'
+    | '/w/$workspace/_app/audience/growth'
     | '/w/$workspace/_app/audience/health'
+    | '/w/$workspace/_app/audience/scoring'
     | '/w/$workspace/_app/audience/suppressions'
     | '/w/$workspace/_app/deliverability/connect'
     | '/w/$workspace/_app/forms/archive'
@@ -1143,6 +1193,8 @@ export interface FileRouteTypes {
     | '/w/$workspace/_app/settings/senders/'
     | '/w/$workspace/_app/settings/team/'
     | '/w/$workspace/_app/transactional/messages/'
+    | '/w/$workspace/_app/campaigns/digests/$digestId/settings'
+    | '/w/$workspace/_app/campaigns/digests/$digestId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1333,11 +1385,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceAppAudienceIndexRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
+    '/w/$workspace/_app/audience/growth': {
+      id: '/w/$workspace/_app/audience/growth'
+      path: '/audience/growth'
+      fullPath: '/w/$workspace/audience/growth'
+      preLoaderRoute: typeof WWorkspaceAppAudienceGrowthRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
     '/w/$workspace/_app/audience/health': {
       id: '/w/$workspace/_app/audience/health'
       path: '/audience/health'
       fullPath: '/w/$workspace/audience/health'
       preLoaderRoute: typeof WWorkspaceAppAudienceHealthRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/audience/scoring': {
+      id: '/w/$workspace/_app/audience/scoring'
+      path: '/audience/scoring'
+      fullPath: '/w/$workspace/audience/scoring'
+      preLoaderRoute: typeof WWorkspaceAppAudienceScoringRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
     '/w/$workspace/_app/audience/suppressions': {
@@ -1774,6 +1840,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceAppTransactionalMessagesMessageIdRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
+    '/w/$workspace/_app/campaigns/digests/$digestId/': {
+      id: '/w/$workspace/_app/campaigns/digests/$digestId/'
+      path: '/campaigns/digests/$digestId'
+      fullPath: '/w/$workspace/campaigns/digests/$digestId/'
+      preLoaderRoute: typeof WWorkspaceAppCampaignsDigestsDigestIdIndexRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/campaigns/digests/$digestId/settings': {
+      id: '/w/$workspace/_app/campaigns/digests/$digestId/settings'
+      path: '/campaigns/digests/$digestId/settings'
+      fullPath: '/w/$workspace/campaigns/digests/$digestId/settings'
+      preLoaderRoute: typeof WWorkspaceAppCampaignsDigestsDigestIdSettingsRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
   }
 }
 
@@ -1799,7 +1879,9 @@ interface WWorkspaceAppRouteRouteChildren {
   WWorkspaceAppAdminUsersRoute: typeof WWorkspaceAppAdminUsersRoute
   WWorkspaceAppAdminWorkspacesRoute: typeof WWorkspaceAppAdminWorkspacesRoute
   WWorkspaceAppApprovalsApprovalIdRoute: typeof WWorkspaceAppApprovalsApprovalIdRoute
+  WWorkspaceAppAudienceGrowthRoute: typeof WWorkspaceAppAudienceGrowthRoute
   WWorkspaceAppAudienceHealthRoute: typeof WWorkspaceAppAudienceHealthRoute
+  WWorkspaceAppAudienceScoringRoute: typeof WWorkspaceAppAudienceScoringRoute
   WWorkspaceAppAudienceSuppressionsRoute: typeof WWorkspaceAppAudienceSuppressionsRoute
   WWorkspaceAppDeliverabilityConnectRoute: typeof WWorkspaceAppDeliverabilityConnectRoute
   WWorkspaceAppFormsArchiveRoute: typeof WWorkspaceAppFormsArchiveRoute
@@ -1852,6 +1934,8 @@ interface WWorkspaceAppRouteRouteChildren {
   WWorkspaceAppSettingsSendersIndexRoute: typeof WWorkspaceAppSettingsSendersIndexRoute
   WWorkspaceAppSettingsTeamIndexRoute: typeof WWorkspaceAppSettingsTeamIndexRoute
   WWorkspaceAppTransactionalMessagesIndexRoute: typeof WWorkspaceAppTransactionalMessagesIndexRoute
+  WWorkspaceAppCampaignsDigestsDigestIdSettingsRoute: typeof WWorkspaceAppCampaignsDigestsDigestIdSettingsRoute
+  WWorkspaceAppCampaignsDigestsDigestIdIndexRoute: typeof WWorkspaceAppCampaignsDigestsDigestIdIndexRoute
 }
 
 const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
@@ -1864,7 +1948,9 @@ const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
   WWorkspaceAppAdminUsersRoute: WWorkspaceAppAdminUsersRoute,
   WWorkspaceAppAdminWorkspacesRoute: WWorkspaceAppAdminWorkspacesRoute,
   WWorkspaceAppApprovalsApprovalIdRoute: WWorkspaceAppApprovalsApprovalIdRoute,
+  WWorkspaceAppAudienceGrowthRoute: WWorkspaceAppAudienceGrowthRoute,
   WWorkspaceAppAudienceHealthRoute: WWorkspaceAppAudienceHealthRoute,
+  WWorkspaceAppAudienceScoringRoute: WWorkspaceAppAudienceScoringRoute,
   WWorkspaceAppAudienceSuppressionsRoute:
     WWorkspaceAppAudienceSuppressionsRoute,
   WWorkspaceAppDeliverabilityConnectRoute:
@@ -1936,6 +2022,10 @@ const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
   WWorkspaceAppSettingsTeamIndexRoute: WWorkspaceAppSettingsTeamIndexRoute,
   WWorkspaceAppTransactionalMessagesIndexRoute:
     WWorkspaceAppTransactionalMessagesIndexRoute,
+  WWorkspaceAppCampaignsDigestsDigestIdSettingsRoute:
+    WWorkspaceAppCampaignsDigestsDigestIdSettingsRoute,
+  WWorkspaceAppCampaignsDigestsDigestIdIndexRoute:
+    WWorkspaceAppCampaignsDigestsDigestIdIndexRoute,
 }
 
 const WWorkspaceAppRouteRouteWithChildren =

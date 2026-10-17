@@ -13,6 +13,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/scoring"
 	"github.com/hostrepute/reputecast/internal/segments"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -34,6 +35,9 @@ type ContactListItem struct {
 	Source          string     `json:"source"`
 	SourceLabel     string     `json:"sourceLabel"`
 	Suppressed      bool       `json:"suppressed"`
+	// Score is null while the workspace has no scoring; ScoreBand is its band.
+	Score     *int   `json:"score,omitempty"`
+	ScoreBand string `json:"scoreBand,omitempty" enum:"cold,warm,hot"`
 }
 
 // ContactList is one page of contacts.
@@ -61,12 +65,17 @@ func (s *Service) ListContacts(ctx context.Context, ws *store.Workspace, f Conta
 		return out, err
 	}
 	args := append(fs.args, pageSize, (page-1)*pageSize)
+	bands, scored, err := scoring.AppliedBands(ctx, s.Q, ws.ID)
+	if err != nil {
+		return out, err
+	}
 	rows, err := s.Pool.Query(ctx, fmt.Sprintf(`SELECT c.id, c.email, c.first_name, c.last_name, c.tier, c.consent, c.mailbox_provider, c.mailbox_detail,
 		c.last_open_at, c.last_open_machine, c.created_at, c.source,
-		EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = c.workspace_id AND s.email = c.email)
-		FROM contacts c WHERE %s
-		ORDER BY c.last_activity_at DESC NULLS LAST, c.id DESC
-		LIMIT $%d OFFSET $%d`, fs.where, len(args)-1, len(args)), args...)
+		EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = c.workspace_id AND s.email = c.email),
+		coalesce(cs.score, 0)::int
+		FROM contacts c LEFT JOIN contact_scores cs ON cs.contact_id = c.id WHERE %s
+		ORDER BY %s
+		LIMIT $%d OFFSET $%d`, fs.where, contactOrder(f.ScoreGrowthFilter), len(args)-1, len(args)), args...)
 	if err != nil {
 		return out, err
 	}
@@ -76,9 +85,13 @@ func (s *Service) ListContacts(ctx context.Context, ws *store.Workspace, f Conta
 		var it ContactListItem
 		var id uuid.UUID
 		var first, last, detail string
+		var score int
 		if err := rows.Scan(&id, &it.Email, &first, &last, &it.Tier, &it.Consent, &it.MailboxProvider, &detail,
-			&it.LastOpenAt, &it.LastOpenMachine, &it.JoinedAt, &it.Source, &it.Suppressed); err != nil {
+			&it.LastOpenAt, &it.LastOpenMachine, &it.JoinedAt, &it.Source, &it.Suppressed, &score); err != nil {
 			return out, err
+		}
+		if scored {
+			it.Score, it.ScoreBand = &score, bands.Band(score)
 		}
 		it.ID = id.String()
 		it.Name = strings.TrimSpace(first + " " + last)

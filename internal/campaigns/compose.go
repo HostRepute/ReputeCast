@@ -627,9 +627,13 @@ func (s *Service) Checks(ctx context.Context, ws *store.Workspace, id uuid.UUID,
 	if err != nil {
 		return ComposerChecks{}, err
 	}
-	fields := make([]string, 0, len(tokens))
+	fields := make([]string, 0, len(tokens)+2)
 	for _, t := range tokens {
 		fields = append(fields, t.Key)
+	}
+	if c.DigestID != nil && c.DigestRole == "template" {
+		// A recurring digest's template uses the feed tokens; each issue prints them.
+		fields = append(fields, "issue", "feed")
 	}
 	var domains []string
 	if c.SenderEmail != "" {

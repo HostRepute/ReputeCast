@@ -37,9 +37,10 @@ func TestListCampaigns(t *testing.T) {
 	// November Product Update (waiting for approval), two of Daniel's drafts
 	// and the Beta Program launch invite (sent). The integrations hub adds
 	// the draft blog.acme.io made from a post (Scheduled rollouts are here),
-	// and the accessibility sample its draft, Weekly Digest #143. The
-	// survey's email, Beta Program: October check-in, is sent.
-	if list.Total != 55 || list.Counts.All != 55 || list.Counts.Drafts != 7 || list.Counts.Scheduled != 1 || list.Counts.Sent != 47 {
+	// and the accessibility sample its draft, Weekly Digest #143. The recurring
+	// digest's sent issues #1 and #2 are campaigns too, and so is the survey's
+	// email, Beta Program: October check-in, sent.
+	if list.Total != 57 || list.Counts.All != 57 || list.Counts.Drafts != 7 || list.Counts.Scheduled != 1 || list.Counts.Sent != 49 {
 		t.Fatalf("counts: total %d %+v", list.Total, list.Counts)
 	}
 	if len(list.Items) != 9 {
@@ -98,8 +99,9 @@ func TestListCampaigns(t *testing.T) {
 	}
 	c.Do("GET", "/workspaces/acme-newsletter/campaigns/summary", nil).MustStatus(t, 200).JSON(t, &sum)
 	// Six on the board plus the Beta Program launch invite of the approval
-	// history and the survey's email, Beta Program: October check-in.
-	if sum.Campaigns != 8 || sum.Sent < 180000 {
+	// history, the recurring digest's issues #1 and #2 and the survey's email,
+	// Beta Program: October check-in.
+	if sum.Campaigns != 10 || sum.Sent < 180000 {
 		t.Fatalf("summary: %+v", sum)
 	}
 

@@ -54,6 +54,9 @@ type Service struct {
 	// CheckTimeout overrides how long "Check now" waits (10 s).
 	CheckTimeout time.Duration
 	Now          func() time.Time
+	// PostReported hears of each post a connected WordPress site reports
+	// (recurring digests read the site's feed at once); nil does nothing.
+	PostReported func(ctx context.Context, siteID uuid.UUID)
 }
 
 func (s *Service) now() time.Time {

@@ -1,0 +1,31 @@
+<mjml>
+  <mj-head>
+    <mj-attributes>
+      <mj-all font-family="Georgia, 'Times New Roman', serif"></mj-all>
+      <mj-text color="#1F2937" padding="0px"></mj-text>
+    </mj-attributes>
+  </mj-head>
+  <mj-body width="600px" background-color="#F3F4F6">
+    <!-- rc:header-logo -->
+    <mj-section background-color="#ffffff" padding="20px 24px" border-bottom="1px solid #EEF0F3">
+      <mj-column width="40%" vertical-align="middle">
+        <mj-image src="rc-asset:logo.png" alt="Your logo" width="120px" align="left" padding="0px"></mj-image>
+      </mj-column>
+      <mj-column width="60%" vertical-align="middle">
+        <mj-text align="right" font-family="'IBM Plex Sans', Helvetica, Arial, sans-serif" font-size="12px" color="#5B6472">{{ feed.title }}</mj-text>
+      </mj-column>
+    </mj-section>
+    <mj-section background-color="#ffffff" padding="24px 24px 24px">
+      <mj-column>
+        <mj-text font-size="16px" line-height="1.55">Hi {{ first_name | default: "there" }}, here's what's new on the blog this week.</mj-text>
+      </mj-column>
+    </mj-section>
+    <mj-raw><!-- rc:feed-items {"layout":"cards","fields":["image","title","date","author","excerpt","button"],"excerptWords":40,"buttonText":"Read the post","max":6,"order":"newest","overflow":"drop"} --></mj-raw>
+    <!-- rc:footer -->
+    <mj-section background-color="#F3F4F6" padding="18px 24px">
+      <mj-column>
+        <mj-text align="center" font-family="'IBM Plex Sans', Helvetica, Arial, sans-serif" font-size="12px" line-height="1.6" color="#5B6472" padding="0px">%%ADDRESS%%<br><a href="{{ unsubscribe_url }}" style="color:#0F766E;text-decoration:none">Unsubscribe</a> · <a href="{{ preferences_url }}" style="color:#0F766E;text-decoration:none">Email preferences</a> · <a href="{{ view_in_browser_url }}" style="color:#0F766E;text-decoration:none">View in browser</a></mj-text>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>

@@ -1,4 +1,6 @@
 import type { Schemas } from '@/api/client'
+import { scoreTriggerDefaults } from '@/features/scoring/ScoreTrigger'
+import { isOneOfPhrase, scoreTriggerDetail, scoreTriggerName, scoreTriggerRef } from '@/features/scoring/triggerText'
 
 /*
  * Flow graph helpers shared by the canvas, the step panel and the tests:
@@ -60,6 +62,9 @@ export const triggerKindLabels: Record<TriggerConfig['kind'], string> = {
   tag_added: 'Tag added',
   api_event: 'API event',
   date_field: 'Date field',
+  get score_crosses() {
+    return scoreTriggerName()
+  },
   poll_answered: 'Answered a poll or survey',
 }
 
@@ -194,6 +199,8 @@ export function triggerRef(t: TriggerConfig | undefined, refs: Refs): string {
       return t.event ?? ''
     case 'date_field':
       return refs.fields.get(t.field ?? '')?.label ?? t.field ?? ''
+    case 'score_crosses':
+      return scoreTriggerRef(t)
     case 'poll_answered':
       return refs.polls?.get(t.poll ?? '') ?? 'a poll or survey'
   }
@@ -224,6 +231,8 @@ export function conditionPhrase(g: FlowGraph, c: FlowCondition | undefined, refs
           return `${c.field} isn't ${c.value ?? ''}`
         case 'contains':
           return `${c.field} contains ${c.value ?? ''}`
+        case 'is_one_of':
+          return isOneOfPhrase(c.field ?? '', c.value ?? '')
       }
       return `${c.field} is ${c.value ?? ''}`
   }
@@ -316,6 +325,7 @@ export function nodeDetail(n: FlowNode): string {
         const when = off === 0 ? 'on the date' : off < 0 ? `${-off} days before` : `${off} days after`
         return `${when}${d.trigger.yearly ? ', every year' : ''} at ${d.trigger.at || '09:00'}`
       }
+      if (d.trigger?.kind === 'score_crosses') return scoreTriggerDetail(d.trigger)
       return ''
     case 'branch':
       if (d.condition?.kind === 'opened' && d.condition.humanOnly) return 'human opens only'
@@ -589,6 +599,7 @@ export function nextNodeId(g: FlowGraph): string {
 export function newStepData(type: StepType, trigger?: TriggerConfig['kind']): NodeData {
   switch (type) {
     case 'trigger':
+      if (trigger === 'score_crosses') return { trigger: { kind: trigger, ...scoreTriggerDefaults(), reentry: 'once' } }
       return { trigger: { kind: trigger ?? 'joined_list', confirmedOnly: trigger === 'joined_list' || !trigger ? true : undefined, reentry: 'once' } }
     case 'delay':
       return { delay: { amount: 1, unit: 'days' } }

@@ -22,6 +22,11 @@ func (s *Service) NextCampaign(ctx context.Context, ws *store.Workspace) (Overvi
 		return out, err
 	}
 	out.Drafts = drafts
+	if s.NextIssue != nil {
+		if out.Issue, err = s.NextIssue(ctx, ws); err != nil {
+			return out, err
+		}
+	}
 	// A send that should have started minutes ago is still "next".
 	since := s.now().Add(-time.Hour)
 	c, err := s.Q.OverviewNextScheduled(ctx, store.OverviewNextScheduledParams{WorkspaceID: ws.ID, Since: &since})

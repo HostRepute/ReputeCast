@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/api"
+	"github.com/hostrepute/reputecast/internal/scoring"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -289,6 +290,9 @@ type AutomationOptions struct {
 	Providers []AutomationRouteProvider `json:"providers"`
 	Tags      []string                  `json:"tags"`
 	Events    []string                  `json:"events"`
+	// ScoreBands are the applied score thresholds, for the "Score
+	// crosses…" trigger; null while the workspace has no scoring (X13).
+	ScoreBands *scoring.ScoringBands `json:"scoreBands,omitempty"`
 }
 
 // Options lists lists, forms, fields, emails, providers, tags and API events.
@@ -335,6 +339,11 @@ func (s *Service) Options(ctx context.Context, ws *store.Workspace) (AutomationO
 	}
 	for _, t := range tags {
 		out.Tags = append(out.Tags, t.Tag)
+	}
+	if bands, ok, err := scoring.AppliedBands(ctx, s.Q, ws.ID); err != nil {
+		return out, err
+	} else if ok {
+		out.ScoreBands = &bands
 	}
 	events, err := s.Q.AutomationEventNames(ctx, ws.ID)
 	if err != nil {

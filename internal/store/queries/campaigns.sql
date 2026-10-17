@@ -9,9 +9,19 @@ SELECT c.id, c.name, c.status, c.audience, c.audience_count, c.ab_test, c.schedu
        coalesce(t.opened_human, 0)::bigint AS opened_human,
        coalesce(t.clicked, 0)::bigint AS clicked,
        coalesce(r.verdict, '')::text AS readiness_verdict,
-       coalesce(r.issues, 0)::bigint AS readiness_issues
+       coalesce(r.issues, 0)::bigint AS readiness_issues,
+       -- An issue of a recurring digest (internal/digests): its Digest badge and status.
+       c.digest_id, coalesce(dg.name, '')::text AS digest_name,
+       coalesce(dgi.status, '')::text AS digest_issue_status, coalesce(dgi.item_count, 0)::integer AS digest_posts,
+       dgi.prepared_at AS digest_prepared_at, dgi.send_at AS digest_send_at,
+       coalesce((SELECT ar.id::text FROM approval_requests ar WHERE ar.campaign_id = c.id AND ar.status IN ('pending', 'approved') ORDER BY ar.requested_at DESC LIMIT 1), '')::text AS digest_approval_id,
+       coalesce((SELECT ar.status FROM approval_requests ar WHERE ar.campaign_id = c.id AND ar.status IN ('pending', 'approved') ORDER BY ar.requested_at DESC LIMIT 1), '')::text AS digest_approval_status
 FROM campaigns c
 LEFT JOIN users u ON u.id = c.updated_by
+LEFT JOIN digests dg ON dg.id = c.digest_id AND c.digest_role = 'issue'
+LEFT JOIN LATERAL (
+    SELECT di.status, di.item_count, di.prepared_at, di.send_at FROM digest_issues di WHERE di.campaign_id = c.id ORDER BY di.created_at DESC LIMIT 1
+) dgi ON c.digest_role = 'issue'
 LEFT JOIN LATERAL (
     SELECT sum(cc.sent) AS sent, sum(cc.delivered) AS delivered, sum(cc.opened_human) AS opened_human, sum(cc.clicked) AS clicked
     FROM campaign_counters cc WHERE cc.campaign_id = c.id
@@ -25,6 +35,7 @@ LEFT JOIN LATERAL (
     FROM readiness_runs rr WHERE rr.campaign_id = c.id ORDER BY rr.ran_at DESC LIMIT 1
 ) r ON c.status IN ('draft', 'approval', 'approved', 'scheduled')
 WHERE c.workspace_id = @workspace_id AND c.deleted_at IS NULL
+  AND c.digest_role IN ('', 'issue')
   AND (@status_group::text = 'all'
        OR (@status_group = 'drafts' AND c.status IN ('draft', 'approval', 'approved'))
        OR (@status_group = 'scheduled' AND c.status = 'scheduled')
@@ -40,6 +51,7 @@ LIMIT @lim OFFSET @off;
 -- name: CountCampaigns :one
 SELECT count(*) FROM campaigns c
 WHERE c.workspace_id = @workspace_id AND c.deleted_at IS NULL
+  AND c.digest_role IN ('', 'issue')
   AND (@status_group::text = 'all'
        OR (@status_group = 'drafts' AND c.status IN ('draft', 'approval', 'approved'))
        OR (@status_group = 'scheduled' AND c.status = 'scheduled')
@@ -49,7 +61,7 @@ WHERE c.workspace_id = @workspace_id AND c.deleted_at IS NULL
 
 -- name: CountCampaignsByStatus :many
 SELECT status, count(*)::bigint AS n FROM campaigns
-WHERE workspace_id = @workspace_id AND deleted_at IS NULL
+WHERE workspace_id = @workspace_id AND deleted_at IS NULL AND digest_role IN ('', 'issue')
 GROUP BY status;
 
 -- name: ListCampaignRouteShares :many
@@ -103,7 +115,7 @@ SELECT id, name, adapter FROM providers WHERE workspace_id = @workspace_id AND d
 -- One campaign with what the composer header shows.
 SELECT c.id, c.workspace_id, c.name, c.status, c.subject, c.preheader, c.sender_id, c.reply_to, c.audience, c.audience_count,
        c.editor_mode, c.mjml, c.html, c.plain_text, c.version, c.ab_test, c.schedule, c.content_hash, c.content_settings,
-       c.created_by, c.updated_by, c.created_at, c.updated_at, c.autosaved_at, c.scheduled_at, c.started_at,
+       c.created_by, c.updated_by, c.created_at, c.updated_at, c.autosaved_at, c.scheduled_at, c.started_at, c.digest_id, c.digest_role,
        coalesce(u.name, '')::text AS updated_by_name,
        coalesce(s.name, '')::text AS sender_name,
        coalesce(s.email, '')::text AS sender_email,

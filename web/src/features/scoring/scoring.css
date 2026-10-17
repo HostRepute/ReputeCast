@@ -1,0 +1,725 @@
+/* Audience › Scoring, the profile's score card and the score column
+   (ScoringRules, ScoringStates, ScoringProfile, ScoringUses). */
+
+:root {
+  /* The score bands' ordinal ramp (design system §7: chart-score-1 to 3). */
+  --chart-score-1: #ec8eb1;
+  --chart-score-2: #d9588e;
+  --chart-score-3: #a43068;
+}
+
+@layer components {
+  /* The boards' table cells: 11px above and below. */
+  .tbl.sc-t11 td {
+    padding-top: 11px;
+    padding-bottom: 11px;
+  }
+
+  /* Band tiles. */
+  .sc-tile {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    padding: 14px 18px;
+    box-sizing: border-box;
+  }
+  .sc-tile .v {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.3;
+  }
+
+  /* A band in words with its swatch. */
+  .sc-band {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    font-weight: 600;
+  }
+  .sc-sw {
+    display: inline-block;
+    flex: none;
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+  }
+
+  /* Points in the rules table. */
+  .sc-pts {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 42px;
+    height: 24px;
+    padding: 0 7px;
+    border-radius: 6px;
+    background: var(--ground);
+    border: 1px solid var(--line);
+    font-weight: 700;
+    font-size: 12.5px;
+    font-variant-numeric: tabular-nums;
+    box-sizing: border-box;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+  /* An edited rule: "+15 → +25". */
+  .sc-pts.sc-was {
+    text-decoration: line-through;
+    color: var(--ink-3);
+    font-weight: 600;
+  }
+  .sc-pts.sc-now {
+    border-color: var(--accent);
+    background: var(--accent-tint);
+  }
+  .sc-arrowr {
+    color: var(--ink-3);
+    font-weight: 500;
+  }
+  .sc-rules tr.sel td,
+  .sc-prow.sel {
+    background: var(--accent-tint);
+  }
+
+  /* The rules as a list on phones. */
+  .sc-prow {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 12px 16px;
+    border-top: 1px solid var(--line-2);
+  }
+  .sc-prow-main {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+    flex: 1;
+    padding: 0;
+    border: 0;
+    background: none;
+    text-align: left;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+  }
+
+  /* The suggested rules on the empty state. */
+  .sc-suggest {
+    width: 100%;
+    max-width: 560px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 6px 14px;
+    background: #fbfbfc;
+    text-align: left;
+    box-sizing: border-box;
+  }
+  .sc-srow {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    padding: 8px 0;
+    border-top: 1px solid var(--line-2);
+  }
+  .sc-suggest > .sc-srow:nth-child(2) {
+    border-top: 0;
+  }
+
+  /* A field's error with its icon. */
+  .sc-ferr {
+    display: flex;
+    gap: 6px;
+    align-items: flex-start;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--bad-fg);
+  }
+
+  /* Moves between bands: "Warm → Hot 1,108". */
+  .sc-mrow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .sc-move {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 28px;
+    padding: 0 10px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    font-size: 12.5px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .sc-arrow {
+    color: var(--ink-3);
+    font-weight: 500;
+  }
+
+  /* "After the change · Now" under the edited spread. */
+  .sc-legend {
+    display: flex;
+    gap: 14px;
+    padding: 0 18px 8px;
+    font-size: 12px;
+    color: var(--ink-2);
+  }
+  .sc-legend > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* The chart card's footer with the two thresholds. */
+  .sc-cfoot {
+    display: flex;
+    gap: 12px 18px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    padding: 14px 18px;
+    border-top: 1px solid var(--line-2);
+  }
+  .sc-thr {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink-2);
+  }
+  .sc-thr {
+    width: 96px;
+  }
+  .sc-thr .in {
+    width: 100%;
+  }
+
+  /* The spread chart's variants: one drawing per width. */
+  .sc-v-tab,
+  .sc-v-phone {
+    display: none;
+  }
+  @media (max-width: 1100px) {
+    .sc-v-desk {
+      display: none;
+    }
+    .sc-v-tab {
+      display: block;
+    }
+  }
+  @media (max-width: 767px) {
+    .sc-v-tab {
+      display: none;
+    }
+    .sc-v-phone {
+      display: block;
+    }
+  }
+  /* Tables become lists on phones. */
+  .sc-only-phone {
+    display: none;
+  }
+  @media (max-width: 767px) {
+    .sc-no-phone {
+      display: none;
+    }
+    .sc-only-phone {
+      display: flex;
+      flex-direction: column;
+    }
+  }
+  .sc-chart {
+    position: relative;
+  }
+  .sc-chart svg {
+    display: block;
+    max-width: 100%;
+    overflow: visible;
+  }
+  .sc-chart .bar {
+    cursor: default;
+  }
+  .sc-chart .bar:focus-visible {
+    outline: none;
+  }
+  .sc-chart .bar:focus-visible path {
+    stroke: var(--focus);
+    stroke-width: 2px;
+  }
+
+  /* Bands-by-tier mix bars. */
+  .sc-mix {
+    display: flex;
+    height: 8px;
+    gap: 2px;
+    border-radius: 4px;
+    overflow: hidden;
+    width: 120px;
+    max-width: 100%;
+  }
+  .sc-mix.wide {
+    width: 300px;
+  }
+
+  /* The side panel that edits a rule. */
+  .sc-panel {
+    position: fixed;
+    inset: 0 0 0 auto;
+    z-index: 60;
+    width: min(440px, 100vw);
+    background: var(--surface);
+    border-left: 1px solid var(--line);
+    box-shadow: -12px 0 32px rgba(11, 18, 32, 0.1);
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    outline: none;
+  }
+  .sc-panel .sc-ph {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px 18px 12px;
+    border-bottom: 1px solid var(--line-2);
+  }
+  .sc-panel .sc-pb {
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    overflow-y: auto;
+    flex: 1;
+  }
+  .sc-panel .sc-pf {
+    padding: 12px 18px 16px;
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    border-top: 1px solid var(--line-2);
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .sc-panel-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 59;
+    background: rgba(11, 18, 32, 0.18);
+  }
+  .sc-lbl {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink-2);
+  }
+  .sc-fs {
+    border: 0;
+    margin: 0;
+    padding: 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  label.opt.sc-opt {
+    padding: 9px 11px;
+    font-size: 13px;
+  }
+  label.opt.sc-opt input {
+    margin-top: 2px;
+    flex: none;
+  }
+  .sc-fieldrow {
+    display: grid;
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1fr) minmax(0, 1.35fr);
+    gap: 8px;
+  }
+  .sc-pcgrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(140px, 100%), 1fr));
+    gap: 12px;
+  }
+  .sc-fixed {
+    display: flex;
+    align-items: center;
+    background: var(--ground-3);
+    color: var(--ink-nav);
+  }
+  .sc-box {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px;
+    border-radius: 8px;
+    background: var(--ground-3);
+    border: 1px solid var(--line);
+  }
+  .sc-switchrow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+  }
+  .sc-err {
+    color: var(--bad-fg);
+    font-size: 12.5px;
+    font-weight: 500;
+  }
+
+  /* No rules yet. */
+  .sc-empty {
+    padding: 44px 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 14px;
+    border-style: dashed;
+  }
+  .sc-empty .tt {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .sc-empty .ds {
+    margin: 0;
+    color: var(--ink-2);
+    max-width: 560px;
+  }
+
+  /* Couldn't load scoring. */
+  .sc-loaderr {
+    padding: 26px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 10px;
+  }
+
+  /* A note's leading icon. */
+  .sc-note-ic {
+    display: inline-flex;
+    flex: none;
+    margin-top: 1px;
+  }
+
+  /* The save dialog. */
+  .dlg.sc-savedlg {
+    max-width: 720px;
+  }
+  .sc-bandbox-row {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .sc-bandbox {
+    padding: 8px 10px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  @media (max-width: 767px) {
+    .sc-bandbox-row {
+      grid-template-columns: 1fr;
+    }
+    .sc-fieldrow {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* The bar for unsaved changes. */
+  .sc-savebar {
+    position: sticky;
+    bottom: 16px;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 18px;
+    flex-wrap: wrap;
+    box-shadow: 0 8px 24px rgba(11, 18, 32, 0.12);
+  }
+
+  /* The decay row: label, input and words, one line each. */
+  .sc-dk {
+    display: grid;
+    grid-template-columns: max-content max-content 1fr;
+    gap: 10px;
+    align-items: center;
+    font-size: 13px;
+  }
+  .sc-dk .in {
+    width: 64px;
+  }
+
+  /* A card's footer: a note, and something on the right. */
+  .sc-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 12px 18px;
+    border-top: 1px solid var(--line-2);
+  }
+
+  /* Rows of "Used by". */
+  .sc-use {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 12px 18px;
+    border-top: 1px solid var(--line-2);
+  }
+  .sc-use:first-child {
+    border-top: 0;
+  }
+
+  /* Recalculation progress. */
+  .sc-progress {
+    height: 6px;
+    border-radius: 999px;
+    background: var(--line-2);
+    overflow: hidden;
+  }
+  .sc-progress > i {
+    display: block;
+    height: 100%;
+    background: var(--accent);
+    border-radius: 999px;
+  }
+
+  /* The score meter (profile): a 0–100 track with the thresholds. */
+  .sc-meter {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+    position: relative;
+  }
+  .sc-meter .trk {
+    position: relative;
+    display: flex;
+    gap: 2px;
+    height: 8px;
+  }
+  .sc-meter .trk i {
+    display: block;
+    height: 100%;
+  }
+  .sc-meter .trk i:first-of-type {
+    border-radius: 4px 0 0 4px;
+  }
+  .sc-meter .trk i:last-of-type {
+    border-radius: 0 4px 4px 0;
+  }
+  .sc-meter .mk {
+    position: absolute;
+    top: 50%;
+    width: 14px;
+    height: 14px;
+    margin: -7px 0 0 -7px;
+    border-radius: 50%;
+    background: var(--ink);
+    box-shadow: 0 0 0 2px var(--surface);
+    box-sizing: border-box;
+  }
+  .sc-meter .tks {
+    position: relative;
+    height: 15px;
+    font-size: 11px;
+    color: var(--ink-3);
+    font-variant-numeric: tabular-nums;
+    line-height: 15px;
+  }
+  .sc-meter .tks span {
+    position: absolute;
+    top: 0;
+    transform: translateX(-50%);
+    white-space: nowrap;
+  }
+  .sc-meter .tks span.s0 {
+    transform: none;
+  }
+  .sc-meter .tks span.s100 {
+    transform: translateX(-100%);
+  }
+
+  /* Contacts: the Score column's sort button and the filter chips. */
+  .sc-sortbtn {
+    all: unset;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--ink);
+  }
+  .sc-sortbtn:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  .sc-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 30px;
+    padding: 0 4px 0 11px;
+    border-radius: 999px;
+    border: 1px solid var(--accent-line);
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: 12.5px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .sc-chip button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border: 0;
+    border-radius: 999px;
+    background: none;
+    color: inherit;
+    font: inherit;
+    font-size: 15px;
+    cursor: pointer;
+  }
+  .sc-chip button:hover {
+    background: rgba(15, 118, 110, 0.12);
+  }
+
+  /* The contact profile's score card. */
+  .sc-pscore {
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .sc-scg {
+    display: grid;
+    gap: 20px 32px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-areas: 'now chart brk';
+    align-items: start;
+  }
+  .sc-scg > .sc-lc-a {
+    grid-area: now;
+    gap: 12px;
+  }
+  .sc-scg > .sc-lc-b {
+    grid-area: chart;
+  }
+  .sc-scg > .sc-lc-c {
+    grid-area: brk;
+  }
+  @media (max-width: 1100px) {
+    .sc-scg {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-areas: 'now brk' 'chart chart';
+    }
+  }
+  @media (max-width: 767px) {
+    .sc-scg {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-areas: 'now' 'chart' 'brk';
+    }
+  }
+  .sc-lc {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+  }
+  .sc-sbig {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .sc-sbig .n {
+    font-size: 30px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+  }
+  .sc-sbig .b {
+    font-size: 16px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .sc-change {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font-size: 13px;
+  }
+  .sc-brk {
+    display: flex;
+    flex-direction: column;
+  }
+  .sc-brk .r {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 9px 0;
+    border-top: 1px solid var(--line-2);
+    font-size: 13px;
+  }
+  .sc-brk .r:first-child {
+    border-top: 0;
+  }
+  .sc-brk .r.tot {
+    border-top: 1px solid var(--line-strong);
+    font-weight: 700;
+  }
+  .sc-brk .l {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    flex: 1;
+  }
+  .note.sc-tiernote {
+    background: var(--ground);
+    border: 1px solid var(--line);
+    color: var(--ink-nav);
+  }
+
+  /* The score in a table cell: "52 Hot". */
+  .sc-cell {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .sc-cell b {
+    font-weight: 700;
+    min-width: 20px;
+    text-align: right;
+  }
+}

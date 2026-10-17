@@ -17,6 +17,7 @@ import { settingsTabs } from '@/features/settings/SettingsTabs'
 import { m as txApproval } from '@/features/transactional-templates/approval.messages'
 import { useT } from '@/i18n'
 import './approvals.css'
+import { im } from '@/features/digests/issueMessages'
 
 type Policy = Schemas['ApprovalPolicy']
 type View = Schemas['ApprovalPolicyView']
@@ -203,6 +204,7 @@ function PolicyForm({ view }: { view: View }) {
                   detail={t(txApproval.ruleDetail)}
                 />
               </div>
+              <span className="k">{t(im.rulesEach)}</span>
             </div>
           </section>
           {/* In the wide column, so its table fits the card (ApprovalPolicy). */}

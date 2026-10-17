@@ -1,0 +1,280 @@
+/* Audience › Growth (GrowthSources, GrowthSourcesTablet, GrowthSourcesPhone,
+   GrowthStates). */
+
+@layer components {
+  .gr-imp {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  /* Tiles. */
+  .gr-tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+  }
+  @media (max-width: 767px) {
+    .gr-tiles {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  .gr-stat {
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .gr-stat .v {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.25;
+    margin-top: 2px;
+  }
+  .gr-stat .s {
+    font-size: 12px;
+    color: var(--ink-3);
+    font-weight: 500;
+  }
+  .gr-stat .up,
+  .gr-up {
+    color: var(--ok-fg);
+  }
+  .gr-stat .down,
+  .gr-down {
+    color: var(--bad-fg);
+  }
+  .gr-up,
+  .gr-down {
+    font-weight: 600;
+  }
+  .gr-stat .gr-pct {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  /* The chart: one drawing per width; phones scroll the narrow one. */
+  .gr-chart {
+    overflow-x: auto;
+    min-width: 0;
+  }
+  .gr-chart svg {
+    display: block;
+  }
+  .gr-v-narrow {
+    display: none;
+  }
+  @media (max-width: 1100px) {
+    .gr-v-wide {
+      display: none;
+    }
+    .gr-v-narrow {
+      display: block;
+    }
+  }
+  @media (max-width: 767px) {
+    .gr-v-narrow svg {
+      min-width: 720px;
+    }
+  }
+  .gr-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 18px;
+    font-size: 12.5px;
+    color: var(--ink-nav);
+  }
+  .gr-legend > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .gr-sw {
+    display: inline-block;
+    flex: none;
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+  }
+  .gr-strong {
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  /* By source. */
+  .gr-srcname {
+    font-weight: 600;
+    color: var(--ink);
+    text-decoration: none;
+  }
+  .gr-srcname:hover {
+    text-decoration: underline;
+  }
+  .gr-flagbtn {
+    border: 0;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .gr-flagbtn[aria-expanded='true'] {
+    box-shadow: inset 0 0 0 1px var(--warn-bar);
+  }
+  .gr-flagv {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .gr-flagb {
+    height: 20px;
+    font-size: 11px;
+  }
+  .gr-tfew {
+    color: var(--ink-3);
+    font-style: italic;
+    font-size: 12.5px;
+  }
+  .gr-total td,
+  .gr-pcard.gr-total {
+    background: var(--ground-3);
+  }
+  .gr-flagrow td {
+    background: #fffbeb;
+  }
+  .gr-flagnote {
+    flex-wrap: nowrap;
+  }
+  .gr-pcard {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px 16px;
+    border-top: 1px solid var(--line-2);
+  }
+  .gr-ptotal {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 12px 16px;
+    border-top: 1px solid var(--line);
+    background: var(--ground-3);
+    font-size: 13px;
+  }
+  .gr-putm {
+    gap: 6px;
+    padding: 10px 16px;
+  }
+  @media (max-width: 1100px) {
+    /* Tablets open a source's contacts from its name. */
+    .gr-srct th:last-child,
+    .gr-srct td:last-child {
+      display: none;
+    }
+    .gr-srct th,
+    .gr-srct td {
+      padding-left: 8px;
+      padding-right: 8px;
+    }
+    .gr-srct .gr-fx {
+      display: none;
+    }
+  }
+
+  /* Cohorts. */
+  .gr-coh {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--ink-2);
+    font-size: 12.5px;
+    white-space: nowrap;
+  }
+  @media (max-width: 767px) {
+    .gr-coh {
+      white-space: normal;
+    }
+  }
+
+  /* UTM and referring pages. */
+  .gr-pills {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--line-2);
+  }
+  .gr-pills [role='tab'] {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 30px;
+    padding: 0 12px;
+    border-radius: 999px;
+    border: 1px solid var(--line-strong);
+    background: var(--surface);
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--ink-nav);
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .gr-pills [role='tab']:hover {
+    background: var(--ground);
+    color: var(--ink);
+  }
+  .gr-pills [role='tab'][data-state='active'] {
+    background: var(--accent-soft);
+    border-color: var(--accent-line);
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .gr-pills [role='tab'] b {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .gr-hbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .gr-hbar .bar {
+    flex: 1;
+    min-width: 60px;
+  }
+  .gr-rowlink {
+    color: inherit;
+    text-decoration: none;
+  }
+  .gr-rowlink:hover .mono {
+    text-decoration: underline;
+  }
+
+  /* How Growth counts. */
+  .gr-chk {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .gr-chk > li {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 9px 0;
+    border-top: 1px solid var(--line-2);
+    font-size: 13px;
+  }
+  .gr-chk > li:first-child {
+    border-top: 0;
+  }
+}

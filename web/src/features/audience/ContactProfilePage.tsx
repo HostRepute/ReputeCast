@@ -21,6 +21,8 @@ import { ContactLanguageField, consentVersionText, deliveryLanguage } from '@/fe
 import { mc } from '@/features/page-languages/messages'
 import { useI18n, useT } from '@/i18n'
 import { NotificationsRow, TransactionalActivityRow, transactionalCount, useContactTransactional, withTransactional } from '@/features/transactional/ContactActivity'
+import { JoinLine } from '@/features/growth/JoinLine'
+import { ProfileScoreCard } from '@/features/scoring/ProfileScoreCard'
 import { FieldSourceNote, useAnswerActivity, useFieldSources } from '@/features/polls/contact'
 import './audience.css'
 
@@ -128,6 +130,7 @@ export function ContactProfilePage({ contactId }: { contactId: string }) {
             </Note>
           ) : null}
           <Summary p={p} />
+          <ProfileScoreCard contactId={p.id} firstName={p.firstName} tier={p.tier as Tier} fields={p.fields} />
           <div className="flex flex-wrap items-start gap-5">
             <div className="flex min-w-0 flex-[1_1_380px] flex-col gap-5">
               <FieldsCard p={p} />
@@ -176,7 +179,7 @@ function Summary({ p }: { p: Profile }) {
             {p.mailboxLabel}
           </span>
           <span className="badge mut">
-            Joined {fullDate(p.joinedAt)} · {p.sourceLabel}
+            <JoinLine contactId={p.id} day={fullDate(p.joinedAt)} sourceLabel={p.sourceLabel} />
           </span>
           {p.roleAddress ? <span className="badge warn">Role address · no Broadcasts</span> : null}
         </div>

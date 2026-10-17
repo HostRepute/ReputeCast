@@ -94,6 +94,9 @@ type Querier interface {
 	ApprovalSetReminded(ctx context.Context, arg ApprovalSetRemindedParams) error
 	ApprovalSetStatus(ctx context.Context, arg ApprovalSetStatusParams) error
 	ApprovalUnschedule(ctx context.Context, arg ApprovalUnscheduleParams) error
+	// Recurring digests with "Show in the archive" on and issues in it: the
+	// archive's digest filters (internal/digests).
+	ArchiveDigestCounts(ctx context.Context, arg ArchiveDigestCountsParams) ([]ArchiveDigestCountsRow, error)
 	ArchiveInsertIssue(ctx context.Context, arg ArchiveInsertIssueParams) error
 	ArchiveIssueBySlug(ctx context.Context, arg ArchiveIssueBySlugParams) (ArchiveIssueBySlugRow, error)
 	ArchiveIssueCount(ctx context.Context, arg ArchiveIssueCountParams) (int64, error)
@@ -189,6 +192,8 @@ type Querier interface {
 	AutomationRunExists(ctx context.Context, arg AutomationRunExistsParams) (bool, error)
 	// The message a run's email step queued (for branch checks).
 	AutomationRunMessage(ctx context.Context, arg AutomationRunMessageParams) (AutomationRunMessageRow, error)
+	// Whether a contact entered a "Score crosses…" automation recently, or is in it.
+	AutomationScoreRunSince(ctx context.Context, arg AutomationScoreRunSinceParams) (bool, error)
 	// The latest alert per webhook step, open or resolved (for the publish diff).
 	AutomationStepFailures(ctx context.Context, automationID uuid.UUID) ([]AutomationStepFailuresRow, error)
 	// Paths taken out of branches and splits.
@@ -392,6 +397,131 @@ type Querier interface {
 	DeliverabilityWarmupPlans(ctx context.Context, workspaceID uuid.UUID) ([]DeliverabilityWarmupPlansRow, error)
 	// Workspaces the daily checks look at: they send through something.
 	DeliverabilityWorkspaces(ctx context.Context) ([]uuid.UUID, error)
+	// The digest's own audit entries, for its history.
+	DigestAuditFor(ctx context.Context, arg DigestAuditForParams) ([]DigestAuditForRow, error)
+	// A digest of any workspace (jobs).
+	DigestByID(ctx context.Context, id uuid.UUID) (Digest, error)
+	// The late limit passed or the issue was skipped: its open request goes.
+	DigestCampaignCancelApproval(ctx context.Context, arg DigestCampaignCancelApprovalParams) error
+	// ---- The campaigns a digest builds ----
+	// A template, a next issue or an issue: content, audience, sender, route
+	// and thresholds, as a draft.
+	DigestCampaignInsert(ctx context.Context, arg DigestCampaignInsertParams) error
+	// An issue built again: its content and send settings from the template,
+	// as a new version.
+	DigestCampaignRebuild(ctx context.Context, arg DigestCampaignRebuildParams) (int32, error)
+	// A skipped or unsent issue's campaign leaves the campaigns list; its
+	// history stays on the digest.
+	DigestCampaignRemove(ctx context.Context, arg DigestCampaignRemoveParams) error
+	// A prepared issue keeps its send time; the digest starts it then.
+	DigestCampaignSchedule(ctx context.Context, arg DigestCampaignScheduleParams) error
+	DigestCampaignSetRole(ctx context.Context, arg DigestCampaignSetRoleParams) error
+	DigestCampaignState(ctx context.Context, id uuid.UUID) (DigestCampaignStateRow, error)
+	// The template the next issue is built from.
+	DigestCampaignTemplate(ctx context.Context, id uuid.UUID) (DigestCampaignTemplateRow, error)
+	// A held issue waits for a person: it comes off the schedule.
+	DigestCampaignUnschedule(ctx context.Context, arg DigestCampaignUnscheduleParams) error
+	DigestCampaignVersionInsert(ctx context.Context, arg DigestCampaignVersionInsertParams) error
+	DigestCount(ctx context.Context, workspaceID uuid.UUID) (int64, error)
+	DigestFeedReadInsert(ctx context.Context, arg DigestFeedReadInsertParams) error
+	DigestFeedReadsPrune(ctx context.Context, before time.Time) error
+	// When issue #1 went out.
+	DigestFirstSent(ctx context.Context, digestID uuid.UUID) (DigestFirstSentRow, error)
+	DigestGet(ctx context.Context, arg DigestGetParams) (DigestGetRow, error)
+	// A scheduled issue the send-time recheck held.
+	DigestHeldIncident(ctx context.Context, campaignID uuid.UUID) (CampaignIncident, error)
+	// Recurring and RSS digests (internal/digests): the digests, their feed's
+	// items, their issues and the campaigns they build.
+	DigestInsert(ctx context.Context, arg DigestInsertParams) error
+	// The latest approval request of each issue's campaign, with who decided.
+	DigestIssueApprovals(ctx context.Context, campaignIds []uuid.UUID) ([]DigestIssueApprovalsRow, error)
+	DigestIssueByCampaign(ctx context.Context, campaignID *uuid.UUID) (DigestIssueByCampaignRow, error)
+	// An issue for its job: the job is unique while it waits, so no lock.
+	DigestIssueByID(ctx context.Context, id uuid.UUID) (DigestIssue, error)
+	DigestIssueDelete(ctx context.Context, id uuid.UUID) error
+	DigestIssueGet(ctx context.Context, arg DigestIssueGetParams) (DigestIssue, error)
+	DigestIssueHold(ctx context.Context, arg DigestIssueHoldParams) error
+	// ---- Issues ----
+	DigestIssueInsert(ctx context.Context, arg DigestIssueInsertParams) error
+	DigestIssueItemCounts(ctx context.Context, issueIds []uuid.UUID) ([]DigestIssueItemCountsRow, error)
+	DigestIssueItems(ctx context.Context, issueID uuid.UUID) ([]DigestItem, error)
+	DigestIssueItemsClear(ctx context.Context, issueID uuid.UUID) error
+	DigestIssueItemsSet(ctx context.Context, arg DigestIssueItemsSetParams) error
+	DigestIssueLock(ctx context.Context, id uuid.UUID) (DigestIssue, error)
+	DigestIssueNotified(ctx context.Context, arg DigestIssueNotifiedParams) error
+	// The issue being collected, prepared or waiting.
+	DigestIssueOpen(ctx context.Context, digestID uuid.UUID) (DigestIssue, error)
+	DigestIssuePrepared(ctx context.Context, arg DigestIssuePreparedParams) error
+	// The feed failed at preparation: retried every 15 minutes until the send time.
+	DigestIssuePreparing(ctx context.Context, arg DigestIssuePreparingParams) error
+	DigestIssueRelease(ctx context.Context, arg DigestIssueReleaseParams) error
+	// Sent and delivered counts, human opens and clicks of issues' campaigns.
+	DigestIssueResults(ctx context.Context, campaignIds []uuid.UUID) ([]DigestIssueResultsRow, error)
+	DigestIssueSending(ctx context.Context, arg DigestIssueSendingParams) error
+	DigestIssueSent(ctx context.Context, arg DigestIssueSentParams) error
+	DigestIssueSetBasis(ctx context.Context, arg DigestIssueSetBasisParams) error
+	DigestIssueSetCampaign(ctx context.Context, arg DigestIssueSetCampaignParams) error
+	DigestIssueSetTimes(ctx context.Context, arg DigestIssueSetTimesParams) error
+	DigestIssueSkip(ctx context.Context, arg DigestIssueSkipParams) error
+	// A digest's issues, the newest send time first.
+	DigestIssues(ctx context.Context, arg DigestIssuesParams) ([]DigestIssuesRow, error)
+	// Digest issues of campaigns (the approvals inbox, Review & send, the report).
+	DigestIssuesByCampaigns(ctx context.Context, arg DigestIssuesByCampaignsParams) ([]DigestIssuesByCampaignsRow, error)
+	// Issues the minute job moves along: being collected (their preparation
+	// may be due), retried, prepared, held, in draft or sending.
+	DigestIssuesInFlight(ctx context.Context, digestID uuid.UUID) ([]DigestIssue, error)
+	DigestItemSetMedia(ctx context.Context, arg DigestItemSetMediaParams) error
+	// ---- Items ----
+	// An item as the feed gives it now. Its first sighting is kept; a post the
+	// feed edits keeps its id and gets the new text.
+	DigestItemUpsert(ctx context.Context, arg DigestItemUpsertParams) (DigestItemUpsertRow, error)
+	// The digest's items, newest first, with the sent issue each went in.
+	DigestItems(ctx context.Context, arg DigestItemsParams) ([]DigestItemsRow, error)
+	DigestItemsByID(ctx context.Context, ids []uuid.UUID) ([]DigestItem, error)
+	// Items the feed no longer lists.
+	DigestItemsMarkGone(ctx context.Context, arg DigestItemsMarkGoneParams) error
+	DigestItemsNeedingImage(ctx context.Context, arg DigestItemsNeedingImageParams) ([]DigestItemsNeedingImageRow, error)
+	// The newest sent issue before this one, with when its approval was given.
+	DigestLastApprovedIssue(ctx context.Context, arg DigestLastApprovedIssueParams) (DigestLastApprovedIssueRow, error)
+	DigestLastFeedRead(ctx context.Context, digestID uuid.UUID) (DigestFeedRead, error)
+	DigestLastSentIssue(ctx context.Context, digestID uuid.UUID) (DigestIssue, error)
+	DigestList(ctx context.Context, workspaceID uuid.UUID) ([]DigestListRow, error)
+	DigestLock(ctx context.Context, id uuid.UUID) (Digest, error)
+	// ---- Members ----
+	// A member of the workspace with their role's permissions (the owner check).
+	DigestMember(ctx context.Context, arg DigestMemberParams) (DigestMemberRow, error)
+	DigestNameTaken(ctx context.Context, arg DigestNameTakenParams) (bool, error)
+	DigestNextNumber(ctx context.Context, digestID uuid.UUID) (int32, error)
+	DigestOpenApproval(ctx context.Context, campaignID *uuid.UUID) (ApprovalRequest, error)
+	DigestPause(ctx context.Context, arg DigestPauseParams) error
+	// The role a member had before their last role change (team page or SSO).
+	DigestPreviousRole(ctx context.Context, arg DigestPreviousRoleParams) (string, error)
+	// The latest settled issues, to count feed skips in a row.
+	DigestRecentFeedSkips(ctx context.Context, digestID uuid.UUID) ([]DigestRecentFeedSkipsRow, error)
+	// The feed address changed: the next read starts afresh.
+	DigestResetFeed(ctx context.Context, id uuid.UUID) error
+	DigestResolveHolds(ctx context.Context, arg DigestResolveHoldsParams) error
+	DigestSegmentExists(ctx context.Context, arg DigestSegmentExistsParams) (bool, error)
+	// What the last read found.
+	DigestSetFeed(ctx context.Context, arg DigestSetFeedParams) error
+	DigestSetFeedSkips(ctx context.Context, arg DigestSetFeedSkipsParams) error
+	DigestSetTemplate(ctx context.Context, arg DigestSetTemplateParams) error
+	// The items in a connected site's feed, as its digests last read it.
+	DigestSiteFeedItems(ctx context.Context, siteID *uuid.UUID) (int32, error)
+	// The workspace's connected WordPress sites, as feed sources.
+	DigestSites(ctx context.Context, workspaceID uuid.UUID) ([]DigestSitesRow, error)
+	DigestSoftDelete(ctx context.Context, arg DigestSoftDeleteParams) error
+	DigestTemplateRemove(ctx context.Context, arg DigestTemplateRemoveParams) error
+	// The settings page's audience, sender and limits live on the template.
+	DigestTemplateSettings(ctx context.Context, arg DigestTemplateSettingsParams) error
+	DigestTurnOn(ctx context.Context, arg DigestTurnOnParams) error
+	DigestUpdateSettings(ctx context.Context, arg DigestUpdateSettingsParams) error
+	// Items already sent in an issue of the digest: they aren't new any more.
+	DigestUsedItems(ctx context.Context, digestID uuid.UUID) ([]uuid.UUID, error)
+	// Digests the minute job looks after: on, or paused with an issue still
+	// sending or waiting to be settled.
+	DigestsActive(ctx context.Context) ([]Digest, error)
+	DigestsBySite(ctx context.Context, siteID *uuid.UUID) ([]DigestsBySiteRow, error)
 	DomCreate(ctx context.Context, arg DomCreateParams) (SendingDomain, error)
 	// Where HostRepute collects DMARC aggregate reports for this workspace (rua=).
 	DomDMARCReports(ctx context.Context, workspaceID uuid.UUID) (string, error)
@@ -550,6 +680,26 @@ type Querier interface {
 	GetUserSession(ctx context.Context, arg GetUserSessionParams) (Session, error)
 	GetWorkspace(ctx context.Context, id uuid.UUID) (Workspace, error)
 	GetWorkspaceBySlug(ctx context.Context, slug string) (Workspace, error)
+	// A contact's attribution, for the profile's join line.
+	GrowthContactTouch(ctx context.Context, contactID uuid.UUID) (ContactGrowth, error)
+	GrowthFormsOf(ctx context.Context, workspaceID uuid.UUID) ([]GrowthFormsOfRow, error)
+	GrowthImportsOf(ctx context.Context, workspaceID uuid.UUID) ([]GrowthImportsOfRow, error)
+	GrowthIntegrationsOf(ctx context.Context, workspaceID uuid.UUID) ([]GrowthIntegrationsOfRow, error)
+	GrowthKeysOf(ctx context.Context, workspaceID uuid.UUID) ([]GrowthKeysOfRow, error)
+	// Growth sources (audience-insights brief §3.4).
+	// Puts a signup's UTM parameters and pages on the consent records it wrote.
+	GrowthSaveTouch(ctx context.Context, arg GrowthSaveTouchParams) error
+	// Contacts per source, for the contacts filter and segment conditions.
+	GrowthSourceCounts(ctx context.Context, workspaceID uuid.UUID) ([]GrowthSourceCountsRow, error)
+	// The first run of a workspace starts UTM capture and attributes the
+	// contacts it already has.
+	GrowthStateEnsure(ctx context.Context, arg GrowthStateEnsureParams) (GrowthState, error)
+	GrowthStateGet(ctx context.Context, workspaceID uuid.UUID) (GrowthState, error)
+	GrowthStateSetAttributed(ctx context.Context, arg GrowthStateSetAttributedParams) error
+	GrowthStateSetRolledUp(ctx context.Context, arg GrowthStateSetRolledUpParams) error
+	GrowthWorkflowsOf(ctx context.Context, workspaceID uuid.UUID) ([]GrowthWorkflowsOfRow, error)
+	GrowthWorkspaceProviders(ctx context.Context, workspaceID uuid.UUID) ([]uuid.UUID, error)
+	GrowthWorkspaces(ctx context.Context) ([]GrowthWorkspacesRow, error)
 	HealthViews(ctx context.Context, workspaceID uuid.UUID) ([]SavedView, error)
 	HideMediaAsset(ctx context.Context, arg HideMediaAssetParams) (int64, error)
 	// Takes a due delivery for one attempt. Returns no row when someone else has it.
@@ -1034,6 +1184,8 @@ type Querier interface {
 	McpFindCampaign(ctx context.Context, arg McpFindCampaignParams) (McpFindCampaignRow, error)
 	McpGetRoutingRule(ctx context.Context, arg McpGetRoutingRuleParams) (McpGetRoutingRuleRow, error)
 	McpLatestReadiness(ctx context.Context, campaignID uuid.UUID) (McpLatestReadinessRow, error)
+	// A list by its name, for MCP tools that take a list name.
+	McpListByName(ctx context.Context, arg McpListByNameParams) (uuid.UUID, error)
 	McpPostmaster(ctx context.Context, workspaceID uuid.UUID) ([]McpPostmasterRow, error)
 	McpProviders(ctx context.Context, workspaceID uuid.UUID) ([]McpProvidersRow, error)
 	McpRouting(ctx context.Context, workspaceID uuid.UUID) ([]McpRoutingRow, error)
@@ -1421,6 +1573,78 @@ type Querier interface {
 	SaveComposerContent(ctx context.Context, arg SaveComposerContentParams) error
 	// 30-day sums per list or followed view.
 	ScopeTotalsSince(ctx context.Context, arg ScopeTotalsSinceParams) ([]ScopeTotalsSinceRow, error)
+	// API events sent in the last 30 days, with how many: the rule editor
+	// suggests them.
+	ScoringAPIEventNames(ctx context.Context, arg ScoringAPIEventNamesParams) ([]ScoringAPIEventNamesRow, error)
+	// The same from the scorer's own copy (automation events are purged sooner).
+	ScoringAPIEventNamesFromScores(ctx context.Context, arg ScoringAPIEventNamesFromScoresParams) ([]ScoringAPIEventNamesFromScoresRow, error)
+	ScoringBandsByTier(ctx context.Context, arg ScoringBandsByTierParams) ([]ScoringBandsByTierRow, error)
+	ScoringConfigCreate(ctx context.Context, arg ScoringConfigCreateParams) (ScoringConfig, error)
+	// Contact scoring (audience-insights brief §3.1).
+	ScoringConfigGet(ctx context.Context, workspaceID uuid.UUID) (ScoringConfig, error)
+	ScoringConfigGetForUpdate(ctx context.Context, workspaceID uuid.UUID) (ScoringConfig, error)
+	ScoringConfigSetApplied(ctx context.Context, arg ScoringConfigSetAppliedParams) error
+	ScoringConfigSetIngested(ctx context.Context, arg ScoringConfigSetIngestedParams) error
+	ScoringConfigSetNightly(ctx context.Context, arg ScoringConfigSetNightlyParams) error
+	ScoringConfigSetVersion(ctx context.Context, arg ScoringConfigSetVersionParams) error
+	ScoringContactBasics(ctx context.Context, id uuid.UUID) (ScoringContactBasicsRow, error)
+	ScoringContactScore(ctx context.Context, contactID uuid.UUID) (ContactScore, error)
+	// The next batch of contacts a recalculation scores, in id order.
+	ScoringContactsAfter(ctx context.Context, arg ScoringContactsAfterParams) ([]uuid.UUID, error)
+	ScoringCountContacts(ctx context.Context, workspaceID uuid.UUID) (int64, error)
+	// Contacts with new events since a recalculation started: score them again.
+	ScoringDirtyMarkSince(ctx context.Context, arg ScoringDirtyMarkSinceParams) error
+	ScoringDirtyTake(ctx context.Context, arg ScoringDirtyTakeParams) ([]uuid.UUID, error)
+	// Contacts whose score changes on its own by now: a decay step or an
+	// event leaving the look-back.
+	ScoringDueChecks(ctx context.Context, arg ScoringDueChecksParams) ([]uuid.UUID, error)
+	// One contact's events for the profile (the kept window, oldest first).
+	ScoringEventsByContact(ctx context.Context, arg ScoringEventsByContactParams) ([]ScoringEventsByContactRow, error)
+	// Score events of some contacts within the kept window, in time order.
+	ScoringEventsOf(ctx context.Context, arg ScoringEventsOfParams) ([]ScoringEventsOfRow, error)
+	ScoringFieldsOf(ctx context.Context, workspaceID uuid.UUID) ([]ScoringFieldsOfRow, error)
+	// The sites a workspace's forms are on (the suggested pricing rule names one).
+	ScoringFormOrigins(ctx context.Context, workspaceID uuid.UUID) ([]string, error)
+	ScoringFormsOf(ctx context.Context, workspaceID uuid.UUID) ([]ScoringFormsOfRow, error)
+	// "Score crosses…" trigger events for contacts whose score crossed a live
+	// automation's threshold.
+	ScoringInsertTriggerEvents(ctx context.Context, arg ScoringInsertTriggerEventsParams) error
+	ScoringLinkLabels(ctx context.Context, campaignIds []uuid.UUID) ([]ScoringLinkLabelsRow, error)
+	ScoringListsOf(ctx context.Context, workspaceID uuid.UUID) ([]ScoringListsOfRow, error)
+	// Automations that start on "Score crosses…", live or not.
+	ScoringLiveTriggers(ctx context.Context, workspaceID uuid.UUID) ([]ScoringLiveTriggersRow, error)
+	// What a message was: the campaign or the automation and step.
+	ScoringMessageLabels(ctx context.Context, ids []uuid.UUID) ([]ScoringMessageLabelsRow, error)
+	ScoringPruneEvents(ctx context.Context, arg ScoringPruneEventsParams) (int64, error)
+	ScoringRecalcClearStage(ctx context.Context, recalcID uuid.UUID) error
+	ScoringRecalcFail(ctx context.Context, arg ScoringRecalcFailParams) error
+	ScoringRecalcFinish(ctx context.Context, arg ScoringRecalcFinishParams) error
+	ScoringRecalcGet(ctx context.Context, id uuid.UUID) (ScoringRecalc, error)
+	ScoringRecalcInsert(ctx context.Context, arg ScoringRecalcInsertParams) (ScoringRecalc, error)
+	ScoringRecalcLatest(ctx context.Context, workspaceID uuid.UUID) (ScoringRecalcLatestRow, error)
+	ScoringRecalcProgress(ctx context.Context, arg ScoringRecalcProgressParams) error
+	ScoringRecalcRestart(ctx context.Context, arg ScoringRecalcRestartParams) error
+	ScoringRecalcRunning(ctx context.Context, workspaceID uuid.UUID) (ScoringRecalc, error)
+	ScoringRecalcStatus(ctx context.Context, id uuid.UUID) (string, error)
+	ScoringRecalcSupersede(ctx context.Context, arg ScoringRecalcSupersedeParams) error
+	// Contacts per exact score: the impact preview re-buckets these when only
+	// the thresholds move.
+	ScoringScoreCounts(ctx context.Context, workspaceID uuid.UUID) ([]ScoringScoreCountsRow, error)
+	ScoringScoresOf(ctx context.Context, contactIds []uuid.UUID) ([]ScoringScoresOfRow, error)
+	// Segments with a score or score-band condition.
+	ScoringSegmentsUsingScore(ctx context.Context, workspaceID uuid.UUID) ([]ScoringSegmentsUsingScoreRow, error)
+	// Contacts per bucket of 10 points (90–100 is the last); contacts without
+	// a score row count as 0.
+	ScoringSpread(ctx context.Context, workspaceID uuid.UUID) ([]ScoringSpreadRow, error)
+	// Batches of computed scores are written by internal/scoring itself
+	// (upsertScoresSQL, stageScoresSQL): their nullable times don't fit
+	// sqlc's array parameters.
+	// The next batch of staged scores to apply, with the score each contact has now.
+	ScoringStagedAfter(ctx context.Context, arg ScoringStagedAfterParams) ([]ScoringStagedAfterRow, error)
+	ScoringVersionGet(ctx context.Context, arg ScoringVersionGetParams) (ScoringVersion, error)
+	ScoringVersionInsert(ctx context.Context, arg ScoringVersionInsertParams) error
+	// Workspaces that set up scoring, with what the jobs need.
+	ScoringWorkspaces(ctx context.Context) ([]ScoringWorkspacesRow, error)
 	SegmentMemberIDs(ctx context.Context, segmentID uuid.UUID) ([]uuid.UUID, error)
 	// Campaigns that are not sent yet and use the sender (deleting it clears them).
 	SenderCampaignCount(ctx context.Context, senderID *uuid.UUID) (int64, error)

@@ -150,6 +150,8 @@ JOIN workspaces w ON w.id = c.workspace_id AND w.deleted_at IS NULL
 WHERE c.deleted_at IS NULL AND c.status = 'scheduled' AND c.scheduled_at IS NOT NULL
   AND c.scheduled_at <= @until::timestamptz
   AND NOT EXISTS (SELECT 1 FROM readiness_runs r WHERE r.campaign_id = c.id AND r.ran_at >= c.scheduled_at - @lead::interval)
+  -- A recurring digest checks its own issues before they start (internal/digests).
+  AND NOT EXISTS (SELECT 1 FROM digest_issues di WHERE di.campaign_id = c.id AND di.mode = 'auto')
 ORDER BY c.scheduled_at;
 
 -- name: ReadinessCampaignWorkspace :one

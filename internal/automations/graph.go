@@ -32,6 +32,9 @@ const (
 	TriggerTagAdded      = "tag_added"
 	TriggerAPIEvent      = "api_event"
 	TriggerDateField     = "date_field"
+	// TriggerScoreCrosses starts when a contact's score rises to a
+	// threshold or falls below it (contact scoring, see scoretrigger.go).
+	TriggerScoreCrosses = "score_crosses"
 )
 
 // Branch paths.
@@ -91,7 +94,7 @@ type AutomationNodeData struct {
 
 // AutomationTrigger says which contacts enter the flow.
 type AutomationTrigger struct {
-	Kind string `json:"kind" enum:"joined_list,form_submitted,tag_added,api_event,date_field,poll_answered"`
+	Kind string `json:"kind" enum:"joined_list,form_submitted,tag_added,api_event,date_field,score_crosses,poll_answered"`
 	// Joined list: the list, whether to wait for double opt-in, and whether
 	// contacts added by an import count.
 	ListID         string `json:"listId,omitempty" maxLength:"40"`
@@ -109,6 +112,11 @@ type AutomationTrigger struct {
 	// Reentry: "once" (default) lets a contact through the flow one time;
 	// "always" lets them enter again after they leave.
 	Reentry string `json:"reentry,omitempty" maxLength:"8"`
+	// Score crosses: the score rises to Threshold or more, or falls below
+	// it, at most once per contact in OnceInDays days (0: no limit).
+	Direction  string `json:"direction,omitempty" enum:"rises,falls"`
+	Threshold  int    `json:"threshold,omitempty" minimum:"0" maximum:"100"`
+	OnceInDays int    `json:"onceInDays,omitempty" minimum:"0" maximum:"3650"`
 	// Answered a poll or survey (polls.go): the poll or survey ("poll:<id>",
 	// "survey:<id>"), the answers that start it (keys, with is or is not),
 	// and whether a changed answer starts it again.
@@ -156,7 +164,7 @@ type AutomationCondition struct {
 	URLContains string              `json:"urlContains,omitempty" maxLength:"200"`
 	// Field: compare a contact field.
 	Field string `json:"field,omitempty" maxLength:"64"`
-	Op    string `json:"op,omitempty" maxLength:"16" doc:"equals, not_equals, contains, is_set, is_not_set"`
+	Op    string `json:"op,omitempty" maxLength:"16" doc:"equals, not_equals, contains, is_set, is_not_set, is_one_of (comma-separated values)"`
 	Value string `json:"value,omitempty" maxLength:"200"`
 	Tag   string `json:"tag,omitempty" maxLength:"64"`
 	// List: member of this list (subscribed).
@@ -589,7 +597,7 @@ func checkConfig(n AutomationNode, refs *Refs) []configProblem {
 	case NodeTrigger:
 		t := d.Trigger
 		if t == nil || t.Kind == "" {
-			bad("trigger_kind", "Pick what starts the flow: a list join, a form, a tag, an API event or a date.")
+			bad("trigger_kind", "Pick what starts the flow: a list join, a form, a tag, an API event, a date or a score.")
 			break
 		}
 		switch t.Kind {
@@ -636,6 +644,9 @@ func checkConfig(n AutomationNode, refs *Refs) []configProblem {
 			if t.At != "" && !reHHMM.MatchString(t.At) {
 				bad("invalid_time", "Use a 24-hour time like 09:00.")
 			}
+		}
+		if t.Kind == TriggerScoreCrosses {
+			out = append(out, checkScoreTrigger(t)...)
 		}
 		if t.Reentry != "" && t.Reentry != "once" && t.Reentry != "always" {
 			bad("invalid_reentry", "Re-entry is once or always.")
@@ -692,7 +703,7 @@ func checkConfig(n AutomationNode, refs *Refs) []configProblem {
 					bad("missing_ref", "The condition's field was deleted. Pick another field.")
 				}
 			}
-			if !slices.Contains([]string{"equals", "not_equals", "contains", "is_set", "is_not_set"}, c.Op) {
+			if !slices.Contains([]string{"equals", "not_equals", "contains", "is_set", "is_not_set", "is_one_of"}, c.Op) {
 				bad("invalid_op", "Pick how to compare the field.")
 			}
 		case "tag":

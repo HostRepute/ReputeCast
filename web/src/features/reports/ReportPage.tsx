@@ -14,6 +14,8 @@ import { clock, count } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { useCampaignPolls } from '@/features/polls/report'
 import { ReportBody, type ReportActions } from './ReportBody'
+import { IssueComparison } from '@/features/digests/IssueParts'
+import { useIssueInfo } from '@/features/digests/shared'
 import { ReportSkeleton } from './ReportSkeleton'
 import { copyText, ShareCard, ShareDialog, useShares } from './ShareCard'
 import { StateAlert } from './StateAlert'
@@ -191,6 +193,8 @@ export function ReportPage({ campaignId }: { campaignId: string }) {
     },
   )
   const r = q.data
+  // A recurring digest's issue: compared with the previous issue, with a link to the digest.
+  const issue = useIssueInfo(campaignId)
   const shareReason = usePermissionReason('reports:share')
   const editReason = usePermissionReason('campaigns:edit')
   const suppressReason = usePermissionReason('subscribers:edit')
@@ -305,6 +309,7 @@ export function ReportPage({ campaignId }: { campaignId: string }) {
       ) : (
         <>
           {r.backlog ? <BacklogAlert b={r.backlog} onRefresh={() => void q.refetch()} /> : null}
+          {issue ? <IssueComparison issue={issue} report={r} /> : null}
           <ReportBody r={r} actions={actions} polls={{ items: polls.data?.items, error: polls.error ?? undefined, retry: () => void polls.refetch() }} />
           <ShareCard ref={shareCard} campaignId={campaignId} onCreate={() => setSharing(true)} />
         </>
