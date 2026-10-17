@@ -16,6 +16,7 @@ import { AudienceTabs } from './AudienceTabs'
 import { FitSelect } from './FitSelect'
 import { SqlBlock, SqlEditor } from './SqlCode'
 import { tierColor, tierLabel, type Tier } from './labels'
+import { DeleteSegmentButton, SegmentUsageCard } from '@/features/conditional/usage'
 import './audience.css'
 
 type Catalog = Schemas['SegmentCatalog']
@@ -237,6 +238,8 @@ function Builder({ segmentId, detail, catalog }: { segmentId: string; detail?: S
           <Button variant="primary" disabledReason={editReason} loading={create.isPending || update.isPending} onClick={() => void save().catch(() => undefined)}>
             Save segment
           </Button>
+          {/* Deleting warns first when a Visibility rule uses the segment (design expansion, X11). */}
+          <DeleteSegmentButton segmentId={segmentId} name={draft.name || detail?.name || ''} />
         </>
       }
       contentClassName="flex-row flex-wrap items-start"
@@ -372,6 +375,7 @@ function Builder({ segmentId, detail, catalog }: { segmentId: string; detail?: S
       </section>
       <aside className="flex max-w-[400px] flex-[1_1_320px] flex-col gap-4" aria-label="Count and saved segments">
         <LiveCount preview={preview} name={draft.name} detail={detail} segmentId={segmentId} />
+        <SegmentUsageCard segmentId={segmentId} />
         <SavedSegments current={segmentId} />
       </aside>
     </Page>

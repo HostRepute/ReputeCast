@@ -166,4 +166,21 @@ export const m = defineMessages('conditional', {
   versionLinks: 'Links',
   versionLinksChecked: '{count, plural, one {# link, checked} other {# links, all checked}}',
   previewFailed: 'The version couldn’t be worked out. {detail}',
+
+  // Segments that a Visibility rule uses.
+  whereUsed: 'Where this segment is used',
+  usedByIn: 'Used by {count, plural, one {# conditional block} other {# conditional blocks}} in {email}: {blocks}.',
+  usedByEmails: 'Used by {count, plural, one {# conditional block} other {# conditional blocks}} in {emails, plural, one {# email} other {# emails}}.',
+  changingChanges: '{count, plural, one {Changing the segment changes who sees that block.} other {Changing the segment changes who sees those blocks.}}',
+  deleteSegment: 'Delete segment',
+  deleteSegmentTitle: 'Delete “{name}”?',
+  deleteUsed:
+    'It’s used by {count, plural, one {# conditional block} other {# conditional blocks}}: {blocks} in {email}. If you delete it, {count, plural, one {that block’s condition breaks} other {those blocks’ conditions break}} and Send Readiness blocks the campaign until someone fixes it.',
+  deleteUsedScheduled:
+    'It’s used by {count, plural, one {# conditional block} other {# conditional blocks}}: {blocks} in {email}, a draft that sends {date}. If you delete it, {count, plural, one {that block’s condition breaks} other {those blocks’ conditions break}} and Send Readiness blocks the campaign until someone fixes it.',
+  deleteUsedMany:
+    'It’s used by {count, plural, one {# conditional block} other {# conditional blocks}} in {emails, plural, one {# email} other {# emails}}. If you delete it, their conditions break and Send Readiness blocks those campaigns until someone fixes them.',
+  deleteUnused: 'Deleting a segment can’t be undone.',
+  openEmail: 'Open {name}',
+  segmentDeleted: 'Deleted the segment “{name}”',
 })
