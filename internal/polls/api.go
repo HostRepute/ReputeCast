@@ -13,12 +13,12 @@ import (
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
-type campaignPath struct {
+type PollCampaignPath struct {
 	api.WorkspaceInput
 	CampaignID string `path:"campaignId" format:"uuid" doc:"Campaign id"`
 }
 
-func (in campaignPath) id() (uuid.UUID, error) {
+func (in PollCampaignPath) id() (uuid.UUID, error) {
 	id, err := uuid.Parse(in.CampaignID)
 	if err != nil {
 		return uuid.Nil, api.NotFound("Campaign")
@@ -26,12 +26,12 @@ func (in campaignPath) id() (uuid.UUID, error) {
 	return id, nil
 }
 
-type pollPath struct {
+type PollPath struct {
 	api.WorkspaceInput
 	PollID string `path:"pollId" format:"uuid" doc:"Poll id"`
 }
 
-func (in pollPath) id() (uuid.UUID, error) {
+func (in PollPath) id() (uuid.UUID, error) {
 	id, err := uuid.Parse(in.PollID)
 	if err != nil {
 		return uuid.Nil, api.NotFound("Poll")
@@ -40,19 +40,19 @@ func (in pollPath) id() (uuid.UUID, error) {
 }
 
 type commentsInput struct {
-	pollPath
+	PollPath
 	Group  string `query:"group" enum:"all,promoters,passives,detractors" default:"all" doc:"Comments of 0–10 answers by group"`
 	Search string `query:"search" maxLength:"200" doc:"Words in the comment (and the contact's name, with subscribers:view)"`
 	Offset int    `query:"offset" minimum:"0" default:"0"`
 	Limit  int    `query:"limit" minimum:"1" maximum:"100" default:"20"`
 }
 
-type surveyPath struct {
+type SurveyPath struct {
 	api.WorkspaceInput
 	SurveyID string `path:"surveyId" format:"uuid" doc:"Survey id"`
 }
 
-func (in surveyPath) id() (uuid.UUID, error) {
+func (in SurveyPath) id() (uuid.UUID, error) {
 	id, err := uuid.Parse(in.SurveyID)
 	if err != nil {
 		return uuid.Nil, api.NotFound("Survey")
@@ -66,30 +66,30 @@ type createSurveyInput struct {
 }
 
 type updateSurveyInput struct {
-	surveyPath
+	SurveyPath
 	Body SurveyUpdate
 }
 
 type reopenSurveyInput struct {
-	surveyPath
+	SurveyPath
 	Body SurveyReopen
 }
 
 type responsesInput struct {
-	surveyPath
+	SurveyPath
 	Offset int `query:"offset" minimum:"0" default:"0"`
 	Limit  int `query:"limit" minimum:"1" maximum:"100" default:"20"`
 }
 
 type textAnswersInput struct {
-	surveyPath
+	SurveyPath
 	Key    string `path:"key" pattern:"^q[0-9]{1,3}$" doc:"The question's key"`
 	Search string `query:"search" maxLength:"200"`
 	Offset int    `query:"offset" minimum:"0" default:"0"`
 	Limit  int    `query:"limit" minimum:"1" maximum:"100" default:"20"`
 }
 
-type contactPath struct {
+type PollContactPath struct {
 	api.WorkspaceInput
 	ContactID string `path:"contactId" format:"uuid" doc:"Contact id"`
 }
@@ -176,7 +176,7 @@ func Register(h huma.API, s *Service) {
 		Summary:     "Results of a campaign's polls: answers by answer, NPS, breakdowns, the first 72 hours",
 		Description: "Answers are recorded on the answer page, never on the click: automated visits, answers from people who aren't contacts and test answers are counted apart.",
 		Tags:        ptags, Access: view},
-		func(ctx context.Context, in *campaignPath) (*api.Body[PollResultsList], error) {
+		func(ctx context.Context, in *PollCampaignPath) (*api.Body[PollResultsList], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -185,7 +185,7 @@ func Register(h huma.API, s *Service) {
 			return api.OK(out), err
 		})
 	api.Get(h, api.Op{ID: "get-poll-results", Path: "/workspaces/{workspace}/polls/{pollId}", Summary: "One poll's results", Tags: ptags, Access: view},
-		func(ctx context.Context, in *pollPath) (*api.Body[PollResults], error) {
+		func(ctx context.Context, in *PollPath) (*api.Body[PollResults], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -205,7 +205,7 @@ func Register(h huma.API, s *Service) {
 		})
 	api.Post(h, api.Op{ID: "close-poll", Path: "/workspaces/{workspace}/polls/{pollId}/close", Summary: "Close a poll now (logged)",
 		Description: "Its answer page says when it closed and records nothing.", Tags: ptags, Access: edit},
-		func(ctx context.Context, in *pollPath) (*api.Body[PollResults], error) {
+		func(ctx context.Context, in *PollPath) (*api.Body[PollResults], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -215,7 +215,7 @@ func Register(h huma.API, s *Service) {
 		})
 	api.Post(h, api.Op{ID: "reopen-poll", Path: "/workspaces/{workspace}/polls/{pollId}/reopen", Summary: "Reopen a closed poll (logged)",
 		Description: "Answers made after reopening count as usual; it stays open until someone closes it.", Tags: ptags, Access: edit},
-		func(ctx context.Context, in *pollPath) (*api.Body[PollResults], error) {
+		func(ctx context.Context, in *PollPath) (*api.Body[PollResults], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -225,7 +225,7 @@ func Register(h huma.API, s *Service) {
 		})
 	api.Get(h, api.Op{ID: "export-poll-results", Path: "/workspaces/{workspace}/polls/{pollId}/results.csv", Summary: "Download a poll's results as CSV, aggregate only (logged)",
 		Tags: ptags, Access: view},
-		func(ctx context.Context, in *pollPath) (*csvFile, error) {
+		func(ctx context.Context, in *PollPath) (*csvFile, error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -238,7 +238,7 @@ func Register(h huma.API, s *Service) {
 		})
 	api.Get(h, api.Op{ID: "export-poll-answers", Path: "/workspaces/{workspace}/polls/{pollId}/answers.csv", Summary: "Download every answer with its contact as CSV (logged)",
 		Tags: ptags, Access: api.Workspace(authz.SubscribersExport)},
-		func(ctx context.Context, in *pollPath) (*csvFile, error) {
+		func(ctx context.Context, in *PollPath) (*csvFile, error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -257,7 +257,7 @@ func Register(h huma.API, s *Service) {
 		})
 	api.Get(h, api.Op{ID: "list-campaign-poll-test-answers", Path: "/workspaces/{workspace}/campaigns/{campaignId}/poll-test-answers",
 		Summary: "Test answers to a campaign's polls, from test sends (never counted)", Tags: ptags, Access: api.Workspace(authz.CampaignsView)},
-		func(ctx context.Context, in *campaignPath) (*api.Body[PollTestAnswers], error) {
+		func(ctx context.Context, in *PollCampaignPath) (*api.Body[PollTestAnswers], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -267,7 +267,7 @@ func Register(h huma.API, s *Service) {
 		})
 	api.Delete(h, api.Op{ID: "clear-campaign-poll-test-answers", Path: "/workspaces/{workspace}/campaigns/{campaignId}/poll-test-answers",
 		Summary: "Delete the test answers of a campaign's polls (logged)", Tags: ptags, Access: edit, Status: 200},
-		func(ctx context.Context, in *campaignPath) (*api.Body[PollTestAnswersCleared], error) {
+		func(ctx context.Context, in *PollCampaignPath) (*api.Body[PollTestAnswersCleared], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -277,7 +277,7 @@ func Register(h huma.API, s *Service) {
 		})
 	api.Get(h, api.Op{ID: "contact-field-sources", Path: "/workspaces/{workspace}/contacts/{contactId}/field-sources",
 		Summary: "The fields of a contact that a poll or a survey set, and when", Tags: ptags, Access: api.Workspace(authz.SubscribersView)},
-		func(ctx context.Context, in *contactPath) (*api.Body[FieldSources], error) {
+		func(ctx context.Context, in *PollContactPath) (*api.Body[FieldSources], error) {
 			id, err := uuid.Parse(in.ContactID)
 			if err != nil {
 				return nil, api.NotFound("Contact")
@@ -300,7 +300,7 @@ func Register(h huma.API, s *Service) {
 			return api.OK(out), err
 		})
 	api.Get(h, api.Op{ID: "get-survey", Path: "/workspaces/{workspace}/surveys/{surveyId}", Summary: "A survey: its questions, settings and counts", Tags: stags, Access: read},
-		func(ctx context.Context, in *surveyPath) (*api.Body[Survey], error) {
+		func(ctx context.Context, in *SurveyPath) (*api.Body[Survey], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -321,7 +321,7 @@ func Register(h huma.API, s *Service) {
 		})
 	api.Post(h, api.Op{ID: "publish-survey", Path: "/workspaces/{workspace}/surveys/{surveyId}/publish", Summary: "Publish a survey: its page goes live (logged)",
 		Description: "Every question must be complete. The page records answers only when someone presses Send.", Tags: stags, Access: formsEdit},
-		func(ctx context.Context, in *surveyPath) (*api.Body[Survey], error) {
+		func(ctx context.Context, in *SurveyPath) (*api.Body[Survey], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -331,7 +331,7 @@ func Register(h huma.API, s *Service) {
 		})
 	api.Post(h, api.Op{ID: "close-survey", Path: "/workspaces/{workspace}/surveys/{surveyId}/close", Summary: "Close a survey: its page takes no answers (logged)",
 		Tags: stags, Access: formsEdit},
-		func(ctx context.Context, in *surveyPath) (*api.Body[Survey], error) {
+		func(ctx context.Context, in *SurveyPath) (*api.Body[Survey], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -351,7 +351,7 @@ func Register(h huma.API, s *Service) {
 		})
 	api.Delete(h, api.Op{ID: "delete-survey", Path: "/workspaces/{workspace}/surveys/{surveyId}", Summary: "Delete a survey; its page stops answering (logged)",
 		Tags: stags, Access: formsEdit},
-		func(ctx context.Context, in *surveyPath) (*api.Empty, error) {
+		func(ctx context.Context, in *SurveyPath) (*api.Empty, error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -360,7 +360,7 @@ func Register(h huma.API, s *Service) {
 		})
 	api.Get(h, api.Op{ID: "get-survey-results", Path: "/workspaces/{workspace}/surveys/{surveyId}/results",
 		Summary: "A survey's completion and per-question results", Tags: stags, Access: view},
-		func(ctx context.Context, in *surveyPath) (*api.Body[SurveyResults], error) {
+		func(ctx context.Context, in *SurveyPath) (*api.Body[SurveyResults], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -390,7 +390,7 @@ func Register(h huma.API, s *Service) {
 		})
 	api.Get(h, api.Op{ID: "export-survey-results", Path: "/workspaces/{workspace}/surveys/{surveyId}/results.csv",
 		Summary: "Download a survey's results as CSV, aggregate only (logged)", Tags: stags, Access: view},
-		func(ctx context.Context, in *surveyPath) (*csvFile, error) {
+		func(ctx context.Context, in *SurveyPath) (*csvFile, error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
@@ -403,7 +403,7 @@ func Register(h huma.API, s *Service) {
 		})
 	api.Get(h, api.Op{ID: "export-survey-answers", Path: "/workspaces/{workspace}/surveys/{surveyId}/answers.csv",
 		Summary: "Download every response with its contact as CSV (logged)", Tags: stags, Access: api.Workspace(authz.SubscribersExport)},
-		func(ctx context.Context, in *surveyPath) (*csvFile, error) {
+		func(ctx context.Context, in *SurveyPath) (*csvFile, error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err

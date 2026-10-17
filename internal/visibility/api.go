@@ -10,12 +10,12 @@ import (
 	"github.com/hostrepute/reputecast/internal/authz"
 )
 
-type campaignPath struct {
+type VisibilityCampaignPath struct {
 	api.WorkspaceInput
 	CampaignID string `path:"campaignId" format:"uuid"`
 }
 
-func (in campaignPath) id() (uuid.UUID, error) {
+func (in VisibilityCampaignPath) id() (uuid.UUID, error) {
 	id, err := uuid.Parse(in.CampaignID)
 	if err != nil {
 		return uuid.Nil, api.NotFound("Campaign")
@@ -24,12 +24,12 @@ func (in campaignPath) id() (uuid.UUID, error) {
 }
 
 type reportInput struct {
-	campaignPath
+	VisibilityCampaignPath
 	Body ReportInput
 }
 
 type previewInput struct {
-	campaignPath
+	VisibilityCampaignPath
 	Body PreviewInput
 }
 
@@ -77,7 +77,7 @@ func Register(h huma.API, s *Service) {
 		})
 	api.Get(h, api.Op{ID: "campaign-visibility-preview-contacts", Path: "/workspaces/{workspace}/campaigns/{campaignId}/visibility/preview-contacts",
 		Summary: "A contact for each version, to preview as", Tags: tags, Access: api.Workspace(authz.SubscribersView)},
-		func(ctx context.Context, in *campaignPath) (*api.Body[VisibilityPreviewContactList], error) {
+		func(ctx context.Context, in *VisibilityCampaignPath) (*api.Body[VisibilityPreviewContactList], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err

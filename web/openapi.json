@@ -24793,6 +24793,24 @@
         ],
         "type": "object"
       },
+      "PollPagePreviewInput": {
+        "additionalProperties": false,
+        "properties": {
+          "campaign": {
+            "maxLength": 200,
+            "type": "string"
+          },
+          "config": {
+            "description": "The Poll block's settings, as its rc-poll attribute holds them",
+            "maxLength": 20000,
+            "type": "string"
+          }
+        },
+        "required": [
+          "config"
+        ],
+        "type": "object"
+      },
       "PollResults": {
         "additionalProperties": false,
         "properties": {
@@ -36377,6 +36395,39 @@
         "required": [
           "key",
           "label"
+        ],
+        "type": "object"
+      },
+      "SurveyPagePreviewInput": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "maxLength": 1000,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 200,
+            "type": "string"
+          },
+          "questions": {
+            "items": {
+              "$ref": "#/components/schemas/SurveyQuestion"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/SurveySettings"
+          },
+          "slug": {
+            "maxLength": 60,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "questions",
+          "settings"
         ],
         "type": "object"
       },
@@ -57840,6 +57891,31 @@
       "post": {
         "description": "Reads the Visibility rules of the content sent (the composer's unsaved MJML and HTML) or saved, and counts the versions the campaign's audience gets with the live audience. The count is kept until the rules or the audience change; recount counts again.",
         "operationId": "campaign-visibility",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -57891,6 +57967,31 @@
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/visibility/preview": {
       "post": {
         "operationId": "campaign-visibility-preview",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -70437,6 +70538,31 @@
         "operationId": "list-poll-comments",
         "parameters": [
           {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Poll id",
+            "in": "path",
+            "name": "pollId",
+            "required": true,
+            "schema": {
+              "description": "Poll id",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
             "description": "Comments of 0–10 answers by group",
             "explode": false,
             "in": "query",
@@ -72317,6 +72443,73 @@
         "x-permission": "forms:edit"
       }
     },
+    "/api/v1/workspaces/{workspace}/public-pages/poll-preview": {
+      "post": {
+        "operationId": "preview-poll-page",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PollPagePreviewInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicPagePreview"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Preview a poll's answer page as a contact sees it after answering",
+        "tags": [
+          "Public pages"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:view"
+      }
+    },
     "/api/v1/workspaces/{workspace}/public-pages/preview/{page}": {
       "get": {
         "operationId": "preview-public-page",
@@ -72414,6 +72607,73 @@
           }
         ],
         "summary": "Preview a public page as a subscriber sees it",
+        "tags": [
+          "Public pages"
+        ],
+        "x-access": "workspace",
+        "x-permission": "subscribers:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/public-pages/survey-preview": {
+      "post": {
+        "operationId": "preview-survey-page",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SurveyPagePreviewInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicPagePreview"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Preview a survey's page as a contact sees it",
         "tags": [
           "Public pages"
         ],
@@ -75244,6 +75504,33 @@
       "patch": {
         "description": "Edits to an open survey apply to new responses; answers already given stay as they were given.",
         "operationId": "update-survey",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Survey id",
+            "in": "path",
+            "name": "surveyId",
+            "required": true,
+            "schema": {
+              "description": "Survey id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -75520,6 +75807,31 @@
         "operationId": "list-survey-text-answers",
         "parameters": [
           {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Survey id",
+            "in": "path",
+            "name": "surveyId",
+            "required": true,
+            "schema": {
+              "description": "Survey id",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
             "description": "The question's key",
             "in": "path",
             "name": "key",
@@ -75604,6 +75916,33 @@
     "/api/v1/workspaces/{workspace}/surveys/{surveyId}/reopen": {
       "post": {
         "operationId": "reopen-survey",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Survey id",
+            "in": "path",
+            "name": "surveyId",
+            "required": true,
+            "schema": {
+              "description": "Survey id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -75657,6 +75996,31 @@
         "description": "Contacts are named for people with subscribers:view.",
         "operationId": "list-survey-responses",
         "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Survey id",
+            "in": "path",
+            "name": "surveyId",
+            "required": true,
+            "schema": {
+              "description": "Survey id",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
           {
             "explode": false,
             "in": "query",

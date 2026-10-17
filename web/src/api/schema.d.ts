@@ -6609,6 +6609,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/public-pages/poll-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview a poll's answer page as a contact sees it after answering */
+        post: operations["preview-poll-page"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/public-pages/preview/{page}": {
         parameters: {
             query?: never;
@@ -6620,6 +6637,23 @@ export interface paths {
         get: operations["preview-public-page"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/public-pages/survey-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview a survey's page as a contact sees it */
+        post: operations["preview-survey-page"];
         delete?: never;
         options?: never;
         head?: never;
@@ -15316,6 +15350,11 @@ export interface components {
             /** Format: date-time */
             since?: string;
         };
+        PollPagePreviewInput: {
+            campaign?: string;
+            /** @description The Poll block's settings, as its rc-poll attribute holds them */
+            config: string;
+        };
         PollResults: {
             answerPage: string;
             /** Format: int64 */
@@ -18591,6 +18630,13 @@ export interface components {
             key: number;
             label: string;
             tag?: string;
+        };
+        SurveyPagePreviewInput: {
+            description?: string;
+            name: string;
+            questions: components["schemas"]["SurveyQuestion"][];
+            settings: components["schemas"]["SurveySettings"];
+            slug?: string;
         };
         SurveyProblem: {
             field: string;
@@ -28328,7 +28374,11 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -28361,7 +28411,11 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -34756,7 +34810,12 @@ export interface operations {
                 limit?: number;
             };
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Poll id */
+                pollId: string;
+            };
             cookie?: never;
         };
         requestBody?: never;
@@ -35634,6 +35693,42 @@ export interface operations {
             };
         };
     };
+    "preview-poll-page": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PollPagePreviewInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPagePreview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "preview-public-page": {
         parameters: {
             query?: {
@@ -35653,6 +35748,42 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPagePreview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "preview-survey-page": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SurveyPagePreviewInput"];
+            };
+        };
         responses: {
             /** @description OK */
             200: {
@@ -37153,7 +37284,12 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Survey id */
+                surveyId: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -37296,6 +37432,10 @@ export interface operations {
             };
             header?: never;
             path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Survey id */
+                surveyId: string;
                 /** @description The question's key */
                 key: string;
             };
@@ -37327,7 +37467,12 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Survey id */
+                surveyId: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -37363,7 +37508,12 @@ export interface operations {
                 limit?: number;
             };
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Survey id */
+                surveyId: string;
+            };
             cookie?: never;
         };
         requestBody?: never;
