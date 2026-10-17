@@ -111,8 +111,8 @@ func (p *pageLangSeed) messageLanguages(ctx context.Context) error {
 			SELECT $2::uuid, sam.workspace_id, sam.stream, sam.campaign_id, rafael.id, 'rafael.souza@example.com.br', sam.provider_id, 'other', 'delivered',
 				sam.queued_at, sam.sent_at, sam.delivered_at - interval '1 minute'
 			FROM sam, rafael RETURNING *)
-		INSERT INTO delivery_events (id, workspace_id, message_id, campaign_id, contact_id, provider_id, type, occurred_at, mailbox_provider, original_type, original_code)
-		SELECT $3::uuid, msg.workspace_id, msg.id, msg.campaign_id, msg.contact_id, msg.provider_id, 'delivered', msg.delivered_at, 'other', 'Delivery', '250 2.6.0'
+		INSERT INTO delivery_events (id, workspace_id, message_id, campaign_id, contact_id, provider_id, type, occurred_at, received_at, mailbox_provider, original_code, recipient)
+		SELECT $3::uuid, msg.workspace_id, msg.id, msg.campaign_id, msg.contact_id, msg.provider_id, 'delivered', msg.delivered_at, msg.delivered_at, 'other', '250 2.6.0', msg.email
 		FROM msg`, p.ws, ID(), ID()); err != nil {
 		return fmt.Errorf("rafael's delivery: %w", err)
 	}
