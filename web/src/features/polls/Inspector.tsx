@@ -2,7 +2,6 @@ import type { Component } from 'grapesjs'
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { $api, errorMessage, http, type Schemas } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
-import { Dialog } from '@/components/ui/Dialog'
 import { toast } from '@/components/ui/Toast'
 import { useT } from '@/i18n'
 import { clock, shortDate } from '@/lib/format'
@@ -11,6 +10,7 @@ import { tagOf } from '@/features/composer/editor/labels'
 import { ATTR_POLL } from '@/features/conditional/mjml'
 import { encodePoll, normalizePoll, parsePoll, pollAnswers, pollSection, type PollConfig } from './config'
 import { m } from './messages'
+import { AnswerPagePreview } from './PagePreview'
 import './polls.css'
 
 /** The poll a component is, null when it isn't one. */
@@ -218,42 +218,6 @@ function TestAnswers({ blockId }: { blockId: string }) {
         </button>
       ) : null}
     </Prop>
-  )
-}
-
-/** "Preview the answer page": the public page as the poll draws it, inert. */
-function AnswerPagePreview({ cfg, onClose }: { cfg: PollConfig; onClose: () => void }) {
-  const t = useT()
-  const c = useComposer()
-  // The settings as they were when the preview opened.
-  const [config] = useState(() => encodePoll(cfg))
-  const [html, setHtml] = useState('')
-  const [error, setError] = useState('')
-  useEffect(() => {
-    let cancelled = false
-    void http
-      .POST('/api/v1/workspaces/{workspace}/public-pages/poll-preview', {
-        params: { path: { workspace: c.slug } },
-        body: { config, campaign: c.name },
-      })
-      .then(({ data }) => !cancelled && data && setHtml(data.html))
-      .catch((e: unknown) => !cancelled && setError(errorMessage(e)))
-    return () => {
-      cancelled = true
-    }
-  }, [config, c.slug, c.name])
-  return (
-    <Dialog open onOpenChange={(o) => !o && onClose()} title={t(m.previewTitle)} size="lg">
-      {error ? (
-        <p role="alert">{t(m.previewFailed, { detail: error })}</p>
-      ) : html ? (
-        <iframe title={t(m.previewTitle)} className="pl-preview" sandbox="" srcDoc={html} />
-      ) : (
-        <p className="k" role="status">
-          {t(m.previewLoading)}
-        </p>
-      )}
-    </Dialog>
   )
 }
 
@@ -506,7 +470,7 @@ export function PollSettings({ c: comp }: { c: Component }) {
           </svg>
           {t(m.previewPage)}
         </a>
-        {preview ? <AnswerPagePreview cfg={cfg} onClose={() => setPreview(false)} /> : null}
+        {preview ? <AnswerPagePreview slug={c.slug} config={encodePoll(cfg)} campaign={c.name} onClose={() => setPreview(false)} /> : null}
       </Prop>
       <TestAnswers blockId={cfg.id} />
     </>

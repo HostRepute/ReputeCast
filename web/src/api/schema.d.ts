@@ -15584,6 +15584,7 @@ export interface components {
             closesAt?: string;
             /** Format: int64 */
             comments: number;
+            config: string;
             counts: components["schemas"]["PollAnswerCount"][];
             /** Format: int64 */
             delivered: number;

@@ -124,8 +124,11 @@ type PollResults struct {
 	NPS         *PollNPS            `json:"nps,omitempty"`
 	Breakdown   PollBreakdowns      `json:"breakdown"`
 	OverTime    PollOverTime        `json:"overTime"`
-	// AnswerPage is where its answer links go (the publisher's domain).
+	// AnswerPage is where its answer links go (the publisher's domain),
+	// with "…" for the signed part; Config is the Poll block's settings
+	// (rc-poll), for a preview of the answer page.
 	AnswerPage string `json:"answerPage"`
+	Config     string `json:"config"`
 	// Names is true when comments carry the contacts' names
 	// (subscribers:view).
 	Names bool `json:"names"`
@@ -246,7 +249,8 @@ func (s *Service) PollResultsOf(ctx context.Context, ws *store.Workspace, p *aut
 	case r.ClosesAt != nil && !now.Before(*r.ClosesAt):
 		out.Status, out.ClosedAt, out.ClosedAsScheduled = "closed", r.ClosesAt, true
 	}
-	out.AnswerPage = s.pageLinks(ctx, ws).Poll("…")
+	out.AnswerPage = strings.TrimSuffix(s.pageLinks(ctx, ws).Poll("x"), "x") + "…"
+	out.Config = cfg.Encode()
 	sum, err := s.Q.PollSummary(ctx, r.ID)
 	if err != nil {
 		return out, err

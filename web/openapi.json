@@ -24895,6 +24895,9 @@
             "format": "int64",
             "type": "integer"
           },
+          "config": {
+            "type": "string"
+          },
           "counts": {
             "items": {
               "$ref": "#/components/schemas/PollAnswerCount"
@@ -25008,6 +25011,7 @@
           "breakdown",
           "overTime",
           "answerPage",
+          "config",
           "names",
           "canClose",
           "closeHelpers",
