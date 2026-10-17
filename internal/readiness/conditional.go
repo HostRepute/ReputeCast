@@ -341,7 +341,7 @@ func (b *builder) polls() {
 			Title:  "The publisher domain isn't verified, so answer links use " + instance,
 			Detail: detail + " Answers still work, but the links point at the instance's own address, which readers may not recognise.",
 			Ack:    "I understand answer links use " + instance + ".",
-			Fixes:  []ReadinessFix{link("Verify "+pf.Domain, b.href("/forms?tab=domain"))}})
+			Fixes:  []ReadinessFix{link("Verify "+pf.Domain, b.href("/forms/branding"))}})
 	}
 	if len(pf.Polls) > 0 {
 		b.add(ReadinessCheck{Key: "content.poll.tracking", Group: GroupContent, Status: Pass, Label: "Poll links",
