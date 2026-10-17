@@ -15643,6 +15643,7 @@ export interface components {
         };
         PlacementRouteShare: {
             fallback?: string;
+            matched: string[];
             providerId: string;
             reasons: string[];
             seeds: string[];
@@ -15822,6 +15823,7 @@ export interface components {
             /** Format: date-time */
             startedAt: string;
             startedBy: string;
+            startedByColor?: string;
             startedById?: string;
             /** @enum {string} */
             status: "sending" | "waiting" | "finished" | "stopped";
@@ -15889,6 +15891,7 @@ export interface components {
             /** Format: date-time */
             startedAt: string;
             startedBy: string;
+            startedByColor?: string;
             startedById?: string;
             /** @enum {string} */
             status: "sending" | "waiting" | "finished" | "stopped";

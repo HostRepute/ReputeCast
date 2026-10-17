@@ -25726,6 +25726,12 @@
           "fallback": {
             "type": "string"
           },
+          "matched": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "providerId": {
             "type": "string"
           },
@@ -25745,7 +25751,8 @@
         "required": [
           "providerId",
           "seeds",
-          "reasons"
+          "reasons",
+          "matched"
         ],
         "type": "object"
       },
@@ -26372,6 +26379,9 @@
           "startedBy": {
             "type": "string"
           },
+          "startedByColor": {
+            "type": "string"
+          },
           "startedById": {
             "type": "string"
           },
@@ -26601,6 +26611,9 @@
             "type": "string"
           },
           "startedBy": {
+            "type": "string"
+          },
+          "startedByColor": {
             "type": "string"
           },
           "startedById": {

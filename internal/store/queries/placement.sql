@@ -81,7 +81,7 @@ VALUES (@id, @test_id, @workspace_id, @seed_id, @seed_email, @seed_provider, @po
         @token, @round, @send_at, @status, @not_checked);
 
 -- name: PlacementTests :many
-SELECT sqlc.embed(t), coalesce(u.name, '')::text AS started_by_name
+SELECT sqlc.embed(t), coalesce(u.name, '')::text AS started_by_name, coalesce(u.avatar_color, '')::text AS started_by_color
 FROM placement_tests t
 LEFT JOIN users u ON u.id = t.started_by
 WHERE t.workspace_id = @workspace_id
@@ -89,7 +89,8 @@ ORDER BY t.started_at DESC
 LIMIT @lim;
 
 -- name: PlacementTest :one
-SELECT sqlc.embed(t), coalesce(u.name, '')::text AS started_by_name, coalesce(su.name, '')::text AS stopped_by_name,
+SELECT sqlc.embed(t), coalesce(u.name, '')::text AS started_by_name, coalesce(u.avatar_color, '')::text AS started_by_color,
+       coalesce(su.name, '')::text AS stopped_by_name,
        coalesce(du.name, '')::text AS copies_deleted_by_name
 FROM placement_tests t
 LEFT JOIN users u ON u.id = t.started_by

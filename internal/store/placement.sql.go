@@ -1185,7 +1185,8 @@ func (q *Queries) PlacementTemplate(ctx context.Context, arg PlacementTemplatePa
 }
 
 const placementTest = `-- name: PlacementTest :one
-SELECT t.id, t.workspace_id, t.name, t.content_kind, t.content_id, t.content_name, t.content_note, t.content_key, t.content_version, t.content_at, t.variant, t.language, t.personalization, t.through, t.stream, t.provider_ids, t.sender_id, t.from_name, t.from_email, t.origin, t.status, t.subject, t.html, t.text_body, t.links, t.track_opens, t.track_clicks, t.providers, t.started_by, t.started_at, t.last_sent_at, t.wait_until, t.late_until, t.finished_at, t.stopped_by, t.stopped_at, t.delete_after, t.delete_at, t.copies_deleted_at, t.copies_deleted_by, coalesce(u.name, '')::text AS started_by_name, coalesce(su.name, '')::text AS stopped_by_name,
+SELECT t.id, t.workspace_id, t.name, t.content_kind, t.content_id, t.content_name, t.content_note, t.content_key, t.content_version, t.content_at, t.variant, t.language, t.personalization, t.through, t.stream, t.provider_ids, t.sender_id, t.from_name, t.from_email, t.origin, t.status, t.subject, t.html, t.text_body, t.links, t.track_opens, t.track_clicks, t.providers, t.started_by, t.started_at, t.last_sent_at, t.wait_until, t.late_until, t.finished_at, t.stopped_by, t.stopped_at, t.delete_after, t.delete_at, t.copies_deleted_at, t.copies_deleted_by, coalesce(u.name, '')::text AS started_by_name, coalesce(u.avatar_color, '')::text AS started_by_color,
+       coalesce(su.name, '')::text AS stopped_by_name,
        coalesce(du.name, '')::text AS copies_deleted_by_name
 FROM placement_tests t
 LEFT JOIN users u ON u.id = t.started_by
@@ -1202,6 +1203,7 @@ type PlacementTestParams struct {
 type PlacementTestRow struct {
 	PlacementTest       PlacementTest `json:"placementTest"`
 	StartedByName       string        `json:"startedByName"`
+	StartedByColor      string        `json:"startedByColor"`
 	StoppedByName       string        `json:"stoppedByName"`
 	CopiesDeletedByName string        `json:"copiesDeletedByName"`
 }
@@ -1251,6 +1253,7 @@ func (q *Queries) PlacementTest(ctx context.Context, arg PlacementTestParams) (P
 		&i.PlacementTest.CopiesDeletedAt,
 		&i.PlacementTest.CopiesDeletedBy,
 		&i.StartedByName,
+		&i.StartedByColor,
 		&i.StoppedByName,
 		&i.CopiesDeletedByName,
 	)
@@ -1516,7 +1519,7 @@ func (q *Queries) PlacementTestStop(ctx context.Context, arg PlacementTestStopPa
 }
 
 const placementTests = `-- name: PlacementTests :many
-SELECT t.id, t.workspace_id, t.name, t.content_kind, t.content_id, t.content_name, t.content_note, t.content_key, t.content_version, t.content_at, t.variant, t.language, t.personalization, t.through, t.stream, t.provider_ids, t.sender_id, t.from_name, t.from_email, t.origin, t.status, t.subject, t.html, t.text_body, t.links, t.track_opens, t.track_clicks, t.providers, t.started_by, t.started_at, t.last_sent_at, t.wait_until, t.late_until, t.finished_at, t.stopped_by, t.stopped_at, t.delete_after, t.delete_at, t.copies_deleted_at, t.copies_deleted_by, coalesce(u.name, '')::text AS started_by_name
+SELECT t.id, t.workspace_id, t.name, t.content_kind, t.content_id, t.content_name, t.content_note, t.content_key, t.content_version, t.content_at, t.variant, t.language, t.personalization, t.through, t.stream, t.provider_ids, t.sender_id, t.from_name, t.from_email, t.origin, t.status, t.subject, t.html, t.text_body, t.links, t.track_opens, t.track_clicks, t.providers, t.started_by, t.started_at, t.last_sent_at, t.wait_until, t.late_until, t.finished_at, t.stopped_by, t.stopped_at, t.delete_after, t.delete_at, t.copies_deleted_at, t.copies_deleted_by, coalesce(u.name, '')::text AS started_by_name, coalesce(u.avatar_color, '')::text AS started_by_color
 FROM placement_tests t
 LEFT JOIN users u ON u.id = t.started_by
 WHERE t.workspace_id = $1
@@ -1530,8 +1533,9 @@ type PlacementTestsParams struct {
 }
 
 type PlacementTestsRow struct {
-	PlacementTest PlacementTest `json:"placementTest"`
-	StartedByName string        `json:"startedByName"`
+	PlacementTest  PlacementTest `json:"placementTest"`
+	StartedByName  string        `json:"startedByName"`
+	StartedByColor string        `json:"startedByColor"`
 }
 
 func (q *Queries) PlacementTests(ctx context.Context, arg PlacementTestsParams) ([]PlacementTestsRow, error) {
@@ -1585,6 +1589,7 @@ func (q *Queries) PlacementTests(ctx context.Context, arg PlacementTestsParams) 
 			&i.PlacementTest.CopiesDeletedAt,
 			&i.PlacementTest.CopiesDeletedBy,
 			&i.StartedByName,
+			&i.StartedByColor,
 		); err != nil {
 			return nil, err
 		}

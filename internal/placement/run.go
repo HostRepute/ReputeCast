@@ -137,6 +137,9 @@ type PlacementRouteShare struct {
 	Reasons []string `json:"reasons"`
 	// Fallback is the provider the route falls back to.
 	Fallback string `json:"fallback,omitempty"`
+	// Matched are the seeds a condition picked this provider for; the
+	// rest came by a split or as the route's primary.
+	Matched []string `json:"matched"`
 }
 
 // PlacementSenderOption is a sender of the stream.
@@ -640,13 +643,16 @@ func (s *Service) plan(ctx context.Context, ws *store.Workspace, in PlacementRun
 				break
 			}
 			if shares[pid] == nil {
-				shares[pid] = &PlacementRouteShare{ProviderID: pid.String(), Seeds: []string{}, Reasons: []string{}}
+				shares[pid] = &PlacementRouteShare{ProviderID: pid.String(), Seeds: []string{}, Reasons: []string{}, Matched: []string{}}
 				if d.Fallback != nil && *d.Fallback != pid {
 					shares[pid].Fallback = d.Fallback.String()
 				}
 				order = append(order, pid)
 			}
 			shares[pid].Seeds = append(shares[pid].Seeds, sd.ID.String())
+			if strings.HasPrefix(reason, "condition:") {
+				shares[pid].Matched = append(shares[pid].Matched, sd.ID.String())
+			}
 			if !slices.Contains(shares[pid].Reasons, reason) {
 				shares[pid].Reasons = append(shares[pid].Reasons, reason)
 			}
@@ -662,8 +668,21 @@ func (s *Service) plan(ctx context.Context, ws *store.Workspace, in PlacementRun
 			out.Chosen = append(out.Chosen, pid.String())
 		}
 	case "provider", "compare":
+		// Without a pick, a comparison takes every provider that can send
+		// the email and a one-provider test the first of them.
+		ids := in.Providers
+		if len(ids) == 0 {
+			for _, o := range out.Providers {
+				if o.Available {
+					ids = append(ids, o.ID)
+					if in.Through == "provider" {
+						break
+					}
+				}
+			}
+		}
 		usable := []uuid.UUID{}
-		for _, raw := range in.Providers {
+		for _, raw := range ids {
 			pid, err := uuid.Parse(raw)
 			if err != nil {
 				continue
