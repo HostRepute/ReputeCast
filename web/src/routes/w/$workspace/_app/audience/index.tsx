@@ -18,6 +18,16 @@ const search = z.object({
     .optional()
     .catch(undefined),
   segment: z.string().uuid().optional().catch(undefined),
+  // Scoring and Growth (X13).
+  band: z.enum(['cold', 'warm', 'hot', 'none']).optional().catch(undefined),
+  scoreFrom: z.coerce.number().int().min(0).max(100).optional().catch(undefined),
+  scoreTo: z.coerce.number().int().min(0).max(100).optional().catch(undefined),
+  growthSource: z.string().max(200).optional().catch(undefined),
+  utmSource: z.string().max(200).optional().catch(undefined),
+  utmMedium: z.string().max(200).optional().catch(undefined),
+  utmCampaign: z.string().max(200).optional().catch(undefined),
+  referringDomain: z.string().max(200).optional().catch(undefined),
+  sort: z.enum(['activity', 'score']).optional().catch(undefined),
   page: z.coerce.number().int().min(1).optional().catch(undefined),
   size: z.coerce.number().int().min(1).max(100).optional().catch(undefined),
 })
