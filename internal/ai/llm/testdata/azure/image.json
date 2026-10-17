@@ -1,0 +1,28 @@
+{
+  "status": 200,
+  "body": {
+    "id": "chatcmpl-CQ8ZtE4k5sQpB2d3vY0aWnLm9rX1",
+    "object": "chat.completion",
+    "created": 1760538011,
+    "model": "gpt-4.1-2025-04-14",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "A single transparent pixel.",
+          "refusal": null,
+          "annotations": []
+        },
+        "logprobs": null,
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 96,
+      "completion_tokens": 7,
+      "total_tokens": 103
+    },
+    "service_tier": "default"
+  }
+}
