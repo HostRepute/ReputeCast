@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import { useCallback, type ReactNode } from 'react'
+import { Fragment, useCallback, type ReactNode } from 'react'
 import { $api, ApiError, type Schemas } from '@/api/client'
 import { Icon } from '@/components/icons/Icon'
 import { Button, ButtonLink } from '@/components/ui/Button'
@@ -232,11 +232,12 @@ export function ContentFacts({ row }: { row: TestRow }) {
   const facts = contentFactList(row)
   return (
     <>
+      {/* Lines break between facts, after the separator, never inside one. */}
       {facts.map((f, i) => (
-        <span key={i} className="whitespace-nowrap">
-          {f}
-          {i < facts.length - 1 ? ' · ' : ''}
-        </span>
+        <Fragment key={i}>
+          <span className="whitespace-nowrap">{f}</span>
+          {i < facts.length - 1 ? ' · ' : ''}
+        </Fragment>
       ))}
     </>
   )

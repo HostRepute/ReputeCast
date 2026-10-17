@@ -109,6 +109,10 @@ const resolvers: Record<string, (ctx: BrowserContext, value: string) => Promise<
     lookup(ctx, 'imports', 'items', (i) => (which === 'draft' ? i.status === 'draft' : i.source === which && i.status === 'done'), `no ${which} import`),
   // A signup form by its name ({form:Newsletter signup}).
   form: (ctx, name) => lookup(ctx, 'forms', 'forms', (f) => f.name === name, `no form named ${name}`),
+  // A placement test by its name ({placement:Weekly Digest #142 · SES vs Postal}) and a
+  // verification job by its label ({verification:Sunset}).
+  placement: (ctx, name) => lookup(ctx, 'placement/tests', 'tests', (t) => t.name === name, `no placement test named ${name}`),
+  verification: (ctx, label) => lookup(ctx, 'verification/services', 'uses', (u) => u.label === label && u.kind !== 'realtime', `no verification job ${label}`),
 }
 
 /** The id of the first item of a workspace list that matches. */
