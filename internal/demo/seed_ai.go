@@ -97,18 +97,21 @@ func seedAIImpl(ctx context.Context, s *Seeder) error {
 	}); err != nil {
 		return err
 	}
-	meta, _ := json.Marshal(map[string]any{"key": "added (write-only)", "test": map[string]any{"ok": true, "ms": 1200}})
-	after, _ := json.Marshal(map[string]any{"provider": "anthropic", "model": "claude-sonnet-5-5", "capKind": "usd", "capUsd": 25, "inputPrice": 2, "outputPrice": 10,
+	meta, _ := json.Marshal(map[string]any{"key": "added (write-only)", "test": map[string]any{"ok": true, "ms": 1200},
+		"summary": "model claude-sonnet-5-5 · key added (write-only) · cap $20.00 a month · all 7 features on"})
+	after, _ := json.Marshal(map[string]any{"provider": "anthropic", "model": "claude-sonnet-5-5", "capKind": "usd", "capUsd": 20, "inputPrice": 2, "outputPrice": 10,
 		"features": []string{"subject_ideas", "rewrite", "translate", "alt_text", "accessibility_fix", "segment_draft", "report_summary"}, "keySet": true})
 	if _, err := s.Tx.Exec(ctx, `INSERT INTO audit_events (id, workspace_id, occurred_at, actor_type, actor_id, actor_name, action, target_type, target_id, target_name,
 		result, ip, user_agent, request_id, after, metadata) VALUES ($1,$2,$3,'user',$4,$5,'ai.connection_created','ai_assistant',$6,'Anthropic','allowed',$7,'',$8,$9,$10)`,
 		ID(), ws.ID, connected, marcus.ID, marcus.Name, ws.ID.String(), netip.MustParseAddr("198.51.100.40"), "req_"+ID().String()[:8], after, meta); err != nil {
 		return err
 	}
+	capBefore, _ := json.Marshal(map[string]any{"capKind": "usd", "capUsd": 20, "capTokens": 0})
 	capAfter, _ := json.Marshal(map[string]any{"capKind": "usd", "capUsd": 25, "capTokens": 0})
+	capMeta, _ := json.Marshal(map[string]any{"summary": "cap $20.00 a month → $25.00 a month"})
 	if _, err := s.Tx.Exec(ctx, `INSERT INTO audit_events (id, workspace_id, occurred_at, actor_type, actor_id, actor_name, action, target_type, target_id, target_name,
-		result, ip, user_agent, request_id, after) VALUES ($1,$2,$3,'user',$4,$5,'ai.cap_updated','ai_assistant',$6,'Anthropic','allowed',$7,'',$8,$9)`,
-		ID(), ws.ID, capSet, linh.ID, linh.Name, ws.ID.String(), netip.MustParseAddr("203.0.113.9"), "req_"+ID().String()[:8], capAfter); err != nil {
+		result, ip, user_agent, request_id, before, after, metadata) VALUES ($1,$2,$3,'user',$4,$5,'ai.cap_updated','ai_assistant',$6,'Anthropic','allowed',$7,'',$8,$9,$10,$11)`,
+		ID(), ws.ID, capSet, linh.ID, linh.Name, ws.ID.String(), netip.MustParseAddr("203.0.113.9"), "req_"+ID().String()[:8], capBefore, capAfter, capMeta); err != nil {
 		return err
 	}
 	rows := s.aiRequests(ws)

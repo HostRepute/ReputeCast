@@ -853,9 +853,19 @@ func (s *Service) Connect(ctx context.Context, ws *store.Workspace, p *authz.Pri
 			return err
 		}
 		meta := map[string]any{"test": map[string]any{"ok": true, "ms": res.Ms}}
+		key := keyNone
+		switch {
+		case in.APIKey != "" && action == "ai.connection_updated":
+			key = keyReplaced
+		case in.APIKey != "":
+			key = keyAdded
+		case len(row.KeySealed) > 0:
+			key = keyKept
+		}
 		if in.APIKey != "" {
 			meta["key"] = "added (write-only)"
 		}
+		meta["summary"] = connectionLine(row, key)
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: action, TargetType: "ai_assistant", TargetID: ws.ID.String(),
 			TargetName: llm.Info(c.provider).Name, Before: before, After: auditView(row), Metadata: meta})
 	})
@@ -901,7 +911,7 @@ func (s *Service) ReplaceKey(ctx context.Context, ws *store.Workspace, p *authz.
 			return err
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "ai.key_replaced", TargetType: "ai_assistant", TargetID: ws.ID.String(),
-			TargetName: cur.providerName(), Metadata: map[string]any{"key": "replaced (write-only)", "test": map[string]any{"ok": true, "ms": res.Ms}}})
+			TargetName: cur.providerName(), Metadata: map[string]any{"key": "replaced (write-only)", "test": map[string]any{"ok": true, "ms": res.Ms}, "summary": keyReplaced + " · test passed"}})
 	})
 	if err != nil {
 		return AISettings{}, res, err
@@ -919,8 +929,14 @@ type AIModelInput struct {
 	OutputPrice *float64 `json:"outputPrice,omitempty" minimum:"0"`
 }
 
+// auditChange is what a change records: before and after, and the details line.
+type auditChange struct {
+	before, after map[string]any
+	summary       string
+}
+
 // update applies a change to the connected model and audits it.
-func (s *Service) update(ctx context.Context, ws *store.Workspace, p *authz.Principal, action string, change func(row *store.AiConnection) (map[string]any, map[string]any, error)) (AISettings, error) {
+func (s *Service) update(ctx context.Context, ws *store.Workspace, p *authz.Principal, action string, change func(row *store.AiConnection) (auditChange, error)) (AISettings, error) {
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		row, err := q.AIConnectionForUpdate(ctx, ws.ID)
@@ -930,7 +946,7 @@ func (s *Service) update(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		if err != nil {
 			return err
 		}
-		before, after, err := change(&row)
+		ch, err := change(&row)
 		if err != nil {
 			return err
 		}
@@ -939,7 +955,7 @@ func (s *Service) update(ctx context.Context, ws *store.Workspace, p *authz.Prin
 			return err
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: action, TargetType: "ai_assistant", TargetID: ws.ID.String(),
-			TargetName: llm.Info(row.Provider).Name, Before: before, After: after})
+			TargetName: llm.Info(row.Provider).Name, Before: ch.before, After: ch.after, Metadata: map[string]any{"summary": ch.summary}})
 	})
 	if err != nil {
 		return AISettings{}, err
@@ -949,13 +965,14 @@ func (s *Service) update(ctx context.Context, ws *store.Workspace, p *authz.Prin
 
 // ChangeModel picks another model of the same provider.
 func (s *Service) ChangeModel(ctx context.Context, ws *store.Workspace, p *authz.Principal, in AIModelInput) (AISettings, error) {
-	return s.update(ctx, ws, p, "ai.model_changed", func(row *store.AiConnection) (map[string]any, map[string]any, error) {
+	return s.update(ctx, ws, p, "ai.model_changed", func(row *store.AiConnection) (auditChange, error) {
 		model := strings.TrimSpace(in.Model)
 		input, output, from := pricesOf(row.Provider, model, in.InputPrice, in.OutputPrice)
 		if err := validPrices(ctx, input, output); err != nil {
-			return nil, nil, err
+			return auditChange{}, err
 		}
 		before := map[string]any{"model": row.Model, "inputPrice": row.InputPrice, "outputPrice": row.OutputPrice}
+		summary := modelLine(row.Model, model, row.InputPrice, row.OutputPrice, input, output)
 		name := strings.TrimSpace(in.ModelName)
 		if name == "" {
 			name = llm.ModelName(row.Provider, model)
@@ -964,7 +981,7 @@ func (s *Service) ChangeModel(ctx context.Context, ws *store.Workspace, p *authz
 		if row.Provider == llm.Azure {
 			row.Deployment = model
 		}
-		return before, map[string]any{"model": model, "inputPrice": input, "outputPrice": output}, nil
+		return auditChange{before, map[string]any{"model": model, "inputPrice": input, "outputPrice": output}, summary}, nil
 	})
 }
 
@@ -980,13 +997,14 @@ func (s *Service) SetCap(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	if err := validCap(ctx, in.Kind, in.USD, in.Tokens); err != nil {
 		return AISettings{}, err
 	}
-	return s.update(ctx, ws, p, "ai.cap_updated", func(row *store.AiConnection) (map[string]any, map[string]any, error) {
+	return s.update(ctx, ws, p, "ai.cap_updated", func(row *store.AiConnection) (auditChange, error) {
 		before := map[string]any{"capKind": row.CapKind, "capUsd": row.CapUsd, "capTokens": row.CapTokens}
+		summary := capLine(*row, in.Kind, in.USD, in.Tokens)
 		now := s.now()
 		row.CapKind, row.CapUsd, row.CapTokens, row.CapSetBy, row.CapSetAt = in.Kind, in.USD, in.Tokens, actorID(p), &now
 		// A raised cap can notify again this month.
 		row.NoticeMonth, row.CapNoticeMonth = "", ""
-		return before, map[string]any{"capKind": in.Kind, "capUsd": in.USD, "capTokens": in.Tokens}, nil
+		return auditChange{before, map[string]any{"capKind": in.Kind, "capUsd": in.USD, "capTokens": in.Tokens}, summary}, nil
 	})
 }
 
@@ -1001,11 +1019,12 @@ func (s *Service) SetPrices(ctx context.Context, ws *store.Workspace, p *authz.P
 	if err := validPrices(ctx, in.Input, in.Output); err != nil {
 		return AISettings{}, err
 	}
-	return s.update(ctx, ws, p, "ai.prices_updated", func(row *store.AiConnection) (map[string]any, map[string]any, error) {
+	return s.update(ctx, ws, p, "ai.prices_updated", func(row *store.AiConnection) (auditChange, error) {
 		before := map[string]any{"inputPrice": row.InputPrice, "outputPrice": row.OutputPrice}
+		summary := pricesLine(row.InputPrice, row.OutputPrice, in.Input, in.Output)
 		in1, out1 := in.Input, in.Output
 		row.InputPrice, row.OutputPrice, row.PricesFrom = pricesOf(row.Provider, row.Model, &in1, &out1)
-		return before, map[string]any{"inputPrice": in.Input, "outputPrice": in.Output}, nil
+		return auditChange{before, map[string]any{"inputPrice": in.Input, "outputPrice": in.Output}, summary}, nil
 	})
 }
 
@@ -1018,14 +1037,14 @@ func (s *Service) SetFeature(ctx context.Context, ws *store.Workspace, p *authz.
 	if on {
 		action = "ai.feature_enabled"
 	}
-	return s.update(ctx, ws, p, action, func(row *store.AiConnection) (map[string]any, map[string]any, error) {
+	return s.update(ctx, ws, p, action, func(row *store.AiConnection) (auditChange, error) {
 		was := !slices.Contains(row.FeaturesOff, feature)
 		off := slices.DeleteFunc(slices.Clone(row.FeaturesOff), func(f string) bool { return f == feature })
 		if !on {
 			off = append(off, feature)
 		}
 		row.FeaturesOff = off
-		return map[string]any{"feature": feature, "on": was}, map[string]any{"feature": feature, "on": on}, nil
+		return auditChange{map[string]any{"feature": feature, "on": was}, map[string]any{"feature": feature, "on": on}, featureLine(feature, on)}, nil
 	})
 }
 
@@ -1033,10 +1052,10 @@ func (s *Service) SetFeature(ctx context.Context, ws *store.Workspace, p *authz.
 // the next connection; the activity log, kept summaries and accepted text
 // stay too.
 func (s *Service) Disconnect(ctx context.Context, ws *store.Workspace, p *authz.Principal) (AISettings, error) {
-	return s.update(ctx, ws, p, "ai.connection_removed", func(row *store.AiConnection) (map[string]any, map[string]any, error) {
+	return s.update(ctx, ws, p, "ai.connection_removed", func(row *store.AiConnection) (auditChange, error) {
 		before := auditView(*row)
 		now := s.now()
 		row.KeySealed, row.KeyAddedBy, row.KeyAddedAt, row.DisconnectedAt, row.DisconnectedBy, row.Status, row.StatusDetail = nil, nil, nil, &now, actorID(p), "ok", ""
-		return before, map[string]any{"key": "deleted", "kept": "the model, the cap and the prices"}, nil
+		return auditChange{before, map[string]any{"key": "deleted", "kept": "the model, the cap and the prices"}, disconnectLine}, nil
 	})
 }

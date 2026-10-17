@@ -676,6 +676,20 @@ func TestAIConnectionCapAndErrors(t *testing.T) {
 			t.Fatalf("no %s in %v", want, actions)
 		}
 	}
+	// Each entry has its details line (SettingsAudit).
+	for action, want := range map[string]string{
+		"ai.connection_created": "model llama3.3:70b · key added (write-only) · cap $10.00 a month · 6 of 7 features on",
+		"ai.feature_disabled":   "Translate a language version turned off",
+		"ai.cap_updated":        "cap $10.00 a month → $50.00 a month",
+		"ai.key_replaced":       "key replaced (write-only) · test passed",
+		"ai.connection_removed": "key deleted · the model, the cap and the prices are kept for the next connection",
+	} {
+		var got string
+		_ = env.App.Pool.QueryRow(ctx, `SELECT metadata->>'summary' FROM audit_events WHERE action = $1 AND occurred_at > now() - interval '1 hour' ORDER BY occurred_at DESC LIMIT 1`, action).Scan(&got)
+		if got != want {
+			t.Fatalf("%s: %q, want %q", action, got, want)
+		}
+	}
 	// Requests aren't audited: the activity log is their record.
 	var audited int
 	_ = env.App.Pool.QueryRow(ctx, `SELECT count(*) FROM audit_events WHERE action LIKE 'ai.%' AND action NOT IN ('ai.connection_removed','ai.connection_created','ai.connection_updated','ai.feature_disabled','ai.feature_enabled','ai.cap_updated','ai.prices_updated','ai.key_replaced','ai.model_changed')`).Scan(&audited)
