@@ -14,5 +14,7 @@
   "short.integration_attention": "integration problems",
   "short.post_draft_created": "post drafts",
   "short.transactional_alert": "transactional delivery alerts",
-  "short.smtp_relay_unreachable": "SMTP relay outages"
+  "short.smtp_relay_unreachable": "SMTP relay outages",
+  "short.ai_usage": "AI usage notices",
+  "short.ai_key_rejected": "rejected AI keys"
 }

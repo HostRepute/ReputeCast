@@ -129,6 +129,8 @@ var Categories = []AuditCategory{
 	{Key: "settings", Label: "Settings", Groups: []string{"workspace", "webhook", "audit", "settings", "mcp", "instance"}},
 	{Key: "integrations", Label: "Integrations", Groups: []string{"integration", "wordpress", "hostrepute"}},
 	{Key: "transactional", Label: "Transactional", Groups: []string{"transactional", "smtp_relay"}},
+	// The AI assistant's connection, key, cap, prices and features (phase 3).
+	{Key: "ai", Label: "AI", Groups: []string{"ai"}},
 }
 
 // Filter narrows the log.
@@ -550,6 +552,8 @@ func link(ws, targetType, targetID, override string) (string, string) {
 		return base + "/transactional/messages", "Open messages"
 	case "transactional_category", "transactional_settings":
 		return base + "/transactional/settings", "Open settings"
+	case "ai_assistant":
+		return base + "/settings/integrations/ai", "Open AI assistant"
 	}
 	return "", ""
 }
@@ -573,6 +577,10 @@ var verbs = map[string]string{
 	"template_rolled_back": "Rolled back", "template_archived": "Archived", "template_restored": "Restored", "template_deleted": "Deleted",
 	"category_created": "Created", "category_updated": "Changed", "category_deleted": "Deleted", "content_viewed": "Viewed the content of",
 	"message_resent": "Resent", "log_exported": "Exported", "enabled": "Turned on", "disabled": "Turned off",
+	// The AI assistant.
+	"connection_created": "Connected", "connection_updated": "Changed", "connection_removed": "Disconnected", "key_replaced": "Replaced the key of",
+	"model_changed": "Changed the model of", "cap_updated": "Changed the monthly cap of", "prices_updated": "Changed the prices of",
+	"feature_enabled": "Turned on a feature of", "feature_disabled": "Turned off a feature of",
 }
 
 // Describe writes "Changed the Broadcasts routing rule" style sentences from an action.
@@ -599,7 +607,7 @@ func Describe(action, targetType, targetName string) string {
 }
 
 // acronyms keep their case in type names: api_key → "API key".
-var acronyms = map[string]string{"api": "API", "mcp": "MCP", "sso": "SSO", "dns": "DNS", "smtp": "SMTP", "ip": "IP", "url": "URL"}
+var acronyms = map[string]string{"api": "API", "mcp": "MCP", "sso": "SSO", "dns": "DNS", "smtp": "SMTP", "ip": "IP", "url": "URL", "ai": "AI"}
 
 // TypeLabel turns a target type into words: "routing_rule" → "routing rule"
 // ("Routing rule" with capital), "api_key" → "API key".

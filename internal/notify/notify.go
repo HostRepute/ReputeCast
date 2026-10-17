@@ -39,6 +39,9 @@ const (
 	// KindSMTPRelayUnreachable tells instance admins the SMTP relay can't
 	// be reached from the internet.
 	KindSMTPRelayUnreachable = "smtp_relay_unreachable"
+	// AI assistant (design expansion, phase 3).
+	KindAIUsage       = "ai_usage"        // this month's AI use reached 80% of the cap, or the cap
+	KindAIKeyRejected = "ai_key_rejected" // the model provider rejected the workspace's key
 )
 
 // Notification is what appears in the notification center.

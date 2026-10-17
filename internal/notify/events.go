@@ -32,6 +32,9 @@ var Events = []EventType{
 	{Key: KindPostDraftCreated, Label: "Post draft created", Audience: "When a WordPress post-draft rule names you", Short: "post drafts", DefaultEmail: true, Kinds: []string{KindPostDraftCreated}},
 	{Key: KindTransactionalAlert, Label: "Transactional delivery alert", Audience: "Everyone with transactional:view", Short: "transactional delivery alerts", DefaultEmail: true, Kinds: []string{KindTransactionalAlert}},
 	{Key: KindSMTPRelayUnreachable, Label: "SMTP relay unreachable", Audience: "Instance admins only", Short: "SMTP relay outages", DefaultEmail: true, Urgent: true, Kinds: []string{KindSMTPRelayUnreachable}},
+	// AI assistant (design expansion, phase 3).
+	{Key: KindAIUsage, Label: "AI usage at 80% and cap reached", Audience: "Everyone with integrations:manage", Short: "AI usage notices", DefaultEmail: true, Kinds: []string{KindAIUsage}},
+	{Key: KindAIKeyRejected, Label: "AI key rejected by the provider", Audience: "Everyone with integrations:manage", Short: "rejected AI keys", DefaultEmail: true, Kinds: []string{KindAIKeyRejected}},
 }
 
 // otherEvent covers kinds without a preference row (send finished, jobs):
@@ -63,6 +66,8 @@ const (
 	// CategoryTransactional holds transactional mail's delivery alerts and
 	// the SMTP relay.
 	CategoryTransactional = "transactional"
+	// CategoryAI holds the AI assistant's cap and key notices.
+	CategoryAI = "ai"
 )
 
 var categoryKinds = map[string][]string{
@@ -73,6 +78,7 @@ var categoryKinds = map[string][]string{
 	CategoryHostRepute:    {KindHostReputeAlert},
 	CategoryIntegrations:  {KindIntegrationAttention, KindPostDraftCreated},
 	CategoryTransactional: {KindTransactionalAlert, KindSMTPRelayUnreachable},
+	CategoryAI:            {KindAIUsage, KindAIKeyRejected},
 }
 
 var categoryLabels = map[string]string{
@@ -84,6 +90,7 @@ var categoryLabels = map[string]string{
 	CategoryOther:         "Other",
 	CategoryIntegrations:  "Integrations",
 	CategoryTransactional: "Transactional",
+	CategoryAI:            "AI",
 }
 
 // CategoryOf returns the center tab a kind is listed under.

@@ -182,8 +182,16 @@ func TestSummarize(t *testing.T) {
 		p.Events = append(p.Events, notify.NotificationEventPreference{Type: e.Key, InApp: true, Email: e.DefaultEmail})
 	}
 	s := notify.Summarize(p)
-	if s.InApp != "All events" || s.Email != "Approvals, auto-pauses, provider down, integration problems, post drafts, transactional delivery alerts, SMTP relay outages" || s.QuietHours != "22:00–07:00 America/New_York, email only" {
+	if s.InApp != "All events" || s.Email != "Approvals, auto-pauses, provider down, integration problems, post drafts, transactional delivery alerts, SMTP relay outages, AI usage notices, rejected AI keys" ||
+		s.QuietHours != "22:00–07:00 America/New_York, email only" {
 		t.Fatalf("summary: %+v", s)
+	}
+	// (The AI assistant's events aren't translated yet: they're off here.)
+	for i := range p.Events {
+		switch p.Events[i].Type {
+		case notify.KindAIUsage, notify.KindAIKeyRejected:
+			p.Events[i].Email = false
+		}
 	}
 
 	// In the member's app language, starting with a capital in any script.

@@ -146,7 +146,7 @@ func TestCatalogAndReadOnly(t *testing.T) {
 	for _, g := range cat.Groups {
 		keys = append(keys, g.Key)
 	}
-	if strings.Join(keys, ",") != "automation,websites,deliverability,developer" {
+	if strings.Join(keys, ",") != "automation,websites,deliverability,developer,ai" {
 		t.Fatalf("groups with nothing in them aren't shown: %v", keys)
 	}
 	if st, wf, _ := cat.entry("zapier"); st != "connected" || wf != 3 {

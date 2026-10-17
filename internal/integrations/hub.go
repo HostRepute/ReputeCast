@@ -92,6 +92,9 @@ func integrationOf(id, ws uuid.UUID, kind, label string, items, off []string, se
 		ConnectedAt: at, FirstCallAt: first, LastCallAt: last, Attention: attention, Notified: notified, DisconnectedAt: disc, DisconnectedBy: discBy}
 }
 
+// GroupSource returns the cards another domain adds to a catalog group.
+type GroupSource func(ctx context.Context, ws *store.Workspace) ([]IntegrationEntry, error)
+
 // IntegrationHub is Settings › Integrations: the catalog.
 type IntegrationHub struct {
 	Groups []IntegrationGroup `json:"groups" doc:"Groups with something in them, in order"`
@@ -111,7 +114,7 @@ type IntegrationGroup struct {
 // IntegrationEntry is a catalog card: its status, the reason it needs
 // attention, and the facts of its fact line.
 type IntegrationEntry struct {
-	Key string `json:"key" enum:"zapier,make,n8n,wordpress,hostrepute,api,webhooks,mcp"`
+	Key string `json:"key" enum:"zapier,make,n8n,wordpress,hostrepute,api,webhooks,mcp,anthropic,openai,google,azure,compatible"`
 	// Status: not_connected, waiting, connected, attention; none for the
 	// developer cards.
 	Status          string              `json:"status" enum:"not_connected,waiting,connected,attention,none"`
@@ -137,6 +140,25 @@ type IntegrationFacts struct {
 	Failing      int64      `json:"failing"`
 	MCPEnabled   bool       `json:"mcpEnabled"`
 	Agents       int64      `json:"agents"`
+	// AI is an AI model's card (the "AI models" group, internal/ai).
+	AI *IntegrationAIFacts `json:"ai,omitempty"`
+}
+
+// IntegrationAIFacts are an AI model card's facts: the model connected, and
+// this month's use against the cap.
+type IntegrationAIFacts struct {
+	ModelName  string  `json:"modelName,omitempty"`
+	CostMicros int64   `json:"costMicros"`
+	Tokens     int64   `json:"tokens"`
+	CapKind    string  `json:"capKind,omitempty" enum:"usd,tokens,none,"`
+	CapUSD     float64 `json:"capUsd"`
+	CapTokens  int64   `json:"capTokens"`
+	Share      float64 `json:"share" doc:"Share of the cap used, 0 to 1"`
+	// Connected names the provider connected to the workspace, when it is
+	// another one: one model per workspace.
+	Connected string `json:"connected,omitempty"`
+	// KeyRejected: the provider rejected the saved key.
+	KeyRejected bool `json:"keyRejected"`
 }
 
 // IntegrationAlert is a banner: an entry and its reason.
@@ -256,12 +278,17 @@ func (s *Service) Hub(ctx context.Context, ws *store.Workspace, p *authz.Princip
 	}
 	entries["mcp"] = mcp
 	for _, g := range Groups {
-		if len(g.Entries) == 0 {
-			continue
-		}
 		grp := IntegrationGroup{Key: g.Key, Entries: []IntegrationEntry{}}
 		for _, k := range g.Entries {
 			grp.Entries = append(grp.Entries, entries[k])
+		}
+		if src := s.Sources[g.Key]; src != nil {
+			if more, err := src(ctx, ws); err == nil {
+				grp.Entries = append(grp.Entries, more...)
+			}
+		}
+		if len(grp.Entries) == 0 {
+			continue
 		}
 		out.Groups = append(out.Groups, grp)
 	}
