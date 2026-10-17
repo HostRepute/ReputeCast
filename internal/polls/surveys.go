@@ -139,6 +139,10 @@ type Survey struct {
 	Completed int64           `json:"completed"`
 	Linked    []SurveyLink    `json:"linked"`
 	Problems  []SurveyProblem `json:"problems"`
+	// CanEdit is the viewer's forms:edit; EditHelpers are members to ask
+	// when they lack it.
+	CanEdit     bool     `json:"canEdit"`
+	EditHelpers []string `json:"editHelpers"`
 }
 
 // SurveyList is the workspace's surveys.
@@ -251,7 +255,7 @@ func (s *Service) surveyOf(ctx context.Context, ws *store.Workspace, r store.Sur
 	out := Survey{ID: r.ID.String(), Number: r.Number, Slug: r.Slug, Name: r.Name, Description: r.Description, Status: r.Status, Questions: qs, Settings: st,
 		ClosesAt: r.ClosesAt, PublishedAt: r.PublishedAt, PublishedBy: r.PublishedByName, ClosedAt: r.ClosedAt, ClosedBy: r.ClosedByName, CreatedBy: r.CreatedByName,
 		CreatedAt: r.CreatedAt, UpdatedAt: r.UpdatedAt, Started: r.Started, Completed: r.Completed, Variable: "{{ " + SurveyVar(r.Number) + " }}",
-		Linked: []SurveyLink{}, Problems: SurveyProblems(qs)}
+		Linked: []SurveyLink{}, Problems: SurveyProblems(qs), EditHelpers: []string{}}
 	out.URL = s.pageLinks(ctx, ws).Survey(r.Slug)
 	if out.Status == SurveyOpen && out.ClosesAt != nil && !s.now().Before(*out.ClosesAt) {
 		out.Status = SurveyClosed
@@ -422,6 +426,13 @@ func (s *Service) UpdateSurvey(ctx context.Context, ws *store.Workspace, p *auth
 		}
 		if len(after) == 0 {
 			return nil
+		}
+		// An open survey's page takes answers: it keeps every question
+		// complete, as publishing does.
+		if cur.Status == SurveyOpen {
+			if probs := SurveyProblems(qs); len(probs) > 0 {
+				return api.Err(422, "survey_incomplete", "Publishing waits until every question is complete: "+probs[0].Message).WithMeta("problems", probs)
+			}
 		}
 		qb, _ := json.Marshal(qs)
 		sb, _ := json.Marshal(st)

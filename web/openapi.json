@@ -36462,6 +36462,9 @@
       "Survey": {
         "additionalProperties": false,
         "properties": {
+          "canEdit": {
+            "type": "boolean"
+          },
           "closedAt": {
             "format": "date-time",
             "type": "string"
@@ -36486,6 +36489,12 @@
           },
           "description": {
             "type": "string"
+          },
+          "editHelpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "id": {
             "type": "string"
@@ -36568,7 +36577,9 @@
           "started",
           "completed",
           "linked",
-          "problems"
+          "problems",
+          "canEdit",
+          "editHelpers"
         ],
         "type": "object"
       },

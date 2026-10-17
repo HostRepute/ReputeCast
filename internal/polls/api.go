@@ -10,6 +10,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/permcheck"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -305,7 +306,12 @@ func Register(h huma.API, s *Service) {
 			if err != nil {
 				return nil, err
 			}
-			out, err := s.GetSurvey(ctx, api.WorkspaceFrom(ctx), id)
+			ws, p := api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx)
+			out, err := s.GetSurvey(ctx, ws, id)
+			out.CanEdit, out.EditHelpers = p.Can(authz.FormsEdit), []string{}
+			if err == nil && !out.CanEdit {
+				out.EditHelpers = nonNil(permcheck.Helpers(ctx, s.Q, ws.ID, authz.FormsEdit))
+			}
 			return api.OK(out), err
 		})
 	api.Patch(h, api.Op{ID: "update-survey", Path: "/workspaces/{workspace}/surveys/{surveyId}",

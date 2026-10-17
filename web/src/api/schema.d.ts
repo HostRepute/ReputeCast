@@ -18862,6 +18862,7 @@ export interface components {
             rows: number;
         };
         Survey: {
+            canEdit: boolean;
             /** Format: date-time */
             closedAt?: string;
             closedBy?: string;
@@ -18873,6 +18874,7 @@ export interface components {
             createdAt: string;
             createdBy: string;
             description: string;
+            editHelpers: string[];
             id: string;
             linked: components["schemas"]["SurveyLink"][];
             name: string;
