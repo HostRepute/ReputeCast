@@ -212,6 +212,8 @@ func entryOf(r store.ArchiveIssuesRow) ArchiveEntry {
 type ArchiveQuery struct {
 	Search string
 	List   *uuid.UUID
+	// Digest keeps the issues of one recurring digest (internal/digests).
+	Digest *uuid.UUID
 	// Page counts from 1.
 	Page          int
 	PageSize      int
@@ -244,11 +246,11 @@ func (s *Service) Archive(ctx context.Context, ws *store.Workspace, set *Setting
 		aq.Page = 1
 	}
 	pattern := likePattern(aq.Search)
-	total, err := s.Q.ArchiveIssueCount(ctx, store.ArchiveIssueCountParams{WorkspaceID: ws.ID, Lists: lists, IncludeHidden: aq.IncludeHidden, ListID: aq.List, Q: pattern})
+	total, err := s.Q.ArchiveIssueCount(ctx, store.ArchiveIssueCountParams{WorkspaceID: ws.ID, Lists: lists, IncludeHidden: aq.IncludeHidden, ListID: aq.List, DigestID: aq.Digest, Q: pattern})
 	if err != nil {
 		return nil, 0, err
 	}
-	rows, err := s.Q.ArchiveIssues(ctx, store.ArchiveIssuesParams{WorkspaceID: ws.ID, Lists: lists, IncludeHidden: aq.IncludeHidden, ListID: aq.List, Q: pattern,
+	rows, err := s.Q.ArchiveIssues(ctx, store.ArchiveIssuesParams{WorkspaceID: ws.ID, Lists: lists, IncludeHidden: aq.IncludeHidden, ListID: aq.List, DigestID: aq.Digest, Q: pattern,
 		Off: int32(min((aq.Page-1)*aq.PageSize, 1<<30)), Lim: int32(aq.PageSize)})
 	if err != nil {
 		return nil, 0, err

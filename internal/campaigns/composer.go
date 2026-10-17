@@ -229,6 +229,11 @@ type ComposerCampaign struct {
 	// languages.
 	Language       string `json:"language"`
 	SourceLanguage string `json:"sourceLanguage"`
+	// DigestID is set for a recurring digest's template (DigestRole
+	// "template"), its next issue ("next") and its issues ("issue"): the
+	// composer opens in digest mode (internal/digests).
+	DigestID   string `json:"digestId,omitempty"`
+	DigestRole string `json:"digestRole,omitempty" enum:"template,next,issue,"`
 }
 
 var editableStatuses = map[string]bool{"draft": true, "approval": true, "approved": true, "scheduled": true}
@@ -261,6 +266,9 @@ func (s *Service) DetailIn(ctx context.Context, ws *store.Workspace, p *authz.Pr
 		Audience: audienceFromDB(r.Audience), AudienceCount: r.AudienceCount, EditorMode: r.EditorMode, MJML: r.Mjml, HTML: r.Html, PlainText: r.PlainText,
 		Version: int(r.Version), VersionCount: int(r.VersionCount), ContentHash: r.ContentHash, ABTest: abFromDB(r.AbTest), ScheduledAt: r.ScheduledAt,
 		CreatedAt: r.CreatedAt, UpdatedAt: r.UpdatedAt, UpdatedBy: r.UpdatedByName, AutosavedAt: r.AutosavedAt,
+	}
+	if r.DigestID != nil {
+		d.DigestID, d.DigestRole = r.DigestID.String(), r.DigestRole
 	}
 	_ = json.Unmarshal(r.ContentSettings, &d.Settings)
 	if r.SenderID != nil {

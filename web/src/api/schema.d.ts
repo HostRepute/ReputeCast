@@ -4175,6 +4175,336 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/digest-issues": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Which campaigns are digest issues, with their posts and what changed since the last approved issue */
+        get: operations["list-digest-issue-infos"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/digests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Recurring digests: status, schedule, next issue, the last issue's human opens and the owner */
+        get: operations["list-digests"];
+        put?: never;
+        /**
+         * Create a recurring digest from a feed or a connected WordPress site
+         * @description The digest starts off, with the Blog digest template, the workspace's default sender and its time zone. Without campaigns:send it starts in draft mode.
+         */
+        post: operations["create-digest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/digests/find": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Find and read the feed of a feed or page address
+         * @description Reads the address through the outbound guard (no private networks, three redirects at most, 5 MB and 15 seconds), and finds the feed a page links to.
+         */
+        post: operations["find-digest-feed"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/digests/sites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Connected WordPress sites a digest can read, with their feeds */
+        get: operations["list-digest-sites"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/digests/{digestId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A digest: its feed, filters, schedule, audience, route, approvals, owner and next issue */
+        get: operations["get-digest"];
+        /**
+         * Save a digest's settings
+         * @description Changes apply from the next preparation; an issue already prepared keeps its content. Switching to Send automatically while it is on needs campaigns:send.
+         */
+        put: operations["update-digest"];
+        post?: never;
+        /** Delete a digest that isn't on (its sent issues stay as campaigns) */
+        delete: operations["delete-digest"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/digests/{digestId}/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Run Send Readiness on the next issue as it would be built now */
+        post: operations["check-digest-issue"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/digests/{digestId}/feed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The feed's newest items, each with what the digest does with it */
+        get: operations["get-digest-feed"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/digests/{digestId}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What happened since the last issue: posts that went in or were left out, issues, and who turned it on */
+        get: operations["get-digest-history"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/digests/{digestId}/issues": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A digest's issues: sent, skipped, held, waiting and paused, each with its numbers */
+        get: operations["list-digest-issues"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/digests/{digestId}/issues/{issueId}/rebuild": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Build a prepared issue again from the current template, and check it again */
+        post: operations["rebuild-digest-issue"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/digests/{digestId}/issues/{issueId}/release": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Release a held issue once its block is fixed
+         * @description Send Readiness runs again and must not be Blocked; the issue then waits for its approval, if one is needed, and goes out at its time.
+         */
+        post: operations["release-digest-issue"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/digests/{digestId}/issues/{issueId}/skip": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Skip an issue: nothing goes out and its posts stay new */
+        post: operations["skip-digest-issue"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/digests/{digestId}/pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Pause a digest: no new issues are prepared
+         * @description An issue waiting to go out is skipped and its posts stay new; one that is sending pauses like any send.
+         */
+        post: operations["pause-digest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/digests/{digestId}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The next issue as a reader would get it now */
+        get: operations["preview-digest"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/digests/{digestId}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Read the digest's feed now */
+        post: operations["read-digest-feed"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/digests/{digestId}/render": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Draw the Feed items block and the subject with a preview's posts (the composer in digest mode) */
+        post: operations["render-digest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/digests/{digestId}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send the next issue, as it would be built now, as a test
+         * @description Goes through the System route. Without campaigns:send, test emails can only go to your own address.
+         */
+        post: operations["test-digest-issue"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/digests/{digestId}/turn-on": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Turn a digest on, or back on after a pause
+         * @description Send automatically needs campaigns:send; Create a draft needs campaigns:edit. Whoever turns it on becomes its owner: issues go out on their authority. People only: API keys and agents can't turn a digest on.
+         */
+        post: operations["turn-on-digest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/domains": {
         parameters: {
             query?: never;
@@ -10382,6 +10712,19 @@ export interface components {
             title?: string;
             version?: string;
         };
+        CampaignDigestRef: {
+            approvalId?: string;
+            id: string;
+            /** @enum {string} */
+            issueStatus: "collecting" | "preparing" | "prepared" | "waiting" | "held" | "draft" | "sending" | "sent" | "skipped" | "not_sent";
+            name: string;
+            /** Format: int64 */
+            posts: number;
+            /** Format: date-time */
+            preparedAt?: string;
+            /** Format: date-time */
+            sendAt?: string;
+        };
         CampaignList: {
             counts: components["schemas"]["CampaignStatusCounts"];
             items: components["schemas"]["CampaignListItem"][];
@@ -10404,6 +10747,7 @@ export interface components {
             createdAt: string;
             /** Format: double */
             delivered?: number;
+            digest?: components["schemas"]["CampaignDigestRef"];
             /** Format: double */
             humanOpens?: number;
             id: string;
@@ -10630,6 +10974,9 @@ export interface components {
             contentHash: string;
             /** Format: date-time */
             createdAt: string;
+            digestId?: string;
+            /** @enum {string} */
+            digestRole?: "template" | "next" | "issue" | "";
             /** @enum {string} */
             editorMode: "visual" | "mjml" | "html";
             html: string;
@@ -12355,6 +12702,684 @@ export interface components {
             day: number;
             /** Format: int64 */
             days: number;
+        };
+        DigestApprovals: {
+            approvers: string[];
+            needed: boolean;
+            rules: components["schemas"]["DigestRuleMatch"][];
+        };
+        DigestAudience: {
+            /** Format: int64 */
+            base: number;
+            /** Format: int64 */
+            duplicates: number;
+            empty: boolean;
+            /** Format: int64 */
+            final: number;
+            label: string;
+            listIds: string[];
+            /** Format: int64 */
+            role: number;
+            segmentIds: string[];
+            /** Format: int64 */
+            stopped: number;
+            /** Format: int64 */
+            suppressed: number;
+        };
+        DigestBlockChecks: {
+            /** Format: int64 */
+            altFromTitle: number;
+            /** Format: int64 */
+            bytes: number;
+            /** Format: int64 */
+            fallback: number;
+            /** Format: int64 */
+            fitPosts: number;
+            /** Format: int64 */
+            images: number;
+            /** Format: int64 */
+            limit: number;
+            /** Format: int64 */
+            links: number;
+            /** Format: int64 */
+            maxBytes: number;
+            /** Format: int64 */
+            maxPosts: number;
+        };
+        DigestCheck: {
+            campaignId: string;
+            runId: string;
+            verdict: string;
+        };
+        DigestCreateInput: {
+            feedUrl?: string;
+            name?: string;
+            /** Format: uuid */
+            siteId?: string;
+            /** @enum {string} */
+            source: "url" | "wordpress";
+        };
+        DigestDetail: {
+            approvals: components["schemas"]["DigestApprovals"];
+            archive: boolean;
+            audience: components["schemas"]["DigestAudience"];
+            categoryOptions: string[];
+            /** Format: date-time */
+            createdAt: string;
+            createdBy?: components["schemas"]["DigestPerson"];
+            editHelpers: string[];
+            feed: components["schemas"]["DigestFeedStatus"];
+            feedUrl: string;
+            filters: components["schemas"]["DigestFilters"];
+            /** Format: date-time */
+            firstOnAt?: string;
+            /** Format: date-time */
+            firstSentAt?: string;
+            id: string;
+            /** Format: int64 */
+            lateHours: number;
+            /** @enum {string} */
+            mode: "auto" | "draft";
+            name: string;
+            next?: components["schemas"]["DigestNextIssue"];
+            /** Format: date-time */
+            nextSend?: string;
+            owner?: components["schemas"]["DigestPerson"];
+            /** Format: date-time */
+            ownerSince?: string;
+            pause?: components["schemas"]["DigestPause"];
+            pauseHelpers: string[];
+            /** Format: int64 */
+            prepareHours: number;
+            route: components["schemas"]["DigestRoute"];
+            schedule: components["schemas"]["DigestSchedule"];
+            sendHelpers: string[];
+            sender?: components["schemas"]["DigestSender"];
+            /** Format: int64 */
+            sentIssues: number;
+            site?: components["schemas"]["DigestSite"];
+            /** @enum {string} */
+            source: "url" | "wordpress";
+            /** @enum {string} */
+            state: "off" | "on" | "paused";
+            tagOptions: string[];
+            templateId: string;
+            /** Format: date-time */
+            templateSavedAt?: string;
+            /** Format: int64 */
+            templateVersion: number;
+            thresholds: components["schemas"]["DigestThresholds"];
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        DigestFeedBlock: {
+            buttonText: string;
+            /** Format: int64 */
+            excerptWords: number;
+            fallback?: string;
+            fallbackName?: string;
+            /** @description image, title (linked), date, author, categories, excerpt, button */
+            fields: string[];
+            /** @enum {string} */
+            layout: "list" | "cards" | "grid";
+            /** Format: int64 */
+            max: number;
+            /** @enum {string} */
+            order: "newest" | "oldest";
+            /** @enum {string} */
+            overflow: "drop" | "keep";
+        };
+        DigestFeedError: {
+            detail: string;
+            hops: components["schemas"]["DigestFeedHop"][];
+            host: string;
+            kind: string;
+            lines: string[];
+            /** Format: int64 */
+            seconds?: number;
+            /** Format: int64 */
+            status?: number;
+            url: string;
+        };
+        DigestFeedHop: {
+            location?: string;
+            /** Format: int64 */
+            status: number;
+            url: string;
+        };
+        DigestFeedItem: {
+            altFromTitle: boolean;
+            author: string;
+            categories: string[];
+            excerpt: string;
+            fallback: boolean;
+            /** Format: date-time */
+            firstSeenAt: string;
+            firstSeenVia: string;
+            id: string;
+            image?: string;
+            imageAlt?: string;
+            /** @enum {string} */
+            leftOutBy?: "category" | "tag" | "age" | "";
+            /** Format: date-time */
+            published?: string;
+            /** Format: int64 */
+            sentIn?: number;
+            /** @enum {string} */
+            status: "new" | "sent" | "left_out" | "before_start";
+            tags: string[];
+            title: string;
+            url: string;
+        };
+        DigestFeedPreview: {
+            items: components["schemas"]["DigestFeedItem"][];
+            /** Format: int64 */
+            olderBefore: number;
+            /** Format: int64 */
+            olderLeftOut: number;
+            /** Format: int64 */
+            olderNew: number;
+            olderSent: components["schemas"]["DigestSentCount"][];
+            /** Format: int64 */
+            total: number;
+        };
+        DigestFeedSkip: {
+            kind: string;
+            /** Format: date-time */
+            sendAt: string;
+        };
+        DigestFeedStatus: {
+            /** Format: int64 */
+            bytes: number;
+            error?: components["schemas"]["DigestFeedError"];
+            /** Format: int64 */
+            items: number;
+            /** @enum {string} */
+            kind?: "rss" | "atom" | "json" | "";
+            /** Format: date-time */
+            lastOkAt?: string;
+            /** Format: date-time */
+            lastReadAt?: string;
+            lastReadVia?: string;
+            /** Format: int64 */
+            leftOut: number;
+            movedTo?: string;
+            /** @enum {string} */
+            status: "unread" | "ok" | "unreachable" | "invalid";
+            title: string;
+            url: string;
+            /** Format: int64 */
+            waiting: number;
+        };
+        DigestFeedTry: {
+            /** Format: date-time */
+            at: string;
+            error: string;
+            kind: string;
+        };
+        DigestFilters: {
+            categories: string[];
+            /** Format: int64 */
+            maxAgeDays?: number;
+            /** Format: int64 */
+            startLatest: number;
+            /** @enum {string} */
+            startMode: "after_on" | "latest";
+            tags: string[];
+        };
+        DigestFindInput: {
+            address: string;
+        };
+        DigestFound: {
+            /** Format: int64 */
+            bytes: number;
+            error?: components["schemas"]["DigestFeedError"];
+            hops: components["schemas"]["DigestFeedHop"][];
+            /** Format: int64 */
+            items: number;
+            kind?: string;
+            moved?: string;
+            ok: boolean;
+            page?: string;
+            preview: components["schemas"]["DigestFeedItem"][];
+            title?: string;
+            url?: string;
+        };
+        DigestHistory: {
+            items: components["schemas"]["DigestHistoryItem"][];
+        };
+        DigestHistoryItem: {
+            actor?: string;
+            /** Format: date-time */
+            approvedAt?: string;
+            approvedBy?: string;
+            /** Format: date-time */
+            at: string;
+            /** Format: date-time */
+            builtAt?: string;
+            builtBy?: string;
+            builtMode?: string;
+            category?: string;
+            draftList?: string;
+            /** @enum {string} */
+            kind: "left_out" | "goes_in" | "sent" | "skipped" | "not_sent" | "turned_on" | "paused" | "created";
+            leftOutBy?: string;
+            mode?: string;
+            note?: string;
+            /** Format: int64 */
+            number?: number;
+            owner?: string;
+            pauseReason?: string;
+            /** Format: date-time */
+            published?: string;
+            /** Format: int64 */
+            recipients?: number;
+            /** Format: date-time */
+            sendAt?: string;
+            skipReason?: string;
+            title?: string;
+            via?: string;
+        };
+        DigestIssue: {
+            approval?: components["schemas"]["DigestIssueApproval"];
+            campaignId?: string;
+            /** Format: double */
+            clicks?: number;
+            /** Format: double */
+            clicksDelta?: number;
+            /** Format: date-time */
+            deadline?: string;
+            /** Format: double */
+            delivered?: number;
+            estimated: boolean;
+            feedTries: components["schemas"]["DigestFeedTry"][];
+            firstIssue: boolean;
+            /** @enum {string} */
+            holdReason?: "readiness" | "changes" | "rejected" | "no_approvers" | "";
+            /** Format: double */
+            humanOpens?: number;
+            /** Format: double */
+            humanOpensDelta?: number;
+            id: string;
+            needsApproval: boolean;
+            /** Format: int64 */
+            number?: number;
+            /** Format: int64 */
+            posts: number;
+            /** Format: int64 */
+            postsDelta?: number;
+            /** Format: date-time */
+            preparedAt?: string;
+            /** Format: int64 */
+            recipients?: number;
+            /** Format: int64 */
+            recipientsDelta?: number;
+            /** Format: date-time */
+            sendAt?: string;
+            /** Format: date-time */
+            sentAt?: string;
+            skipNote?: string;
+            /** @enum {string} */
+            skipReason?: "no_items" | "feed" | "not_approved" | "held" | "person" | "";
+            /** Format: date-time */
+            skippedAt?: string;
+            skippedBy?: string;
+            /** @enum {string} */
+            status: "collecting" | "preparing" | "prepared" | "waiting" | "held" | "draft" | "sending" | "sent" | "skipped" | "not_sent";
+        };
+        DigestIssueApproval: {
+            /** Format: date-time */
+            decidedAt?: string;
+            decidedBy?: components["schemas"]["DigestPerson"];
+            id: string;
+            /** Format: date-time */
+            requestedAt: string;
+            rules: string[];
+            status: string;
+        };
+        DigestIssueInfo: {
+            campaignId: string;
+            /** Format: date-time */
+            deadline?: string;
+            digestId: string;
+            digestName: string;
+            /** @enum {string} */
+            holdReason?: "readiness" | "changes" | "rejected" | "no_approvers" | "";
+            issueId: string;
+            /** @enum {string} */
+            mode: "auto" | "draft";
+            /** Format: int64 */
+            number: number;
+            owner?: components["schemas"]["DigestPerson"];
+            posts: components["schemas"]["DigestFeedItem"][];
+            /** Format: date-time */
+            preparedAt?: string;
+            previousCampaignId?: string;
+            /** Format: int64 */
+            previousNumber?: number;
+            releaseHelpers: string[];
+            /** Format: date-time */
+            sendAt?: string;
+            since?: components["schemas"]["DigestIssueSince"];
+            /** @enum {string} */
+            status: "collecting" | "preparing" | "prepared" | "waiting" | "held" | "draft" | "sending" | "sent" | "skipped" | "not_sent";
+        };
+        DigestIssueInfos: {
+            items: components["schemas"]["DigestIssueInfo"][];
+        };
+        DigestIssueReadiness: {
+            blocking: string[];
+            /** Format: int64 */
+            blocks: number;
+            /** Format: int64 */
+            passed: number;
+            /** Format: date-time */
+            ranAt: string;
+            runId: string;
+            verdict: string;
+            /** Format: int64 */
+            warnings: number;
+        };
+        DigestIssueRef: {
+            /** Format: double */
+            humanOpens?: number;
+            /** Format: double */
+            humanOpensDelta?: number;
+            id: string;
+            needsApproval: boolean;
+            /** Format: int64 */
+            number: number;
+            /** Format: int64 */
+            posts: number;
+            /** Format: date-time */
+            sendAt?: string;
+            /** @enum {string} */
+            status: "collecting" | "preparing" | "prepared" | "waiting" | "held" | "draft" | "sending" | "sent" | "skipped" | "not_sent";
+        };
+        DigestIssueSince: {
+            /** Format: date-time */
+            approvedAt?: string;
+            changed: string[];
+            /** Format: int64 */
+            number: number;
+            /** Format: date-time */
+            sentAt?: string;
+        };
+        DigestIssues: {
+            items: components["schemas"]["DigestIssue"][];
+        };
+        DigestList: {
+            items: components["schemas"]["DigestListItem"][];
+        };
+        DigestListItem: {
+            id: string;
+            last?: components["schemas"]["DigestIssueRef"];
+            /** @enum {string} */
+            mode: "auto" | "draft";
+            name: string;
+            next?: components["schemas"]["DigestIssueRef"];
+            owner?: components["schemas"]["DigestPerson"];
+            schedule: components["schemas"]["DigestSchedule"];
+            source: components["schemas"]["DigestSourceRef"];
+            /** @enum {string} */
+            state: "off" | "on" | "paused";
+        };
+        DigestNextIssue: {
+            approval?: components["schemas"]["DigestIssueApproval"];
+            campaignId?: string;
+            /** Format: date-time */
+            deadline?: string;
+            feedTries: components["schemas"]["DigestFeedTry"][];
+            /** Format: int64 */
+            fit: number;
+            /** Format: date-time */
+            heldAt?: string;
+            /** @enum {string} */
+            holdReason?: "readiness" | "changes" | "rejected" | "no_approvers" | "";
+            id: string;
+            items: components["schemas"]["DigestFeedItem"][];
+            /** Format: date-time */
+            nextTry?: string;
+            /** Format: int64 */
+            number: number;
+            /** Format: int64 */
+            posts: number;
+            preheader: string;
+            /** Format: date-time */
+            prepareAt?: string;
+            /** Format: date-time */
+            preparedAt?: string;
+            readiness?: components["schemas"]["DigestIssueReadiness"];
+            /** Format: int64 */
+            recipients: number;
+            /** Format: date-time */
+            sendAt?: string;
+            /** @enum {string} */
+            status: "collecting" | "preparing" | "prepared" | "waiting" | "held" | "draft" | "sending" | "sent" | "skipped" | "not_sent";
+            subject: string;
+            subjects: components["schemas"]["DigestSubject"][];
+        };
+        DigestPause: {
+            /** Format: date-time */
+            at?: string;
+            by?: string;
+            from?: string;
+            left?: boolean;
+            note?: string;
+            notified: string[];
+            /** @enum {string} */
+            reason: "person" | "owner" | "feed";
+            skips: components["schemas"]["DigestFeedSkip"][];
+            to?: string;
+        };
+        DigestPauseInput: {
+            note?: string;
+        };
+        DigestPerson: {
+            color: string;
+            id: string;
+            initials: string;
+            name: string;
+        };
+        DigestPreview: {
+            empty: boolean;
+            html: string;
+            /** Format: int64 */
+            number: number;
+            /** Format: int64 */
+            posts: number;
+            preheader: string;
+            subject: string;
+        };
+        DigestReadNow: {
+            error?: components["schemas"]["DigestFeedError"];
+            /** Format: int64 */
+            items: number;
+            /** Format: int64 */
+            new: number;
+            notModified: boolean;
+            ok: boolean;
+        };
+        DigestRender: {
+            checks: components["schemas"]["DigestBlockChecks"];
+            /** Format: int64 */
+            count: number;
+            items: components["schemas"]["DigestFeedItem"][];
+            mjml: string;
+            /** Format: int64 */
+            number: number;
+            preheader: string;
+            preview: string;
+            /** Format: date-time */
+            sendAt?: string;
+            sizes: components["schemas"]["DigestSize"][];
+            starterSubject: string;
+            subject: string;
+            subjects: components["schemas"]["DigestSubject"][];
+            tokens: components["schemas"]["DigestToken"][];
+        };
+        DigestRenderInput: {
+            block?: components["schemas"]["DigestFeedBlock"];
+            mjml?: string;
+            preheader?: string;
+            /** @enum {string} */
+            preview: "next" | "last" | "one" | "six";
+            sizes?: boolean;
+            subject?: string;
+        };
+        DigestRoute: {
+            override: boolean;
+            shares: components["schemas"]["DigestRouteShare"][];
+        };
+        DigestRouteShare: {
+            adapter: string;
+            name: string;
+            /** Format: double */
+            percent: number;
+            providerId: string;
+            short: string;
+            status: string;
+            /** Format: int64 */
+            warmupDay?: number;
+            /** Format: int64 */
+            warmupDays?: number;
+            /** Format: date-time */
+            warmupEnds?: string;
+        };
+        DigestRuleMatch: {
+            key: string;
+            label: string;
+            short: string;
+            /** Format: int64 */
+            threshold?: number;
+            /** Format: date-time */
+            until?: string;
+        };
+        DigestSchedule: {
+            /** Format: int64 */
+            count?: number;
+            /** @enum {string} */
+            frequency: "daily" | "weekly" | "monthly" | "items";
+            /** Format: int64 */
+            monthDay?: number;
+            /** @enum {string} */
+            monthRule?: "day" | "first" | "";
+            /** @example 08:00 */
+            time: string;
+            /** @example America/New_York */
+            timezone: string;
+            /** Format: int64 */
+            weekday: number;
+            weekdaysOnly?: boolean;
+            windowFrom?: string;
+            windowUntil?: string;
+        };
+        DigestSender: {
+            email: string;
+            id: string;
+            name: string;
+        };
+        DigestSentCount: {
+            /** Format: int64 */
+            count: number;
+            /** Format: int64 */
+            number: number;
+        };
+        DigestSettingsInput: {
+            archive: boolean;
+            categoryFilter: boolean;
+            feedUrl?: string;
+            filters: components["schemas"]["DigestFilters"];
+            /**
+             * Format: int64
+             * @enum {integer}
+             */
+            lateHours: 6 | 24 | 48;
+            listIds: string[];
+            /** @enum {string} */
+            mode: "auto" | "draft";
+            name: string;
+            /** Format: int64 */
+            prepareHours: number;
+            schedule: components["schemas"]["DigestSchedule"];
+            segmentIds: string[];
+            senderId?: string;
+            /** Format: uuid */
+            siteId?: string;
+            /** @enum {string} */
+            source: "url" | "wordpress";
+            thresholds?: components["schemas"]["DigestThresholdsInput"];
+        };
+        DigestSite: {
+            /** Format: date-time */
+            connectedAt: string;
+            connectedBy: string;
+            draftCategories: string[];
+            draftList?: string;
+            feedUrl: string;
+            host: string;
+            id: string;
+            /** Format: int64 */
+            items: number;
+            /** Format: date-time */
+            lastReportAt?: string;
+            latestPlugin: string;
+            name: string;
+            pluginVersion: string;
+            /** @enum {string} */
+            status: "ok" | "silent" | "outdated";
+        };
+        DigestSites: {
+            items: components["schemas"]["DigestSite"][];
+        };
+        DigestSize: {
+            /** Format: int64 */
+            bytes: number;
+            /** Format: int64 */
+            posts: number;
+        };
+        DigestSkipInput: {
+            note?: string;
+        };
+        DigestSourceRef: {
+            categories: string[];
+            /** @enum {string} */
+            kind: "url" | "wordpress";
+            label: string;
+        };
+        DigestSubject: {
+            /** Format: int64 */
+            items: number;
+            text: string;
+            zeroMore: boolean;
+        };
+        DigestTestInput: {
+            to: string[];
+        };
+        DigestThresholds: {
+            /** Format: double */
+            bounce: number;
+            /** Format: double */
+            complaint: number;
+            custom: boolean;
+            /** @enum {string} */
+            scope: "route" | "campaign";
+        };
+        DigestThresholdsInput: {
+            /** Format: double */
+            bounce: number;
+            /** Format: double */
+            complaint: number;
+            /** @enum {string} */
+            scope: "route" | "campaign";
+        };
+        DigestToken: {
+            token: string;
+            value: string;
+        };
+        DigestTurnOnInput: {
+            /** @enum {string} */
+            mode?: "auto" | "draft" | "";
         };
         DomainInput: {
             /** @description The domain senders use, e.g. news.acme.io */
@@ -15488,6 +16513,21 @@ export interface components {
             campaign?: components["schemas"]["OverviewScheduledCampaign"];
             /** Format: int64 */
             drafts: number;
+            issue?: components["schemas"]["OverviewNextIssue"];
+        };
+        OverviewNextIssue: {
+            digestId: string;
+            digestName: string;
+            needsApproval: boolean;
+            /** Format: int64 */
+            number: number;
+            /** Format: int64 */
+            posts: number;
+            /** Format: date-time */
+            sendAt: string;
+            /** @enum {string} */
+            status: "collecting" | "preparing" | "prepared" | "waiting" | "held" | "draft";
+            timezone: string;
         };
         OverviewProviderCard: {
             card: components["schemas"]["ProviderCard"];
@@ -25923,7 +26963,7 @@ export interface operations {
                 /** @description Action group (routing) or action (routing.updated) */
                 action?: string;
                 /** @description A group of actions, as in the action filter */
-                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional";
+                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "digests";
                 result?: "allowed" | "denied" | "error";
                 range?: "24h" | "7d" | "30d" | "90d" | "all";
                 /** @description Overrides range */
@@ -26005,7 +27045,7 @@ export interface operations {
                 /** @description Action group (routing) or action (routing.updated) */
                 action?: string;
                 /** @description A group of actions, as in the action filter */
-                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional";
+                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "digests";
                 result?: "allowed" | "denied" | "error";
                 range?: "24h" | "7d" | "30d" | "90d" | "all";
                 /** @description Overrides range */
@@ -31027,6 +32067,734 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DeliverabilityReputation"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-digest-issue-infos": {
+        parameters: {
+            query?: {
+                /** @description Campaign ids, comma-separated (up to 100) */
+                campaigns?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DigestIssueInfos"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-digests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DigestList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-digest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DigestCreateInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DigestDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "find-digest-feed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DigestFindInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DigestFound"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-digest-sites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DigestSites"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-digest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                digestId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DigestDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-digest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                digestId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DigestSettingsInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DigestDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-digest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                digestId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "check-digest-issue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                digestId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DigestCheck"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-digest-feed": {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                digestId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DigestFeedPreview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-digest-history": {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                digestId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DigestHistory"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-digest-issues": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                digestId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DigestIssues"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "rebuild-digest-issue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                digestId: string;
+                issueId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DigestIssues"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "release-digest-issue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                digestId: string;
+                issueId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DigestIssues"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "skip-digest-issue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                digestId: string;
+                issueId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DigestSkipInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DigestIssues"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "pause-digest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                digestId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DigestPauseInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DigestDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "preview-digest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                digestId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DigestPreview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "read-digest-feed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                digestId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DigestReadNow"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "render-digest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                digestId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DigestRenderInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DigestRender"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "test-digest-issue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                digestId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DigestTestInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComposerTestSendResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "turn-on-digest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                digestId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DigestTurnOnInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DigestDetail"];
                 };
             };
             /** @description Error */
@@ -38293,7 +40061,9 @@ export interface operations {
     };
     "template-gallery": {
         parameters: {
-            query?: never;
+            query?: {
+                mode?: "regular" | "digest";
+            };
             header?: never;
             path: {
                 /** @description Workspace slug */

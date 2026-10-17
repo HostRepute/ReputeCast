@@ -1,4 +1,5 @@
 import type { Component } from 'grapesjs'
+import { DigestFooterSummary, useDigestMode } from '@/features/digests/composer/DigestMode'
 import { Fragment } from 'react'
 import { $api } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
@@ -80,9 +81,18 @@ export function Breadcrumb() {
 /** Size, images and links of the whole email, from the last check. */
 export function SizeSummary() {
   const c = useComposer()
+  // A digest's template: the next issue's size and the largest issue's (Feed items).
+  const digest = useDigestMode()
   // The Accessibility chip covers alt text when its checks run.
   const a11y = useAccessibility()?.enabled
   const language = useVersionName()
+  if (digest?.render) {
+    return (
+      <span style={{ marginLeft: 'auto' }}>
+        <DigestFooterSummary />
+      </span>
+    )
+  }
   const r = c.checks
   if (!r) return <span className="k" style={{ marginLeft: 'auto' }}>Checking…</span>
   const issues = contentIssues(r.issues)

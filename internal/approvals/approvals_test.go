@@ -178,7 +178,8 @@ func TestReviewAndApprovals(t *testing.T) {
 		Policy struct{ MedianWaitMinutes *int }
 	}
 	marcus.Do("GET", ws+"/approvals?status=all", nil).MustStatus(t, 200).JSON(t, &inbox)
-	if inbox.Counts.Pending != 1 || inbox.Counts.Approved != 3 || inbox.Counts.ChangesRequested != 1 || inbox.Counts.Invalidated != 1 || inbox.Counts.All != 6 {
+	// Approved: the board's three and the recurring digest's issues #1 and #2.
+	if inbox.Counts.Pending != 1 || inbox.Counts.Approved != 5 || inbox.Counts.ChangesRequested != 1 || inbox.Counts.Invalidated != 1 || inbox.Counts.All != 8 {
 		t.Fatalf("inbox counts: %+v", inbox.Counts)
 	}
 	if inbox.Policy.MedianWaitMinutes == nil || *inbox.Policy.MedianWaitMinutes != 160 {

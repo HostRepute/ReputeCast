@@ -130,6 +130,8 @@ var Categories = []AuditCategory{
 	{Key: "integrations", Label: "Integrations", Groups: []string{"integration", "wordpress", "hostrepute"}},
 	{Key: "transactional", Label: "Transactional", Groups: []string{"transactional", "smtp_relay"}},
 	{Key: "scoring", Label: "Scoring", Groups: []string{"scoring"}},
+	// Recurring digests (design expansion, phase 3).
+	{Key: "digests", Label: "Digests", Groups: []string{"digest"}},
 }
 
 // Filter narrows the log.

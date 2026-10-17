@@ -36,6 +36,7 @@ var (
 	seedPageLanguages = noop
 	// contact scoring and growth sources: rules, scores, sources, "Sales-ready handoff" (seed_scoring_growth.go)
 	seedScoringGrowth = noop
+	seedDigests       = noop // recurring digests: Engineering blog roundup, its feed, issues #1–#3 (seed_digests.go)
 )
 
 func noop(context.Context, *Seeder) error { return nil }

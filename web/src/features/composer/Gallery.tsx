@@ -5,6 +5,7 @@ import { dayMonthDate } from '@/lib/format'
 import { useComposer } from './context'
 import { Thumb } from './Thumb'
 import { GalleryCaption, GalleryResult, galleryTileClass, useGalleryResults } from '@/features/accessibility/composer/Gallery'
+import { isDigestTemplate } from '@/features/digests/composer/DigestMode'
 
 /**
  * The empty canvas (ComposerEmpty): start from a starter template, one of
@@ -12,7 +13,13 @@ import { GalleryCaption, GalleryResult, galleryTileClass, useGalleryResults } fr
  */
 export function EmptyGallery() {
   const c = useComposer()
-  const g = $api.useQuery('get', '/api/v1/workspaces/{workspace}/templates', { params: { path: { workspace: c.slug } } }, { staleTime: 60_000 })
+  const g = $api.useQuery(
+    'get',
+    '/api/v1/workspaces/{workspace}/templates',
+    // A recurring digest's template also gets the digest starters (Blog digest).
+    { params: { path: { workspace: c.slug }, query: isDigestTemplate(c.campaign) ? { mode: 'digest' } : {} } },
+    { staleTime: 60_000 },
+  )
   const [busy, setBusy] = useState<string | null>(null)
   // Each template's accessibility result (the campaign composer's gallery).
   const a11y = useGalleryResults(c.slug, c.kind !== 'transactional')

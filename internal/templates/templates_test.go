@@ -19,7 +19,7 @@ type summary struct {
 }
 
 func TestStartersCompile(t *testing.T) {
-	for _, key := range []string{"blank", "weekly-digest", "product-update", "plain-text", "announcement", "product-grid"} {
+	for _, key := range []string{"blank", "weekly-digest", "product-update", "plain-text", "announcement", "product-grid", "blog-digest"} {
 		src, ok := templates.StarterMJML(key, "")
 		if !ok {
 			t.Fatalf("starter %s missing", key)

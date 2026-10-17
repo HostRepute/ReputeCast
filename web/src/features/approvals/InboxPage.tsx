@@ -11,6 +11,8 @@ import { useNow } from '@/lib/hooks'
 import { useWorkspace } from '@/lib/session'
 import { AccessTable, PersonCell } from '@/features/access/parts'
 import { waitShort } from '@/features/review/logic'
+import { RecurringDigestBadge } from '@/features/digests/IssueParts'
+import { useIssueInfos } from '@/features/digests/shared'
 import { ApprovalStatusBadge, decidedText } from './parts'
 
 export type InboxStatus = 'pending' | 'approved' | 'changes_requested' | 'rejected' | 'invalidated' | 'all'
@@ -96,6 +98,9 @@ function RequestsCard({
 }) {
   const now = useNow()
   const filtered = Boolean(search.author || search.approver) || days !== 30
+  // Requests for a recurring digest's issues carry its badge.
+  const issues = useIssueInfos(data.items.flatMap((it) => (it.campaignId ? [it.campaignId] : []))).data?.items ?? []
+  const issueOf = new Map(issues.map((x) => [x.campaignId, x]))
   return (
     <section className="card" aria-labelledby="ap-requests">
       <div className="sec">
@@ -171,7 +176,10 @@ function RequestsCard({
               <tr key={it.id} className={it.status === 'pending' ? 'bg-warn-tint' : undefined}>
                 <Td>
                   <div className="col gap-0.5!">
-                    <span className="font-semibold">{it.name}</span>
+                    <span className="flex flex-wrap items-center gap-2">
+                      <span className="font-semibold">{it.name}</span>
+                      {it.campaignId && issueOf.has(it.campaignId) ? <RecurringDigestBadge issue={issueOf.get(it.campaignId)!} /> : null}
+                    </span>
                     <span className="k">{it.rules}</span>
                   </div>
                 </Td>

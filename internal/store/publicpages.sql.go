@@ -14,6 +14,49 @@ import (
 	"github.com/google/uuid"
 )
 
+const archiveDigestCounts = `-- name: ArchiveDigestCounts :many
+SELECT dg.id, dg.name, count(*)::bigint AS issues
+FROM archive_issues ai
+JOIN campaigns c ON c.id = ai.campaign_id AND c.deleted_at IS NULL AND c.status = 'sent'
+JOIN digests dg ON dg.id = c.digest_id AND dg.archive
+WHERE ai.workspace_id = $1 AND ai.list_id = ANY ($2::uuid[]) AND NOT ai.hidden
+GROUP BY dg.id, dg.name
+ORDER BY dg.name, dg.id
+`
+
+type ArchiveDigestCountsParams struct {
+	WorkspaceID uuid.UUID   `json:"workspaceId"`
+	Lists       []uuid.UUID `json:"lists"`
+}
+
+type ArchiveDigestCountsRow struct {
+	ID     uuid.UUID `json:"id"`
+	Name   string    `json:"name"`
+	Issues int64     `json:"issues"`
+}
+
+// Recurring digests with "Show in the archive" on and issues in it: the
+// archive's digest filters (internal/digests).
+func (q *Queries) ArchiveDigestCounts(ctx context.Context, arg ArchiveDigestCountsParams) ([]ArchiveDigestCountsRow, error) {
+	rows, err := q.db.Query(ctx, archiveDigestCounts, arg.WorkspaceID, arg.Lists)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ArchiveDigestCountsRow{}
+	for rows.Next() {
+		var i ArchiveDigestCountsRow
+		if err := rows.Scan(&i.ID, &i.Name, &i.Issues); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const archiveInsertIssue = `-- name: ArchiveInsertIssue :exec
 INSERT INTO archive_issues (campaign_id, workspace_id, slug, list_id, label, created_at, updated_at)
 VALUES ($1, $2, $3, $4, $5, $6, $6)
@@ -50,6 +93,7 @@ FROM archive_issues ai
 JOIN campaigns c ON c.id = ai.campaign_id AND c.deleted_at IS NULL AND c.status = 'sent'
 LEFT JOIN lists l ON l.id = ai.list_id
 WHERE ai.workspace_id = $1 AND ai.slug = $2 AND ai.list_id = ANY ($3::uuid[]) AND NOT ai.hidden
+  AND NOT EXISTS (SELECT 1 FROM digests dg WHERE dg.id = c.digest_id AND NOT dg.archive)
 `
 
 type ArchiveIssueBySlugParams struct {
@@ -107,10 +151,12 @@ WHERE ai.workspace_id = $1
   AND ai.list_id = ANY ($2::uuid[])
   AND ($3::boolean OR NOT ai.hidden)
   AND ($4::uuid IS NULL OR ai.list_id = $4::uuid)
-  AND ($5::text = '' OR ai.title ILIKE $5 OR c.subject ILIKE $5 OR ai.excerpt ILIKE $5 OR c.preheader ILIKE $5
+  AND ($5::uuid IS NULL OR c.digest_id = $5::uuid)
+  AND NOT EXISTS (SELECT 1 FROM digests dg WHERE dg.id = c.digest_id AND NOT dg.archive)
+  AND ($6::text = '' OR ai.title ILIKE $6 OR c.subject ILIKE $6 OR ai.excerpt ILIKE $6 OR c.preheader ILIKE $6
        OR EXISTS (SELECT 1 FROM content_translations ct
                   WHERE ct.owner_kind = 'campaign' AND ct.owner_id = c.id AND ct.owner_version = 0 AND ct.status = 'translated' AND NOT ct.held
-                    AND (ct.subject ILIKE $5 OR ct.preheader ILIKE $5)))
+                    AND (ct.subject ILIKE $6 OR ct.preheader ILIKE $6)))
 `
 
 type ArchiveIssueCountParams struct {
@@ -118,6 +164,7 @@ type ArchiveIssueCountParams struct {
 	Lists         []uuid.UUID `json:"lists"`
 	IncludeHidden bool        `json:"includeHidden"`
 	ListID        *uuid.UUID  `json:"listId"`
+	DigestID      *uuid.UUID  `json:"digestId"`
 	Q             string      `json:"q"`
 }
 
@@ -127,6 +174,7 @@ func (q *Queries) ArchiveIssueCount(ctx context.Context, arg ArchiveIssueCountPa
 		arg.Lists,
 		arg.IncludeHidden,
 		arg.ListID,
+		arg.DigestID,
 		arg.Q,
 	)
 	var column_1 int64
@@ -171,6 +219,7 @@ FROM archive_issues ai
 JOIN campaigns c ON c.id = ai.campaign_id AND c.deleted_at IS NULL AND c.status = 'sent'
 LEFT JOIN lists l ON l.id = ai.list_id
 WHERE ai.workspace_id = $1 AND ai.campaign_id = $2
+  AND NOT EXISTS (SELECT 1 FROM digests dg WHERE dg.id = c.digest_id AND NOT dg.archive)
 `
 
 type ArchiveIssueOneParams struct {
@@ -230,12 +279,14 @@ WHERE ai.workspace_id = $1
   AND ai.list_id = ANY ($2::uuid[])
   AND ($3::boolean OR NOT ai.hidden)
   AND ($4::uuid IS NULL OR ai.list_id = $4::uuid)
-  AND ($5::text = '' OR ai.title ILIKE $5 OR c.subject ILIKE $5 OR ai.excerpt ILIKE $5 OR c.preheader ILIKE $5
+  AND ($5::uuid IS NULL OR c.digest_id = $5::uuid)
+  AND NOT EXISTS (SELECT 1 FROM digests dg WHERE dg.id = c.digest_id AND NOT dg.archive)
+  AND ($6::text = '' OR ai.title ILIKE $6 OR c.subject ILIKE $6 OR ai.excerpt ILIKE $6 OR c.preheader ILIKE $6
        OR EXISTS (SELECT 1 FROM content_translations ct
                   WHERE ct.owner_kind = 'campaign' AND ct.owner_id = c.id AND ct.owner_version = 0 AND ct.status = 'translated' AND NOT ct.held
-                    AND (ct.subject ILIKE $5 OR ct.preheader ILIKE $5)))
+                    AND (ct.subject ILIKE $6 OR ct.preheader ILIKE $6)))
 ORDER BY sent_at DESC, c.id DESC
-LIMIT $7 OFFSET $6
+LIMIT $8 OFFSET $7
 `
 
 type ArchiveIssuesParams struct {
@@ -243,6 +294,7 @@ type ArchiveIssuesParams struct {
 	Lists         []uuid.UUID `json:"lists"`
 	IncludeHidden bool        `json:"includeHidden"`
 	ListID        *uuid.UUID  `json:"listId"`
+	DigestID      *uuid.UUID  `json:"digestId"`
 	Q             string      `json:"q"`
 	Off           int32       `json:"off"`
 	Lim           int32       `json:"lim"`
@@ -271,6 +323,7 @@ func (q *Queries) ArchiveIssues(ctx context.Context, arg ArchiveIssuesParams) ([
 		arg.Lists,
 		arg.IncludeHidden,
 		arg.ListID,
+		arg.DigestID,
 		arg.Q,
 		arg.Off,
 		arg.Lim,
@@ -313,6 +366,7 @@ SELECT ai.list_id::uuid AS list_id, count(*)::bigint AS issues
 FROM archive_issues ai
 JOIN campaigns c ON c.id = ai.campaign_id AND c.deleted_at IS NULL AND c.status = 'sent'
 WHERE ai.workspace_id = $1 AND ai.list_id = ANY ($2::uuid[]) AND NOT ai.hidden
+  AND NOT EXISTS (SELECT 1 FROM digests dg WHERE dg.id = c.digest_id AND NOT dg.archive)
 GROUP BY ai.list_id
 `
 
@@ -435,6 +489,7 @@ SELECT count(*)::bigint AS issues,
 FROM archive_issues ai
 JOIN campaigns c ON c.id = ai.campaign_id AND c.deleted_at IS NULL AND c.status = 'sent'
 WHERE ai.workspace_id = $1 AND ai.list_id = ANY ($2::uuid[]) AND NOT ai.hidden
+  AND NOT EXISTS (SELECT 1 FROM digests dg WHERE dg.id = c.digest_id AND NOT dg.archive)
 `
 
 type ArchiveSummaryParams struct {

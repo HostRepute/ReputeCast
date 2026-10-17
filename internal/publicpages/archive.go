@@ -86,6 +86,19 @@ type archiveParams struct {
 	q, list, lang string
 	page          int
 	listID        *uuid.UUID
+	// digestID is set when ?list names a recurring digest's filter.
+	digestID *uuid.UUID
+}
+
+// withDigest reads ?list as a recurring digest's slug when it isn't a list's.
+func (p archiveParams) withDigest(v url.Values, digests map[string]uuid.UUID) archiveParams {
+	if p.list != "" {
+		return p
+	}
+	if id, ok := digests[v.Get("list")]; ok {
+		p.list, p.digestID = v.Get("list"), &id
+	}
+	return p
 }
 
 func archiveParamsOf(v url.Values, lists map[string]uuid.UUID) archiveParams {
@@ -171,11 +184,30 @@ func (h *Handler) archiveView(ctx context.Context, s *site, query url.Values, pl
 		}
 		bySlug[sl], slugs[li.ID] = li.ID, sl
 	}
-	p := archiveParamsOf(query, bySlug)
+	// Recurring digests with "Show in the archive" on have their own filter
+	// (internal/digests), named like a list's; a list keeps its name first.
+	// Their newest issues are synced first, as the list below syncs them.
+	if err := h.Forms.SyncArchive(ctx, s.ws, s.set); err != nil {
+		return nil, 0, err
+	}
+	digests, err := h.Q.ArchiveDigestCounts(ctx, store.ArchiveDigestCountsParams{WorkspaceID: s.ws.ID, Lists: archived})
+	if err != nil {
+		return nil, 0, err
+	}
+	digestBySlug := map[string]uuid.UUID{}
+	digestSlugs := map[uuid.UUID]string{}
+	for _, dg := range digests {
+		sl := forms.Slugify(dg.Name, 60)
+		if _, taken := bySlug[sl]; taken || sl == "" {
+			sl = dg.ID.String()
+		}
+		digestBySlug[sl], digestSlugs[dg.ID] = dg.ID, sl
+	}
+	p := archiveParamsOf(query, bySlug).withDigest(query, digestBySlug)
 	if query.Get(langParam) != "" && pl.picked {
 		p.lang = pl.Code
 	}
-	entries, total, err := h.Forms.Archive(ctx, s.ws, s.set, forms.ArchiveQuery{Search: p.q, List: p.listID, Page: p.page})
+	entries, total, err := h.Forms.Archive(ctx, s.ws, s.set, forms.ArchiveQuery{Search: p.q, List: p.listID, Digest: p.digestID, Page: p.page})
 	if err != nil {
 		return nil, 0, err
 	}
@@ -203,12 +235,15 @@ func (h *Handler) archiveView(ctx context.Context, s *site, query url.Values, pl
 	if s.set.Pages.Archive.SubscribeBox {
 		b.SubscribeAction = s.links.Subscribe("")
 	}
-	if len(listNames) > 1 {
+	if len(listNames) > 1 || len(digests) > 0 {
 		b.Filters = append(b.Filters, filterView{Label: l.Text("archive.every", nil), Href: p.href(base, 1, "", p.q), On: p.list == ""})
 		for _, id := range archived {
 			if withIssues[id] {
 				b.Filters = append(b.Filters, filterView{Label: names[id], Href: p.href(base, 1, slugs[id], p.q), On: p.list == slugs[id]})
 			}
+		}
+		for _, dg := range digests {
+			b.Filters = append(b.Filters, filterView{Label: dg.Name, Href: p.href(base, 1, digestSlugs[dg.ID], p.q), On: p.list == digestSlugs[dg.ID]})
 		}
 	}
 	loc := location(s.ws)

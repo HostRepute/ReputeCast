@@ -10,6 +10,9 @@ import { describe, SettingsFields, StyleFields } from './Inspector'
 import { AccessibilityPanel } from '@/features/accessibility/composer/Panel'
 import { useAccessibility } from '@/features/accessibility/composer/state'
 import { accessibilityTab } from '@/features/accessibility/composer/Status'
+import { FeedItemsInspector, isFeedItems, useDigestMode } from '@/features/digests/composer/DigestMode'
+import { dc } from '@/features/digests/composer/messages'
+import { t as tt } from '@/i18n'
 
 /** Issues the Deliverability tab counts: blocks and warnings about the content (the subject has its own line). */
 export function contentIssues(issues: Issue[] | undefined): Issue[] {
@@ -199,6 +202,7 @@ function DeliverabilityTab() {
 export function RightPanel() {
   const c = useComposer()
   const a11y = useAccessibility()
+  const digest = useDigestMode()
   const issues = contentIssues(c.checks?.issues)
   const tab = c.rightTab === 'deliverability' && !issues.length && !(c.checks?.issues ?? []).some((i) => i.severity === 'warn' || i.severity === 'block') ? 'style' : c.rightTab
   if (c.isEmpty) {
@@ -217,7 +221,8 @@ export function RightPanel() {
     )
   }
   const sel = c.selected && tagOf(c.selected) ? c.selected : null
-  const footer = c.device === 'mobile' ? <MobileChecks selected={sel} /> : <SectionHealth selected={sel} />
+  // The Feed items block has its own checks (the posts it draws are not in the template).
+  const footer = sel && isFeedItems(sel) ? null : c.device === 'mobile' ? <MobileChecks selected={sel} /> : <SectionHealth selected={sel} />
   const items: { value: 'style' | 'settings' | 'deliverability' | 'accessibility'; label: string }[] = [
     { value: 'style', label: 'Style' },
     { value: 'settings', label: 'Settings' },
@@ -227,10 +232,15 @@ export function RightPanel() {
   const a11yTab = accessibilityTab(a11y)
   if (a11yTab) items.push({ value: 'accessibility', label: a11yTab })
   return (
-    <aside className={tab === 'accessibility' || items.length > 3 ? 'cpanel right a11y-wide' : 'cpanel right'} aria-label="Style, settings, deliverability and accessibility">
+    // Digest mode keeps the wide panel: the Feed items settings need the room.
+    <aside className={tab === 'accessibility' || items.length > 3 || digest ? 'cpanel right a11y-wide' : 'cpanel right'} aria-label="Style, settings, deliverability and accessibility">
       <PanelTabs value={tab} onChange={c.setRightTab} label="Inspector" items={items} className="flex flex-1 flex-col">
         <TabPanel value="style" className="flex flex-1 flex-col" tabIndex={-1}>
-          {sel ? (
+          {sel && isFeedItems(sel) ? (
+            <div className="k" style={{ padding: '14px 12px' }}>
+              {tt(dc.styleNote)}
+            </div>
+          ) : sel ? (
             <>
               <InspectorHead c={sel} tab="style" />
               <fieldset disabled={!c.canEdit} className="contents">
@@ -243,7 +253,11 @@ export function RightPanel() {
           {footer}
         </TabPanel>
         <TabPanel value="settings" className="flex flex-1 flex-col" tabIndex={-1}>
-          {sel ? (
+          {sel && isFeedItems(sel) ? (
+            <fieldset disabled={!c.canEdit} className="contents">
+              <FeedItemsInspector key={sel.cid} c={sel} />
+            </fieldset>
+          ) : sel ? (
             <>
               <InspectorHead c={sel} tab="settings" />
               <fieldset disabled={!c.canEdit} className="contents">

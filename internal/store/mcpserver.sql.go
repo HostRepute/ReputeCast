@@ -403,6 +403,8 @@ SELECT id, name, status, subject, preheader, audience, audience_count, scheduled
 FROM campaigns
 WHERE workspace_id = $1 AND deleted_at IS NULL
   AND (id::text = $2::text OR lower(name) = lower($2::text))
+  -- Agents never edit a digest's template (internal/digests).
+  AND digest_role IN ('', 'issue')
 ORDER BY created_at DESC
 LIMIT 1
 `

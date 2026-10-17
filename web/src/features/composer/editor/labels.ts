@@ -1,4 +1,7 @@
 import type { Component } from 'grapesjs'
+import { t as tt } from '@/i18n'
+import { feedItemsLabel, isFeedItems } from '@/features/digests/composer/feedComponent'
+import { dc } from '@/features/digests/composer/messages'
 
 /** MJML tag of a component ("mj-section"), or "" for non-MJML nodes. */
 export function tagOf(c: Component | undefined | null): string {
@@ -64,6 +67,7 @@ function px(v: unknown): number {
 
 /** Names a top-level body section the way the layer tree and warnings do. */
 export function sectionLabel(c: Component): string {
+  if (isFeedItems(c)) return tt(dc.blockTitle)
   const marker = markerOf(c)
   if (marker && !layoutMarkers.has(marker)) return markerLabels[marker] ?? marker.replace(/-/g, ' ')
   const tag = tagOf(c)
@@ -120,6 +124,7 @@ export function sectionLabel(c: Component): string {
 
 /** "mj-section · 2 columns", "mj-column · 50%", "mj-image". */
 export function componentLabel(c: Component): string {
+  if (isFeedItems(c)) return feedItemsLabel(c)
   const tag = tagOf(c)
   if (!tag) return String(c.get('type') ?? c.get('tagName') ?? 'element')
   const parent = c.parent()
