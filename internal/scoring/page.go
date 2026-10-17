@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -146,6 +147,20 @@ type ScoringPage struct {
 	Recalc    *ScoringRecalcInfo `json:"recalculation,omitempty"`
 	Options   ScoringOptions     `json:"options"`
 	Suggested []ScoringRule      `json:"suggested"`
+	// Helpers are who can change scoring, for the read-only note ("Ask
+	// Sofia Rossi, Marcus Chen or Linh Nguyen"): who set it up, then the
+	// Admins and Owners who hold scoring:edit.
+	Helpers []string `json:"helpers"`
+	// TierExample is an Active contact who opens but never clicks and is
+	// Cold, for the note under Bands by tier.
+	TierExample *ScoringTierExample `json:"tierExample,omitempty"`
+}
+
+// ScoringTierExample names one contact (workspace content) and its score.
+type ScoringTierExample struct {
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	Score int    `json:"score"`
 }
 
 // spreadOf turns contacts per exact score into the ten buckets and the
@@ -205,6 +220,7 @@ func (s *Service) Page(ctx context.Context, ws *store.Workspace) (ScoringPage, e
 	if out.Options, err = s.options(ctx, q, ws.ID); err != nil {
 		return out, err
 	}
+	out.Helpers = helpers(ctx, q, ws.ID, out.SetUpBy)
 	if !out.Configured {
 		out.Suggested = s.suggested(ctx, q, ws.ID, out.Options)
 		if out.Contacts, err = q.ScoringCountContacts(ctx, ws.ID); err != nil {
@@ -239,7 +255,59 @@ func (s *Service) Page(ctx context.Context, ws *store.Workspace) (ScoringPage, e
 	if out.Recalc, err = s.recalcInfo(ctx, q, ws.ID); err != nil {
 		return out, err
 	}
+	out.TierExample = s.tierExample(ctx, ws.ID, st.applied.Bands)
 	return out, nil
+}
+
+// helpers names up to three members who can change scoring: who set it
+// up first, then Admins, then Owners.
+func helpers(ctx context.Context, q *store.Queries, wsID uuid.UUID, setUpBy string) []string {
+	out := []string{}
+	rows, err := q.ListMembersWithRoles(ctx, wsID)
+	if err != nil {
+		return out
+	}
+	rank := func(r store.ListMembersWithRolesRow) int {
+		switch {
+		case setUpBy != "" && r.Name == setUpBy:
+			return 0
+		case r.RoleKey == authz.RoleAdmin:
+			return 1
+		case r.RoleKey == authz.RoleOwner:
+			return 2
+		}
+		return 3
+	}
+	slices.SortStableFunc(rows, func(a, b store.ListMembersWithRolesRow) int { return rank(a) - rank(b) })
+	for _, r := range rows {
+		if len(out) == 3 {
+			break
+		}
+		if rank(r) < 3 && authz.Effective(r.RoleKey, r.Builtin, r.Permissions).Has(authz.ScoringEdit) {
+			out = append(out, r.Name)
+		}
+	}
+	return out
+}
+
+// tierExample finds the highest-scoring Active contact who is Cold and
+// has opened but never clicked in the look-back (the board's Kenji
+// Watanabe: "opens every week and never clicks: Active, score 18").
+func (s *Service) tierExample(ctx context.Context, wsID uuid.UUID, b ScoringBands) *ScoringTierExample {
+	var ex ScoringTierExample
+	var id uuid.UUID
+	err := s.Pool.QueryRow(ctx, `SELECT c.id, trim(c.first_name || ' ' || c.last_name), cs.score
+		FROM contact_scores cs JOIN contacts c ON c.id = cs.contact_id
+		WHERE cs.workspace_id = $1 AND cs.score < $2 AND cs.score > 0 AND c.tier = 'active' AND c.erased_at IS NULL
+		  AND trim(c.first_name || ' ' || c.last_name) <> ''
+		  AND NOT EXISTS (SELECT 1 FROM score_events se WHERE se.contact_id = c.id AND se.kind = 'click')
+		ORDER BY cs.score DESC, (SELECT count(*) FROM score_events se WHERE se.contact_id = c.id AND se.kind = 'open') DESC, c.id
+		LIMIT 1`, wsID, b.WarmFrom).Scan(&id, &ex.Name, &ex.Score)
+	if err != nil {
+		return nil
+	}
+	ex.ID = id.String()
+	return &ex
 }
 
 func (s *Service) options(ctx context.Context, q *store.Queries, wsID uuid.UUID) (ScoringOptions, error) {

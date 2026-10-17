@@ -41,6 +41,9 @@ type ScoringImpact struct {
 	// Flows are the live "Score crosses…" automations and how many
 	// contacts would cross their threshold because of the edit.
 	Flows []ScoringFlowImpact `json:"automations"`
+	// FieldMatches counts the contacts each field condition matches today,
+	// by rule id ("1,532 contacts match today").
+	FieldMatches map[string]int64 `json:"fieldMatches"`
 	// Rescored is how many contacts the preview replayed.
 	Rescored int64 `json:"rescored"`
 	// Estimated is true when a large replay was sampled.
@@ -304,6 +307,26 @@ func (s *Service) Preview(ctx context.Context, ws *store.Workspace, in ScoringPr
 		out.Flows = []ScoringFlowImpact{}
 		for i, t := range triggers {
 			out.Flows = append(out.Flows, ScoringFlowImpact{ID: t.id, Name: t.name, Direction: t.trigger.Direction, Threshold: t.trigger.Threshold, Crossed: crossed[i]})
+		}
+		out.FieldMatches = map[string]int64{}
+		if fr := fieldRules(draft); len(fr) > 0 {
+			fa := &sqlArgs{}
+			fa.add(ws.ID)
+			exprs := make([]string, len(fr))
+			for i, r := range fr {
+				exprs[i] = "count(*) FILTER (WHERE " + conditionSQL(r, st.types, fa) + ")"
+			}
+			dest := make([]any, len(fr))
+			counts := make([]int64, len(fr))
+			for i := range dest {
+				dest[i] = &counts[i]
+			}
+			if err := tx.QueryRow(ctx, "SELECT "+strings.Join(exprs, ", ")+" FROM contacts c WHERE c.workspace_id = $1 AND c.erased_at IS NULL", fa.args...).Scan(dest...); err != nil {
+				return err
+			}
+			for i, r := range fr {
+				out.FieldMatches[r.ID] = counts[i]
+			}
 		}
 		return nil // the temporary table goes with the transaction
 	})

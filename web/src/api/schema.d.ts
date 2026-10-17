@@ -17786,6 +17786,9 @@ export interface components {
             /** Format: int64 */
             durationMs: number;
             estimated: boolean;
+            fieldMatches: {
+                [key: string]: number;
+            };
             moves: components["schemas"]["ScoringBandMove"][];
             /** Format: int64 */
             rescored: number;
@@ -17810,6 +17813,7 @@ export interface components {
             configured: boolean;
             /** Format: int64 */
             contacts: number;
+            helpers: string[];
             options: components["schemas"]["ScoringOptions"];
             recalculation?: components["schemas"]["ScoringRecalcInfo"];
             /** Format: date-time */
@@ -17817,6 +17821,7 @@ export interface components {
             setUpBy: string;
             spread: components["schemas"]["ScoringBucket"][];
             suggested: components["schemas"]["ScoringRule"][];
+            tierExample?: components["schemas"]["ScoringTierExample"];
             usedBy: components["schemas"]["ScoringUse"][];
             /** Format: int64 */
             version: number;
@@ -17884,6 +17889,12 @@ export interface components {
             baseVersion: number;
             config: components["schemas"]["ScoringConfig"];
             startAutomations?: boolean;
+        };
+        ScoringTierExample: {
+            id: string;
+            name: string;
+            /** Format: int64 */
+            score: number;
         };
         ScoringTierRow: {
             /** Format: int64 */
