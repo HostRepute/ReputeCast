@@ -184,7 +184,7 @@
   "category.send": {"message": "Send", "note": "sends the answer to Why did you turn it off?"},
   "category.thanks": "Thanks for telling us.",
   "category.others": "Other notifications: <link>manage all of them</link>",
-  "category.stayOn": {"message": "{count, plural, one {{names} stays on} other {{names} stay on}}", "note": "names: the other notifications still on, joined (Reminders and Product updates)"},
+  "category.stayOn": {"message": "{count, plural, one {{names} stay on} other {{names} stay on}}", "note": "names: the other notifications still on, joined (Reminders and Product updates); count: how many. Notifications are named in the plural (Reminders stay on)"},
   "category.footer": "The unsubscribe button in your mail app does the same.",
   "category.locked.heading": "These emails can't be turned off",
   "category.locked.text": "Account and billing emails from {product}, like password resets and invoices, aren't marketing, and your account needs them.",
