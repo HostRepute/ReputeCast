@@ -291,6 +291,9 @@ func (e *earnSeed) tiers(ctx context.Context) error {
 // hello@acme.io. member-welcome is at v2; gift-ending has never been
 // published.
 func (e *earnSeed) memberEmails(ctx context.Context) error {
+	if SkipTransactional {
+		return nil
+	}
 	s := e.s
 	// They go out from the newsletter's own sender: another sender would
 	// change the Senders boards, which phase 6 leaves as they are.
