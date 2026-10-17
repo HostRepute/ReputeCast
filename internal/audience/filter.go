@@ -31,6 +31,8 @@ type ContactFilter struct {
 	// "none" for contacts with no language or "not_offered" for languages
 	// the workspace doesn't offer.
 	Language string `json:"language,omitempty" maxLength:"16"`
+	// Score, band and growth source (scoregrowth.go).
+	ScoreGrowthFilter
 }
 
 // Empty reports whether the filter matches everyone.
@@ -99,6 +101,9 @@ func (s *Service) applyFilter(ctx context.Context, wsID uuid.UUID, out *filterSQ
 			return api.Invalid("joinedAfter", "Use a date like 2026-09-01.")
 		}
 		out.add("c.created_at >= ?", d)
+	}
+	if err := s.scoreGrowthFilter(ctx, wsID, out, f.ScoreGrowthFilter); err != nil {
+		return err
 	}
 	if err := s.languageFilter(ctx, wsID, out, f.Language); err != nil {
 		return err

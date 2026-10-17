@@ -32,6 +32,7 @@ var Events = []EventType{
 	{Key: KindPostDraftCreated, Label: "Post draft created", Audience: "When a WordPress post-draft rule names you", Short: "post drafts", DefaultEmail: true, Kinds: []string{KindPostDraftCreated}},
 	{Key: KindTransactionalAlert, Label: "Transactional delivery alert", Audience: "Everyone with transactional:view", Short: "transactional delivery alerts", DefaultEmail: true, Kinds: []string{KindTransactionalAlert}},
 	{Key: KindSMTPRelayUnreachable, Label: "SMTP relay unreachable", Audience: "Instance admins only", Short: "SMTP relay outages", DefaultEmail: true, Urgent: true, Kinds: []string{KindSMTPRelayUnreachable}},
+	{Key: KindScoreRecalculated, Label: "Score recalculation finished", Audience: "The person who changed the rules", Short: "score recalculations", DefaultEmail: false, Kinds: []string{KindScoreRecalculated}},
 }
 
 // otherEvent covers kinds without a preference row (send finished, jobs):

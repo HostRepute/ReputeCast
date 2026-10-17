@@ -18,6 +18,7 @@ func (a *App) mcpserver() *mcpserver.Service {
 		Accessibility: newAccessibility(a),
 		// Agents list templates, render previews and read the log; they never send.
 		Transactional: transactionalService(a),
+		Growth:        a.growth(),
 		PublicURL:     func(context.Context) string { return a.URLs.Base() },
 	}
 }

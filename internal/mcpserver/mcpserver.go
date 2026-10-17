@@ -41,8 +41,10 @@ type Service struct {
 	// Transactional lists templates, renders previews and reads the log
 	// for agents (they never send).
 	Transactional *transactional.Service
-	PublicURL     func(context.Context) string
-	Now           func() time.Time
+	// Growth reads Audience › Growth (nil: unavailable).
+	Growth    GrowthReader
+	PublicURL func(context.Context) string
+	Now       func() time.Time
 
 	limiters sync.Map // agent id → *limiter
 }
@@ -88,6 +90,7 @@ var Tools = []MCPToolInfo{
 	{"list_transactional_templates", "Transactional templates with their category, live version and numbers.", string(authz.TransactionalView), false},
 	{"render_transactional_template", "Render a transactional template with test data or given data. Nothing is sent or stored.", string(authz.TransactionalView), false},
 	{"search_transactional_messages", "Search the transactional message log by status, template or recipient, without message content.", string(authz.TransactionalView), false},
+	{"get_growth_sources", "Joins, departures, quality and cohort retention per growth source over a period (totals only, no addresses).", string(authz.SubscribersView), false},
 }
 
 // Settings are the per-workspace MCP options.

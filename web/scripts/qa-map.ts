@@ -251,4 +251,20 @@ export const entries: Entry[] = [
   { board: 'TransactionalSetupStates', manual: true },
   { board: 'TransactionalSettings', path: `${ws}/transactional/settings`, widths: [1440] },
   { board: 'PublicUnsubscribeCategory', manual: true },
+  // X13 · contact scoring and growth sources. The states (an edited rule, the save dialog,
+  // recalculating, stopped, the rule panel, read-only as aisha@acme.io, no rules on Acme
+  // Engineering Blog; imports included, one list, a flagged API key, the referring pages, only
+  // imports, loading and error) come from interacting with the page or another workspace;
+  // ScoringUses gathers changes to Contacts, the segment builder, the flow editor and X11's
+  // Visibility.
+  { board: 'ScoringRules', path: `${ws}/audience/scoring`, widths: [1440, 390] },
+  { board: 'ScoringRulesTablet', path: `${ws}/audience/scoring`, widths: [834] },
+  { board: 'ScoringStates', manual: true },
+  { board: 'ScoringProfile', path: `${ws}/audience/contacts/{contact:sam.rivera@outlook.com}`, widths: [1440, 834] },
+  { board: 'ScoringProfilePhone', path: `${ws}/audience/contacts/{contact:sam.rivera@outlook.com}`, widths: [390] },
+  { board: 'ScoringUses', manual: true },
+  { board: 'GrowthSources', path: `${ws}/audience/growth`, widths: [1440] },
+  { board: 'GrowthSourcesTablet', path: `${ws}/audience/growth`, widths: [834] },
+  { board: 'GrowthSourcesPhone', path: `${ws}/audience/growth`, widths: [390] },
+  { board: 'GrowthStates', manual: true },
 ]

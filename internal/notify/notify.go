@@ -39,6 +39,8 @@ const (
 	// KindSMTPRelayUnreachable tells instance admins the SMTP relay can't
 	// be reached from the internet.
 	KindSMTPRelayUnreachable = "smtp_relay_unreachable"
+	// Contact scoring (design expansion, phase 4).
+	KindScoreRecalculated = "score_recalculated" // every contact was scored again after a rule change
 )
 
 // Notification is what appears in the notification center.

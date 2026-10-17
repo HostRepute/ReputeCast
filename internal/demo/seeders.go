@@ -34,6 +34,8 @@ var (
 	seedAppLanguages = noop // app languages: instance defaults, Marcus's region format, the invitation's language (seed_app_languages.go)
 	// content languages of forms, public pages and contacts: where contacts' languages came from, page and form copy (seed_page_languages.go)
 	seedPageLanguages = noop
+	// contact scoring and growth sources: rules, scores, sources, "Sales-ready handoff" (seed_scoring_growth.go)
+	seedScoringGrowth = noop
 )
 
 func noop(context.Context, *Seeder) error { return nil }

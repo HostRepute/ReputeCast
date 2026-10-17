@@ -3934,6 +3934,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/contacts/{contact}/growth": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** How a contact first joined: the source, UTM parameters and referring page */
+        get: operations["get-contact-growth"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/contacts/{contact}/preference-link": {
         parameters: {
             query?: never;
@@ -3962,6 +3979,23 @@ export interface paths {
         put?: never;
         /** Send the opt-in confirmation email again */
         post: operations["resend-contact-optin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/contacts/{contact}/score": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A contact's score: its band, the breakdown by rule, the last change, the 90-day line and where it counts */
+        get: operations["get-contact-score"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -4512,6 +4546,57 @@ export interface paths {
          * @description The copy-link fallback while nothing can send System mail. Every link handed out is written to the audit log.
          */
         post: operations["signup-form-confirm-link"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/growth": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Joins and departures by source, quality by source, UTM and referring pages, and cohort retention */
+        get: operations["get-growth"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/growth/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The Growth tables as CSV: totals only, no addresses (logged) */
+        get: operations["export-growth"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/growth/sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The sources contacts joined through, with how many (the contacts filter) */
+        get: operations["list-growth-sources"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -6715,6 +6800,58 @@ export interface paths {
         put?: never;
         /** Which provider would send this email? */
         post: operations["test-route"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/scoring": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Scoring rules, decay and bands, how contacts spread, bands by tier, what uses the score and the latest recalculation */
+        get: operations["get-scoring"];
+        /** Save the rules, decay and bands (recalculates every contact in the background when the rules change) */
+        put: operations["save-scoring"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/scoring/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** How an edited, unsaved set-up would move contacts between bands (nothing is saved) */
+        post: operations["preview-scoring"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/scoring/recalculate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start a stopped recalculation again where it stopped */
+        post: operations["retry-scoring-recalculation"];
         delete?: never;
         options?: never;
         head?: never;
@@ -9595,7 +9732,7 @@ export interface components {
             /** @enum {string} */
             kind: "opened" | "clicked" | "field" | "tag" | "list" | "event";
             listId?: string;
-            /** @description equals, not_equals, contains, is_set, is_not_set */
+            /** @description equals, not_equals, contains, is_set, is_not_set, is_one_of (comma-separated values) */
             op?: string;
             step?: string;
             tag?: string;
@@ -9918,6 +10055,7 @@ export interface components {
             forms: components["schemas"]["AutomationFormOption"][];
             lists: components["schemas"]["AutomationOptionItem"][];
             providers: components["schemas"]["AutomationRouteProvider"][];
+            scoreBands?: components["schemas"]["ScoringBands"];
             tags: string[];
         };
         AutomationPathCount: {
@@ -10135,17 +10273,23 @@ export interface components {
         AutomationTrigger: {
             at?: string;
             confirmedOnly?: boolean;
+            /** @enum {string} */
+            direction?: "rises" | "falls";
             event?: string;
             field?: string;
             formId?: string;
             includeImports?: boolean;
             /** @enum {string} */
-            kind: "joined_list" | "form_submitted" | "tag_added" | "api_event" | "date_field";
+            kind: "joined_list" | "form_submitted" | "tag_added" | "api_event" | "date_field" | "score_crosses";
             listId?: string;
             /** Format: int64 */
             offsetDays?: number;
+            /** Format: int64 */
+            onceInDays?: number;
             reentry?: string;
             tag?: string;
+            /** Format: int64 */
+            threshold?: number;
             yearly?: boolean;
         };
         AutomationVersionGraph: {
@@ -11384,7 +11528,10 @@ export interface components {
         };
         ContactFilter: {
             /** @enum {string} */
+            band?: "cold" | "warm" | "hot" | "none";
+            /** @enum {string} */
             consent?: "double" | "single" | "pending";
+            growthSource?: string;
             joinedAfter?: string;
             language?: string;
             /** @description List id */
@@ -11393,12 +11540,34 @@ export interface components {
             mailbox?: "gmail" | "outlook" | "yahoo" | "icloud" | "other";
             /** @description Email, name or tag */
             q?: string;
+            referringDomain?: string;
+            scoreFrom?: string;
+            scoreTo?: string;
             /** @description Segment id */
             segment?: string;
+            /** @enum {string} */
+            sort?: "activity" | "score";
             source?: string;
             tag?: string;
             /** @enum {string} */
             tier?: "active" | "cooling" | "at_risk" | "sunset";
+            utmCampaign?: string;
+            utmMedium?: string;
+            utmSource?: string;
+        };
+        ContactJoin: {
+            attributed: boolean;
+            /** Format: date-time */
+            joinedAt?: string;
+            /** Format: date-time */
+            leftAt?: string;
+            leftKind?: string;
+            page: string;
+            referrer: string;
+            source: components["schemas"]["GrowthSource"];
+            utmCampaign: string;
+            utmMedium: string;
+            utmSource: string;
         };
         ContactLanguage: {
             /** @description A signup form read it from the browser */
@@ -11457,6 +11626,10 @@ export interface components {
             mailboxLabel: string;
             mailboxProvider: string;
             name: string;
+            /** Format: int64 */
+            score?: number;
+            /** @enum {string} */
+            scoreBand?: "cold" | "warm" | "hot";
             source: string;
             sourceLabel: string;
             suppressed: boolean;
@@ -11549,6 +11722,105 @@ export interface components {
             /** Format: int64 */
             all: number;
             items: components["schemas"]["ContactSavedView"][];
+        };
+        ContactScore: {
+            /** @enum {string} */
+            band: "cold" | "warm" | "hot";
+            /** Format: date-time */
+            bandSince?: string;
+            bands: components["schemas"]["ScoringBands"];
+            breakdown: components["schemas"]["ContactScoreRule"][];
+            configured: boolean;
+            decay: components["schemas"]["ContactScoreDecay"];
+            /** Format: date-time */
+            joinedAt: string;
+            lastChange?: components["schemas"]["ContactScoreChange"];
+            line: components["schemas"]["ContactScorePoint"][];
+            recalculating: boolean;
+            /** Format: int64 */
+            score: number;
+            uses: components["schemas"]["ContactScoreUse"][];
+        };
+        ContactScoreCause: {
+            emailName?: string;
+            eventName?: string;
+            formName?: string;
+            /** @enum {string} */
+            kind: "open" | "click" | "form" | "api_event" | "soft_bounce" | "unsubscribe" | "decay";
+            linkLabel?: string;
+            listName?: string;
+            url?: string;
+        };
+        ContactScoreChange: {
+            /** Format: int64 */
+            after: number;
+            /** @enum {string} */
+            afterBand: "cold" | "warm" | "hot";
+            /** Format: date-time */
+            at: string;
+            /** Format: int64 */
+            before: number;
+            /** @enum {string} */
+            beforeBand: "cold" | "warm" | "hot";
+            cause: components["schemas"]["ContactScoreCause"];
+            /** Format: int64 */
+            delta: number;
+        };
+        ContactScoreDecay: {
+            enabled: boolean;
+            /** Format: date-time */
+            lastActivity?: string;
+            /** @description open or click */
+            lastActivityKind?: string;
+            /** Format: date-time */
+            lastOpen?: string;
+            /** Format: int64 */
+            lost: number;
+            /** Format: int64 */
+            quietWeeks: number;
+        };
+        ContactScorePoint: {
+            /** @description YYYY-MM-DD in the workspace timezone */
+            day: string;
+            /** Format: int64 */
+            score?: number;
+        };
+        ContactScoreRule: {
+            atMax: boolean;
+            /** Format: date-time */
+            capReached?: string;
+            /** Format: int64 */
+            count: number;
+            formName?: string;
+            /** Format: date-time */
+            latest?: string;
+            listName?: string;
+            /**
+             * Format: int64
+             * @description The rule's number on Scoring
+             */
+            number: number;
+            /** Format: int64 */
+            points: number;
+            rule: components["schemas"]["ScoringRule"];
+            /** Format: date-time */
+            zeroAt?: string;
+            zeroEmail?: string;
+        };
+        ContactScoreUse: {
+            /** Format: date-time */
+            crossedAt?: string;
+            direction?: string;
+            href?: string;
+            id: string;
+            in: boolean;
+            /** @enum {string} */
+            kind: "segment" | "automation" | "block";
+            /** Format: date-time */
+            liveSince?: string;
+            name: string;
+            /** Format: int64 */
+            threshold?: number;
         };
         ContactSuppressInput: {
             /** @description Why, for the audit log and the list */
@@ -12238,6 +12510,238 @@ export interface components {
             noLanguage: number;
             /** Format: int64 */
             notOffered: number;
+        };
+        GrowthChart: {
+            days: components["schemas"]["GrowthChartDay"][];
+            series: components["schemas"]["GrowthSeries"][];
+        };
+        GrowthChartDay: {
+            day: string;
+            /** Format: int64 */
+            imports: number;
+            joined: number[];
+            left: number[];
+        };
+        GrowthCohort: {
+            after30: components["schemas"]["GrowthRetention"];
+            after90: components["schemas"]["GrowthRetention"];
+            /** Format: int64 */
+            contacts: number;
+            /** @description YYYY-MM */
+            month: string;
+        };
+        GrowthDepartures: {
+            /** Format: int64 */
+            complained: number;
+            /** Format: int64 */
+            erased: number;
+            /** Format: int64 */
+            hardBounced: number;
+            /** Format: int64 */
+            unsubscribed: number;
+        };
+        GrowthImportItem: {
+            /** Format: int64 */
+            count: number;
+            day: string;
+            key: string;
+            name: string;
+        };
+        GrowthListRef: {
+            id: string;
+            name: string;
+        };
+        GrowthPage: {
+            chart: components["schemas"]["GrowthChart"];
+            cohortSource: string;
+            cohortSources: components["schemas"]["GrowthSource"][];
+            cohorts: components["schemas"]["GrowthCohort"][];
+            /** Format: int64 */
+            contacts: number;
+            departures: components["schemas"]["GrowthDepartures"];
+            /** Format: double */
+            flagFactor: number;
+            /** @description Every finished import, for the only-imports state */
+            imports: components["schemas"]["GrowthImportItem"][];
+            includeImports: boolean;
+            list?: components["schemas"]["GrowthListRef"];
+            lists: components["schemas"]["GrowthListRef"][];
+            members: boolean;
+            /** Format: int64 */
+            minContacts: number;
+            /** Format: int64 */
+            minDelivered: number;
+            onlyImports: boolean;
+            period: components["schemas"]["GrowthPeriod"];
+            referrers: components["schemas"]["GrowthReferrers"];
+            sources: components["schemas"]["GrowthSourceRow"][];
+            tiles: components["schemas"]["GrowthTiles"];
+            total: components["schemas"]["GrowthTotals"];
+            utm: components["schemas"]["GrowthUTM"];
+            workspace: components["schemas"]["GrowthRates"];
+        };
+        GrowthPeriod: {
+            /** Format: int64 */
+            days: number;
+            /** @description YYYY-MM-DD */
+            from: string;
+            /** @enum {string} */
+            kind: "30d" | "90d" | "12m" | "custom";
+            /** @description YYYY-MM-DD */
+            to: string;
+        };
+        GrowthRates: {
+            /** Format: double */
+            bounce: number;
+            /** Format: double */
+            complaint: number;
+            /** Format: int64 */
+            delivered: number;
+            /** Format: double */
+            humanOpen: number;
+            /** Format: int64 */
+            sent: number;
+        };
+        GrowthReferrerRow: {
+            /** Format: int64 */
+            joins: number;
+            page: string;
+        };
+        GrowthReferrers: {
+            /** Format: int64 */
+            joins: number;
+            /** Format: int64 */
+            none: number;
+            other: components["schemas"]["GrowthRest"];
+            rows: components["schemas"]["GrowthReferrerRow"][];
+        };
+        GrowthRest: {
+            /** Format: int64 */
+            count: number;
+            /** Format: double */
+            humanOpenRate?: number;
+            /** Format: int64 */
+            joins: number;
+        };
+        GrowthRetention: {
+            completeOn?: string;
+            from?: string;
+            /** Format: double */
+            rate?: number;
+            /** @enum {string} */
+            state: "done" | "in_progress" | "not_started";
+        };
+        GrowthSeries: {
+            /** Format: int64 */
+            joined: number;
+            key: string;
+            /** Format: int64 */
+            left: number;
+            other: boolean;
+            source: components["schemas"]["GrowthSource"];
+        };
+        GrowthSource: {
+            carried?: string;
+            carriedLabel?: string;
+            /** Format: date-time */
+            firstJoin?: string;
+            formKind?: string;
+            hosts: string[];
+            /** Format: int64 */
+            importCount?: number;
+            imported: boolean;
+            /** Format: date-time */
+            importedAt?: string;
+            integration?: string;
+            key: string;
+            keyPrefix?: string;
+            kind: string;
+            listChoice?: boolean;
+            name: string;
+            /** Format: int64 */
+            tookImportDay?: number;
+            url?: string;
+            workflow?: string;
+        };
+        GrowthSourceList: {
+            items: components["schemas"]["GrowthSourceOption"][];
+        };
+        GrowthSourceOption: {
+            /** Format: int64 */
+            contacts: number;
+            source: components["schemas"]["GrowthSource"];
+        };
+        GrowthSourceRow: {
+            /** Format: double */
+            bounceFlag?: number;
+            /** Format: double */
+            bounceRate?: number;
+            /** Format: double */
+            complaintFlag?: number;
+            /** Format: double */
+            complaintRate?: number;
+            /** Format: int64 */
+            contacts: number;
+            /** Format: int64 */
+            delivered: number;
+            /** Format: double */
+            humanOpenRate?: number;
+            /** Format: int64 */
+            joined?: number;
+            /** Format: int64 */
+            left: number;
+            /** Format: int64 */
+            net?: number;
+            /** Format: int64 */
+            sent: number;
+            source: components["schemas"]["GrowthSource"];
+            /** @enum {string} */
+            tooFew?: "contacts" | "messages" | "";
+        };
+        GrowthTiles: {
+            importItems: components["schemas"]["GrowthImportItem"][];
+            /** Format: int64 */
+            imports: number;
+            /** Format: int64 */
+            joined: number;
+            /** Format: int64 */
+            left: number;
+            /** Format: int64 */
+            net: number;
+            /** Format: double */
+            netPct: number;
+        };
+        GrowthTotals: {
+            /** Format: int64 */
+            joined: number;
+            /** Format: int64 */
+            left: number;
+            /** Format: int64 */
+            net: number;
+        };
+        GrowthUTM: {
+            /** Format: date-time */
+            captureStartedAt?: string;
+            /** Format: int64 */
+            captured: number;
+            /** Format: int64 */
+            joins: number;
+            none: components["schemas"]["GrowthUTMRow"];
+            /** Format: int64 */
+            notCaptured: number;
+            /** Format: double */
+            notCapturedHumanOpenRate?: number;
+            other: components["schemas"]["GrowthRest"];
+            rows: components["schemas"]["GrowthUTMRow"][];
+        };
+        GrowthUTMRow: {
+            campaign: string;
+            /** Format: double */
+            humanOpenRate?: number;
+            /** Format: int64 */
+            joins: number;
+            medium: string;
+            source: string;
         };
         HealthTierCard: {
             /** Format: int64 */
@@ -17495,6 +17999,241 @@ export interface components {
             id: string;
             name: string;
         };
+        ScoringBandCounts: {
+            /** Format: int64 */
+            cold: number;
+            /** Format: int64 */
+            hot: number;
+            /** Format: int64 */
+            warm: number;
+        };
+        ScoringBandMove: {
+            /** Format: int64 */
+            count: number;
+            /** @enum {string} */
+            from: "cold" | "warm" | "hot";
+            /** @enum {string} */
+            to: "cold" | "warm" | "hot";
+        };
+        ScoringBands: {
+            /** Format: int64 */
+            hotFrom: number;
+            /** Format: int64 */
+            warmFrom: number;
+        };
+        ScoringBucket: {
+            /** Format: int64 */
+            contacts: number;
+            /** Format: int64 */
+            from: number;
+            /** Format: int64 */
+            to: number;
+        };
+        ScoringChanges: {
+            bands: boolean;
+            decay: boolean;
+            rules: number[];
+            setup: boolean;
+        };
+        ScoringConfig: {
+            bands: components["schemas"]["ScoringBands"];
+            decay: components["schemas"]["ScoringDecay"];
+            rules: components["schemas"]["ScoringRule"][];
+        };
+        ScoringDecay: {
+            /** Format: int64 */
+            afterWeeks: number;
+            enabled: boolean;
+            /** Format: int64 */
+            percent: number;
+        };
+        ScoringEventOption: {
+            /** Format: int64 */
+            count: number;
+            name: string;
+        };
+        ScoringFieldOption: {
+            key: string;
+            label: string;
+            options: string[];
+            type: string;
+        };
+        ScoringFlowImpact: {
+            /** Format: int64 */
+            crossed: number;
+            /** @enum {string} */
+            direction: "rises" | "falls";
+            id: string;
+            name: string;
+            /** Format: int64 */
+            started: number;
+            /** Format: int64 */
+            threshold: number;
+        };
+        ScoringFormOption: {
+            id: string;
+            /** @enum {string} */
+            kind: "embedded" | "popup" | "hosted";
+            name: string;
+        };
+        ScoringImpact: {
+            automations: components["schemas"]["ScoringFlowImpact"][];
+            bandsAfter: components["schemas"]["ScoringBandCounts"];
+            bandsBefore: components["schemas"]["ScoringBandCounts"];
+            /** Format: int64 */
+            changed: number;
+            /** Format: int64 */
+            contacts: number;
+            current: components["schemas"]["ScoringBucket"][];
+            /** Format: int64 */
+            durationMs: number;
+            estimated: boolean;
+            fieldMatches: {
+                [key: string]: number;
+            };
+            moves: components["schemas"]["ScoringBandMove"][];
+            /** Format: int64 */
+            rescored: number;
+            spread: components["schemas"]["ScoringBucket"][];
+        };
+        ScoringListOption: {
+            id: string;
+            name: string;
+        };
+        ScoringOptions: {
+            apiEvents: components["schemas"]["ScoringEventOption"][];
+            fields: components["schemas"]["ScoringFieldOption"][];
+            forms: components["schemas"]["ScoringFormOption"][];
+            lists: components["schemas"]["ScoringListOption"][];
+        };
+        ScoringPage: {
+            /** Format: int64 */
+            appliedVersion: number;
+            bands: components["schemas"]["ScoringBandCounts"];
+            byTier: components["schemas"]["ScoringTierRow"][];
+            config: components["schemas"]["ScoringConfig"];
+            configured: boolean;
+            /** Format: int64 */
+            contacts: number;
+            helpers: string[];
+            options: components["schemas"]["ScoringOptions"];
+            recalculation?: components["schemas"]["ScoringRecalcInfo"];
+            /** Format: date-time */
+            setUpAt?: string;
+            setUpBy: string;
+            spread: components["schemas"]["ScoringBucket"][];
+            suggested: components["schemas"]["ScoringRule"][];
+            tierExample?: components["schemas"]["ScoringTierExample"];
+            usedBy: components["schemas"]["ScoringUse"][];
+            /** Format: int64 */
+            version: number;
+        };
+        ScoringPreviewInput: {
+            config: components["schemas"]["ScoringConfig"];
+        };
+        ScoringRecalcInfo: {
+            changes: components["schemas"]["ScoringChanges"];
+            /** Format: int64 */
+            done: number;
+            /** Format: date-time */
+            failedAt?: string;
+            /** Format: date-time */
+            finishedAt?: string;
+            id: string;
+            label: string;
+            /** @enum {string} */
+            reason: "setup" | "rules" | "retry";
+            /** Format: int64 */
+            remainingSeconds?: number;
+            startAutomations: boolean;
+            /** Format: date-time */
+            startedAt: string;
+            startedBy: string;
+            /** @enum {string} */
+            status: "running" | "finished" | "failed" | "superseded";
+            summary?: components["schemas"]["ScoringRecalcSummary"];
+            /** Format: int64 */
+            total: number;
+        };
+        ScoringRecalcSummary: {
+            automations: components["schemas"]["ScoringFlowImpact"][];
+            bands: components["schemas"]["ScoringBandCounts"];
+            /** Format: int64 */
+            changed: number;
+            moves: components["schemas"]["ScoringBandMove"][];
+        };
+        ScoringRule: {
+            cap: components["schemas"]["ScoringRuleCap"];
+            contains?: string;
+            enabled: boolean;
+            event?: string;
+            field?: string;
+            formId?: string;
+            /** @description Kept across versions; new rules get one when saved */
+            id: string;
+            /** @enum {string} */
+            kind: "open" | "click" | "form" | "api_event" | "soft_bounce" | "unsubscribe" | "field";
+            listId?: string;
+            /** @enum {string} */
+            op?: "is_one_of" | "is_not" | "is_set";
+            /** Format: int64 */
+            points: number;
+            values?: string[];
+        };
+        ScoringRuleCap: {
+            /** @enum {string} */
+            kind: "none" | "once" | "once_day" | "once_week" | "once_month" | "points_day" | "points_week" | "points_month" | "while_true";
+            /** Format: int64 */
+            points?: number;
+        };
+        ScoringSaveInput: {
+            /** Format: int64 */
+            baseVersion: number;
+            config: components["schemas"]["ScoringConfig"];
+            startAutomations?: boolean;
+        };
+        ScoringTierExample: {
+            id: string;
+            name: string;
+            /** Format: int64 */
+            score: number;
+        };
+        ScoringTierRow: {
+            /** Format: int64 */
+            cold: number;
+            /** Format: int64 */
+            contacts: number;
+            /** Format: int64 */
+            hot: number;
+            /** @enum {string} */
+            tier: "active" | "cooling" | "at_risk" | "sunset";
+            /** Format: int64 */
+            warm: number;
+        };
+        ScoringUse: {
+            by?: string;
+            conditions?: unknown;
+            /** Format: int64 */
+            contacts?: number;
+            direction?: string;
+            /** Format: int64 */
+            entered: number;
+            href?: string;
+            id: string;
+            /** @enum {string} */
+            kind: "automation" | "segment" | "block";
+            name: string;
+            /** Format: int64 */
+            of?: number;
+            /** Format: int64 */
+            onceInDays?: number;
+            /** Format: date-time */
+            since?: string;
+            status?: string;
+            /** Format: int64 */
+            threshold?: number;
+            where?: string;
+        };
         SegmentCatalog: {
             fields: components["schemas"]["SegmentCatalogField"][];
             sqlEnabled: boolean;
@@ -17513,6 +18252,7 @@ export interface components {
             amount?: number;
             field: string;
             op: string;
+            to?: string;
             /** @enum {string} */
             unit?: "days" | "weeks";
             value?: string;
@@ -29324,6 +30064,15 @@ export interface operations {
                 joinedAfter?: string;
                 /** @description A workspace language's code (es also matches es-MX), none or not_offered */
                 language?: string;
+                band?: "cold" | "warm" | "hot" | "none" | "";
+                scoreFrom?: string;
+                scoreTo?: string;
+                growthSource?: string;
+                utmSource?: string;
+                utmMedium?: string;
+                utmCampaign?: string;
+                referringDomain?: string;
+                sort?: "activity" | "score" | "";
                 page?: number;
                 pageSize?: number;
             };
@@ -29817,6 +30566,39 @@ export interface operations {
             };
         };
     };
+    "get-contact-growth": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                contact: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactJoin"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "contact-preference-link": {
         parameters: {
             query?: never;
@@ -29870,6 +30652,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OptInResendResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-contact-score": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                contact: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactScore"];
                 };
             };
             /** @description Error */
@@ -31166,6 +31981,127 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SignupFormConfirmLink"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-growth": {
+        parameters: {
+            query?: {
+                /** @description 30d (default), 90d, 12m or custom */
+                period?: "30d" | "90d" | "12m" | "custom" | "";
+                /** @description First day of a custom period (YYYY-MM-DD) */
+                from?: string;
+                /** @description Last day of a custom period */
+                to?: string;
+                /** @description A list id: count its members instead of contacts */
+                list?: string;
+                imports?: boolean;
+                cohortSource?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GrowthPage"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "export-growth": {
+        parameters: {
+            query?: {
+                /** @description 30d (default), 90d, 12m or custom */
+                period?: "30d" | "90d" | "12m" | "custom" | "";
+                /** @description First day of a custom period (YYYY-MM-DD) */
+                from?: string;
+                /** @description Last day of a custom period */
+                to?: string;
+                /** @description A list id: count its members instead of contacts */
+                list?: string;
+                imports?: boolean;
+                cohortSource?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control"?: string;
+                    "Content-Disposition"?: string;
+                    "Content-Type"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-growth-sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GrowthSourceList"];
                 };
             };
             /** @description Error */
@@ -36270,6 +37206,142 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RouteTestResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-scoring": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScoringPage"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-scoring": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScoringSaveInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScoringPage"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "preview-scoring": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScoringPreviewInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScoringImpact"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "retry-scoring-recalculation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScoringPage"];
                 };
             };
             /** @description Error */

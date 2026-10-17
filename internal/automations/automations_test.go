@@ -69,10 +69,17 @@ func TestListAndSummaryMatchTheBoard(t *testing.T) {
 	_, c := signedIn(t, "linh@acme.io")
 	var l list
 	c.Do("GET", wsPath, nil).MustStatus(t, 200).JSON(t, &l)
-	if l.Counts.All != 5 || l.Counts.Live != 3 || l.Counts.Paused != 1 || l.Counts.Drafts != 1 {
+	// Contact scoring (X13) adds the live "Sales-ready handoff".
+	if l.Counts.All != 6 || l.Counts.Live != 4 || l.Counts.Paused != 1 || l.Counts.Drafts != 1 {
 		t.Fatalf("counts %+v", l.Counts)
 	}
-	if got := []string{l.Items[0].Name, l.Items[1].Name, l.Items[2].Name, l.Items[3].Name, l.Items[4].Name}; strings.Join(got, "|") != "Welcome series|Onboarding · new workspace|Re-engagement|Re-permission · Mailchimp import|Beta invite" {
+	var got []string
+	for _, it := range l.Items {
+		if it.Name != "Sales-ready handoff" {
+			got = append(got, it.Name)
+		}
+	}
+	if strings.Join(got, "|") != "Welcome series|Onboarding · new workspace|Re-engagement|Re-permission · Mailchimp import|Beta invite" {
 		t.Fatalf("order %v", got)
 	}
 	w := findItem(t, l, "Welcome series")
@@ -122,7 +129,7 @@ func TestListAndSummaryMatchTheBoard(t *testing.T) {
 		}
 	}
 	c.Do("GET", wsPath+"/summary", nil).MustStatus(t, 200).JSON(t, &sum)
-	if sum.InFlow != 1932 || sum.LiveCount != 3 || sum.Goals != 604 || len(sum.GoalsBy) != 3 || sum.GoalsBy[0].Name != "welcome" || sum.GoalsBy[0].Count != 312 {
+	if sum.InFlow != 1932 || sum.LiveCount != 4 || sum.Goals != 604 || len(sum.GoalsBy) != 3 || sum.GoalsBy[0].Name != "welcome" || sum.GoalsBy[0].Count != 312 {
 		t.Fatalf("summary %+v", sum)
 	}
 	if len(sum.SentBy) == 0 || sum.SentBy[0].Short != "SES" {

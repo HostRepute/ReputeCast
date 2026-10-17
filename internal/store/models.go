@@ -557,6 +557,13 @@ type ConsentEvent struct {
 	ImportID       *uuid.UUID  `json:"importId"`
 	ConsentText    string      `json:"consentText"`
 	Language       string      `json:"language"`
+	UtmSource      string      `json:"utmSource"`
+	UtmMedium      string      `json:"utmMedium"`
+	UtmCampaign    string      `json:"utmCampaign"`
+	UtmContent     string      `json:"utmContent"`
+	UtmTerm        string      `json:"utmTerm"`
+	Page           string      `json:"page"`
+	Referrer       string      `json:"referrer"`
 }
 
 type Contact struct {
@@ -599,11 +606,44 @@ type Contact struct {
 	LanguageSetBy       *uuid.UUID      `json:"languageSetBy"`
 }
 
+type ContactGrowth struct {
+	ContactID      uuid.UUID  `json:"contactId"`
+	WorkspaceID    uuid.UUID  `json:"workspaceId"`
+	SourceKind     string     `json:"sourceKind"`
+	SourceID       string     `json:"sourceId"`
+	JoinedAt       time.Time  `json:"joinedAt"`
+	LeftAt         *time.Time `json:"leftAt"`
+	LeftKind       *string    `json:"leftKind"`
+	UtmSource      string     `json:"utmSource"`
+	UtmMedium      string     `json:"utmMedium"`
+	UtmCampaign    string     `json:"utmCampaign"`
+	UtmContent     string     `json:"utmContent"`
+	UtmTerm        string     `json:"utmTerm"`
+	Page           string     `json:"page"`
+	Referrer       string     `json:"referrer"`
+	ReferrerDomain string     `json:"referrerDomain"`
+	Captured       bool       `json:"captured"`
+	UpdatedAt      time.Time  `json:"updatedAt"`
+}
+
 type ContactPreference struct {
 	ContactID   uuid.UUID  `json:"contactId"`
 	Frequency   string     `json:"frequency"`
 	PausedUntil *time.Time `json:"pausedUntil"`
 	UpdatedAt   time.Time  `json:"updatedAt"`
+}
+
+type ContactScore struct {
+	ContactID   uuid.UUID  `json:"contactId"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	Score       int16      `json:"score"`
+	EventsPart  int16      `json:"eventsPart"`
+	FieldsPart  int16      `json:"fieldsPart"`
+	ActiveAt    *time.Time `json:"activeAt"`
+	ChangedAt   *time.Time `json:"changedAt"`
+	NextCheckAt *time.Time `json:"nextCheckAt"`
+	Version     int32      `json:"version"`
+	ComputedAt  time.Time  `json:"computedAt"`
 }
 
 type ContentSource struct {
@@ -840,6 +880,26 @@ type FormSubmission struct {
 	RemindedAt    *time.Time  `json:"remindedAt"`
 	ConfirmedAt   *time.Time  `json:"confirmedAt"`
 	Language      string      `json:"language"`
+}
+
+type GrowthQualityDaily struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Day         time.Time `json:"day"`
+	Dim         string    `json:"dim"`
+	Key         string    `json:"key"`
+	Sent        int64     `json:"sent"`
+	Delivered   int64     `json:"delivered"`
+	Bounced     int64     `json:"bounced"`
+	Complained  int64     `json:"complained"`
+	HumanOpened int64     `json:"humanOpened"`
+}
+
+type GrowthState struct {
+	WorkspaceID       uuid.UUID  `json:"workspaceId"`
+	CaptureStartedAt  *time.Time `json:"captureStartedAt"`
+	AttributedThrough *time.Time `json:"attributedThrough"`
+	RolledUpThrough   *time.Time `json:"rolledUpThrough"`
+	UpdatedAt         time.Time  `json:"updatedAt"`
 }
 
 type HostreputeConnection struct {
@@ -1440,6 +1500,74 @@ type SavedView struct {
 	Position     int32           `json:"position"`
 	CreatedAt    time.Time       `json:"createdAt"`
 	ShowInHealth bool            `json:"showInHealth"`
+}
+
+type ScoreEvent struct {
+	WorkspaceID uuid.UUID   `json:"workspaceId"`
+	ContactID   uuid.UUID   `json:"contactId"`
+	SourceID    uuid.UUID   `json:"sourceId"`
+	OccurredAt  time.Time   `json:"occurredAt"`
+	Kind        string      `json:"kind"`
+	Ref         string      `json:"ref"`
+	Lists       []uuid.UUID `json:"lists"`
+	MessageID   *uuid.UUID  `json:"messageId"`
+	Counted     bool        `json:"counted"`
+}
+
+type ScoringConfig struct {
+	WorkspaceID     uuid.UUID  `json:"workspaceId"`
+	Version         int32      `json:"version"`
+	AppliedVersion  int32      `json:"appliedVersion"`
+	IngestedThrough *time.Time `json:"ingestedThrough"`
+	NightlyAt       *time.Time `json:"nightlyAt"`
+	SetUpBy         *uuid.UUID `json:"setUpBy"`
+	SetUpAt         *time.Time `json:"setUpAt"`
+	UpdatedAt       time.Time  `json:"updatedAt"`
+}
+
+type ScoringDirty struct {
+	ContactID   uuid.UUID `json:"contactId"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	QueuedAt    time.Time `json:"queuedAt"`
+}
+
+type ScoringRecalc struct {
+	ID               uuid.UUID       `json:"id"`
+	WorkspaceID      uuid.UUID       `json:"workspaceId"`
+	Version          int32           `json:"version"`
+	Reason           string          `json:"reason"`
+	Status           string          `json:"status"`
+	StartAutomations bool            `json:"startAutomations"`
+	Total            int64           `json:"total"`
+	Done             int64           `json:"done"`
+	Cursor           *uuid.UUID      `json:"cursor"`
+	Label            string          `json:"label"`
+	Changes          json.RawMessage `json:"changes"`
+	StartedBy        *uuid.UUID      `json:"startedBy"`
+	StartedAt        time.Time       `json:"startedAt"`
+	FinishedAt       *time.Time      `json:"finishedAt"`
+	FailedAt         *time.Time      `json:"failedAt"`
+	Error            string          `json:"error"`
+	Summary          json.RawMessage `json:"summary"`
+}
+
+type ScoringRecalcScore struct {
+	RecalcID    uuid.UUID  `json:"recalcId"`
+	ContactID   uuid.UUID  `json:"contactId"`
+	Score       int16      `json:"score"`
+	EventsPart  int16      `json:"eventsPart"`
+	FieldsPart  int16      `json:"fieldsPart"`
+	ActiveAt    *time.Time `json:"activeAt"`
+	ChangedAt   *time.Time `json:"changedAt"`
+	NextCheckAt *time.Time `json:"nextCheckAt"`
+}
+
+type ScoringVersion struct {
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	Version     int32           `json:"version"`
+	Config      json.RawMessage `json:"config"`
+	CreatedBy   *uuid.UUID      `json:"createdBy"`
+	CreatedAt   time.Time       `json:"createdAt"`
 }
 
 type Segment struct {
