@@ -176,10 +176,10 @@ function Result({ d, p, refreshing }: { d: Detail; p: Preview; refreshing: boole
         <section className="card flex flex-col">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line-2 px-5 py-3.5">
             <h3 className="h2">Duplicates · {count(p.merged)} already in ReputeCast</h3>
-            <label className="k flex items-center gap-2">
-              On conflict
+            <label className="k flex items-center gap-2 max-sm:w-full">
+              <span className="whitespace-nowrap">On conflict</span>
               <select
-                className="in"
+                className="in max-sm:min-w-0 max-sm:flex-1"
                 value={p.onConflict}
                 disabled={update.isPending}
                 onChange={(e) => void change({ onConflict: e.target.value as Options['onConflict'] })}

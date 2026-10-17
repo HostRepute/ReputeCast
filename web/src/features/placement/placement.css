@@ -351,7 +351,10 @@
     gap: 10px;
     justify-content: space-between;
     width: 100%;
-    flex-wrap: wrap;
+  }
+  /* The time stays beside the folder; the column grows instead. */
+  .pl-cl .t1 .pl-tm {
+    white-space: nowrap;
   }
   .pl-cl .ev2 {
     font-size: 12px;

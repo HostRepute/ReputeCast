@@ -134,7 +134,7 @@ function TestsCard({ d }: { d: TestList }) {
       ) : (
         <>
           <div className="pl-lg-only">
-            <div className="overflow-x-auto">
+            <div className="relative overflow-x-auto">
               <table className="tbl" aria-label={t(m.testsTableLabel)}>
                 <thead>
                   <tr>

@@ -240,7 +240,7 @@ export const m = defineMessages('placement', {
   cellSigninExpired: 'Sign-in expired on {date}, {time}.',
   cellSeedRemoved: 'The seed was removed.',
   cellUnsentNote: 'The test stopped before this copy went out.',
-  cellSelect: 'Show the copy to {seed} through {provider}',
+  cellContext: 'The copy to {seed} through {provider}:',
   timeSeconds: '{s, number} s',
   timeMinutes: '{m, number} min {s, number} s',
   timeMinutesOnly: '{m, number} min',

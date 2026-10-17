@@ -209,7 +209,7 @@ function TrendTable({ bars }: { bars: Bar[] }) {
   const t = useT()
   const { slug } = useWorkspace()
   return (
-    <div className="overflow-x-auto">
+    <div className="relative overflow-x-auto">
       <table className="tbl" aria-label={t(m.trendTableLabel)}>
         <thead>
           <tr>

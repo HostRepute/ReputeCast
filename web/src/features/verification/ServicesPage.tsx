@@ -337,7 +337,7 @@ function RealtimeCard({ v, rt }: { v: ServiceView; rt: NonNullable<ReturnType<ty
         </div>
       ) : null}
       <section className="card overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="relative overflow-x-auto">
           <table className="tbl" aria-label={t(m.formsTableLabel)}>
             <thead>
               <tr>
@@ -667,7 +667,7 @@ function MapCard({ v }: { v: ServiceView }) {
           <span className="k">{t(m.mapLead)}</span>
         </div>
       </div>
-      <div className="overflow-x-auto">
+      <div className="relative overflow-x-auto">
         <table className="tbl" aria-label={t(m.mapTableLabel, { name: v.name })}>
           <thead>
             <tr>
@@ -740,7 +740,7 @@ function UsesCard({ v, uses, canManage }: { v: ServiceView; uses: Use[]; canMana
           <span className="k">{t(m.usesNone)}</span>
         </div>
       ) : (
-        <div className="overflow-x-auto">
+        <div className="relative overflow-x-auto">
           <table className="tbl" aria-label={t(m.usesTableLabel, { name: v.name })}>
             <thead>
               <tr>

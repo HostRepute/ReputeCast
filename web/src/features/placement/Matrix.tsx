@@ -211,7 +211,8 @@ export function Matrix({ test, selected, onSelect, live }: { test: TestDetail; s
     const sel = c.id === selected
     return (
       <td key={p.id} className={['cell', tone(c), sel ? 'sel' : ''].filter(Boolean).join(' ')}>
-        <button type="button" className="pl-cellbtn" aria-pressed={sel} aria-label={t(m.cellSelect, { seed: seed.email, provider: p.name })} onClick={() => onSelect(c.id)}>
+        <button type="button" className="pl-cellbtn" aria-pressed={sel} onClick={() => onSelect(c.id)}>
+          <span className="vh">{t(m.cellContext, { seed: seed.email, provider: p.name })} </span>
           <CellBody c={c} test={test} provider={p} />
         </button>
       </td>
@@ -220,7 +221,7 @@ export function Matrix({ test, selected, onSelect, live }: { test: TestDetail; s
   return (
     <>
       <div className="pl-no-phone">
-        <div className="overflow-x-auto">
+        <div className="relative overflow-x-auto">
           <table className="pl-mx" aria-label={t(m.matrixLabel)}>
             <thead>
               <tr>
@@ -277,9 +278,9 @@ export function Matrix({ test, selected, onSelect, live }: { test: TestDetail; s
                     key={p.id}
                     className={['pr', tone(c), sel ? 'sel' : ''].filter(Boolean).join(' ')}
                     aria-pressed={sel}
-                    aria-label={t(m.cellSelect, { seed: s.email, provider: p.name })}
                     onClick={() => onSelect(c.id)}
                   >
+                    <span className="vh">{t(m.cellContext, { seed: s.email, provider: p.name })} </span>
                     <span className="pl-pv">
                       <span className="pl-sw" style={{ background: providerColor(p.adapter) }} />
                       {p.short}
