@@ -1,6 +1,7 @@
 package visibility
 
 import (
+	"errors"
 	"slices"
 	"strings"
 	"testing"
@@ -85,7 +86,7 @@ func TestRuleParseAndShows(t *testing.T) {
 	if err != nil || r.Show != ShowEveryone || r.Match != MatchAll || r.Conditions == nil || r.Conditional() {
 		t.Fatalf("an unknown show is everyone: %+v %v", r, err)
 	}
-	if _, err := ParseRule("  "); err != ErrNoRule {
+	if _, err := ParseRule("  "); !errors.Is(err, ErrNoRule) {
 		t.Fatalf("empty attribute: %v", err)
 	}
 	if _, err := ParseRule("{not json"); err == nil {
@@ -244,7 +245,7 @@ func TestVersionsSizesAndEmpty(t *testing.T) {
 	if none.Recipients != 1 || trial.Recipients != 2 || both.Recipients != 1 || got["beta"].Recipients != 1 {
 		t.Fatalf("recipients per version: %+v", vs)
 	}
-	if !(none.SizeBytes < trial.SizeBytes && trial.SizeBytes < both.SizeBytes) || !both.Largest || !none.Smallest {
+	if none.SizeBytes >= trial.SizeBytes || trial.SizeBytes >= both.SizeBytes || !both.Largest || !none.Smallest {
 		t.Fatalf("sizes: none %d, trial %d, both %d", none.SizeBytes, trial.SizeBytes, both.SizeBytes)
 	}
 	if vs[0].Shows != "" || vs[0].Number != 1 {

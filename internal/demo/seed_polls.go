@@ -562,7 +562,7 @@ func x11Allocate(avail, taken map[x11Cell]int, picked map[x11Cell][2]int) (map[x
 		langQ["en"] -= tierQ[t]
 	}
 	if langQ["en"] != 0 {
-		return nil, nil, fmt.Errorf("English answers off by %d", langQ["en"])
+		return nil, nil, fmt.Errorf("the English answers are off by %d", langQ["en"])
 	}
 	// Each group's net: the other languages' one point at a time, where
 	// English keeps the most room; English takes what each tier has left.

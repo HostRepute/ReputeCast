@@ -307,8 +307,8 @@ var (
 		">Start a free trial<", ">Empieza una prueba gratis<",
 		">What should we write about next?<", ">¿Sobre qué deberíamos escribir ahora?<",
 		">Postgres internals<", ">Postgres por dentro<",
-		">Feature flag patterns<", ">Patrones de feature flags<",
-		">On-call stories<", ">Historias de guardias<",
+		">Feature flag patterns<", ">Patrones de feature flags<", //nolint:misspell // Spanish, not misspelt English
+		">On-call stories<", ">Historias de guardias<", //nolint:misspell // Spanish, not misspelt English
 		">Rust in production<", ">Rust en producción<",
 		"One click opens a page that saves your answer. You&#39;ll see the results there.", "Un clic abre una página que guarda tu respuesta. Allí verás los resultados.",
 	}
@@ -353,7 +353,7 @@ var (
 		">Postgres internals<", ">Postgres-Interna<",
 		">Feature flag patterns<", ">Feature-Flag-Muster<",
 		">On-call stories<", ">Geschichten aus der Rufbereitschaft<",
-		">Rust in production<", ">Rust in Produktion<",
+		">Rust in production<", ">Rust in Produktion<", //nolint:misspell // German, not misspelt English
 		"One click opens a page that saves your answer. You&#39;ll see the results there.", "Ein Klick öffnet eine Seite, die Ihre Antwort speichert. Dort sehen Sie die Ergebnisse.",
 	}
 )
