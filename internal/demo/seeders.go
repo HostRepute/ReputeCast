@@ -32,7 +32,9 @@ var (
 	// content languages: workspace languages, contacts' languages, versions of #142 and #143 (seed_languages.go)
 	seedLanguages    = noop
 	seedAppLanguages = noop // app languages: instance defaults, Marcus's region format, the invitation's language (seed_app_languages.go)
-	seedDigests      = noop // recurring digests: Engineering blog roundup, its feed, issues #1–#3 (seed_digests.go)
+	// content languages of forms, public pages and contacts: where contacts' languages came from, page and form copy (seed_page_languages.go)
+	seedPageLanguages = noop
+	seedDigests       = noop // recurring digests: Engineering blog roundup, its feed, issues #1–#3 (seed_digests.go)
 )
 
 func noop(context.Context, *Seeder) error { return nil }

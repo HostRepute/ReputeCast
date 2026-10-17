@@ -3,33 +3,35 @@
     {{template "brand" $}}
     <a class="rss" href="{{.FeedHref}}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 11a2 2 0 1 1 0 .01M3 7a6 6 0 0 1 6 6M3 3a10 10 0 0 1 10 10"></path></svg>RSS</a>
   </div>
-  <div class="col6"><h1 class="h30">Newsletter archive</h1><span class="muted">{{.Summary}}</span></div>
+  <div class="col6"><h1 class="h30">{{$.T "archive.heading"}}</h1><span class="muted">{{.Summary}}</span></div>
 
   {{if .SubscribeAction}}<form class="box" method="post" action="{{.SubscribeAction}}" novalidate>
     <input type="hidden" name="step" value="prefill">
-    <label class="grow">Get the next one in your inbox<input class="in h44 s14" type="email" name="email" placeholder="you@company.com" autocomplete="email"></label>
-    <button class="btn-sm end" type="submit"{{if $.Preview}} disabled{{end}}>Subscribe</button>
+    <input type="hidden" name="_lang" value="{{$.Lang}}">
+    <label class="grow">{{$.T "archive.next"}}<input class="in h44 s14" type="email" name="email" placeholder="{{$.T "form.emailPlaceholder"}}" autocomplete="email"></label>
+    <button class="btn-sm end" type="submit"{{if $.Preview}} disabled{{end}}>{{$.T "form.button"}}</button>
   </form>
   {{end}}<form class="search" method="get" action="{{.Action}}" role="search">
-    <label class="grow"><span class="vh">Search issues</span><input class="in q" type="search" name="q" value="{{.Query}}" placeholder="Search issues"></label>
+    <label class="grow"><span class="vh">{{$.T "archive.search"}}</span><input class="in q" type="search" name="q" value="{{.Query}}" placeholder="{{$.T "archive.search"}}"></label>
     {{range .Filters}}<a class="tag{{if .On}} on{{end}}" href="{{.Href}}"{{if .On}} aria-current="true"{{end}}>{{.Label}}</a>{{end}}
     {{with .FilterList}}<input type="hidden" name="list" value="{{.}}">{{end}}
-    <button class="vh" type="submit">Search</button>
+    {{with .Lang}}<input type="hidden" name="lang" value="{{.}}">{{end}}
+    <button class="vh" type="submit">{{$.T "archive.searchButton"}}</button>
   </form>
 
   {{if .Issues}}<div class="issues">
-    {{range .Issues}}<article class="issue">
+    {{range .Issues}}<article class="issue"{{with .Lang}} lang="{{.}}"{{end}}>
       <div class="meta">{{with .List}}<span class="tag">{{.}}</span>{{end}}<span><time datetime="{{.ISO}}">{{.Date}}</time>{{with .Label}} · {{.}}{{end}}</span></div>
       <a class="t" href="{{.Href}}">{{.Title}}</a>
       {{with .Excerpt}}<p>{{.}}</p>{{end}}
     </article>
     {{end}}
   </div>
-  <div class="pager"><span>{{.Range}}</span><span class="links">{{with .NewerHref}}<a href="{{.}}">Newer issues</a>{{end}}{{with .OlderHref}}<a href="{{.}}">Older issues</a>{{end}}</span></div>
+  <div class="pager"><span>{{.Range}}</span><span class="links">{{with .NewerHref}}<a href="{{.}}">{{$.T "archive.newer"}}</a>{{end}}{{with .OlderHref}}<a href="{{.}}">{{$.T "archive.older"}}</a>{{end}}</span></div>
   {{else}}<p class="empty">{{.Empty}}</p>{{end}}
 </main>{{end}}{{end}}
 {{define "foot"}}<footer class="foot m24">
-  {{- with .Privacy}}<a href="{{.}}">Privacy</a>{{template "sep"}}{{end}}
-  <a href="{{.Body.PrefsHref}}">Email preferences</a>
+  {{- with .Privacy}}<a href="{{.}}">{{$.T "page.privacy"}}</a>{{template "sep"}}{{end}}
+  <a href="{{.Body.PrefsHref}}">{{.T "page.preferences"}}</a>
   {{- if .PoweredBy}}{{template "sep"}}{{end}}
   {{- template "rcplain" .}}</footer>{{end}}

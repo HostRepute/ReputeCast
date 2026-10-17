@@ -654,27 +654,36 @@ func TestEmbedScript(t *testing.T) {
 	if i < 0 || j <= i+3 {
 		t.Fatalf("no configuration argument in the script")
 	}
-	var cfg struct {
-		ID, Kind, Submit, Session, CSS, Hosted, Heading, Button, Consent, Privacy, Logo, Publisher, Accent, OnAccent string
-		Honeypot                                                                                                     bool
-		ListChoice                                                                                                   bool
-		Fields                                                                                                       []struct {
-			Key, Name, Type string
-			Required        bool
-			Options         []string
+	type copyCfg struct {
+		Lang, Dir, Heading, Button, Consent, Privacy, PrivacyText string
+		Fields                                                    []struct {
+			Key, Name, Type, Label string
+			Required               bool
+			Options                []string
 		}
-		Lists []struct {
-			ID, Name string
-			Checked  bool
-		}
-		Popup    map[string]int
+		Lists    map[string]string
 		Messages map[string]struct{ Title, Text string }
+		Text     map[string]string
+	}
+	var cfg struct {
+		ID, Kind, Submit, Session, CSS, Hosted, Logo, Publisher, Accent, OnAccent, Mode, Fallback string
+		Honeypot, ListChoice                                                                      bool
+		Lists                                                                                     []struct {
+			ID      string
+			Checked bool
+		}
+		Popup map[string]int
+		Langs map[string]copyCfg
 	}
 	if err := json.Unmarshal([]byte(js[i+3:j]), &cfg); err != nil {
 		t.Fatalf("the configuration isn't JSON: %v\n%s", err, js[i+3:j])
 	}
-	if cfg.Heading != c.Content.Heading || cfg.Button != c.Content.Button || cfg.Consent != c.ConsentText {
-		t.Errorf("text round trip: heading %q, button %q, consent %q", cfg.Heading, cfg.Button, cfg.Consent)
+	en, ok := cfg.Langs["en"]
+	if !ok || cfg.Fallback != "en" || cfg.Mode != LanguagePage || en.Lang != "en" || en.Dir != "ltr" {
+		t.Fatalf("languages: fallback %q mode %q langs %v", cfg.Fallback, cfg.Mode, cfg.Langs)
+	}
+	if en.Heading != c.Content.Heading || en.Button != c.Content.Button || en.Consent != c.ConsentText {
+		t.Errorf("text round trip: heading %q, button %q, consent %q", en.Heading, en.Button, en.Consent)
 	}
 	if cfg.ID != "frm_8c2e1a" || cfg.Submit != "https://rc.example/p/acme-newsletter/forms/frm_8c2e1a/submit" ||
 		cfg.Session != "https://rc.example/p/acme-newsletter/forms/frm_8c2e1a/session" ||
@@ -682,23 +691,23 @@ func TestEmbedScript(t *testing.T) {
 		!strings.HasPrefix(cfg.CSS, "https://rc.example/p/_/embed.css?v=") {
 		t.Errorf("links: %+v", cfg)
 	}
-	if cfg.Logo != "https://rc.example/p/acme-newsletter/logo?v=abc123" || cfg.Privacy != b.PrivacyURL || cfg.Publisher != "Acme" {
-		t.Errorf("branding: logo %q privacy %q publisher %q", cfg.Logo, cfg.Privacy, cfg.Publisher)
+	if cfg.Logo != "https://rc.example/p/acme-newsletter/logo?v=abc123" || en.Privacy != b.PrivacyURL || en.PrivacyText != "privacy policy" || cfg.Publisher != "Acme" {
+		t.Errorf("branding: logo %q privacy %q publisher %q", cfg.Logo, en.Privacy, cfg.Publisher)
 	}
-	if !cfg.Honeypot || !cfg.ListChoice || len(cfg.Lists) != 2 || !cfg.Lists[0].Checked || cfg.Lists[1].Checked {
-		t.Errorf("lists and honeypot: %+v", cfg.Lists)
+	if !cfg.Honeypot || !cfg.ListChoice || len(cfg.Lists) != 2 || !cfg.Lists[0].Checked || cfg.Lists[1].Checked || en.Lists[cfg.Lists[0].ID] != "Weekly <Digest>" {
+		t.Errorf("lists and honeypot: %+v %v", cfg.Lists, en.Lists)
 	}
-	if len(cfg.Fields) != 3 || cfg.Fields[0].Type != "email" || !cfg.Fields[0].Required || cfg.Fields[2].Name != "f.role" ||
-		cfg.Fields[2].Type != "select" || len(cfg.Fields[2].Options) != 2 {
-		t.Errorf("fields: %+v", cfg.Fields)
+	if len(en.Fields) != 3 || en.Fields[0].Type != "email" || en.Fields[0].Label != "Email" || !en.Fields[0].Required || en.Fields[2].Name != "f.role" ||
+		en.Fields[2].Type != "select" || len(en.Fields[2].Options) != 2 {
+		t.Errorf("fields: %+v", en.Fields)
 	}
-	if cfg.Messages[OutcomeConfirm].Title != "Check your inbox" || cfg.Popup["delay"] != 8 {
-		t.Errorf("messages %+v, popup %+v", cfg.Messages, cfg.Popup)
+	if en.Messages[OutcomeConfirm].Title != "Check your inbox" || cfg.Popup["delay"] != 8 || en.Text["optional"] != "optional" || en.Text["close"] != "Close" {
+		t.Errorf("messages %+v, popup %+v, text %v", en.Messages, cfg.Popup, en.Text)
 	}
 	// A failed submit shows the error's sentence (FormsStates: "We couldn't
 	// save your subscription just now…"), never the message object.
-	if cfg.Messages["error"].Text != msgSaveFailed || strings.Count(js, "cfg.messages.error.text") != 2 || strings.Contains(js, "cfg.messages.error)") {
-		t.Errorf("the failed-submit message: %+v", cfg.Messages["error"])
+	if en.Messages["error"].Text != msgSaveFailed || strings.Count(js, "t.messages.error.text") != 2 || strings.Contains(js, "t.messages.error)") {
+		t.Errorf("error message: %+v", en.Messages["error"])
 	}
 	if strings.ContainsRune(js, '\u2028') || strings.ContainsRune(js, '\u2029') {
 		t.Error("a raw U+2028/U+2029 line separator from the settings is in the script")

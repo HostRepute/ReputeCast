@@ -100,8 +100,15 @@ type Querier interface {
 	ArchiveIssueGet(ctx context.Context, arg ArchiveIssueGetParams) (ArchiveIssue, error)
 	// One issue of the Archive tab, as ArchiveIssues lists it.
 	ArchiveIssueOne(ctx context.Context, arg ArchiveIssueOneParams) (ArchiveIssueOneRow, error)
+	// The language versions of a sent campaign readers can see in the archive:
+	// translated and not held, besides the language it's written in.
+	ArchiveIssueVersions(ctx context.Context, arg ArchiveIssueVersionsParams) ([]ArchiveIssueVersionsRow, error)
 	ArchiveIssues(ctx context.Context, arg ArchiveIssuesParams) ([]ArchiveIssuesRow, error)
 	ArchiveListCounts(ctx context.Context, arg ArchiveListCountsParams) ([]ArchiveListCountsRow, error)
+	// The archive's list in a reader's language: for each issue, the language
+	// it's written in and its versions in the languages asked for (none when
+	// it has none).
+	ArchiveListVersions(ctx context.Context, arg ArchiveListVersionsParams) ([]ArchiveListVersionsRow, error)
 	// Serializes archive syncs of a workspace, so two requests never hand out
 	// the same slug.
 	ArchiveLock(ctx context.Context, workspaceID uuid.UUID) error
@@ -268,9 +275,20 @@ type Querier interface {
 	// Emails sent to a contact since a date (Broadcasts and Automations), how
 	// many were opened by a person and how many were clicked.
 	ContactEngagementSince(ctx context.Context, arg ContactEngagementSinceParams) (ContactEngagementSinceRow, error)
+	// A signup form sets the language from the browser's first language when
+	// the contact has none. It never overwrites one.
+	ContactFillLanguage(ctx context.Context, arg ContactFillLanguageParams) (int64, error)
+	ContactLanguageSetBy(ctx context.Context, id uuid.UUID) (string, error)
 	// Lists a page of contacts belongs to (subscribed or pending), in list order.
 	ContactListNames(ctx context.Context, contactIds []uuid.UUID) ([]ContactListNamesRow, error)
 	ContactMemberships(ctx context.Context, contactID uuid.UUID) ([]ContactMembershipsRow, error)
+	// Content languages of forms, public pages and contacts (design expansion
+	// M17, workstream X08): a contact's language and where it came from, page
+	// and form copy per language, and ReputeCast's built-in page labels.
+	// Sets a contact's language and records where it came from.
+	ContactSetLanguage(ctx context.Context, arg ContactSetLanguageParams) error
+	// Records where a contact's language came from, after another query set it.
+	ContactSetLanguageSource(ctx context.Context, arg ContactSetLanguageSourceParams) error
 	ContactSources(ctx context.Context, workspaceID uuid.UUID) ([]ContactSourcesRow, error)
 	ContentCheckLinkListings(ctx context.Context, domains []string) ([]LinkDomainListing, error)
 	ContentCheckUpsertLinkListing(ctx context.Context, arg ContentCheckUpsertLinkListingParams) error
@@ -536,6 +554,17 @@ type Querier interface {
 	FormChallengeLive(ctx context.Context, arg FormChallengeLiveParams) (bool, error)
 	FormChallengeTake(ctx context.Context, arg FormChallengeTakeParams) (FormChallenge, error)
 	FormChallengesPurge(ctx context.Context, at time.Time) (int64, error)
+	// The latest signup through a form whose consent was given in a language
+	// (the builder's "Consent evidence" example).
+	FormConsentEvidence(ctx context.Context, arg FormConsentEvidenceParams) (FormConsentEvidenceRow, error)
+	// "Spanish is still right": the translation now stands for the form's
+	// current consent text.
+	FormCopyConfirmConsent(ctx context.Context, arg FormCopyConfirmConsentParams) (int64, error)
+	// A form's copy in its other languages, with who wrote it last.
+	FormCopyList(ctx context.Context, formID uuid.UUID) ([]FormCopyListRow, error)
+	// The copy of several forms (the overview's statuses).
+	FormCopyListForms(ctx context.Context, formIds []uuid.UUID) ([]FormCopyListFormsRow, error)
+	FormCopyUpsert(ctx context.Context, arg FormCopyUpsertParams) error
 	FormDelete(ctx context.Context, arg FormDeleteParams) (int64, error)
 	FormDismissOrigin(ctx context.Context, arg FormDismissOriginParams) (int64, error)
 	FormGet(ctx context.Context, arg FormGetParams) (Form, error)
@@ -544,6 +573,10 @@ type Querier interface {
 	FormPublicIDTaken(ctx context.Context, arg FormPublicIDTakenParams) (bool, error)
 	FormRecordRejection(ctx context.Context, arg FormRecordRejectionParams) error
 	FormRename(ctx context.Context, arg FormRenameParams) (Form, error)
+	// Saves a form's own text from its language view: the copy, the field
+	// labels and the consent text, whose version moves when the words change.
+	FormSetCopy(ctx context.Context, arg FormSetCopyParams) (Form, error)
+	FormSetLanguage(ctx context.Context, arg FormSetLanguageParams) (Form, error)
 	FormSetStatus(ctx context.Context, arg FormSetStatusParams) (Form, error)
 	FormSlugTaken(ctx context.Context, arg FormSlugTakenParams) (bool, error)
 	// Per form: views, submissions, confirmations of those submissions and spam
@@ -551,6 +584,9 @@ type Querier interface {
 	FormStatsSince(ctx context.Context, arg FormStatsSinceParams) ([]FormStatsSinceRow, error)
 	FormSubmissionByID(ctx context.Context, arg FormSubmissionByIDParams) (FormSubmission, error)
 	FormSubmissionInsert(ctx context.Context, arg FormSubmissionInsertParams) error
+	// The language the contact's latest signup form was shown in (the
+	// confirmation page follows it).
+	FormSubmissionLatestLanguage(ctx context.Context, contactID uuid.UUID) (string, error)
 	FormSubmissionMarkAttempt(ctx context.Context, id uuid.UUID) error
 	FormSubmissionMarkReminded(ctx context.Context, arg FormSubmissionMarkRemindedParams) error
 	FormSubmissionMarkSent(ctx context.Context, arg FormSubmissionMarkSentParams) error
@@ -1138,6 +1174,14 @@ type Querier interface {
 	OverviewListChanges(ctx context.Context, arg OverviewListChangesParams) ([]OverviewListChangesRow, error)
 	// Overview (spec 7.1).
 	OverviewNextScheduled(ctx context.Context, arg OverviewNextScheduledParams) (OverviewNextScheduledRow, error)
+	// The page copy a workspace wrote, per language, with who wrote it.
+	PageCopyList(ctx context.Context, workspaceID uuid.UUID) ([]PageCopyListRow, error)
+	// Serializes changes to a workspace's page copy (the statuses are computed
+	// from all of it).
+	PageCopyLock(ctx context.Context, workspaceID uuid.UUID) error
+	PageCopySetLabels(ctx context.Context, arg PageCopySetLabelsParams) error
+	PageCopySetPages(ctx context.Context, arg PageCopySetPagesParams) error
+	PageCopyUserName(ctx context.Context, id uuid.UUID) (string, error)
 	PauseAutomation(ctx context.Context, arg PauseAutomationParams) error
 	ProvActiveFailovers(ctx context.Context, workspaceID uuid.UUID) ([]StreamFailover, error)
 	ProvAwaitingCampaigns(ctx context.Context, arg ProvAwaitingCampaignsParams) ([]ProvAwaitingCampaignsRow, error)
@@ -1210,6 +1254,9 @@ type Querier interface {
 	PublicInsertUnsubscribeEvent(ctx context.Context, arg PublicInsertUnsubscribeEventParams) error
 	PublicLatestIssueSlug(ctx context.Context, arg PublicLatestIssueSlugParams) (string, error)
 	PublicMessage(ctx context.Context, id uuid.UUID) (PublicMessageRow, error)
+	// The language a campaign message was delivered in and, when that wasn't
+	// the campaign's own language, the version's content (view online).
+	PublicMessageVersion(ctx context.Context, arg PublicMessageVersionParams) (PublicMessageVersionRow, error)
 	// Upcoming sends, for "Next issue: Tuesday 14 October" on the confirmation page.
 	PublicScheduledCampaigns(ctx context.Context, arg PublicScheduledCampaignsParams) ([]PublicScheduledCampaignsRow, error)
 	PublicSettingsByDomain(ctx context.Context, domain *string) (PublicSettingsByDomainRow, error)

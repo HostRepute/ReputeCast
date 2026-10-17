@@ -48,15 +48,17 @@ type ContactProfileField struct {
 
 // ContactConsentEvent is one consent event of a list.
 type ContactConsentEvent struct {
-	Action         string    `json:"action"`
-	Source         string    `json:"source"`
-	SourceLabel    string    `json:"sourceLabel"`
-	Detail         string    `json:"detail"`
-	Note           string    `json:"note"`
-	IP             string    `json:"ip,omitempty"`
-	Actor          string    `json:"actor,omitempty"`
-	ConsentVersion string    `json:"consentVersion,omitempty"`
-	At             time.Time `json:"at"`
+	Action         string `json:"action"`
+	Source         string `json:"source"`
+	SourceLabel    string `json:"sourceLabel"`
+	Detail         string `json:"detail"`
+	Note           string `json:"note"`
+	IP             string `json:"ip,omitempty"`
+	Actor          string `json:"actor,omitempty"`
+	ConsentVersion string `json:"consentVersion,omitempty"`
+	// Language is the language the consent text was shown in ("es").
+	Language string    `json:"language,omitempty"`
+	At       time.Time `json:"at"`
 }
 
 // ContactListConsent is the consent state and history of one list.
@@ -105,6 +107,8 @@ type ContactProfile struct {
 	Lists           []ContactListConsent       `json:"lists"`
 	Preferences     ContactProfilePreferences  `json:"preferences"`
 	ActivityTotal   int64                      `json:"activityTotal"`
+	// Language is the contact's language with where it came from.
+	Language ContactLanguage `json:"language"`
 }
 
 // getContact loads a contact visible to the caller.
@@ -168,6 +172,9 @@ func (s *Service) Profile(ctx context.Context, ws *store.Workspace, id uuid.UUID
 		return out, err
 	}
 	if out.ActivityTotal, err = s.Q.ContactActivityCount(ctx, &c.ID); err != nil {
+		return out, err
+	}
+	if out.Language, err = s.contactLanguage(ctx, c); err != nil {
 		return out, err
 	}
 	return out, nil
@@ -236,7 +243,7 @@ func (s *Service) listConsent(ctx context.Context, ws *store.Workspace, c store.
 			continue
 		}
 		v := ContactConsentEvent{Action: e.Action, Source: e.Source, SourceLabel: consentSourceLabel(e.Source), Detail: e.Detail, Note: e.Note,
-			Actor: e.ActorName, ConsentVersion: e.ConsentVersion, At: e.OccurredAt}
+			Actor: e.ActorName, ConsentVersion: e.ConsentVersion, Language: e.Language, At: e.OccurredAt}
 		if e.Ip != nil {
 			v.IP = e.Ip.String()
 		}
@@ -284,7 +291,7 @@ type ContactUpdate struct {
 	Company   *string        `json:"company,omitempty" maxLength:"200"`
 	Country   *string        `json:"country,omitempty" maxLength:"2"`
 	Timezone  *string        `json:"timezone,omitempty" maxLength:"64"`
-	Language  *string        `json:"language,omitempty" maxLength:"16"`
+	Language  *string        `json:"language,omitempty" maxLength:"40" doc:"A BCP 47 code such as es-MX; \"Spanish\" and \"es_MX\" are normalized. Empty clears it."`
 	Fields    map[string]any `json:"fields,omitempty" doc:"Custom field key → value; null clears it"`
 	Tags      []string       `json:"tags,omitempty" maxItems:"50"`
 }
@@ -358,7 +365,13 @@ func (s *Service) UpdateContact(ctx context.Context, ws *store.Workspace, id uui
 		set(&p.FirstName, in.FirstName)
 		set(&p.LastName, in.LastName)
 		set(&p.Company, in.Company)
-		set(&p.Language, in.Language)
+		if in.Language != nil {
+			code, err := NormalizeLanguage(*in.Language, "body.language")
+			if err != nil {
+				return err
+			}
+			p.Language = code
+		}
 		if in.Country != nil {
 			p.Country = strings.ToUpper(strings.TrimSpace(*in.Country))
 		}
@@ -405,6 +418,12 @@ func (s *Service) UpdateContact(ctx context.Context, ws *store.Workspace, id uui
 		after, err := q.UpdateContactFields(ctx, p)
 		if err != nil {
 			return err
+		}
+		if after.Language != c.Language {
+			source, name, by := languageSourceOf(ctx)
+			if err := RecordLanguageSource(ctx, q, id, source, name, s.now(), by); err != nil {
+				return err
+			}
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{
 			WorkspaceID: &ws.ID, Action: "contact.update", TargetType: "contact", TargetID: id.String(), TargetName: c.Email,
@@ -454,6 +473,10 @@ type NewContact struct {
 	// confirmation email and keeps them pending until they click it.
 	Consent string   `json:"consent" enum:"single,double"`
 	Tags    []string `json:"tags,omitempty" maxItems:"50"`
+	// Language is a BCP 47 code ("es-MX"); "Spanish" and "es_MX" are
+	// normalized, and a value that isn't a language answers 422 with the
+	// closest match.
+	Language string `json:"language,omitempty" maxLength:"40"`
 }
 
 type NewContactResult struct {
@@ -471,6 +494,10 @@ func (s *Service) CreateContact(ctx context.Context, ws *store.Workspace, in New
 	}
 	if len(in.Lists) == 0 {
 		return NewContactResult{}, api.Invalid("body.lists", "Pick at least one list.")
+	}
+	language, lerr := NormalizeLanguage(in.Language, "body.language")
+	if lerr != nil {
+		return NewContactResult{}, lerr
 	}
 	if sup, err := s.Q.GetSuppressionByEmail(ctx, store.GetSuppressionByEmailParams{WorkspaceID: ws.ID, Email: email}); err == nil {
 		return NewContactResult{}, api.Conflict(fmt.Sprintf("%s is on the suppression list (%s). Remove it there first if they gave you a new opt-in.", email, reasonName(sup.Reason)))
@@ -510,6 +537,12 @@ func (s *Service) CreateContact(ctx context.Context, ws *store.Workspace, in New
 		})
 		if err != nil {
 			return err
+		}
+		if language != "" {
+			source, name, by := languageSourceOf(ctx)
+			if err := q.ContactSetLanguage(ctx, store.ContactSetLanguageParams{ID: c.ID, Language: language, Source: source, SourceName: name, At: s.now(), SetBy: by}); err != nil {
+				return err
+			}
 		}
 		for _, l := range listIDs {
 			if err := q.UpsertMembership(ctx, store.UpsertMembershipParams{ListID: l, ContactID: c.ID, Status: status, Source: "team"}); err != nil {

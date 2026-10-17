@@ -242,6 +242,38 @@ func Format(l Lang, message string, args Args) (string, error) {
 	return f.nodes(nodes, nil), nil
 }
 
+// FormatHTML is Format for HTML output, as Msg.HTML formats: the text and
+// string values are escaped, HTML values are kept and tags go through
+// tags. It formats text a workspace wrote for a message, such as the
+// built-in labels of its public pages in a language ReputeCast isn't
+// translated into.
+func FormatHTML(l Lang, message string, args Args, tags Tags) (string, error) {
+	nodes, err := parse(message)
+	if err != nil {
+		return "", err
+	}
+	l = l.norm()
+	f := &formatter{lang: l, text: l.Locale, args: args, tags: tags, mode: modeHTML}
+	return f.nodes(nodes, nil), nil
+}
+
+// Arguments returns the arguments a message uses and its tags ("<link>"),
+// sorted, so text written for a message can be checked against its source.
+func Arguments(message string) ([]string, error) {
+	nodes, err := parse(message)
+	if err != nil {
+		return nil, err
+	}
+	names := map[string]bool{}
+	argNames(nodes, names)
+	out := make([]string, 0, len(names))
+	for n := range names {
+		out = append(out, n)
+	}
+	sort.Strings(out)
+	return out, nil
+}
+
 // ErrUnknownKey is returned by Lookup for a key the catalog doesn't have.
 var ErrUnknownKey = errors.New("i18n: unknown message key")
 

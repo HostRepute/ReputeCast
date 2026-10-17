@@ -87,6 +87,31 @@ func TestSegmentsDemo(t *testing.T) {
 		bad := map[string]any{"groups": []map[string]any{{"match": "all", "conditions": []map[string]any{{"field": "no_such_field", "op": "is", "value": "x"}}}}}
 		c.Do(http.MethodPost, ws+"/segments/preview", map[string]any{"mode": "builder", "definition": bad}).MustStatus(t, 422)
 
+		// "Language is Spanish" counts Spanish contacts, regional codes
+		// included (4,180 on SettingsLanguages).
+		spanish := map[string]any{"groups": []map[string]any{{"match": "all", "conditions": []map[string]any{{"field": "language", "op": "is", "value": "es"}}}}}
+		c.Do(http.MethodPost, ws+"/segments/preview", map[string]any{"mode": "builder", "definition": spanish}).MustStatus(t, 200).JSON(t, &p)
+		if p.Count != 4180 {
+			t.Fatalf("Language is Spanish: %d", p.Count)
+		}
+		var cat struct {
+			Fields []struct {
+				Key     string
+				Label   string
+				Options []struct{ Value, Label string }
+			}
+		}
+		c.Do(http.MethodGet, ws+"/segments/catalog", nil).MustStatus(t, 200).JSON(t, &cat)
+		found := false
+		for _, f := range cat.Fields {
+			if f.Key == "language" {
+				found = len(f.Options) == 5 && f.Options[1].Value == "es" && f.Options[1].Label == "Spanish" && f.Options[4].Label == "No language"
+			}
+		}
+		if !found {
+			t.Fatalf("the builder names the languages: %+v", cat.Fields)
+		}
+
 		in := map[string]any{"name": "Sunset, for the win-back", "mode": "builder", "definition": def}
 		viewer.Do(http.MethodPost, ws+"/segments", in).MustStatus(t, 403)
 		var s segment
