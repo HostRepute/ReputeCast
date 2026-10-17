@@ -39,6 +39,13 @@ const (
 	// KindSMTPRelayUnreachable tells instance admins the SMTP relay can't
 	// be reached from the internet.
 	KindSMTPRelayUnreachable = "smtp_relay_unreachable"
+	// Contact scoring (design expansion, phase 4).
+	KindScoreRecalculated = "score_recalculated" // every contact was scored again after a rule change
+	// Recurring digests (design expansion, phase 3).
+	KindDigestIssueHeld   = "digest_issue_held"   // Send Readiness blocked a digest issue: it waits for a person
+	KindDigestPaused      = "digest_paused"       // a digest paused (by a person, its owner's permissions, the feed)
+	KindDigestFeedFailing = "digest_feed_failing" // a digest's feed failed at preparation, then the issue was skipped
+	KindDigestDraftReady  = "digest_draft_ready"  // draft mode: an issue is a draft to send through Review & send
 	// AI assistant (design expansion, phase 3).
 	KindAIUsage       = "ai_usage"        // this month's AI use reached 80% of the cap, or the cap
 	KindAIKeyRejected = "ai_key_rejected" // the model provider rejected the workspace's key

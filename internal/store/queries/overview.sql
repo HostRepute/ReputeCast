@@ -10,7 +10,9 @@ LIMIT 1;
 
 -- name: OverviewDraftCount :one
 SELECT count(*)::bigint FROM campaigns
-WHERE workspace_id = @workspace_id AND deleted_at IS NULL AND status IN ('draft', 'approval', 'approved');
+WHERE workspace_id = @workspace_id AND deleted_at IS NULL AND status IN ('draft', 'approval', 'approved')
+  -- A digest's template and its next issue aren't drafts (internal/digests).
+  AND digest_role IN ('', 'issue');
 
 -- name: OverviewLatestReadiness :one
 SELECT verdict, checks, ran_at FROM readiness_runs WHERE campaign_id = @campaign_id ORDER BY ran_at DESC LIMIT 1;

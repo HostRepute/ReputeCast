@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/">
+  <title type="text">Acme status &amp; engineering notes</title>
+  <link href="https://notes.acme.io/" rel="alternate"/>
+  <link href="https://notes.acme.io/atom.xml" rel="self"/>
+  <id>urn:uuid:60a76c80-d399-11d9-b93C-0003939e0af6</id>
+  <updated>2026-10-15T09:00:00Z</updated>
+  <author><name>Acme Engineering</name></author>
+  <entry>
+    <title type="html">Feature flags at 2,000 teams: &lt;em&gt;what broke first&lt;/em&gt;</title>
+    <link href="/flags-at-2000-teams" rel="alternate"/>
+    <link rel="enclosure" type="image/png" href="https://notes.acme.io/img/flag-latency.png"/>
+    <id>tag:notes.acme.io,2026:flags-2000</id>
+    <published>2026-10-07T10:00:00-04:00</published>
+    <updated>2026-10-07T12:00:00-04:00</updated>
+    <author><name>Joel Weber</name></author>
+    <category term="engineering" label="Engineering"/>
+    <category term="flags" scheme="https://notes.acme.io/tag/"/>
+    <summary type="html">&lt;p&gt;When the 2,000th team turned on feature flags, rule evaluation went from 2 ms to 90 ms.&lt;/p&gt;</summary>
+  </entry>
+  <entry>
+    <title>Moving our ingest pipeline to Rust</title>
+    <link href="https://notes.acme.io/ingest-rust"/>
+    <id>tag:notes.acme.io,2026:ingest-rust</id>
+    <updated>2026-10-08T15:00:00Z</updated>
+    <media:thumbnail url="https://notes.acme.io/img/ingest-throughput.png"/>
+    <content type="xhtml"><div xmlns="http://www.w3.org/1999/xhtml"><p>Our event ingest handled <b>40,000</b> events a second in Go.</p></div></content>
+  </entry>
+</feed>

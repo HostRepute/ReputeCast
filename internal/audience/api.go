@@ -37,13 +37,14 @@ type contactsQuery struct {
 	Segment     string `query:"segment" doc:"Segment id"`
 	JoinedAfter string `query:"joinedAfter" maxLength:"10"`
 	Language    string `query:"language" maxLength:"16" doc:"A workspace language's code (es also matches es-MX), none or not_offered"`
-	Page        int    `query:"page" minimum:"1" default:"1"`
-	PageSize    int    `query:"pageSize" minimum:"1" maximum:"100" default:"10"`
+	ScoreGrowthQuery
+	Page     int `query:"page" minimum:"1" default:"1"`
+	PageSize int `query:"pageSize" minimum:"1" maximum:"100" default:"10"`
 }
 
 func (q contactsQuery) filter() ContactFilter {
 	return ContactFilter{Q: q.Q, List: q.List, Tier: q.Tier, Mailbox: q.Mailbox, Consent: q.Consent, Source: q.Source, Tag: q.Tag, Segment: q.Segment, JoinedAfter: q.JoinedAfter,
-		Language: q.Language}
+		Language: q.Language, ScoreGrowthFilter: q.ScoreGrowthQuery.filter()}
 }
 
 type ContactPathInput struct {

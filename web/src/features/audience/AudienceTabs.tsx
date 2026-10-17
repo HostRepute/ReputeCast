@@ -1,5 +1,7 @@
 import { $api } from '@/api/client'
 import { NavTabs } from '@/components/ui/Tabs'
+import { m as scoring } from '@/features/scoring/messages'
+import { useT } from '@/i18n'
 import { count } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 
@@ -16,6 +18,7 @@ export function useAudienceSummary() {
  */
 export function AudienceTabs() {
   const { slug } = useWorkspace()
+  const t = useT()
   const summary = useAudienceSummary()
   const s = summary.data
   const show = s && s.contacts > 0
@@ -28,6 +31,9 @@ export function AudienceTabs() {
         { label: `Contacts${n(s?.contacts ?? 0)}`, to: '/w/$workspace/audience', params: { workspace: slug }, exact: true },
         { label: `Segments${n(s?.segments ?? 0)}`, to: '/w/$workspace/audience/segments', params: { workspace: slug } },
         { label: 'List health', to: '/w/$workspace/audience/health', params: { workspace: slug } },
+        // Scoring and Growth (X13).
+        { label: t(scoring.tabScoring), to: '/w/$workspace/audience/scoring', params: { workspace: slug } },
+        { label: t(scoring.tabGrowth), to: '/w/$workspace/audience/growth', params: { workspace: slug } },
         { label: `Suppression list${n(s?.suppressions ?? 0)}`, to: '/w/$workspace/audience/suppressions', params: { workspace: slug } },
       ]}
     />

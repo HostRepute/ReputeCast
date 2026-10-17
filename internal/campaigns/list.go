@@ -103,6 +103,23 @@ type CampaignListItem struct {
 	Notes []string `json:"notes"`
 	// Readiness of unsent campaigns: verdict and number of warnings or blocks.
 	Readiness *ReadinessSummary `json:"readiness,omitempty"`
+	// Digest is set for an issue of a recurring digest: the Digest badge
+	// links to it, and the issue's status reads in place of the campaign's.
+	Digest *CampaignDigestRef `json:"digest,omitempty"`
+}
+
+// CampaignDigestRef is the digest an issue belongs to (internal/digests).
+type CampaignDigestRef struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	// IssueStatus is the issue's: prepared, waiting (for approval), held,
+	// draft, sending, sent…
+	IssueStatus string     `json:"issueStatus" enum:"collecting,preparing,prepared,waiting,held,draft,sending,sent,skipped,not_sent"`
+	Posts       int        `json:"posts"`
+	PreparedAt  *time.Time `json:"preparedAt,omitempty"`
+	SendAt      *time.Time `json:"sendAt,omitempty"`
+	// ApprovalID is the issue's open approval request.
+	ApprovalID string `json:"approvalId,omitempty"`
 }
 
 // ReadinessSummary is the latest Send Readiness verdict.
@@ -227,6 +244,15 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, p ListParams) (
 		if r.ReadinessVerdict != "" {
 			it.Readiness = &ReadinessSummary{Verdict: r.ReadinessVerdict, Issues: r.ReadinessIssues}
 			it.Blocked = r.ReadinessVerdict == "blocked" && r.Status == "draft"
+		}
+		if r.DigestID != nil && r.DigestName != "" {
+			ref := &CampaignDigestRef{ID: r.DigestID.String(), Name: r.DigestName, IssueStatus: r.DigestIssueStatus, Posts: int(r.DigestPosts),
+				PreparedAt: r.DigestPreparedAt, SendAt: r.DigestSendAt}
+			ref.ApprovalID = r.DigestApprovalID
+			if ref.IssueStatus == "prepared" && r.DigestApprovalStatus == "pending" {
+				ref.IssueStatus = "waiting"
+			}
+			it.Digest = ref
 		}
 		out.Items = append(out.Items, it)
 	}

@@ -109,6 +109,16 @@ const resolvers: Record<string, (ctx: BrowserContext, value: string) => Promise<
     lookup(ctx, 'imports', 'items', (i) => (which === 'draft' ? i.status === 'draft' : i.source === which && i.status === 'done'), `no ${which} import`),
   // A signup form by its name ({form:Newsletter signup}).
   form: (ctx, name) => lookup(ctx, 'forms', 'forms', (f) => f.name === name, `no form named ${name}`),
+  // A recurring digest by its name ({digest:Engineering blog roundup}), and its template's campaign
+  // ({digestTemplate:Engineering blog roundup}): the template isn't in the campaigns list.
+  digest: (ctx, name) => lookup(ctx, 'digests', 'items', (d) => d.name === name, `no digest named ${name}`),
+  async digestTemplate(ctx, name) {
+    const id = await lookup(ctx, 'digests', 'items', (d) => d.name === name, `no digest named ${name}`)
+    const r = await ctx.request.get(`${app}/api/v1/workspaces/${workspace}/digests/${id}`)
+    const body = (await r.json()) as { templateId?: string }
+    if (!body.templateId) throw new Error(`the digest ${name} has no template`)
+    return body.templateId
+  },
 }
 
 /** The id of the first item of a workspace list that matches. */

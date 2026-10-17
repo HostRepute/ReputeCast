@@ -1,7 +1,10 @@
 package app
 
 import (
+	"context"
+
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/config"
 	"github.com/hostrepute/reputecast/internal/integrations"
@@ -23,9 +26,14 @@ func (a *App) integrations() *integrations.Service {
 		Confirm:      a.audience(),
 		AllowPrivate: func() bool { return cfg.Webhooks.AllowPrivateNetworks },
 		Languages:    draftLanguages{languagesService(a)},
+		PostReported: integrationPostReported(a),
 		Sources:      catalogSources(a),
 	}
 }
+
+// integrationPostReported hears of the posts connected WordPress sites
+// report; the digests domain replaces it from its wire file.
+var integrationPostReported = func(*App) func(ctx context.Context, siteID uuid.UUID) { return nil }
 
 func init() {
 	apiRegistrars = append(apiRegistrars, func(a *App, h huma.API) {

@@ -66,6 +66,9 @@ type subscribeBody struct {
 	Honeypot                                           bool
 	Alert                                              string
 	ArchiveURL                                         string
+	// Page and Ref are where the visitor is and came from, posted back
+	// with the form for growth sources.
+	Page, Ref string
 }
 
 var errNoForm = errors.New("publicpages: no such form")
@@ -392,6 +395,7 @@ func (h *Handler) subscribePage(w http.ResponseWriter, r *http.Request) {
 		h.serverError(w, r, s, err)
 		return
 	}
+	body.Page, body.Ref = visitedURL(r, s.links.Subscribe(slugOf(c, page))), clipURL(r.Referer())
 	h.renderSubscribe(w, r, s, fl, page, body, http.StatusOK, false)
 }
 
@@ -424,7 +428,12 @@ func submissionFrom(r *http.Request) forms.Submission {
 		Email: f.Get("email"), FirstName: f.Get("first_name"), LastName: f.Get("last_name"), Company: f.Get("company"),
 		Lists: f["list"], Consent: f.Get("consent") != "", Honeypot: f.Get("website"), Token: f.Get("_t"), Plain: f.Get("_plain") == "1",
 		Origin: forms.OriginHost(r.Header.Get("Origin"), r.Header.Get("Referer")), IP: clientIP(r), UserAgent: r.UserAgent(),
-		Fields: map[string]string{}, Language: clipLang(f.Get("_lang")), BrowserLanguage: audience.BrowserLanguage(r.Header.Get("Accept-Language")),
+		Fields: map[string]string{}, Page: clipURL(f.Get("_page")), Referrer: clipURL(f.Get("_ref")),
+		Language: clipLang(f.Get("_lang")), BrowserLanguage: audience.BrowserLanguage(r.Header.Get("Accept-Language")),
+	}
+	if sub.Plain && sub.Page == "" {
+		// A copied plain form: the page it sits on is the referrer of the post.
+		sub.Page = clipURL(r.Referer())
 	}
 	if len(sub.Lists) > 50 {
 		sub.Lists = sub.Lists[:50]
@@ -541,6 +550,7 @@ func (h *Handler) subscribeResult(w http.ResponseWriter, r *http.Request, s *sit
 			h.serverError(w, r, s, err)
 			return
 		}
+		body.Page, body.Ref = sub.Page, sub.Referrer
 		h.renderSubscribe(w, r, s, fl, page, body, status, false)
 	case forms.OutcomeChallenge:
 		h.renderChallenge(w, r, s, pl, out.ChallengeID, "")

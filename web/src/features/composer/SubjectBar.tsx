@@ -5,6 +5,8 @@ import { inboxTime } from './format'
 import { useT } from '@/i18n'
 import { useVersionName } from '@/features/languages/composerParts'
 import { mz } from '@/features/languages/messages'
+import { FeedTokensMenu, SubjectPreviews, useDigestMode } from '@/features/digests/composer/DigestMode'
+import { dc } from '@/features/digests/composer/messages'
 import { IdeasButton } from '@/features/ai/composer/ideas'
 
 /** Subject of the variant being edited (A is the campaign itself). */
@@ -27,7 +29,10 @@ export function SubjectBar() {
   const t = useT()
   const [subject, setSubject] = useVariantSubject()
   const now = useNow(60_000)
-  const time = inboxTime(c.campaign.scheduledAt ?? now)
+  const digest = useDigestMode()
+  // A digest's template reads as its next issue: the subject with that issue's posts, sent at its time.
+  const shown = digest?.render ? { subject: digest.render.subject, preheader: digest.render.preheader } : { subject, preheader: c.preheader }
+  const time = inboxTime(digest?.render?.sendAt ?? digest?.digest?.next?.sendAt ?? digest?.digest?.nextSend ?? c.campaign.scheduledAt ?? now)
   const sender = c.campaign.sender?.name ?? c.context.senders[0]?.name ?? 'Your name'
   const heuristics = useMemo(() => c.checks?.subjectHeuristics ?? [], [c.checks])
   const spam = heuristics.length > 0 && subject.trim() !== ''
@@ -36,35 +41,39 @@ export function SubjectBar() {
   const language = useVersionName()
   const subjectLabel = language
     ? t(mz.subjectIn, { language })
-    : spam
+    : digest && !spam
+      ? t(dc.subjectLabel)
+      : spam
     ? `Subject · ${heuristics.length} spam ${heuristics.length === 1 ? 'heuristic' : 'heuristics'}: ${heuristics.join(', ')}`
     : c.abTest && c.abTest.kind === 'subject'
       ? `Subject · Variant ${c.variant}`
       : 'Subject'
   return (
     <div className="cmp-subj">
-      <label style={{ flex: '2 1 320px' }}>
-        <span className="k" style={spam ? { color: 'var(--warn-fg)' } : undefined}>
+      <label style={{ flex: digest ? '3 1 380px' : '2 1 320px' }}>
+        <span className="k flex items-center justify-between gap-2" style={spam ? { color: 'var(--warn-fg)' } : undefined}>
           {subjectLabel}
+          {digest && c.canEdit ? <FeedTokensMenu onInsert={(token) => setSubject(`${subject}${subject && !subject.endsWith(' ') ? ' ' : ''}${token}`)} /> : null}
         </span>
         <span className="flex gap-2">
           <input
-            className="in min-w-0 flex-1"
+            className={digest ? 'in mono min-w-0 flex-1' : 'in min-w-0 flex-1'}
             value={subject}
             placeholder="What is this email about?"
             onChange={(e) => setSubject(e.target.value.replace(/[\r\n]+/g, ' '))}
             readOnly={!c.canEdit}
             maxLength={998}
             aria-invalid={spam || undefined}
-            style={spam ? { borderColor: '#F59E0B', background: '#FFFBEB' } : undefined}
+            style={spam ? { borderColor: '#F59E0B', background: '#FFFBEB' } : digest ? { fontSize: 12 } : undefined}
           />
-          <IdeasButton />
+          {digest ? null : <IdeasButton />}
         </span>
       </label>
-      <label style={{ flex: '2 1 320px' }}>
+      <label style={{ flex: digest ? '2 1 260px' : '2 1 320px' }}>
         <span className="k">{language ? t(mz.preheaderIn, { language }) : 'Preheader'}</span>
         <input
-          className="in"
+          className={digest ? 'in mono' : 'in'}
+          style={digest ? { fontSize: 12 } : undefined}
           value={c.preheader}
           placeholder="Shown after the subject in most inboxes"
           onChange={(e) => c.setPreheader(e.target.value.replace(/[\r\n]+/g, ' '))}
@@ -72,9 +81,18 @@ export function SubjectBar() {
           maxLength={500}
         />
       </label>
-      <div style={{ flex: '3 1 360px' }}>
+      <div style={{ flex: digest ? '3 1 340px' : '3 1 360px' }}>
         <span className="k" id="inbox-label">
-          {language ? t(mz.inboxIn, { client: mobile ? 'iPhone Mail' : 'Gmail', language }) : `Inbox preview · ${mobile ? 'iPhone Mail' : 'Gmail'}`}
+          {language
+            ? t(mz.inboxIn, { client: mobile ? 'iPhone Mail' : 'Gmail', language })
+            : digest?.render
+              ? // The inbox preview follows "Preview with".
+                digest.preview === 'next'
+                ? t(dc.inboxNext, { number: digest.render.number, client: mobile ? 'iPhone Mail' : 'Gmail' })
+                : digest.preview === 'last'
+                  ? t(dc.inboxLast, { number: digest.render.number, client: mobile ? 'iPhone Mail' : 'Gmail' })
+                  : t(dc.inboxItems, { count: digest.render.count, client: mobile ? 'iPhone Mail' : 'Gmail' })
+              : `Inbox preview · ${mobile ? 'iPhone Mail' : 'Gmail'}`}
         </span>
         {empty ? (
           <div className="cmp-inbox empty" aria-labelledby="inbox-label">
@@ -93,16 +111,16 @@ export function SubjectBar() {
               </span>
             </span>
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {subject}
-              {c.preheader ? ` · ${c.preheader}` : ''}
+              {shown.subject}
+              {shown.preheader ? ` · ${shown.preheader}` : ''}
             </span>
           </div>
         ) : (
           <div className="cmp-inbox" aria-labelledby="inbox-label">
-            <span style={{ fontWeight: 700, width: sender.length > 6 ? 120 : 60, overflow: 'hidden', textOverflow: 'ellipsis' }}>{sender}</span>
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              <b style={{ fontWeight: 600 }}>{subject}</b>
-              {c.preheader ? <span style={{ color: 'var(--ink-3)' }}> - {c.preheader}</span> : null}
+            <span style={{ fontWeight: 700, width: digest ? 96 : sender.length > 6 ? 120 : 60, overflow: 'hidden', textOverflow: 'ellipsis', flex: digest ? 'none' : undefined }}>{sender}</span>
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', minWidth: digest ? 0 : undefined }}>
+              <b style={{ fontWeight: 600 }}>{shown.subject}</b>
+              {shown.preheader ? <span style={{ color: 'var(--ink-3)' }}> - {shown.preheader}</span> : null}
             </span>
             <span className="k" style={{ marginLeft: 'auto' }}>
               {time}
@@ -110,6 +128,7 @@ export function SubjectBar() {
           </div>
         )}
       </div>
+      {digest ? <SubjectPreviews subject={subject} onSubject={setSubject} /> : null}
     </div>
   )
 }

@@ -990,9 +990,10 @@ func TestArchive(t *testing.T) {
 	env, _ := demo(t)
 	t.Run("list", func(t *testing.T) {
 		r := get(t, env, "/p/acme-newsletter/archive")
-		must(t, r, 200, "Newsletter archive", "Every issue of the Weekly Digest and Product Updates since ", " 44 issues.",
+		must(t, r, 200, "Newsletter archive", "Every issue of the Weekly Digest and Product Updates since ", " 46 issues.",
 			">All</a>", ">Weekly Digest</a>", ">Product Updates</a>", "?list=weekly-digest", "?list=product-updates",
-			"1 to 10 of 44", `href="`+env.Server.URL+`/p/acme-newsletter/archive?page=2"`, "Older issues",
+			">Engineering blog roundup</a>", // a recurring digest's filter, on the first load too
+			"1 to 10 of 46", `href="`+env.Server.URL+`/p/acme-newsletter/archive?page=2"`, "Older issues",
 			"What shipped in October, and what we're retiring", `<meta name="robots" content="index, follow">`,
 			`<link rel="canonical" href="http://news.acme.io/archive">`, `type="application/rss+xml"`, "Get the next one in your inbox")
 		lacks(t, r, "Newer issues", "Beta Program")
@@ -1016,9 +1017,9 @@ func TestArchive(t *testing.T) {
 	})
 	t.Run("page 2 and past the end", func(t *testing.T) {
 		r := get(t, env, "/p/acme-newsletter/archive?page=2")
-		must(t, r, 200, "11 to 20 of 44", "Newer issues", "Older issues", "page 2</title>")
+		must(t, r, 200, "11 to 20 of 46", "Newer issues", "Older issues", "page 2</title>")
 		r = get(t, env, "/p/acme-newsletter/archive?page=5")
-		must(t, r, 200, "41 to 44 of 44")
+		must(t, r, 200, "41 to 46 of 46")
 		lacks(t, r, "Older issues")
 		must(t, get(t, env, "/p/acme-newsletter/archive?page=99"), 404, "There are no older issues.")
 	})
@@ -1028,7 +1029,7 @@ func TestArchive(t *testing.T) {
 		lacks(t, r, "Shipping on Fridays, revisited", "What shipped in October")
 		r = get(t, env, "/p/acme-newsletter/archive?q=%25") // a literal % matches nothing special
 		must(t, r, 200)
-		lacks(t, r, "1 to 10 of 44")
+		lacks(t, r, "1 to 10 of 46")
 		r = get(t, env, "/p/acme-newsletter/archive?q=zzz-nothing")
 		must(t, r, 200, "No issues match “zzz-nothing”.")
 	})
@@ -1044,7 +1045,24 @@ func TestArchive(t *testing.T) {
 		must(t, r, 200, "What shipped in October, and what we're retiring", `aria-current="true">Product Updates</a>`)
 		lacks(t, r, "The case for boring infrastructure", "Shipping on Fridays")
 		r = get(t, env, "/p/acme-newsletter/archive?list=no-such-list")
-		must(t, r, 200, "1 to 10 of 44")
+		must(t, r, 200, "1 to 10 of 46")
+	})
+	t.Run("a recurring digest's filter, and its archive switch", func(t *testing.T) {
+		r := get(t, env, "/p/acme-newsletter/archive")
+		must(t, r, 200, ">Engineering blog roundup</a>", "?list=engineering-blog-roundup")
+		r = get(t, env, "/p/acme-newsletter/archive?list=engineering-blog-roundup")
+		must(t, r, 200, `aria-current="true">Engineering blog roundup</a>`, "1 to 2 of 2", "from the Acme blog")
+		lacks(t, r, "The case for boring infrastructure", "What shipped in October")
+		// "Show in the archive" off: the digest's issues and its filter leave the archive.
+		if _, err := env.App.Pool.Exec(context.Background(), `UPDATE digests SET archive = false`); err != nil {
+			t.Fatal(err)
+		}
+		r = get(t, env, "/p/acme-newsletter/archive")
+		must(t, r, 200, " 44 issues.", "1 to 10 of 44")
+		lacks(t, r, ">Engineering blog roundup</a>")
+		if _, err := env.App.Pool.Exec(context.Background(), `UPDATE digests SET archive = true`); err != nil {
+			t.Fatal(err)
+		}
 	})
 	t.Run("issue page", func(t *testing.T) {
 		r := get(t, env, "/p/acme-newsletter/archive/the-case-for-boring-infrastructure")
@@ -1102,7 +1120,7 @@ func TestArchive(t *testing.T) {
 		if err := xml.Unmarshal([]byte(r.Body), &feed); err != nil {
 			t.Fatalf("feed isn't XML: %v", err)
 		}
-		if n := len(feed.Channel.Items); n == 0 || n > 44 {
+		if n := len(feed.Channel.Items); n == 0 || n > 46 {
 			t.Errorf("%d items", n)
 		}
 		if feed.Channel.Title != "Acme newsletter" || feed.Channel.Link != "http://news.acme.io/archive" {
@@ -1134,8 +1152,8 @@ func TestArchive(t *testing.T) {
 				t.Errorf("sitemap lacks %s", want)
 			}
 		}
-		if len(set.URLs) != 46 {
-			t.Errorf("%d URLs, want the subscribe page, the archive and 44 issues", len(set.URLs))
+		if len(set.URLs) != 48 {
+			t.Errorf("%d URLs, want the subscribe page, the archive and 46 issues", len(set.URLs))
 		}
 	})
 	t.Run("archive off", func(t *testing.T) {
@@ -1173,7 +1191,7 @@ func TestCustomDomain(t *testing.T) {
 	})
 	t.Run("archive at the root", func(t *testing.T) {
 		r := news(http.MethodGet, "/archive", nil, nil)
-		must(t, r, 200, "Newsletter archive", "44 issues.", `href="http://news.acme.io/archive/`)
+		must(t, r, 200, "Newsletter archive", "46 issues.", `href="http://news.acme.io/archive/`)
 		must(t, news(http.MethodGet, "/archive/the-case-for-boring-infrastructure", nil, nil), 200, "The case for boring infrastructure")
 		must(t, news(http.MethodGet, "/archive.rss", nil, nil), 200, "<rss")
 	})

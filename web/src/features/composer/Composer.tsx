@@ -28,6 +28,7 @@ import { withoutAltText } from '@/features/accessibility/composer/Status'
 import { ComposerCompare, ComposerCompareFooter, ComposerMissingLanguage, versionLanguage } from '@/features/languages/composerParts'
 import { useLanguagesCache } from '@/features/languages/composer'
 import { useSourceEdits } from '@/features/languages/sourceEdits'
+import { DigestModeProvider, digestLeftPanel } from '@/features/digests/composer/DigestMode'
 import { AssistRight } from '@/features/ai/composer/panel'
 import { ComposerAssistScope, useComposerAssistState } from '@/features/ai/composer/state'
 import { AITranslateFooter, AITranslateView } from '@/features/ai/composer/translate'
@@ -655,6 +656,7 @@ export function Composer({
     <ComposerCtx.Provider value={state}>
       <ComposerAssistScope value={assist}>
       <AccessibilityProvider>
+      <DigestModeProvider>
       <div className="cmp rc-app">
         <a href="#main" className="skip">
           Skip to content
@@ -667,7 +669,7 @@ export function Composer({
         <div className={`flex flex-1 flex-col${view === 'preview' ? ' cmp-offstage' : ''}`} inert={view === 'preview' || undefined} aria-hidden={view === 'preview' || undefined}>
           {view === 'visual' && !comparing && !missingLanguage ? <SubjectBar /> : null}
           <div className="cmp-body">
-            {view === 'visual' && !comparing && !missingLanguage ? <LeftPanel /> : null}
+            {view === 'visual' && !comparing && !missingLanguage ? <LeftPanel {...digestLeftPanel(campaign, context.postalAddress)} /> : null}
             {comparing ? assist.translating ? <AITranslateView /> : <ComposerCompare /> : null}
             {missingLanguage && !comparing ? <ComposerMissingLanguage language={missingLanguage} /> : null}
             <div
@@ -705,6 +707,7 @@ export function Composer({
           }}
         />
       </div>
+      </DigestModeProvider>
       </AccessibilityProvider>
       </ComposerAssistScope>
     </ComposerCtx.Provider>

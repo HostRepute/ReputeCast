@@ -210,6 +210,8 @@ func triggerMatches(t AutomationTrigger, ev store.ClaimAutomationEventsRow) bool
 		return t.Event == ev.Ref
 	case TriggerDateField:
 		return t.Field == ev.Ref
+	case TriggerScoreCrosses:
+		return scoreTriggerMatches(t, ev.Payload)
 	}
 	return false
 }
@@ -228,7 +230,11 @@ func (s *Service) enroll(ctx context.Context, q *store.Queries, stats statsBuf, 
 	if !decoded || !triggerMatches(t, ev) || f.LiveVersion == nil {
 		return false, nil
 	}
-	if t.Reentry != "always" {
+	if t.Kind == TriggerScoreCrosses {
+		if ok, err := scoreTriggerAllows(ctx, q, t, f.ID, ev.ContactID, now); err != nil || !ok {
+			return false, err
+		}
+	} else if t.Reentry != "always" {
 		exists, err := q.AutomationRunExists(ctx, store.AutomationRunExistsParams{AutomationID: f.ID, ContactID: ev.ContactID})
 		if err != nil || exists {
 			return false, err
@@ -672,6 +678,8 @@ func fieldMatches(c *store.AutomationContactRow, cond *AutomationCondition) bool
 		return !strings.EqualFold(v, cond.Value)
 	case "contains":
 		return strings.Contains(strings.ToLower(v), strings.ToLower(cond.Value))
+	case "is_one_of":
+		return oneOf(v, cond.Value)
 	}
 	return strings.EqualFold(v, cond.Value)
 }

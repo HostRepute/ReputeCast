@@ -13,6 +13,7 @@
 # Node
 node_modules/
 /web/.vite/
+/web/.tanstack/
 /web/coverage/
 /web/test-results/
 /web/playwright-report/

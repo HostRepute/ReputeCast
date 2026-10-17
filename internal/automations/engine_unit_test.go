@@ -62,9 +62,17 @@ func TestFieldConditions(t *testing.T) {
 		{AutomationCondition{Field: "first_name", Op: "contains", Value: "an"}, true},
 		{AutomationCondition{Field: "company", Op: "is_set"}, false},
 		{AutomationCondition{Field: "company", Op: "is_not_set"}, true},
+		{AutomationCondition{Field: "plan", Op: "is_one_of", Value: "team, pro"}, true},
+		{AutomationCondition{Field: "plan", Op: "is_one_of", Value: "team,business"}, false},
+		{AutomationCondition{Field: "company", Op: "is_one_of", Value: "team,"}, false},
 	} {
 		if got := fieldMatches(c, &tc.cond); got != tc.want {
 			t.Errorf("%+v: %v", tc.cond, got)
+		}
+	}
+	for in, want := range map[string]string{"team": "team", "team, business": "team or business", "a,b,c": "a, b or c", " , ": ""} {
+		if got := orValues(in); got != want {
+			t.Errorf("orValues(%q) = %q, want %q", in, got, want)
 		}
 	}
 }

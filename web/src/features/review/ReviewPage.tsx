@@ -27,6 +27,9 @@ import { fixReason, whenText } from './parts'
 import { IncompleteBanner, RunningBanner, ScheduledBanner, ScheduledTiles, StaleBanner, VerdictBanner } from './Verdict'
 import { ByVersion, EACH, languageRows, sentVersions } from '@/features/languages/review'
 import { mr } from '@/features/languages/messages'
+import { digestSendsIssue, IssueReviewCard } from '@/features/digests/IssueParts'
+import { im } from '@/features/digests/issueMessages'
+import { dateTime, useIssueInfo } from '@/features/digests/shared'
 import './review.css'
 
 const reviewPath = '/api/v1/workspaces/{workspace}/campaigns/{campaignId}/review' as const
@@ -162,6 +165,9 @@ function ReviewBody({
   const [unschedule, setUnschedule] = useState(false)
   // "Fix 2 in one click" shows what it changes first.
   const [oneClick, setOneClick] = useState<{ check: Check; fix: Fix }>()
+  // A recurring digest's issue: the digest sends it at its time, so Release issue takes Schedule's place.
+  const issue = useIssueInfo(d.campaign.id)
+  const digestSends = digestSendsIssue(issue)
 
   // The checks run on their own when the campaign changed since the last
   // run (or never ran): once per visit, for people who may run them.
@@ -348,18 +354,21 @@ function ReviewBody({
 
   if (!run) {
     return (
-      <EmptyState
-        title={t(m.neverRanTitle)}
-        action={
-          d.access.canEdit && d.campaign.editable ? (
-            <Button variant="primary" onClick={() => void runChecks()}>
-              {t(m.runChecks)}
-            </Button>
-          ) : null
-        }
-      >
-        {t(m.neverRanBody)}
-      </EmptyState>
+      <>
+        {issue ? <IssueReviewCard issue={issue} needsApproval={d.approval.required && !d.approval.valid} /> : null}
+        <EmptyState
+          title={t(m.neverRanTitle)}
+          action={
+            d.access.canEdit && d.campaign.editable ? (
+              <Button variant="primary" onClick={() => void runChecks()}>
+                {t(m.runChecks)}
+              </Button>
+            ) : null
+          }
+        >
+          {t(m.neverRanBody)}
+        </EmptyState>
+      </>
     )
   }
 
@@ -511,9 +520,11 @@ function ReviewBody({
                   {fixAllLabel('block', blockFixes.length)}
                 </Button>
               ) : null}
-              <Button variant="primary" className="rv-big rv-off" disabledReason={sendReason}>
-                {label}
-              </Button>
+              {digestSends ? null : (
+                <Button variant="primary" className="rv-big rv-off" disabledReason={sendReason}>
+                  {label}
+                </Button>
+              )}
             </>
           ) : (
             <>
@@ -522,9 +533,11 @@ function ReviewBody({
                   {fixAllLabel('warn', warnFixes.length)}
                 </Button>
               ) : null}
-              <Button variant="primary" className="rv-big" disabledReason={sendReason} onClick={openSend}>
-                {label}
-              </Button>
+              {digestSends ? null : (
+                <Button variant="primary" className="rv-big" disabledReason={sendReason} onClick={openSend}>
+                  {label}
+                </Button>
+              )}
             </>
           )
         }
@@ -569,12 +582,13 @@ function ReviewBody({
 
   const editReason = !a.canEdit ? deniedReason('campaigns:edit', helpers) : !c.editable ? t(m.alreadySending) : undefined
   const startAt = d.schedule.mode === 'now' ? null : (d.schedule.at ?? null)
-  const showCTA = c.editable && !scheduled && !d.held && !approvalCard && !incomplete
+  const showCTA = c.editable && !scheduled && !d.held && !approvalCard && !incomplete && !digestSends
   const scheduleHint =
     mode === 'waiting' ? t(m.timeRestarts) : mode === 'approved' ? t(m.timeInvalidates) : undefined
 
   return (
     <>
+      {issue ? <IssueReviewCard issue={issue} recipients={recipients} needsApproval={d.approval.required && !d.approval.valid} /> : null}
       {top}
       <div className="flex flex-wrap items-start gap-5">
         <div className="flex min-w-0 flex-[1_1_560px] flex-col gap-5">
@@ -600,7 +614,9 @@ function ReviewBody({
             disabledReason={editReason}
             onSave={(th: Thresholds) => saveSettings({ thresholds: th }, 'thresholds')}
           />
-          {blocked && !scheduled ? (
+          {digestSends && issue?.sendAt ? (
+            <ScheduleNote text={t(im.scheduleNote, { when: dateTime(issue.sendAt) })} />
+          ) : blocked && !scheduled ? (
             <ScheduleNote text={t(m.availableOnceFixed)} />
           ) : scheduled ? (
             <ScheduleNote text={t(m.scheduledNote, { mode: d.schedule.mode === 'now' ? 'now' : 'at', when: scheduleSentence(d.schedule) || t(m.savedTime) })} />

@@ -67,6 +67,16 @@ type schedule struct {
 
 var systemActor = &audit.Actor{Type: authz.ActorSystem, Name: "System"}
 
+// systemFor is the system actor of a campaign's start and completion.
+func (e *Engine) systemFor(ctx context.Context, campaignID uuid.UUID) *audit.Actor {
+	if e.SystemActor != nil {
+		if a := e.SystemActor(ctx, campaignID); a != nil {
+			return a
+		}
+	}
+	return systemActor
+}
+
 // Start implements Starter: it schedules the send when the campaign is set
 // for a later time, and otherwise reruns Send Readiness and starts it.
 // When the recheck turns Blocked nothing is sent and the error wraps
@@ -178,7 +188,7 @@ func (e *Engine) StartWith(ctx context.Context, campaignID uuid.UUID, o StartOpt
 		if records(ctx) {
 			actor, meta := e.actorFor(ctx, by, byName), map[string]any{"verdict": rc.Verdict}
 			if scheduled {
-				actor = systemActor
+				actor = e.systemFor(ctx, c.ID)
 				meta["scheduled_by"] = byName
 				meta["summary"] = "Scheduled send started · scheduled by " + firstNonEmpty(byName, "a member")
 				meta["source"], meta["via"] = "send worker", "schedule"

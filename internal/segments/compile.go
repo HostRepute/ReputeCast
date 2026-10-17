@@ -134,6 +134,10 @@ func interval(c SegmentCondition) string {
 // condition renders one condition. Field keys of custom fields are checked
 // against ^[a-z][a-z0-9_]*$ by Validate, so they're safe to inline.
 func condition(t *sqlText, c SegmentCondition, custom map[string]CustomField) {
+	if f, ok := extraCompile[c.Field]; ok {
+		f(t, c)
+		return
+	}
 	switch c.Field {
 	case "mailbox_provider", "tier", "consent", "source", "country":
 		op := " = "
@@ -225,6 +229,9 @@ func customCondition(t *sqlText, key string, f CustomField, c SegmentCondition) 
 		return
 	case "is_false":
 		t.raw("coalesce(" + jsonv + ", 'false'::jsonb) = 'false'::jsonb")
+		return
+	case "is_one_of":
+		oneOfCondition(t, text, c.Value)
 		return
 	}
 	switch f.Type {
