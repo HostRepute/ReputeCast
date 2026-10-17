@@ -346,7 +346,7 @@ func demoSegment(t segmentTask) map[string]any {
 	}
 	switch {
 	case strings.Contains(d, "phone") || strings.Contains(d, "mobile") || strings.Contains(d, "device"):
-		return map[string]any{"nothing": "There's no condition for “opened on a phone”. Nothing was drafted."}
+		return map[string]any{"nothing": "There's no condition for “opened on a phone”."}
 	case strings.Contains(d, "team-plan") || strings.Contains(d, "team plan"):
 		conds := []segments.SegmentCondition{}
 		if hasField("custom:plan") {
@@ -408,7 +408,7 @@ func demoSegment(t segmentTask) map[string]any {
 		conds = append(conds, cond("clicked", "in_last", "", days, "days"))
 	}
 	if len(conds) == 0 {
-		return map[string]any{"nothing": "There's no condition for that description. Nothing was drafted."}
+		return map[string]any{"nothing": "There's no condition for that description."}
 	}
 	return map[string]any{"groups": []segments.SegmentGroup{{Match: "all", Conditions: conds}}}
 }
@@ -426,7 +426,7 @@ func demoSummary(n summaryNumbers) string {
 	fmt.Fprintf(&b, "%s reached %s inboxes, %s of the %s sent. ", n.Campaign, num(n.Delivered), pct(n.DeliveredRate), num(n.Sent))
 	fmt.Fprintf(&b, "%s opened it as people; another %s were machine opens, which aren't counted as people. ", pct(n.HumanOpenRate), pct(n.MachineOpenRate))
 	if len(n.TopLinks) > 0 {
-		fmt.Fprintf(&b, "%s clicked, and the %s link drew %.0f%% of the clicks. ", pct(n.ClickRate), strings.ToLower(n.TopLinks[0].Label), n.TopLinks[0].Share)
+		fmt.Fprintf(&b, "%s clicked, and the “%s” link drew %.0f%% of the clicks. ", pct(n.ClickRate), n.TopLinks[0].Label, n.TopLinks[0].Share)
 	} else {
 		fmt.Fprintf(&b, "%s clicked. ", pct(n.ClickRate))
 	}

@@ -903,6 +903,97 @@
     font-size: 13px;
     cursor: pointer;
   }
+  /* Describe the segment, and the draft in the builder. */
+  .ai-describe {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px 18px;
+  }
+  .ai-describe-invite {
+    border-style: dashed;
+  }
+  .ai-describe-in {
+    flex: 1;
+    min-width: 0;
+    height: auto;
+    min-height: 58px;
+    padding: 8px 10px;
+    line-height: 1.5;
+    resize: vertical;
+  }
+  .ai-draft-strip {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px 8px 14px;
+    border: 1px solid var(--accent-line);
+    background: var(--accent-tint);
+    border-radius: 8px;
+    font-size: 13px;
+  }
+  .scond.ai-added {
+    border-color: #86efac;
+    border-left: 4px solid #16a34a;
+    background: #f0fdf4;
+  }
+  .scond.ai-removed {
+    border-color: var(--bad-line);
+    border-left: 4px solid var(--bad-strong);
+    background: var(--bad-tint);
+  }
+  .scond.ai-removed .in {
+    text-decoration: line-through;
+    color: var(--bad-fg);
+  }
+  .ai-dmark {
+    display: inline-flex;
+    align-items: center;
+    height: 22px;
+    padding: 0 8px;
+    border-radius: 11px;
+    font-size: 11.5px;
+    font-weight: 700;
+  }
+  .ai-dmark-added {
+    background: var(--ok-bg);
+    color: var(--ok-fg);
+  }
+  .ai-dmark-removed {
+    background: var(--bad-bg);
+    color: var(--bad-fg);
+  }
+  /* The summary kept at the top of a report. */
+  .ai-kept {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px 18px;
+    border-color: var(--accent-line);
+    background: var(--accent-tint);
+  }
+  .ai-kept-h {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+  }
+  .ai-kept-f {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+  }
+  .ai-kept-hr {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+  }
   /* Small screens: the header's facts under the title, actions full width. */
   @media (max-width: 640px) {
     .ai-head,

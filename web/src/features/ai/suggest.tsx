@@ -102,7 +102,8 @@ export function useSuggest<V, T>(run: (vars: V, signal: AbortSignal) => Promise<
     runRef.current = run
   })
   useEffect(() => () => ctl.current?.abort(), [])
-  const start = useCallback(async (vars: V) => {
+  // Resolves with the answer (undefined when it failed or was cancelled).
+  const start = useCallback(async (vars: V): Promise<T | undefined> => {
     last.current = { vars }
     ctl.current?.abort()
     const c = new AbortController()
@@ -110,10 +111,12 @@ export function useSuggest<V, T>(run: (vars: V, signal: AbortSignal) => Promise<
     setState({ phase: 'working' })
     try {
       const data = await runRef.current(vars, c.signal)
-      if (!c.signal.aborted) setState({ phase: 'done', data })
+      if (c.signal.aborted) return undefined
+      setState({ phase: 'done', data })
+      return data
     } catch (e) {
-      if (c.signal.aborted) return
-      setState({ phase: 'error', error: suggestError(e) })
+      if (!c.signal.aborted) setState({ phase: 'error', error: suggestError(e) })
+      return undefined
     }
   }, [])
   const retry = useCallback(() => {

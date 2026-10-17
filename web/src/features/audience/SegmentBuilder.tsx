@@ -16,6 +16,8 @@ import { AudienceTabs } from './AudienceTabs'
 import { FitSelect } from './FitSelect'
 import { SqlBlock, SqlEditor } from './SqlCode'
 import { tierColor, tierLabel, type Tier } from './labels'
+import { DraftBanner, DraftFooter, DraftMark, DraftSqlNote, draftCountLabels, useSegmentAssist, type SegmentDraft } from '@/features/ai/segment'
+import { useT } from '@/i18n'
 import './audience.css'
 
 type Catalog = Schemas['SegmentCatalog']
@@ -33,6 +35,16 @@ interface Group {
   key: number
   match: 'all' | 'any'
   conditions: Cond[]
+}
+/** An AI segment draft being looked at: what it replaced, and its marks. */
+interface AIDraft {
+  draft: SegmentDraft
+  before: Group[]
+  beforeCount: number
+  beforeEmpty: boolean
+  added: Set<number>
+  /** Conditions the draft removes, by group: shown struck through, not counted. */
+  removed: Cond[][]
 }
 interface Draft {
   name: string
@@ -218,6 +230,50 @@ function Builder({ segmentId, detail, catalog }: { segmentId: string; detail?: S
       groups: d.groups.map((g, i) => (i === gi ? { ...g, conditions: g.conditions.map((c, j) => (j === ci ? { ...c, ...patch } : c)) } : g)),
     }))
   const generated = preview.data?.generatedSql || detail?.generatedSql || ''
+  // Describe the segment (features/ai): a draft shows in the conditions, marked, until it's decided.
+  const t = useT()
+  const [ai, setAi] = useState<AIDraft | null>(null)
+  // A new segment's first condition, as the builder put it there, isn't one the person chose.
+  const conditionsOf = (d: Draft) => JSON.stringify(toInput({ ...d, name: '' }, catalog).definition)
+  const untouched = segmentId === 'new' && conditionsOf(draft) === conditionsOf(initial)
+  const segAI = useSegmentAssist({
+    current: () => (untouched ? { groups: [] } : (toInput(draft, catalog).definition ?? { groups: [] })),
+    segmentId,
+    fields: catalog.fields.map((f) => f.label),
+    onDraft: (d) => {
+      const built = d.groups
+        .map((g) => {
+          const conditions: Cond[] = []
+          const removed: Cond[] = []
+          const marks: number[] = []
+          g.conditions.forEach((x) => {
+            const c: Cond = { key: k(), field: x.field, op: x.op, value: x.value ?? '', amount: x.amount || 30, unit: x.unit === 'weeks' ? 'weeks' : 'days' }
+            if (x.mark === 'removed') removed.push(c)
+            else {
+              if (x.mark === 'added') marks.push(c.key)
+              conditions.push(c)
+            }
+          })
+          return { group: { key: k(), match: g.match === 'any' ? ('any' as const) : ('all' as const), conditions }, removed, marks }
+        })
+        .filter((x) => x.group.conditions.length)
+      setAi({
+        draft: d,
+        before: ai?.before ?? draft.groups,
+        beforeCount: ai?.beforeCount ?? (untouched ? preview.data?.total : (preview.data?.count ?? detail?.count)) ?? 0,
+        beforeEmpty: ai?.beforeEmpty ?? untouched,
+        added: new Set(built.flatMap((x) => x.marks)),
+        removed: built.map((x) => x.removed),
+      })
+      setDraft((dd) => ({ ...dd, groups: built.map((x) => x.group) }))
+    },
+  })
+  const decide = (how: 'accepted' | 'accepted_edits' | 'rejected') => {
+    if (!ai) return
+    segAI.decide(ai.draft, how)
+    if (how === 'rejected') setDraft((dd) => ({ ...dd, groups: ai.before }))
+    setAi(null)
+  }
   return (
     <Page
       title="Audience"
@@ -229,7 +285,10 @@ function Builder({ segmentId, detail, catalog }: { segmentId: string; detail?: S
             disabled={!dirty && segmentId !== 'new'}
             onClick={() => {
               if (segmentId === 'new' && !dirty) void navigate({ to: '/w/$workspace/audience/segments', params: { workspace: slug } })
-              else setDraft(initial)
+              else {
+                if (ai) decide('rejected')
+                setDraft(initial)
+              }
             }}
           >
             Discard
@@ -257,12 +316,23 @@ function Builder({ segmentId, detail, catalog }: { segmentId: string; detail?: S
             </select>
           </label>
         </div>
+        {draft.mode === 'builder' ? segAI.card : null}
         {draft.mode === 'builder' ? (
           <div className="card flex flex-col gap-3 p-4.5">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="h2">Conditions</h2>
               <span className="k">Groups combine with AND; inside a group pick ALL or ANY</span>
             </div>
+            {ai ? (
+              <DraftBanner
+                draft={ai.draft}
+                model={segAI.assist.model}
+                onAccept={() => decide('accepted')}
+                onEdit={() => decide('accepted_edits')}
+                onReject={() => decide('rejected')}
+                onRetry={segAI.retry}
+              />
+            ) : null}
             {draft.groups.map((g, gi) => (
               <div key={g.key} className="contents">
                 {gi > 0 ? (
@@ -296,9 +366,13 @@ function Builder({ segmentId, detail, catalog }: { segmentId: string; detail?: S
                       Remove group
                     </Button>
                   </div>
+                  {(ai?.removed[gi] ?? []).map((c) => (
+                    <Condition key={c.key} c={c} catalog={catalog} invalid={false} onChange={() => undefined} onField={() => undefined} onRemove={() => undefined} canRemove={false} mark="removed" />
+                  ))}
                   {g.conditions.map((c, ci) => (
                     <Condition
                       key={c.key}
+                      mark={ai?.added.has(c.key) ? 'added' : undefined}
                       c={c}
                       catalog={catalog}
                       invalid={bad?.[0] === gi && bad?.[1] === ci}
@@ -324,6 +398,7 @@ function Builder({ segmentId, detail, catalog }: { segmentId: string; detail?: S
               </Button>
               <span className="k self-center">Suppressed, bounced and role addresses are always excluded at send time, whatever the segment says.</span>
             </div>
+            {ai ? <DraftFooter draft={ai.draft} /> : null}
           </div>
         ) : (
           <div className="card flex flex-col gap-3 p-4.5">
@@ -366,12 +441,21 @@ function Builder({ segmentId, detail, catalog }: { segmentId: string; detail?: S
                 <span className="k self-center">needs segments:sql</span>
               </div>
             </div>
-            <div className="px-4.5 py-3.5">{generated ? <SqlBlock sql={generated} label="Generated SQL" /> : <Skeleton w="100%" h={120} />}</div>
+            <div className="flex flex-col gap-3 px-4.5 py-3.5">
+              {ai ? <DraftSqlNote /> : null}
+              {generated ? <SqlBlock sql={generated} label="Generated SQL" /> : <Skeleton w="100%" h={120} />}
+            </div>
           </div>
         ) : null}
       </section>
       <aside className="flex max-w-[400px] flex-[1_1_320px] flex-col gap-4" aria-label="Count and saved segments">
-        <LiveCount preview={preview} name={draft.name} detail={detail} segmentId={segmentId} />
+        <LiveCount
+          preview={preview}
+          name={draft.name}
+          detail={detail}
+          segmentId={segmentId}
+          draftLabels={ai ? draftCountLabels(t, { count: ai.beforeCount, empty: ai.beforeEmpty }) : undefined}
+        />
         <SavedSegments current={segmentId} />
       </aside>
     </Page>
@@ -386,6 +470,7 @@ function Condition({
   onField,
   onRemove,
   canRemove,
+  mark,
 }: {
   c: Cond
   catalog: Catalog
@@ -394,11 +479,45 @@ function Condition({
   onField: (key: string) => void
   onRemove: () => void
   canRemove: boolean
+  /** A drafted condition (features/ai): added by the draft, or removed by it (struck through, read only). */
+  mark?: 'added' | 'removed'
 }) {
   const f = catalog.fields.find((x) => x.key === c.field)
   const noValue = ['never', 'is_empty', 'is_not_empty', 'is_true', 'is_false'].includes(c.op)
+  if (mark === 'removed') {
+    return (
+      <fieldset disabled className="scond ai-removed m-0 min-w-0">
+        <FitSelect aria-label="Condition field" className="in" value={c.field} label={f?.label ?? c.field} onChange={() => undefined}>
+          {catalog.fields.map((x) => (
+            <option key={x.key} value={x.key}>
+              {x.label}
+            </option>
+          ))}
+        </FitSelect>
+        <select aria-label="Condition operator" className="in" value={c.op} onChange={() => undefined}>
+          {(f?.ops ?? []).map((o) => (
+            <option key={o.key} value={o.key}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+        {noValue ? null : f && (f.kind === 'enum' || f.kind === 'list' || f.kind === 'campaign') ? (
+          <select aria-label="Condition value" className="in" value={c.value} onChange={() => undefined}>
+            {f.options.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <input className="in" aria-label="Value" value={f?.kind === 'period' ? `${c.amount} ${c.unit}` : c.value} readOnly />
+        )}
+        <DraftMark mark="removed" />
+      </fieldset>
+    )
+  }
   return (
-    <div className={invalid ? "scond invalid" : "scond"} aria-invalid={invalid || undefined}>
+    <div className={`${invalid ? 'scond invalid' : 'scond'}${mark === 'added' ? ' ai-added' : ''}`} aria-invalid={invalid || undefined}>
       <FitSelect aria-label="Condition field" className="in" value={c.field} label={f?.label ?? c.field} onChange={(e) => onField(e.target.value)}>
         {catalog.fields.map((x) => (
           <option key={x.key} value={x.key}>
@@ -440,6 +559,7 @@ function Condition({
           onChange={(e) => onChange({ value: e.target.value })}
         />
       )}
+      {mark === 'added' ? <DraftMark mark="added" /> : null}
       <Button size="sm" aria-label="Remove condition" disabled={!canRemove} onClick={onRemove}>
         ×
       </Button>
@@ -449,7 +569,20 @@ function Condition({
 
 type PreviewQuery = { data?: Schemas['SegmentCountResult']; error: unknown; isPending: boolean; isFetching: boolean; refetch: () => unknown }
 
-function LiveCount({ preview, name, detail, segmentId }: { preview: PreviewQuery; name: string; detail?: Schemas['SegmentDetail']; segmentId: string }) {
+function LiveCount({
+  preview,
+  name,
+  detail,
+  segmentId,
+  draftLabels,
+}: {
+  preview: PreviewQuery
+  name: string
+  detail?: Schemas['SegmentDetail']
+  segmentId: string
+  /** While an AI draft is open: "Live count · with the draft" and the count before it. */
+  draftLabels?: { title: string; before: string }
+}) {
   const { slug } = useWorkspace()
   const err = preview.error
   if (err instanceof ApiError && err.code === 'count_timeout') {
@@ -492,13 +625,14 @@ function LiveCount({ preview, name, detail, segmentId }: { preview: PreviewQuery
   const share = d && d.total > 0 ? (d.count / d.total) * 100 : 0
   return (
     <section className="card flex flex-col gap-2.5 border-accent-line px-5 py-4.5" aria-live="polite" aria-busy={preview.isFetching || undefined}>
-      <span className="k">Live count · updates as you edit</span>
+      <span className="k">{draftLabels ? draftLabels.title : 'Live count · updates as you edit'}</span>
       {d ? (
         <>
           <span className="n text-[36px] leading-none tracking-[-0.02em]">{count(d.count)}</span>
           <span className="k">
             contacts match · {pct(share)} of {count(d.total)} · counted in {count(d.ms)} ms
           </span>
+          {draftLabels ? <span className="k">{draftLabels.before}</span> : null}
           {d.count > 0 ? (
             <StackBar
               height={10}
