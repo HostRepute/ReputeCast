@@ -1,26 +1,56 @@
 import { useState } from 'react'
 import { fieldLabel, PublisherMark, type FormInput, type Overview } from './common'
 
-/** The consent sentence with "privacy policy" linked when there is a policy. */
-export function ConsentText({ text, privacy, color }: { text: string; privacy: string; color: string }) {
-  // A case-insensitive search that returns an index into text itself.
-  const at = privacy ? text.search(/privacy policy/i) : -1
-  if (at < 0) return <>{text}</>
+/**
+ * The words of a consent text that link to the privacy policy, ignoring
+ * case; the index and length are the text's own.
+ */
+function findPhrase(text: string, phrase: string): { at: number; length: number } | null {
+  if (!phrase) return null
+  const m = text.match(new RegExp(phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'))
+  return m && m.index !== undefined ? { at: m.index, length: m[0].length } : null
+}
+
+/** The consent sentence with its words for the privacy policy linked when there is a policy. */
+export function ConsentText({ text, privacy, color, phrase = 'privacy policy' }: { text: string; privacy: string; color: string; phrase?: string }) {
+  const hit = privacy ? findPhrase(text, phrase) : null
+  if (!hit) return <>{text}</>
   return (
     <>
-      {text.slice(0, at)}
+      {text.slice(0, hit.at)}
       <a href={privacy} style={{ color }} target="_blank" rel="noreferrer">
-        {text.slice(at, at + 14)}
+        {text.slice(hit.at, hit.at + hit.length)}
       </a>
-      {text.slice(at + 14)}
+      {text.slice(hit.at + hit.length)}
     </>
   )
 }
 
 /**
+ * The form's words in the language it shows (the builder's language view):
+ * the built-in labels, list names and privacy link of that language.
+ */
+export interface PreviewLanguage {
+  lang: string
+  /** Labels of the built-in fields, by key (email, first_name…). */
+  fields: Record<string, string>
+  optional: string
+  choose: string
+  /** The consent text's words that link to the privacy policy. */
+  privacy: string
+  privacyUrl: string
+  listNames: Record<string, string>
+  confirmHeading: string
+  confirmText: string
+  subscribedHeading: string
+  subscribedText: string
+}
+
+/**
  * The live preview of a form as visitors see it (FormBuilder's center
  * column). It follows the unsaved settings. The list checkboxes are the
- * lists that start checked: ticking one here makes it a default.
+ * lists that start checked: ticking one here makes it a default. With a
+ * language, it shows the form in that language.
  */
 export function FormPreview({
   form,
@@ -28,23 +58,31 @@ export function FormPreview({
   mobile,
   onToggleDefault,
   readOnly,
+  language,
+  width = 520,
 }: {
   form: FormInput
   overview: Overview
   mobile: boolean
   onToggleDefault: (listId: string) => void
   readOnly: boolean
+  language?: PreviewLanguage
+  /** The widest the form gets on a desktop preview. */
+  width?: number
 }) {
   const b = overview.branding
   const [agreed, setAgreed] = useState(false)
   const [done, setDone] = useState(false)
   const offered = overview.lists.filter((l) => form.listIds.includes(l.id))
   const c = form.content
-  const style = { maxWidth: mobile ? 360 : 520 }
+  const style = { maxWidth: mobile ? 360 : width }
+  const L = language
+  const publisher = (s: string) => s.replaceAll('{publisher}', b.publisherName)
   if (done) {
     const confirm = form.doubleOptIn
+    const after = c.afterSubmitText
     return (
-      <div className="pf" style={style} role="status">
+      <div className="pf" style={style} role="status" lang={L?.lang}>
         <div className="pf-brand">
           <PublisherMark branding={b} className="pf-mark" logoClassName="logo" />
           <span className="text-[16px] font-bold">{c.heading || b.publisherName}</span>
@@ -55,11 +93,12 @@ export function FormPreview({
           </p>
         ) : (
           <div className="pf-done">
-            <strong className="text-[16px]">{confirm ? 'Check your inbox' : "You're subscribed"}</strong>
+            <strong className="text-[16px]">{confirm ? (L?.confirmHeading ?? 'Check your inbox') : (L?.subscribedHeading ?? "You're subscribed")}</strong>
             <p className="pf-desc">
-              {confirm
-                ? 'We sent you a link to confirm your subscription. It only takes a click.'
-                : `Thanks for joining ${b.publisherName}. The next issue is on its way to your inbox.`}
+              {after ||
+                (confirm
+                  ? (L?.confirmText ?? 'We sent you a link to confirm your subscription. It only takes a click.')
+                  : publisher(L?.subscribedText ?? `Thanks for joining ${b.publisherName}. The next issue is on its way to your inbox.`))}
             </p>
           </div>
         )}
@@ -70,28 +109,28 @@ export function FormPreview({
     )
   }
   return (
-    <div className="pf" style={style}>
+    <div className="pf" style={style} lang={L?.lang}>
       <div className="pf-brand">
         <PublisherMark branding={b} className="pf-mark" logoClassName="logo" />
         <span className="text-[16px] font-bold">{c.heading || b.publisherName}</span>
       </div>
       {c.description ? <p className="pf-desc">{c.description}</p> : null}
       {form.fields.map((f) => {
-        const label = fieldLabel(f, overview.customFields)
+        const label = f.label || L?.fields[f.key] || fieldLabel(f, overview.customFields)
         const custom = overview.customFields.find((x) => x.key === f.key)
         const optional = !f.required && f.key !== 'email'
         return (
           <label key={f.key} className="pf-field">
             {optional ? (
               <span>
-                {label} <span className="pf-opt">optional</span>
+                {label} <span className="pf-opt">{L?.optional ?? 'optional'}</span>
               </span>
             ) : (
               label
             )}
             {custom?.type === 'select' ? (
               <select defaultValue="">
-                <option value="">Choose…</option>
+                <option value="">{L?.choose ?? 'Choose…'}</option>
                 {custom.options.map((o) => (
                   <option key={o}>{o}</option>
                 ))}
@@ -111,7 +150,7 @@ export function FormPreview({
           {offered.map((l) => (
             <label key={l.id} className="pf-check" title="Checked when the form loads">
               <input type="checkbox" checked={form.defaultListIds.includes(l.id)} disabled={readOnly} onChange={() => onToggleDefault(l.id)} />
-              {l.name}
+              {L?.listNames[l.id] || l.name}
             </label>
           ))}
         </div>
@@ -120,7 +159,7 @@ export function FormPreview({
         <label className="pf-consent">
           <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />
           <span>
-            <ConsentText text={form.consentText} privacy={b.privacyUrl} color={b.accentText} />
+            <ConsentText text={form.consentText} privacy={L?.privacyUrl || b.privacyUrl} color={b.accentText} phrase={L?.privacy} />
           </span>
         </label>
       ) : null}

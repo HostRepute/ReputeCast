@@ -107,7 +107,10 @@ WHERE ai.workspace_id = $1
   AND ai.list_id = ANY ($2::uuid[])
   AND ($3::boolean OR NOT ai.hidden)
   AND ($4::uuid IS NULL OR ai.list_id = $4::uuid)
-  AND ($5::text = '' OR ai.title ILIKE $5 OR c.subject ILIKE $5 OR ai.excerpt ILIKE $5 OR c.preheader ILIKE $5)
+  AND ($5::text = '' OR ai.title ILIKE $5 OR c.subject ILIKE $5 OR ai.excerpt ILIKE $5 OR c.preheader ILIKE $5
+       OR EXISTS (SELECT 1 FROM content_translations ct
+                  WHERE ct.owner_kind = 'campaign' AND ct.owner_id = c.id AND ct.owner_version = 0 AND ct.status = 'translated' AND NOT ct.held
+                    AND (ct.subject ILIKE $5 OR ct.preheader ILIKE $5)))
 `
 
 type ArchiveIssueCountParams struct {
@@ -227,7 +230,10 @@ WHERE ai.workspace_id = $1
   AND ai.list_id = ANY ($2::uuid[])
   AND ($3::boolean OR NOT ai.hidden)
   AND ($4::uuid IS NULL OR ai.list_id = $4::uuid)
-  AND ($5::text = '' OR ai.title ILIKE $5 OR c.subject ILIKE $5 OR ai.excerpt ILIKE $5 OR c.preheader ILIKE $5)
+  AND ($5::text = '' OR ai.title ILIKE $5 OR c.subject ILIKE $5 OR ai.excerpt ILIKE $5 OR c.preheader ILIKE $5
+       OR EXISTS (SELECT 1 FROM content_translations ct
+                  WHERE ct.owner_kind = 'campaign' AND ct.owner_id = c.id AND ct.owner_version = 0 AND ct.status = 'translated' AND NOT ct.held
+                    AND (ct.subject ILIKE $5 OR ct.preheader ILIKE $5)))
 ORDER BY sent_at DESC, c.id DESC
 LIMIT $7 OFFSET $6
 `

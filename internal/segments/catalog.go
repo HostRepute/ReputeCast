@@ -87,6 +87,10 @@ func (s *Service) Catalog(ctx context.Context, ws *store.Workspace) (SegmentCata
 			for _, src := range sources {
 				f.Options = append(f.Options, SegmentOption{Value: src.Source, Label: SourceLabel(src.Source)})
 			}
+		case "language":
+			if f.Options, err = languageOptions(ctx, s.Q, ws.ID); err != nil {
+				return SegmentCatalog{}, err
+			}
 		default:
 			for _, v := range enumValues[key] {
 				f.Options = append(f.Options, SegmentOption{Value: v[0], Label: v[1]})

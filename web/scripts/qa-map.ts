@@ -226,6 +226,10 @@ export const entries: Entry[] = [
   { board: 'StressReviewVi', manual: true },
   { board: 'StressReviewPseudo', manual: true },
   { board: 'StressReviewPseudoPhone', manual: true },
+  // X08 · content languages of forms, public pages and contacts. The builder in Spanish; its
+  // FormsStates frames (the consent text after English changes, Vietnamese not set up) come from
+  // changing the English consent text and picking Tiếng Việt.
+  { board: 'FormBuilderLanguages', path: `${ws}/forms?form={form:Newsletter signup}&language=es`, widths: [1440] },
   // X02 · transactional email. Sam Rivera's password reset has the board's message ID; the log's
   // second row (Jordan, rejected) opens with a click. The guide's step 5 is delivered after "Send it
   // from here instead"; its other states (waiting, rejected, done) and the boards' states (first run,

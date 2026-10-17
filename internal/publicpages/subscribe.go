@@ -16,6 +16,9 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/audience"
 	"github.com/hostrepute/reputecast/internal/forms"
+	"github.com/hostrepute/reputecast/internal/i18n"
+	"github.com/hostrepute/reputecast/internal/languages"
+	"github.com/hostrepute/reputecast/internal/pagelabels"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -32,18 +35,21 @@ type listView struct {
 	Checked        bool
 }
 
-// consentParts is the consent sentence with "privacy policy" linked.
+// consentParts is the consent sentence with its words for the privacy
+// policy linked.
 type consentParts struct {
 	Text, Before, Link, After, Href string
 }
 
-func splitConsent(text, privacy string) consentParts {
+// splitConsent links phrase (the language's words for the privacy policy,
+// as the consent text writes them) to privacy.
+func splitConsent(text, privacy, phrase string) consentParts {
 	c := consentParts{Text: text, Before: text}
 	if privacy == "" {
 		return c
 	}
-	if i := forms.PrivacyPolicyIndex(text); i >= 0 {
-		c.Before, c.Link, c.After, c.Href = text[:i], text[i:i+14], text[i+14:], privacy
+	if i, j := forms.PhraseIndex(text, phrase); i >= 0 {
+		c.Before, c.Link, c.After, c.Href = text[:i], text[i:j], text[j:], privacy
 	}
 	return c
 }
@@ -98,14 +104,75 @@ func (h *Handler) resolveForm(ctx context.Context, s *site, slug string, preview
 	return forms.ConfigOf(f), hosted, nil
 }
 
-// subscribeBody builds the hosted page of a form. values and out carry a
-// submission back to the page with its errors.
-func (h *Handler) subscribeBody(ctx context.Context, s *site, c forms.Config, page bool, values *forms.Submission, out forms.Outcome) (subscribeBody, error) {
+// formLang is the hosted page of a form in a language: the form there,
+// and whether a language can be shown (the pages and the form are Live).
+type formLang struct {
+	pageLang
+	form forms.Config
+	live func(string) bool
+}
+
+// subscribeLang picks the language of a form's hosted page: the one the
+// form always shows, else the visitor's (the menu, then the browser, then
+// the default), among those the pages and the form are Live in. posted is
+// the language a submission says it was shown in.
+func (h *Handler) subscribeLang(w http.ResponseWriter, r *http.Request, s *site, c forms.Config, posted string) (formLang, error) {
+	fc, err := h.Forms.FormCopyFor(r.Context(), s.ws, s.set, c)
+	if err != nil {
+		return formLang{}, err
+	}
+	pc := h.copyOf(r.Context(), s)
+	live := func(code string) bool { return fc.Live(code) && (pc == nil || pc.Live(code)) }
+	var pl pageLang
+	switch {
+	case c.LanguageMode == forms.LanguageFixed && c.FixedLanguage != "" && live(c.FixedLanguage):
+		pl = h.chooseLang(w, r, s, func(code string) bool { return code == c.FixedLanguage }, c.FixedLanguage)
+	case posted != "" && live(languages.Base(posted)):
+		pl = h.chooseLang(w, r, s, live, posted)
+	default:
+		pl = h.visitorLang(w, r, s, live)
+	}
+	lists, err := h.Audience.PublicLists(r.Context(), h.Q, s.ws)
+	if err != nil {
+		return formLang{}, err
+	}
+	return formLang{pageLang: pl, form: fc.Localized(pl.Code, lists), live: live}, nil
+}
+
+// formLangIn is a form's hosted page in a language asked for by name (the
+// app's previews).
+func (h *Handler) formLangIn(ctx context.Context, s *site, c forms.Config, code string) (formLang, error) {
+	fc, err := h.Forms.FormCopyFor(ctx, s.ws, s.set, c)
+	if err != nil {
+		return formLang{}, err
+	}
+	pc := h.copyOf(ctx, s)
+	live := func(code string) bool { return fc.Live(code) && (pc == nil || pc.Live(code)) }
+	pl := h.fixedLang(ctx, s, code, live)
+	lists, err := h.Audience.PublicLists(ctx, h.Q, s.ws)
+	if err != nil {
+		return formLang{}, err
+	}
+	return formLang{pageLang: pl, form: fc.Localized(pl.Code, lists), live: live}, nil
+}
+
+// subscribeBody builds the hosted page of a form in a language (fl). values
+// and out carry a submission back to the page with its errors.
+func (h *Handler) subscribeBody(ctx context.Context, s *site, fl formLang, page bool, values *forms.Submission, out forms.Outcome) (subscribeBody, error) {
+	c, l := fl.form, fl.Labels
 	pages := s.set.Pages.Subscribe
+	pc := h.copyOf(ctx, s)
+	if pc != nil {
+		pages = pc.Pages(fl.Code, s.set.Pages).Subscribe
+	}
+	privacy := s.set.Branding.PrivacyURL
+	if pc != nil {
+		privacy = pc.PrivacyURL(fl.Code, privacy)
+	}
 	b := subscribeBody{
 		Heading: c.Content.Heading, Description: c.Content.Description, Footnote: c.Content.Footnote, Button: c.Content.Button,
 		ListsLabel: c.Content.ListsLabel, Honeypot: c.Spam.Honeypot, Token: h.Forms.FormToken(formKey(c), h.now()),
-		Action: s.links.Subscribe(c.Slug), Consent: splitConsent(c.ConsentText, s.set.Branding.PrivacyURL),
+		Action: s.links.Subscribe(c.Slug), Consent: splitConsent(c.ConsentText, privacy, l.Text("form.privacy", nil)),
 	}
 	if page {
 		b.Action = s.links.Subscribe("")
@@ -123,7 +190,7 @@ func (h *Handler) subscribeBody(ctx context.Context, s *site, c forms.Config, pa
 		b.Action = s.links.Subscribe("")
 	}
 	if b.Heading == "" {
-		b.Heading = "The " + s.set.Branding.PublisherName + " newsletter"
+		b.Heading = l.Text("form.heading", i18n.Args{"publisher": s.set.Branding.PublisherName})
 	}
 	if s.set.Pages.Archive.Enabled {
 		b.ArchiveURL = s.links.Archive()
@@ -133,7 +200,7 @@ func (h *Handler) subscribeBody(ctx context.Context, s *site, c forms.Config, pa
 		return b, err
 	}
 	for _, f := range c.Fields {
-		fv := fieldView{Key: f.Key, Name: forms.FieldName(f.Key), ID: "f-" + f.Key, Label: forms.FieldLabel(f, customs), Type: "text",
+		fv := fieldView{Key: f.Key, Name: forms.FieldName(f.Key), ID: "f-" + f.Key, Label: forms.FieldLabelIn(f, customs, l), Type: "text",
 			Required: f.Required || f.Key == forms.FieldEmail, Optional: !f.Required && f.Key != forms.FieldEmail}
 		switch f.Key {
 		case forms.FieldEmail:
@@ -196,16 +263,20 @@ func (h *Handler) subscribeBody(ctx context.Context, s *site, c forms.Config, pa
 			}
 		}
 		for _, id := range c.Lists {
-			l, ok := byID[id]
+			pl, ok := byID[id]
 			if !ok {
 				continue
 			}
-			text := l.Description
+			text := pl.Description
+			name := pl.Name
+			if pc != nil {
+				text, name = pc.ListDescription(fl.Code, pl), pc.ListName(fl.Code, pl)
+			}
 			if t, ok := pages.ListText[id.String()]; ok && t != "" {
 				text = t
 			}
-			text = strings.ReplaceAll(text, "{subscribers}", formatCount(l.Subscribed))
-			b.Lists = append(b.Lists, listView{ID: id.String(), Name: l.Name, Text: text, Checked: checked[id.String()]})
+			text = strings.ReplaceAll(text, "{subscribers}", l.Count(pl.Subscribed))
+			b.Lists = append(b.Lists, listView{ID: id.String(), Name: name, Text: text, Checked: checked[id.String()]})
 		}
 		b.ListError = out.Errors["lists"]
 	}
@@ -243,15 +314,17 @@ func formatCount(n int64) string {
 }
 
 // subscribeTitle is "Subscribe to the Acme newsletter".
-func subscribeTitle(heading string) string {
-	if strings.HasPrefix(heading, "The ") {
-		return "Subscribe to the " + heading[4:]
+func subscribeTitle(l pagelabels.Set, heading string) string {
+	if l.Code() == "en" && strings.HasPrefix(heading, "The ") {
+		heading = "the " + heading[4:]
 	}
-	return "Subscribe to " + heading
+	return l.Text("form.title", i18n.Args{"heading": heading})
 }
 
-func (h *Handler) renderSubscribe(w http.ResponseWriter, r *http.Request, s *site, c forms.Config, page bool, body subscribeBody, status int, preview bool) {
-	v := h.view(s, subscribeTitle(body.Heading), body)
+func (h *Handler) renderSubscribe(w http.ResponseWriter, r *http.Request, s *site, fl formLang, page bool, body subscribeBody, status int, preview bool) {
+	c := fl.form
+	v := h.view(s, subscribeTitle(fl.Labels, body.Heading), body)
+	h.setLang(v, r, s, fl.pageLang, fl.live)
 	v.Description = body.Description
 	slug := c.Slug
 	if page || c.Builtin {
@@ -262,9 +335,17 @@ func (h *Handler) renderSubscribe(w http.ResponseWriter, r *http.Request, s *sit
 	if s.set.Pages.Subscribe.Index && !preview && status == http.StatusOK {
 		v.Robots = "index, follow"
 	}
+	if !preview && status == http.StatusOK {
+		// The page in each language it's Live in, for search engines; a
+		// language picked by address is the page's own address.
+		v.Alternates = h.alternates(r.Context(), s, v.Canonical, fl.live)
+		if r.URL.Query().Get(langParam) != "" && fl.picked {
+			v.Canonical = withParam(v.Canonical, langParam, fl.Code)
+		}
+	}
 	v.OG = &og{Type: "website", SiteName: s.set.Branding.PublisherName, Title: v.Title, Description: v.Description, URL: v.Canonical}
 	if s.set.Pages.Archive.Enabled {
-		v.Feed, v.FeedTitle = s.links.Feed(), s.set.Branding.PublisherName+" newsletter archive"
+		v.Feed, v.FeedTitle = s.links.Feed(), fl.Labels.Text("archive.title", i18n.Args{"publisher": s.set.Branding.PublisherName})
 	}
 	policy := csp{}
 	if c.AfterSubmit == "redirect" && c.RedirectURL != "" {
@@ -300,25 +381,43 @@ func (h *Handler) subscribePage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if c.Status == forms.StatusPaused {
-		h.closed(w, r, s)
+		h.closed(w, r, s, "")
+		return
+	}
+	fl, err := h.subscribeLang(w, r, s, c, "")
+	if err != nil {
+		h.serverError(w, r, s, err)
 		return
 	}
 	h.Forms.RecordView(r.Context(), s.ws, c, r.UserAgent())
-	body, err := h.subscribeBody(r.Context(), s, c, page, nil, forms.Outcome{})
+	body, err := h.subscribeBody(r.Context(), s, fl, page, nil, forms.Outcome{})
 	if err != nil {
 		h.serverError(w, r, s, err)
 		return
 	}
 	body.Page, body.Ref = visitedURL(r, s.links.Subscribe(slugOf(c, page))), clipURL(r.Referer())
-	h.renderSubscribe(w, r, s, c, page, body, http.StatusOK, false)
+	h.renderSubscribe(w, r, s, fl, page, body, http.StatusOK, false)
 }
 
-func (h *Handler) closed(w http.ResponseWriter, r *http.Request, s *site) {
-	body := messageBody{Heading: "This form is closed", Text: s.set.Branding.PublisherName + " isn't taking signups through this form right now."}
-	if s.set.Pages.Archive.Enabled {
-		body.Actions = []action{{Label: "Read past issues", Href: s.links.Archive()}}
+// langOf is the result page of a submission in the language its form was
+// shown in, when the pages are Live in it; else the visitor's.
+func (h *Handler) langOf(w http.ResponseWriter, r *http.Request, s *site, code string) pageLang {
+	if code != "" {
+		if pc := h.copyOf(r.Context(), s); pc != nil && pc.Live(code) {
+			return pageLang{Code: code, Labels: pc.Labels(code)}
+		}
 	}
-	h.message(w, r, s, http.StatusGone, "Form closed · "+s.set.Branding.PublisherName, body, false)
+	return h.visitorLang(w, r, s, nil)
+}
+
+func (h *Handler) closed(w http.ResponseWriter, r *http.Request, s *site, code string) {
+	pl := h.langOf(w, r, s, code)
+	l := pl.Labels
+	body := messageBody{Heading: l.Text("form.closed.heading", nil), Text: l.Text("form.closed.text", i18n.Args{"publisher": s.set.Branding.PublisherName})}
+	if s.set.Pages.Archive.Enabled {
+		body.Actions = []action{{Label: l.Text("page.pastIssues", nil), Href: s.links.Archive()}}
+	}
+	h.messageIn(w, r, s, pl, http.StatusGone, pageTitle(pl, s, "form.closed.title"), body, false)
 }
 
 // submissionFrom reads a posted form (the hosted page, the plain HTML
@@ -330,6 +429,7 @@ func submissionFrom(r *http.Request) forms.Submission {
 		Lists: f["list"], Consent: f.Get("consent") != "", Honeypot: f.Get("website"), Token: f.Get("_t"), Plain: f.Get("_plain") == "1",
 		Origin: forms.OriginHost(r.Header.Get("Origin"), r.Header.Get("Referer")), IP: clientIP(r), UserAgent: r.UserAgent(),
 		Fields: map[string]string{}, Page: clipURL(f.Get("_page")), Referrer: clipURL(f.Get("_ref")),
+		Language: clipLang(f.Get("_lang")), BrowserLanguage: audience.BrowserLanguage(r.Header.Get("Accept-Language")),
 	}
 	if sub.Plain && sub.Page == "" {
 		// A copied plain form: the page it sits on is the referrer of the post.
@@ -348,6 +448,15 @@ func submissionFrom(r *http.Request) forms.Submission {
 	return sub
 }
 
+// clipLang keeps a posted language code to a sensible length; the forms
+// service checks it is one the form is Live in.
+func clipLang(v string) string {
+	if len(v) > 35 {
+		return ""
+	}
+	return v
+}
+
 func (h *Handler) parseForm(w http.ResponseWriter, r *http.Request, limit int64) bool {
 	r.Body = http.MaxBytesReader(w, r.Body, limit)
 	if strings.HasPrefix(r.Header.Get("Content-Type"), "multipart/form-data") {
@@ -362,7 +471,7 @@ func (h *Handler) subscribePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !h.parseForm(w, r, 64<<10) {
-		http.Error(w, "That form couldn't be read. Go back and send it again.", http.StatusBadRequest)
+		http.Error(w, h.visitorLang(nil, r, s, nil).Labels.Text("page.unreadable", nil), http.StatusBadRequest)
 		return
 	}
 	c, page, err := h.resolveForm(r.Context(), s, chi.URLParam(r, "form"), false)
@@ -382,12 +491,17 @@ func (h *Handler) subscribePost(w http.ResponseWriter, r *http.Request) {
 		for _, id := range c.DefaultLists {
 			prefill.Lists = append(prefill.Lists, id.String())
 		}
-		body, err := h.subscribeBody(r.Context(), s, c, page, &prefill, forms.Outcome{})
+		fl, err := h.subscribeLang(w, r, s, c, sub.Language)
 		if err != nil {
 			h.serverError(w, r, s, err)
 			return
 		}
-		h.renderSubscribe(w, r, s, c, page, body, http.StatusOK, false)
+		body, err := h.subscribeBody(r.Context(), s, fl, page, &prefill, forms.Outcome{})
+		if err != nil {
+			h.serverError(w, r, s, err)
+			return
+		}
+		h.renderSubscribe(w, r, s, fl, page, body, http.StatusOK, false)
 		return
 	}
 	out := h.Forms.Submit(r.Context(), s.ws, s.set, c, sub)
@@ -396,6 +510,8 @@ func (h *Handler) subscribePost(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) subscribeResult(w http.ResponseWriter, r *http.Request, s *site, c forms.Config, page bool, sub forms.Submission, out forms.Outcome) {
 	publisher := s.set.Branding.PublisherName
+	pl := h.langOf(w, r, s, out.Language)
+	l := pl.Labels
 	// The address as it was saved (trimmed, lower case), not as it was typed.
 	email := out.Email
 	if email == "" {
@@ -403,7 +519,7 @@ func (h *Handler) subscribeResult(w http.ResponseWriter, r *http.Request, s *sit
 	}
 	archive := []action{}
 	if s.set.Pages.Archive.Enabled {
-		archive = append(archive, action{Label: "Read past issues", Href: s.links.Archive()})
+		archive = append(archive, action{Label: l.Text("page.pastIssues", nil), Href: s.links.Archive()})
 	}
 	switch out.Status {
 	case forms.OutcomeConfirm, forms.OutcomeSubscribed:
@@ -412,36 +528,45 @@ func (h *Handler) subscribeResult(w http.ResponseWriter, r *http.Request, s *sit
 			return
 		}
 		if out.Status == forms.OutcomeConfirm {
-			h.message(w, r, s, http.StatusOK, "Check your inbox · "+publisher, messageBody{Icon: "mail", Heading: "Check your inbox",
-				Text: "We sent a confirmation link to", Email: email, TextAfter: ". Click it to start getting emails from " + publisher + "; until then you won't hear from us.",
-				Actions: archive, Footer: "No email after a few minutes? Check your spam folder, or sign up again."}, true)
+			h.messageIn(w, r, s, pl, http.StatusOK, pageTitle(pl, s, "form.confirm.heading"), messageBody{Icon: "mail", Heading: l.Text("form.confirm.heading", nil),
+				Lead:    labelHTML(l, "form.confirm.text", i18n.Args{"email": email, "publisher": publisher}, ""),
+				Actions: archive, Footer: l.Text("form.confirm.footer", nil)}, true)
 			return
 		}
-		h.message(w, r, s, http.StatusOK, "You're subscribed · "+publisher, messageBody{Icon: "tick", Heading: "You're subscribed",
-			Text: "Thanks for joining " + publisher + ". The next issue goes to", Email: email, TextAfter: ".", Actions: archive}, true)
+		h.messageIn(w, r, s, pl, http.StatusOK, pageTitle(pl, s, "form.subscribed.heading"), messageBody{Icon: "tick", Heading: l.Text("form.subscribed.heading", nil),
+			Lead: labelHTML(l, "form.subscribed.text", i18n.Args{"email": email, "publisher": publisher}, ""), Actions: archive}, true)
 	case forms.OutcomeInvalid, forms.OutcomeError:
 		status := http.StatusUnprocessableEntity
 		if out.Status == forms.OutcomeError {
 			status = http.StatusServiceUnavailable
 		}
-		body, err := h.subscribeBody(r.Context(), s, c, page, &sub, out)
+		fl, err := h.subscribeLang(w, r, s, c, out.Language)
+		if err != nil {
+			h.serverError(w, r, s, err)
+			return
+		}
+		body, err := h.subscribeBody(r.Context(), s, fl, page, &sub, out)
 		if err != nil {
 			h.serverError(w, r, s, err)
 			return
 		}
 		body.Page, body.Ref = sub.Page, sub.Referrer
-		h.renderSubscribe(w, r, s, c, page, body, status, false)
+		h.renderSubscribe(w, r, s, fl, page, body, status, false)
 	case forms.OutcomeChallenge:
-		h.renderChallenge(w, r, s, out.ChallengeID, "")
+		h.renderChallenge(w, r, s, pl, out.ChallengeID, "")
 	case forms.OutcomeRateLimited:
 		w.Header().Set("Retry-After", "60")
-		h.message(w, r, s, http.StatusTooManyRequests, "Too many tries · "+publisher, messageBody{Heading: "Too many tries", Text: out.Message,
-			Actions: []action{{Label: "Back to the form", Href: s.links.Subscribe(slugOf(c, page))}}}, true)
+		h.messageIn(w, r, s, pl, http.StatusTooManyRequests, pageTitle(pl, s, "form.tooMany.heading"), messageBody{Heading: l.Text("form.tooMany.heading", nil), Text: out.Message,
+			Actions: []action{{Label: l.Text("page.backToForm", nil), Href: s.links.Subscribe(slugOf(c, page))}}}, true)
 	case forms.OutcomeClosed:
-		h.closed(w, r, s)
+		h.closed(w, r, s, out.Language)
 	default:
-		h.message(w, r, s, http.StatusForbidden, "Not allowed · "+publisher, messageBody{Heading: "This form can't be sent from here", Text: out.Message + " Sign up on the subscribe page instead.",
-			Actions: []action{{Label: "Subscribe page", Href: s.links.Subscribe("")}}}, true)
+		reason := out.Message
+		if reason == "" {
+			reason = l.Text("error.origin", nil)
+		}
+		h.messageIn(w, r, s, pl, http.StatusForbidden, pageTitle(pl, s, "form.notAllowed.title"), messageBody{Heading: l.Text("form.notAllowed.heading", nil), Text: l.Text("form.notAllowed.text", i18n.Args{"reason": reason}),
+			Actions: []action{{Label: l.Text("page.subscribePage", nil), Href: s.links.Subscribe("")}}}, true)
 	}
 }
 
@@ -456,9 +581,14 @@ type challengeBody struct {
 	ID, SiteKey, Action, ErrorURL, Alert string
 }
 
-func (h *Handler) renderChallenge(w http.ResponseWriter, r *http.Request, s *site, id, alert string) {
+func (h *Handler) renderChallenge(w http.ResponseWriter, r *http.Request, s *site, pl pageLang, id, alert string) {
 	body := challengeBody{ID: id, SiteKey: s.set.TurnstileSiteKey(), Action: s.links.Challenge(), ErrorURL: s.links.TurnstileError(), Alert: alert}
-	v := h.view(s, "One more step · "+s.set.Branding.PublisherName, body)
+	v := h.view(s, pageTitle(pl, s, "challenge.title"), body)
+	h.setLang(v, r, s, pl, nil)
+	for i := range v.Menu {
+		// The check itself in another language, whichever form led here.
+		v.Menu[i].Href = s.links.Challenge() + "?" + url.Values{"c": {id}, langParam: {v.Menu[i].Code}}.Encode()
+	}
 	v.Scripts = []string{s.links.Static("challenge.js?v=" + h.version), forms.TurnstileScript}
 	h.render(w, r, s, "challenge", http.StatusOK, v, csp{scripts: []string{forms.TurnstileOrigin}, frames: []string{forms.TurnstileOrigin}}, true)
 }
@@ -473,7 +603,7 @@ func (h *Handler) challengePage(w http.ResponseWriter, r *http.Request) {
 		h.notFound(w, r, s)
 		return
 	}
-	h.renderChallenge(w, r, s, id, "")
+	h.renderChallenge(w, r, s, h.visitorLang(w, r, s, nil), id, "")
 }
 
 func (h *Handler) challengePost(w http.ResponseWriter, r *http.Request) {
@@ -482,12 +612,13 @@ func (h *Handler) challengePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !h.parseForm(w, r, 16<<10) {
-		http.Error(w, "That form couldn't be read. Go back and send it again.", http.StatusBadRequest)
+		http.Error(w, h.visitorLang(nil, r, s, nil).Labels.Text("page.unreadable", nil), http.StatusBadRequest)
 		return
 	}
 	id, answer := r.PostForm.Get("challenge"), r.PostForm.Get("cf-turnstile-response")
 	if answer == "" {
-		h.renderChallenge(w, r, s, id, "Finish the check above, then press Continue.")
+		pl := h.langOf(w, r, s, languages.Base(r.PostForm.Get("_lang")))
+		h.renderChallenge(w, r, s, pl, id, pl.Labels.Text("challenge.finish", nil))
 		return
 	}
 	var held forms.Config
@@ -510,10 +641,11 @@ func (h *Handler) challengePost(w http.ResponseWriter, r *http.Request) {
 		heldPage = s.set.HostedFormID() != nil && *s.set.HostedFormID() == f.ID
 		return held, nil
 	}
-	out := h.Forms.SolveChallenge(r.Context(), s.ws, s.set, id, answer, clientIP(r), formOf)
+	out := h.Forms.SolveChallenge(r.Context(), s.ws, s.set, id, answer, r.PostForm.Get("_lang"), clientIP(r), formOf)
 	if out.Status == forms.OutcomeInvalid && len(out.Errors) == 0 && held.ID == uuid.Nil && !held.Builtin {
-		h.message(w, r, s, http.StatusGone, "Check expired · "+s.set.Branding.PublisherName, messageBody{Heading: "This check expired",
-			Text: out.Message, Actions: []action{{Label: "Back to the form", Href: s.links.Subscribe("")}}}, true)
+		pl := h.langOf(w, r, s, out.Language)
+		h.messageIn(w, r, s, pl, http.StatusGone, pageTitle(pl, s, "challenge.expired.title"), messageBody{Heading: pl.Labels.Text("challenge.expired.heading", nil),
+			Text: out.Message, Actions: []action{{Label: pl.Labels.Text("page.backToForm", nil), Href: s.links.Subscribe("")}}}, true)
 		return
 	}
 	sub := forms.Submission{Email: out.Email, FirstName: out.FirstName}
@@ -544,17 +676,11 @@ func (h *Handler) formScript(w http.ResponseWriter, r *http.Request) {
 		jsError(w, http.StatusNotFound, "This signup form doesn't exist or isn't published yet.")
 		return
 	}
-	lists, err := h.Audience.PublicLists(r.Context(), h.Q, s.ws)
+	js, err := h.Forms.Script(r.Context(), s.ws, s.set, c, s.links)
 	if err != nil {
 		jsError(w, http.StatusInternalServerError, "This signup form couldn't load. Reload the page.")
 		return
 	}
-	customs, err := h.Q.ListCustomFields(r.Context(), s.ws.ID)
-	if err != nil {
-		jsError(w, http.StatusInternalServerError, "This signup form couldn't load. Reload the page.")
-		return
-	}
-	js := forms.EmbedScript(c, s.links, s.set.Branding, lists, customs)
 	hd := w.Header()
 	hd.Set("Content-Type", "text/javascript; charset=utf-8")
 	hd.Set("X-Content-Type-Options", "nosniff")
@@ -639,12 +765,12 @@ func (h *Handler) formSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 	c, err := h.embedForm(r.Context(), s, chi.URLParam(r, "id"))
 	if err != nil || c.Status == forms.StatusDraft {
-		writeJSON(w, http.StatusNotFound, forms.Outcome{Status: forms.OutcomeClosed, Message: "This form doesn't exist any more."})
+		writeJSON(w, http.StatusNotFound, forms.Outcome{Status: forms.OutcomeClosed, Message: h.visitorLang(nil, r, s, nil).Labels.Text("form.gone", nil)})
 		return
 	}
 	allowed := h.cors(w, r, s, c)
 	if !h.parseForm(w, r, 64<<10) {
-		writeJSON(w, http.StatusBadRequest, forms.Outcome{Status: forms.OutcomeInvalid, Message: "That form couldn't be read. Send it again."})
+		writeJSON(w, http.StatusBadRequest, forms.Outcome{Status: forms.OutcomeInvalid, Message: h.visitorLang(nil, r, s, nil).Labels.Text("form.unreadableShort", nil)})
 		return
 	}
 	sub := submissionFrom(r)

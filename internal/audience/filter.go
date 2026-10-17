@@ -27,6 +27,10 @@ type ContactFilter struct {
 	Segment string `json:"segment,omitempty" doc:"Segment id"`
 	// JoinedAfter is a date (2026-09-01).
 	JoinedAfter string `json:"joinedAfter,omitempty" maxLength:"10"`
+	// Language is a workspace language's code (its regional codes match),
+	// "none" for contacts with no language or "not_offered" for languages
+	// the workspace doesn't offer.
+	Language string `json:"language,omitempty" maxLength:"16"`
 	// Score, band and growth source (scoregrowth.go).
 	ScoreGrowthFilter
 }
@@ -99,6 +103,9 @@ func (s *Service) applyFilter(ctx context.Context, wsID uuid.UUID, out *filterSQ
 		out.add("c.created_at >= ?", d)
 	}
 	if err := s.scoreGrowthFilter(ctx, wsID, out, f.ScoreGrowthFilter); err != nil {
+		return err
+	}
+	if err := s.languageFilter(ctx, wsID, out, f.Language); err != nil {
 		return err
 	}
 	if f.Segment != "" {

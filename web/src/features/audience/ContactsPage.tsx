@@ -19,6 +19,7 @@ import { AddContactDialog, BulkDialog, BulkResultPanel, EraseDialog, SaveViewDia
 import { BandSelect, ScoreCell, ScoreGrowthChips, ScoreGrowthFields, scoreGrowthMoreKeys, ScoreHeader, useTotalLine, type ScoreGrowthDraft } from '@/features/scoring/ContactsScore'
 import { fileName, saveBlob } from './download'
 import { consentFilterLabel, consentLabel, consentTone, mailboxColor, mailboxes, mailboxLabel, tierClass, tierColor, tierLabel, tiers, type Consent, type Mailbox, type Tier } from './labels'
+import { LanguageFilter } from '@/features/page-languages/contacts'
 import './audience.css'
 
 export interface ContactsSearch {
@@ -31,6 +32,7 @@ export interface ContactsSearch {
   tag?: string
   joinedAfter?: string
   segment?: string
+  language?: string
   // Scoring and Growth (X13).
   band?: 'cold' | 'warm' | 'hot' | 'none'
   scoreFrom?: number
@@ -58,6 +60,7 @@ const filterKeys = [
   'tag',
   'joinedAfter',
   'segment',
+  'language',
   // Scoring and Growth (X13).
   'band',
   'scoreFrom',
@@ -354,6 +357,7 @@ function Filters({
           </option>
         ))}
       </select>
+      <LanguageFilter className={sel} value={search.language} onChange={(language) => onChange({ language })} />
       <MoreFilters search={search} n={more} onChange={onChange} />
       <span className="k ml-auto">{total === undefined ? '' : totalLine(total, search.sort === 'score')}</span>
       <ScoreGrowthChips search={search} onChange={onChange} />

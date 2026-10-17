@@ -18,6 +18,11 @@ const search = z.object({
     .optional()
     .catch(undefined),
   segment: z.string().uuid().optional().catch(undefined),
+  language: z
+    .string()
+    .regex(/^([a-z]{2,3}|none|not_offered)$/)
+    .optional()
+    .catch(undefined),
   // Scoring and Growth (X13).
   band: z.enum(['cold', 'warm', 'hot', 'none']).optional().catch(undefined),
   scoreFrom: z.coerce.number().int().min(0).max(100).optional().catch(undefined),

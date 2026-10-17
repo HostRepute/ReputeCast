@@ -45,6 +45,8 @@ func TestSegmentsDemo(t *testing.T) {
 			"Beta Program, opened a beta email":   1402,
 			"Gmail only, clickers":                4916,
 			"Customers with mrr over $50":         1087,
+			// Contact scoring (X13): Sofia's segment of Hot contacts on paid plans.
+			"Hot on paid plans": 1532,
 		}
 		if len(list.Items) != len(want) {
 			t.Fatalf("%d segments, want %d", len(list.Items), len(want))
@@ -87,11 +89,37 @@ func TestSegmentsDemo(t *testing.T) {
 		bad := map[string]any{"groups": []map[string]any{{"match": "all", "conditions": []map[string]any{{"field": "no_such_field", "op": "is", "value": "x"}}}}}
 		c.Do(http.MethodPost, ws+"/segments/preview", map[string]any{"mode": "builder", "definition": bad}).MustStatus(t, 422)
 
+		// "Language is Spanish" counts Spanish contacts, regional codes
+		// included (4,180 on SettingsLanguages).
+		spanish := map[string]any{"groups": []map[string]any{{"match": "all", "conditions": []map[string]any{{"field": "language", "op": "is", "value": "es"}}}}}
+		c.Do(http.MethodPost, ws+"/segments/preview", map[string]any{"mode": "builder", "definition": spanish}).MustStatus(t, 200).JSON(t, &p)
+		if p.Count != 4180 {
+			t.Fatalf("Language is Spanish: %d", p.Count)
+		}
+		var cat struct {
+			Fields []struct {
+				Key     string
+				Label   string
+				Options []struct{ Value, Label string }
+			}
+		}
+		c.Do(http.MethodGet, ws+"/segments/catalog", nil).MustStatus(t, 200).JSON(t, &cat)
+		found := false
+		for _, f := range cat.Fields {
+			if f.Key == "language" {
+				found = len(f.Options) == 5 && f.Options[1].Value == "es" && f.Options[1].Label == "Spanish" && f.Options[4].Label == "No language"
+			}
+		}
+		if !found {
+			t.Fatalf("the builder names the languages: %+v", cat.Fields)
+		}
+
 		in := map[string]any{"name": "Sunset, for the win-back", "mode": "builder", "definition": def}
 		viewer.Do(http.MethodPost, ws+"/segments", in).MustStatus(t, 403)
 		var s segment
+		created := audits(t, env, "segment.create")
 		c.Do(http.MethodPost, ws+"/segments", in).MustStatus(t, 201).JSON(t, &s)
-		if s.Count != 3615 || audits(t, env, "segment.create") != 1 {
+		if s.Count != 3615 || audits(t, env, "segment.create") != created+1 {
 			t.Fatalf("create: %+v, audit %d", s, audits(t, env, "segment.create"))
 		}
 		in["name"] = "Sunset, renamed"

@@ -1,0 +1,341 @@
+/* Content languages of forms, public pages and contacts (X08). */
+@layer components {
+  /* Contact profile: the language select of the Fields card (ContactProfile). */
+  .cp-lang {
+    height: 30px;
+    padding: 0 8px;
+    border: 1px solid var(--line-input);
+    border-radius: 7px;
+    background: #fff;
+    font: inherit;
+    font-size: 13px;
+    color: var(--ink);
+    max-width: 100%;
+  }
+  .cp-lang[aria-disabled='true'] {
+    background: var(--ground-3);
+    color: var(--ink-2);
+    cursor: not-allowed;
+  }
+  .cp-lang-note {
+    margin: 4px 0 6px;
+  }
+
+  /* Import › Map fields: what a language column's values become. */
+  .tbl tr:has(+ tr.imp-lang) td {
+    border-bottom: 0;
+  }
+  .tbl tr.imp-lang td {
+    padding-top: 0;
+    white-space: normal;
+  }
+  .imp-lang-unknown {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    font-size: 12px;
+    font-weight: 500;
+    color: #78350f;
+  }
+
+  /* The form builder in a language (FormBuilderLanguages): one card with
+     the settings, the preview and the form's languages. */
+  .pl-builder {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    overflow: hidden;
+  }
+  .pl-pane {
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .pl-left {
+    flex: 1 1 320px;
+    max-width: 360px;
+    border-right: 1px solid var(--line);
+  }
+  .pl-right {
+    flex: 1 1 300px;
+    max-width: 320px;
+    border-left: 1px solid var(--line);
+  }
+  .pl-center {
+    flex: 999 1 420px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    background: #e9ecf0;
+  }
+  .pl-stage {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 28px 20px 36px;
+  }
+  .pl-stage > .pf {
+    width: 100%;
+  }
+  .pl-sec {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--line-2);
+  }
+  .pl-sec.last {
+    border-bottom: 0;
+  }
+  .pl-sec > .k:first-child {
+    font-weight: 600;
+  }
+  .pl-sec .lbl {
+    gap: 4px;
+  }
+  .pl-sec .fb-in {
+    height: 36px;
+  }
+  .pl-sec textarea.fb-in.pl-area {
+    height: 86px;
+  }
+  .pl-kind {
+    height: 22px;
+  }
+
+  /* "Form language": three choices as cards. */
+  .pl-fieldset {
+    border: 0;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+  }
+  .pl-legend {
+    font-weight: 600;
+    margin-bottom: 6px;
+    padding: 0;
+  }
+  .pl-rad {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  .pl-rad input {
+    margin-top: 3px;
+    flex: none;
+  }
+  .pl-rad.on {
+    border-color: var(--accent);
+    background: var(--accent-tint);
+  }
+  .pl-rad:has(input:disabled) {
+    cursor: default;
+  }
+
+  /* "Copy in": a language and its status per chip. */
+  .pl-chips {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .pl-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 30px;
+    padding: 0 11px;
+    border-radius: 999px;
+    border: 1px solid var(--line-strong);
+    background: var(--surface);
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--ink-nav);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .pl-chip:hover {
+    border-color: var(--line-hover);
+  }
+  .pl-chip.on {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: #fff;
+  }
+  .badge.pl-badge-chip {
+    height: 18px;
+    font-size: 11px;
+  }
+  .badge.pl-badge-row {
+    height: 20px;
+    font-size: 11px;
+  }
+
+  /* A language's row: its name over a line, its status on the right. */
+  .pl-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 2px 10px;
+    align-items: center;
+    padding: 9px 0;
+    border-top: 1px solid var(--line-2);
+  }
+  .pl-row:first-child {
+    border-top: 0;
+  }
+  .pl-row a {
+    color: var(--ink);
+  }
+  .pl-row a:hover {
+    color: var(--accent);
+  }
+  .fb-right .pl-row {
+    font-size: 13px;
+  }
+
+  /* "Built-in labels · Spanish", collapsed. */
+  .pl-labels {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .pl-details {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+  }
+  .pl-details > summary {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    padding: 9px 12px;
+    cursor: pointer;
+    list-style: none;
+    font-weight: 600;
+    font-size: 13px;
+  }
+  .pl-details > summary::-webkit-details-marker {
+    display: none;
+  }
+  .pl-details > summary svg {
+    color: var(--ink-3);
+    flex: none;
+    transition: transform 0.15s;
+  }
+  .pl-details[open] > summary svg {
+    transform: rotate(90deg);
+  }
+  .pl-labels-count {
+    margin-left: auto;
+    font-weight: 500;
+  }
+  .pl-details-body {
+    padding: 0 12px 12px;
+  }
+  .pl-shipped {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--ground-3);
+  }
+  .note.w > .pl-note-body {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .pl-evidence {
+    font-size: 13px;
+    color: var(--ink-nav);
+  }
+
+  /* The labels editor. */
+  .pl-label-tools {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    align-items: center;
+  }
+  .pl-label-filter {
+    width: 240px;
+    max-width: 100%;
+  }
+  .pl-label-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    max-height: 56vh;
+    overflow-y: auto;
+  }
+  .pl-label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px 2px;
+    border-top: 1px solid var(--line-2);
+  }
+  .pl-label:first-child {
+    border-top: 0;
+  }
+  .pl-label-source {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  textarea.fb-in.pl-label-input {
+    height: auto;
+    min-height: 34px;
+  }
+  .fb-sec.pl-langs {
+    border-top: 1px solid var(--line-2);
+  }
+}
+
+/* Narrower than three columns: the settings and the preview side by side,
+   the form's languages under them. */
+@media (max-width: 1199px) {
+  .pl-center {
+    flex-basis: 340px;
+  }
+  .pl-right {
+    flex-basis: 100%;
+    max-width: none;
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+}
+@media (max-width: 767px) {
+  .pl-left,
+  .pl-right {
+    max-width: none;
+    border-left: 0;
+    border-right: 0;
+  }
+  .pl-left {
+    border-bottom: 1px solid var(--line);
+  }
+  .pl-right {
+    border-top: 1px solid var(--line);
+  }
+  .pl-stage {
+    padding: 20px 12px 28px;
+  }
+  .pl-chip {
+    white-space: normal;
+    height: auto;
+    min-height: 30px;
+  }
+}

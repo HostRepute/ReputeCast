@@ -36,7 +36,7 @@ var builtinTargets = []struct{ key, label, typ string }{
 	{"company", "company", "text"},
 	{"country", "country", "text"},
 	{"timezone", "timezone", "timezone"},
-	{"language", "language", "text"},
+	{"language", "language", "language"},
 	{TargetTags, "tags", "tags"},
 	{TargetEvidence, "Consent evidence (date, IP)", "consent"},
 	{TargetStatus, "Consent status", "status"},
@@ -68,7 +68,7 @@ type ImportFieldRow struct {
 	Label   string              `json:"label"`
 	Samples []string            `json:"samples"`
 	Target  string              `json:"target"`
-	Type    string              `json:"type" doc:"What ReputeCast stores: email, text, number, date, timezone, consent, tags, or – when skipped"`
+	Type    string              `json:"type" doc:"What ReputeCast stores: email, text, number, date, timezone, language, consent, tags, or – when skipped"`
 	Status  string              `json:"status" enum:"mapped,new,skipped"`
 	Options []ImportFieldOption `json:"options"`
 }

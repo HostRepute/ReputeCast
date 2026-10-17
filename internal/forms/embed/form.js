@@ -2,7 +2,12 @@
    data-reputecast-form="<id>", or opens it as a popup. No third-party code,
    no cookies, no iframe: the form takes the site's fonts. Built with DOM
    APIs only (no HTML strings), so nothing in the configuration can inject
-   markup into the host page. */
+   markup into the host page.
+
+   The form shows in one of its Live languages (cfg.langs): the page's
+   (the nearest lang attribute, or data-reputecast-lang on the element),
+   the browser's, or always one, as the form says (cfg.mode); a language
+   it isn't Live in shows the fallback. */
 (function (cfg) {
   'use strict'
   if (!cfg || window['__rcf_' + cfg.id]) return
@@ -26,6 +31,23 @@
     document.head.appendChild(l)
   }
 
+  // pick returns the copy to show where spot is.
+  function pick(spot) {
+    var wants = []
+    if (cfg.mode === 'fixed') wants.push(cfg.fixed)
+    else if (cfg.mode === 'browser') wants = (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || '']).slice()
+    else {
+      var own = spot && spot.getAttribute ? spot.getAttribute('data-reputecast-lang') : ''
+      var near = spot && spot.closest ? spot.closest('[lang]') : null
+      wants.push(own || (near ? near.getAttribute('lang') : '') || document.documentElement.lang || '')
+    }
+    for (var i = 0; i < wants.length; i++) {
+      var base = String(wants[i] || '').toLowerCase().split(/[-_]/)[0]
+      if (base && cfg.langs[base]) return cfg.langs[base]
+    }
+    return cfg.langs[cfg.fallback]
+  }
+
   var token = ''
   var sessionLoaded = false
   function session() {
@@ -37,29 +59,35 @@
       .catch(function () {})
   }
 
-  // The consent sentence, with "privacy policy" linked when there is a policy.
-  function consentText(parent) {
-    var text = cfg.consent
-    // A case-insensitive search that returns an index into text itself.
-    var at = cfg.privacy ? text.search(/privacy policy/i) : -1
-    if (at < 0) {
+  // The consent sentence, with its words for the privacy policy linked when
+  // there is a policy. The search ignores case and returns an index into
+  // the text itself.
+  function consentText(t, parent) {
+    var text = t.consent
+    var m = null
+    if (t.privacy && t.privacyText) {
+      m = text.match(new RegExp(t.privacyText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'))
+    }
+    if (!m) {
       parent.appendChild(document.createTextNode(text))
       return
     }
-    parent.appendChild(document.createTextNode(text.slice(0, at)))
-    var a = el('a', '', text.slice(at, at + 14))
-    a.href = cfg.privacy
+    parent.appendChild(document.createTextNode(text.slice(0, m.index)))
+    var a = el('a', '', m[0])
+    a.href = t.privacy
     a.target = '_blank'
     a.rel = 'noopener'
     parent.appendChild(a)
-    parent.appendChild(document.createTextNode(text.slice(at + 14)))
+    parent.appendChild(document.createTextNode(text.slice(m.index + m[0].length)))
   }
 
-  function build() {
+  function build(t) {
     var form = el('form', 'rcf')
     form.noValidate = true
     form.method = 'post'
     form.action = cfg.hosted
+    form.lang = t.lang
+    form.dir = t.dir
     form.style.setProperty('--rcf-accent', cfg.accent)
     form.style.setProperty('--rcf-hover', cfg.hover)
     form.style.setProperty('--rcf-on', cfg.onAccent)
@@ -77,16 +105,16 @@
       mark.textContent = cfg.initial
     }
     brand.appendChild(mark)
-    brand.appendChild(el('span', 'rcf-heading', cfg.heading || cfg.publisher))
+    brand.appendChild(el('span', 'rcf-heading', t.heading || cfg.publisher))
     form.appendChild(brand)
-    if (cfg.description) form.appendChild(el('p', 'rcf-desc', cfg.description))
+    if (t.description) form.appendChild(el('p', 'rcf-desc', t.description))
 
     var alert = el('div', 'rcf-alert')
     alert.setAttribute('role', 'alert')
     alert.hidden = true
     var errors = {}
 
-    cfg.fields.forEach(function (f) {
+    t.fields.forEach(function (f) {
       var wrap = el('div', 'rcf-field')
       var inputId = uid(f.key)
       var label = el('label', 'rcf-label')
@@ -94,13 +122,13 @@
       var title = el('span', '', f.label)
       if (!f.required && f.key !== 'email') {
         title.appendChild(document.createTextNode(' '))
-        title.appendChild(el('span', 'rcf-opt', 'optional'))
+        title.appendChild(el('span', 'rcf-opt', t.text.optional))
       }
       label.appendChild(title)
       var input
       if (f.type === 'select') {
         input = el('select')
-        input.appendChild(el('option', '', f.placeholder || 'Choose…')).value = ''
+        input.appendChild(el('option', '', f.placeholder || t.text.choose)).value = ''
         f.options.forEach(function (o) {
           var opt = el('option', '', o)
           opt.value = o
@@ -130,7 +158,7 @@
 
     if (cfg.lists.length > 1 && cfg.listChoice) {
       var fs = el('fieldset', 'rcf-lists')
-      fs.appendChild(el('legend', '', cfg.listsLabel))
+      fs.appendChild(el('legend', '', t.listsLabel))
       cfg.lists.forEach(function (l) {
         var lab = el('label', 'rcf-check')
         var cb = el('input')
@@ -139,7 +167,7 @@
         cb.value = l.id
         cb.checked = !!l.checked
         lab.appendChild(cb)
-        lab.appendChild(document.createTextNode(l.name))
+        lab.appendChild(document.createTextNode(t.lists[l.id] || ''))
         fs.appendChild(lab)
       })
       var lerr = el('span', 'rcf-err')
@@ -149,7 +177,7 @@
       form.appendChild(fs)
     }
 
-    if (cfg.consent) {
+    if (t.consent) {
       var cl = el('label', 'rcf-consent')
       var ccb = el('input')
       ccb.type = 'checkbox'
@@ -158,7 +186,7 @@
       ccb.required = true
       cl.appendChild(ccb)
       var ctext = el('span')
-      consentText(ctext)
+      consentText(t, ctext)
       cl.appendChild(ctext)
       form.appendChild(cl)
       var cerr = el('span', 'rcf-err')
@@ -170,7 +198,7 @@
     if (cfg.honeypot) {
       var hp = el('div', 'rcf-hp')
       hp.setAttribute('aria-hidden', 'true')
-      var hpl = el('label', '', 'Leave this empty')
+      var hpl = el('label', '', t.text.honeypot)
       var hpi = el('input')
       hpi.type = 'text'
       hpi.name = 'website'
@@ -181,10 +209,10 @@
       form.appendChild(hp)
     }
 
-    var button = el('button', 'rcf-submit', cfg.button)
+    var button = el('button', 'rcf-submit', t.button)
     button.type = 'submit'
     form.appendChild(button)
-    if (cfg.footnote) form.appendChild(el('span', 'rcf-foot', cfg.footnote))
+    if (t.footnote) form.appendChild(el('span', 'rcf-foot', t.footnote))
     form.appendChild(alert)
 
     function clear() {
@@ -219,7 +247,7 @@
       if (first) first.focus()
     }
     function done(status) {
-      var msg = cfg.messages[status] || cfg.messages.confirm
+      var msg = t.messages[status] || t.messages.confirm
       var box = el('div', 'rcf-done')
       box.setAttribute('role', 'status')
       box.appendChild(el('strong', 'rcf-heading', msg.title))
@@ -236,16 +264,17 @@
       clear()
       var email = errors.email.input.value.trim()
       if (!email || email.indexOf('@') < 1 || email.lastIndexOf('.') < email.indexOf('@')) {
-        showErrors({ email: email ? "That doesn't look like a complete email address." : 'Enter your email address.' })
+        showErrors({ email: email ? t.text.emailInvalid : t.text.emailMissing })
         return
       }
       if (errors.consent && !errors.consent.input.checked) {
-        showErrors({ consent: 'Tick the box to agree to receive emails.' })
+        showErrors({ consent: t.text.consent })
         return
       }
       var body = new URLSearchParams(new FormData(form))
       body.set('_t', token)
       body.set('_js', '1')
+      body.set('_lang', t.lang)
       // Where the signup happened, for growth sources: this page (its UTM
       // parameters) and the page before it.
       body.set('_page', String(window.location.href).slice(0, 2000))
@@ -268,12 +297,12 @@
             window.location.href = j.challengeUrl
             return
           }
-          showErrors(j.errors, j.message || cfg.messages.error.text)
+          showErrors(j.errors, j.message || t.messages.error.text)
         })
         .catch(function () {
           button.disabled = false
           button.removeAttribute('aria-busy')
-          showErrors(null, cfg.messages.error.text)
+          showErrors(null, t.messages.error.text)
         })
     })
     return form
@@ -286,7 +315,7 @@
     session()
     for (var i = 0; i < spots.length; i++) {
       while (spots[i].firstChild) spots[i].removeChild(spots[i].firstChild)
-      spots[i].appendChild(build())
+      spots[i].appendChild(build(pick(spots[i])))
     }
     return true
   }
@@ -304,15 +333,18 @@
       shown = true
       stylesheet()
       session()
+      var t = pick(document.documentElement)
       var dlg = el('dialog', 'rcf-dialog')
+      dlg.lang = t.lang
+      dlg.dir = t.dir
       dlg.style.setProperty('--rcf-accent', cfg.accent)
-      dlg.setAttribute('aria-label', cfg.heading || cfg.publisher)
+      dlg.setAttribute('aria-label', t.heading || cfg.publisher)
       var close = el('button', 'rcf-close', '×')
       close.type = 'button'
-      close.setAttribute('aria-label', 'Close')
+      close.setAttribute('aria-label', t.text.close)
       close.addEventListener('click', function () { dlg.close() })
       dlg.appendChild(close)
-      dlg.appendChild(build())
+      dlg.appendChild(build(t))
       dlg.addEventListener('close', function () {
         try {
           localStorage.setItem(key + ':closed', String(Date.now()))

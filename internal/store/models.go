@@ -556,6 +556,7 @@ type ConsentEvent struct {
 	ActorID        *uuid.UUID  `json:"actorId"`
 	ImportID       *uuid.UUID  `json:"importId"`
 	ConsentText    string      `json:"consentText"`
+	Language       string      `json:"language"`
 	UtmSource      string      `json:"utmSource"`
 	UtmMedium      string      `json:"utmMedium"`
 	UtmCampaign    string      `json:"utmCampaign"`
@@ -598,6 +599,11 @@ type Contact struct {
 	TierChangedAt       *time.Time      `json:"tierChangedAt"`
 	SunsetAt            *time.Time      `json:"sunsetAt"`
 	BroadcastsStoppedAt *time.Time      `json:"broadcastsStoppedAt"`
+	LanguageSource      string          `json:"languageSource"`
+	LanguageSourceName  string          `json:"languageSourceName"`
+	LanguageBrowser     bool            `json:"languageBrowser"`
+	LanguageSetAt       *time.Time      `json:"languageSetAt"`
+	LanguageSetBy       *uuid.UUID      `json:"languageSetBy"`
 }
 
 type ContactGrowth struct {
@@ -786,34 +792,39 @@ type EmailChange struct {
 }
 
 type Form struct {
-	ID             uuid.UUID       `json:"id"`
-	WorkspaceID    uuid.UUID       `json:"workspaceId"`
-	Name           string          `json:"name"`
-	Kind           string          `json:"kind"`
-	Slug           string          `json:"slug"`
-	ListIds        []uuid.UUID     `json:"listIds"`
-	DoubleOptIn    bool            `json:"doubleOptIn"`
-	Fields         json.RawMessage `json:"fields"`
-	Content        json.RawMessage `json:"content"`
-	SpamProtection json.RawMessage `json:"spamProtection"`
-	Status         string          `json:"status"`
-	Views          int64           `json:"views"`
-	Submissions    int64           `json:"submissions"`
-	Confirmed      int64           `json:"confirmed"`
-	Blocked        int64           `json:"blocked"`
-	CreatedBy      *uuid.UUID      `json:"createdBy"`
-	CreatedAt      time.Time       `json:"createdAt"`
-	UpdatedAt      time.Time       `json:"updatedAt"`
-	PublicID       string          `json:"publicId"`
-	DefaultListIds []uuid.UUID     `json:"defaultListIds"`
-	ListChoice     bool            `json:"listChoice"`
-	ConsentText    string          `json:"consentText"`
-	ConsentVersion int32           `json:"consentVersion"`
-	AllowedOrigins []string        `json:"allowedOrigins"`
-	AfterSubmit    string          `json:"afterSubmit"`
-	RedirectUrl    string          `json:"redirectUrl"`
-	PublishedAt    *time.Time      `json:"publishedAt"`
-	UpdatedBy      *uuid.UUID      `json:"updatedBy"`
+	ID               uuid.UUID       `json:"id"`
+	WorkspaceID      uuid.UUID       `json:"workspaceId"`
+	Name             string          `json:"name"`
+	Kind             string          `json:"kind"`
+	Slug             string          `json:"slug"`
+	ListIds          []uuid.UUID     `json:"listIds"`
+	DoubleOptIn      bool            `json:"doubleOptIn"`
+	Fields           json.RawMessage `json:"fields"`
+	Content          json.RawMessage `json:"content"`
+	SpamProtection   json.RawMessage `json:"spamProtection"`
+	Status           string          `json:"status"`
+	Views            int64           `json:"views"`
+	Submissions      int64           `json:"submissions"`
+	Confirmed        int64           `json:"confirmed"`
+	Blocked          int64           `json:"blocked"`
+	CreatedBy        *uuid.UUID      `json:"createdBy"`
+	CreatedAt        time.Time       `json:"createdAt"`
+	UpdatedAt        time.Time       `json:"updatedAt"`
+	PublicID         string          `json:"publicId"`
+	DefaultListIds   []uuid.UUID     `json:"defaultListIds"`
+	ListChoice       bool            `json:"listChoice"`
+	ConsentText      string          `json:"consentText"`
+	ConsentVersion   int32           `json:"consentVersion"`
+	AllowedOrigins   []string        `json:"allowedOrigins"`
+	AfterSubmit      string          `json:"afterSubmit"`
+	RedirectUrl      string          `json:"redirectUrl"`
+	PublishedAt      *time.Time      `json:"publishedAt"`
+	UpdatedBy        *uuid.UUID      `json:"updatedBy"`
+	CopyLanguage     string          `json:"copyLanguage"`
+	LanguageMode     string          `json:"languageMode"`
+	FixedLanguage    string          `json:"fixedLanguage"`
+	ConsentChangedBy *uuid.UUID      `json:"consentChangedBy"`
+	ConsentChangedAt *time.Time      `json:"consentChangedAt"`
 }
 
 type FormChallenge struct {
@@ -824,6 +835,17 @@ type FormChallenge struct {
 	Origin      string     `json:"origin"`
 	CreatedAt   time.Time  `json:"createdAt"`
 	ExpiresAt   time.Time  `json:"expiresAt"`
+}
+
+type FormCopy struct {
+	FormID         uuid.UUID       `json:"formId"`
+	Language       string          `json:"language"`
+	Content        json.RawMessage `json:"content"`
+	ConsentText    string          `json:"consentText"`
+	ConsentVersion int32           `json:"consentVersion"`
+	ConsentFor     int32           `json:"consentFor"`
+	UpdatedBy      *uuid.UUID      `json:"updatedBy"`
+	UpdatedAt      time.Time       `json:"updatedAt"`
 }
 
 type FormDaily struct {
@@ -857,6 +879,7 @@ type FormSubmission struct {
 	SendAttempts  int32       `json:"sendAttempts"`
 	RemindedAt    *time.Time  `json:"remindedAt"`
 	ConfirmedAt   *time.Time  `json:"confirmedAt"`
+	Language      string      `json:"language"`
 }
 
 type GrowthQualityDaily struct {
@@ -1253,6 +1276,17 @@ type NotificationSetting struct {
 	UpdatedAt    time.Time  `json:"updatedAt"`
 }
 
+type PageCopy struct {
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	Language    string          `json:"language"`
+	Pages       json.RawMessage `json:"pages"`
+	PagesBy     *uuid.UUID      `json:"pagesBy"`
+	PagesAt     *time.Time      `json:"pagesAt"`
+	Labels      json.RawMessage `json:"labels"`
+	LabelsBy    *uuid.UUID      `json:"labelsBy"`
+	LabelsAt    *time.Time      `json:"labelsAt"`
+}
+
 type PasswordReset struct {
 	ID        uuid.UUID  `json:"id"`
 	UserID    uuid.UUID  `json:"userId"`
@@ -1384,6 +1418,7 @@ type PublicPageSetting struct {
 	LogoType           string          `json:"logoType"`
 	UpdatedBy          *uuid.UUID      `json:"updatedBy"`
 	UpdatedAt          time.Time       `json:"updatedAt"`
+	CopyLanguage       string          `json:"copyLanguage"`
 }
 
 type ReadinessProgress struct {

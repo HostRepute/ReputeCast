@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/hostrepute/reputecast/internal/liquid"
+	"github.com/hostrepute/reputecast/internal/pagelabels"
 )
 
 // renderEmail renders a campaign's subject and HTML for one reader. Contact
@@ -67,6 +68,8 @@ type emailHead struct {
 	Feed        string
 	FeedTitle   string
 	Icon        string
+	// Alternates are the document in other languages (hreflang).
+	Alternates []alternate
 }
 
 func (e emailHead) String() string {
@@ -83,6 +86,9 @@ func (e emailHead) String() string {
 	}
 	if e.Canonical != "" {
 		b.WriteString(`<link rel="canonical" href="` + esc(e.Canonical) + `">` + "\n")
+	}
+	for _, a := range e.Alternates {
+		b.WriteString(`<link rel="alternate" hreflang="` + esc(a.Lang) + `" href="` + esc(a.Href) + `">` + "\n")
 	}
 	if o := e.OG; o != nil {
 		meta := func(prop, v string) {
@@ -130,7 +136,9 @@ var (
 	robotsTag = regexp.MustCompile(`(?is)<meta[^>]+name\s*=\s*["']robots["'][^>]*>`)
 	headOpen  = regexp.MustCompile(`(?is)<head(\s[^>]*)?>`)
 	bodyOpen  = regexp.MustCompile(`(?is)<body(\s[^>]*)?>`)
+	bodyClose = regexp.MustCompile(`(?i)</body\s*>`)
 	htmlOpen  = regexp.MustCompile(`(?is)<html(\s[^>]*)?>`)
+	langAttr  = regexp.MustCompile(`(?i)\s(?:xml:)?(?:lang|dir)\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)`)
 )
 
 // injectHead adds the metadata to an email document, replacing its own
@@ -155,6 +163,35 @@ func injectTop(doc, top string) string {
 		return doc[:loc[1]] + top + doc[loc[1]:]
 	}
 	return top + doc
+}
+
+// injectBottom puts markup right before the last </body> (the language
+// menu under an issue).
+func injectBottom(doc, bottom string) string {
+	if bottom == "" {
+		return doc
+	}
+	locs := bodyClose.FindAllStringIndex(doc, -1)
+	if len(locs) == 0 {
+		return doc + bottom
+	}
+	at := locs[len(locs)-1][0]
+	return doc[:at] + bottom + doc[at:]
+}
+
+// setDocLang says which language a document is in: lang and dir on its
+// <html>, in place of its own.
+func setDocLang(doc, code string) string {
+	if code == "" {
+		return doc
+	}
+	loc := htmlOpen.FindStringIndex(doc)
+	if loc == nil {
+		return doc
+	}
+	tag := langAttr.ReplaceAllString(doc[loc[0]:loc[1]], "")
+	tag = tag[:len("<html")] + ` lang="` + html.EscapeString(code) + `" dir="` + pagelabels.Dir(code) + `"` + tag[len("<html"):]
+	return doc[:loc[0]] + tag + doc[loc[1]:]
 }
 
 // emailCSP is the policy of an email shown in the browser: inline styles

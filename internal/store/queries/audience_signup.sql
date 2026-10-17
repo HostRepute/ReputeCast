@@ -73,13 +73,13 @@ WHERE contact_id = @contact_id AND status <> 'unsubscribed'
 RETURNING list_id;
 
 -- name: SignupInsertConsent :exec
-INSERT INTO consent_events (id, contact_id, list_id, action, source, ip, user_agent, detail, note, consent_version, consent_text, occurred_at)
-VALUES (@id, @contact_id, @list_id, @action, @source, @ip, @user_agent, @detail, @note, @consent_version, @consent_text, @occurred_at);
+INSERT INTO consent_events (id, contact_id, list_id, action, source, ip, user_agent, detail, note, consent_version, consent_text, language, occurred_at)
+VALUES (@id, @contact_id, @list_id, @action, @source, @ip, @user_agent, @detail, @note, @consent_version, @consent_text, @language, @occurred_at);
 
 -- name: SignupLastConsent :one
 -- The latest consent event of one kind (the confirmation shown under the
 -- confirmation page, the opt-in that recorded the consent text).
-SELECT occurred_at, ip, source, consent_version, consent_text
+SELECT occurred_at, ip, source, consent_version, consent_text, language
 FROM consent_events
 WHERE contact_id = @contact_id AND action = @action
 ORDER BY occurred_at DESC, id DESC

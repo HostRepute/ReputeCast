@@ -239,6 +239,8 @@ func TestTurnstileChallenge(t *testing.T) {
 		if m == nil {
 			t.Fatalf("no challenge on the page:\n%s", clip(r.Body))
 		}
+		// The language menu opens the check itself, not the form it came from.
+		must(t, r, 200, `href="`+env.Server.URL+`/p/acme-newsletter/subscribe/challenge?c=`+m[1]+`&lang=es" lang="es"`)
 		return m[1]
 	}
 	answer := func(id, response string) resp {
@@ -264,7 +266,10 @@ func TestTurnstileChallenge(t *testing.T) {
 	})
 	t.Run("a failed check saves nothing", func(t *testing.T) {
 		id := hold("robot.one@fastmail.com")
-		must(t, answer(id, "fail"), 403, "We couldn't confirm you're a person.")
+		r := answer(id, "fail")
+		must(t, r, 403, "We couldn't confirm you're a person. Try the form again in a minute. Sign up on the subscribe page instead.",
+			// An answer has no address of its own: the menu offers the form.
+			`href="/p/acme-newsletter/subscribe?lang=es" lang="es"`)
 		if _, ok := contactID(t, env, ids.ws, "robot.one@fastmail.com"); ok {
 			t.Error("a failed check created a contact")
 		}
