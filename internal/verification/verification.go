@@ -322,12 +322,24 @@ var demoKickbox = map[string]string{
 	"unknown": "unknown / no_connect",
 }
 
+// Verify is a single check: a signup form's, or a contact's Check now. In
+// the demo it lets an address through unless it is one of the sample's or
+// obviously made up (a .invalid domain), so trying a demo form never fails
+// at random; jobs get the sample's spread from VerifyBatch.
 func (d *demoAdapter) Verify(_ context.Context, email string, _ time.Duration) (adapter.Answer, error) {
 	if d.balance <= 0 {
 		return adapter.Answer{}, &adapter.CallError{Kind: adapter.ErrNoCredits, Message: "the demo account has no credits left"}
 	}
 	d.balance--
-	return d.answer(email), nil
+	e := strings.ToLower(email)
+	if a, ok := demoAnswers[e]; ok {
+		a.Email = email
+		return demoCode(d.service, a), nil
+	}
+	if strings.HasSuffix(e, ".invalid") {
+		return demoCode(d.service, adapter.Answer{Email: email, Result: adapter.Invalid, Reason: adapter.ReasonInvalidAddress}), nil
+	}
+	return demoCode(d.service, adapter.Answer{Email: email, Result: adapter.Valid}), nil
 }
 
 func (d *demoAdapter) VerifyBatch(_ context.Context, emails []string) ([]adapter.Answer, error) {
