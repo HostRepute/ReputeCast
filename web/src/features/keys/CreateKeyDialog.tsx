@@ -11,6 +11,14 @@ import { useWorkspace } from '@/lib/session'
 type List = Schemas['APIKeyList']
 export type KeyKind = 'api_key' | 'mcp_agent'
 
+/** "Start from" (SettingsKeysStates): a preset fills the permissions; Send-only opens the transactional key's own dialog. */
+const PRESETS: { key: string; label: string; permissions?: string[] }[] = [
+  { key: 'custom', label: 'Custom', permissions: [] },
+  { key: 'send_only', label: 'Send-only · transactional' },
+  { key: 'signup', label: 'Signup form', permissions: ['subscribers:create'] },
+  { key: 'analytics', label: 'Read-only analytics', permissions: ['reports:view', 'subscribers:view'] },
+]
+
 const EXPIRY = [
   { value: '', label: 'Never' },
   { value: '30', label: 'In 30 days' },
@@ -28,11 +36,14 @@ export function CreateKeyDialog({
   list,
   onClose,
   onCreated,
+  onSendOnly,
 }: {
   kind: KeyKind
   list: List
   onClose: () => void
   onCreated: (c: Schemas['APIKeyCreated']) => void
+  /** Opens the send-only transactional key's dialog instead (the Send-only preset). */
+  onSendOnly?: () => void
 }) {
   const { slug } = useWorkspace()
   const qc = useQueryClient()
@@ -43,6 +54,7 @@ export function CreateKeyDialog({
   const [picked, setPicked] = useState<string[]>([])
   const [listId, setListId] = useState('')
   const [expiry, setExpiry] = useState('')
+  const [preset, setPreset] = useState('custom')
   const [error, setError] = useState<{ field?: string; message: string }>()
   const createKey = $api.useMutation('post', '/api/v1/workspaces/{workspace}/api-keys')
   const createAgent = $api.useMutation('post', '/api/v1/workspaces/{workspace}/mcp-agents')
@@ -141,6 +153,39 @@ export function CreateKeyDialog({
           />
         </label>
       </div>
+      {agent ? null : (
+        <div className="col gap-1.5">
+          <span className="text-[12px] font-semibold text-ink-2" id="key-preset">
+            Start from
+          </span>
+          <div className="row gap-1.5" role="group" aria-labelledby="key-preset">
+            {PRESETS.filter((p) => p.key !== 'send_only' || onSendOnly).map((p) => {
+              const on = preset === p.key
+              return (
+                <button
+                  key={p.key}
+                  type="button"
+                  className="btn sm"
+                  aria-pressed={on}
+                  style={on ? { background: '#0B1220', color: '#fff', borderColor: '#0B1220' } : undefined}
+                  onClick={() => {
+                    if (p.key === 'send_only') {
+                      onSendOnly?.()
+                      return
+                    }
+                    setPreset(p.key)
+                    // Only what the creator may grant: locked permissions stay off.
+                    setPicked((p.permissions ?? []).filter((k) => catalog.some((c) => c.key === k) && !locked.has(k)))
+                  }}
+                >
+                  {p.label}
+                </button>
+              )
+            })}
+          </div>
+          <span className="k">A preset fills the permissions; you can still change them, never beyond your own.</span>
+        </div>
+      )}
       <div className="col gap-1.5" role="group" aria-labelledby="key-perms">
         <span className="text-[12px] font-semibold text-ink-2" id="key-perms">
           Permissions

@@ -14,6 +14,440 @@ import (
 	"github.com/google/uuid"
 )
 
+const txnAlertBounceDomains = `-- name: TxnAlertBounceDomains :many
+SELECT split_part(m.email, '@', 2)::text AS domain, count(*)::bigint AS n
+FROM transactional_messages t
+JOIN messages m ON m.id = t.message_id
+WHERE t.workspace_id = $1 AND t.template_id = $2 AND t.accepted_at >= $3::timestamptz AND m.status = 'bounced' AND NOT t.test
+GROUP BY 1
+ORDER BY 2 DESC, 1
+LIMIT 3
+`
+
+type TxnAlertBounceDomainsParams struct {
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	TemplateID  *uuid.UUID `json:"templateId"`
+	Since       time.Time  `json:"since"`
+}
+
+type TxnAlertBounceDomainsRow struct {
+	Domain string `json:"domain"`
+	N      int64  `json:"n"`
+}
+
+// The domains a template's bounces of the window went to, most first.
+func (q *Queries) TxnAlertBounceDomains(ctx context.Context, arg TxnAlertBounceDomainsParams) ([]TxnAlertBounceDomainsRow, error) {
+	rows, err := q.db.Query(ctx, txnAlertBounceDomains, arg.WorkspaceID, arg.TemplateID, arg.Since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []TxnAlertBounceDomainsRow{}
+	for rows.Next() {
+		var i TxnAlertBounceDomainsRow
+		if err := rows.Scan(&i.Domain, &i.N); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const txnAlertEnd = `-- name: TxnAlertEnd :execrows
+UPDATE transactional_alerts SET ended_at = $1::timestamptz
+WHERE workspace_id = $2 AND kind = $3 AND ended_at IS NULL
+  AND coalesce(template_id, '00000000-0000-0000-0000-000000000000'::uuid) = coalesce($4::uuid, '00000000-0000-0000-0000-000000000000'::uuid)
+`
+
+type TxnAlertEndParams struct {
+	Now         time.Time  `json:"now"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	Kind        string     `json:"kind"`
+	TemplateID  *uuid.UUID `json:"templateId"`
+}
+
+func (q *Queries) TxnAlertEnd(ctx context.Context, arg TxnAlertEndParams) (int64, error) {
+	result, err := q.db.Exec(ctx, txnAlertEnd,
+		arg.Now,
+		arg.WorkspaceID,
+		arg.Kind,
+		arg.TemplateID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const txnAlertFailovers = `-- name: TxnAlertFailovers :many
+SELECT t.failed_over_from::uuid AS provider_id, coalesce(max(p.name), '')::text AS provider_name,
+       count(*)::bigint AS messages,
+       count(*) FILTER (WHERE m.status = 'failed')::bigint AS lost,
+       min(t.failed_over_at)::timestamptz AS first_at,
+       max(t.failed_over_at)::timestamptz AS last_at,
+       coalesce(max(np.name), '')::text AS fallback_name,
+       coalesce((percentile_cont(0.5) WITHIN GROUP (ORDER BY extract(epoch FROM m.delivered_at - t.accepted_at) * 1000)
+                 FILTER (WHERE m.delivered_at IS NOT NULL AND m.delivered_at >= t.accepted_at)), -1)::bigint AS median_ms
+FROM transactional_messages t
+JOIN messages m ON m.id = t.message_id
+LEFT JOIN providers p ON p.id = t.failed_over_from
+LEFT JOIN providers np ON np.id = m.provider_id
+WHERE t.workspace_id = $1 AND t.failed_over_from IS NOT NULL AND t.failed_over_at >= $2::timestamptz
+GROUP BY t.failed_over_from
+`
+
+type TxnAlertFailoversParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Since       time.Time `json:"since"`
+}
+
+type TxnAlertFailoversRow struct {
+	ProviderID   uuid.UUID `json:"providerId"`
+	ProviderName string    `json:"providerName"`
+	Messages     int64     `json:"messages"`
+	Lost         int64     `json:"lost"`
+	FirstAt      time.Time `json:"firstAt"`
+	LastAt       time.Time `json:"lastAt"`
+	FallbackName string    `json:"fallbackName"`
+	MedianMs     int64     `json:"medianMs"`
+}
+
+// Messages that left a provider of their route since a time: how many,
+// how many were lost, where they went and how fast they were delivered.
+func (q *Queries) TxnAlertFailovers(ctx context.Context, arg TxnAlertFailoversParams) ([]TxnAlertFailoversRow, error) {
+	rows, err := q.db.Query(ctx, txnAlertFailovers, arg.WorkspaceID, arg.Since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []TxnAlertFailoversRow{}
+	for rows.Next() {
+		var i TxnAlertFailoversRow
+		if err := rows.Scan(
+			&i.ProviderID,
+			&i.ProviderName,
+			&i.Messages,
+			&i.Lost,
+			&i.FirstAt,
+			&i.LastAt,
+			&i.FallbackName,
+			&i.MedianMs,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const txnAlertHour = `-- name: TxnAlertHour :one
+SELECT count(*) FILTER (WHERE m.status = 'failed')::bigint AS failed,
+       count(*) FILTER (WHERE m.delivered_at IS NOT NULL AND m.delivered_at >= t.accepted_at)::bigint AS delivered,
+       coalesce((percentile_cont(0.5) WITHIN GROUP (ORDER BY extract(epoch FROM m.delivered_at - t.accepted_at) * 1000)
+                 FILTER (WHERE m.delivered_at IS NOT NULL AND m.delivered_at >= t.accepted_at)), -1)::bigint AS median_ms
+FROM transactional_messages t
+JOIN messages m ON m.id = t.message_id
+WHERE t.workspace_id = $1 AND t.accepted_at >= $2::timestamptz AND NOT t.test
+`
+
+type TxnAlertHourParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Since       time.Time `json:"since"`
+}
+
+type TxnAlertHourRow struct {
+	Failed    int64 `json:"failed"`
+	Delivered int64 `json:"delivered"`
+	MedianMs  int64 `json:"medianMs"`
+}
+
+// The workspace's last hour: failed messages and the median delivery time.
+func (q *Queries) TxnAlertHour(ctx context.Context, arg TxnAlertHourParams) (TxnAlertHourRow, error) {
+	row := q.db.QueryRow(ctx, txnAlertHour, arg.WorkspaceID, arg.Since)
+	var i TxnAlertHourRow
+	err := row.Scan(&i.Failed, &i.Delivered, &i.MedianMs)
+	return i, err
+}
+
+const txnAlertInsert = `-- name: TxnAlertInsert :one
+INSERT INTO transactional_alerts (id, workspace_id, kind, template_id, provider_id, value, threshold, detail, started_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+ON CONFLICT (workspace_id, kind, coalesce(template_id, '00000000-0000-0000-0000-000000000000'::uuid)) WHERE ended_at IS NULL DO NOTHING
+RETURNING id
+`
+
+type TxnAlertInsertParams struct {
+	ID          uuid.UUID       `json:"id"`
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	Kind        string          `json:"kind"`
+	TemplateID  *uuid.UUID      `json:"templateId"`
+	ProviderID  *uuid.UUID      `json:"providerId"`
+	Value       float64         `json:"value"`
+	Threshold   float64         `json:"threshold"`
+	Detail      json.RawMessage `json:"detail"`
+	StartedAt   time.Time       `json:"startedAt"`
+}
+
+// Opens an alert; nothing happens when one of its kind (and template) is open.
+func (q *Queries) TxnAlertInsert(ctx context.Context, arg TxnAlertInsertParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, txnAlertInsert,
+		arg.ID,
+		arg.WorkspaceID,
+		arg.Kind,
+		arg.TemplateID,
+		arg.ProviderID,
+		arg.Value,
+		arg.Threshold,
+		arg.Detail,
+		arg.StartedAt,
+	)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
+const txnAlertRefresh = `-- name: TxnAlertRefresh :exec
+UPDATE transactional_alerts SET value = greatest(value, $1::numeric), detail = $2
+WHERE workspace_id = $3 AND kind = $4 AND ended_at IS NULL
+  AND coalesce(template_id, '00000000-0000-0000-0000-000000000000'::uuid) = coalesce($5::uuid, '00000000-0000-0000-0000-000000000000'::uuid)
+`
+
+type TxnAlertRefreshParams struct {
+	Value       float64         `json:"value"`
+	Detail      json.RawMessage `json:"detail"`
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	Kind        string          `json:"kind"`
+	TemplateID  *uuid.UUID      `json:"templateId"`
+}
+
+// Keeps an open alert's worst value and latest detail.
+func (q *Queries) TxnAlertRefresh(ctx context.Context, arg TxnAlertRefreshParams) error {
+	_, err := q.db.Exec(ctx, txnAlertRefresh,
+		arg.Value,
+		arg.Detail,
+		arg.WorkspaceID,
+		arg.Kind,
+		arg.TemplateID,
+	)
+	return err
+}
+
+const txnAlertSeen = `-- name: TxnAlertSeen :execrows
+UPDATE transactional_alerts SET seen_at = $1::timestamptz, seen_by = $2 WHERE id = $3 AND workspace_id = $4
+`
+
+type TxnAlertSeenParams struct {
+	Now         time.Time  `json:"now"`
+	UserID      *uuid.UUID `json:"userId"`
+	ID          uuid.UUID  `json:"id"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+}
+
+func (q *Queries) TxnAlertSeen(ctx context.Context, arg TxnAlertSeenParams) (int64, error) {
+	result, err := q.db.Exec(ctx, txnAlertSeen,
+		arg.Now,
+		arg.UserID,
+		arg.ID,
+		arg.WorkspaceID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const txnAlertTemplateHour = `-- name: TxnAlertTemplateHour :many
+SELECT t.template_id::uuid AS template_id, coalesce(max(tt.key), max(t.template_key))::text AS template_key,
+       coalesce(max(tt.name), max(t.template_name))::text AS template_name,
+       count(*) FILTER (WHERE m.status IN ('sent', 'delivered', 'deferred', 'bounced', 'complained'))::bigint AS sent,
+       count(*) FILTER (WHERE m.status = 'bounced')::bigint AS bounced,
+       count(*) FILTER (WHERE m.status = 'bounced'
+                          AND EXISTS (SELECT 1 FROM delivery_events e WHERE e.message_id = m.id AND e.type = 'hard_bounce'))::bigint AS hard
+FROM transactional_messages t
+JOIN messages m ON m.id = t.message_id
+LEFT JOIN transactional_templates tt ON tt.id = t.template_id
+WHERE t.workspace_id = $1 AND t.accepted_at >= $2::timestamptz AND t.template_id IS NOT NULL AND NOT t.test
+GROUP BY t.template_id
+`
+
+type TxnAlertTemplateHourParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Since       time.Time `json:"since"`
+}
+
+type TxnAlertTemplateHourRow struct {
+	TemplateID   uuid.UUID `json:"templateId"`
+	TemplateKey  string    `json:"templateKey"`
+	TemplateName string    `json:"templateName"`
+	Sent         int64     `json:"sent"`
+	Bounced      int64     `json:"bounced"`
+	Hard         int64     `json:"hard"`
+}
+
+// Each template's last hour: messages a provider accepted, bounces and
+// hard bounces (test messages left out).
+func (q *Queries) TxnAlertTemplateHour(ctx context.Context, arg TxnAlertTemplateHourParams) ([]TxnAlertTemplateHourRow, error) {
+	rows, err := q.db.Query(ctx, txnAlertTemplateHour, arg.WorkspaceID, arg.Since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []TxnAlertTemplateHourRow{}
+	for rows.Next() {
+		var i TxnAlertTemplateHourRow
+		if err := rows.Scan(
+			&i.TemplateID,
+			&i.TemplateKey,
+			&i.TemplateName,
+			&i.Sent,
+			&i.Bounced,
+			&i.Hard,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const txnAlertWorkspaces = `-- name: TxnAlertWorkspaces :many
+SELECT DISTINCT workspace_id FROM transactional_messages WHERE accepted_at >= $1::timestamptz
+UNION
+SELECT workspace_id FROM transactional_alerts WHERE ended_at IS NULL
+`
+
+// Workspaces to check: transactional mail in the window, or an open alert.
+func (q *Queries) TxnAlertWorkspaces(ctx context.Context, since time.Time) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, txnAlertWorkspaces, since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []uuid.UUID{}
+	for rows.Next() {
+		var workspace_id uuid.UUID
+		if err := rows.Scan(&workspace_id); err != nil {
+			return nil, err
+		}
+		items = append(items, workspace_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const txnAlerts = `-- name: TxnAlerts :many
+SELECT a.id, a.kind, a.template_id, a.provider_id, a.value::float8 AS value, a.threshold::float8 AS threshold, a.detail, a.started_at, a.ended_at, a.seen_at,
+       coalesce(t.key, '')::text AS template_key, coalesce(t.name, '')::text AS template_name, coalesce(p.name, '')::text AS provider_name
+FROM transactional_alerts a
+LEFT JOIN transactional_templates t ON t.id = a.template_id
+LEFT JOIN providers p ON p.id = a.provider_id
+WHERE a.workspace_id = $1 AND (a.ended_at IS NULL OR a.started_at >= $2::timestamptz)
+ORDER BY a.started_at DESC
+LIMIT 50
+`
+
+type TxnAlertsParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Since       time.Time `json:"since"`
+}
+
+type TxnAlertsRow struct {
+	ID           uuid.UUID       `json:"id"`
+	Kind         string          `json:"kind"`
+	TemplateID   *uuid.UUID      `json:"templateId"`
+	ProviderID   *uuid.UUID      `json:"providerId"`
+	Value        float64         `json:"value"`
+	Threshold    float64         `json:"threshold"`
+	Detail       json.RawMessage `json:"detail"`
+	StartedAt    time.Time       `json:"startedAt"`
+	EndedAt      *time.Time      `json:"endedAt"`
+	SeenAt       *time.Time      `json:"seenAt"`
+	TemplateKey  string          `json:"templateKey"`
+	TemplateName string          `json:"templateName"`
+	ProviderName string          `json:"providerName"`
+}
+
+// Open alerts and those of a period, newest first.
+func (q *Queries) TxnAlerts(ctx context.Context, arg TxnAlertsParams) ([]TxnAlertsRow, error) {
+	rows, err := q.db.Query(ctx, txnAlerts, arg.WorkspaceID, arg.Since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []TxnAlertsRow{}
+	for rows.Next() {
+		var i TxnAlertsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Kind,
+			&i.TemplateID,
+			&i.ProviderID,
+			&i.Value,
+			&i.Threshold,
+			&i.Detail,
+			&i.StartedAt,
+			&i.EndedAt,
+			&i.SeenAt,
+			&i.TemplateKey,
+			&i.TemplateName,
+			&i.ProviderName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const txnAlertsOpenFor = `-- name: TxnAlertsOpenFor :many
+SELECT id, template_id FROM transactional_alerts WHERE workspace_id = $1 AND kind = $2 AND ended_at IS NULL
+`
+
+type TxnAlertsOpenForParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Kind        string    `json:"kind"`
+}
+
+type TxnAlertsOpenForRow struct {
+	ID         uuid.UUID  `json:"id"`
+	TemplateID *uuid.UUID `json:"templateId"`
+}
+
+// A workspace's open alerts of a kind.
+func (q *Queries) TxnAlertsOpenFor(ctx context.Context, arg TxnAlertsOpenForParams) ([]TxnAlertsOpenForRow, error) {
+	rows, err := q.db.Query(ctx, txnAlertsOpenFor, arg.WorkspaceID, arg.Kind)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []TxnAlertsOpenForRow{}
+	for rows.Next() {
+		var i TxnAlertsOpenForRow
+		if err := rows.Scan(&i.ID, &i.TemplateID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const txnAppendAttempts = `-- name: TxnAppendAttempts :exec
 UPDATE transactional_messages t SET attempts = t.attempts || x.attempt
 FROM (SELECT unnest($1::uuid[]) AS id, unnest($2::jsonb[]) AS attempt) AS x
@@ -222,6 +656,154 @@ func (q *Queries) TxnContactByEmail(ctx context.Context, arg TxnContactByEmailPa
 		&i.FirstName,
 		&i.LastName,
 	)
+	return i, err
+}
+
+const txnContactMessages = `-- name: TxnContactMessages :many
+SELECT t.message_id, t.accepted_at, t.template_key, t.template_name, t.source, t.subject, t.test, t.reject_reason, t.category_name,
+       coalesce(p.name, '')::text AS provider_name, m.delivered_at,
+       (CASE WHEN t.test THEN 'test'
+             WHEN t.reject_reason <> '' OR m.status IN ('rejected', 'cancelled') THEN 'rejected'
+             WHEN m.status = 'held' THEN 'queued'
+             ELSE m.status END)::text AS status
+FROM transactional_messages t
+JOIN messages m ON m.id = t.message_id
+LEFT JOIN providers p ON p.id = m.provider_id
+WHERE t.workspace_id = $1 AND (m.contact_id = $2 OR m.email = $3)
+ORDER BY t.accepted_at DESC
+LIMIT $4
+`
+
+type TxnContactMessagesParams struct {
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	ContactID   *uuid.UUID `json:"contactId"`
+	Email       string     `json:"email"`
+	Lim         int32      `json:"lim"`
+}
+
+type TxnContactMessagesRow struct {
+	MessageID    uuid.UUID  `json:"messageId"`
+	AcceptedAt   time.Time  `json:"acceptedAt"`
+	TemplateKey  string     `json:"templateKey"`
+	TemplateName string     `json:"templateName"`
+	Source       string     `json:"source"`
+	Subject      string     `json:"subject"`
+	Test         bool       `json:"test"`
+	RejectReason string     `json:"rejectReason"`
+	CategoryName string     `json:"categoryName"`
+	ProviderName string     `json:"providerName"`
+	DeliveredAt  *time.Time `json:"deliveredAt"`
+	Status       string     `json:"status"`
+}
+
+// A contact's transactional messages for its activity timeline.
+func (q *Queries) TxnContactMessages(ctx context.Context, arg TxnContactMessagesParams) ([]TxnContactMessagesRow, error) {
+	rows, err := q.db.Query(ctx, txnContactMessages,
+		arg.WorkspaceID,
+		arg.ContactID,
+		arg.Email,
+		arg.Lim,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []TxnContactMessagesRow{}
+	for rows.Next() {
+		var i TxnContactMessagesRow
+		if err := rows.Scan(
+			&i.MessageID,
+			&i.AcceptedAt,
+			&i.TemplateKey,
+			&i.TemplateName,
+			&i.Source,
+			&i.Subject,
+			&i.Test,
+			&i.RejectReason,
+			&i.CategoryName,
+			&i.ProviderName,
+			&i.DeliveredAt,
+			&i.Status,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const txnContent = `-- name: TxnContent :one
+SELECT html, text, headers, expires_at FROM transactional_message_content WHERE message_id = $1
+`
+
+type TxnContentRow struct {
+	Html      string          `json:"html"`
+	Text      string          `json:"text"`
+	Headers   json.RawMessage `json:"headers"`
+	ExpiresAt time.Time       `json:"expiresAt"`
+}
+
+func (q *Queries) TxnContent(ctx context.Context, messageID uuid.UUID) (TxnContentRow, error) {
+	row := q.db.QueryRow(ctx, txnContent, messageID)
+	var i TxnContentRow
+	err := row.Scan(
+		&i.Html,
+		&i.Text,
+		&i.Headers,
+		&i.ExpiresAt,
+	)
+	return i, err
+}
+
+const txnFirstRun = `-- name: TxnFirstRun :one
+SELECT (SELECT count(*) FROM transactional_templates t WHERE t.workspace_id = $1 AND t.deleted_at IS NULL)::bigint AS templates,
+       (SELECT count(*) FROM transactional_templates t WHERE t.workspace_id = $1 AND t.deleted_at IS NULL AND t.live_version IS NOT NULL)::bigint AS published,
+       (SELECT count(*) FROM transactional_messages m WHERE m.workspace_id = $1)::bigint AS messages
+`
+
+type TxnFirstRunRow struct {
+	Templates int64 `json:"templates"`
+	Published int64 `json:"published"`
+	Messages  int64 `json:"messages"`
+}
+
+// What the first-run state and the guide need to know.
+func (q *Queries) TxnFirstRun(ctx context.Context, workspaceID uuid.UUID) (TxnFirstRunRow, error) {
+	row := q.db.QueryRow(ctx, txnFirstRun, workspaceID)
+	var i TxnFirstRunRow
+	err := row.Scan(&i.Templates, &i.Published, &i.Messages)
+	return i, err
+}
+
+const txnHourStats = `-- name: TxnHourStats :one
+SELECT count(*) FILTER (WHERE m.status IN ('sent', 'delivered', 'deferred', 'bounced', 'complained'))::bigint AS sent,
+       count(*) FILTER (WHERE m.status = 'bounced')::bigint AS bounced,
+       coalesce((percentile_cont(0.5) WITHIN GROUP (ORDER BY extract(epoch FROM m.delivered_at - t.accepted_at) * 1000)
+                 FILTER (WHERE m.delivered_at IS NOT NULL AND m.delivered_at >= t.accepted_at)), -1)::bigint AS median_ms
+FROM transactional_messages t
+JOIN messages m ON m.id = t.message_id
+WHERE t.workspace_id = $1 AND t.accepted_at >= $2::timestamptz AND NOT t.test
+`
+
+type TxnHourStatsParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Since       time.Time `json:"since"`
+}
+
+type TxnHourStatsRow struct {
+	Sent     int64 `json:"sent"`
+	Bounced  int64 `json:"bounced"`
+	MedianMs int64 `json:"medianMs"`
+}
+
+// The last hour's numbers for the alert banner.
+func (q *Queries) TxnHourStats(ctx context.Context, arg TxnHourStatsParams) (TxnHourStatsRow, error) {
+	row := q.db.QueryRow(ctx, txnHourStats, arg.WorkspaceID, arg.Since)
+	var i TxnHourStatsRow
+	err := row.Scan(&i.Sent, &i.Bounced, &i.MedianMs)
 	return i, err
 }
 
@@ -530,8 +1112,11 @@ func (q *Queries) TxnInsertRejectedCall(ctx context.Context, arg TxnInsertReject
 }
 
 const txnKey = `-- name: TxnKey :one
-SELECT id, name, kind, preset, mode, templates, categories, test_addresses, rate_per_second, permissions, created_by
-FROM api_keys WHERE id = $1 AND workspace_id = $2
+SELECT k.id, k.name, k.kind, k.preset, k.mode, k.templates, k.categories, k.test_addresses, k.rate_per_second, k.permissions, k.created_by,
+       k.integration_id, coalesce(i.kind, '')::text AS integration_kind
+FROM api_keys k
+LEFT JOIN integrations i ON i.id = k.integration_id
+WHERE k.id = $1 AND k.workspace_id = $2
 `
 
 type TxnKeyParams struct {
@@ -540,20 +1125,23 @@ type TxnKeyParams struct {
 }
 
 type TxnKeyRow struct {
-	ID            uuid.UUID   `json:"id"`
-	Name          string      `json:"name"`
-	Kind          string      `json:"kind"`
-	Preset        string      `json:"preset"`
-	Mode          string      `json:"mode"`
-	Templates     []string    `json:"templates"`
-	Categories    []uuid.UUID `json:"categories"`
-	TestAddresses []string    `json:"testAddresses"`
-	RatePerSecond int32       `json:"ratePerSecond"`
-	Permissions   []string    `json:"permissions"`
-	CreatedBy     *uuid.UUID  `json:"createdBy"`
+	ID              uuid.UUID   `json:"id"`
+	Name            string      `json:"name"`
+	Kind            string      `json:"kind"`
+	Preset          string      `json:"preset"`
+	Mode            string      `json:"mode"`
+	Templates       []string    `json:"templates"`
+	Categories      []uuid.UUID `json:"categories"`
+	TestAddresses   []string    `json:"testAddresses"`
+	RatePerSecond   int32       `json:"ratePerSecond"`
+	Permissions     []string    `json:"permissions"`
+	CreatedBy       *uuid.UUID  `json:"createdBy"`
+	IntegrationID   *uuid.UUID  `json:"integrationId"`
+	IntegrationKind string      `json:"integrationKind"`
 }
 
-// A key's transactional settings (send-only, test mode, scope, rate).
+// A key's transactional settings (send-only, test mode, scope, rate), and
+// the integration it belongs to, if any.
 func (q *Queries) TxnKey(ctx context.Context, arg TxnKeyParams) (TxnKeyRow, error) {
 	row := q.db.QueryRow(ctx, txnKey, arg.ID, arg.WorkspaceID)
 	var i TxnKeyRow
@@ -569,8 +1157,310 @@ func (q *Queries) TxnKey(ctx context.Context, arg TxnKeyParams) (TxnKeyRow, erro
 		&i.RatePerSecond,
 		&i.Permissions,
 		&i.CreatedBy,
+		&i.IntegrationID,
+		&i.IntegrationKind,
 	)
 	return i, err
+}
+
+const txnLog = `-- name: TxnLog :many
+WITH log AS (
+    SELECT t.message_id, t.accepted_at, m.email, m.contact_id, t.to_name, t.source, t.template_key, t.template_name, t.template_version, t.subject,
+           m.provider_id, coalesce(p.name, '')::text AS provider_name, m.error, m.sent_at, m.delivered_at, m.opened_at, m.clicked_at,
+           t.test, t.test_delivered, t.reject_reason, t.reject_detail, t.track_opens, t.track_clicks,
+           t.failed_over_from, coalesce(fp.name, '')::text AS failed_over_from_name, t.failed_over_at,
+           t.key_id, t.key_name, t.idempotency_key, t.tags, t.metadata, t.category_name, t.category_kind, t.workspace_id, m.language,
+           (CASE WHEN t.test THEN 'test'
+                 WHEN t.reject_reason <> '' OR m.status IN ('rejected', 'cancelled') THEN 'rejected'
+                 WHEN m.status = 'held' THEN 'queued'
+                 ELSE m.status END)::text AS status
+    FROM transactional_messages t
+    JOIN messages m ON m.id = t.message_id
+    LEFT JOIN providers p ON p.id = m.provider_id
+    LEFT JOIN providers fp ON fp.id = t.failed_over_from
+    WHERE t.workspace_id = $3 AND t.accepted_at >= $4::timestamptz AND t.accepted_at < $5::timestamptz
+      AND ($6::text IS NULL OR ($6::text = 'raw' AND t.source = 'smtp' AND t.template_key = '') OR t.template_key = $6::text)
+      AND ($7::uuid IS NULL OR m.provider_id = $7::uuid)
+      AND ($8::uuid IS NULL OR t.key_id = $8::uuid)
+      AND ($9::text IS NULL OR m.email ILIKE '%' || $9::text || '%' OR t.message_id::text = $9::text
+           OR t.idempotency_key = $9::text OR $9::text = ANY(t.tags)
+           OR EXISTS (SELECT 1 FROM jsonb_each_text(t.metadata) kv WHERE kv.value = $9::text))
+      AND ($10::timestamptz IS NULL OR (t.accepted_at, t.message_id) < ($10::timestamptz, $11::uuid))
+      AND ($12::timestamptz IS NULL OR (t.accepted_at, t.message_id) > ($12::timestamptz, $13::uuid))
+)
+SELECT log.message_id, log.accepted_at, log.email, log.contact_id, log.to_name, log.source, log.template_key, log.template_name, log.template_version, log.subject,
+       log.provider_id, log.provider_name, log.error, log.sent_at, log.delivered_at, log.opened_at, log.clicked_at,
+       log.test, log.test_delivered, log.reject_reason, log.reject_detail, log.track_opens, log.track_clicks,
+       log.failed_over_from, log.failed_over_from_name, log.failed_over_at,
+       log.key_id, log.key_name, log.idempotency_key, log.tags, log.metadata, log.category_name, log.category_kind, log.status, log.language,
+       (SELECT count(*) FROM delivery_events e WHERE e.message_id = log.message_id AND e.type = 'deferred')::int AS deferrals,
+       coalesce((SELECT e.type || ':' || e.bounce_class || ':' || e.original_code || ' ' || e.diagnostic FROM delivery_events e
+                 WHERE e.message_id = log.message_id AND e.type IN ('hard_bounce', 'soft_bounce') ORDER BY e.occurred_at DESC LIMIT 1), '')::text AS bounce,
+       EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = log.workspace_id AND s.email = log.email AND s.reason = 'role')::boolean AS role_address
+FROM log
+WHERE $1::text IS NULL OR log.status = $1::text
+ORDER BY log.accepted_at DESC, log.message_id DESC
+LIMIT $2
+`
+
+type TxnLogParams struct {
+	Status      *string    `json:"status"`
+	Lim         int32      `json:"lim"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	Since       time.Time  `json:"since"`
+	Until       time.Time  `json:"until"`
+	Template    *string    `json:"template"`
+	ProviderID  *uuid.UUID `json:"providerId"`
+	KeyID       *uuid.UUID `json:"keyId"`
+	Q           *string    `json:"q"`
+	BeforeAt    *time.Time `json:"beforeAt"`
+	BeforeID    *uuid.UUID `json:"beforeId"`
+	AfterAt     *time.Time `json:"afterAt"`
+	AfterID     *uuid.UUID `json:"afterId"`
+}
+
+type TxnLogRow struct {
+	MessageID          uuid.UUID       `json:"messageId"`
+	AcceptedAt         time.Time       `json:"acceptedAt"`
+	Email              string          `json:"email"`
+	ContactID          *uuid.UUID      `json:"contactId"`
+	ToName             string          `json:"toName"`
+	Source             string          `json:"source"`
+	TemplateKey        string          `json:"templateKey"`
+	TemplateName       string          `json:"templateName"`
+	TemplateVersion    *int32          `json:"templateVersion"`
+	Subject            string          `json:"subject"`
+	ProviderID         *uuid.UUID      `json:"providerId"`
+	ProviderName       string          `json:"providerName"`
+	Error              string          `json:"error"`
+	SentAt             *time.Time      `json:"sentAt"`
+	DeliveredAt        *time.Time      `json:"deliveredAt"`
+	OpenedAt           *time.Time      `json:"openedAt"`
+	ClickedAt          *time.Time      `json:"clickedAt"`
+	Test               bool            `json:"test"`
+	TestDelivered      bool            `json:"testDelivered"`
+	RejectReason       string          `json:"rejectReason"`
+	RejectDetail       json.RawMessage `json:"rejectDetail"`
+	TrackOpens         bool            `json:"trackOpens"`
+	TrackClicks        bool            `json:"trackClicks"`
+	FailedOverFrom     *uuid.UUID      `json:"failedOverFrom"`
+	FailedOverFromName string          `json:"failedOverFromName"`
+	FailedOverAt       *time.Time      `json:"failedOverAt"`
+	KeyID              *uuid.UUID      `json:"keyId"`
+	KeyName            string          `json:"keyName"`
+	IdempotencyKey     string          `json:"idempotencyKey"`
+	Tags               []string        `json:"tags"`
+	Metadata           json.RawMessage `json:"metadata"`
+	CategoryName       string          `json:"categoryName"`
+	CategoryKind       string          `json:"categoryKind"`
+	Status             string          `json:"status"`
+	Language           string          `json:"language"`
+	Deferrals          int32           `json:"deferrals"`
+	Bounce             string          `json:"bounce"`
+	RoleAddress        bool            `json:"roleAddress"`
+}
+
+// The message log, newest first. status is what the log shows: test,
+// rejected, queued, sent, delivered, deferred, bounced, complained or
+// failed. before_* pages back; after_* returns only newer messages (live).
+func (q *Queries) TxnLog(ctx context.Context, arg TxnLogParams) ([]TxnLogRow, error) {
+	rows, err := q.db.Query(ctx, txnLog,
+		arg.Status,
+		arg.Lim,
+		arg.WorkspaceID,
+		arg.Since,
+		arg.Until,
+		arg.Template,
+		arg.ProviderID,
+		arg.KeyID,
+		arg.Q,
+		arg.BeforeAt,
+		arg.BeforeID,
+		arg.AfterAt,
+		arg.AfterID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []TxnLogRow{}
+	for rows.Next() {
+		var i TxnLogRow
+		if err := rows.Scan(
+			&i.MessageID,
+			&i.AcceptedAt,
+			&i.Email,
+			&i.ContactID,
+			&i.ToName,
+			&i.Source,
+			&i.TemplateKey,
+			&i.TemplateName,
+			&i.TemplateVersion,
+			&i.Subject,
+			&i.ProviderID,
+			&i.ProviderName,
+			&i.Error,
+			&i.SentAt,
+			&i.DeliveredAt,
+			&i.OpenedAt,
+			&i.ClickedAt,
+			&i.Test,
+			&i.TestDelivered,
+			&i.RejectReason,
+			&i.RejectDetail,
+			&i.TrackOpens,
+			&i.TrackClicks,
+			&i.FailedOverFrom,
+			&i.FailedOverFromName,
+			&i.FailedOverAt,
+			&i.KeyID,
+			&i.KeyName,
+			&i.IdempotencyKey,
+			&i.Tags,
+			&i.Metadata,
+			&i.CategoryName,
+			&i.CategoryKind,
+			&i.Status,
+			&i.Language,
+			&i.Deferrals,
+			&i.Bounce,
+			&i.RoleAddress,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const txnLogCounts = `-- name: TxnLogCounts :many
+SELECT (CASE WHEN t.test THEN 'test'
+             WHEN t.reject_reason <> '' OR m.status IN ('rejected', 'cancelled') THEN 'rejected'
+             WHEN m.status = 'held' THEN 'queued'
+             ELSE m.status END)::text AS status,
+       count(*)::bigint AS n
+FROM transactional_messages t
+JOIN messages m ON m.id = t.message_id
+WHERE t.workspace_id = $1 AND t.accepted_at >= $2::timestamptz AND t.accepted_at < $3::timestamptz
+  AND ($4::text IS NULL OR ($4::text = 'raw' AND t.source = 'smtp' AND t.template_key = '') OR t.template_key = $4::text)
+  AND ($5::uuid IS NULL OR m.provider_id = $5::uuid)
+  AND ($6::uuid IS NULL OR t.key_id = $6::uuid)
+  AND ($7::text IS NULL OR m.email ILIKE '%' || $7::text || '%' OR t.message_id::text = $7::text
+       OR t.idempotency_key = $7::text OR $7::text = ANY(t.tags)
+       OR EXISTS (SELECT 1 FROM jsonb_each_text(t.metadata) kv WHERE kv.value = $7::text))
+GROUP BY 1
+`
+
+type TxnLogCountsParams struct {
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	Since       time.Time  `json:"since"`
+	Until       time.Time  `json:"until"`
+	Template    *string    `json:"template"`
+	ProviderID  *uuid.UUID `json:"providerId"`
+	KeyID       *uuid.UUID `json:"keyId"`
+	Q           *string    `json:"q"`
+}
+
+type TxnLogCountsRow struct {
+	Status string `json:"status"`
+	N      int64  `json:"n"`
+}
+
+// The log's numbers per status for the same filters.
+func (q *Queries) TxnLogCounts(ctx context.Context, arg TxnLogCountsParams) ([]TxnLogCountsRow, error) {
+	rows, err := q.db.Query(ctx, txnLogCounts,
+		arg.WorkspaceID,
+		arg.Since,
+		arg.Until,
+		arg.Template,
+		arg.ProviderID,
+		arg.KeyID,
+		arg.Q,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []TxnLogCountsRow{}
+	for rows.Next() {
+		var i TxnLogCountsRow
+		if err := rows.Scan(&i.Status, &i.N); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const txnLogKeys = `-- name: TxnLogKeys :many
+SELECT k.id, k.name, k.revoked_at FROM api_keys k
+WHERE k.workspace_id = $1 AND k.kind = 'api_key' AND 'transactional:send' = ANY(k.permissions)
+  AND (k.integration_id IS NULL OR EXISTS (SELECT 1 FROM transactional_messages t WHERE t.key_id = k.id))
+ORDER BY k.created_at
+`
+
+type TxnLogKeysRow struct {
+	ID        uuid.UUID  `json:"id"`
+	Name      string     `json:"name"`
+	RevokedAt *time.Time `json:"revokedAt"`
+}
+
+// Keys that can send, for the log's key filter; an integration's key once
+// it has sent something.
+func (q *Queries) TxnLogKeys(ctx context.Context, workspaceID uuid.UUID) ([]TxnLogKeysRow, error) {
+	rows, err := q.db.Query(ctx, txnLogKeys, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []TxnLogKeysRow{}
+	for rows.Next() {
+		var i TxnLogKeysRow
+		if err := rows.Scan(&i.ID, &i.Name, &i.RevokedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const txnLogTemplates = `-- name: TxnLogTemplates :many
+SELECT key, name FROM transactional_templates WHERE workspace_id = $1 AND deleted_at IS NULL ORDER BY created_at
+`
+
+type TxnLogTemplatesRow struct {
+	Key  string `json:"key"`
+	Name string `json:"name"`
+}
+
+// Templates for the log's template filter, archived ones included.
+func (q *Queries) TxnLogTemplates(ctx context.Context, workspaceID uuid.UUID) ([]TxnLogTemplatesRow, error) {
+	rows, err := q.db.Query(ctx, txnLogTemplates, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []TxnLogTemplatesRow{}
+	for rows.Next() {
+		var i TxnLogTemplatesRow
+		if err := rows.Scan(&i.Key, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const txnMarkEmitted = `-- name: TxnMarkEmitted :exec
@@ -642,6 +1532,219 @@ func (q *Queries) TxnMemberEmails(ctx context.Context, workspaceID uuid.UUID) ([
 	return items, nil
 }
 
+const txnMessageCategory = `-- name: TxnMessageCategory :one
+SELECT m.email, t.category_id, t.category_name, t.category_kind
+FROM messages m JOIN transactional_messages t ON t.message_id = m.id
+WHERE m.id = $1 AND m.workspace_id = $2
+`
+
+type TxnMessageCategoryParams struct {
+	ID          uuid.UUID `json:"id"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+}
+
+type TxnMessageCategoryRow struct {
+	Email        string     `json:"email"`
+	CategoryID   *uuid.UUID `json:"categoryId"`
+	CategoryName string     `json:"categoryName"`
+	CategoryKind string     `json:"categoryKind"`
+}
+
+// The address and category a transactional message went out with (its
+// unsubscribe and preference links).
+func (q *Queries) TxnMessageCategory(ctx context.Context, arg TxnMessageCategoryParams) (TxnMessageCategoryRow, error) {
+	row := q.db.QueryRow(ctx, txnMessageCategory, arg.ID, arg.WorkspaceID)
+	var i TxnMessageCategoryRow
+	err := row.Scan(
+		&i.Email,
+		&i.CategoryID,
+		&i.CategoryName,
+		&i.CategoryKind,
+	)
+	return i, err
+}
+
+const txnMessageDetail = `-- name: TxnMessageDetail :one
+SELECT t.message_id, t.workspace_id, t.source, t.template_id, t.template_key, t.template_name, t.template_version, t.category_id, t.category_name,
+       t.category_kind, t.key_id, t.key_name, t.user_id, t.ip, t.idempotency_key, t.subject, t.from_email, t.from_name, t.reply_to, t.to_name,
+       t.cc, t.bcc, t.tags, t.metadata, t.data, t.data_keys, t.sensitive, t.attachments, t.size_bytes, t.test, t.test_delivered, t.send_at,
+       t.reject_reason, t.reject_detail, t.track_opens, t.track_clicks, t.route, t.attempts, t.failed_over_from, t.failed_over_at, t.provider_since,
+       t.accepted_at, t.rendered_at, t.content_expires_at, t.content_removed_at, t.resent_from,
+       m.email, m.contact_id, m.provider_id, coalesce(m.provider_message_id, '')::text AS provider_message_id, m.mailbox_provider,
+       m.status AS raw_status, m.error, m.sent_at, m.delivered_at, m.opened_at, m.clicked_at,
+       m.language, m.contact_language, m.language_reason,
+       coalesce(p.name, '')::text AS provider_name,
+       coalesce(fp.name, '')::text AS failed_over_from_name,
+       coalesce(u.name, '')::text AS user_name,
+       coalesce(nullif(trim(c.first_name || ' ' || c.last_name), ''), '')::text AS contact_name,
+       (c.id IS NOT NULL)::boolean AS contact_exists,
+       EXISTS (SELECT 1 FROM transactional_message_content x WHERE x.message_id = t.message_id)::boolean AS has_content,
+       EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = t.workspace_id AND s.email = m.email AND s.reason = 'role')::boolean AS role_address,
+       (CASE WHEN t.test THEN 'test'
+             WHEN t.reject_reason <> '' OR m.status IN ('rejected', 'cancelled') THEN 'rejected'
+             WHEN m.status = 'held' THEN 'queued'
+             ELSE m.status END)::text AS status
+FROM transactional_messages t
+JOIN messages m ON m.id = t.message_id
+LEFT JOIN providers p ON p.id = m.provider_id
+LEFT JOIN providers fp ON fp.id = t.failed_over_from
+LEFT JOIN users u ON u.id = t.user_id
+LEFT JOIN contacts c ON c.id = m.contact_id AND c.erased_at IS NULL
+WHERE t.message_id = $1 AND t.workspace_id = $2
+`
+
+type TxnMessageDetailParams struct {
+	ID          uuid.UUID `json:"id"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+}
+
+type TxnMessageDetailRow struct {
+	MessageID          uuid.UUID       `json:"messageId"`
+	WorkspaceID        uuid.UUID       `json:"workspaceId"`
+	Source             string          `json:"source"`
+	TemplateID         *uuid.UUID      `json:"templateId"`
+	TemplateKey        string          `json:"templateKey"`
+	TemplateName       string          `json:"templateName"`
+	TemplateVersion    *int32          `json:"templateVersion"`
+	CategoryID         *uuid.UUID      `json:"categoryId"`
+	CategoryName       string          `json:"categoryName"`
+	CategoryKind       string          `json:"categoryKind"`
+	KeyID              *uuid.UUID      `json:"keyId"`
+	KeyName            string          `json:"keyName"`
+	UserID             *uuid.UUID      `json:"userId"`
+	Ip                 *netip.Addr     `json:"ip"`
+	IdempotencyKey     string          `json:"idempotencyKey"`
+	Subject            string          `json:"subject"`
+	FromEmail          string          `json:"fromEmail"`
+	FromName           string          `json:"fromName"`
+	ReplyTo            string          `json:"replyTo"`
+	ToName             string          `json:"toName"`
+	Cc                 []string        `json:"cc"`
+	Bcc                []string        `json:"bcc"`
+	Tags               []string        `json:"tags"`
+	Metadata           json.RawMessage `json:"metadata"`
+	Data               json.RawMessage `json:"data"`
+	DataKeys           []string        `json:"dataKeys"`
+	Sensitive          []string        `json:"sensitive"`
+	Attachments        json.RawMessage `json:"attachments"`
+	SizeBytes          int32           `json:"sizeBytes"`
+	Test               bool            `json:"test"`
+	TestDelivered      bool            `json:"testDelivered"`
+	SendAt             *time.Time      `json:"sendAt"`
+	RejectReason       string          `json:"rejectReason"`
+	RejectDetail       json.RawMessage `json:"rejectDetail"`
+	TrackOpens         bool            `json:"trackOpens"`
+	TrackClicks        bool            `json:"trackClicks"`
+	Route              json.RawMessage `json:"route"`
+	Attempts           json.RawMessage `json:"attempts"`
+	FailedOverFrom     *uuid.UUID      `json:"failedOverFrom"`
+	FailedOverAt       *time.Time      `json:"failedOverAt"`
+	ProviderSince      *time.Time      `json:"providerSince"`
+	AcceptedAt         time.Time       `json:"acceptedAt"`
+	RenderedAt         *time.Time      `json:"renderedAt"`
+	ContentExpiresAt   *time.Time      `json:"contentExpiresAt"`
+	ContentRemovedAt   *time.Time      `json:"contentRemovedAt"`
+	ResentFrom         *uuid.UUID      `json:"resentFrom"`
+	Email              string          `json:"email"`
+	ContactID          *uuid.UUID      `json:"contactId"`
+	ProviderID         *uuid.UUID      `json:"providerId"`
+	ProviderMessageID  string          `json:"providerMessageId"`
+	MailboxProvider    string          `json:"mailboxProvider"`
+	RawStatus          string          `json:"rawStatus"`
+	Error              string          `json:"error"`
+	SentAt             *time.Time      `json:"sentAt"`
+	DeliveredAt        *time.Time      `json:"deliveredAt"`
+	OpenedAt           *time.Time      `json:"openedAt"`
+	ClickedAt          *time.Time      `json:"clickedAt"`
+	Language           string          `json:"language"`
+	ContactLanguage    string          `json:"contactLanguage"`
+	LanguageReason     string          `json:"languageReason"`
+	ProviderName       string          `json:"providerName"`
+	FailedOverFromName string          `json:"failedOverFromName"`
+	UserName           string          `json:"userName"`
+	ContactName        string          `json:"contactName"`
+	ContactExists      bool            `json:"contactExists"`
+	HasContent         bool            `json:"hasContent"`
+	RoleAddress        bool            `json:"roleAddress"`
+	Status             string          `json:"status"`
+}
+
+func (q *Queries) TxnMessageDetail(ctx context.Context, arg TxnMessageDetailParams) (TxnMessageDetailRow, error) {
+	row := q.db.QueryRow(ctx, txnMessageDetail, arg.ID, arg.WorkspaceID)
+	var i TxnMessageDetailRow
+	err := row.Scan(
+		&i.MessageID,
+		&i.WorkspaceID,
+		&i.Source,
+		&i.TemplateID,
+		&i.TemplateKey,
+		&i.TemplateName,
+		&i.TemplateVersion,
+		&i.CategoryID,
+		&i.CategoryName,
+		&i.CategoryKind,
+		&i.KeyID,
+		&i.KeyName,
+		&i.UserID,
+		&i.Ip,
+		&i.IdempotencyKey,
+		&i.Subject,
+		&i.FromEmail,
+		&i.FromName,
+		&i.ReplyTo,
+		&i.ToName,
+		&i.Cc,
+		&i.Bcc,
+		&i.Tags,
+		&i.Metadata,
+		&i.Data,
+		&i.DataKeys,
+		&i.Sensitive,
+		&i.Attachments,
+		&i.SizeBytes,
+		&i.Test,
+		&i.TestDelivered,
+		&i.SendAt,
+		&i.RejectReason,
+		&i.RejectDetail,
+		&i.TrackOpens,
+		&i.TrackClicks,
+		&i.Route,
+		&i.Attempts,
+		&i.FailedOverFrom,
+		&i.FailedOverAt,
+		&i.ProviderSince,
+		&i.AcceptedAt,
+		&i.RenderedAt,
+		&i.ContentExpiresAt,
+		&i.ContentRemovedAt,
+		&i.ResentFrom,
+		&i.Email,
+		&i.ContactID,
+		&i.ProviderID,
+		&i.ProviderMessageID,
+		&i.MailboxProvider,
+		&i.RawStatus,
+		&i.Error,
+		&i.SentAt,
+		&i.DeliveredAt,
+		&i.OpenedAt,
+		&i.ClickedAt,
+		&i.Language,
+		&i.ContactLanguage,
+		&i.LanguageReason,
+		&i.ProviderName,
+		&i.FailedOverFromName,
+		&i.UserName,
+		&i.ContactName,
+		&i.ContactExists,
+		&i.HasContent,
+		&i.RoleAddress,
+		&i.Status,
+	)
+	return i, err
+}
+
 const txnMessageEvent = `-- name: TxnMessageEvent :one
 SELECT t.message_id, t.template_key, t.template_version, t.category_name, t.tags, t.metadata, t.test, t.reject_reason, t.source,
        m.email, m.status, m.error, coalesce(m.provider_message_id, '')::text AS provider_message_id,
@@ -694,6 +1797,63 @@ func (q *Queries) TxnMessageEvent(ctx context.Context, messageID uuid.UUID) (Txn
 	return i, err
 }
 
+const txnMessageEvents = `-- name: TxnMessageEvents :many
+SELECT e.type, e.occurred_at, e.original_type, e.original_code, e.diagnostic, e.bounce_class, e.machine, e.url, e.user_agent,
+       e.provider_id, coalesce(p.name, '')::text AS provider_name, e.provider_message_id
+FROM delivery_events e LEFT JOIN providers p ON p.id = e.provider_id
+WHERE e.message_id = $1
+ORDER BY e.occurred_at, e.received_at
+`
+
+type TxnMessageEventsRow struct {
+	Type              string     `json:"type"`
+	OccurredAt        time.Time  `json:"occurredAt"`
+	OriginalType      string     `json:"originalType"`
+	OriginalCode      string     `json:"originalCode"`
+	Diagnostic        string     `json:"diagnostic"`
+	BounceClass       string     `json:"bounceClass"`
+	Machine           bool       `json:"machine"`
+	Url               string     `json:"url"`
+	UserAgent         string     `json:"userAgent"`
+	ProviderID        *uuid.UUID `json:"providerId"`
+	ProviderName      string     `json:"providerName"`
+	ProviderMessageID string     `json:"providerMessageId"`
+}
+
+// A message's provider events, oldest first.
+func (q *Queries) TxnMessageEvents(ctx context.Context, messageID *uuid.UUID) ([]TxnMessageEventsRow, error) {
+	rows, err := q.db.Query(ctx, txnMessageEvents, messageID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []TxnMessageEventsRow{}
+	for rows.Next() {
+		var i TxnMessageEventsRow
+		if err := rows.Scan(
+			&i.Type,
+			&i.OccurredAt,
+			&i.OriginalType,
+			&i.OriginalCode,
+			&i.Diagnostic,
+			&i.BounceClass,
+			&i.Machine,
+			&i.Url,
+			&i.UserAgent,
+			&i.ProviderID,
+			&i.ProviderName,
+			&i.ProviderMessageID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const txnMessageLinks = `-- name: TxnMessageLinks :one
 SELECT links FROM transactional_messages WHERE message_id = $1
 `
@@ -703,6 +1863,57 @@ func (q *Queries) TxnMessageLinks(ctx context.Context, messageID uuid.UUID) ([]s
 	var links []string
 	err := row.Scan(&links)
 	return links, err
+}
+
+const txnMessageWebhooks = `-- name: TxnMessageWebhooks :many
+SELECT d.event, d.state, d.created_at, d.delivered_at, d.status_code, d.attempt, w.url
+FROM webhook_deliveries d JOIN webhooks w ON w.id = d.webhook_id
+WHERE (d.payload->'data'->>'message_id') = $1::text AND d.event LIKE 'message.%' AND w.workspace_id = $2
+ORDER BY d.created_at
+`
+
+type TxnMessageWebhooksParams struct {
+	MessageID   string    `json:"messageId"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+}
+
+type TxnMessageWebhooksRow struct {
+	Event       string     `json:"event"`
+	State       string     `json:"state"`
+	CreatedAt   time.Time  `json:"createdAt"`
+	DeliveredAt *time.Time `json:"deliveredAt"`
+	StatusCode  *int32     `json:"statusCode"`
+	Attempt     int32      `json:"attempt"`
+	Url         string     `json:"url"`
+}
+
+// The webhook deliveries of a message's message.* events.
+func (q *Queries) TxnMessageWebhooks(ctx context.Context, arg TxnMessageWebhooksParams) ([]TxnMessageWebhooksRow, error) {
+	rows, err := q.db.Query(ctx, txnMessageWebhooks, arg.MessageID, arg.WorkspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []TxnMessageWebhooksRow{}
+	for rows.Next() {
+		var i TxnMessageWebhooksRow
+		if err := rows.Scan(
+			&i.Event,
+			&i.State,
+			&i.CreatedAt,
+			&i.DeliveredAt,
+			&i.StatusCode,
+			&i.Attempt,
+			&i.Url,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const txnMoveToProvider = `-- name: TxnMoveToProvider :exec
@@ -744,6 +1955,127 @@ func (q *Queries) TxnOptOut(ctx context.Context, arg TxnOptOutParams) (TxnOptOut
 	var i TxnOptOutRow
 	err := row.Scan(&i.OptedOutAt, &i.Source, &i.CategoryName)
 	return i, err
+}
+
+const txnOptOutDelete = `-- name: TxnOptOutDelete :execrows
+DELETE FROM transactional_opt_outs WHERE workspace_id = $1 AND email = $2 AND category_id = $3
+`
+
+type TxnOptOutDeleteParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Email       string    `json:"email"`
+	CategoryID  uuid.UUID `json:"categoryId"`
+}
+
+func (q *Queries) TxnOptOutDelete(ctx context.Context, arg TxnOptOutDeleteParams) (int64, error) {
+	result, err := q.db.Exec(ctx, txnOptOutDelete, arg.WorkspaceID, arg.Email, arg.CategoryID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const txnOptOutInsert = `-- name: TxnOptOutInsert :execrows
+INSERT INTO transactional_opt_outs (workspace_id, email, category_id, opted_out_at, source, message_id)
+VALUES ($1, $2, $3, $4, $5, $6)
+ON CONFLICT (workspace_id, email, category_id) DO NOTHING
+`
+
+type TxnOptOutInsertParams struct {
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	Email       string     `json:"email"`
+	CategoryID  uuid.UUID  `json:"categoryId"`
+	OptedOutAt  time.Time  `json:"optedOutAt"`
+	Source      string     `json:"source"`
+	MessageID   *uuid.UUID `json:"messageId"`
+}
+
+// Turns a category off for an address; the first date is kept.
+func (q *Queries) TxnOptOutInsert(ctx context.Context, arg TxnOptOutInsertParams) (int64, error) {
+	result, err := q.db.Exec(ctx, txnOptOutInsert,
+		arg.WorkspaceID,
+		arg.Email,
+		arg.CategoryID,
+		arg.OptedOutAt,
+		arg.Source,
+		arg.MessageID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const txnOptOutReason = `-- name: TxnOptOutReason :execrows
+UPDATE transactional_opt_outs SET reason = $1
+WHERE workspace_id = $2 AND email = $3 AND category_id = $4
+`
+
+type TxnOptOutReasonParams struct {
+	Reason      string    `json:"reason"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Email       string    `json:"email"`
+	CategoryID  uuid.UUID `json:"categoryId"`
+}
+
+func (q *Queries) TxnOptOutReason(ctx context.Context, arg TxnOptOutReasonParams) (int64, error) {
+	result, err := q.db.Exec(ctx, txnOptOutReason,
+		arg.Reason,
+		arg.WorkspaceID,
+		arg.Email,
+		arg.CategoryID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const txnOptOutsFor = `-- name: TxnOptOutsFor :many
+SELECT o.category_id, o.opted_out_at, o.source, o.reason, c.name AS category_name
+FROM transactional_opt_outs o JOIN transactional_categories c ON c.id = o.category_id
+WHERE o.workspace_id = $1 AND o.email = $2
+ORDER BY c.position, c.created_at
+`
+
+type TxnOptOutsForParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Email       string    `json:"email"`
+}
+
+type TxnOptOutsForRow struct {
+	CategoryID   uuid.UUID `json:"categoryId"`
+	OptedOutAt   time.Time `json:"optedOutAt"`
+	Source       string    `json:"source"`
+	Reason       string    `json:"reason"`
+	CategoryName string    `json:"categoryName"`
+}
+
+// An address's opt-outs of Optional categories.
+func (q *Queries) TxnOptOutsFor(ctx context.Context, arg TxnOptOutsForParams) ([]TxnOptOutsForRow, error) {
+	rows, err := q.db.Query(ctx, txnOptOutsFor, arg.WorkspaceID, arg.Email)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []TxnOptOutsForRow{}
+	for rows.Next() {
+		var i TxnOptOutsForRow
+		if err := rows.Scan(
+			&i.CategoryID,
+			&i.OptedOutAt,
+			&i.Source,
+			&i.Reason,
+			&i.CategoryName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const txnOutboxClaim = `-- name: TxnOutboxClaim :many
@@ -1004,6 +2336,82 @@ func (q *Queries) TxnOutboxQueuedOn(ctx context.Context, arg TxnOutboxQueuedOnPa
 	return items, nil
 }
 
+const txnOverviewStats = `-- name: TxnOverviewStats :one
+WITH p AS (
+    SELECT t.source, t.key_id, t.template_key, t.reject_reason, t.test, t.accepted_at,
+           m.status, m.delivered_at, m.opened_at, m.clicked_at,
+           ($1::boolean OR NOT t.test) AS counted
+    FROM transactional_messages t
+    JOIN messages m ON m.id = t.message_id
+    WHERE t.workspace_id = $2 AND t.accepted_at >= $3::timestamptz
+)
+SELECT count(*) FILTER (WHERE counted AND status IN ('sent', 'delivered', 'deferred', 'bounced', 'complained'))::bigint AS sent,
+       count(*) FILTER (WHERE counted AND status IN ('delivered', 'complained'))::bigint AS delivered,
+       count(*) FILTER (WHERE counted AND status = 'bounced')::bigint AS bounced,
+       count(*) FILTER (WHERE counted AND status = 'complained')::bigint AS complained,
+       count(*) FILTER (WHERE counted AND status = 'deferred')::bigint AS deferred,
+       count(*) FILTER (WHERE reject_reason = 'suppressed' AND NOT test)::bigint AS suppressed,
+       count(*) FILTER (WHERE reject_reason = 'opted_out' AND NOT test)::bigint AS opted_out,
+       count(*) FILTER (WHERE counted AND status = 'failed')::bigint AS failed,
+       count(*) FILTER (WHERE counted AND opened_at IS NOT NULL)::bigint AS opened,
+       count(*) FILTER (WHERE counted AND clicked_at IS NOT NULL)::bigint AS clicked,
+       coalesce((percentile_cont(0.5) WITHIN GROUP (ORDER BY extract(epoch FROM delivered_at - accepted_at) * 1000)
+                 FILTER (WHERE counted AND delivered_at IS NOT NULL AND delivered_at >= accepted_at)), -1)::bigint AS median_ms,
+       count(DISTINCT key_id) FILTER (WHERE source <> 'smtp' AND key_id IS NOT NULL)::bigint AS keys,
+       (count(*) FILTER (WHERE counted AND source = 'smtp') > 0)::boolean AS smtp,
+       coalesce(string_agg(DISTINCT template_key, ',') FILTER (WHERE counted AND status = 'complained'), '')::text AS complained_templates
+FROM p
+`
+
+type TxnOverviewStatsParams struct {
+	IncludeTest bool      `json:"includeTest"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Since       time.Time `json:"since"`
+}
+
+type TxnOverviewStatsRow struct {
+	Sent                int64  `json:"sent"`
+	Delivered           int64  `json:"delivered"`
+	Bounced             int64  `json:"bounced"`
+	Complained          int64  `json:"complained"`
+	Deferred            int64  `json:"deferred"`
+	Suppressed          int64  `json:"suppressed"`
+	OptedOut            int64  `json:"optedOut"`
+	Failed              int64  `json:"failed"`
+	Opened              int64  `json:"opened"`
+	Clicked             int64  `json:"clicked"`
+	MedianMs            int64  `json:"medianMs"`
+	Keys                int64  `json:"keys"`
+	Smtp                bool   `json:"smtp"`
+	ComplainedTemplates string `json:"complainedTemplates"`
+}
+
+// The workspace's numbers over a period (Raw SMTP mail included). Test
+// messages count only with include_test; keys counts every API key that
+// called in the period, test-mode keys included ("from 2 keys and the SMTP
+// relay").
+func (q *Queries) TxnOverviewStats(ctx context.Context, arg TxnOverviewStatsParams) (TxnOverviewStatsRow, error) {
+	row := q.db.QueryRow(ctx, txnOverviewStats, arg.IncludeTest, arg.WorkspaceID, arg.Since)
+	var i TxnOverviewStatsRow
+	err := row.Scan(
+		&i.Sent,
+		&i.Delivered,
+		&i.Bounced,
+		&i.Complained,
+		&i.Deferred,
+		&i.Suppressed,
+		&i.OptedOut,
+		&i.Failed,
+		&i.Opened,
+		&i.Clicked,
+		&i.MedianMs,
+		&i.Keys,
+		&i.Smtp,
+		&i.ComplainedTemplates,
+	)
+	return i, err
+}
+
 const txnRecentCallKeys = `-- name: TxnRecentCallKeys :many
 SELECT m.message_id, m.accepted_at, m.data_keys, m.template_version, m.data, m.sensitive, mm.email
 FROM transactional_messages m
@@ -1096,6 +2504,132 @@ func (q *Queries) TxnRejectedCallsForTemplate(ctx context.Context, arg TxnReject
 	return items, nil
 }
 
+const txnRetentionContentDue = `-- name: TxnRetentionContentDue :many
+SELECT x.message_id FROM transactional_message_content x
+JOIN transactional_messages t ON t.message_id = x.message_id
+WHERE t.workspace_id = $1 AND (x.expires_at <= $2::timestamptz OR t.accepted_at <= $3::timestamptz)
+LIMIT $4
+`
+
+type TxnRetentionContentDueParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Now         time.Time `json:"now"`
+	Cutoff      time.Time `json:"cutoff"`
+	Lim         int32     `json:"lim"`
+}
+
+// A workspace's messages whose rendered content is past its retention
+// (expired, or sent before cutoff), up to lim.
+func (q *Queries) TxnRetentionContentDue(ctx context.Context, arg TxnRetentionContentDueParams) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, txnRetentionContentDue,
+		arg.WorkspaceID,
+		arg.Now,
+		arg.Cutoff,
+		arg.Lim,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []uuid.UUID{}
+	for rows.Next() {
+		var message_id uuid.UUID
+		if err := rows.Scan(&message_id); err != nil {
+			return nil, err
+		}
+		items = append(items, message_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const txnRetentionContentRemove = `-- name: TxnRetentionContentRemove :exec
+DELETE FROM transactional_message_content WHERE message_id = ANY($1::uuid[])
+`
+
+func (q *Queries) TxnRetentionContentRemove(ctx context.Context, ids []uuid.UUID) error {
+	_, err := q.db.Exec(ctx, txnRetentionContentRemove, ids)
+	return err
+}
+
+const txnRetentionContentRemoved = `-- name: TxnRetentionContentRemoved :exec
+UPDATE transactional_messages SET content_removed_at = $1::timestamptz WHERE message_id = ANY($2::uuid[])
+`
+
+type TxnRetentionContentRemovedParams struct {
+	Now time.Time   `json:"now"`
+	Ids []uuid.UUID `json:"ids"`
+}
+
+func (q *Queries) TxnRetentionContentRemoved(ctx context.Context, arg TxnRetentionContentRemovedParams) error {
+	_, err := q.db.Exec(ctx, txnRetentionContentRemoved, arg.Now, arg.Ids)
+	return err
+}
+
+const txnRetentionMessages = `-- name: TxnRetentionMessages :execrows
+DELETE FROM messages m
+WHERE m.id IN (SELECT t.message_id FROM transactional_messages t WHERE t.accepted_at < $1::timestamptz ORDER BY t.accepted_at LIMIT $2)
+  AND m.stream = 'transactional'
+`
+
+type TxnRetentionMessagesParams struct {
+	Before time.Time `json:"before"`
+	Lim    int32     `json:"lim"`
+}
+
+// Removes up to lim transactional messages older than before (90 days):
+// their log entry and content go with them.
+func (q *Queries) TxnRetentionMessages(ctx context.Context, arg TxnRetentionMessagesParams) (int64, error) {
+	result, err := q.db.Exec(ctx, txnRetentionMessages, arg.Before, arg.Lim)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const txnRetentionRejectedCalls = `-- name: TxnRetentionRejectedCalls :execrows
+DELETE FROM transactional_rejected_calls WHERE at < $1::timestamptz
+`
+
+func (q *Queries) TxnRetentionRejectedCalls(ctx context.Context, before time.Time) (int64, error) {
+	result, err := q.db.Exec(ctx, txnRetentionRejectedCalls, before)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const txnRetentionWorkspaces = `-- name: TxnRetentionWorkspaces :many
+SELECT workspace_id, content_retention_days FROM transactional_settings
+`
+
+type TxnRetentionWorkspacesRow struct {
+	WorkspaceID          uuid.UUID `json:"workspaceId"`
+	ContentRetentionDays int32     `json:"contentRetentionDays"`
+}
+
+func (q *Queries) TxnRetentionWorkspaces(ctx context.Context) ([]TxnRetentionWorkspacesRow, error) {
+	rows, err := q.db.Query(ctx, txnRetentionWorkspaces)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []TxnRetentionWorkspacesRow{}
+	for rows.Next() {
+		var i TxnRetentionWorkspacesRow
+		if err := rows.Scan(&i.WorkspaceID, &i.ContentRetentionDays); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const txnRoleSuppressed = `-- name: TxnRoleSuppressed :one
 SELECT EXISTS (SELECT 1 FROM suppressions WHERE workspace_id = $1 AND email = $2 AND reason = 'role')::boolean
 `
@@ -1167,6 +2701,18 @@ func (q *Queries) TxnRouteDomains(ctx context.Context, workspaceID uuid.UUID) ([
 		return nil, err
 	}
 	return items, nil
+}
+
+const txnRoutePriority = `-- name: TxnRoutePriority :one
+SELECT coalesce((SELECT priority FROM stream_policies WHERE workspace_id = $1 AND stream = 'transactional'), true)::boolean
+`
+
+// "First in line on shared providers" (on unless turned off).
+func (q *Queries) TxnRoutePriority(ctx context.Context, workspaceID uuid.UUID) (bool, error) {
+	row := q.db.QueryRow(ctx, txnRoutePriority, workspaceID)
+	var column_1 bool
+	err := row.Scan(&column_1)
+	return column_1, err
 }
 
 const txnRouteSetPriority = `-- name: TxnRouteSetPriority :exec
@@ -1242,6 +2788,37 @@ func (q *Queries) TxnRouteTemplates(ctx context.Context, workspaceID uuid.UUID) 
 			return nil, err
 		}
 		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const txnSMTPFromAddresses = `-- name: TxnSMTPFromAddresses :many
+SELECT DISTINCT from_email FROM transactional_messages
+WHERE workspace_id = $1 AND source = 'smtp' AND accepted_at >= $2::timestamptz AND from_email <> ''
+`
+
+type TxnSMTPFromAddressesParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Since       time.Time `json:"since"`
+}
+
+// From addresses mail arriving through the SMTP relay used lately.
+func (q *Queries) TxnSMTPFromAddresses(ctx context.Context, arg TxnSMTPFromAddressesParams) ([]string, error) {
+	rows, err := q.db.Query(ctx, txnSMTPFromAddresses, arg.WorkspaceID, arg.Since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var from_email string
+		if err := rows.Scan(&from_email); err != nil {
+			return nil, err
+		}
+		items = append(items, from_email)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -1377,6 +2954,71 @@ func (q *Queries) TxnSenders(ctx context.Context, workspaceID uuid.UUID) ([]TxnS
 	return items, nil
 }
 
+const txnSendingKeys = `-- name: TxnSendingKeys :many
+SELECT k.id, k.name, k.prefix, k.preset, k.mode, k.templates, k.categories, k.test_addresses, k.rate_per_second,
+       k.created_at, k.expires_at, k.last_used_at, k.last_used_ip, k.revoked_at, coalesce(u.name, '')::text AS created_by_name
+FROM api_keys k LEFT JOIN users u ON u.id = k.created_by
+WHERE k.workspace_id = $1 AND k.kind = 'api_key' AND 'transactional:send' = ANY(k.permissions) AND k.revoked_at IS NULL
+  AND k.integration_id IS NULL
+ORDER BY k.created_at
+`
+
+type TxnSendingKeysRow struct {
+	ID            uuid.UUID   `json:"id"`
+	Name          string      `json:"name"`
+	Prefix        string      `json:"prefix"`
+	Preset        string      `json:"preset"`
+	Mode          string      `json:"mode"`
+	Templates     []string    `json:"templates"`
+	Categories    []uuid.UUID `json:"categories"`
+	TestAddresses []string    `json:"testAddresses"`
+	RatePerSecond int32       `json:"ratePerSecond"`
+	CreatedAt     time.Time   `json:"createdAt"`
+	ExpiresAt     *time.Time  `json:"expiresAt"`
+	LastUsedAt    *time.Time  `json:"lastUsedAt"`
+	LastUsedIp    *netip.Addr `json:"lastUsedIp"`
+	RevokedAt     *time.Time  `json:"revokedAt"`
+	CreatedByName string      `json:"createdByName"`
+}
+
+// Keys holding transactional:send, for the overview and Setup.
+// Integrations' keys are listed with their integration instead.
+func (q *Queries) TxnSendingKeys(ctx context.Context, workspaceID uuid.UUID) ([]TxnSendingKeysRow, error) {
+	rows, err := q.db.Query(ctx, txnSendingKeys, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []TxnSendingKeysRow{}
+	for rows.Next() {
+		var i TxnSendingKeysRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Prefix,
+			&i.Preset,
+			&i.Mode,
+			&i.Templates,
+			&i.Categories,
+			&i.TestAddresses,
+			&i.RatePerSecond,
+			&i.CreatedAt,
+			&i.ExpiresAt,
+			&i.LastUsedAt,
+			&i.LastUsedIp,
+			&i.RevokedAt,
+			&i.CreatedByName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const txnSetBounced = `-- name: TxnSetBounced :exec
 UPDATE messages SET status = 'bounced', error = $1 WHERE id = $2 AND status IN ('sent', 'deferred', 'queued')
 `
@@ -1390,6 +3032,20 @@ type TxnSetBouncedParams struct {
 // shows it as Bounced (soft), where campaigns count it as a deferral.
 func (q *Queries) TxnSetBounced(ctx context.Context, arg TxnSetBouncedParams) error {
 	_, err := q.db.Exec(ctx, txnSetBounced, arg.Error, arg.ID)
+	return err
+}
+
+const txnSetDomainTransactional = `-- name: TxnSetDomainTransactional :exec
+UPDATE sending_domains SET transactional = $1 WHERE id = $2
+`
+
+type TxnSetDomainTransactionalParams struct {
+	Transactional bool      `json:"transactional"`
+	ID            uuid.UUID `json:"id"`
+}
+
+func (q *Queries) TxnSetDomainTransactional(ctx context.Context, arg TxnSetDomainTransactionalParams) error {
+	_, err := q.db.Exec(ctx, txnSetDomainTransactional, arg.Transactional, arg.ID)
 	return err
 }
 
@@ -1480,6 +3136,29 @@ func (q *Queries) TxnSettingsForUpdate(ctx context.Context, workspaceID uuid.UUI
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const txnSettingsSetDefaultSender = `-- name: TxnSettingsSetDefaultSender :exec
+UPDATE transactional_settings SET default_sender_id = $1, updated_by = $2, updated_at = $3
+WHERE workspace_id = $4
+`
+
+type TxnSettingsSetDefaultSenderParams struct {
+	SenderID    *uuid.UUID `json:"senderId"`
+	UpdatedBy   *uuid.UUID `json:"updatedBy"`
+	UpdatedAt   time.Time  `json:"updatedAt"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+}
+
+// The default From of transactional templates (Settings › Senders).
+func (q *Queries) TxnSettingsSetDefaultSender(ctx context.Context, arg TxnSettingsSetDefaultSenderParams) error {
+	_, err := q.db.Exec(ctx, txnSettingsSetDefaultSender,
+		arg.SenderID,
+		arg.UpdatedBy,
+		arg.UpdatedAt,
+		arg.WorkspaceID,
+	)
+	return err
 }
 
 const txnSettingsSetGuide = `-- name: TxnSettingsSetGuide :exec
@@ -1620,6 +3299,45 @@ func (q *Queries) TxnSuppression(ctx context.Context, arg TxnSuppressionParams) 
 		&i.OriginalCode,
 		&i.Detail,
 		&i.CreatedAt,
+		&i.ProviderName,
+	)
+	return i, err
+}
+
+const txnSuppressionFor = `-- name: TxnSuppressionFor :one
+SELECT s.id, s.reason, s.source, s.original_code, s.detail, s.created_at, s.scope, coalesce(p.name, '')::text AS provider_name
+FROM suppressions s LEFT JOIN providers p ON p.id = s.source_provider_id
+WHERE s.workspace_id = $1 AND s.email = $2
+`
+
+type TxnSuppressionForParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Email       string    `json:"email"`
+}
+
+type TxnSuppressionForRow struct {
+	ID           uuid.UUID `json:"id"`
+	Reason       string    `json:"reason"`
+	Source       string    `json:"source"`
+	OriginalCode string    `json:"originalCode"`
+	Detail       string    `json:"detail"`
+	CreatedAt    time.Time `json:"createdAt"`
+	Scope        string    `json:"scope"`
+	ProviderName string    `json:"providerName"`
+}
+
+// An address's suppression as it is now, whatever its scope.
+func (q *Queries) TxnSuppressionFor(ctx context.Context, arg TxnSuppressionForParams) (TxnSuppressionForRow, error) {
+	row := q.db.QueryRow(ctx, txnSuppressionFor, arg.WorkspaceID, arg.Email)
+	var i TxnSuppressionForRow
+	err := row.Scan(
+		&i.ID,
+		&i.Reason,
+		&i.Source,
+		&i.OriginalCode,
+		&i.Detail,
+		&i.CreatedAt,
+		&i.Scope,
 		&i.ProviderName,
 	)
 	return i, err

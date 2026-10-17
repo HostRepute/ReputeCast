@@ -574,6 +574,7 @@ const streamDesc: Record<Stream, string> = {
   system: 'double opt-in confirmations, preference-center links',
   automation: 'emails sent by flows',
   broadcast: 'campaigns',
+  transactional: 'password resets, receipts and alerts',
 }
 
 /** Rejected credentials: what failed, what ReputeCast did, and the fix. */

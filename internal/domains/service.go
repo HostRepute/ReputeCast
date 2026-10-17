@@ -90,7 +90,7 @@ func HostOf(rawURL string) string {
 }
 
 // Streams a sender can be the default for.
-var streamOrder = []string{"broadcast", "automation", "system"}
+var streamOrder = []string{"broadcast", "automation", "system", "transactional"}
 
 // StreamName is the display name of a stream.
 func StreamName(s string) string {
@@ -121,8 +121,13 @@ type SenderIdentity struct {
 	DomainID string `json:"domainId"`
 	Domain   string `json:"domain"`
 	// DefaultFor lists the streams this sender is the default From of.
-	DefaultFor   []string             `json:"defaultFor"`
-	Verification []SenderVerification `json:"verification"`
+	DefaultFor []string `json:"defaultFor"`
+	// Transactional: the sender is on a Transactional domain, so templates
+	// and the API may send from it; SMTPRelay: mail arrived through the
+	// SMTP relay from it in the last 30 days.
+	Transactional bool                 `json:"transactional"`
+	SMTPRelay     bool                 `json:"smtpRelay"`
+	Verification  []SenderVerification `json:"verification"`
 	// Pending is true while a provider that sends as this address still
 	// waits for the domain's DNS records ("Verify").
 	Pending bool `json:"pending"`
@@ -149,7 +154,10 @@ type SendingDomainRow struct {
 	Tracking   SenderDomainCell `json:"tracking"`
 	BIMI       SenderDomainCell `json:"bimi"`
 	Senders    int              `json:"senders"`
-	CheckedAt  *time.Time       `json:"checkedAt,omitempty"`
+	// Transactional: the domain carries transactional mail; its verified
+	// senders are the Transactional senders.
+	Transactional bool       `json:"transactional"`
+	CheckedAt     *time.Time `json:"checkedAt,omitempty"`
 }
 
 // SenderProviderColumn is a connected sending provider.
@@ -172,6 +180,9 @@ type SenderDefaults struct {
 	DefaultSenderID    string `json:"defaultSenderId"`
 	AutomationSenderID string `json:"automationSenderId"`
 	SystemSenderID     string `json:"systemSenderId"`
+	// TransactionalSenderID is the default From of transactional templates
+	// (a sender on a Transactional domain).
+	TransactionalSenderID string `json:"transactionalSenderId"`
 	// ReplyHandling is "forward": replies go to ReplyTo, or to each
 	// sender's own reply-to address when ReplyTo is empty. (ReputeCast
 	// doesn't receive mail, so there is no reply inbox.)
@@ -250,6 +261,13 @@ func (s *Service) workspaceDefaults(ctx context.Context, q *store.Queries, wsID 
 		sending:  decodeSendingDefaults(row.SendingDefaults),
 		branding: map[string]any{},
 	}
+	// Transactional templates' default From lives with the Transactional
+	// settings.
+	if st, err := q.TxnSettings(ctx, wsID); err == nil {
+		out.ids["transactional"] = st.DefaultSenderID
+	} else if !errors.Is(err, pgx.ErrNoRows) {
+		return workspaceDefaults{}, err
+	}
 	_ = json.Unmarshal(row.Branding, &out.branding)
 	return out, nil
 }
@@ -292,13 +310,21 @@ func (s *Service) Overview(ctx context.Context, ws *store.Workspace) (SendersOve
 	for _, d := range doms {
 		domByID[d.ID] = d
 	}
+	smtpFrom, err := s.Q.TxnSMTPFromAddresses(ctx, store.TxnSMTPFromAddressesParams{WorkspaceID: ws.ID, Since: s.now().AddDate(0, 0, -30)})
+	if err != nil {
+		return SendersOverview{}, err
+	}
 	for _, sn := range senders {
 		perDomain[sn.DomainID]++
-		out.Senders = append(out.Senders, s.senderView(sn.ID, sn.Name, sn.Email, sn.ReplyTo, sn.Note, sn.DomainID, sn.DomainName, sn.Verification, defs, provs, domByID[sn.DomainID]))
+		v := s.senderView(sn.ID, sn.Name, sn.Email, sn.ReplyTo, sn.Note, sn.DomainID, sn.DomainName, sn.Verification, defs, provs, domByID[sn.DomainID])
+		v.Transactional = domByID[sn.DomainID].Transactional
+		v.SMTPRelay = v.Transactional && slices.Contains(smtpFrom, sn.Email)
+		out.Senders = append(out.Senders, v)
 	}
 	for _, d := range doms {
 		row := domainRow(d, provs)
 		row.Senders = perDomain[d.ID]
+		row.Transactional = d.Transactional
 		out.Domains = append(out.Domains, row)
 	}
 	out.Defaults = defaultsView(defs, senders, doms)
@@ -330,6 +356,7 @@ func defaultsView(defs workspaceDefaults, senders []store.SenderListRow, doms []
 		return id.String()
 	}
 	out.DefaultSenderID, out.AutomationSenderID, out.SystemSenderID = idStr(defs.ids["broadcast"]), idStr(defs.ids["automation"]), idStr(defs.ids["system"])
+	out.TransactionalSenderID = idStr(defs.ids["transactional"])
 	if defs.sending.ReplyHandling != "" {
 		out.ReplyHandling = defs.sending.ReplyHandling
 	}
@@ -451,7 +478,7 @@ type SenderInput struct {
 	ReplyTo string `json:"replyTo,omitempty" maxLength:"254"`
 	Note    string `json:"note,omitempty" maxLength:"120" doc:"Shown when the sender is no stream's default, e.g. personal sends"`
 	// DefaultFor makes the sender the default From of these streams.
-	DefaultFor []string `json:"defaultFor,omitempty" enum:"broadcast,automation,system"`
+	DefaultFor []string `json:"defaultFor,omitempty" enum:"broadcast,automation,system,transactional" doc:"transactional needs a sender on a Transactional domain"`
 	// NotUsedWith lists providers that must never send as this address.
 	NotUsedWith []string `json:"notUsedWith,omitempty"`
 }
@@ -531,6 +558,7 @@ func (s *Service) setDefaults(ctx context.Context, q *store.Queries, wsID, sende
 	if err != nil {
 		return err
 	}
+	txnBefore := defs.ids["transactional"]
 	for _, st := range streamOrder {
 		id := defs.ids[st]
 		switch {
@@ -541,8 +569,29 @@ func (s *Service) setDefaults(ctx context.Context, q *store.Queries, wsID, sende
 		}
 		defs.ids[st] = id
 	}
-	return q.SenderSetStreamDefaults(ctx, store.SenderSetStreamDefaultsParams{ID: wsID, DefaultSenderID: defs.ids["broadcast"],
-		DefaultAutomationSenderID: defs.ids["automation"], DefaultSystemSenderID: defs.ids["system"], UpdatedAt: s.now()})
+	if err := q.SenderSetStreamDefaults(ctx, store.SenderSetStreamDefaultsParams{ID: wsID, DefaultSenderID: defs.ids["broadcast"],
+		DefaultAutomationSenderID: defs.ids["automation"], DefaultSystemSenderID: defs.ids["system"], UpdatedAt: s.now()}); err != nil {
+		return err
+	}
+	// Transactional templates' default From lives with the Transactional
+	// settings, and must be on a Transactional domain.
+	after := defs.ids["transactional"]
+	if (txnBefore == nil) == (after == nil) && (after == nil || *after == *txnBefore) {
+		return nil
+	}
+	if after != nil {
+		sn, err := q.SenderGet(ctx, store.SenderGetParams{WorkspaceID: wsID, ID: *after})
+		if err != nil {
+			return err
+		}
+		if d, err := q.DomGetAny(ctx, sn.DomainID); err != nil || !d.Transactional {
+			return api.Invalid("body.defaultFor", sn.Email+" isn't on a Transactional domain, so it can't be the default From of transactional templates.")
+		}
+	}
+	if err := q.TxnSettingsEnsure(ctx, wsID); err != nil {
+		return err
+	}
+	return q.TxnSettingsSetDefaultSender(ctx, store.TxnSettingsSetDefaultSenderParams{SenderID: after, UpdatedAt: s.now(), WorkspaceID: wsID})
 }
 
 func (s *Service) Sender(ctx context.Context, ws *store.Workspace, id uuid.UUID) (SenderIdentity, error) {
@@ -672,6 +721,9 @@ type SenderDefaultsInput struct {
 	ReplyTo        string `json:"replyTo,omitempty" maxLength:"254"`
 	FooterAddress  string `json:"footerAddress" maxLength:"300"`
 	TrackingDomain string `json:"trackingDomain,omitempty" maxLength:"253" doc:"Empty for the provider default"`
+	// TransactionalSenderID is the default From of transactional templates:
+	// a sender on a Transactional domain ("" clears it; omit to keep it).
+	TransactionalSenderID *string `json:"transactionalSenderId,omitempty" maxLength:"36"`
 }
 
 // SaveDefaults saves the "Defaults" card.
@@ -713,8 +765,26 @@ func (s *Service) SaveDefaults(ctx context.Context, ws *store.Workspace, in Send
 			return SenderDefaults{}, api.Invalid("body.trackingDomain", "Add "+tracking+" as the tracking domain of a sending domain first.")
 		}
 	}
+	txnSender := defs.ids["transactional"]
+	if in.TransactionalSenderID != nil {
+		txnSender = nil
+		if raw := strings.TrimSpace(*in.TransactionalSenderID); raw != "" {
+			id, err := uuid.Parse(raw)
+			if err != nil {
+				return SenderDefaults{}, api.Invalid("body.transactionalSenderId", "Pick a sender of this workspace.")
+			}
+			sn, err := s.Q.SenderGet(ctx, store.SenderGetParams{WorkspaceID: ws.ID, ID: id})
+			if err != nil {
+				return SenderDefaults{}, api.Invalid("body.transactionalSenderId", "Pick a sender of this workspace.")
+			}
+			if d, err := s.Q.DomGetAny(ctx, sn.DomainID); err != nil || !d.Transactional {
+				return SenderDefaults{}, api.Invalid("body.transactionalSenderId", sn.Email+" isn't on a Transactional domain. Pick a sender on one, such as a notify. subdomain kept for product mail.")
+			}
+			txnSender = &id
+		}
+	}
 	before := map[string]any{"default_sender_id": defs.ids["broadcast"], "reply_handling": defs.sending.ReplyHandling, "reply_to": defs.sending.ReplyTo,
-		"footer_address": defs.branding["footer_address"], "tracking_domain": defs.sending.TrackingDomain}
+		"footer_address": defs.branding["footer_address"], "tracking_domain": defs.sending.TrackingDomain, "transactional_sender_id": defs.ids["transactional"]}
 	next := defs.sending
 	next.ReplyHandling, next.ReplyTo, next.TrackingDomain = in.ReplyHandling, replyTo, tracking
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
@@ -729,8 +799,22 @@ func (s *Service) SaveDefaults(ctx context.Context, ws *store.Workspace, in Send
 		if err := q.SenderSetFooterAddress(ctx, store.SenderSetFooterAddressParams{ID: ws.ID, FooterAddress: strings.TrimSpace(in.FooterAddress), UpdatedAt: s.now()}); err != nil {
 			return err
 		}
+		if in.TransactionalSenderID != nil {
+			if err := q.TxnSettingsEnsure(ctx, ws.ID); err != nil {
+				return err
+			}
+			var by *uuid.UUID
+			if p := api.PrincipalFrom(ctx); p != nil && p.Type == authz.ActorUser {
+				u := p.UserID
+				by = &u
+			}
+			if err := q.TxnSettingsSetDefaultSender(ctx, store.TxnSettingsSetDefaultSenderParams{SenderID: txnSender, UpdatedBy: by, UpdatedAt: s.now(), WorkspaceID: ws.ID}); err != nil {
+				return err
+			}
+		}
 		return s.audit(ctx, q, ws, "senders.defaults_update", "workspace", ws.ID.String(), ws.Name, before,
-			map[string]any{"default_sender_id": broadcast, "reply_handling": in.ReplyHandling, "reply_to": replyTo, "footer_address": strings.TrimSpace(in.FooterAddress), "tracking_domain": tracking})
+			map[string]any{"default_sender_id": broadcast, "reply_handling": in.ReplyHandling, "reply_to": replyTo, "footer_address": strings.TrimSpace(in.FooterAddress), "tracking_domain": tracking,
+				"transactional_sender_id": txnSender})
 	})
 	if err != nil {
 		return SenderDefaults{}, err

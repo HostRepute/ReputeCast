@@ -795,6 +795,14 @@ func (s *Service) record(ctx context.Context, tx pgx.Tx, ws *store.Workspace, c 
 	}); err != nil {
 		return err
 	}
+	if provider != nil && p.route.FailedOver {
+		// The primary was down when the call came: the message went to the
+		// fallback at once, and counts in the failover incident.
+		primary := p.route.Primary
+		if err := q.TxnMarkFailedOver(ctx, store.TxnMarkFailedOverParams{MessageID: p.id, At: p.accepted, FromProvider: &primary}); err != nil {
+			return err
+		}
+	}
 	if expires != nil && p.stored != nil {
 		hdr := map[string]string{"From": p.from.String(), "To": p.to.String(), "Subject": p.stored.Subject, "Date": p.accepted.UTC().Format(time.RFC1123Z),
 			"Message-ID": "<" + p.id.String() + "@" + domainOf(p.from.Address) + ">"}
