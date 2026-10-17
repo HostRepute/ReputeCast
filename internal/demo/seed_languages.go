@@ -296,7 +296,7 @@ var (
 		">Changelog<", ">Novedades<",
 		">Docs<", ">Documentación<",
 		// The X11 sample's conditional blocks and topics poll (seed_polls.go).
-		"We've missed you. Here's the short version of the month, in two minutes. Too much email?", "Te hemos echado de menos. Aquí tienes el resumen del mes, en dos minutos. ¿Demasiados correos?",
+		"We've missed you.</b> Here's the short version of the month, in two minutes. Too much email?", "Te hemos echado de menos.</b> Aquí tienes el resumen del mes, en dos minutos. ¿Demasiados correos?",
 		"Choose how often you hear from us", "Elige con qué frecuencia te escribimos",
 		">Beta corner<", ">Rincón beta<",
 		"Flag rules by region are in beta", "Las reglas de flags por región están en beta",
@@ -340,7 +340,7 @@ var (
 		">Unsubscribe<", ">Abmelden<",
 		">Docs<", ">Doku<",
 		// The X11 sample's conditional blocks and topics poll (seed_polls.go).
-		"We've missed you. Here's the short version of the month, in two minutes. Too much email?", "Wir haben Sie vermisst. Hier ist der Monat in Kürze, in zwei Minuten. Zu viele E-Mails?",
+		"We've missed you.</b> Here's the short version of the month, in two minutes. Too much email?", "Wir haben Sie vermisst.</b> Hier ist der Monat in Kürze, in zwei Minuten. Zu viele E-Mails?",
 		"Choose how often you hear from us", "Wählen Sie, wie oft Sie von uns hören",
 		">Beta corner<", ">Beta-Ecke<",
 		"Flag rules by region are in beta", "Flag-Regeln nach Region sind in der Beta",

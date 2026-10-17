@@ -66,29 +66,26 @@ func x11Rule(id string, c visibility.VisibilityCondition) string {
 // sections keep their places), the Beta corner, the free trial banner and
 // the topics poll before the social links.
 func x11Digest143(s *Seeder, src string) string {
+	// Its family names are single-quoted, so it fits in a style attribute.
 	plex := composerPlexFont
 	missed := `    <mj-section rc-name="We&#39;ve missed you" rc-visible="` + x11Rule(x11Missed, visibility.VisibilityCondition{Kind: visibility.KindTier, Op: "is", Value: "at_risk"}) +
-		`" background-color="#ffffff" padding="16px 24px 0px">
+		`" background-color="#ffffff" padding="32px 24px 0px">
       <mj-column>
-        <mj-text font-size="14px" line-height="1.55" color="#374151" container-background-color="#F0FDFA" padding="12px 14px">We've missed you. Here's the short version of the month, in two minutes. Too much email? <a href="{{ preferences_url }}" style="color:#0F766E">Choose how often you hear from us</a>.</mj-text>
+        <mj-text font-size="15px" line-height="1.55" color="#374151" container-background-color="#F3F4F6" padding="14px 16px"><b style="color:#0B1220">We've missed you.</b> Here's the short version of the month, in two minutes. Too much email? <a href="{{ preferences_url }}" style="color:#0F766E">Choose how often you hear from us</a>.</mj-text>
       </mj-column>
     </mj-section>
 `
 	beta := `    <mj-section rc-name="Beta corner" rc-visible="` + x11Rule(x11Beta, visibility.VisibilityCondition{Kind: visibility.KindList, Op: "includes", Value: s.Lists["Beta Program"].String(), Label: "Beta Program"}) +
-		`" background-color="#ffffff" padding="8px 24px 16px">
-      <mj-column background-color="#F5F3FF" padding="16px 18px" border-radius="8px">
-        <mj-text font-size="12px" font-weight="700" color="#5B21B6" padding="0px 0px 6px">Beta corner</mj-text>
-        <mj-text font-size="17px" line-height="1.3" font-weight="700" color="#0B1220" padding="0px 0px 6px">Flag rules by region are in beta</mj-text>
-        <mj-text font-size="14px" line-height="1.55" color="#374151" padding="0px 0px 12px">Target a rollout by country or data region. Try it before general release, and tell us what's confusing.</mj-text>
-        <mj-button href="https://acme.io/beta/region-rules" align="left" background-color="#0F766E" color="#ffffff" font-family="` + plex + `" font-size="13px" font-weight="600" border-radius="6px" inner-padding="9px 14px" padding="0px">Try region rules</mj-button>
+		`" background-color="#ffffff" padding="32px 24px 16px">
+      <mj-column>
+        <mj-text font-size="15px" line-height="1.55" color="#374151" padding="0px"><div style="border-left:3px solid #0F766E;padding:2px 0px 2px 14px"><div style="font-family:` + plex + `;font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#0F766E;padding-bottom:6px">Beta corner</div><div style="font-size:19px;line-height:1.3;font-weight:700;color:#0B1220;padding-bottom:6px">Flag rules by region are in beta</div><div style="padding-bottom:12px">Target a rollout by country or data region. Try it before general release, and tell us what's confusing.</div><a href="https://acme.io/beta/region-rules" style="display:inline-block;background-color:#0F766E;color:#ffffff;font-family:` + plex + `;font-size:13px;font-weight:600;line-height:1;padding:10px 14px;border-radius:6px;text-decoration:none">Try region rules</a></div></mj-text>
       </mj-column>
     </mj-section>
 `
 	trial := `    <mj-section rc-name="Start a free trial" rc-visible="` + x11Rule(x11Trial, visibility.VisibilityCondition{Kind: visibility.KindField, Field: "plan", Op: "is_empty"}) +
-		`" background-color="#ffffff" padding="8px 24px 16px">
-      <mj-column background-color="#0B1220" padding="18px 20px" border-radius="8px">
-        <mj-text font-size="15px" line-height="1.5" color="#ffffff" padding="0px 0px 12px">Run your own flags on Acme Cloud, free for 14 days.</mj-text>
-        <mj-button href="https://acme.io/cloud/trial" align="left" background-color="#ffffff" color="#0B1220" font-family="` + plex + `" font-size="13px" font-weight="600" border-radius="6px" inner-padding="9px 14px" padding="0px">Start a free trial</mj-button>
+		`" background-color="#ffffff" padding="32px 24px 16px">
+      <mj-column>
+        <mj-text align="center" font-size="17px" line-height="1.5" color="#0B1220" padding="0px"><div style="background-color:#F0FDFA;border:1px solid #99F6E4;border-radius:8px;padding:20px 20px 22px"><div style="padding-bottom:12px">Run your own flags on Acme Cloud, free for 14 days.</div><a href="https://acme.io/cloud/trial" style="display:inline-block;background-color:#0F766E;color:#ffffff;font-family:` + plex + `;font-size:14px;font-weight:600;line-height:1;padding:11px 16px;border-radius:6px;text-decoration:none">Start a free trial</a></div></mj-text>
       </mj-column>
     </mj-section>
 `
@@ -810,9 +807,10 @@ func x11Survey(ctx context.Context, s *Seeder) error {
 	}
 	sofia := s.Users["sofia@acme.io"]
 	loc := s.newYork()
-	// Before the email, which goes out the day after Weekly Digest #141
-	// and before the October Product Update (still the latest send).
-	created, published := s.designDay(4, 9, 5), s.designDay(4, 9, 40)
+	// Before the email, which goes out between Weekly Digest #140 and the
+	// Feature flags preview: the Main board's recent campaigns and the
+	// latest send (the October Product Update) stay as they are.
+	created, published := s.designDay(11, 9, 5), s.designDay(11, 9, 40)
 	closes := s.designDay(-16, 23, 59)
 	sid := ID()
 	settings := polls.SurveySettings{Close: polls.SurveyClose{Mode: "date", Date: closes.In(loc).Format("2006-01-02"), Time: "23:59"}, Timezone: "America/New_York",
@@ -841,7 +839,7 @@ func x11Survey(ctx context.Context, s *Seeder) error {
 		}
 	}
 	// The campaign: a poll of question 1 that continues to the survey.
-	if err := seedSent(ctx, s, sentCampaign{name: "Beta Program: October check-in", audience: "Beta Program", at: 4, hour: 10,
+	if err := seedSent(ctx, s, sentCampaign{name: "Beta Program: October check-in", audience: "Beta Program", at: 11, hour: 10,
 		perProvider: map[string]int64{"ses": 1885, "postal": 209}, delivered: 99.5, humanOpens: 61.4, machineOpens: 15.2, clicks: 18.3, bounce: 0.3, complaint: 0, unsubscribes: 0.05},
 		map[string]any{"lists": []uuid.UUID{beta}}); err != nil {
 		return err
