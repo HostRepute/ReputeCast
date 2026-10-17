@@ -63,6 +63,15 @@ func TestDemoDigest(t *testing.T) {
 			SendAt             time.Time
 		}
 	}
+	// The sent issues are campaigns whose reports open.
+	var sentIssues struct{ Items []struct{ ID, Name string } }
+	sofia.Do("GET", ws+"/campaigns?pageSize=100&q=Engineering%20blog%20roundup", nil).MustStatus(t, 200).JSON(t, &sentIssues)
+	if len(sentIssues.Items) != 2 {
+		t.Fatalf("issue campaigns: %+v", sentIssues.Items)
+	}
+	for _, c := range sentIssues.Items {
+		sofia.Do("GET", ws+"/campaigns/"+c.ID+"/report", nil).MustStatus(t, 200)
+	}
 	aisha.Do("GET", ws+"/overview/next-campaign", nil).MustStatus(t, 200).JSON(t, &next)
 	if next.Issue == nil || next.Issue.DigestName != "Engineering blog roundup" || next.Issue.Number != 3 || next.Issue.Posts != 2 || !next.Issue.NeedsApproval ||
 		next.Issue.Status != "collecting" || next.Issue.SendAt.IsZero() {

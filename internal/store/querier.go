@@ -94,6 +94,9 @@ type Querier interface {
 	ApprovalSetReminded(ctx context.Context, arg ApprovalSetRemindedParams) error
 	ApprovalSetStatus(ctx context.Context, arg ApprovalSetStatusParams) error
 	ApprovalUnschedule(ctx context.Context, arg ApprovalUnscheduleParams) error
+	// Recurring digests with "Show in the archive" on and issues in it: the
+	// archive's digest filters (internal/digests).
+	ArchiveDigestCounts(ctx context.Context, arg ArchiveDigestCountsParams) ([]ArchiveDigestCountsRow, error)
 	ArchiveInsertIssue(ctx context.Context, arg ArchiveInsertIssueParams) error
 	ArchiveIssueBySlug(ctx context.Context, arg ArchiveIssueBySlugParams) (ArchiveIssueBySlugRow, error)
 	ArchiveIssueCount(ctx context.Context, arg ArchiveIssueCountParams) (int64, error)

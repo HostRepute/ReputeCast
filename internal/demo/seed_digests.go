@@ -246,6 +246,12 @@ func seedDigestsImpl(ctx context.Context, s *Seeder) error {
 			return err
 		}
 		campaignID := s.Campaigns[name]
+		// Each route's median time to delivery, as the report seeds give their sent campaigns
+		// (the report reads it: the demo's messages carry no delivery times).
+		if _, err := s.Tx.Exec(ctx, `UPDATE campaign_routes cr SET delivery_p50_ms = CASE p.adapter WHEN 'ses' THEN 1750 + $2 WHEN 'postal' THEN 3300 + $2 ELSE 2450 + $2 END
+			FROM providers p WHERE p.id = cr.provider_id AND cr.campaign_id = $1`, campaignID, int32(si.number*40)); err != nil {
+			return err
+		}
 		send := si.send
 		content, err := digests.BuildIssue(d, tpl, postsOf(si.posts...), si.number, &send, ws.Timezone)
 		if err != nil {

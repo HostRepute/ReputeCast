@@ -992,6 +992,7 @@ func TestArchive(t *testing.T) {
 		r := get(t, env, "/p/acme-newsletter/archive")
 		must(t, r, 200, "Newsletter archive", "Every issue of the Weekly Digest and Product Updates since ", " 46 issues.",
 			">All</a>", ">Weekly Digest</a>", ">Product Updates</a>", "?list=weekly-digest", "?list=product-updates",
+			">Engineering blog roundup</a>", // a recurring digest's filter, on the first load too
 			"1 to 10 of 46", `href="`+env.Server.URL+`/p/acme-newsletter/archive?page=2"`, "Older issues",
 			"What shipped in October, and what we're retiring", `<meta name="robots" content="index, follow">`,
 			`<link rel="canonical" href="http://news.acme.io/archive">`, `type="application/rss+xml"`, "Get the next one in your inbox")
@@ -1045,6 +1046,23 @@ func TestArchive(t *testing.T) {
 		lacks(t, r, "The case for boring infrastructure", "Shipping on Fridays")
 		r = get(t, env, "/p/acme-newsletter/archive?list=no-such-list")
 		must(t, r, 200, "1 to 10 of 46")
+	})
+	t.Run("a recurring digest's filter, and its archive switch", func(t *testing.T) {
+		r := get(t, env, "/p/acme-newsletter/archive")
+		must(t, r, 200, ">Engineering blog roundup</a>", "?list=engineering-blog-roundup")
+		r = get(t, env, "/p/acme-newsletter/archive?list=engineering-blog-roundup")
+		must(t, r, 200, `aria-current="true">Engineering blog roundup</a>`, "1 to 2 of 2", "from the Acme blog")
+		lacks(t, r, "The case for boring infrastructure", "What shipped in October")
+		// "Show in the archive" off: the digest's issues and its filter leave the archive.
+		if _, err := env.App.Pool.Exec(context.Background(), `UPDATE digests SET archive = false`); err != nil {
+			t.Fatal(err)
+		}
+		r = get(t, env, "/p/acme-newsletter/archive")
+		must(t, r, 200, " 44 issues.", "1 to 10 of 44")
+		lacks(t, r, ">Engineering blog roundup</a>")
+		if _, err := env.App.Pool.Exec(context.Background(), `UPDATE digests SET archive = true`); err != nil {
+			t.Fatal(err)
+		}
 	})
 	t.Run("issue page", func(t *testing.T) {
 		r := get(t, env, "/p/acme-newsletter/archive/the-case-for-boring-infrastructure")
