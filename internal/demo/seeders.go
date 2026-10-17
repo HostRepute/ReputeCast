@@ -34,6 +34,7 @@ var (
 	seedAppLanguages = noop // app languages: instance defaults, Marcus's region format, the invitation's language (seed_app_languages.go)
 	// content languages of forms, public pages and contacts: where contacts' languages came from, page and form copy (seed_page_languages.go)
 	seedPageLanguages = noop
+	seedEarn          = noop // payments and paid subscriptions: Stripe, tiers, paid members, the Substack import (seed_earn.go)
 )
 
 func noop(context.Context, *Seeder) error { return nil }
