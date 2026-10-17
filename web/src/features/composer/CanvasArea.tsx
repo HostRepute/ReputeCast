@@ -15,6 +15,7 @@ import { contentIssues } from './RightPanel'
 import { StateCards } from './StateCards'
 import { AccessibilityOverlays } from '@/features/accessibility/composer/Overlays'
 import { ConditionalOverlays, ConditionalToggle } from '@/features/conditional/Canvas'
+import { VersionsPanel } from '@/features/conditional/Versions'
 
 interface Box {
   top: number
@@ -737,6 +738,8 @@ export function CanvasArea({
           ) : null}
         </div>
       </div>
+      {/* The versions of conditional content, over the bottom of the canvas. */}
+      <VersionsPanel />
     </>
   )
 }

@@ -11,6 +11,7 @@ import { tagOf } from '@/features/composer/editor/labels'
 import { ATTR_POLL } from '@/features/conditional/mjml'
 import { encodePoll, normalizePoll, parsePoll, pollAnswers, pollSection, type PollConfig } from './config'
 import { m } from './messages'
+import './polls.css'
 
 /** The poll a component is, null when it isn't one. */
 export function pollOf(c: Component | null | undefined): PollConfig | null {
@@ -385,7 +386,7 @@ export function PollSettings({ c: comp }: { c: Component }) {
         </Prop>
       )}
       <Prop title={t(m.save)}>
-        <div className="flex flex-col gap-1.5" role="radiogroup" aria-label={t(m.save)}>
+        <div className="pl-opts flex flex-col gap-1.5" role="radiogroup" aria-label={t(m.save)}>
           <label className="tg">
             <input type="radio" name="poll-save" checked={cfg.save === 'none'} disabled={disabled} onChange={() => set({ save: 'none' })} />
             <span className="flex flex-col">
@@ -460,7 +461,7 @@ export function PollSettings({ c: comp }: { c: Component }) {
         ) : null}
       </Prop>
       <Prop title={t(m.after)}>
-        <div className="flex flex-col gap-1.5" role="radiogroup" aria-label={t(m.after)}>
+        <div className="pl-opts flex flex-col gap-1.5" role="radiogroup" aria-label={t(m.after)}>
           <label className="tg">
             <input type="radio" name="poll-after" checked={cfg.after === 'thanks'} disabled={disabled} onChange={() => set({ after: 'thanks' })} />
             {t(m.afterThanks)}
@@ -493,12 +494,16 @@ export function PollSettings({ c: comp }: { c: Component }) {
         <a
           href="#poll-preview"
           role="button"
-          className="btn sm self-start"
+          className="btn sm pl-wide"
           onClick={(e) => {
             e.preventDefault()
             setPreview(true)
           }}
         >
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true" focusable="false">
+            <path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8Z" />
+            <circle cx="8" cy="8" r="2" />
+          </svg>
           {t(m.previewPage)}
         </a>
         {preview ? <AnswerPagePreview cfg={cfg} onClose={() => setPreview(false)} /> : null}

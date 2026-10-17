@@ -104,7 +104,8 @@ export function ConditionalOverlays({ host, tick, boxOf }: { host: HTMLElement |
           key={p.id}
           type="button"
           className={`cv-badge ${p.broken ? 'bad' : 'info'}`}
-          style={{ top: Math.max(0, p.box.top - 11), left: p.box.left + 8 }}
+          // In the block's top padding, clear of the selection's label.
+          style={{ top: p.box.top + 6, left: p.box.left + 8 }}
           aria-label={p.broken ? t(m.badgeBroken, { words: p.words }) : t(m.badgeAria, { words: p.words })}
           onClick={() => {
             ed?.select(p.comp)
@@ -139,5 +140,10 @@ export function LayersNote() {
   const t = useT()
   const cond = useConditional()
   if (!cond?.enabled || !cond.blocks) return null
-  return <p className="k cv-lay-note">{t(m.layersSummary, { count: cond.blocks })}</p>
+  return (
+    <p className="k cv-lay-note">
+      <EyeOff size={14} />
+      <span>{t(m.layersSummary, { count: cond.blocks })}</span>
+    </p>
+  )
 }

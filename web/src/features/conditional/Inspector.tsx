@@ -1,15 +1,17 @@
 import type { Component } from 'grapesjs'
-import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
+import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { Badge } from '@/components/ui/Badge'
 import { Popover } from '@/components/ui/Menu'
-import { formatList, useT } from '@/i18n'
+import { formatList, T as Rich, useT } from '@/i18n'
 import { clock, count, shortDate } from '@/lib/format'
 import { useComposer } from '@/features/composer/context'
 import { kb } from '@/features/composer/format'
 import { tagOf } from '@/features/composer/editor/labels'
+import { EyeOff } from './Canvas'
 import { m } from './messages'
 import { conditional, isFooter, nameOf, newRuleId, offered, ruleOf, setName, setRule, type VisibilityCondition, type VisibilityRule } from './rules'
 import { useConditional, type VisibilityCatalog } from './state'
+import './conditional.css'
 
 type T = ReturnType<typeof useT>
 
@@ -201,7 +203,7 @@ function ValueField({ cond, onChange, disabled }: { cond: VisibilityCondition; o
 }
 
 /** "Add condition": the picker, grouped and searchable, with room for later kinds. */
-function ConditionPicker({ onPick, disabled, trigger }: { onPick: (kind: string) => void; disabled?: boolean; trigger: string }) {
+function ConditionPicker({ onPick, disabled, trigger, className = 'btn sm self-start' }: { onPick: (kind: string) => void; disabled?: boolean; trigger: ReactNode; className?: string }) {
   const t = useT()
   const cat = useConditional()?.catalog
   const [open, setOpen] = useState(false)
@@ -224,7 +226,7 @@ function ConditionPicker({ onPick, disabled, trigger }: { onPick: (kind: string)
       className="cv-pick"
       label={t(m.addConditionLabel)}
       trigger={
-        <button type="button" className="btn sm self-start" disabled={disabled}>
+        <button type="button" className={className} disabled={disabled}>
           {trigger}
         </button>
       }
@@ -325,6 +327,15 @@ function ConditionRow({
   )
 }
 
+function InfoIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true" focusable="false">
+      <circle cx="8" cy="8" r="6.5" />
+      <path d="M8 7.2v3.6M8 5.2v.1" />
+    </svg>
+  )
+}
+
 /** "Versions 2, 4 and 6". */
 function versionsList(t: T, numbers: number[]): string {
   if (numbers.length === 1) return t(m.versionsWithOne, { number: numbers[0]! })
@@ -348,9 +359,10 @@ export function VisibilitySection({ c }: { c: Component }) {
   const tag = tagOf(c)
   if (tag === 'mj-column' || tag === 'mj-group') {
     return (
-      <div className="prop" role="group" aria-labelledby={id}>
+      <div className="prop cv" role="group" aria-labelledby={id}>
         <span className="t" id={id}>
-          {t(m.title)} <span className="k">· {t(m.subtitle)}</span>
+          <EyeOff size={14} />
+          {t(m.title)} <span className="vh">· {t(m.subtitle)}</span>
         </span>
         <span className="k">{t(m.notOffered)}</span>
       </div>
@@ -383,10 +395,17 @@ export function VisibilitySection({ c }: { c: Component }) {
   const emptyVersions = (report?.versions ?? []).filter((v) => v.empty && rule && v.hidden.includes(rule.id))
   const emptyCount = emptyVersions.reduce((n, v) => n + v.recipients, 0)
   return (
-    <div className="prop cv" role="group" aria-labelledby={id}>
+    <div className={`prop cv${brokenAt.size || emptyCount ? ' bad' : ''}`} role="group" aria-labelledby={id}>
       <span className="t" id={id}>
-        {t(m.title)} <span className="k">· {t(m.subtitle)}</span>
+        <EyeOff size={14} />
+        {t(m.title)} <span className="vh">· {t(m.subtitle)}</span>
       </span>
+      {!footer && !ctx.canEdit ? (
+        <div className="cv-note">
+          <InfoIcon />
+          <span>{t(m.readOnly)}</span>
+        </div>
+      ) : null}
       <div className="cv-show" role="radiogroup" aria-label={t(m.subtitle)}>
         {(['everyone', 'only', 'except'] as const).map((s) => (
           <label key={s} className="tg">
@@ -401,8 +420,12 @@ export function VisibilitySection({ c }: { c: Component }) {
           </label>
         ) : null}
       </div>
-      {footer ? <span className="k">{t(m.footerAlways)}</span> : null}
-      {!footer && !ctx.canEdit ? <span className="k">{t(m.readOnly)}</span> : null}
+      {footer ? (
+        <div className="cv-note">
+          <InfoIcon />
+          <span>{t(m.footerAlways)}</span>
+        </div>
+      ) : null}
       {rule && (show === 'only' || show === 'except') ? (
         <>
           <div className="flex items-center gap-2">
@@ -432,8 +455,9 @@ export function VisibilitySection({ c }: { c: Component }) {
                         : t(m.brokenUnknown)}
                     </span>
                     {ctx.canEdit ? (
-                      <div className="flex flex-wrap gap-1.5">
+                      <div className="flex flex-col gap-1.5">
                         <ConditionPicker
+                          className="btn sm pri"
                           trigger={t(br.kind === 'list' ? m.pickAnotherList : br.kind === 'field' ? m.pickAnotherField : m.pickAnotherSegment)}
                           onPick={(kind) => setCondition(i, defaultCondition(cond.catalog, kind))}
                         />
@@ -450,7 +474,19 @@ export function VisibilitySection({ c }: { c: Component }) {
               </div>
             )
           })}
-          {ctx.canEdit ? <ConditionPicker trigger={t(m.addCondition)} onPick={addCondition} /> : null}
+          {ctx.canEdit ? (
+            <ConditionPicker
+              trigger={
+                <>
+                  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true" focusable="false">
+                    <path d="M8 3v10M3 8h10" />
+                  </svg>
+                  {t(m.addCondition)}
+                </>
+              }
+              onPick={addCondition}
+            />
+          ) : null}
         </>
       ) : null}
       {show === 'nobody' && ctx.canEdit ? (
@@ -468,7 +504,12 @@ export function VisibilitySection({ c }: { c: Component }) {
             <span className="k">{t(m.noAudience)}</span>
           ) : info && report ? (
             <>
-              <span className="font-semibold">{t(m.shown, { shown: count(info.shown), total: count(total) })}</span>
+              <span>
+                <Rich msg={m.shown} values={{ shown: count(info.shown), total: count(total), b: (ch) => <b>{ch}</b> }} />
+              </span>
+              <span className="cv-bar" aria-hidden="true">
+                <i style={{ width: `${total ? Math.max(1, Math.round((info.shown / total) * 100)) : 0}%` }} />
+              </span>
               {report.countedAt ? <span className="k">{report.durationMs < 1000 ? t(m.countedFast, { time: clock(report.countedAt) }) : t(m.counted, { time: clock(report.countedAt) })}</span> : null}
               {info.versions.length ? <span className="k">{versionsList(t, info.versions)}</span> : null}
               {emptyCount ? <span className="cv-empty">{t(m.emptyFor, { count: emptyCount })}</span> : null}

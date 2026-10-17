@@ -220,7 +220,7 @@ function LayersTab() {
           <span data-twisty className="inline-flex">
             <ToolIcon name={layerIcon(tag, o, kids.length > 0)} size={14} strokeWidth={1.6} />
           </span>
-          {componentLabel(x)}
+          <span className="lay-name">{componentLabel(x)}</span>
           <LayerMark c={x} />
           {hiddenTag(x) ? <span className="lay-tag">{hiddenTag(x)}</span> : null}
         </button>
