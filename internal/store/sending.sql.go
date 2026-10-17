@@ -819,9 +819,9 @@ WITH picked AS (
 ), upd AS (
     UPDATE messages m SET claimed_at = $5::timestamptz, attempts = m.attempts + 1
     FROM picked WHERE m.id = picked.id
-    RETURNING m.id, m.workspace_id, m.contact_id, m.email, m.variant, m.mailbox_provider, m.attempts, m.language
+    RETURNING m.id, m.workspace_id, m.contact_id, m.email, m.variant, m.mailbox_provider, m.attempts, m.language, m.hidden_blocks
 )
-SELECT upd.id, upd.contact_id, upd.email, upd.variant, upd.mailbox_provider, upd.attempts, upd.language,
+SELECT upd.id, upd.contact_id, upd.email, upd.variant, upd.mailbox_provider, upd.attempts, upd.language, upd.hidden_blocks,
        coalesce(c.first_name, '')::text AS first_name, coalesce(c.last_name, '')::text AS last_name,
        coalesce(c.attributes, '{}'::jsonb)::jsonb AS attributes, coalesce(c.tier, '')::text AS tier,
        coalesce(c.source, '')::text AS source, (c.last_human_open_at IS NOT NULL)::boolean AS engaged,
@@ -849,6 +849,7 @@ type SendingClaimRow struct {
 	MailboxProvider string          `json:"mailboxProvider"`
 	Attempts        int16           `json:"attempts"`
 	Language        string          `json:"language"`
+	HiddenBlocks    string          `json:"hiddenBlocks"`
 	FirstName       string          `json:"firstName"`
 	LastName        string          `json:"lastName"`
 	Attributes      json.RawMessage `json:"attributes"`
@@ -886,6 +887,7 @@ func (q *Queries) SendingClaim(ctx context.Context, arg SendingClaimParams) ([]S
 			&i.MailboxProvider,
 			&i.Attempts,
 			&i.Language,
+			&i.HiddenBlocks,
 			&i.FirstName,
 			&i.LastName,
 			&i.Attributes,

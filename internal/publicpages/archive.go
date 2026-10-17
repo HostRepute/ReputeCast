@@ -670,6 +670,14 @@ func (h *Handler) issueDocument(r *http.Request, s *site, row store.ArchiveIssue
 	if strings.TrimSpace(body) == "" {
 		body = plainDocument(text)
 	}
+	// Conditional content and polls (design expansion, X11): a reader of the
+	// archive matches no condition, and answers as someone who isn't a contact.
+	if h.Browser != nil {
+		body = h.Browser.BrowserHTML(ctx, s.ws, row.CampaignID, uuid.Nil, body)
+		for k, v := range h.Browser.BrowserLinks(ctx, s.ws, row.CampaignID) {
+			links[k] = v
+		}
+	}
 	subject, doc := renderEmail(subject, body, "", "", "", nil, links, h.URLs.Base())
 	if title == "" {
 		title = subject

@@ -41,6 +41,9 @@ type Service struct {
 	// Translations handles language versions (?language= on the content
 	// endpoints); nil without content languages.
 	Translations Translations
+	// Extras fill in test emails' poll links and cut them to a contact's
+	// version of conditional content (conditional.go); nil leaves them.
+	Extras Extras
 }
 
 // ChangeHook is told which campaign changed. The save already committed, so

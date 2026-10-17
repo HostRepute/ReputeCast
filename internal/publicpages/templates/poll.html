@@ -1,0 +1,38 @@
+{{define "content"}}{{with .Body}}<main class="card g18 poll" id="main" data-poll data-state="{{.State}}"{{with .Next}} data-next="{{.}}"{{end}}>
+  {{template "brand" $}}
+  <div class="col6"><span class="pkick">{{.Kicker}}{{if .Test}} <span class="tag">Test email</span>{{end}}</span><h1 class="ph1" id="q">{{.Question}}</h1></div>
+  <div class="pstat {{.Tone}}{{if not .Status}} hidden{{end}}" role="status" aria-live="polite">{{if .Status}}{{if eq .Tone "ok"}}<svg class="si" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="10"></circle><path d="m5.8 10.3 2.8 2.8 5.6-5.8"></path></svg>{{else if eq .Tone "error"}}<svg class="si bad" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="10"></circle><path d="M10 5.5v5.5M10 14.2v.3"></path></svg>{{end}}<div><b>{{.Status}}</b>{{with .Thanks}}<br>{{.}}{{end}}</div>{{end}}</div>
+  {{if .CanAnswer}}<form class="answer col10" method="post" action="{{.Action}}">
+    <fieldset class="answers">
+      <legend class="vh">{{.Question}}</legend>
+      {{if eq .Kind "scale"}}<div class="scale">{{range .Answers}}<label class="cell{{if .Mine}} mine{{end}}"><input class="vh" type="radio" name="answer" value="{{.Value}}"{{if .Checked}} checked{{end}} aria-label="{{.Aria}}"><span aria-hidden="true">{{.Label}}</span></label>{{end}}</div>
+      <div class="ends" aria-hidden="true"><span>0 · {{.Low}}</span><span>10 · {{.High}}</span></div>
+      {{else if eq .Kind "emoji"}}<div class="faces">{{range .Answers}}<label class="face{{if .Mine}} mine{{end}}"><input class="vh" type="radio" name="answer" value="{{.Value}}"{{if .Checked}} checked{{end}}><img src="{{.Face}}" alt="{{.Aria}}" width="28" height="28"></label>{{end}}</div>
+      {{else}}<div class="opts{{if .Row}} row{{end}}">{{range .Answers}}<label class="popt{{if .Mine}} mine{{end}}"><input class="vh" type="radio" name="answer" value="{{.Value}}"{{if .Checked}} checked{{end}}><span class="ol">{{with .Emoji}}{{.}} {{end}}{{.Label}}</span>{{if .Mine}}<span class="ya">Your answer</span>{{end}}</label>{{end}}</div>{{end}}
+    </fieldset>
+    {{with .Yours}}<div class="yours"><svg class="ck" viewBox="0 0 16 16" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg><span>{{.}}</span></div>{{end}}
+    <div class="confirm col6"><button class="btn-sm start" type="submit"{{if $.Preview}} disabled{{end}}>{{.Confirm}}</button><span class="t13">{{.ConfirmNote}}</span></div>
+  </form>{{else if .Yours}}<div class="yours"><svg class="ck" viewBox="0 0 16 16" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg><span>{{.Yours}}</span></div>{{end}}
+  {{if .ShowComment}}{{if and .CommentSaved (not .EditComment)}}<div class="col8 said">
+    <span class="t13b">Your comment is saved with your answer.</span>
+    <blockquote class="quote">“{{.Comment}}”</blockquote>
+    <a class="u t13 self" href="{{.Action}}?edit=comment">Edit my comment</a>
+  </div>{{else}}<form class="col8 comment" method="post" action="{{.CommentAction}}">
+    <label class="plbl" for="cmt">Anything to add? <span class="pmut">Optional · up to 500 characters</span></label>
+    <textarea class="pta" id="cmt" name="comment" maxlength="500" aria-describedby="cmt-n">{{.Comment}}</textarea>
+    <div class="split"><span class="t13" id="cmt-n" data-count="500">{{runes .Comment}} of 500</span><button class="btn-ghost" type="submit"{{if $.Preview}} disabled{{end}}>Send</button></div>
+  </form>{{end}}{{end}}
+  {{with .Results}}<section class="results col10" aria-label="Results">
+    <div class="split"><span class="t13b">Results so far</span><span class="t13">{{.Line}}</span></div>
+    {{range .Rows}}<div class="col4"><div class="split"><span>{{.Label}}{{if .Mine}} <span class="from">Your answer</span>{{end}}</span><span class="num">{{.Percent}}%</span></div><div class="rbar"><i class="w{{.Percent}}"></i></div></div>
+    {{end}}</section>{{end}}
+  {{if eq .State "closed"}}<div class="btns"><a class="btn-sm" href="{{.Latest}}">Read the latest issue</a></div>{{end}}
+  {{if eq .State "refused"}}<div class="btns"><a class="btn-sm" href="{{.Subscribe}}">Subscribe</a></div>{{else if .SubscribeText}}<div class="split rule"><span>{{.SubscribeText}}</span><a class="btn-ghost" href="{{.Subscribe}}">Subscribe</a></div>{{end}}
+  {{with .Next}}<div class="btns"><a class="btn-sm" href="{{.}}">Continue to the survey</a></div>{{end}}
+  {{with .Note}}<p class="t13">{{.}}</p>{{end}}
+</main>{{end}}{{end}}
+{{define "foot"}}<footer class="foot">
+  {{- with .Privacy}}<a href="{{.}}">Privacy</a>{{template "sep"}}{{end}}
+  {{- with .Body.Footer.Preferences}}<a href="{{.}}">Email preferences</a>{{end}}
+  {{- if .PoweredBy}}{{template "sep"}}{{end}}
+  {{- template "rcplain" .}}</footer>{{end}}

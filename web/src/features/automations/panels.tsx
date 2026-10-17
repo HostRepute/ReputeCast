@@ -31,6 +31,7 @@ import type { StepStats } from './view'
 import { StepLanguages } from '@/features/languages/automation'
 import { ScoreTriggerFields, scoreTriggerDefaults } from '@/features/scoring/ScoreTrigger'
 import { isOneOfLabel, scoreTriggerName } from '@/features/scoring/triggerText'
+import { PollTriggerProps } from '@/features/polls/trigger'
 
 type Options = Schemas['AutomationOptions']
 
@@ -55,6 +56,8 @@ const triggerItems: { kind: TriggerConfig['kind']; label: string }[] = [
       return scoreTriggerName()
     },
   },
+  // Design expansion, X11.
+  { kind: 'poll_answered', label: 'Answered a poll or survey' },
 ]
 
 const stepItems: { type: StepType; label: string }[] = [
@@ -619,6 +622,8 @@ function TriggerProps({ node, options, editable, onChange, stats, hasStats }: St
           </select>
         ) : null}
         {t.kind === 'tag_added' ? <input className="in" aria-label="Tag" list="fe-tags" placeholder="Tag, e.g. sunset-entered" disabled={disabled} value={t.tag ?? ''} onChange={(e) => set({ tag: e.target.value })} /> : null}
+        {/* Answered a poll or survey (design expansion, X11). */}
+        {t.kind === 'poll_answered' ? <PollTriggerProps t={t} disabled={disabled} set={set} /> : null}
         {t.kind === 'api_event' ? (
           <>
             <input className="in mono" aria-label="Event name" list="fe-events" placeholder="workspace.created" disabled={disabled} value={t.event ?? ''} onChange={(e) => set({ event: e.target.value })} />

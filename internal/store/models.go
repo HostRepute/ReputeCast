@@ -1509,6 +1509,7 @@ type Message struct {
 	Language          string          `json:"language"`
 	ContactLanguage   string          `json:"contactLanguage"`
 	LanguageReason    string          `json:"languageReason"`
+	HiddenBlocks      string          `json:"hiddenBlocks"`
 }
 
 type MxCache struct {
@@ -1702,6 +1703,68 @@ type PaymentEvent struct {
 	Attempts        int32           `json:"attempts"`
 	Error           string          `json:"error"`
 	AppliedAt       *time.Time      `json:"appliedAt"`
+}
+
+type Poll struct {
+	ID                uuid.UUID       `json:"id"`
+	WorkspaceID       uuid.UUID       `json:"workspaceId"`
+	Number            int64           `json:"number"`
+	CampaignID        *uuid.UUID      `json:"campaignId"`
+	AutomationEmailID *uuid.UUID      `json:"automationEmailId"`
+	BlockID           string          `json:"blockId"`
+	Kind              string          `json:"kind"`
+	Question          string          `json:"question"`
+	Answers           json.RawMessage `json:"answers"`
+	Settings          json.RawMessage `json:"settings"`
+	ClosesAt          *time.Time      `json:"closesAt"`
+	ClosedAt          *time.Time      `json:"closedAt"`
+	ClosedBy          *uuid.UUID      `json:"closedBy"`
+	ReopenedAt        *time.Time      `json:"reopenedAt"`
+	CreatedAt         time.Time       `json:"createdAt"`
+	UpdatedAt         time.Time       `json:"updatedAt"`
+}
+
+type PollAnswer struct {
+	ID          uuid.UUID  `json:"id"`
+	PollID      uuid.UUID  `json:"pollId"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	ContactID   *uuid.UUID `json:"contactId"`
+	MessageID   *uuid.UUID `json:"messageId"`
+	Kind        string     `json:"kind"`
+	TestEmail   string     `json:"testEmail"`
+	Answer      int32      `json:"answer"`
+	FirstAnswer int32      `json:"firstAnswer"`
+	Changes     int32      `json:"changes"`
+	Comment     string     `json:"comment"`
+	CommentedAt *time.Time `json:"commentedAt"`
+	Client      string     `json:"client"`
+	AnsweredAt  time.Time  `json:"answeredAt"`
+	UpdatedAt   time.Time  `json:"updatedAt"`
+}
+
+type PollAnswerEvent struct {
+	ID       int64     `json:"id"`
+	AnswerID uuid.UUID `json:"answerId"`
+	PollID   uuid.UUID `json:"pollId"`
+	Kind     string    `json:"kind"`
+	Answer   *int32    `json:"answer"`
+	Previous *int32    `json:"previous"`
+	At       time.Time `json:"at"`
+}
+
+type PollAutomatedVisit struct {
+	PollID uuid.UUID `json:"pollId"`
+	Reason string    `json:"reason"`
+	N      int64     `json:"n"`
+	LastAt time.Time `json:"lastAt"`
+}
+
+type PollTestRecipient struct {
+	ID          uuid.UUID  `json:"id"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	CampaignID  *uuid.UUID `json:"campaignId"`
+	Email       string     `json:"email"`
+	CreatedAt   time.Time  `json:"createdAt"`
 }
 
 type PostmasterDaily struct {
@@ -2201,6 +2264,44 @@ type Suppression struct {
 	ImportID         *uuid.UUID `json:"importId"`
 }
 
+type Survey struct {
+	ID          uuid.UUID       `json:"id"`
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	Number      int64           `json:"number"`
+	Slug        string          `json:"slug"`
+	Name        string          `json:"name"`
+	Description string          `json:"description"`
+	Status      string          `json:"status"`
+	Questions   json.RawMessage `json:"questions"`
+	Settings    json.RawMessage `json:"settings"`
+	ClosesAt    *time.Time      `json:"closesAt"`
+	PublishedAt *time.Time      `json:"publishedAt"`
+	PublishedBy *uuid.UUID      `json:"publishedBy"`
+	ClosedAt    *time.Time      `json:"closedAt"`
+	ClosedBy    *uuid.UUID      `json:"closedBy"`
+	CreatedBy   *uuid.UUID      `json:"createdBy"`
+	UpdatedBy   *uuid.UUID      `json:"updatedBy"`
+	CreatedAt   time.Time       `json:"createdAt"`
+	UpdatedAt   time.Time       `json:"updatedAt"`
+	DeletedAt   *time.Time      `json:"deletedAt"`
+}
+
+type SurveyResponse struct {
+	ID          uuid.UUID       `json:"id"`
+	SurveyID    uuid.UUID       `json:"surveyId"`
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	ContactID   *uuid.UUID      `json:"contactId"`
+	MessageID   *uuid.UUID      `json:"messageId"`
+	Kind        string          `json:"kind"`
+	TestEmail   string          `json:"testEmail"`
+	Answers     json.RawMessage `json:"answers"`
+	Source      string          `json:"source"`
+	StartedAt   time.Time       `json:"startedAt"`
+	CompletedAt *time.Time      `json:"completedAt"`
+	UpdatedAt   time.Time       `json:"updatedAt"`
+	Changes     int32           `json:"changes"`
+}
+
 type Template struct {
 	ID               uuid.UUID       `json:"id"`
 	WorkspaceID      uuid.UUID       `json:"workspaceId"`
@@ -2556,6 +2657,19 @@ type UserRecoveryCode struct {
 	CodeHash  []byte     `json:"codeHash"`
 	UsedAt    *time.Time `json:"usedAt"`
 	CreatedAt time.Time  `json:"createdAt"`
+}
+
+type VisibilityCount struct {
+	CampaignID   uuid.UUID       `json:"campaignId"`
+	WorkspaceID  uuid.UUID       `json:"workspaceId"`
+	RulesHash    string          `json:"rulesHash"`
+	AudienceHash string          `json:"audienceHash"`
+	Total        int64           `json:"total"`
+	Versions     json.RawMessage `json:"versions"`
+	Shown        json.RawMessage `json:"shown"`
+	Factors      json.RawMessage `json:"factors"`
+	CountedAt    time.Time       `json:"countedAt"`
+	DurationMs   int32           `json:"durationMs"`
 }
 
 type WarmupEvent struct {

@@ -197,7 +197,9 @@ func seedDigest143(ctx context.Context, s *Seeder) error {
 		if v.day == 0 {
 			at = s.sampleToday(v.h, v.m)
 		}
-		src = withImages(digest143MJML(version))
+		// The conditional blocks and the poll of the X11 sample are in every
+		// version (seed_polls.go).
+		src = withImages(x11Digest143(s, digest143MJML(version)))
 		res := mjml.Compile(src)
 		if len(res.Errors) > 0 {
 			return fmt.Errorf("compile Weekly Digest #143: %s", res.Errors[0].Message)

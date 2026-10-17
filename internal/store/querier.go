@@ -179,6 +179,9 @@ type Querier interface {
 	AutomationLostWebhookRuns(ctx context.Context, before time.Time) ([]AutomationLostWebhookRunsRow, error)
 	AutomationMessageEngaged(ctx context.Context, arg AutomationMessageEngagedParams) (bool, error)
 	AutomationMessageForStats(ctx context.Context, id uuid.UUID) (AutomationMessageForStatsRow, error)
+	// What the trigger "Answered a poll or survey" can point at, by the ref
+	// its events carry ("poll:<id>", "survey:<id>").
+	AutomationPollRefs(ctx context.Context, workspaceID uuid.UUID) ([]AutomationPollRefsRow, error)
 	// Automation emails per sending provider since a day, and the last day each sent.
 	AutomationProviderSendsSince(ctx context.Context, arg AutomationProviderSendsSinceParams) ([]AutomationProviderSendsSinceRow, error)
 	AutomationProviders(ctx context.Context, workspaceID uuid.UUID) ([]AutomationProvidersRow, error)
@@ -1390,6 +1393,60 @@ type Querier interface {
 	// Raw events are kept 90 days.
 	PayEventsPurge(ctx context.Context, before time.Time) (int64, error)
 	PayRejectedSince(ctx context.Context, arg PayRejectedSinceParams) (int64, error)
+	PollAnswerByID(ctx context.Context, id uuid.UUID) (PollAnswer, error)
+	PollAnswerChange(ctx context.Context, arg PollAnswerChangeParams) error
+	PollAnswerComment(ctx context.Context, arg PollAnswerCommentParams) error
+	PollAnswerCounts(ctx context.Context, pollID uuid.UUID) ([]PollAnswerCountsRow, error)
+	PollAnswerEvent(ctx context.Context, arg PollAnswerEventParams) error
+	PollAnswerInsert(ctx context.Context, arg PollAnswerInsertParams) error
+	PollAnswerOfContact(ctx context.Context, arg PollAnswerOfContactParams) (PollAnswer, error)
+	PollAnswerOfContactRead(ctx context.Context, arg PollAnswerOfContactReadParams) (PollAnswer, error)
+	PollAnswerOfTester(ctx context.Context, arg PollAnswerOfTesterParams) (PollAnswer, error)
+	PollAnswerOfTesterRead(ctx context.Context, arg PollAnswerOfTesterReadParams) (PollAnswer, error)
+	// The answer a changed answer replaced last.
+	PollAnswerPrevious(ctx context.Context, answerID uuid.UUID) (*int32, error)
+	// Answers by the hour after the send started they first came in.
+	PollAnswersByHour(ctx context.Context, arg PollAnswersByHourParams) ([]PollAnswersByHourRow, error)
+	PollAutomated(ctx context.Context, pollID uuid.UUID) ([]PollAutomatedRow, error)
+	PollAutomatedBump(ctx context.Context, arg PollAutomatedBumpParams) error
+	PollBreakdownLanguage(ctx context.Context, pollID uuid.UUID) ([]PollBreakdownLanguageRow, error)
+	PollBreakdownList(ctx context.Context, pollID uuid.UUID) ([]PollBreakdownListRow, error)
+	PollBreakdownTier(ctx context.Context, pollID uuid.UUID) ([]PollBreakdownTierRow, error)
+	PollByID(ctx context.Context, arg PollByIDParams) (PollByIDRow, error)
+	// The poll a signed link names, with what its pages show.
+	PollByNumber(ctx context.Context, number int64) (PollByNumberRow, error)
+	PollCampaignContent(ctx context.Context, arg PollCampaignContentParams) (PollCampaignContentRow, error)
+	// Comments, newest first, with the contact's name (the caller leaves it
+	// out for people without subscribers:view, whose search doesn't match
+	// names either).
+	PollComments(ctx context.Context, arg PollCommentsParams) ([]PollCommentsRow, error)
+	PollCommentsCount(ctx context.Context, pollID uuid.UUID) ([]PollCommentsCountRow, error)
+	PollContact(ctx context.Context, id uuid.UUID) (PollContactRow, error)
+	// A contact's poll answers, newest first (the profile's timeline and where
+	// a field came from).
+	PollContactAnswers(ctx context.Context, arg PollContactAnswersParams) ([]PollContactAnswersRow, error)
+	PollDelivered(ctx context.Context, campaignID uuid.UUID) (PollDeliveredRow, error)
+	PollExportAnswers(ctx context.Context, pollID uuid.UUID) ([]PollExportAnswersRow, error)
+	// The message a signed answer link names: when it was sent and to whom.
+	PollMessage(ctx context.Context, id uuid.UUID) (PollMessageRow, error)
+	PollSetClosed(ctx context.Context, arg PollSetClosedParams) error
+	PollSetClosesAt(ctx context.Context, arg PollSetClosesAtParams) error
+	PollSetContactField(ctx context.Context, arg PollSetContactFieldParams) error
+	PollSetContactTags(ctx context.Context, arg PollSetContactTagsParams) error
+	// A poll's headline numbers: contacts' answers, non-contacts' and tests
+	// apart, how many changed their answer and wrote a comment.
+	PollSummary(ctx context.Context, pollID uuid.UUID) (PollSummaryRow, error)
+	PollTestAnswers(ctx context.Context, arg PollTestAnswersParams) ([]PollTestAnswersRow, error)
+	PollTestAnswersClear(ctx context.Context, arg PollTestAnswersClearParams) (int64, error)
+	PollTestRecipient(ctx context.Context, id uuid.UUID) (PollTestRecipientRow, error)
+	PollTestRecipientInsert(ctx context.Context, arg PollTestRecipientInsertParams) error
+	PollsOfCampaign(ctx context.Context, arg PollsOfCampaignParams) ([]PollsOfCampaignRow, error)
+	// Every poll of the workspace (the automation trigger's picker, MCP).
+	PollsOfWorkspace(ctx context.Context, workspaceID uuid.UUID) ([]PollsOfWorkspaceRow, error)
+	// Polls and surveys (internal/polls, design expansion M21).
+	// A campaign's poll as its content says now (a test send or a send needs
+	// its links). The number in signed links never changes.
+	PollsUpsert(ctx context.Context, arg PollsUpsertParams) (PollsUpsertRow, error)
 	ProvActiveFailovers(ctx context.Context, workspaceID uuid.UUID) ([]StreamFailover, error)
 	ProvAwaitingCampaigns(ctx context.Context, arg ProvAwaitingCampaignsParams) ([]ProvAwaitingCampaignsRow, error)
 	ProvAwaitingCount(ctx context.Context, arg ProvAwaitingCountParams) (ProvAwaitingCountRow, error)
@@ -2076,6 +2133,26 @@ type Querier interface {
 	// the providers domain) and, for providers without a suppression API, the
 	// addresses their bounce and complaint events added to the shared list.
 	SuppressionSyncStates(ctx context.Context, workspaceID uuid.UUID) ([]SuppressionSyncStatesRow, error)
+	// Every response, for the results and the exports.
+	SurveyAllResponses(ctx context.Context, surveyID uuid.UUID) ([]SurveyAllResponsesRow, error)
+	SurveyByNumber(ctx context.Context, number int64) (SurveyByNumberRow, error)
+	SurveyBySlug(ctx context.Context, arg SurveyBySlugParams) (SurveyBySlugRow, error)
+	SurveyContactResponses(ctx context.Context, arg SurveyContactResponsesParams) ([]SurveyContactResponsesRow, error)
+	SurveyDelete(ctx context.Context, arg SurveyDeleteParams) error
+	SurveyGet(ctx context.Context, arg SurveyGetParams) (SurveyGetRow, error)
+	SurveyInsert(ctx context.Context, arg SurveyInsertParams) error
+	// Campaigns whose content links to a survey (its link variable or a poll
+	// that continues to it).
+	// A poll names the survey by its id, however the attribute is escaped.
+	SurveyLinkedCampaigns(ctx context.Context, arg SurveyLinkedCampaignsParams) ([]SurveyLinkedCampaignsRow, error)
+	SurveyResponseInsert(ctx context.Context, arg SurveyResponseInsertParams) error
+	SurveyResponseOfContact(ctx context.Context, arg SurveyResponseOfContactParams) (SurveyResponse, error)
+	SurveyResponseUpdate(ctx context.Context, arg SurveyResponseUpdateParams) error
+	SurveyResponses(ctx context.Context, arg SurveyResponsesParams) ([]SurveyResponsesRow, error)
+	SurveySetStatus(ctx context.Context, arg SurveySetStatusParams) error
+	SurveySlugTaken(ctx context.Context, arg SurveySlugTakenParams) (bool, error)
+	SurveyUpdate(ctx context.Context, arg SurveyUpdateParams) error
+	SurveysList(ctx context.Context, workspaceID uuid.UUID) ([]SurveysListRow, error)
 	// A message the system mailer or a setup's test sends (stream system, or
 	// the stream a test goes on).
 	SysmailInsertMessage(ctx context.Context, arg SysmailInsertMessageParams) error
@@ -2401,6 +2478,35 @@ type Querier interface {
 	UpsertNotificationSettings(ctx context.Context, arg UpsertNotificationSettingsParams) error
 	UseRecoveryCode(ctx context.Context, arg UseRecoveryCodeParams) (uuid.UUID, error)
 	UsersShareWorkspace(ctx context.Context, arg UsersShareWorkspaceParams) (bool, error)
+	VisibilityCampaign(ctx context.Context, arg VisibilityCampaignParams) (VisibilityCampaignRow, error)
+	// What conditions read about some contacts (a send's audience page, a
+	// preview).
+	VisibilityContactFacts(ctx context.Context, arg VisibilityContactFactsParams) ([]VisibilityContactFactsRow, error)
+	// Who deleted the segments, lists and fields rules refer to, and when (the
+	// broken condition says "Marcus Chen deleted this segment on Tue 14 Oct").
+	VisibilityDeletions(ctx context.Context, arg VisibilityDeletionsParams) ([]VisibilityDeletionsRow, error)
+	VisibilityFields(ctx context.Context, workspaceID uuid.UUID) ([]VisibilityFieldsRow, error)
+	VisibilityGetCount(ctx context.Context, campaignID uuid.UUID) (VisibilityCount, error)
+	// Conditional content (internal/visibility, design expansion M21).
+	// The workspace's lists with their subscribed members, for the condition
+	// picker and the rules' words.
+	VisibilityLists(ctx context.Context, workspaceID uuid.UUID) ([]VisibilityListsRow, error)
+	// The blocks a message's recipient doesn't get (view online).
+	VisibilityMessageHidden(ctx context.Context, arg VisibilityMessageHiddenParams) (string, error)
+	// An audience as Send Readiness counts it (active contacts on the lists or
+	// in the segments, minus excluded lists and segments), with what Visibility
+	// conditions read. Suppressed, role and duplicate addresses and contacts
+	// the sunset policy stopped are left out by the caller, as in Send
+	// Readiness; the oldest contact of a mailbox is kept.
+	VisibilityRecipients(ctx context.Context, arg VisibilityRecipientsParams) ([]VisibilityRecipientsRow, error)
+	VisibilitySaveCount(ctx context.Context, arg VisibilitySaveCountParams) error
+	VisibilitySegments(ctx context.Context, workspaceID uuid.UUID) ([]VisibilitySegmentsRow, error)
+	// Tags in use, most used first.
+	VisibilityTags(ctx context.Context, workspaceID uuid.UUID) ([]VisibilityTagsRow, error)
+	// Emails that aren't sent yet and have Visibility rules: drafts, campaigns
+	// waiting for approval and scheduled ones ("used by", the warning before a
+	// segment, list or field is deleted, and the blocks Scoring lists).
+	VisibilityUnsent(ctx context.Context, workspaceID uuid.UUID) ([]VisibilityUnsentRow, error)
 	// Runs waiting at a branch for an open or click: wake them as soon as the
 	// email they wait on has one, instead of at the end of the window.
 	WakeAutomationBranchRuns(ctx context.Context, now *time.Time) (int64, error)

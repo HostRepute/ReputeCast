@@ -312,6 +312,11 @@ func (c *Checker) Check(ctx context.Context, in Input) (ContentCheckReport, erro
 			if known[u.Key] || known[root] || root == "contact" || root == "forloop" || u.HasFallback {
 				continue
 			}
+			// Poll answer links and survey links are filled per recipient
+			// (internal/polls).
+			if strings.HasPrefix(root, "rc_poll_") || strings.HasPrefix(root, "rc_survey_") {
+				continue
+			}
 			add(ContentCheckIssue{ID: "personalization.unknown_field", Severity: Warn, Group: "Personalization",
 				Title:  fmt.Sprintf("{{ %s }} isn't a contact field; it prints nothing", u.Key),
 				Detail: "Check the spelling, or add a fallback such as | default: \"…\".", Section: -1})

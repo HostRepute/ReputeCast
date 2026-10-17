@@ -3,6 +3,7 @@ package scoring_test
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"testing"
 	"time"
 
@@ -20,9 +21,10 @@ type page struct {
 	Contacts       int64                 `json:"contacts"`
 	Bands          struct{ Cold, Warm, Hot int64 }
 	UsedBy         []struct {
-		Kind, Name string
-		Entered    int64
-		Contacts   *int64
+		Kind, Name          string
+		Where, Status, Href string
+		Entered             int64
+		Contacts, Of        *int64
 	} `json:"usedBy"`
 	Recalculation *struct {
 		ID, Status string
@@ -58,8 +60,14 @@ func TestScoringPageAndPermissions(t *testing.T) {
 		if !p.Configured || p.Contacts != 48213 || p.Bands.Hot != 4816 || p.Bands.Warm != 14207 || p.Bands.Cold != 29190 || len(p.Config.Rules) != 8 {
 			t.Fatalf("%s: %+v", email, p)
 		}
-		if len(p.UsedBy) != 2 || p.UsedBy[0].Name != "Sales-ready handoff" || p.UsedBy[0].Entered != 37 || p.UsedBy[1].Contacts == nil || *p.UsedBy[1].Contacts != 1532 {
+		// Used by · 3: the automation, the segment and #143's Book a demo
+		// block (conditional content, Score band is Hot).
+		if len(p.UsedBy) != 3 || p.UsedBy[0].Name != "Sales-ready handoff" || p.UsedBy[0].Entered != 37 || p.UsedBy[1].Contacts == nil || *p.UsedBy[1].Contacts != 1532 {
 			t.Fatalf("used by: %+v", p.UsedBy)
+		}
+		if b := p.UsedBy[2]; b.Kind != "block" || b.Name != "Book a demo" || b.Where != "Weekly Digest #143" || b.Status != "draft" ||
+			b.Contacts == nil || *b.Contacts != 3164 || b.Of == nil || *b.Of != 31604 || !strings.HasSuffix(b.Href, "/edit?select=10&panel=settings") {
+			t.Fatalf("the conditional block: %+v", b)
 		}
 		if email == "linh@acme.io" {
 			continue

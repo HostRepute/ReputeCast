@@ -33,6 +33,7 @@ import (
 	"path"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -44,6 +45,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/linktoken"
 	"github.com/hostrepute/reputecast/internal/pagelabels"
+	"github.com/hostrepute/reputecast/internal/polls"
 	"github.com/hostrepute/reputecast/internal/publicurl"
 	"github.com/hostrepute/reputecast/internal/server"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -71,6 +73,11 @@ type Handler struct {
 	// the preference center has no such section).
 	Notifications Notifications
 	Now           func() time.Time
+	// Polls answers the poll and survey pages (nil: they answer 404).
+	Polls *polls.Service
+	// Browser gives emails shown in the browser their version of
+	// conditional content and their poll links (nil: as stored).
+	Browser Browser
 
 	tmpl    map[string]*template.Template
 	version string
@@ -91,14 +98,14 @@ func (h *Handler) log() *slog.Logger {
 }
 
 // pages are the templates, each rendered inside layout.html.
-var pages = []string{"subscribe", "confirm", "preferences", "request", "unsubscribe", "done", "message", "archive", "challenge", "category"}
+var pages = []string{"subscribe", "confirm", "preferences", "request", "unsubscribe", "done", "message", "archive", "challenge", "category", "poll", "survey"}
 
 // Init parses the templates; Routes calls it.
 func (h *Handler) Init() error {
 	if h.tmpl != nil {
 		return nil
 	}
-	funcs := template.FuncMap{"add": func(a, b int) int { return a + b }}
+	funcs := template.FuncMap{"add": func(a, b int) int { return a + b }, "runes": utf8.RuneCountInString}
 	h.tmpl = map[string]*template.Template{}
 	for _, p := range pages {
 		t, err := template.New("layout.html").Funcs(funcs).ParseFS(templateFS, "templates/layout.html", "templates/"+p+".html")
@@ -122,6 +129,7 @@ func (h *Handler) Routes(r chi.Router) {
 		panic(err)
 	}
 	r.Get("/p/_/fonts/{file}", h.font)
+	r.Get("/p/_/faces/{file}", h.face)
 	r.Get("/p/_/tls-check", h.tlsCheck)
 	r.Get("/p/_/{file}", h.static)
 	r.Route("/p/{ws}", func(r chi.Router) { h.pageRoutes(r) })
@@ -143,7 +151,7 @@ func (h *Handler) Routes(r chi.Router) {
 		root.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), hostKey{}, slug)))
 	})
 	for _, p := range []string{"/", "/robots.txt", "/subscribe", "/subscribe/*", "/confirm/*", "/preferences", "/preferences/*",
-		"/unsubscribe/*", "/view/*", "/archive", "/archive/*", "/archive.rss", "/sitemap.xml"} {
+		"/unsubscribe/*", "/view/*", "/archive", "/archive/*", "/archive.rss", "/sitemap.xml", "/poll/*", "/s/*"} {
 		r.Handle(p, custom)
 	}
 }
@@ -178,6 +186,23 @@ func (h *Handler) pageRoutes(r chi.Router) {
 	r.Options("/forms/{id}/session", h.formPreflight)
 	r.Post("/forms/{id}/submit", h.formSubmit)
 	r.Options("/forms/{id}/submit", h.formPreflight)
+	// Polls and surveys (design expansion, X11): GET records nothing.
+	r.Get("/poll/{token}/{answer}", h.pollPage)
+	r.Head("/poll/{token}/{answer}", h.headOnly)
+	r.Post("/poll/{token}/{answer}", h.pollPost)
+	r.Post("/poll/{token}/{answer}/comment", h.pollComment)
+	r.Get("/s/{slug}", h.surveyPage)
+	r.Head("/s/{slug}", h.headOnly)
+	r.Post("/s/{slug}", h.surveyPost)
+}
+
+// Browser gives emails shown in the browser (view online, the archive)
+// their version of conditional content and their poll and survey links
+// (design expansion, X11). A message's reader gets their version; the
+// archive's matches no condition.
+type Browser interface {
+	BrowserHTML(ctx context.Context, ws *store.Workspace, campaignID, messageID uuid.UUID, html string) string
+	BrowserLinks(ctx context.Context, ws *store.Workspace, campaignID uuid.UUID) map[string]string
 }
 
 type hostKey struct{}
@@ -442,7 +467,9 @@ func (h *Handler) render(w http.ResponseWriter, r *http.Request, s *site, page s
 
 // messageBody is a page with one message (link not valid, form closed…).
 type messageBody struct {
-	Icon      string // "tick", "mail" or ""
+	Icon string // "tick", "mail" or ""
+	// Kicker is a line above the heading ("Poll").
+	Kicker    string
 	Heading   string
 	Text      string
 	Email     string
@@ -547,6 +574,9 @@ func (h *Handler) static(w http.ResponseWriter, r *http.Request) {
 		ctype = "text/css; charset=utf-8"
 	case "challenge.js":
 		data, _ = fs.ReadFile(staticFS, "static/challenge.js")
+		ctype = "text/javascript; charset=utf-8"
+	case "poll.js":
+		data, _ = fs.ReadFile(staticFS, "static/poll.js")
 		ctype = "text/javascript; charset=utf-8"
 	default:
 		http.NotFound(w, r)

@@ -31,8 +31,38 @@ interface Bubble {
 function anchorsOf(doc: Document): HTMLAnchorElement[] {
   return Array.from(doc.querySelectorAll<HTMLAnchorElement>('a[href]')).filter((a) => {
     const href = (a.getAttribute('href') ?? '').trim()
-    return href !== '' && !href.startsWith('#') && !href.toLowerCase().startsWith('mailto:')
+    // Poll answers and survey links aren't tracked: a poll is one region.
+    return href !== '' && !href.startsWith('#') && !href.toLowerCase().startsWith('mailto:') && !href.includes('rc_poll_') && !href.includes('rc_survey_')
   })
+}
+
+/** A poll on the map: its block id and its label ("Poll · 2,412 answers"). */
+export interface MapPoll {
+  id: string
+  label: string
+}
+
+interface PollRegion {
+  id: string
+  label: string
+  left: number
+  top: number
+  width: number
+  height: number
+}
+
+/** Each poll's region: the column holding its answer links, scaled. */
+function pollRegions(doc: Document, polls: MapPoll[], scale: number): PollRegion[] {
+  const out: PollRegion[] = []
+  for (const p of polls) {
+    const links = Array.from(doc.querySelectorAll<HTMLAnchorElement>('a[href]')).filter((a) => (a.getAttribute('href') ?? '').includes(`rc_poll_${p.id}`))
+    if (!links.length) continue
+    const column = links[0]!.closest('[class*="mj-column-per"]') ?? links[0]!.parentElement
+    const r = column?.getBoundingClientRect()
+    if (!r) continue
+    out.push({ id: p.id, label: p.label, left: r.left * scale, top: r.top * scale, width: r.width * scale, height: r.height * scale })
+  }
+  return out
 }
 
 const OUTPUT_TAG = /\{\{-?\s*([^{}]*?)\s*-?\}\}/g
@@ -191,10 +221,10 @@ function anchorBox(a: HTMLAnchorElement, all: HTMLAnchorElement[]): AnchorBox {
   return { top: r.top, bottom: r.bottom, right: r.right, rowRight, endsLine: lastOnLine(last, outer), bandTop, blockRight: br.right, button }
 }
 
-function MapFrame({ m }: { m: Schemas['ReportClickMap'] }) {
+function MapFrame({ m, polls }: { m: Schemas['ReportClickMap']; polls?: MapPoll[] }) {
   const box = useRef<HTMLDivElement>(null)
   const frame = useRef<HTMLIFrameElement>(null)
-  const [layout, setLayout] = useState<{ height: number; scale: number; bubbles: Bubble[] }>()
+  const [layout, setLayout] = useState<{ height: number; scale: number; bubbles: Bubble[]; regions: PollRegion[] }>()
 
   const measure = useCallback(() => {
     const doc = frame.current?.contentDocument
@@ -212,8 +242,8 @@ function MapFrame({ m }: { m: Schemas['ReportClickMap'] }) {
       if (!a || (a.getAttribute('href') ?? '').trim() !== l.url) a = anchors.find((x) => (x.getAttribute('href') ?? '').trim() === l.url) ?? a
       if (a) byPosition[l.position] = anchorBox(a, anchors)
     }
-    setLayout({ height, scale, bubbles: placeBubbles(m.links, byPosition, m.other, scale, width) })
-  }, [m.links, m.other])
+    setLayout({ height, scale, bubbles: placeBubbles(m.links, byPosition, m.other, scale, width), regions: polls?.length ? pollRegions(doc, polls, scale) : [] })
+  }, [m.links, m.other, polls])
 
   const onLoad = () => {
     const doc = frame.current?.contentDocument
@@ -255,6 +285,11 @@ function MapFrame({ m }: { m: Schemas['ReportClickMap'] }) {
           aria-hidden="true"
           style={{ height: layout?.height ?? 500, transform: `scale(${layout?.scale ?? 340 / EMAIL_WIDTH})` }}
         />
+        {layout?.regions.map((r) => (
+          <span key={r.id} className="rep-poll" style={{ left: r.left - 3, top: r.top - 3, width: r.width + 6, height: r.height + 6 }}>
+            <b>{r.label}</b>
+          </span>
+        ))}
         {layout?.bubbles.map((b) => (
           <span key={b.key} className={cn('rep-ck', b.hot && 'hot')} style={{ left: b.left, top: b.top }} title={`${b.label}: ${Math.round(b.share)}% of clicks`}>
             {Math.round(b.share)}%
@@ -308,6 +343,8 @@ export function ClickMap({
   imported,
   picker,
   languageNote,
+  polls,
+  pollNote,
 }: {
   m: Schemas['ReportClickMap']
   clicks: number
@@ -316,6 +353,9 @@ export function ClickMap({
   picker?: ReactNode
   /** Who else the version shown went to (readers who got the fallback). */
   languageNote?: ReactNode
+  /** The email's polls, drawn as one region each with their answers. */
+  polls?: MapPoll[]
+  pollNote?: ReactNode
 }) {
   const [table, setTable] = useState(false)
   const note = clickNote(m)
@@ -355,7 +395,7 @@ export function ClickMap({
         <LinkTable m={m} />
       ) : m.available ? (
         <>
-          <MapFrame m={m} />
+          <MapFrame m={m} polls={polls} />
           {/* A table ignores width: 1px, so the wrapper hides it without widening the page. */}
           <div className="vh">
             <table>
@@ -390,6 +430,7 @@ export function ClickMap({
         </div>
       )}
       {note && !noLinks && m.available && !table ? <span className="k">{note}</span> : null}
+      {polls?.length && m.available && !table ? pollNote : null}
       {languageNote}
     </section>
   )
