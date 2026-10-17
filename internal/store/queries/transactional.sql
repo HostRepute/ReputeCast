@@ -220,9 +220,13 @@ WHERE t.workspace_id = @workspace_id AND t.accepted_at >= @since AND t.template_
 GROUP BY t.template_id;
 
 -- name: TxnKey :one
--- A key's transactional settings (send-only, test mode, scope, rate).
-SELECT id, name, kind, preset, mode, templates, categories, test_addresses, rate_per_second, permissions, created_by
-FROM api_keys WHERE id = @id AND workspace_id = @workspace_id;
+-- A key's transactional settings (send-only, test mode, scope, rate), and
+-- the integration it belongs to, if any.
+SELECT k.id, k.name, k.kind, k.preset, k.mode, k.templates, k.categories, k.test_addresses, k.rate_per_second, k.permissions, k.created_by,
+       k.integration_id, coalesce(i.kind, '')::text AS integration_kind
+FROM api_keys k
+LEFT JOIN integrations i ON i.id = k.integration_id
+WHERE k.id = @id AND k.workspace_id = @workspace_id;
 
 -- name: TxnIdemInsert :one
 INSERT INTO transactional_idempotency (workspace_id, key, request_hash, created_at)
@@ -255,6 +259,33 @@ SELECT EXISTS (SELECT 1 FROM suppressions WHERE workspace_id = @workspace_id AND
 SELECT o.opted_out_at, o.source, c.name AS category_name
 FROM transactional_opt_outs o JOIN transactional_categories c ON c.id = o.category_id
 WHERE o.workspace_id = @workspace_id AND o.email = @email AND o.category_id = @category_id;
+
+-- name: TxnOptOutsFor :many
+-- An address's opt-outs of Optional categories.
+SELECT o.category_id, o.opted_out_at, o.source, o.reason, c.name AS category_name
+FROM transactional_opt_outs o JOIN transactional_categories c ON c.id = o.category_id
+WHERE o.workspace_id = @workspace_id AND o.email = @email
+ORDER BY c.position, c.created_at;
+
+-- name: TxnOptOutInsert :execrows
+-- Turns a category off for an address; the first date is kept.
+INSERT INTO transactional_opt_outs (workspace_id, email, category_id, opted_out_at, source, message_id)
+VALUES (@workspace_id, @email, @category_id, @opted_out_at, @source, sqlc.narg(message_id))
+ON CONFLICT (workspace_id, email, category_id) DO NOTHING;
+
+-- name: TxnOptOutDelete :execrows
+DELETE FROM transactional_opt_outs WHERE workspace_id = @workspace_id AND email = @email AND category_id = @category_id;
+
+-- name: TxnOptOutReason :execrows
+UPDATE transactional_opt_outs SET reason = @reason
+WHERE workspace_id = @workspace_id AND email = @email AND category_id = @category_id;
+
+-- name: TxnMessageCategory :one
+-- The address and category a transactional message went out with (its
+-- unsubscribe and preference links).
+SELECT m.email, t.category_id, t.category_name, t.category_kind
+FROM messages m JOIN transactional_messages t ON t.message_id = m.id
+WHERE m.id = @id AND m.workspace_id = @workspace_id;
 
 -- name: TxnContactByEmail :one
 SELECT id, mailbox_provider, first_name, last_name FROM contacts
@@ -444,3 +475,337 @@ WHERE t.workspace_id = @workspace_id AND t.accepted_at >= @since::timestamptz AN
   AND m.status IN ('sent','delivered','deferred','bounced','complained')
   AND (@include_test::boolean OR NOT t.test)
 GROUP BY 1, 2;
+
+-- name: TxnLog :many
+-- The message log, newest first. status is what the log shows: test,
+-- rejected, queued, sent, delivered, deferred, bounced, complained or
+-- failed. before_* pages back; after_* returns only newer messages (live).
+WITH log AS (
+    SELECT t.message_id, t.accepted_at, m.email, m.contact_id, t.to_name, t.source, t.template_key, t.template_name, t.template_version, t.subject,
+           m.provider_id, coalesce(p.name, '')::text AS provider_name, m.error, m.sent_at, m.delivered_at, m.opened_at, m.clicked_at,
+           t.test, t.test_delivered, t.reject_reason, t.reject_detail, t.track_opens, t.track_clicks,
+           t.failed_over_from, coalesce(fp.name, '')::text AS failed_over_from_name, t.failed_over_at,
+           t.key_id, t.key_name, t.idempotency_key, t.tags, t.metadata, t.category_name, t.category_kind, t.workspace_id, m.language,
+           (CASE WHEN t.test THEN 'test'
+                 WHEN t.reject_reason <> '' OR m.status IN ('rejected', 'cancelled') THEN 'rejected'
+                 WHEN m.status = 'held' THEN 'queued'
+                 ELSE m.status END)::text AS status
+    FROM transactional_messages t
+    JOIN messages m ON m.id = t.message_id
+    LEFT JOIN providers p ON p.id = m.provider_id
+    LEFT JOIN providers fp ON fp.id = t.failed_over_from
+    WHERE t.workspace_id = @workspace_id AND t.accepted_at >= @since::timestamptz AND t.accepted_at < @until::timestamptz
+      AND (sqlc.narg(template)::text IS NULL OR (sqlc.narg(template)::text = 'raw' AND t.source = 'smtp' AND t.template_key = '') OR t.template_key = sqlc.narg(template)::text)
+      AND (sqlc.narg(provider_id)::uuid IS NULL OR m.provider_id = sqlc.narg(provider_id)::uuid)
+      AND (sqlc.narg(key_id)::uuid IS NULL OR t.key_id = sqlc.narg(key_id)::uuid)
+      AND (sqlc.narg(q)::text IS NULL OR m.email ILIKE '%' || sqlc.narg(q)::text || '%' OR t.message_id::text = sqlc.narg(q)::text
+           OR t.idempotency_key = sqlc.narg(q)::text OR sqlc.narg(q)::text = ANY(t.tags)
+           OR EXISTS (SELECT 1 FROM jsonb_each_text(t.metadata) kv WHERE kv.value = sqlc.narg(q)::text))
+      AND (sqlc.narg(before_at)::timestamptz IS NULL OR (t.accepted_at, t.message_id) < (sqlc.narg(before_at)::timestamptz, sqlc.narg(before_id)::uuid))
+      AND (sqlc.narg(after_at)::timestamptz IS NULL OR (t.accepted_at, t.message_id) > (sqlc.narg(after_at)::timestamptz, sqlc.narg(after_id)::uuid))
+)
+SELECT log.message_id, log.accepted_at, log.email, log.contact_id, log.to_name, log.source, log.template_key, log.template_name, log.template_version, log.subject,
+       log.provider_id, log.provider_name, log.error, log.sent_at, log.delivered_at, log.opened_at, log.clicked_at,
+       log.test, log.test_delivered, log.reject_reason, log.reject_detail, log.track_opens, log.track_clicks,
+       log.failed_over_from, log.failed_over_from_name, log.failed_over_at,
+       log.key_id, log.key_name, log.idempotency_key, log.tags, log.metadata, log.category_name, log.category_kind, log.status, log.language,
+       (SELECT count(*) FROM delivery_events e WHERE e.message_id = log.message_id AND e.type = 'deferred')::int AS deferrals,
+       coalesce((SELECT e.type || ':' || e.bounce_class || ':' || e.original_code || ' ' || e.diagnostic FROM delivery_events e
+                 WHERE e.message_id = log.message_id AND e.type IN ('hard_bounce', 'soft_bounce') ORDER BY e.occurred_at DESC LIMIT 1), '')::text AS bounce,
+       EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = log.workspace_id AND s.email = log.email AND s.reason = 'role')::boolean AS role_address
+FROM log
+WHERE sqlc.narg(status)::text IS NULL OR log.status = sqlc.narg(status)::text
+ORDER BY log.accepted_at DESC, log.message_id DESC
+LIMIT @lim;
+
+-- name: TxnLogCounts :many
+-- The log's numbers per status for the same filters.
+SELECT (CASE WHEN t.test THEN 'test'
+             WHEN t.reject_reason <> '' OR m.status IN ('rejected', 'cancelled') THEN 'rejected'
+             WHEN m.status = 'held' THEN 'queued'
+             ELSE m.status END)::text AS status,
+       count(*)::bigint AS n
+FROM transactional_messages t
+JOIN messages m ON m.id = t.message_id
+WHERE t.workspace_id = @workspace_id AND t.accepted_at >= @since::timestamptz AND t.accepted_at < @until::timestamptz
+  AND (sqlc.narg(template)::text IS NULL OR (sqlc.narg(template)::text = 'raw' AND t.source = 'smtp' AND t.template_key = '') OR t.template_key = sqlc.narg(template)::text)
+  AND (sqlc.narg(provider_id)::uuid IS NULL OR m.provider_id = sqlc.narg(provider_id)::uuid)
+  AND (sqlc.narg(key_id)::uuid IS NULL OR t.key_id = sqlc.narg(key_id)::uuid)
+  AND (sqlc.narg(q)::text IS NULL OR m.email ILIKE '%' || sqlc.narg(q)::text || '%' OR t.message_id::text = sqlc.narg(q)::text
+       OR t.idempotency_key = sqlc.narg(q)::text OR sqlc.narg(q)::text = ANY(t.tags)
+       OR EXISTS (SELECT 1 FROM jsonb_each_text(t.metadata) kv WHERE kv.value = sqlc.narg(q)::text))
+GROUP BY 1;
+
+-- name: TxnLogKeys :many
+-- Keys that can send, for the log's key filter; an integration's key once
+-- it has sent something.
+SELECT k.id, k.name, k.revoked_at FROM api_keys k
+WHERE k.workspace_id = @workspace_id AND k.kind = 'api_key' AND 'transactional:send' = ANY(k.permissions)
+  AND (k.integration_id IS NULL OR EXISTS (SELECT 1 FROM transactional_messages t WHERE t.key_id = k.id))
+ORDER BY k.created_at;
+
+-- name: TxnLogTemplates :many
+-- Templates for the log's template filter, archived ones included.
+SELECT key, name FROM transactional_templates WHERE workspace_id = @workspace_id AND deleted_at IS NULL ORDER BY created_at;
+
+-- name: TxnMessageDetail :one
+SELECT t.message_id, t.workspace_id, t.source, t.template_id, t.template_key, t.template_name, t.template_version, t.category_id, t.category_name,
+       t.category_kind, t.key_id, t.key_name, t.user_id, t.ip, t.idempotency_key, t.subject, t.from_email, t.from_name, t.reply_to, t.to_name,
+       t.cc, t.bcc, t.tags, t.metadata, t.data, t.data_keys, t.sensitive, t.attachments, t.size_bytes, t.test, t.test_delivered, t.send_at,
+       t.reject_reason, t.reject_detail, t.track_opens, t.track_clicks, t.route, t.attempts, t.failed_over_from, t.failed_over_at, t.provider_since,
+       t.accepted_at, t.rendered_at, t.content_expires_at, t.content_removed_at, t.resent_from,
+       m.email, m.contact_id, m.provider_id, coalesce(m.provider_message_id, '')::text AS provider_message_id, m.mailbox_provider,
+       m.status AS raw_status, m.error, m.sent_at, m.delivered_at, m.opened_at, m.clicked_at,
+       m.language, m.contact_language, m.language_reason,
+       coalesce(p.name, '')::text AS provider_name,
+       coalesce(fp.name, '')::text AS failed_over_from_name,
+       coalesce(u.name, '')::text AS user_name,
+       coalesce(nullif(trim(c.first_name || ' ' || c.last_name), ''), '')::text AS contact_name,
+       (c.id IS NOT NULL)::boolean AS contact_exists,
+       EXISTS (SELECT 1 FROM transactional_message_content x WHERE x.message_id = t.message_id)::boolean AS has_content,
+       EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = t.workspace_id AND s.email = m.email AND s.reason = 'role')::boolean AS role_address,
+       (CASE WHEN t.test THEN 'test'
+             WHEN t.reject_reason <> '' OR m.status IN ('rejected', 'cancelled') THEN 'rejected'
+             WHEN m.status = 'held' THEN 'queued'
+             ELSE m.status END)::text AS status
+FROM transactional_messages t
+JOIN messages m ON m.id = t.message_id
+LEFT JOIN providers p ON p.id = m.provider_id
+LEFT JOIN providers fp ON fp.id = t.failed_over_from
+LEFT JOIN users u ON u.id = t.user_id
+LEFT JOIN contacts c ON c.id = m.contact_id AND c.erased_at IS NULL
+WHERE t.message_id = @id AND t.workspace_id = @workspace_id;
+
+-- name: TxnMessageEvents :many
+-- A message's provider events, oldest first.
+SELECT e.type, e.occurred_at, e.original_type, e.original_code, e.diagnostic, e.bounce_class, e.machine, e.url, e.user_agent,
+       e.provider_id, coalesce(p.name, '')::text AS provider_name, e.provider_message_id
+FROM delivery_events e LEFT JOIN providers p ON p.id = e.provider_id
+WHERE e.message_id = @message_id
+ORDER BY e.occurred_at, e.received_at;
+
+-- name: TxnMessageWebhooks :many
+-- The webhook deliveries of a message's message.* events.
+SELECT d.event, d.state, d.created_at, d.delivered_at, d.status_code, d.attempt, w.url
+FROM webhook_deliveries d JOIN webhooks w ON w.id = d.webhook_id
+WHERE (d.payload->'data'->>'message_id') = @message_id::text AND d.event LIKE 'message.%' AND w.workspace_id = @workspace_id
+ORDER BY d.created_at;
+
+-- name: TxnSuppressionFor :one
+-- An address's suppression as it is now, whatever its scope.
+SELECT s.id, s.reason, s.source, s.original_code, s.detail, s.created_at, s.scope, coalesce(p.name, '')::text AS provider_name
+FROM suppressions s LEFT JOIN providers p ON p.id = s.source_provider_id
+WHERE s.workspace_id = @workspace_id AND s.email = @email;
+
+-- name: TxnContent :one
+SELECT html, text, headers, expires_at FROM transactional_message_content WHERE message_id = @message_id;
+
+-- name: TxnRetentionWorkspaces :many
+SELECT workspace_id, content_retention_days FROM transactional_settings;
+
+-- name: TxnRetentionContentDue :many
+-- A workspace's messages whose rendered content is past its retention
+-- (expired, or sent before cutoff), up to lim.
+SELECT x.message_id FROM transactional_message_content x
+JOIN transactional_messages t ON t.message_id = x.message_id
+WHERE t.workspace_id = @workspace_id AND (x.expires_at <= @now::timestamptz OR t.accepted_at <= @cutoff::timestamptz)
+LIMIT @lim;
+
+-- name: TxnRetentionContentRemove :exec
+DELETE FROM transactional_message_content WHERE message_id = ANY(@ids::uuid[]);
+
+-- name: TxnRetentionContentRemoved :exec
+UPDATE transactional_messages SET content_removed_at = @now::timestamptz WHERE message_id = ANY(@ids::uuid[]);
+
+-- name: TxnRetentionMessages :execrows
+-- Removes up to lim transactional messages older than before (90 days):
+-- their log entry and content go with them.
+DELETE FROM messages m
+WHERE m.id IN (SELECT t.message_id FROM transactional_messages t WHERE t.accepted_at < @before::timestamptz ORDER BY t.accepted_at LIMIT @lim)
+  AND m.stream = 'transactional';
+
+-- name: TxnRetentionRejectedCalls :execrows
+DELETE FROM transactional_rejected_calls WHERE at < @before::timestamptz;
+
+-- name: TxnContactMessages :many
+-- A contact's transactional messages for its activity timeline.
+SELECT t.message_id, t.accepted_at, t.template_key, t.template_name, t.source, t.subject, t.test, t.reject_reason, t.category_name,
+       coalesce(p.name, '')::text AS provider_name, m.delivered_at,
+       (CASE WHEN t.test THEN 'test'
+             WHEN t.reject_reason <> '' OR m.status IN ('rejected', 'cancelled') THEN 'rejected'
+             WHEN m.status = 'held' THEN 'queued'
+             ELSE m.status END)::text AS status
+FROM transactional_messages t
+JOIN messages m ON m.id = t.message_id
+LEFT JOIN providers p ON p.id = m.provider_id
+WHERE t.workspace_id = @workspace_id AND (m.contact_id = @contact_id OR m.email = @email)
+ORDER BY t.accepted_at DESC
+LIMIT @lim;
+
+-- name: TxnAlertWorkspaces :many
+-- Workspaces to check: transactional mail in the window, or an open alert.
+SELECT DISTINCT workspace_id FROM transactional_messages WHERE accepted_at >= @since::timestamptz
+UNION
+SELECT workspace_id FROM transactional_alerts WHERE ended_at IS NULL;
+
+-- name: TxnAlertTemplateHour :many
+-- Each template's last hour: messages a provider accepted, bounces and
+-- hard bounces (test messages left out).
+SELECT t.template_id::uuid AS template_id, coalesce(max(tt.key), max(t.template_key))::text AS template_key,
+       coalesce(max(tt.name), max(t.template_name))::text AS template_name,
+       count(*) FILTER (WHERE m.status IN ('sent', 'delivered', 'deferred', 'bounced', 'complained'))::bigint AS sent,
+       count(*) FILTER (WHERE m.status = 'bounced')::bigint AS bounced,
+       count(*) FILTER (WHERE m.status = 'bounced'
+                          AND EXISTS (SELECT 1 FROM delivery_events e WHERE e.message_id = m.id AND e.type = 'hard_bounce'))::bigint AS hard
+FROM transactional_messages t
+JOIN messages m ON m.id = t.message_id
+LEFT JOIN transactional_templates tt ON tt.id = t.template_id
+WHERE t.workspace_id = @workspace_id AND t.accepted_at >= @since::timestamptz AND t.template_id IS NOT NULL AND NOT t.test
+GROUP BY t.template_id;
+
+-- name: TxnAlertBounceDomains :many
+-- The domains a template's bounces of the window went to, most first.
+SELECT split_part(m.email, '@', 2)::text AS domain, count(*)::bigint AS n
+FROM transactional_messages t
+JOIN messages m ON m.id = t.message_id
+WHERE t.workspace_id = @workspace_id AND t.template_id = @template_id AND t.accepted_at >= @since::timestamptz AND m.status = 'bounced' AND NOT t.test
+GROUP BY 1
+ORDER BY 2 DESC, 1
+LIMIT 3;
+
+-- name: TxnAlertHour :one
+-- The workspace's last hour: failed messages and the median delivery time.
+SELECT count(*) FILTER (WHERE m.status = 'failed')::bigint AS failed,
+       count(*) FILTER (WHERE m.delivered_at IS NOT NULL AND m.delivered_at >= t.accepted_at)::bigint AS delivered,
+       coalesce((percentile_cont(0.5) WITHIN GROUP (ORDER BY extract(epoch FROM m.delivered_at - t.accepted_at) * 1000)
+                 FILTER (WHERE m.delivered_at IS NOT NULL AND m.delivered_at >= t.accepted_at)), -1)::bigint AS median_ms
+FROM transactional_messages t
+JOIN messages m ON m.id = t.message_id
+WHERE t.workspace_id = @workspace_id AND t.accepted_at >= @since::timestamptz AND NOT t.test;
+
+-- name: TxnAlertFailovers :many
+-- Messages that left a provider of their route since a time: how many,
+-- how many were lost, where they went and how fast they were delivered.
+SELECT t.failed_over_from::uuid AS provider_id, coalesce(max(p.name), '')::text AS provider_name,
+       count(*)::bigint AS messages,
+       count(*) FILTER (WHERE m.status = 'failed')::bigint AS lost,
+       min(t.failed_over_at)::timestamptz AS first_at,
+       max(t.failed_over_at)::timestamptz AS last_at,
+       coalesce(max(np.name), '')::text AS fallback_name,
+       coalesce((percentile_cont(0.5) WITHIN GROUP (ORDER BY extract(epoch FROM m.delivered_at - t.accepted_at) * 1000)
+                 FILTER (WHERE m.delivered_at IS NOT NULL AND m.delivered_at >= t.accepted_at)), -1)::bigint AS median_ms
+FROM transactional_messages t
+JOIN messages m ON m.id = t.message_id
+LEFT JOIN providers p ON p.id = t.failed_over_from
+LEFT JOIN providers np ON np.id = m.provider_id
+WHERE t.workspace_id = @workspace_id AND t.failed_over_from IS NOT NULL AND t.failed_over_at >= @since::timestamptz
+GROUP BY t.failed_over_from;
+
+-- name: TxnAlertInsert :one
+-- Opens an alert; nothing happens when one of its kind (and template) is open.
+INSERT INTO transactional_alerts (id, workspace_id, kind, template_id, provider_id, value, threshold, detail, started_at)
+VALUES (@id, @workspace_id, @kind, sqlc.narg(template_id), sqlc.narg(provider_id), @value, @threshold, @detail, @started_at)
+ON CONFLICT (workspace_id, kind, coalesce(template_id, '00000000-0000-0000-0000-000000000000'::uuid)) WHERE ended_at IS NULL DO NOTHING
+RETURNING id;
+
+-- name: TxnAlertRefresh :exec
+-- Keeps an open alert's worst value and latest detail.
+UPDATE transactional_alerts SET value = greatest(value, @value::numeric), detail = @detail
+WHERE workspace_id = @workspace_id AND kind = @kind AND ended_at IS NULL
+  AND coalesce(template_id, '00000000-0000-0000-0000-000000000000'::uuid) = coalesce(sqlc.narg(template_id)::uuid, '00000000-0000-0000-0000-000000000000'::uuid);
+
+-- name: TxnAlertEnd :execrows
+UPDATE transactional_alerts SET ended_at = @now::timestamptz
+WHERE workspace_id = @workspace_id AND kind = @kind AND ended_at IS NULL
+  AND coalesce(template_id, '00000000-0000-0000-0000-000000000000'::uuid) = coalesce(sqlc.narg(template_id)::uuid, '00000000-0000-0000-0000-000000000000'::uuid);
+
+-- name: TxnAlertsOpenFor :many
+-- A workspace's open alerts of a kind.
+SELECT id, template_id FROM transactional_alerts WHERE workspace_id = @workspace_id AND kind = @kind AND ended_at IS NULL;
+
+-- name: TxnAlerts :many
+-- Open alerts and those of a period, newest first.
+SELECT a.id, a.kind, a.template_id, a.provider_id, a.value::float8 AS value, a.threshold::float8 AS threshold, a.detail, a.started_at, a.ended_at, a.seen_at,
+       coalesce(t.key, '')::text AS template_key, coalesce(t.name, '')::text AS template_name, coalesce(p.name, '')::text AS provider_name
+FROM transactional_alerts a
+LEFT JOIN transactional_templates t ON t.id = a.template_id
+LEFT JOIN providers p ON p.id = a.provider_id
+WHERE a.workspace_id = @workspace_id AND (a.ended_at IS NULL OR a.started_at >= @since::timestamptz)
+ORDER BY a.started_at DESC
+LIMIT 50;
+
+-- name: TxnAlertSeen :execrows
+UPDATE transactional_alerts SET seen_at = @now::timestamptz, seen_by = @user_id WHERE id = @id AND workspace_id = @workspace_id;
+
+-- name: TxnOverviewStats :one
+-- The workspace's numbers over a period (Raw SMTP mail included). Test
+-- messages count only with include_test; keys counts every API key that
+-- called in the period, test-mode keys included ("from 2 keys and the SMTP
+-- relay").
+WITH p AS (
+    SELECT t.source, t.key_id, t.template_key, t.reject_reason, t.test, t.accepted_at,
+           m.status, m.delivered_at, m.opened_at, m.clicked_at,
+           (@include_test::boolean OR NOT t.test) AS counted
+    FROM transactional_messages t
+    JOIN messages m ON m.id = t.message_id
+    WHERE t.workspace_id = @workspace_id AND t.accepted_at >= @since::timestamptz
+)
+SELECT count(*) FILTER (WHERE counted AND status IN ('sent', 'delivered', 'deferred', 'bounced', 'complained'))::bigint AS sent,
+       count(*) FILTER (WHERE counted AND status IN ('delivered', 'complained'))::bigint AS delivered,
+       count(*) FILTER (WHERE counted AND status = 'bounced')::bigint AS bounced,
+       count(*) FILTER (WHERE counted AND status = 'complained')::bigint AS complained,
+       count(*) FILTER (WHERE counted AND status = 'deferred')::bigint AS deferred,
+       count(*) FILTER (WHERE reject_reason = 'suppressed' AND NOT test)::bigint AS suppressed,
+       count(*) FILTER (WHERE reject_reason = 'opted_out' AND NOT test)::bigint AS opted_out,
+       count(*) FILTER (WHERE counted AND status = 'failed')::bigint AS failed,
+       count(*) FILTER (WHERE counted AND opened_at IS NOT NULL)::bigint AS opened,
+       count(*) FILTER (WHERE counted AND clicked_at IS NOT NULL)::bigint AS clicked,
+       coalesce((percentile_cont(0.5) WITHIN GROUP (ORDER BY extract(epoch FROM delivered_at - accepted_at) * 1000)
+                 FILTER (WHERE counted AND delivered_at IS NOT NULL AND delivered_at >= accepted_at)), -1)::bigint AS median_ms,
+       count(DISTINCT key_id) FILTER (WHERE source <> 'smtp' AND key_id IS NOT NULL)::bigint AS keys,
+       (count(*) FILTER (WHERE counted AND source = 'smtp') > 0)::boolean AS smtp,
+       coalesce(string_agg(DISTINCT template_key, ',') FILTER (WHERE counted AND status = 'complained'), '')::text AS complained_templates
+FROM p;
+
+-- name: TxnSendingKeys :many
+-- Keys holding transactional:send, for the overview and Setup.
+-- Integrations' keys are listed with their integration instead.
+SELECT k.id, k.name, k.prefix, k.preset, k.mode, k.templates, k.categories, k.test_addresses, k.rate_per_second,
+       k.created_at, k.expires_at, k.last_used_at, k.last_used_ip, k.revoked_at, coalesce(u.name, '')::text AS created_by_name
+FROM api_keys k LEFT JOIN users u ON u.id = k.created_by
+WHERE k.workspace_id = @workspace_id AND k.kind = 'api_key' AND 'transactional:send' = ANY(k.permissions) AND k.revoked_at IS NULL
+  AND k.integration_id IS NULL
+ORDER BY k.created_at;
+
+-- name: TxnFirstRun :one
+-- What the first-run state and the guide need to know.
+SELECT (SELECT count(*) FROM transactional_templates t WHERE t.workspace_id = @workspace_id AND t.deleted_at IS NULL)::bigint AS templates,
+       (SELECT count(*) FROM transactional_templates t WHERE t.workspace_id = @workspace_id AND t.deleted_at IS NULL AND t.live_version IS NOT NULL)::bigint AS published,
+       (SELECT count(*) FROM transactional_messages m WHERE m.workspace_id = @workspace_id)::bigint AS messages;
+
+-- name: TxnRoutePriority :one
+-- "First in line on shared providers" (on unless turned off).
+SELECT coalesce((SELECT priority FROM stream_policies WHERE workspace_id = @workspace_id AND stream = 'transactional'), true)::boolean;
+
+-- name: TxnHourStats :one
+-- The last hour's numbers for the alert banner.
+SELECT count(*) FILTER (WHERE m.status IN ('sent', 'delivered', 'deferred', 'bounced', 'complained'))::bigint AS sent,
+       count(*) FILTER (WHERE m.status = 'bounced')::bigint AS bounced,
+       coalesce((percentile_cont(0.5) WITHIN GROUP (ORDER BY extract(epoch FROM m.delivered_at - t.accepted_at) * 1000)
+                 FILTER (WHERE m.delivered_at IS NOT NULL AND m.delivered_at >= t.accepted_at)), -1)::bigint AS median_ms
+FROM transactional_messages t
+JOIN messages m ON m.id = t.message_id
+WHERE t.workspace_id = @workspace_id AND t.accepted_at >= @since::timestamptz AND NOT t.test;
+
+-- name: TxnSettingsSetDefaultSender :exec
+-- The default From of transactional templates (Settings › Senders).
+UPDATE transactional_settings SET default_sender_id = sqlc.narg(sender_id), updated_by = sqlc.narg(updated_by), updated_at = @updated_at
+WHERE workspace_id = @workspace_id;
+
+-- name: TxnSMTPFromAddresses :many
+-- From addresses mail arriving through the SMTP relay used lately.
+SELECT DISTINCT from_email FROM transactional_messages
+WHERE workspace_id = @workspace_id AND source = 'smtp' AND accepted_at >= @since::timestamptz AND from_email <> '';
+
+-- name: TxnSetDomainTransactional :exec
+UPDATE sending_domains SET transactional = @transactional WHERE id = @id;

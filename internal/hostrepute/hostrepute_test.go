@@ -72,19 +72,24 @@ func TestIntegrationsOverview(t *testing.T) {
 	if len(hr.Scopes) != 3 || !hr.Scopes[0].Granted || hr.Scopes[0].Key != "monitor:read" {
 		t.Fatalf("scopes: %+v", hr.Scopes)
 	}
-	want := []string{"news.acme.io", "acme.io", "203.0.113.25", "mta.acme.io"}
+	// notify.acme.io, Acme Cloud's Transactional domain, is among the
+	// assets not monitored yet (brief §6: "Add to monitoring").
+	want := []string{"news.acme.io", "acme.io", "203.0.113.25", "notify.acme.io", "mta.acme.io"}
+	if len(hr.Assets) != len(want) {
+		t.Fatalf("assets: %+v", hr.Assets)
+	}
 	for i, a := range hr.Assets {
-		if a.Asset != want[i] {
+		if a.Asset != want[i] || (a.Asset == "notify.acme.io" && a.Monitored) {
 			t.Fatalf("asset order: %+v", hr.Assets)
 		}
 	}
-	if !hr.Assets[0].Monitored || hr.Assets[3].Monitored || hr.Assets[3].Role != "server_hostname" || hr.Assets[3].Provider != "Postal" {
+	if !hr.Assets[0].Monitored || hr.Assets[3].Monitored || hr.Assets[4].Monitored || hr.Assets[4].Role != "server_hostname" || hr.Assets[4].Provider != "Postal" {
 		t.Fatalf("monitoring: %+v", hr.Assets)
 	}
 	if len(hr.Assets[2].Listings) != 1 || hr.Assets[2].Listings[0] != "UCEPROTECT Level 3" || hr.Assets[1].DMARCPolicy != "quarantine" {
 		t.Fatalf("statuses: %+v", hr.Assets)
 	}
-	if strings.Join(hr.Shared.Domains, ",") != "news.acme.io,acme.io" || strings.Join(hr.Shared.IPs, ",") != "203.0.113.25" {
+	if strings.Join(hr.Shared.Domains, ",") != "news.acme.io,notify.acme.io,acme.io" || strings.Join(hr.Shared.IPs, ",") != "203.0.113.25" {
 		t.Fatalf("shared: %+v", hr.Shared)
 	}
 	if out.Postmaster.Via != "hostrepute" {
@@ -153,7 +158,7 @@ func TestDisconnect(t *testing.T) {
 	c.Do("DELETE", "/workspaces/acme-newsletter/integrations/hostrepute", nil).MustStatus(t, 204)
 	var out struct{ HostRepute connView }
 	c.Do("GET", "/workspaces/acme-newsletter/integrations", nil).MustStatus(t, 200).JSON(t, &out)
-	if out.HostRepute.Status != "not_connected" || len(out.HostRepute.Assets) != 4 || out.HostRepute.Assets[0].Monitored {
+	if out.HostRepute.Status != "not_connected" || len(out.HostRepute.Assets) != 5 || out.HostRepute.Assets[0].Monitored {
 		t.Fatalf("after disconnect: %+v", out.HostRepute)
 	}
 	ctx := context.Background()

@@ -67,7 +67,10 @@ type Handler struct {
 	SPA http.Handler
 	// LandingURL is where "Sent with ReputeCast" points.
 	LandingURL string
-	Now        func() time.Time
+	// Notifications is transactional mail's Optional categories (nil:
+	// the preference center has no such section).
+	Notifications Notifications
+	Now           func() time.Time
 	// Polls answers the poll and survey pages (nil: they answer 404).
 	Polls *polls.Service
 	// Browser gives emails shown in the browser their version of
@@ -93,7 +96,7 @@ func (h *Handler) log() *slog.Logger {
 }
 
 // pages are the templates, each rendered inside layout.html.
-var pages = []string{"subscribe", "confirm", "preferences", "request", "unsubscribe", "done", "message", "archive", "challenge", "poll", "survey"}
+var pages = []string{"subscribe", "confirm", "preferences", "request", "unsubscribe", "done", "message", "archive", "challenge", "category", "poll", "survey"}
 
 // Init parses the templates; Routes calls it.
 func (h *Handler) Init() error {
@@ -260,7 +263,12 @@ func (h *Handler) claims(s *site, token string, kind linktoken.Kind) (linktoken.
 		return linktoken.Claims{}, false
 	}
 	c, err := h.Tokens.Verify(token, kind)
-	if err != nil || c.WorkspaceID != s.ws.ID || c.ContactID == uuid.Nil {
+	if err != nil || c.WorkspaceID != s.ws.ID {
+		return linktoken.Claims{}, false
+	}
+	// Transactional mail reaches people who aren't contacts: its
+	// unsubscribe and preference links carry the message alone.
+	if c.ContactID == uuid.Nil && (c.MessageID == uuid.Nil || (kind != linktoken.Unsubscribe && kind != linktoken.Preferences)) {
 		return linktoken.Claims{}, false
 	}
 	return c, true

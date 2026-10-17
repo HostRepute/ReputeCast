@@ -1,12 +1,14 @@
+import { useQueryClient } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
-import type { Schemas } from '@/api/client'
+import { $api, errorMessage, type Schemas } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
+import { toast } from '@/components/ui/Toast'
 import { Skeleton } from '@/components/ui/Feedback'
 import { Grid, Row } from '@/components/ui/Layout'
 import { cn } from '@/lib/cn'
 import { clock, count, trimPct } from '@/lib/format'
-import { useWorkspace } from '@/lib/session'
+import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { authLine, cap, shortSource, toneOf, usedBy, type AssetHealth, type Overview } from './words'
 
 /** A label and a value on one line (the board's `.kv` on Deliverability). */
@@ -92,8 +94,51 @@ function assetBadge(a: AssetHealth, connected: boolean): ReactNode {
   )
 }
 
+/**
+ * A domain HostRepute doesn't watch yet (notify.acme.io, brief §6): it
+ * comes after the monitored ones, with Add to monitoring.
+ */
+function NotMonitoredCard({ a }: { a: AssetHealth }) {
+  const { slug } = useWorkspace()
+  const qc = useQueryClient()
+  const add = $api.useMutation('post', '/api/v1/workspaces/{workspace}/integrations/hostrepute/assets')
+  const reason = usePermissionReason('integrations:hostrepute')
+  return (
+    <Card label={a.asset}>
+      <CardHead name={a.asset} badge={<Badge tone="neutral">Not monitored</Badge>} />
+      <span className="k">{['Sending domain', usedBy(a.usedBy) || undefined, 'not monitored by HostRepute yet'].filter(Boolean).join(' · ')}</span>
+      <KV label="SPF · DKIM · DMARC">{a.auth ? authLine(a.auth) : 'not checked yet'}</KV>
+      <KV label="Blocklists" valueClass="k font-medium [font-variant-numeric:normal]">
+        checked once it&apos;s monitored
+      </KV>
+      <Row gap={8}>
+        <Button
+          size="sm"
+          loading={add.isPending}
+          disabledReason={reason}
+          onClick={() =>
+            add.mutate(
+              { params: { path: { workspace: slug } }, body: { asset: a.asset } },
+              {
+                onSuccess: () => {
+                  toast({ kind: 'success', title: `${a.asset} added to monitoring`, detail: 'HostRepute checks it on its blocklists within the hour.' })
+                  void qc.invalidateQueries()
+                },
+                onError: (e) => toast({ kind: 'error', title: errorMessage(e) }),
+              },
+            )
+          }
+        >
+          Add to monitoring
+        </Button>
+      </Row>
+    </Card>
+  )
+}
+
 function DomainCard({ a, connected }: { a: AssetHealth; connected: boolean }) {
   const builtin = a.blocklists.via !== 'hostrepute'
+  if (connected && a.notMonitored) return <NotMonitoredCard a={a} />
   return (
     <Card label={a.asset} className={a.tone === 'warn' ? 'border-[#FCD34D]' : a.tone === 'bad' ? 'border-[#FCA5A5]' : undefined}>
       <CardHead name={a.asset} badge={assetBadge(a, connected)} />

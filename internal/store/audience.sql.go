@@ -1732,7 +1732,9 @@ SELECT count(*)::bigint AS total,
        count(*) FILTER (WHERE reason = 'complaint')::bigint AS complaint,
        count(*) FILTER (WHERE reason = 'unsubscribe')::bigint AS unsubscribe,
        count(*) FILTER (WHERE reason = 'manual')::bigint AS manual,
-       count(*) FILTER (WHERE reason NOT IN ('hard_bounce', 'complaint', 'unsubscribe', 'manual'))::bigint AS other
+       -- Spam traps and invalid addresses; role addresses (marketing only)
+       -- count in the total alone.
+       count(*) FILTER (WHERE reason NOT IN ('hard_bounce', 'complaint', 'unsubscribe', 'manual', 'role'))::bigint AS other
 FROM suppressions WHERE workspace_id = $1
 `
 

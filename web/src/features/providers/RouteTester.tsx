@@ -25,6 +25,8 @@ export function RouteTester({ cfg, draft }: { cfg: RoutingConfig; draft?: Draft 
   const { slug } = useWorkspace()
   const [stream, setStream] = useState<Stream>('broadcast')
   const [listId, setListId] = useState(cfg.lists[0]?.id ?? '')
+  const [template, setTemplate] = useState(cfg.templates.find((x) => x.id === 'password-reset')?.id ?? cfg.templates[0]?.id ?? '')
+  const txn = stream === 'transactional'
   const [domain, setDomain] = useState(cfg.senderDomains[0] ?? '')
   const [email, setEmail] = useState('sam.rivera@outlook.com')
   const address = useDebounced(email.trim(), 300)
@@ -34,7 +36,14 @@ export function RouteTester({ cfg, draft }: { cfg: RoutingConfig; draft?: Draft 
     '/api/v1/workspaces/{workspace}/routing/test',
     {
       params: { path: { workspace: slug } },
-      body: { stream, listId: listId || undefined, senderDomain: domain || undefined, email: address, draft: draft ? toInput(draft, true) : undefined },
+      body: {
+        stream,
+        listId: txn ? undefined : listId || undefined,
+        template: txn ? template || undefined : undefined,
+        senderDomain: domain || undefined,
+        email: address,
+        draft: draft ? toInput(draft, true) : undefined,
+      },
     },
     { enabled: valid, placeholderData: keepPreviousData, retry: false },
   )
@@ -51,23 +60,36 @@ export function RouteTester({ cfg, draft }: { cfg: RoutingConfig; draft?: Draft 
       <div className="flex flex-col gap-3 px-5 py-[18px]">
         <Field label="Stream">
           <Select value={stream} onChange={(e) => setStream(e.target.value as Stream)}>
-            {(['broadcast', 'automation', 'system'] as Stream[]).map((s) => (
+            {(['broadcast', 'automation', 'system', 'transactional'] as Stream[]).map((s) => (
               <option key={s} value={s}>
                 {streamName[s]}
               </option>
             ))}
           </Select>
         </Field>
-        <Field label="List">
-          <Select value={listId} onChange={(e) => setListId(e.target.value)}>
-            {cfg.lists.length ? null : <option value="">No lists yet</option>}
-            {cfg.lists.map((l) => (
-              <option key={l.id} value={l.id}>
-                {l.name}
-              </option>
-            ))}
-          </Select>
-        </Field>
+        {txn ? (
+          <Field label="Template">
+            <Select value={template} onChange={(e) => setTemplate(e.target.value)}>
+              {cfg.templates.length ? null : <option value="">No templates yet</option>}
+              {cfg.templates.map((x) => (
+                <option key={x.id} value={x.id}>
+                  {x.id}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        ) : (
+          <Field label="List">
+            <Select value={listId} onChange={(e) => setListId(e.target.value)}>
+              {cfg.lists.length ? null : <option value="">No lists yet</option>}
+              {cfg.lists.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.name}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        )}
         <Field label="Sender domain">
           <Select value={domain} onChange={(e) => setDomain(e.target.value)}>
             {cfg.senderDomains.length ? null : <option value="">No sending domain yet</option>}

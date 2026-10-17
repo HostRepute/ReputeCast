@@ -11,7 +11,7 @@ import { streamName, type Stream } from './common'
 import { providerUses, streams, toDraft, toInput, withoutProvider, type RoutingConfig } from './routing-model'
 
 /** "System mail" reads better than "System" in the sentence. */
-const streamMail: Record<Stream, string> = { broadcast: 'Broadcasts', automation: 'Automations', system: 'System mail' }
+const streamMail: Record<Stream, string> = { broadcast: 'Broadcasts', automation: 'Automations', system: 'System mail', transactional: 'Transactional mail' }
 
 /**
  * Removing a provider (Dialogs board, "Remove provider"). Confirming saves

@@ -59,15 +59,25 @@ func displayName(c manage.ProviderCard) string {
 	return c.Name
 }
 
-var streamTitle = map[string]string{"broadcast": "Broadcasts", "automation": "Automations", "system": "System"}
+var streamTitle = map[string]string{"broadcast": "Broadcasts", "automation": "Automations", "system": "System", "transactional": "Transactional"}
 
 // detail is the line under a provider's name: where it runs, its dedicated
 // IP and what it carries ("mta.acme.io · 203.0.113.25 dedicated · 10% of
 // Broadcasts"). A minority share of a split is written as a share.
 func detail(c manage.ProviderCard) string {
 	var parts []string
-	if l := strings.TrimSpace(strings.TrimPrefix(c.Label, "self-hosted · ")); l != "" && l != "self-hosted" {
-		parts = append(parts, l)
+	// A provider's own stream label ("Transactional stream" at Postmark)
+	// reads as ReputeCast's stream once it carries Transactional: the
+	// streams below say it.
+	carries := slices.ContainsFunc(c.Roles, func(r manage.ProviderStreamRole) bool {
+		return r.Stream == "transactional" && (r.Role == "primary" || r.Role == "split")
+	})
+	label := strings.TrimSpace(strings.TrimPrefix(c.Label, "self-hosted · "))
+	if carries && strings.HasSuffix(label, " stream") {
+		label = ""
+	}
+	if label != "" && label != "self-hosted" {
+		parts = append(parts, label)
 	}
 	if c.IPMode == "dedicated" && len(c.IPs) > 0 {
 		parts = append(parts, strings.Join(c.IPs, ", ")+" dedicated")

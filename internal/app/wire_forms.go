@@ -57,6 +57,10 @@ func (a *App) formsService() *forms.Service {
 	return s
 }
 
+// publicNotifications is transactional mail's Optional categories on the
+// public pages (wire_transactional.go sets it).
+var publicNotifications = func(*App) publicpages.Notifications { return nil }
+
 func (a *App) publicPages() *publicpages.Handler {
 	fs := a.formsService()
 	pl := a.polls()
@@ -68,7 +72,8 @@ func (a *App) publicPages() *publicpages.Handler {
 	h := &publicpages.Handler{
 		Pool: a.Pool, Q: a.Q, Forms: fs, Audience: a.audience(), Tokens: a.Links, URLs: a.URLs, Log: a.Log,
 		// Root paths on hosts that aren't a custom domain stay the web app's.
-		SPA: server.NewSPA(web.Dist()),
+		SPA:           server.NewSPA(web.Dist()),
+		Notifications: publicNotifications(a),
 		// The poll answer pages and survey pages; emails in the browser get
 		// their version of conditional content and their poll links.
 		Polls:   pl,

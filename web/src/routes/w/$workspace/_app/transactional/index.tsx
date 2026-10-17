@@ -1,17 +1,22 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { m } from '@/components/shell/messages'
-import { NotBuilt } from '@/components/shell/NotBuilt'
-import { Page } from '@/components/shell/Page'
-import { useT } from '@/i18n'
+import { z } from 'zod'
+import { TransactionalOverviewPage } from '@/features/transactional/OverviewPage'
 
-// The sidebar's Transactional section; X02 builds its screens here.
+const search = z.object({
+  period: z.enum(['24h', '7d', '30d']).optional().catch(undefined),
+})
+
+/** Transactional › Templates: the period's numbers, the route, the templates and the keys that can send. */
 export const Route = createFileRoute('/w/$workspace/_app/transactional/')({
+  validateSearch: search,
   component: function TransactionalRoute() {
-    const t = useT()
+    const s = Route.useSearch()
+    const navigate = Route.useNavigate()
     return (
-      <Page title={t(m.navTransactional)}>
-        <NotBuilt screen={t(m.navTransactional)} />
-      </Page>
+      <TransactionalOverviewPage
+        period={s.period ?? '7d'}
+        onPeriod={(p) => void navigate({ search: (prev) => ({ ...prev, period: p === '7d' ? undefined : p }), replace: true })}
+      />
     )
   },
 })

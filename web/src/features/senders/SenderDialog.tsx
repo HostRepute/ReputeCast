@@ -11,12 +11,13 @@ import { problemMessage } from '@/features/connect/parts'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { sendersPath, type Overview, type Sender } from './SendersPage'
 
-type Stream = 'broadcast' | 'automation' | 'system'
+type Stream = 'broadcast' | 'automation' | 'system' | 'transactional'
 
 const STREAMS: { key: Stream; label: string }[] = [
   { key: 'broadcast', label: 'Broadcasts' },
   { key: 'automation', label: 'Automations' },
   { key: 'system', label: 'System' },
+  { key: 'transactional', label: 'Transactional' },
 ]
 
 /** Add a sender, or edit one: name, reply-to, the streams it's the default for, the providers it's used with. */
@@ -31,6 +32,9 @@ export function SenderDialog({ open, onOpenChange, sender, data }: { open: boole
   const [defaults, setDefaults] = useState<Stream[]>((sender?.defaultFor ?? []) as Stream[])
   const [notUsed, setNotUsed] = useState<string[]>(sender ? sender.verification.filter((v) => v.status === 'not_used').map((v) => v.providerId) : [])
   const [error, setError] = useState<string>()
+  // Transactional templates' default From must be on a Transactional domain.
+  const domainOf = (sender?.email ?? email).split('@')[1]?.trim().toLowerCase()
+  const onTransactionalDomain = Boolean(domainOf && data.domains.some((d) => d.transactional && d.domain === domainOf))
   const [busy, setBusy] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const refresh = () => qc.invalidateQueries({ queryKey: ['get', sendersPath] })
@@ -96,7 +100,7 @@ export function SenderDialog({ open, onOpenChange, sender, data }: { open: boole
         </Field>
         <fieldset className="m-0 flex flex-col gap-1.5 border-0 p-0">
           <legend className="mb-1 text-[12px] font-semibold text-ink-2">Default sender for</legend>
-          {STREAMS.map((s) => (
+          {STREAMS.filter((s) => s.key !== 'transactional' || onTransactionalDomain).map((s) => (
             <Checkbox key={s.key} label={s.label} checked={defaults.includes(s.key)} onChange={(e) => setDefaults((d) => toggle(d, s.key, e.target.checked))} />
           ))}
         </fieldset>
