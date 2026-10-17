@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Popover } from '@/components/ui/Menu'
 import { clock, count } from '@/lib/format'
 import { CanvasPreviewAs, ComposerLanguageBanner, LanguageTags } from '@/features/languages/composerParts'
+import { RewriteActions } from '@/features/ai/composer/rewrite'
 import { useComposer, type Issue } from './context'
 import { DEVICES, type DeviceId } from './editor/grapes'
 import { componentLabel, mjChildren, tagOf } from './editor/labels'
@@ -573,6 +574,7 @@ function RteToolbar({ host, tick }: { host: HTMLElement | null; tick: number }) 
           </div>
         </MouseShield>
       </Popover>
+      <RewriteActions />
     </div>
   )
 }

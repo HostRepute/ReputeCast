@@ -1,6 +1,7 @@
 import type { Component } from 'grapesjs'
 import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { useComposer } from './context'
+import { AltTextAssist, DecorativeToggle, useAltTextAvailable } from '@/features/ai/composer/fixes'
 import {
   columnsOf,
   columnWidth,
@@ -658,11 +659,30 @@ function ImageSourceProp({ c }: { c: Component }) {
 
 function AltProp({ c }: { c: Component }) {
   const id = useId()
-  const alt = ownAttrs(c).alt ?? ''
+  const attrs = ownAttrs(c)
+  const alt = attrs.alt ?? ''
+  // Suggest alt text (features/ai), for people who hold ai:use.
+  const ai = useAltTextAvailable()
   return (
     <Prop title="Alt text" id={id}>
       <DraftInput id="insp-alt" label="Alt text" value={alt} placeholder="Describe the image" onCommit={(v) => setAttr(c, 'alt', v.trim())} />
       <span className="k">Shown when images are off (Outlook, many corporate clients). Leave it empty only for decorative images.</span>
+      {ai ? (
+        <AltTextAssist
+          component={c}
+          src={attrs.src ?? ''}
+          beside={<DecorativeToggle component={c} />}
+          onAccept={(text) => {
+            c.addAttributes({ alt: text })
+          }}
+          onEdit={(text) => {
+            c.addAttributes({ alt: text })
+            window.setTimeout(() => document.getElementById('insp-alt')?.focus(), 30)
+          }}
+        />
+      ) : (
+        <DecorativeToggle component={c} />
+      )}
     </Prop>
   )
 }

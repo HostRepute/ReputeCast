@@ -185,6 +185,7 @@ export function CompareView({
   onLanguage,
   onBack,
   onShow,
+  aiAction,
 }: {
   campaignId: string
   data: Langs
@@ -193,6 +194,8 @@ export function CompareView({
   onBack: () => void
   /** Opens the version on the canvas at a block (its index in the version). */
   onShow: (index: number) => void
+  /** "Translate … with AI" for the version compared (features/ai). */
+  aiAction?: (language: string, name: string) => ReactNode
 }) {
   const { slug } = useWorkspace()
   const t = useT()
@@ -307,12 +310,7 @@ export function CompareView({
               ))}
               {only && !rows.length ? <div className="pad k">{t(mz.nothingToShow)}</div> : null}
               <div className="lng-cmp-foot">
-                <span className="mr-auto flex flex-wrap items-center gap-2.5">
-                  <Button icon="sparkle" disabledReason={t(mz.aiNotYet)}>
-                    {t(mz.translateAi)}
-                  </Button>
-                  <span className="k">{t(mz.notYet)}</span>
-                </span>
+                <span className="mr-auto flex flex-wrap items-center gap-2.5">{aiAction && data.canEdit ? aiAction(lang, name) : null}</span>
                 {data.canEdit && c.status === 'outdated' ? (
                   <Button loading={upToDate.isPending} onClick={() => mark()}>
                     {t(mz.markLanguageUpToDate, { language: name })}

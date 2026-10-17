@@ -5,6 +5,7 @@ import { inboxTime } from './format'
 import { useT } from '@/i18n'
 import { useVersionName } from '@/features/languages/composerParts'
 import { mz } from '@/features/languages/messages'
+import { IdeasButton } from '@/features/ai/composer/ideas'
 
 /** Subject of the variant being edited (A is the campaign itself). */
 export function useVariantSubject(): [string, (v: string) => void] {
@@ -46,16 +47,19 @@ export function SubjectBar() {
         <span className="k" style={spam ? { color: 'var(--warn-fg)' } : undefined}>
           {subjectLabel}
         </span>
-        <input
-          className="in"
-          value={subject}
-          placeholder="What is this email about?"
-          onChange={(e) => setSubject(e.target.value.replace(/[\r\n]+/g, ' '))}
-          readOnly={!c.canEdit}
-          maxLength={998}
-          aria-invalid={spam || undefined}
-          style={spam ? { borderColor: '#F59E0B', background: '#FFFBEB' } : undefined}
-        />
+        <span className="flex gap-2">
+          <input
+            className="in min-w-0 flex-1"
+            value={subject}
+            placeholder="What is this email about?"
+            onChange={(e) => setSubject(e.target.value.replace(/[\r\n]+/g, ' '))}
+            readOnly={!c.canEdit}
+            maxLength={998}
+            aria-invalid={spam || undefined}
+            style={spam ? { borderColor: '#F59E0B', background: '#FFFBEB' } : undefined}
+          />
+          <IdeasButton />
+        </span>
       </label>
       <label style={{ flex: '2 1 320px' }}>
         <span className="k">{language ? t(mz.preheaderIn, { language }) : 'Preheader'}</span>

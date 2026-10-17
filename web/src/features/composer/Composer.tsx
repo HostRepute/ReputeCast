@@ -28,6 +28,9 @@ import { withoutAltText } from '@/features/accessibility/composer/Status'
 import { ComposerCompare, ComposerCompareFooter, ComposerMissingLanguage, versionLanguage } from '@/features/languages/composerParts'
 import { useLanguagesCache } from '@/features/languages/composer'
 import { useSourceEdits } from '@/features/languages/sourceEdits'
+import { AssistRight } from '@/features/ai/composer/panel'
+import { ComposerAssistScope, useComposerAssistState } from '@/features/ai/composer/state'
+import { AITranslateFooter, AITranslateView } from '@/features/ai/composer/translate'
 import './composer.css'
 
 // CodeMirror loads with the code view only.
@@ -78,7 +81,9 @@ export function Composer({
   const canEditPerm = useCan('campaigns:edit')
   const canEdit = canEditPerm && campaign.access.editable && !missingLanguage
   const view: View = search.view === 'compare' ? 'visual' : (search.view ?? 'visual')
-  const comparing = search.view === 'compare'
+  // The assistant (features/ai): its panel in the right column, and translating with AI in place of the canvas.
+  const assist = useComposerAssistState(campaign.id)
+  const comparing = search.view === 'compare' || Boolean(assist.translating)
   const language = versionLanguage(campaign)
   const afterSourceSave = useSourceEdits(slug, campaign.id, useLanguagesCache(campaign.id).set)
   const savedMjml = useRef(campaign.mjml)
@@ -648,6 +653,7 @@ export function Composer({
 
   return (
     <ComposerCtx.Provider value={state}>
+      <ComposerAssistScope value={assist}>
       <AccessibilityProvider>
       <div className="cmp rc-app">
         <a href="#main" className="skip">
@@ -662,7 +668,7 @@ export function Composer({
           {view === 'visual' && !comparing && !missingLanguage ? <SubjectBar /> : null}
           <div className="cmp-body">
             {view === 'visual' && !comparing && !missingLanguage ? <LeftPanel /> : null}
-            {comparing ? <ComposerCompare /> : null}
+            {comparing ? assist.translating ? <AITranslateView /> : <ComposerCompare /> : null}
             {missingLanguage && !comparing ? <ComposerMissingLanguage language={missingLanguage} /> : null}
             <div
               className={`cmp-main${view !== 'visual' || comparing || missingLanguage ? ' cmp-offstage' : ''}`}
@@ -676,9 +682,11 @@ export function Composer({
                 <CodeView />
               </Suspense>
             ) : null}
-            {view === 'visual' && !comparing && !missingLanguage ? <RightPanel /> : null}
+            {view === 'visual' && !comparing && !missingLanguage ? <AssistRight fallback={<RightPanel />} /> : null}
           </div>
-          {view === 'preview' || (missingLanguage && !comparing) ? null : comparing ? (
+          {view === 'preview' || (missingLanguage && !comparing) ? null : assist.translating ? (
+            <AITranslateFooter />
+          ) : comparing ? (
             <ComposerCompareFooter>
               <VersionLink />
             </ComposerCompareFooter>
@@ -698,6 +706,7 @@ export function Composer({
         />
       </div>
       </AccessibilityProvider>
+      </ComposerAssistScope>
     </ComposerCtx.Provider>
   )
 }
