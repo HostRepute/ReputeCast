@@ -84,7 +84,7 @@ export function SurveyBuilderPage({ surveyId, tab, question }: { surveyId: strin
   throwIfForbidden(res.error)
   if (res.isError) {
     return (
-      <Page title="Forms & public pages" filters={<FormsTabs />}>
+      <Page title={t(m.pageTitle)} filters={<FormsTabs />}>
         <section className="card sv-error" role="alert">
           <h2 className="m-0 text-[17px] font-semibold">{t(m.errorTitle)}</h2>
           <p className="m-0 max-w-[520px] text-ink-2">{res.error instanceof ApiError && res.error.status === 404 ? t(m.notFound) : t(m.errorBody, { detail: errorMessage(res.error) })}</p>
@@ -97,7 +97,7 @@ export function SurveyBuilderPage({ surveyId, tab, question }: { surveyId: strin
   }
   if (res.isPending) {
     return (
-      <Page title="Forms & public pages" filters={<FormsTabs />}>
+      <Page title={t(m.pageTitle)} filters={<FormsTabs />}>
         <section className="card sv-loading" aria-busy="true" aria-label={t(m.loading)}>
           <div className="flex gap-3">
             {[0, 1, 2].map((i) => (
@@ -200,7 +200,7 @@ function Builder({ s, tab, question }: { s: Survey; tab: Tab; question?: string 
   )
   const me = meQ.data?.user?.name ?? ''
   return (
-    <Page title="Forms & public pages" filters={<FormsTabs />} actions={actions} contentClassName="sv-main">
+    <Page title={t(m.pageTitle)} filters={<FormsTabs />} actions={actions} contentClassName="sv-main">
       <div className="sv-head">
         <div className="flex min-w-0 items-start gap-3">
           <Link to="/w/$workspace/forms" params={{ workspace: slug }} className="btn ic sm" aria-label={t(m.back)}>

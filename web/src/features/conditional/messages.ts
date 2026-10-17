@@ -163,6 +163,7 @@ export const m = defineMessages('conditional', {
   versionRecipients: 'Recipients',
   versionSize: 'Size',
   versionSizeOf: '{kb} KB of 102 KB',
+  kb: '{kb} KB',
   versionLinks: 'Links',
   versionLinksChecked: '{count, plural, one {# link, checked} other {# links, all checked}}',
   previewFailed: 'The version couldn’t be worked out. {detail}',

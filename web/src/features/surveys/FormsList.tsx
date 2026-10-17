@@ -69,7 +69,7 @@ export function FormsList() {
   }, [overview.data, surveys.data, q])
   const total = (overview.data?.forms.length ?? 0) + (surveys.data?.items.length ?? 0)
   const page = (body: React.ReactNode) => (
-    <Page title="Forms & public pages" filters={<FormsTabs />}>
+    <Page title={t(m.pageTitle)} filters={<FormsTabs />}>
       {body}
       <NewFormDialog
         open={picking}

@@ -151,7 +151,7 @@ export function VersionsPanel() {
                     <td>{v.largest && versions.length > 50 ? t(m.largest, { shows: versionShows(t, v, blocks) }) : versionShows(t, v, blocks)}</td>
                     <td className="r num">{count(v.recipients)}</td>
                     <td className={`r num${v.overClip ? ' over' : ''}`}>
-                      {kbOf(v.sizeBytes)} KB
+                      {t(m.kb, { kb: kbOf(v.sizeBytes) })}
                       {v.overClip ? (
                         <span className="badge warn sm" style={{ marginLeft: 6 }}>
                           {t(m.gmailClips)}

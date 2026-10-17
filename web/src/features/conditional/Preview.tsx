@@ -182,7 +182,7 @@ export function VersionsCard({ v }: { v: PreviewVersion }) {
             <span />
             <span className="k">{x.number === v.preview?.version ? t(m.previewedNow) : x.overClip ? t(m.gmailClips) : ''}</span>
             <span className="k r" style={x.overClip ? { color: 'var(--warn-fg)', fontWeight: 600 } : undefined}>
-              {Math.round(x.sizeBytes / 1024)} KB
+              {t(m.kb, { kb: Math.round(x.sizeBytes / 1024) })}
             </span>
           </div>
         ))}

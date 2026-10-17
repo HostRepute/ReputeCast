@@ -7,6 +7,7 @@ import { defineMessages } from '@/i18n'
  */
 export const m = defineMessages('surveys', {
   // The forms list.
+  pageTitle: 'Forms & public pages',
   tab: 'Forms · {count}',
   tabEmpty: 'Forms',
   formsTitle: 'Forms · {count}',
