@@ -1,4 +1,5 @@
 import type { Schemas } from '@/api/client'
+import { scoreTriggerDefaults } from '@/features/scoring/ScoreTrigger'
 import { isOneOfPhrase, scoreTriggerDetail, scoreTriggerName, scoreTriggerRef } from '@/features/scoring/triggerText'
 
 /*
@@ -593,6 +594,7 @@ export function nextNodeId(g: FlowGraph): string {
 export function newStepData(type: StepType, trigger?: TriggerConfig['kind']): NodeData {
   switch (type) {
     case 'trigger':
+      if (trigger === 'score_crosses') return { trigger: { kind: trigger, ...scoreTriggerDefaults(), reentry: 'once' } }
       return { trigger: { kind: trigger ?? 'joined_list', confirmedOnly: trigger === 'joined_list' || !trigger ? true : undefined, reentry: 'once' } }
     case 'delay':
       return { delay: { amount: 1, unit: 'days' } }

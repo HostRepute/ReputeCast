@@ -29,7 +29,8 @@ import {
 } from './graph'
 import type { StepStats } from './view'
 import { StepLanguages } from '@/features/languages/automation'
-import { isOneOfLabel } from '@/features/scoring/triggerText'
+import { ScoreTriggerFields, scoreTriggerDefaults } from '@/features/scoring/ScoreTrigger'
+import { isOneOfLabel, scoreTriggerName } from '@/features/scoring/triggerText'
 
 type Options = Schemas['AutomationOptions']
 
@@ -47,6 +48,13 @@ const triggerItems: { kind: TriggerConfig['kind']; label: string }[] = [
   { kind: 'tag_added', label: 'Tag added' },
   { kind: 'api_event', label: 'API event' },
   { kind: 'date_field', label: 'Date field' },
+  // Contact scoring (X13).
+  {
+    kind: 'score_crosses',
+    get label() {
+      return scoreTriggerName()
+    },
+  },
 ]
 
 const stepItems: { type: StepType; label: string }[] = [
@@ -571,7 +579,11 @@ function TriggerProps({ node, options, editable, onChange, stats, hasStats }: St
   return (
     <>
       <Prop title="Starts when" id="p-kind">
-        <select aria-labelledby="p-kind" className="in" disabled={disabled} value={t.kind} onChange={(e) => onChange({ ...node.data, trigger: { kind: e.target.value as TriggerConfig['kind'], reentry: t.reentry } })}>
+        <select aria-labelledby="p-kind" className="in" disabled={disabled} value={t.kind} onChange={(e) => {
+            const kind = e.target.value as TriggerConfig['kind']
+            onChange({ ...node.data, trigger: { ...(kind === 'score_crosses' ? scoreTriggerDefaults(options?.scoreBands) : {}), kind, reentry: t.reentry } })
+          }}
+        >
           {Object.entries(triggerKindLabels).map(([k, label]) => (
             <option key={k} value={k}>
               {label}
@@ -615,6 +627,7 @@ function TriggerProps({ node, options, editable, onChange, stats, hasStats }: St
             </span>
           </>
         ) : null}
+        {t.kind === 'score_crosses' ? <ScoreTriggerFields t={t} set={set} disabled={disabled} bands={options?.scoreBands} /> : null}
         {t.kind === 'date_field' ? (
           <>
             <select className="in" aria-label="Date field" disabled={disabled} value={t.field ?? ''} onChange={(e) => set({ field: e.target.value })}>
@@ -644,12 +657,14 @@ function TriggerProps({ node, options, editable, onChange, stats, hasStats }: St
           </>
         ) : null}
       </Prop>
-      <Prop title="Re-entry" id="p-reentry">
-        <select aria-labelledby="p-reentry" className="in" disabled={disabled} value={t.reentry ?? 'once'} onChange={(e) => set({ reentry: e.target.value })}>
-          <option value="once">Once per contact</option>
-          <option value="always">Every time, once they've left</option>
-        </select>
-      </Prop>
+      {t.kind === 'score_crosses' ? null : (
+        <Prop title="Re-entry" id="p-reentry">
+          <select aria-labelledby="p-reentry" className="in" disabled={disabled} value={t.reentry ?? 'once'} onChange={(e) => set({ reentry: e.target.value })}>
+            <option value="once">Once per contact</option>
+            <option value="always">Every time, once they've left</option>
+          </select>
+        </Prop>
+      )}
       {hasStats && stats ? (
         <Prop title="Live stats · 30 d" id="p-tstats">
           <div className="fe-stats">

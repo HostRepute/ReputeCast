@@ -6186,6 +6186,9 @@
             },
             "type": "array"
           },
+          "scoreBands": {
+            "$ref": "#/components/schemas/ScoringBands"
+          },
           "tags": {
             "items": {
               "type": "string"

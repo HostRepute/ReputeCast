@@ -10055,6 +10055,7 @@ export interface components {
             forms: components["schemas"]["AutomationFormOption"][];
             lists: components["schemas"]["AutomationOptionItem"][];
             providers: components["schemas"]["AutomationRouteProvider"][];
+            scoreBands?: components["schemas"]["ScoringBands"];
             tags: string[];
         };
         AutomationPathCount: {
