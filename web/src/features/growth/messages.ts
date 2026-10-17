@@ -222,6 +222,10 @@ export const m = defineMessages('growth', {
   noContactsBody: 'Growth shows how people join once they do: forms, the subscribe page, imports, API keys and integrations, each with its quality.',
   importContacts: 'Import contacts',
 
+  // The contact profile's join line.
+  joinedLine: 'Joined {day} · {source}',
+  joinedFrom: 'from {page}',
+
   // Loading and error.
   loading: 'Loading growth…',
   loadError: "Couldn't load Growth",
