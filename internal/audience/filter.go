@@ -27,6 +27,10 @@ type ContactFilter struct {
 	Segment string `json:"segment,omitempty" doc:"Segment id"`
 	// JoinedAfter is a date (2026-09-01).
 	JoinedAfter string `json:"joinedAfter,omitempty" maxLength:"10"`
+	// Language is a workspace language's code (its regional codes match),
+	// "none" for contacts with no language or "not_offered" for languages
+	// the workspace doesn't offer.
+	Language string `json:"language,omitempty" maxLength:"16"`
 	// Check is the latest address check's result, or never checked.
 	Check string `json:"check,omitempty" enum:"valid,invalid,risky,unknown,never"`
 }
@@ -104,6 +108,9 @@ func (s *Service) applyFilter(ctx context.Context, wsID uuid.UUID, out *filterSQ
 		out.add("NOT EXISTS (SELECT 1 FROM contact_address_checks ac WHERE ac.contact_id = c.id)")
 	default:
 		out.add("EXISTS (SELECT 1 FROM contact_address_checks ac WHERE ac.contact_id = c.id AND ac.result = ?)", f.Check)
+	}
+	if err := s.languageFilter(ctx, wsID, out, f.Language); err != nil {
+		return err
 	}
 	if f.Segment != "" {
 		id, err := uuid.Parse(f.Segment)

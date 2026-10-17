@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { useState, type ReactNode } from 'react'
+import { Fragment, useState, type ReactNode } from 'react'
 import { $api, errorMessage, http, type Schemas } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
@@ -11,6 +11,7 @@ import { count } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { ImportFrame, sourceHint, stepPath, useImportDetail, WizardHeading, type Detail } from './ImportFrame'
 import { PausedCard, ReadingSource, readingDetail, SourceFailed } from './states'
+import { ImportLanguageRow } from '@/features/page-languages/imports'
 
 type Row = Schemas['ImportFieldRow']
 interface Choice {
@@ -27,7 +28,7 @@ const builtinType: Record<string, string> = {
   company: 'text',
   country: 'text',
   timezone: 'timezone',
-  language: 'text',
+  language: 'language',
   tags: 'tags',
   consent_evidence: 'consent',
   status: 'status',
@@ -191,47 +192,50 @@ function Mapping({ d, rows }: { d: Detail; rows: Row[] }) {
                 const type =
                   st === 'skipped' ? '–' : c.target === r.target && r.status !== 'new' ? r.type : (builtinType[c.target] ?? (c.target.startsWith('custom:') ? 'custom' : r.type))
                 return (
-                  <tr key={r.source} className={st === 'new' ? 'newf' : st === 'skipped' ? 'skipf' : undefined}>
-                    <td className="mono">{r.label}</td>
-                    <td className="k mono">{r.samples.join(' · ') || '–'}</td>
-                    <td>
-                      <select
-                        aria-label={`Map ${r.label} to`}
-                        className="in"
-                        value={c.target}
-                        onChange={(e) => {
-                          const target = e.target.value
-                          setChoices((all) => ({ ...all, [r.source]: { target, type: target.startsWith('new:') ? (all[r.source]?.type ?? 'text') : undefined } }))
-                        }}
-                      >
-                        {r.options.map((o) => (
-                          <option key={o.value} value={o.value}>
-                            {o.label}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className={st === 'new' ? undefined : 'k'}>
-                      {st === 'new' ? (
+                  <Fragment key={r.source}>
+                    <tr className={st === 'new' ? 'newf' : st === 'skipped' ? 'skipf' : undefined}>
+                      <td className="mono">{r.label}</td>
+                      <td className="k mono">{r.samples.join(' · ') || '–'}</td>
+                      <td>
                         <select
-                          aria-label={`Type of ${r.label}`}
-                          className="in w-[110px]"
-                          value={c.type ?? 'text'}
-                          onChange={(e) => setChoices((all) => ({ ...all, [r.source]: { target: c.target, type: e.target.value as Choice['type'] } }))}
+                          aria-label={`Map ${r.label} to`}
+                          className="in"
+                          value={c.target}
+                          onChange={(e) => {
+                            const target = e.target.value
+                            setChoices((all) => ({ ...all, [r.source]: { target, type: target.startsWith('new:') ? (all[r.source]?.type ?? 'text') : undefined } }))
+                          }}
                         >
-                          <option value="text">text</option>
-                          <option value="number">number</option>
-                          <option value="date">date</option>
-                          <option value="boolean">boolean</option>
+                          {r.options.map((o) => (
+                            <option key={o.value} value={o.value}>
+                              {o.label}
+                            </option>
+                          ))}
                         </select>
-                      ) : (
-                        type
-                      )}
-                    </td>
-                    <td>
-                      {st === 'new' ? <Badge tone="info">New field</Badge> : st === 'skipped' ? <Badge tone="neutral">Skipped</Badge> : <Badge tone="ok">Mapped</Badge>}
-                    </td>
-                  </tr>
+                      </td>
+                      <td className={st === 'new' ? undefined : 'k'}>
+                        {st === 'new' ? (
+                          <select
+                            aria-label={`Type of ${r.label}`}
+                            className="in w-[110px]"
+                            value={c.type ?? 'text'}
+                            onChange={(e) => setChoices((all) => ({ ...all, [r.source]: { target: c.target, type: e.target.value as Choice['type'] } }))}
+                          >
+                            <option value="text">text</option>
+                            <option value="number">number</option>
+                            <option value="date">date</option>
+                            <option value="boolean">boolean</option>
+                          </select>
+                        ) : (
+                          type
+                        )}
+                      </td>
+                      <td>
+                        {st === 'new' ? <Badge tone="info">New field</Badge> : st === 'skipped' ? <Badge tone="neutral">Skipped</Badge> : <Badge tone="ok">Mapped</Badge>}
+                      </td>
+                    </tr>
+                    {c.target === 'language' ? <ImportLanguageRow importId={d.id} field={r.source} columns={5} /> : null}
+                  </Fragment>
                 )
               })}
             </tbody>

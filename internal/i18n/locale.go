@@ -86,10 +86,18 @@ func (l Locale) Tag() language.Tag {
 	return language.English
 }
 
-// pluralTag is the language whose plural rules apply (the pseudo-locale is English).
+// pluralTag is the language whose plural rules apply (the pseudo-locale is
+// English). Text a workspace wrote in another language (Format with
+// Locale("es")) follows that language's rules.
 func (l Locale) pluralTag() language.Tag {
-	if l == Vietnamese {
+	switch l {
+	case Vietnamese:
 		return language.Vietnamese
+	case English, Pseudo, "":
+		return language.English
+	}
+	if t, err := language.Parse(string(l)); err == nil {
+		return t
 	}
 	return language.English
 }

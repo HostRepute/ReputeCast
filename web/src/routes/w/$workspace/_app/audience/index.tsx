@@ -18,6 +18,11 @@ const search = z.object({
     .optional()
     .catch(undefined),
   segment: z.string().uuid().optional().catch(undefined),
+  language: z
+    .string()
+    .regex(/^([a-z]{2,3}|none|not_offered)$/)
+    .optional()
+    .catch(undefined),
   /** The latest address check's result (X14). */
   check: z.enum(['valid', 'invalid', 'risky', 'unknown', 'never']).optional().catch(undefined),
   page: z.coerce.number().int().min(1).optional().catch(undefined),

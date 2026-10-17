@@ -1,8 +1,7 @@
 import { useNavigate } from '@tanstack/react-router'
-import { useMemo, useState, type ReactNode } from 'react'
+import { useMemo, useState } from 'react'
 import { $api, ApiError, errorMessage, type Schemas } from '@/api/client'
 import { Page } from '@/components/shell/Page'
-import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { ConfirmDialog, UnsavedChangesGuard } from '@/components/ui/ConfirmDialog'
 import { Dialog } from '@/components/ui/Dialog'
@@ -20,6 +19,7 @@ import {
   builtinFieldLabels,
   copyText,
   embedSnippet,
+  FormStatusBadge,
   FormsTabs,
   hostPath,
   inputOf,
@@ -33,6 +33,8 @@ import {
 } from './common'
 import { FormPreview } from './FormPreview'
 import { BlockedOriginAlert, FormsEmpty, FormsLoading, TurnstileAlert } from './FormsStates'
+import { CopyByLanguage, FormLanguagesView, useFormCopy } from '@/features/page-languages/FormLanguagesView'
+import { useWorkspaceLanguages } from '@/features/page-languages/contacts'
 
 type Kind = Schemas['SignupFormSummary']['kind']
 
@@ -49,8 +51,11 @@ function sortFields(fields: FormInput['fields']): FormInput['fields'] {
   return [...fields].sort((a, b) => rank(a.key) - rank(b.key))
 }
 
-/** 7.12 Signup form builder (board FormBuilder) with the FormsStates states. */
-export function FormBuilderPage({ formId }: { formId?: string }) {
+/**
+ * 7.12 Signup form builder (board FormBuilder) with the FormsStates states;
+ * with a language, the builder in that language (FormBuilderLanguages).
+ */
+export function FormBuilderPage({ formId, language }: { formId?: string; language?: string }) {
   const overview = useFormsOverview()
   throwIfForbidden(overview.error)
   const [creating, setCreating] = useState(false)
@@ -81,11 +86,11 @@ export function FormBuilderPage({ formId }: { formId?: string }) {
     )
   }
   const current = o.forms.find((f) => f.id === formId) ?? o.forms[0]!
-  return <FormLoader key={current.id} formId={current.id} overview={o} />
+  return <FormLoader key={current.id} formId={current.id} overview={o} language={language} />
 }
 
 /** Loads one form; its editor starts over when the saved form changes. */
-function FormLoader({ formId, overview }: { formId: string; overview: Overview }) {
+function FormLoader({ formId, overview, language }: { formId: string; overview: Overview; language?: string }) {
   const { slug } = useWorkspace()
   const detail = $api.useQuery('get', '/api/v1/workspaces/{workspace}/forms/{form}', { params: { path: { workspace: slug, form: formId } } })
   throwIfForbidden(detail.error)
@@ -105,31 +110,8 @@ function FormLoader({ formId, overview }: { formId: string; overview: Overview }
       </Page>
     )
   }
+  if (language) return <FormLanguagesView form={detail.data} overview={overview} language={language} />
   return <Editor key={`${detail.data.id}:${detail.data.updatedAt}`} form={detail.data} overview={overview} />
-}
-
-function statusBadge(f: SignupForm): ReactNode {
-  const where = hostPath(f.hostedUrl)
-  switch (f.status) {
-    case 'live':
-      return (
-        <Badge tone="ok" dot>
-          Published · {where}
-        </Badge>
-      )
-    case 'paused':
-      return (
-        <Badge tone="warn" dot>
-          Paused · {where}
-        </Badge>
-      )
-    default:
-      return (
-        <Badge tone="neutral" dot>
-          Draft · not published yet
-        </Badge>
-      )
-  }
 }
 
 function Editor({ form, overview }: { form: SignupForm; overview: Overview }) {
@@ -220,7 +202,7 @@ function Editor({ form, overview }: { form: SignupForm; overview: Overview }) {
       filters={<FormsTabs />}
       actions={
         <>
-          {statusBadge(form)}
+          <FormStatusBadge form={form} />
           <Menu
             label="Form actions"
             trigger={
@@ -470,6 +452,7 @@ function Editor({ form, overview }: { form: SignupForm; overview: Overview }) {
             ) : null}
           </div>
           <NumbersSection form={form} systemMail={overview.systemMail} />
+          <FormLanguagesSection form={form} />
         </aside>
       </div>
       <UnsavedChangesGuard
@@ -645,6 +628,23 @@ function TurnstileKeys({ readOnly }: { readOnly: boolean }) {
       </Button>
     </div>
   )
+}
+
+/**
+ * "Copy by language" (FormBuilderLanguages' list) at the end of the default
+ * builder, for a workspace with more than one language: each language
+ * opens the builder in it.
+ */
+function FormLanguagesSection({ form }: { form: SignupForm }) {
+  const langs = useWorkspaceLanguages()
+  const many = (langs.data?.languages.length ?? 0) > 1
+  return many ? <FormLanguagesRows form={form} /> : null
+}
+
+function FormLanguagesRows({ form }: { form: SignupForm }) {
+  const copy = useFormCopy(form.id)
+  if (!copy.data) return null
+  return <CopyByLanguage data={copy.data} linkFor={(language) => ({ form: form.id, language })} variant="builder" />
 }
 
 /** "Embed code": the script snippet and the plain HTML form. */

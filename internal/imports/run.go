@@ -557,6 +557,12 @@ func contactValues(r mappedRow, fm FieldMap) (map[string]string, map[string]stri
 			key := strings.TrimPrefix(f.Target, "custom:")
 			custom[key] = v
 			types[key] = f.Type
+		case f.Target == "language":
+			// "Spanish", "es_MX" and "ES" become es and es-MX; values that
+			// aren't languages are left empty (Map fields lists them).
+			if code := importLanguage(v); code != "" {
+				builtin["language"] = code
+			}
 		default:
 			builtin[f.Target] = v
 		}
@@ -669,6 +675,11 @@ func (s *Service) createRow(ctx context.Context, tx pgx.Tx, st *runState, r mapp
 	if err != nil {
 		return uuid.Nil, false, err
 	}
+	if builtin["language"] != "" {
+		if err := audience.RecordLanguageSource(ctx, store.New(tx), got, audience.LanguageFromImport, SourceName(st.imp.Source), now, nil); err != nil {
+			return uuid.Nil, false, err
+		}
+	}
 	status := "subscribed"
 	if consent == "pending" {
 		status = "pending"
@@ -776,6 +787,11 @@ func (s *Service) mergeRow(ctx context.Context, q *store.Queries, tx pgx.Tx, st 
 		tags = $8, attributes = $9, updated_at = now() WHERE id = $1`,
 		c.ID, cur["first_name"], cur["last_name"], cur["company"], cur["country"], cur["timezone"], cur["language"], tags, mustJSON(attrs)); err != nil {
 		return err
+	}
+	if cur["language"] != c.Language {
+		if err := audience.RecordLanguageSource(ctx, q, c.ID, audience.LanguageFromImport, SourceName(st.imp.Source), now, nil); err != nil {
+			return err
+		}
 	}
 	status := "subscribed"
 	if pending || c.Consent == "pending" {

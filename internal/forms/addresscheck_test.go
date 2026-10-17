@@ -47,7 +47,7 @@ func TestCheckAddressAtSignup(t *testing.T) {
 		t.Fatalf("a disposable address was refused with the setting off: %+v", out)
 	}
 	page.Spam.BlockDisposable = true
-	if _, out := s.checkAddress(ctx, ws, page, Submission{Email: "temp@mailinator.com"}); out == nil || out.Errors[FieldEmail] != msgDisposable {
+	if _, out := s.checkAddress(ctx, ws, page, Submission{Email: "temp@mailinator.com"}); out == nil || out.Errors[FieldEmail] != "Use a permanent address: disposable inboxes expire before you could confirm." {
 		t.Fatalf("a disposable address with the setting on = %+v", out)
 	}
 	// Valid, risky, unknown and no answer go through.

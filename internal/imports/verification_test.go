@@ -16,7 +16,9 @@ import (
 )
 
 // fakeChecks is a verification service's answers for one import.
-type fakeChecks struct{ answers map[string]imports.ImportAnswer }
+type fakeChecks struct {
+	answers map[string]imports.ImportAnswer
+}
 
 func (f fakeChecks) ImportAnswers(context.Context, *store.Workspace, uuid.UUID) (*imports.ImportChecks, error) {
 	at := time.Date(2026, 10, 15, 13, 12, 0, 0, time.UTC)

@@ -34,6 +34,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/dnscheck"
 	"github.com/hostrepute/reputecast/internal/linktoken"
 	"github.com/hostrepute/reputecast/internal/mailer"
+	"github.com/hostrepute/reputecast/internal/pagelabels"
 	"github.com/hostrepute/reputecast/internal/publicurl"
 	"github.com/hostrepute/reputecast/internal/secrets"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -128,6 +129,9 @@ type contentDoc struct {
 	ListsLabel       string `json:"listsLabel"`
 	EmailPlaceholder string `json:"emailPlaceholder"`
 	NamePlaceholder  string `json:"namePlaceholder"`
+	// AfterSubmitText is what the form says after a signup; empty uses the
+	// built-in message ("We sent you a link to confirm…").
+	AfterSubmitText string `json:"afterSubmitText,omitempty"`
 	// Popups open after PopupDelay seconds or PopupScroll percent of the
 	// page, whichever comes first, and stay closed for PopupRepeatDays.
 	PopupDelay      int `json:"popupDelay"`
@@ -167,6 +171,21 @@ type Config struct {
 	RedirectURL    string
 	// Builtin is the hosted page's form when the workspace has none.
 	Builtin bool
+	// CopyLanguage is the language the form is written in; LanguageMode
+	// says which language it shows (page, browser or fixed, with
+	// FixedLanguage).
+	CopyLanguage  string
+	LanguageMode  string
+	FixedLanguage string
+	// Language is the language this Config shows the form in (FormCopy.In);
+	// empty is its copy language. Labels are that language's built-in
+	// labels, PrivacyURL its privacy policy link (empty: the branding's) and
+	// ListNames the lists' names in it.
+	Language   string
+	Labels     pagelabels.Set
+	PrivacyURL string
+	ListNames  map[uuid.UUID]string
+	publisher  string
 }
 
 // HasField reports whether the form shows a field.
@@ -210,7 +229,9 @@ func ConfigOf(f store.Form) Config {
 		Lists: nonNilIDs(f.ListIds), DefaultLists: nonNilIDs(f.DefaultListIds), ListChoice: f.ListChoice, DoubleOptIn: f.DoubleOptIn,
 		ConsentText: f.ConsentText, ConsentVersion: int(f.ConsentVersion), AllowedOrigins: nonNilStrings(f.AllowedOrigins),
 		AfterSubmit: f.AfterSubmit, RedirectURL: f.RedirectUrl, Spam: defaultSpam(),
+		CopyLanguage: f.CopyLanguage, LanguageMode: f.LanguageMode, FixedLanguage: f.FixedLanguage,
 	}
+	c.Labels = pagelabels.For(c.CopyLanguage, nil)
 	_ = json.Unmarshal(f.Fields, &c.Fields)
 	if !c.HasField(FieldEmail) {
 		c.Fields = append([]fieldDoc{{Key: FieldEmail, Required: true}}, c.Fields...)
@@ -259,6 +280,7 @@ func BuiltinForm(ws *store.Workspace, publisher string, lists []audience.PublicL
 		Fields:     []fieldDoc{{Key: FieldEmail, Required: true}, {Key: FieldFirstName}},
 		ListChoice: true, DoubleOptIn: true, Spam: defaultSpam(), AfterSubmit: "message", ConsentVersion: 1,
 		ConsentText: DefaultConsentText(publisher), AllowedOrigins: []string{},
+		CopyLanguage: "en", LanguageMode: LanguageBrowser, Labels: pagelabels.English(), publisher: publisher,
 	}
 	for _, l := range lists {
 		if l.Public {
@@ -309,6 +331,8 @@ type SignupFormContent struct {
 	PopupDelay       int    `json:"popupDelay" minimum:"0" maximum:"600" doc:"Seconds before a popup opens"`
 	PopupScroll      int    `json:"popupScroll" minimum:"0" maximum:"100" doc:"Percent of the page scrolled before a popup opens; 0 is off"`
 	PopupRepeatDays  int    `json:"popupRepeatDays" minimum:"0" maximum:"365" doc:"Days a closed popup stays closed"`
+	// AfterSubmitText is what the form says after a signup; empty uses the built-in message.
+	AfterSubmitText string `json:"afterSubmitText,omitempty" maxLength:"300"`
 }
 
 // SignupFormSpam is a form's spam protection.
@@ -549,7 +573,7 @@ func (s *Service) detail(ctx context.Context, ws *store.Workspace, f store.Form)
 		AfterSubmit: c.AfterSubmit, RedirectURL: c.RedirectURL, AllowedOrigins: c.AllowedOrigins,
 		Content: SignupFormContent{Heading: c.Content.Heading, Description: c.Content.Description, Button: c.Content.Button, Footnote: c.Content.Footnote,
 			ListsLabel: c.Content.ListsLabel, EmailPlaceholder: c.Content.EmailPlaceholder, NamePlaceholder: c.Content.NamePlaceholder,
-			PopupDelay: c.Content.PopupDelay, PopupScroll: c.Content.PopupScroll, PopupRepeatDays: c.Content.PopupRepeatDays},
+			PopupDelay: c.Content.PopupDelay, PopupScroll: c.Content.PopupScroll, PopupRepeatDays: c.Content.PopupRepeatDays, AfterSubmitText: c.Content.AfterSubmitText},
 		BlockedOrigins: []SignupFormBlockedOrigin{}, PublishedAt: f.PublishedAt, UpdatedAt: f.UpdatedAt,
 	}
 	for _, fd := range c.Fields {
@@ -564,8 +588,12 @@ func (s *Service) detail(ctx context.Context, ws *store.Workspace, f store.Form)
 	if err != nil {
 		return out, err
 	}
-	out.PlainHTML = PlainHTML(c, links, lists, customs, set.Branding)
-	out.URLs.ScriptKB = gzipKB(EmbedScript(c, links, set.Branding, lists, customs))
+	fc, err := s.loadFormCopy(ctx, s.Q, ws, set, c)
+	if err != nil {
+		return out, err
+	}
+	out.PlainHTML = PlainHTML(fc.plain(lists), links, lists, customs, set.Branding)
+	out.URLs.ScriptKB = gzipKB(fc.script(links, set.Branding, lists, customs))
 	loc := location(ws)
 	today := s.now().In(loc)
 	since := dayOf(today.AddDate(0, 0, -29), loc)
@@ -745,8 +773,15 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, in SignupForm
 		if err != nil {
 			return err
 		}
+		// A new form's text is English, its copy language. A hosted form
+		// follows the visitor's browser, the others the page they're on.
+		if kind == KindHosted {
+			if f, err = q.FormSetLanguage(ctx, store.FormSetLanguageParams{WorkspaceID: ws.ID, ID: f.ID, LanguageMode: LanguageBrowser, By: actor(ctx), At: s.now()}); err != nil {
+				return err
+			}
+		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "form.create", TargetType: "form", TargetID: f.ID.String(), TargetName: f.Name,
-			After: map[string]any{"name": f.Name, "kind": f.Kind, "slug": f.Slug, "publicId": f.PublicID}})
+			After: map[string]any{"name": f.Name, "kind": f.Kind, "slug": f.Slug, "publicId": f.PublicID, "languageMode": f.LanguageMode}})
 	})
 	if err != nil {
 		return SignupForm{}, err
@@ -866,7 +901,7 @@ func (s *Service) validate(ctx context.Context, q *store.Queries, ws *store.Work
 	content := contentDoc{
 		Heading: strings.TrimSpace(c.Heading), Description: strings.TrimSpace(c.Description), Button: strings.TrimSpace(c.Button), Footnote: strings.TrimSpace(c.Footnote),
 		ListsLabel: strings.TrimSpace(c.ListsLabel), EmailPlaceholder: strings.TrimSpace(c.EmailPlaceholder), NamePlaceholder: strings.TrimSpace(c.NamePlaceholder),
-		PopupDelay: c.PopupDelay, PopupScroll: c.PopupScroll, PopupRepeatDays: c.PopupRepeatDays,
+		PopupDelay: c.PopupDelay, PopupScroll: c.PopupScroll, PopupRepeatDays: c.PopupRepeatDays, AfterSubmitText: strings.TrimSpace(c.AfterSubmitText),
 	}
 	fieldsJSON, _ := json.Marshal(fields)
 	contentJSON, _ := json.Marshal(content)

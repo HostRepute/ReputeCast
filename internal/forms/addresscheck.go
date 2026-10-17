@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/pagelabels"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -28,10 +29,26 @@ type SignupAddress struct {
 	Answer any
 }
 
-const (
-	msgAddressInvalid = "This address doesn't seem to exist. Check it and try again."
-	msgDisposable     = "Use a permanent address: disposable inboxes expire before you could confirm."
-)
+// msgAddressInvalid is the English form's answer when the service finds no
+// mailbox (VerificationStates); forms in other languages say their own
+// "error.emailInvalid".
+const msgAddressInvalid = "This address doesn't seem to exist. Check it and try again."
+
+// addressInvalid is the form's message for an address the service rejects.
+func addressInvalid(c Config) string {
+	if code := c.Labels.Code(); code == "" || code == "en" {
+		return msgAddressInvalid
+	}
+	return c.Labels.Text("error.emailInvalid", nil)
+}
+
+// labels are the form's built-in labels, English when it has none yet.
+func labels(c Config) pagelabels.Set {
+	if c.Labels.Code() == "" {
+		return pagelabels.For("en", nil)
+	}
+	return c.Labels
+}
 
 // checkerKey names a form for the address checks: its id, or the hosted
 // subscribe page.
@@ -51,10 +68,12 @@ func (s *Service) checkAddress(ctx context.Context, ws *store.Workspace, c Confi
 	a := s.Addresses.CheckSignup(ctx, ws, checkerKey(c), sub.Email)
 	switch {
 	case a.Invalid:
-		return a, &Outcome{Status: OutcomeInvalid, Errors: map[string]string{FieldEmail: msgAddressInvalid}, Message: msgAddressInvalid}
+		msg := addressInvalid(c)
+		return a, &Outcome{Status: OutcomeInvalid, Errors: map[string]string{FieldEmail: msg}, Message: msg}
 	case a.Disposable && c.Spam.BlockDisposable:
 		s.recordReject(ctx, ws, c, "disposable", sub.Origin)
-		return a, &Outcome{Status: OutcomeInvalid, Errors: map[string]string{FieldEmail: msgDisposable}, Message: msgDisposable}
+		msg := labels(c).Text("error.emailDisposable", nil)
+		return a, &Outcome{Status: OutcomeInvalid, Errors: map[string]string{FieldEmail: msg}, Message: msg}
 	}
 	return a, nil
 }

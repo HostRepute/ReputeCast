@@ -107,6 +107,8 @@ const resolvers: Record<string, (ctx: BrowserContext, value: string) => Promise<
   contact: (ctx, email) => lookup(ctx, `contacts?q=${encodeURIComponent(email)}`, 'items', (c) => c.email === email, `no contact ${email}`),
   import: (ctx, which) =>
     lookup(ctx, 'imports', 'items', (i) => (which === 'draft' ? i.status === 'draft' : i.source === which && i.status === 'done'), `no ${which} import`),
+  // A signup form by its name ({form:Newsletter signup}).
+  form: (ctx, name) => lookup(ctx, 'forms', 'forms', (f) => f.name === name, `no form named ${name}`),
 }
 
 /** The id of the first item of a workspace list that matches. */

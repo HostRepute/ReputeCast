@@ -29,9 +29,12 @@ func (h *Handler) placementCopy(r *http.Request, s *site, token string, kind lin
 	return err == nil && k == "placement"
 }
 
-// placementNotice is the page a placement test copy's links open.
+// placementNotice is the page a placement test copy's links open. Only the
+// workspace's own seed mailboxes ever get these links, so its words aren't
+// among the labels a workspace translates.
 func (h *Handler) placementNotice(w http.ResponseWriter, r *http.Request, s *site) {
-	h.message(w, r, s, http.StatusOK, "Placement test copy · "+s.set.Branding.PublisherName, messageBody{Icon: "mail",
+	pl := h.visitorLang(w, r, s, nil)
+	h.messageIn(w, r, s, pl, http.StatusOK, "Placement test copy · "+s.set.Branding.PublisherName, messageBody{Icon: "mail",
 		Heading: "Placement test copy", Text: placementCopyText}, true)
 }
 
