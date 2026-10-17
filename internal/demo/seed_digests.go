@@ -265,6 +265,9 @@ func seedDigestsImpl(ctx context.Context, s *Seeder) error {
 			si.send.Add(16*time.Minute), json.RawMessage(fmt.Sprintf(`{"mode":"at","at":%q,"timezone":%q}`, si.send.UTC().Format(time.RFC3339), ws.Timezone))); err != nil {
 			return err
 		}
+		if err := issueEngagement(ctx, s, campaignID, name, content.HTML); err != nil {
+			return err
+		}
 		issueID := ID()
 		if _, err := s.Tx.Exec(ctx, `INSERT INTO digest_issues (id, digest_id, workspace_id, number, status, mode, send_at, prepare_at, deadline, campaign_id, prepared_at,
 			started_at, sent_at, item_count, basis, created_at, updated_at)
@@ -344,6 +347,23 @@ func seedDigestsImpl(ctx context.Context, s *Seeder) error {
 		}
 	}
 	return nil
+}
+
+// issueEngagement gives a sent issue what the report seed gives the sent
+// campaigns seeded before it: opens and clicks hour by hour over 72 hours,
+// and the clicks of each link in its HTML. The counters stay as seeded.
+func issueEngagement(ctx context.Context, s *Seeder, id uuid.UUID, name, html string) error {
+	c := &reportCampaignSeed{id: id, name: name, html: html}
+	if err := reportLoadCells(ctx, s, c, nil); err != nil {
+		return err
+	}
+	if len(c.cells) == 0 {
+		return nil
+	}
+	if err := reportHourly(ctx, s, c, false); err != nil {
+		return err
+	}
+	return reportLinks(ctx, s, c, false)
 }
 
 // compileHTML compiles a template's MJML.

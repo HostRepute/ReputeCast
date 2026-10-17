@@ -152,15 +152,18 @@ export function FoundNote({
             ))}
           </div>
         ) : null}
-        {found.hops.length > 1 ? <Hops found={found} /> : null}
+        {found.hops.some((h) => h.status >= 300 && h.status < 400) ? <Hops found={found} /> : null}
       </>
     )
   }
   const e = found.error
   const notFeed = e?.kind === 'not_feed'
+  // The server's sentence, ended, before what it means for the digest.
+  const detail = (e?.detail ?? '').trim()
+  const ended = !detail || /[.!?…]$/.test(detail) ? detail : `${detail}.`
   return (
     <Note tone="b" icon="alert" title={notFeed ? t(s.notFeedTitle) : t(s.firstReadTitle)}>
-      {notFeed ? e?.detail : t(s.firstReadBody, { detail: e?.detail ?? '' })}
+      {notFeed ? ended : t(s.firstReadBody, { detail: ended })}
       <Actions>
         <Button size="sm" onClick={onRetry}>
           {t(s.tryAgain)}

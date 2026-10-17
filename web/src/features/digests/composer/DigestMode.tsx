@@ -203,7 +203,7 @@ export function FeedTokensMenu({ onInsert }: { onInsert: (token: string) => void
       label={t(dc.feedTokensLabel)}
       className="w-[min(460px,calc(100vw-24px))]"
       trigger={
-        <button type="button" className="btn sm" style={{ minHeight: 24, padding: '0 8px', fontSize: 11.5 }} aria-label={t(dc.feedTokensLabel)}>
+        <button type="button" className="btn sm" style={{ minHeight: 24, padding: '0 8px', fontSize: 11.5 }}>
           <span className="mono" aria-hidden="true">
             {'{ }'}
           </span>

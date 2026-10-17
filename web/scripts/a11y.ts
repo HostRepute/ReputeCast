@@ -43,6 +43,7 @@ const lists: Record<string, (v: string) => [string, string, (i: Item) => boolean
   contact: (email) => [`contacts?q=${encodeURIComponent(email)}`, 'items', (c) => c.email === email],
   import: (which) => ['imports', 'items', (i) => (which === 'draft' ? i.status === 'draft' : i.source === which && i.status === 'done')],
   form: (name) => ['forms', 'forms', (f) => f.name === name],
+  digest: (name) => ['digests', 'items', (d) => d.name === name],
 }
 
 /** Looks up the ids behind {campaign:Name}, {sso:Name} and the kinds in `lists` in a path. */
@@ -61,6 +62,14 @@ async function resolvePath(ctx: BrowserContext, path: string) {
       // The latest provider setup of an adapter ({setup:ses}).
       const r = await ctx.request.get(`${app}/api/v1/workspaces/${workspace}/connect/setups`, { params: { adapter: name } })
       id = ((await r.json()) as { items?: { id: string }[] }).items?.[0]?.id
+    } else if (kind === 'digestTemplate') {
+      // A recurring digest's template ({digestTemplate:Name}): it isn't in the campaigns list.
+      const r = await ctx.request.get(`${app}/api/v1/workspaces/${workspace}/digests`)
+      const digest = ((await r.json()) as { items?: { id: string; name: string }[] }).items?.find((d) => d.name === name)
+      if (digest) {
+        const detail = await ctx.request.get(`${app}/api/v1/workspaces/${workspace}/digests/${digest.id}`)
+        id = ((await detail.json()) as { templateId?: string }).templateId
+      }
     } else if (kind in lists) {
       // Ids the demo generates at seed time (see scripts/qa.ts).
       const [list, key, match] = lists[kind]!(name)

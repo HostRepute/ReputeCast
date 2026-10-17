@@ -308,7 +308,7 @@ function FeedCard({ f, set, errors, d, sites }: CardProps & { sites: Schemas['Di
                 <span className="flex flex-wrap gap-2">
                   <Input
                     type="url"
-                    className="min-w-0 flex-[1_1_200px]"
+                    className="min-w-0 flex-[1_1_160px]"
                     value={f.feedUrl}
                     onChange={(e) => {
                       set('feedUrl', e.target.value)
