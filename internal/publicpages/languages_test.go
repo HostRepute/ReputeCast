@@ -75,6 +75,13 @@ func TestFormLanguages(t *testing.T) {
 			!strings.Contains(sent[0].HTML, `<html lang="es" dir="ltr">`) || !strings.Contains(sent[0].HTML, "Confirmar mi suscripción") {
 			t.Fatalf("confirmation copy:\n%s\n%s", sent[0].Text, sent[0].HTML)
 		}
+		// The confirmation page comes in the language the signup was shown
+		// in, whatever the browser that opens the link.
+		link, err := url.Parse(linkIn.FindString(sent[0].Text))
+		if err != nil || link.Path == "" {
+			t.Fatalf("no confirmation link in:\n%s", sent[0].Text)
+		}
+		must(t, do(t, env, http.MethodGet, link.Path, nil, hdr{"Accept-Language": "de"}), 200, `<html lang="es" dir="ltr">`, "Ya estás dentro")
 	})
 
 	t.Run("a language that isn't Live falls back", func(t *testing.T) {
@@ -85,8 +92,14 @@ func TestFormLanguages(t *testing.T) {
 		if e := consent("thao.tran@fastmail.com"); e.language != "en" || e.version != "v3" || e.text != consentText {
 			t.Fatalf("consent evidence: %+v", e)
 		}
-		if sent := mail.to("thao.tran@fastmail.com"); len(sent) != 1 || sent[0].Subject != "Confirm your subscription to Acme" {
+		sent := mail.to("thao.tran@fastmail.com")
+		if len(sent) != 1 || sent[0].Subject != "Confirm your subscription to Acme" {
 			t.Fatalf("confirmation email: %+v", sent)
+		}
+		if link, err := url.Parse(linkIn.FindString(sent[0].Text)); err == nil && link.Path != "" {
+			must(t, do(t, env, http.MethodGet, link.Path, nil, hdr{"Accept-Language": "vi"}), 200, `<html lang="en" dir="ltr">`, "You're in")
+		} else {
+			t.Fatalf("no confirmation link in:\n%s", sent[0].Text)
 		}
 		// The contact still gets the browser's language: Vietnamese is offered.
 		if n := count(t, env, `SELECT count(*) FROM contacts WHERE email = 'thao.tran@fastmail.com' AND language = 'vi-VN'`); n != 1 {
