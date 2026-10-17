@@ -251,4 +251,10 @@ export const entries: Entry[] = [
   { board: 'TransactionalSetupStates', manual: true },
   { board: 'TransactionalSettings', path: `${ws}/transactional/settings`, widths: [1440] },
   { board: 'PublicUnsubscribeCategory', manual: true },
+  // X12 · the AI assistant. Acme Newsletter has the demo's sample Anthropic connection (answers from
+  // recordings in development); Acme Engineering Blog has none, for the invitation and the connect
+  // dialog (?connect=anthropic). The board's other frames (test results, a private server allowed or
+  // refused, read-only, disconnect) and AIStates' cap and key states need clicks or data changes.
+  { board: 'AISettings', path: `${ws}/settings/integrations/ai`, widths: [1440] },
+  { board: 'AIStates', manual: true },
 ]

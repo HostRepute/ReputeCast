@@ -483,8 +483,16 @@ func (s *Service) test(ctx context.Context, c candidate, demo bool) AITestResult
 	if out.Model == "" {
 		out.Model = c.model
 	}
+	if demo {
+		// The sample answers at once; it reports the recording's time.
+		out.Ms = demoTestMs
+		out.AnsweredAt = out.SentAt.Add(demoTestMs * time.Millisecond)
+	}
 	return out
 }
+
+// demoTestMs is how long the recorded test took (AISettings: "answered in 1.2 s").
+const demoTestMs = 1200
 
 // testTask marks the test prompt for in-process models.
 type testTask struct{}

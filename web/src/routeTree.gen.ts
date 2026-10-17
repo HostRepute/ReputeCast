@@ -86,6 +86,7 @@ import { Route as WWorkspaceAppCampaignsCampaignIdReportRouteImport } from './ro
 import { Route as WWorkspaceAppCampaignsCampaignIdReviewRouteImport } from './routes/w/$workspace/_app/campaigns/$campaignId/review'
 import { Route as WWorkspaceAppSettingsIntegrationsIndexRouteImport } from './routes/w/$workspace/_app/settings/integrations/index'
 import { Route as WWorkspaceAppSettingsIntegrationsKindRouteImport } from './routes/w/$workspace/_app/settings/integrations/$kind'
+import { Route as WWorkspaceAppSettingsIntegrationsAiRouteImport } from './routes/w/$workspace/_app/settings/integrations/ai'
 import { Route as WWorkspaceAppSettingsIntegrationsHostreputeRouteImport } from './routes/w/$workspace/_app/settings/integrations/hostrepute'
 import { Route as WWorkspaceAppSettingsIntegrationsWordpressRouteImport } from './routes/w/$workspace/_app/settings/integrations/wordpress'
 import { Route as WWorkspaceAppSettingsRolesIndexRouteImport } from './routes/w/$workspace/_app/settings/roles/index'
@@ -539,6 +540,12 @@ const WWorkspaceAppSettingsIntegrationsKindRoute =
     path: '/settings/integrations/$kind',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
+const WWorkspaceAppSettingsIntegrationsAiRoute =
+  WWorkspaceAppSettingsIntegrationsAiRouteImport.update({
+    id: '/settings/integrations/ai',
+    path: '/settings/integrations/ai',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
 const WWorkspaceAppSettingsIntegrationsHostreputeRoute =
   WWorkspaceAppSettingsIntegrationsHostreputeRouteImport.update({
     id: '/settings/integrations/hostrepute',
@@ -674,6 +681,7 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/campaigns/$campaignId/report': typeof WWorkspaceAppCampaignsCampaignIdReportRoute
   '/w/$workspace/campaigns/$campaignId/review': typeof WWorkspaceAppCampaignsCampaignIdReviewRoute
   '/w/$workspace/settings/integrations/$kind': typeof WWorkspaceAppSettingsIntegrationsKindRoute
+  '/w/$workspace/settings/integrations/ai': typeof WWorkspaceAppSettingsIntegrationsAiRoute
   '/w/$workspace/settings/integrations/hostrepute': typeof WWorkspaceAppSettingsIntegrationsHostreputeRoute
   '/w/$workspace/settings/integrations/wordpress': typeof WWorkspaceAppSettingsIntegrationsWordpressRoute
   '/w/$workspace/settings/roles/$roleId': typeof WWorkspaceAppSettingsRolesRoleIdRoute
@@ -761,6 +769,7 @@ export interface FileRoutesByTo {
   '/w/$workspace/campaigns/$campaignId/report': typeof WWorkspaceAppCampaignsCampaignIdReportRoute
   '/w/$workspace/campaigns/$campaignId/review': typeof WWorkspaceAppCampaignsCampaignIdReviewRoute
   '/w/$workspace/settings/integrations/$kind': typeof WWorkspaceAppSettingsIntegrationsKindRoute
+  '/w/$workspace/settings/integrations/ai': typeof WWorkspaceAppSettingsIntegrationsAiRoute
   '/w/$workspace/settings/integrations/hostrepute': typeof WWorkspaceAppSettingsIntegrationsHostreputeRoute
   '/w/$workspace/settings/integrations/wordpress': typeof WWorkspaceAppSettingsIntegrationsWordpressRoute
   '/w/$workspace/settings/roles/$roleId': typeof WWorkspaceAppSettingsRolesRoleIdRoute
@@ -851,6 +860,7 @@ export interface FileRoutesById {
   '/w/$workspace/_app/campaigns/$campaignId/report': typeof WWorkspaceAppCampaignsCampaignIdReportRoute
   '/w/$workspace/_app/campaigns/$campaignId/review': typeof WWorkspaceAppCampaignsCampaignIdReviewRoute
   '/w/$workspace/_app/settings/integrations/$kind': typeof WWorkspaceAppSettingsIntegrationsKindRoute
+  '/w/$workspace/_app/settings/integrations/ai': typeof WWorkspaceAppSettingsIntegrationsAiRoute
   '/w/$workspace/_app/settings/integrations/hostrepute': typeof WWorkspaceAppSettingsIntegrationsHostreputeRoute
   '/w/$workspace/_app/settings/integrations/wordpress': typeof WWorkspaceAppSettingsIntegrationsWordpressRoute
   '/w/$workspace/_app/settings/roles/$roleId': typeof WWorkspaceAppSettingsRolesRoleIdRoute
@@ -941,6 +951,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/campaigns/$campaignId/report'
     | '/w/$workspace/campaigns/$campaignId/review'
     | '/w/$workspace/settings/integrations/$kind'
+    | '/w/$workspace/settings/integrations/ai'
     | '/w/$workspace/settings/integrations/hostrepute'
     | '/w/$workspace/settings/integrations/wordpress'
     | '/w/$workspace/settings/roles/$roleId'
@@ -1028,6 +1039,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/campaigns/$campaignId/report'
     | '/w/$workspace/campaigns/$campaignId/review'
     | '/w/$workspace/settings/integrations/$kind'
+    | '/w/$workspace/settings/integrations/ai'
     | '/w/$workspace/settings/integrations/hostrepute'
     | '/w/$workspace/settings/integrations/wordpress'
     | '/w/$workspace/settings/roles/$roleId'
@@ -1117,6 +1129,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/_app/campaigns/$campaignId/report'
     | '/w/$workspace/_app/campaigns/$campaignId/review'
     | '/w/$workspace/_app/settings/integrations/$kind'
+    | '/w/$workspace/_app/settings/integrations/ai'
     | '/w/$workspace/_app/settings/integrations/hostrepute'
     | '/w/$workspace/_app/settings/integrations/wordpress'
     | '/w/$workspace/_app/settings/roles/$roleId'
@@ -1684,6 +1697,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceAppSettingsIntegrationsKindRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
+    '/w/$workspace/_app/settings/integrations/ai': {
+      id: '/w/$workspace/_app/settings/integrations/ai'
+      path: '/settings/integrations/ai'
+      fullPath: '/w/$workspace/settings/integrations/ai'
+      preLoaderRoute: typeof WWorkspaceAppSettingsIntegrationsAiRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
     '/w/$workspace/_app/settings/integrations/hostrepute': {
       id: '/w/$workspace/_app/settings/integrations/hostrepute'
       path: '/settings/integrations/hostrepute'
@@ -1818,6 +1838,7 @@ interface WWorkspaceAppRouteRouteChildren {
   WWorkspaceAppCampaignsCampaignIdReportRoute: typeof WWorkspaceAppCampaignsCampaignIdReportRoute
   WWorkspaceAppCampaignsCampaignIdReviewRoute: typeof WWorkspaceAppCampaignsCampaignIdReviewRoute
   WWorkspaceAppSettingsIntegrationsKindRoute: typeof WWorkspaceAppSettingsIntegrationsKindRoute
+  WWorkspaceAppSettingsIntegrationsAiRoute: typeof WWorkspaceAppSettingsIntegrationsAiRoute
   WWorkspaceAppSettingsIntegrationsHostreputeRoute: typeof WWorkspaceAppSettingsIntegrationsHostreputeRoute
   WWorkspaceAppSettingsIntegrationsWordpressRoute: typeof WWorkspaceAppSettingsIntegrationsWordpressRoute
   WWorkspaceAppSettingsRolesRoleIdRoute: typeof WWorkspaceAppSettingsRolesRoleIdRoute
@@ -1891,6 +1912,8 @@ const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
     WWorkspaceAppCampaignsCampaignIdReviewRoute,
   WWorkspaceAppSettingsIntegrationsKindRoute:
     WWorkspaceAppSettingsIntegrationsKindRoute,
+  WWorkspaceAppSettingsIntegrationsAiRoute:
+    WWorkspaceAppSettingsIntegrationsAiRoute,
   WWorkspaceAppSettingsIntegrationsHostreputeRoute:
     WWorkspaceAppSettingsIntegrationsHostreputeRoute,
   WWorkspaceAppSettingsIntegrationsWordpressRoute:
