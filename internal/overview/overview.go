@@ -32,7 +32,10 @@ type Service struct {
 	Providers      *manage.Service
 	Campaigns      *campaigns.Service
 	Audience       Audience
-	Now            func() time.Time
+	// NextIssue finds the soonest issue of the workspace's recurring digests
+	// (internal/digests); nil leaves digests out.
+	NextIssue func(ctx context.Context, ws *store.Workspace) (*OverviewNextIssue, error)
+	Now       func() time.Time
 }
 
 func (s *Service) now() time.Time {
@@ -119,6 +122,23 @@ type OverviewNextCampaign struct {
 	Campaign *OverviewScheduledCampaign `json:"campaign,omitempty"`
 	// Drafts is the draft count, for the card when nothing is scheduled.
 	Drafts int64 `json:"drafts"`
+	// Issue is a recurring digest's next issue; the card shows it when it
+	// goes out before the next scheduled campaign.
+	Issue *OverviewNextIssue `json:"issue,omitempty"`
+}
+
+// OverviewNextIssue is a recurring digest's next issue: "Engineering blog
+// roundup #3 · Fri 17 Oct, 08:00 · 2 posts so far · needs approval".
+type OverviewNextIssue struct {
+	DigestID   string    `json:"digestId"`
+	DigestName string    `json:"digestName"`
+	Number     int       `json:"number"`
+	SendAt     time.Time `json:"sendAt"`
+	Timezone   string    `json:"timezone"`
+	Posts      int       `json:"posts"`
+	Status     string    `json:"status" enum:"collecting,preparing,prepared,waiting,held,draft"`
+	// NeedsApproval: the approval rules match the issue.
+	NeedsApproval bool `json:"needsApproval"`
 }
 
 // OverviewRefreshFailure says a provider's account health couldn't be

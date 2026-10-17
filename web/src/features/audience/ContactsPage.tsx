@@ -17,6 +17,7 @@ import { useCan, usePermissionReason, useWorkspace } from '@/lib/session'
 import { AddressCheckFilter } from '@/features/verification/AddressCheck'
 import { AudienceTabs, useAudienceSummary } from './AudienceTabs'
 import { AddContactDialog, BulkDialog, BulkResultPanel, EraseDialog, SaveViewDialog, type BulkKind } from './ContactDialogs'
+import { BandSelect, ScoreCell, ScoreGrowthChips, ScoreGrowthFields, scoreGrowthMoreKeys, ScoreHeader, useTotalLine, type ScoreGrowthDraft } from '@/features/scoring/ContactsScore'
 import { fileName, saveBlob } from './download'
 import { consentFilterLabel, consentLabel, consentTone, mailboxColor, mailboxes, mailboxLabel, tierClass, tierColor, tierLabel, tiers, type Consent, type Mailbox, type Tier } from './labels'
 import { LanguageFilter } from '@/features/page-languages/contacts'
@@ -33,6 +34,16 @@ export interface ContactsSearch {
   joinedAfter?: string
   segment?: string
   language?: string
+  // Scoring and Growth (X13).
+  band?: 'cold' | 'warm' | 'hot' | 'none'
+  scoreFrom?: number
+  scoreTo?: number
+  growthSource?: string
+  utmSource?: string
+  utmMedium?: string
+  utmCampaign?: string
+  referringDomain?: string
+  sort?: 'activity' | 'score'
   /** The latest address check (X14). */
   check?: 'valid' | 'invalid' | 'risky' | 'unknown' | 'never'
   page?: number
@@ -42,7 +53,30 @@ export interface ContactsSearch {
 type Item = Schemas['ContactListItem']
 type Filter = Schemas['ContactFilter']
 
-const filterKeys = ['q', 'list', 'tier', 'mailbox', 'consent', 'source', 'tag', 'joinedAfter', 'segment', 'language', 'check'] as const
+const filterKeys = [
+  'q',
+  'list',
+  'tier',
+  'mailbox',
+  'consent',
+  'source',
+  'tag',
+  'joinedAfter',
+  'segment',
+  'language',
+  // Scoring and Growth (X13).
+  'band',
+  'scoreFrom',
+  'scoreTo',
+  'growthSource',
+  'utmSource',
+  'utmMedium',
+  'utmCampaign',
+  'referringDomain',
+  'sort',
+  // The latest address check (X14).
+  'check',
+] as const
 
 /** The filter part of the search params, without empty values. */
 export function filterOf(s: ContactsSearch): Filter {
@@ -158,6 +192,8 @@ export function ContactsPage({ search }: { search: ContactsSearch }) {
               page={page}
               size={size}
               filtered={Object.keys(filter).length > 0}
+              byScore={search.sort === 'score'}
+              onSort={(score) => go({ ...search, sort: score ? 'score' : undefined, page: undefined })}
               onPage={(p) => go({ ...search, page: p > 1 ? p : undefined })}
               onSize={(s) => go({ ...search, size: s === 10 ? undefined : s, page: undefined })}
               onClear={() => go({ size: search.size })}
@@ -271,7 +307,8 @@ function Filters({
     const h = window.setTimeout(() => onChange({ q: q.trim() || undefined }), 250)
     return () => window.clearTimeout(h)
   }, [q, urlQ, onChange])
-  const more = [search.source, search.tag, search.joinedAfter, search.segment].filter(Boolean).length
+  const more = [search.source, search.tag, search.joinedAfter, search.segment].filter(Boolean).length + scoreGrowthMoreKeys.filter((k) => search[k] !== undefined).length
+  const totalLine = useTotalLine()
   const phone = 'max-md:w-0 max-md:min-w-full'
   const sel = `in ${phone}`
   return (
@@ -303,6 +340,7 @@ function Filters({
           </option>
         ))}
       </select>
+      <BandSelect className={sel} value={search.band} onChange={(band) => onChange({ band })} />
       <select className={sel} aria-label="Mailbox provider" value={search.mailbox ?? ''} onChange={(e) => onChange({ mailbox: (e.target.value || undefined) as Mailbox | undefined })}>
         <option value="">Any mailbox provider</option>
         {mailboxes.map((m) => (
@@ -327,7 +365,8 @@ function Filters({
       <LanguageFilter className={sel} value={search.language} onChange={(language) => onChange({ language })} />
       <AddressCheckFilter className={sel} value={search.check} onChange={(check) => onChange({ check })} />
       <MoreFilters search={search} n={more} onChange={onChange} />
-      <span className="k ml-auto">{total === undefined ? '' : `${count(total)} ${total === 1 ? 'contact' : 'contacts'} · sorted by last activity`}</span>
+      <span className="k ml-auto">{total === undefined ? '' : totalLine(total, search.sort === 'score')}</span>
+      <ScoreGrowthChips search={search} onChange={onChange} />
     </div>
   )
 }
@@ -340,6 +379,8 @@ function MoreFilters({ search, n, onChange }: { search: ContactsSearch; n: numbe
   const [tag, setTag] = useState(search.tag ?? '')
   const [after, setAfter] = useState(search.joinedAfter ?? '')
   const [segment, setSegment] = useState(search.segment ?? '')
+  const scoreGrowth = (): ScoreGrowthDraft => Object.fromEntries(scoreGrowthMoreKeys.map((k) => [k, search[k]]))
+  const [extra, setExtra] = useState<ScoreGrowthDraft>(scoreGrowth)
   const toggle = (o: boolean) => {
     if (o) {
       // Opening shows the filters that apply now.
@@ -347,6 +388,7 @@ function MoreFilters({ search, n, onChange }: { search: ContactsSearch; n: numbe
       setTag(search.tag ?? '')
       setAfter(search.joinedAfter ?? '')
       setSegment(search.segment ?? '')
+      setExtra(scoreGrowth())
     }
     setOpen(o)
   }
@@ -356,7 +398,7 @@ function MoreFilters({ search, n, onChange }: { search: ContactsSearch; n: numbe
       onOpenChange={toggle}
       align="start"
       label="More filters"
-      className="w-[320px] gap-3 p-3.5"
+      className="w-[360px] gap-3 p-3.5"
       trigger={<button className="btn">{n ? `More filters · ${n}` : 'More filters'}</button>}
     >
       <Field label="Source">
@@ -385,11 +427,12 @@ function MoreFilters({ search, n, onChange }: { search: ContactsSearch; n: numbe
           ))}
         </Select>
       </Field>
+      <ScoreGrowthFields draft={extra} onChange={setExtra} open={open} />
       <div className="flex justify-end gap-2">
         <Button
           size="sm"
           onClick={() => {
-            onChange({ source: undefined, tag: undefined, joinedAfter: undefined, segment: undefined })
+            onChange({ source: undefined, tag: undefined, joinedAfter: undefined, segment: undefined, ...Object.fromEntries(scoreGrowthMoreKeys.map((k) => [k, undefined])) })
             setOpen(false)
           }}
         >
@@ -399,7 +442,7 @@ function MoreFilters({ search, n, onChange }: { search: ContactsSearch; n: numbe
           size="sm"
           variant="primary"
           onClick={() => {
-            onChange({ source: source || undefined, tag: tag.trim() || undefined, joinedAfter: after || undefined, segment: segment || undefined })
+            onChange({ source: source || undefined, tag: tag.trim() || undefined, joinedAfter: after || undefined, segment: segment || undefined, ...extra })
             setOpen(false)
           }}
         >
@@ -456,6 +499,8 @@ function ContactsTable({
   onPage,
   onSize,
   onClear,
+  byScore,
+  onSort,
 }: {
   data: Schemas['ContactList']
   selection: RowSelectionState
@@ -466,6 +511,8 @@ function ContactsTable({
   onPage: (p: number) => void
   onSize: (s: number) => void
   onClear: () => void
+  byScore: boolean
+  onSort: (score: boolean) => void
 }) {
   const { slug } = useWorkspace()
   const columns = useMemo(
@@ -517,6 +564,7 @@ function ContactsTable({
               <th scope="col">Contact</th>
               <th scope="col">Lists</th>
               <th scope="col">Tier</th>
+              <ScoreHeader sorted={byScore} onSort={onSort} />
               <th scope="col">Consent</th>
               <th scope="col">Mailbox provider</th>
               <th scope="col">Last open</th>
@@ -548,6 +596,9 @@ function ContactsTable({
                   <td>
                     <span className={`badge ${tierClass[tier]}`}>{tierLabel[tier]}</span>
                   </td>
+                  <td className="nw">
+                    <ScoreCell score={c.score} band={c.scoreBand} />
+                  </td>
                   <td>
                     {c.suppressed ? (
                       <Badge tone="bad">Suppressed</Badge>
@@ -570,7 +621,7 @@ function ContactsTable({
             })}
             {data.items.length === 0 ? (
               <tr>
-                <td colSpan={9} className="py-8 text-center text-ink-3">
+                <td colSpan={10} className="py-8 text-center text-ink-3">
                   {filtered ? (
                     <>
                       No contacts match these filters.{' '}

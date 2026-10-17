@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"
+	xmlns:content="http://purl.org/rss/1.0/modules/content/"
+	xmlns:wfw="http://wellformedweb.org/CommentAPI/"
+	xmlns:dc="http://purl.org/dc/elements/1.1/"
+	xmlns:atom="http://www.w3.org/2005/Atom"
+	xmlns:sy="http://purl.org/rss/1.0/modules/syndication/"
+	xmlns:slash="http://purl.org/rss/1.0/modules/slash/"
+	xmlns:media="http://search.yahoo.com/mrss/"
+	>
+
+<channel>
+	<title>Acme engineering blog</title>
+	<atom:link href="https://blog.acme.io/feed/" rel="self" type="application/rss+xml" />
+	<link>https://blog.acme.io</link>
+	<description>What the Acme engineering team is working on</description>
+	<lastBuildDate>Wed, 15 Oct 2026 14:04:00 +0000</lastBuildDate>
+	<language>en-US</language>
+	<generator>https://wordpress.org/?v=6.9.2</generator>
+	<item>
+		<title>Scheduled rollouts are here</title>
+		<link>https://blog.acme.io/scheduled-rollouts/</link>
+		<dc:creator><![CDATA[Joel Weber]]></dc:creator>
+		<pubDate>Wed, 15 Oct 2026 14:04:00 +0000</pubDate>
+		<category domain="category"><![CDATA[Announcements]]></category>
+		<guid isPermaLink="false">https://blog.acme.io/?p=812</guid>
+		<description><![CDATA[You can now schedule flag changes ahead of time, in any timezone. [&#8230;]]]></description>
+		<content:encoded><![CDATA[<p><img src="https://blog.acme.io/wp-content/uploads/2026/10/scheduled-rollouts.png" alt="A rollout calendar" width="1200" height="600" /></p><p>You can now schedule flag changes ahead of time.</p>]]></content:encoded>
+	</item>
+	<item>
+		<title>A year of on-call in numbers</title>
+		<link>https://blog.acme.io/on-call-in-numbers/</link>
+		<dc:creator><![CDATA[Joel Weber]]></dc:creator>
+		<pubDate>Wed, 15 Oct 2026 11:30:00 +0000</pubDate>
+		<category domain="category"><![CDATA[Engineering]]></category>
+		<category domain="post_tag"><![CDATA[on-call]]></category>
+		<guid isPermaLink="false">https://blog.acme.io/?p=809</guid>
+		<description><![CDATA[<p>We were paged 1,412 times in 2025, and a third of those pages came from the same three alerts.</p><script>alert(1)</script><style>p{color:red}</style><p>Here&#8217;s what we changed.</p>
+<p>The post <a href="https://blog.acme.io/on-call-in-numbers/">A year of on-call in numbers</a> appeared first on <a href="https://blog.acme.io">Acme engineering blog</a>.</p>]]></description>
+		<content:encoded><![CDATA[<figure><img src="/wp-content/uploads/2026/10/on-call-2025.png" alt="Heat map of on-call pages by hour" /></figure><p>We were paged 1,412 times in 2025.</p>]]></content:encoded>
+	</item>
+	<item>
+		<title>How we test database migrations</title>
+		<link>https://blog.acme.io/testing-migrations/</link>
+		<dc:creator><![CDATA[Mei Tanaka]]></dc:creator>
+		<pubDate>Tue, 14 Oct 2026 20:30:00 +0000</pubDate>
+		<category domain="category"><![CDATA[Infrastructure]]></category>
+		<category domain="post_tag"><![CDATA[postgres]]></category>
+		<guid isPermaLink="false">https://blog.acme.io/?p=805</guid>
+		<description><![CDATA[Every migration runs against a fresh copy of production before it ships.]]></description>
+		<media:content url="https://blog.acme.io/wp-content/uploads/2026/10/migration-pipeline.png" medium="image">
+			<media:description>A diagram of the migration pipeline</media:description>
+		</media:content>
+	</item>
+	<item>
+		<title>Postgres partitioning without downtime</title>
+		<link>https://blog.acme.io/partitioning/</link>
+		<dc:creator>Mei Tanaka</dc:creator>
+		<pubDate>Mon, 6 Oct 2026 13:00:00 GMT</pubDate>
+		<category><![CDATA[Infrastructure]]></category>
+		<guid isPermaLink="false">https://blog.acme.io/?p=790</guid>
+		<description>Our events table passed 3 billion rows in August &amp; kept growing.</description>
+	</item>
+	<item>
+		<title>Postgres partitioning without downtime</title>
+		<link>https://blog.acme.io/partitioning/</link>
+		<pubDate>Mon, 6 Oct 2026 13:00:00 GMT</pubDate>
+		<guid isPermaLink="false">https://blog.acme.io/?p=790</guid>
+		<description>A duplicate of the item above, as some feeds repeat posts.</description>
+	</item>
+</channel>
+</rss>

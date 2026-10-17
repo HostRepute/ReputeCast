@@ -250,8 +250,8 @@ func TestArchiveLanguages(t *testing.T) {
 
 	t.Run("the list in the visitor's language", func(t *testing.T) {
 		r := page("/p/acme-newsletter/archive", hdr{"Accept-Language": "es"})
-		must(t, r, 200, `<html lang="es" dir="ltr">`, "Archivo del boletín", "Todos los números de Weekly Digest y Product Updates desde ", " 44 números.",
-			">Todos</a>", "1 a 10 de 44", "Números anteriores", "Buscar números",
+		must(t, r, 200, `<html lang="es" dir="ltr">`, "Archivo del boletín", "Todos los números de Weekly Digest y Product Updates desde ", " 46 números.",
+			">Todos</a>", "1 a 10 de 46", "Números anteriores", "Buscar números",
 			`<a class="t" href="`+env.Server.URL+issue+`/es">El caso de la infraestructura aburrida</a>`,
 			// The issues without a Spanish version say they're in English.
 			`<article class="issue" lang="en">`,

@@ -45,6 +45,8 @@ func TestSegmentsDemo(t *testing.T) {
 			"Beta Program, opened a beta email":   1402,
 			"Gmail only, clickers":                4916,
 			"Customers with mrr over $50":         1087,
+			// Contact scoring (X13): Sofia's segment of Hot contacts on paid plans.
+			"Hot on paid plans": 1532,
 		}
 		if len(list.Items) != len(want) {
 			t.Fatalf("%d segments, want %d", len(list.Items), len(want))
@@ -115,8 +117,9 @@ func TestSegmentsDemo(t *testing.T) {
 		in := map[string]any{"name": "Sunset, for the win-back", "mode": "builder", "definition": def}
 		viewer.Do(http.MethodPost, ws+"/segments", in).MustStatus(t, 403)
 		var s segment
+		created := audits(t, env, "segment.create")
 		c.Do(http.MethodPost, ws+"/segments", in).MustStatus(t, 201).JSON(t, &s)
-		if s.Count != 3615 || audits(t, env, "segment.create") != 1 {
+		if s.Count != 3615 || audits(t, env, "segment.create") != created+1 {
 			t.Fatalf("create: %+v, audit %d", s, audits(t, env, "segment.create"))
 		}
 		in["name"] = "Sunset, renamed"

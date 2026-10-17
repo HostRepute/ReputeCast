@@ -37,12 +37,12 @@ export function JobsTray() {
       if (j.status === 'done') {
         toast({
           kind: 'success',
-          title: t(j.kind === 'import' ? m.jobImportFinished : j.kind === 'verification' ? m.jobVerificationFinished : m.jobExportFinished),
+          title: j.doneTitle ?? t(j.kind === 'import' ? m.jobImportFinished : j.kind === 'verification' ? m.jobVerificationFinished : m.jobExportFinished),
           detail: j.detail,
-          action: j.href ? { label: t(m.jobOpen), onClick: () => router.history.push(j.href!) } : undefined,
+          action: j.href ? { label: j.openLabel ?? t(m.jobOpen), onClick: () => router.history.push(j.href!) } : undefined,
         })
       } else if (j.status === 'failed') {
-        toast({ kind: 'error', title: t(m.jobFailed, { title: j.title }), detail: j.detail ?? t(m.jobFailedDetail) })
+        toast({ kind: 'error', title: j.failedTitle ?? t(m.jobFailed, { title: j.title }), detail: j.detail ?? t(m.jobFailedDetail) })
       }
     }
   }, [jobs, router])

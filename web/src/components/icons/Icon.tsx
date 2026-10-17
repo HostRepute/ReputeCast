@@ -386,6 +386,16 @@ const icons = {
       </>
     ),
   },
+  // Recurring digests: the "Recurring digest" and "Digest" badges.
+  repeat: {
+    body: (
+      <>
+        <path d="M3 6.5A4.5 4.5 0 0 1 7.5 2h4M9.5 0.5 11.5 2l-2 1.5" />
+        <path d="M13 9.5A4.5 4.5 0 0 1 8.5 14h-4M6.5 15.5 4.5 14l2-1.5" />
+      </>
+    ),
+    strokeWidth: 1.7,
+  },
 } satisfies Record<string, IconDef>
 
 export type IconName = keyof typeof icons

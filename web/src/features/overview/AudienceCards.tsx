@@ -2,6 +2,7 @@ import { Link } from '@tanstack/react-router'
 import type { Schemas } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
 import { LegendItem, Sparkline, StackBar } from '@/components/ui/Data'
+import { BySourceLink } from '@/features/growth/BySource'
 import { count } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { delta, netBadge, tierColor, tierName } from './words'
@@ -32,7 +33,9 @@ export function GrowthCard({ a }: { a: Schemas['OverviewAudience'] }) {
         <h2 className="h2" id="ov-growth-h">
           Subscriber growth
         </h2>
-        <span className="k">Last {a.days} days</span>
+        <span className="k">
+          Last {a.days} days · <BySourceLink />
+        </span>
       </div>
       <div className="flex flex-wrap items-baseline gap-3">
         <span className="n text-[30px] tracking-[-0.02em]">{count(a.subscribers)}</span>

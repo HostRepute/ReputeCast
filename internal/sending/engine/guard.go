@@ -885,7 +885,7 @@ func (e *Engine) finish(ctx context.Context, rs *runState, ts tallies, now time.
 			return err
 		}
 		return e.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &c.WorkspaceID, Action: "campaign.completed", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
-			Actor: systemActor, Before: map[string]any{"status": "sending"}, After: map[string]any{"status": status, "sent": t.sent, "delivered": t.delivered, "bounced": t.bounced(), "complained": t.complained},
+			Actor: e.systemFor(ctx, c.ID), Before: map[string]any{"status": "sending"}, After: map[string]any{"status": status, "sent": t.sent, "delivered": t.delivered, "bounced": t.bounced(), "complained": t.complained},
 			Metadata: map[string]any{"summary": strings.Join(parts, " · "), "source": "send worker"}})
 	})
 	if err != nil {

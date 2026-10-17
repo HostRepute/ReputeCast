@@ -34,6 +34,9 @@ var (
 	seedAppLanguages = noop // app languages: instance defaults, Marcus's region format, the invitation's language (seed_app_languages.go)
 	// content languages of forms, public pages and contacts: where contacts' languages came from, page and form copy (seed_page_languages.go)
 	seedPageLanguages = noop
+	// contact scoring and growth sources: rules, scores, sources, "Sales-ready handoff" (seed_scoring_growth.go)
+	seedScoringGrowth = noop
+	seedDigests       = noop // recurring digests: Engineering blog roundup, its feed, issues #1–#3 (seed_digests.go)
 	// address verification services and their uses, seed mailboxes and placement tests (seed_verification_placement.go)
 	seedVerificationPlacement = noop
 )

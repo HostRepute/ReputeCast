@@ -424,6 +424,8 @@ type Campaign struct {
 	Note            string          `json:"note"`
 	ContentHash     string          `json:"contentHash"`
 	ContentSettings json.RawMessage `json:"contentSettings"`
+	DigestID        *uuid.UUID      `json:"digestId"`
+	DigestRole      string          `json:"digestRole"`
 }
 
 type CampaignAudienceStage struct {
@@ -557,6 +559,13 @@ type ConsentEvent struct {
 	ImportID       *uuid.UUID  `json:"importId"`
 	ConsentText    string      `json:"consentText"`
 	Language       string      `json:"language"`
+	UtmSource      string      `json:"utmSource"`
+	UtmMedium      string      `json:"utmMedium"`
+	UtmCampaign    string      `json:"utmCampaign"`
+	UtmContent     string      `json:"utmContent"`
+	UtmTerm        string      `json:"utmTerm"`
+	Page           string      `json:"page"`
+	Referrer       string      `json:"referrer"`
 }
 
 type Contact struct {
@@ -610,11 +619,44 @@ type ContactAddressCheck struct {
 	CheckedAt   time.Time  `json:"checkedAt"`
 }
 
+type ContactGrowth struct {
+	ContactID      uuid.UUID  `json:"contactId"`
+	WorkspaceID    uuid.UUID  `json:"workspaceId"`
+	SourceKind     string     `json:"sourceKind"`
+	SourceID       string     `json:"sourceId"`
+	JoinedAt       time.Time  `json:"joinedAt"`
+	LeftAt         *time.Time `json:"leftAt"`
+	LeftKind       *string    `json:"leftKind"`
+	UtmSource      string     `json:"utmSource"`
+	UtmMedium      string     `json:"utmMedium"`
+	UtmCampaign    string     `json:"utmCampaign"`
+	UtmContent     string     `json:"utmContent"`
+	UtmTerm        string     `json:"utmTerm"`
+	Page           string     `json:"page"`
+	Referrer       string     `json:"referrer"`
+	ReferrerDomain string     `json:"referrerDomain"`
+	Captured       bool       `json:"captured"`
+	UpdatedAt      time.Time  `json:"updatedAt"`
+}
+
 type ContactPreference struct {
 	ContactID   uuid.UUID  `json:"contactId"`
 	Frequency   string     `json:"frequency"`
 	PausedUntil *time.Time `json:"pausedUntil"`
 	UpdatedAt   time.Time  `json:"updatedAt"`
+}
+
+type ContactScore struct {
+	ContactID   uuid.UUID  `json:"contactId"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	Score       int16      `json:"score"`
+	EventsPart  int16      `json:"eventsPart"`
+	FieldsPart  int16      `json:"fieldsPart"`
+	ActiveAt    *time.Time `json:"activeAt"`
+	ChangedAt   *time.Time `json:"changedAt"`
+	NextCheckAt *time.Time `json:"nextCheckAt"`
+	Version     int32      `json:"version"`
+	ComputedAt  time.Time  `json:"computedAt"`
 }
 
 type ContentSource struct {
@@ -738,6 +780,129 @@ type DeliveryEvent struct {
 	DedupeKey         string      `json:"dedupeKey"`
 }
 
+type Digest struct {
+	ID           uuid.UUID       `json:"id"`
+	WorkspaceID  uuid.UUID       `json:"workspaceId"`
+	Name         string          `json:"name"`
+	TemplateID   *uuid.UUID      `json:"templateId"`
+	State        string          `json:"state"`
+	Mode         string          `json:"mode"`
+	Source       string          `json:"source"`
+	FeedUrl      string          `json:"feedUrl"`
+	SiteID       *uuid.UUID      `json:"siteId"`
+	Categories   []string        `json:"categories"`
+	Tags         []string        `json:"tags"`
+	MaxAgeDays   *int32          `json:"maxAgeDays"`
+	StartMode    string          `json:"startMode"`
+	StartLatest  int32           `json:"startLatest"`
+	Schedule     json.RawMessage `json:"schedule"`
+	PrepareHours int32           `json:"prepareHours"`
+	LateHours    int32           `json:"lateHours"`
+	Archive      bool            `json:"archive"`
+	OwnerID      *uuid.UUID      `json:"ownerId"`
+	OwnerSince   *time.Time      `json:"ownerSince"`
+	FirstOnAt    *time.Time      `json:"firstOnAt"`
+	PausedAt     *time.Time      `json:"pausedAt"`
+	PausedBy     *uuid.UUID      `json:"pausedBy"`
+	PauseReason  string          `json:"pauseReason"`
+	PauseNote    string          `json:"pauseNote"`
+	PauseDetail  json.RawMessage `json:"pauseDetail"`
+	FeedSkips    int32           `json:"feedSkips"`
+	FeedStatus   string          `json:"feedStatus"`
+	FeedKind     string          `json:"feedKind"`
+	FeedTitle    string          `json:"feedTitle"`
+	FeedItems    int32           `json:"feedItems"`
+	FeedBytes    int32           `json:"feedBytes"`
+	FeedEtag     string          `json:"feedEtag"`
+	FeedModified string          `json:"feedModified"`
+	FeedError    string          `json:"feedError"`
+	FeedSnippet  string          `json:"feedSnippet"`
+	FeedMovedTo  string          `json:"feedMovedTo"`
+	LastReadAt   *time.Time      `json:"lastReadAt"`
+	LastReadVia  string          `json:"lastReadVia"`
+	LastOkAt     *time.Time      `json:"lastOkAt"`
+	CreatedBy    *uuid.UUID      `json:"createdBy"`
+	CreatedAt    time.Time       `json:"createdAt"`
+	UpdatedBy    *uuid.UUID      `json:"updatedBy"`
+	UpdatedAt    time.Time       `json:"updatedAt"`
+	DeletedAt    *time.Time      `json:"deletedAt"`
+}
+
+type DigestFeedRead struct {
+	ID          int64           `json:"id"`
+	DigestID    uuid.UUID       `json:"digestId"`
+	At          time.Time       `json:"at"`
+	Via         string          `json:"via"`
+	Ok          bool            `json:"ok"`
+	HttpStatus  int32           `json:"httpStatus"`
+	NotModified bool            `json:"notModified"`
+	Kind        string          `json:"kind"`
+	Items       int32           `json:"items"`
+	NewItems    int32           `json:"newItems"`
+	Bytes       int32           `json:"bytes"`
+	Ms          int32           `json:"ms"`
+	Error       string          `json:"error"`
+	Hops        json.RawMessage `json:"hops"`
+}
+
+type DigestIssue struct {
+	ID          uuid.UUID       `json:"id"`
+	DigestID    uuid.UUID       `json:"digestId"`
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	Number      *int32          `json:"number"`
+	Status      string          `json:"status"`
+	Mode        string          `json:"mode"`
+	SendAt      *time.Time      `json:"sendAt"`
+	PrepareAt   *time.Time      `json:"prepareAt"`
+	Deadline    *time.Time      `json:"deadline"`
+	CampaignID  *uuid.UUID      `json:"campaignId"`
+	PreparedAt  *time.Time      `json:"preparedAt"`
+	HeldAt      *time.Time      `json:"heldAt"`
+	HoldReason  string          `json:"holdReason"`
+	StartedAt   *time.Time      `json:"startedAt"`
+	SentAt      *time.Time      `json:"sentAt"`
+	SkippedAt   *time.Time      `json:"skippedAt"`
+	SkipReason  string          `json:"skipReason"`
+	SkipNote    string          `json:"skipNote"`
+	SkippedBy   *uuid.UUID      `json:"skippedBy"`
+	FeedTries   json.RawMessage `json:"feedTries"`
+	ItemCount   int32           `json:"itemCount"`
+	Basis       json.RawMessage `json:"basis"`
+	Notified    []string        `json:"notified"`
+	CreatedAt   time.Time       `json:"createdAt"`
+	UpdatedAt   time.Time       `json:"updatedAt"`
+}
+
+type DigestIssueItem struct {
+	IssueID  uuid.UUID `json:"issueId"`
+	ItemID   uuid.UUID `json:"itemId"`
+	Position int32     `json:"position"`
+}
+
+type DigestItem struct {
+	ID           uuid.UUID  `json:"id"`
+	DigestID     uuid.UUID  `json:"digestId"`
+	Key          string     `json:"key"`
+	Url          string     `json:"url"`
+	Title        string     `json:"title"`
+	Author       string     `json:"author"`
+	PublishedAt  *time.Time `json:"publishedAt"`
+	Categories   []string   `json:"categories"`
+	Tags         []string   `json:"tags"`
+	Excerpt      string     `json:"excerpt"`
+	ImageUrl     string     `json:"imageUrl"`
+	ImageAlt     string     `json:"imageAlt"`
+	MediaID      *uuid.UUID `json:"mediaId"`
+	MediaUrl     string     `json:"mediaUrl"`
+	MediaWidth   int32      `json:"mediaWidth"`
+	MediaHeight  int32      `json:"mediaHeight"`
+	ImageError   string     `json:"imageError"`
+	FirstSeenAt  time.Time  `json:"firstSeenAt"`
+	FirstSeenVia string     `json:"firstSeenVia"`
+	LastSeenAt   time.Time  `json:"lastSeenAt"`
+	GoneAt       *time.Time `json:"goneAt"`
+}
+
 type DmarcReport struct {
 	ID          uuid.UUID       `json:"id"`
 	WorkspaceID uuid.UUID       `json:"workspaceId"`
@@ -851,6 +1016,26 @@ type FormSubmission struct {
 	RemindedAt    *time.Time  `json:"remindedAt"`
 	ConfirmedAt   *time.Time  `json:"confirmedAt"`
 	Language      string      `json:"language"`
+}
+
+type GrowthQualityDaily struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Day         time.Time `json:"day"`
+	Dim         string    `json:"dim"`
+	Key         string    `json:"key"`
+	Sent        int64     `json:"sent"`
+	Delivered   int64     `json:"delivered"`
+	Bounced     int64     `json:"bounced"`
+	Complained  int64     `json:"complained"`
+	HumanOpened int64     `json:"humanOpened"`
+}
+
+type GrowthState struct {
+	WorkspaceID       uuid.UUID  `json:"workspaceId"`
+	CaptureStartedAt  *time.Time `json:"captureStartedAt"`
+	AttributedThrough *time.Time `json:"attributedThrough"`
+	RolledUpThrough   *time.Time `json:"rolledUpThrough"`
+	UpdatedAt         time.Time  `json:"updatedAt"`
 }
 
 type HostreputeConnection struct {
@@ -1566,6 +1751,74 @@ type SavedView struct {
 	Position     int32           `json:"position"`
 	CreatedAt    time.Time       `json:"createdAt"`
 	ShowInHealth bool            `json:"showInHealth"`
+}
+
+type ScoreEvent struct {
+	WorkspaceID uuid.UUID   `json:"workspaceId"`
+	ContactID   uuid.UUID   `json:"contactId"`
+	SourceID    uuid.UUID   `json:"sourceId"`
+	OccurredAt  time.Time   `json:"occurredAt"`
+	Kind        string      `json:"kind"`
+	Ref         string      `json:"ref"`
+	Lists       []uuid.UUID `json:"lists"`
+	MessageID   *uuid.UUID  `json:"messageId"`
+	Counted     bool        `json:"counted"`
+}
+
+type ScoringConfig struct {
+	WorkspaceID     uuid.UUID  `json:"workspaceId"`
+	Version         int32      `json:"version"`
+	AppliedVersion  int32      `json:"appliedVersion"`
+	IngestedThrough *time.Time `json:"ingestedThrough"`
+	NightlyAt       *time.Time `json:"nightlyAt"`
+	SetUpBy         *uuid.UUID `json:"setUpBy"`
+	SetUpAt         *time.Time `json:"setUpAt"`
+	UpdatedAt       time.Time  `json:"updatedAt"`
+}
+
+type ScoringDirty struct {
+	ContactID   uuid.UUID `json:"contactId"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	QueuedAt    time.Time `json:"queuedAt"`
+}
+
+type ScoringRecalc struct {
+	ID               uuid.UUID       `json:"id"`
+	WorkspaceID      uuid.UUID       `json:"workspaceId"`
+	Version          int32           `json:"version"`
+	Reason           string          `json:"reason"`
+	Status           string          `json:"status"`
+	StartAutomations bool            `json:"startAutomations"`
+	Total            int64           `json:"total"`
+	Done             int64           `json:"done"`
+	Cursor           *uuid.UUID      `json:"cursor"`
+	Label            string          `json:"label"`
+	Changes          json.RawMessage `json:"changes"`
+	StartedBy        *uuid.UUID      `json:"startedBy"`
+	StartedAt        time.Time       `json:"startedAt"`
+	FinishedAt       *time.Time      `json:"finishedAt"`
+	FailedAt         *time.Time      `json:"failedAt"`
+	Error            string          `json:"error"`
+	Summary          json.RawMessage `json:"summary"`
+}
+
+type ScoringRecalcScore struct {
+	RecalcID    uuid.UUID  `json:"recalcId"`
+	ContactID   uuid.UUID  `json:"contactId"`
+	Score       int16      `json:"score"`
+	EventsPart  int16      `json:"eventsPart"`
+	FieldsPart  int16      `json:"fieldsPart"`
+	ActiveAt    *time.Time `json:"activeAt"`
+	ChangedAt   *time.Time `json:"changedAt"`
+	NextCheckAt *time.Time `json:"nextCheckAt"`
+}
+
+type ScoringVersion struct {
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	Version     int32           `json:"version"`
+	Config      json.RawMessage `json:"config"`
+	CreatedBy   *uuid.UUID      `json:"createdBy"`
+	CreatedAt   time.Time       `json:"createdAt"`
 }
 
 type Segment struct {

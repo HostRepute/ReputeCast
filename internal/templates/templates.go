@@ -46,17 +46,26 @@ const DefaultAddress = "Your company · Street and number · City, postcode"
 type starter struct {
 	key, name, description string
 	thumb                  []mjml.MJMLThumbItem
+	// digest starters are offered in the composer's digest mode only (a
+	// recurring digest's template), and only there.
+	digest bool
 }
 
 // The gallery order and wireframes of the starters (ComposerEmpty board).
 var starters = []starter{
-	{"blank", "Blank", "Just a body and a footer block", []mjml.MJMLThumbItem{}},
-	{"weekly-digest", "Weekly digest", "Hero, two article cards, footer", []mjml.MJMLThumbItem{{H: 10, W: 40}, {H: 34}, {Row: []mjml.MJMLThumbItem{{H: 28}, {H: 28}}}, {H: 8}}},
-	{"product-update", "Product update", "One announcement, one button", []mjml.MJMLThumbItem{{H: 10, W: 40}, {H: 40}, {H: 8, W: 70}, {H: 14, W: 35, Accent: true}}},
-	{"plain-text", "Plain text", "Personal note, no images", []mjml.MJMLThumbItem{{H: 8, W: 90}, {H: 8, W: 85}, {H: 8, W: 88}, {H: 8, W: 60}}},
-	{"announcement", "Announcement", "Full-width hero", []mjml.MJMLThumbItem{{H: 48}, {H: 10, W: 60}, {H: 8, W: 80}}},
-	{"product-grid", "Product grid", "Three product cards per row", []mjml.MJMLThumbItem{{Row: []mjml.MJMLThumbItem{{H: 30}, {H: 30}, {H: 30}}}, {H: 8, W: 70}, {Row: []mjml.MJMLThumbItem{{H: 30}, {H: 30}, {H: 30}}}}},
+	{key: "blank", name: "Blank", description: "Just a body and a footer block", thumb: []mjml.MJMLThumbItem{}},
+	{key: "weekly-digest", name: "Weekly digest", description: "Hero, two article cards, footer", thumb: []mjml.MJMLThumbItem{{H: 10, W: 40}, {H: 34}, {Row: []mjml.MJMLThumbItem{{H: 28}, {H: 28}}}, {H: 8}}},
+	{key: "product-update", name: "Product update", description: "One announcement, one button", thumb: []mjml.MJMLThumbItem{{H: 10, W: 40}, {H: 40}, {H: 8, W: 70}, {H: 14, W: 35, Accent: true}}},
+	{key: "plain-text", name: "Plain text", description: "Personal note, no images", thumb: []mjml.MJMLThumbItem{{H: 8, W: 90}, {H: 8, W: 85}, {H: 8, W: 88}, {H: 8, W: 60}}},
+	{key: "announcement", name: "Announcement", description: "Full-width hero", thumb: []mjml.MJMLThumbItem{{H: 48}, {H: 10, W: 60}, {H: 8, W: 80}}},
+	{key: "product-grid", name: "Product grid", description: "Three product cards per row", thumb: []mjml.MJMLThumbItem{{Row: []mjml.MJMLThumbItem{{H: 30}, {H: 30}, {H: 30}}}, {H: 8, W: 70}, {Row: []mjml.MJMLThumbItem{{H: 30}, {H: 30}, {H: 30}}}}},
+	// Recurring digests (design expansion, phase 3).
+	{key: "blog-digest", name: "Blog digest", description: "Header, intro, the feed's posts as cards, footer", digest: true,
+		thumb: []mjml.MJMLThumbItem{{H: 10, W: 40}, {H: 8, W: 85}, {H: 30}, {H: 8, W: 70}, {H: 30}, {H: 8}}},
 }
+
+// BlogDigestStarter is the key of the recurring digest's starter.
+const BlogDigestStarter = "blog-digest"
 
 // StarterMJML returns a starter's MJML with the workspace address filled in
 // and image URLs pointing at /media/starters/.
@@ -133,8 +142,17 @@ type EmailTemplateGallery struct {
 // Gallery lists starters, the workspace's templates and saved sections, and
 // the last sent campaign.
 func (s *Service) Gallery(ctx context.Context, ws *store.Workspace) (EmailTemplateGallery, error) {
+	return s.GalleryFor(ctx, ws, false)
+}
+
+// GalleryFor is the gallery of the composer's regular mode, or of its
+// digest mode (digest true), which adds the digest starters.
+func (s *Service) GalleryFor(ctx context.Context, ws *store.Workspace, digest bool) (EmailTemplateGallery, error) {
 	g := EmailTemplateGallery{Starters: []EmailTemplateSummary{}, Templates: []EmailTemplateSummary{}, Sections: []EmailTemplateSummary{}}
 	for _, st := range starters {
+		if st.digest && !digest {
+			continue
+		}
 		src, _ := StarterMJML(st.key, "")
 		g.Starters = append(g.Starters, EmailTemplateSummary{ID: StarterPrefix + st.key, Kind: "template", Name: st.name, Description: st.description, Thumb: st.thumb, Builtin: true, SizeBytes: len(src)})
 	}

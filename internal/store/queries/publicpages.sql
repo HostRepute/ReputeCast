@@ -38,6 +38,8 @@ WHERE ai.workspace_id = @workspace_id
   AND ai.list_id = ANY (@lists::uuid[])
   AND (@include_hidden::boolean OR NOT ai.hidden)
   AND (sqlc.narg(list_id)::uuid IS NULL OR ai.list_id = sqlc.narg(list_id)::uuid)
+  AND (sqlc.narg(digest_id)::uuid IS NULL OR c.digest_id = sqlc.narg(digest_id)::uuid)
+  AND NOT EXISTS (SELECT 1 FROM digests dg WHERE dg.id = c.digest_id AND NOT dg.archive)
   AND (@q::text = '' OR ai.title ILIKE @q OR c.subject ILIKE @q OR ai.excerpt ILIKE @q OR c.preheader ILIKE @q
        OR EXISTS (SELECT 1 FROM content_translations ct
                   WHERE ct.owner_kind = 'campaign' AND ct.owner_id = c.id AND ct.owner_version = 0 AND ct.status = 'translated' AND NOT ct.held
@@ -54,7 +56,8 @@ SELECT ai.campaign_id, ai.slug, ai.list_id, coalesce(l.name, '')::text AS list_n
 FROM archive_issues ai
 JOIN campaigns c ON c.id = ai.campaign_id AND c.deleted_at IS NULL AND c.status = 'sent'
 LEFT JOIN lists l ON l.id = ai.list_id
-WHERE ai.workspace_id = @workspace_id AND ai.campaign_id = @campaign_id;
+WHERE ai.workspace_id = @workspace_id AND ai.campaign_id = @campaign_id
+  AND NOT EXISTS (SELECT 1 FROM digests dg WHERE dg.id = c.digest_id AND NOT dg.archive);
 
 -- name: ArchiveIssueCount :one
 SELECT count(*)::bigint
@@ -64,6 +67,8 @@ WHERE ai.workspace_id = @workspace_id
   AND ai.list_id = ANY (@lists::uuid[])
   AND (@include_hidden::boolean OR NOT ai.hidden)
   AND (sqlc.narg(list_id)::uuid IS NULL OR ai.list_id = sqlc.narg(list_id)::uuid)
+  AND (sqlc.narg(digest_id)::uuid IS NULL OR c.digest_id = sqlc.narg(digest_id)::uuid)
+  AND NOT EXISTS (SELECT 1 FROM digests dg WHERE dg.id = c.digest_id AND NOT dg.archive)
   AND (@q::text = '' OR ai.title ILIKE @q OR c.subject ILIKE @q OR ai.excerpt ILIKE @q OR c.preheader ILIKE @q
        OR EXISTS (SELECT 1 FROM content_translations ct
                   WHERE ct.owner_kind = 'campaign' AND ct.owner_id = c.id AND ct.owner_version = 0 AND ct.status = 'translated' AND NOT ct.held
@@ -76,7 +81,8 @@ SELECT count(*)::bigint AS issues,
        coalesce(max(coalesce(c.completed_at, c.started_at, c.created_at)), now())::timestamptz AS last_at
 FROM archive_issues ai
 JOIN campaigns c ON c.id = ai.campaign_id AND c.deleted_at IS NULL AND c.status = 'sent'
-WHERE ai.workspace_id = @workspace_id AND ai.list_id = ANY (@lists::uuid[]) AND NOT ai.hidden;
+WHERE ai.workspace_id = @workspace_id AND ai.list_id = ANY (@lists::uuid[]) AND NOT ai.hidden
+  AND NOT EXISTS (SELECT 1 FROM digests dg WHERE dg.id = c.digest_id AND NOT dg.archive);
 
 -- name: ArchiveIssueBySlug :one
 SELECT ai.campaign_id, ai.slug, ai.list_id, coalesce(l.name, '')::text AS list_name, ai.title, ai.excerpt, ai.label, ai.hidden,
@@ -86,7 +92,8 @@ SELECT ai.campaign_id, ai.slug, ai.list_id, coalesce(l.name, '')::text AS list_n
 FROM archive_issues ai
 JOIN campaigns c ON c.id = ai.campaign_id AND c.deleted_at IS NULL AND c.status = 'sent'
 LEFT JOIN lists l ON l.id = ai.list_id
-WHERE ai.workspace_id = @workspace_id AND ai.slug = @slug AND ai.list_id = ANY (@lists::uuid[]) AND NOT ai.hidden;
+WHERE ai.workspace_id = @workspace_id AND ai.slug = @slug AND ai.list_id = ANY (@lists::uuid[]) AND NOT ai.hidden
+  AND NOT EXISTS (SELECT 1 FROM digests dg WHERE dg.id = c.digest_id AND NOT dg.archive);
 
 -- name: ArchiveIssueGet :one
 SELECT * FROM archive_issues WHERE workspace_id = @workspace_id AND campaign_id = @campaign_id;
@@ -102,7 +109,19 @@ SELECT ai.list_id::uuid AS list_id, count(*)::bigint AS issues
 FROM archive_issues ai
 JOIN campaigns c ON c.id = ai.campaign_id AND c.deleted_at IS NULL AND c.status = 'sent'
 WHERE ai.workspace_id = @workspace_id AND ai.list_id = ANY (@lists::uuid[]) AND NOT ai.hidden
+  AND NOT EXISTS (SELECT 1 FROM digests dg WHERE dg.id = c.digest_id AND NOT dg.archive)
 GROUP BY ai.list_id;
+
+-- name: ArchiveDigestCounts :many
+-- Recurring digests with "Show in the archive" on and issues in it: the
+-- archive's digest filters (internal/digests).
+SELECT dg.id, dg.name, count(*)::bigint AS issues
+FROM archive_issues ai
+JOIN campaigns c ON c.id = ai.campaign_id AND c.deleted_at IS NULL AND c.status = 'sent'
+JOIN digests dg ON dg.id = c.digest_id AND dg.archive
+WHERE ai.workspace_id = @workspace_id AND ai.list_id = ANY (@lists::uuid[]) AND NOT ai.hidden
+GROUP BY dg.id, dg.name
+ORDER BY dg.name, dg.id;
 
 -- name: PublicMessage :one
 SELECT m.id, m.workspace_id, m.stream, m.campaign_id, m.contact_id, m.provider_id, m.mailbox_provider, m.variant, m.email

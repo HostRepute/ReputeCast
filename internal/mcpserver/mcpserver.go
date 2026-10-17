@@ -41,6 +41,10 @@ type Service struct {
 	// Transactional lists templates, renders previews and reads the log
 	// for agents (they never send).
 	Transactional *transactional.Service
+	// Growth reads Audience › Growth (nil: unavailable).
+	Growth GrowthReader
+	// Digests reads recurring digests and their issues (nil: unavailable).
+	Digests DigestReader
 	// Placement reads placement tests (nil: unavailable).
 	Placement PlacementReader
 	PublicURL func(context.Context) string
@@ -90,6 +94,9 @@ var Tools = []MCPToolInfo{
 	{"list_transactional_templates", "Transactional templates with their category, live version and numbers.", string(authz.TransactionalView), false},
 	{"render_transactional_template", "Render a transactional template with test data or given data. Nothing is sent or stored.", string(authz.TransactionalView), false},
 	{"search_transactional_messages", "Search the transactional message log by status, template or recipient, without message content.", string(authz.TransactionalView), false},
+	{"get_growth_sources", "Joins, departures, quality and cohort retention per growth source over a period (totals only, no addresses).", string(authz.SubscribersView), false},
+	{"list_digests", "Recurring digests with their status, schedule, next issue and owner. Agents can't turn a digest on.", string(authz.CampaignsView), false},
+	{"get_digest_issues", "A digest's issues: sent, skipped, held and waiting, each with its posts and results. Agents can't release or skip an issue.", string(authz.CampaignsView), false},
 	{"list_placement_tests", "Placement tests people ran: the email, the providers and where the copies landed.", string(authz.DeliverabilityView), false},
 	{"get_placement_test", "One placement test: each copy's folder, time to arrive and SPF, DKIM and DMARC, with the guidance.", string(authz.DeliverabilityView), false},
 }

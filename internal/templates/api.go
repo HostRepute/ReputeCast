@@ -15,6 +15,8 @@ import (
 
 type galleryInput struct {
 	api.WorkspaceInput
+	// Mode "digest" adds the starters of a recurring digest's template.
+	Mode string `query:"mode" enum:"regular,digest" default:"regular"`
 }
 
 type templateInput struct {
@@ -64,8 +66,8 @@ func Register(h huma.API, s *Service) {
 	tags := []string{"Templates"}
 	api.Get(h, api.Op{ID: "template-gallery", Path: "/workspaces/{workspace}/templates", Summary: "Starter templates, saved templates, saved sections and the last sent campaign",
 		Tags: tags, Access: api.Workspace(authz.TemplatesView)},
-		func(ctx context.Context, _ *galleryInput) (*api.Body[EmailTemplateGallery], error) {
-			out, err := s.Gallery(ctx, api.WorkspaceFrom(ctx))
+		func(ctx context.Context, in *galleryInput) (*api.Body[EmailTemplateGallery], error) {
+			out, err := s.GalleryFor(ctx, api.WorkspaceFrom(ctx), in.Mode == "digest")
 			return api.OK(out), err
 		})
 	api.Get(h, api.Op{ID: "get-template", Path: "/workspaces/{workspace}/templates/{templateId}", Summary: "Get a template with its MJML",
