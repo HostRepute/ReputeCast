@@ -25,6 +25,7 @@ import { Route as WWorkspaceAppNotificationsRouteImport } from './routes/w/$work
 import { Route as WWorkspaceAutomationsAutomationIdRouteImport } from './routes/w/$workspace/automations/$automationId'
 import { Route as WWorkspaceCampaignsNewRouteImport } from './routes/w/$workspace/campaigns/new'
 import { Route as WWorkspaceImportIndexRouteImport } from './routes/w/$workspace/import/index'
+import { Route as WWorkspaceTransactionalGuideRouteImport } from './routes/w/$workspace/transactional/guide'
 import { Route as WWorkspaceAppAdminAuditRouteImport } from './routes/w/$workspace/_app/admin/audit'
 import { Route as WWorkspaceAppAdminAuthenticationRouteImport } from './routes/w/$workspace/_app/admin/authentication'
 import { Route as WWorkspaceAppAdminInstanceRouteImport } from './routes/w/$workspace/_app/admin/instance'
@@ -61,6 +62,8 @@ import { Route as WWorkspaceAppSettingsProvidersRouteImport } from './routes/w/$
 import { Route as WWorkspaceAppSettingsWebhooksRouteImport } from './routes/w/$workspace/_app/settings/webhooks'
 import { Route as WWorkspaceAppTransactionalIndexRouteImport } from './routes/w/$workspace/_app/transactional/index'
 import { Route as WWorkspaceAppTransactionalImportRouteImport } from './routes/w/$workspace/_app/transactional/import'
+import { Route as WWorkspaceAppTransactionalSettingsRouteImport } from './routes/w/$workspace/_app/transactional/settings'
+import { Route as WWorkspaceAppTransactionalSetupRouteImport } from './routes/w/$workspace/_app/transactional/setup'
 import { Route as WWorkspaceCampaignsCampaignIdEditRouteImport } from './routes/w/$workspace/campaigns/$campaignId/edit'
 import { Route as WWorkspaceImportImportIdIndexRouteImport } from './routes/w/$workspace/import/$importId/index'
 import { Route as WWorkspaceImportImportIdConsentRouteImport } from './routes/w/$workspace/import/$importId/consent'
@@ -91,6 +94,8 @@ import { Route as WWorkspaceAppSettingsSendersIndexRouteImport } from './routes/
 import { Route as WWorkspaceAppSettingsSendersDomainIdRouteImport } from './routes/w/$workspace/_app/settings/senders/$domainId'
 import { Route as WWorkspaceAppSettingsTeamIndexRouteImport } from './routes/w/$workspace/_app/settings/team/index'
 import { Route as WWorkspaceAppSettingsTeamMemberIdRouteImport } from './routes/w/$workspace/_app/settings/team/$memberId'
+import { Route as WWorkspaceAppTransactionalMessagesIndexRouteImport } from './routes/w/$workspace/_app/transactional/messages/index'
+import { Route as WWorkspaceAppTransactionalMessagesMessageIdRouteImport } from './routes/w/$workspace/_app/transactional/messages/$messageId'
 import { Route as WWorkspaceAppCampaignsDigestsDigestIdIndexRouteImport } from './routes/w/$workspace/_app/campaigns/digests/$digestId/index'
 import { Route as WWorkspaceAppCampaignsDigestsDigestIdSettingsRouteImport } from './routes/w/$workspace/_app/campaigns/digests/$digestId/settings'
 
@@ -175,6 +180,12 @@ const WWorkspaceImportIndexRoute = WWorkspaceImportIndexRouteImport.update({
   path: '/import/',
   getParentRoute: () => WWorkspaceRouteRoute,
 } as any)
+const WWorkspaceTransactionalGuideRoute =
+  WWorkspaceTransactionalGuideRouteImport.update({
+    id: '/transactional/guide',
+    path: '/transactional/guide',
+    getParentRoute: () => WWorkspaceRouteRoute,
+  } as any)
 const WWorkspaceAppAdminAuditRoute = WWorkspaceAppAdminAuditRouteImport.update({
   id: '/admin/audit',
   path: '/admin/audit',
@@ -386,6 +397,18 @@ const WWorkspaceAppTransactionalImportRoute =
     path: '/transactional/import',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
+const WWorkspaceAppTransactionalSettingsRoute =
+  WWorkspaceAppTransactionalSettingsRouteImport.update({
+    id: '/transactional/settings',
+    path: '/transactional/settings',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppTransactionalSetupRoute =
+  WWorkspaceAppTransactionalSetupRouteImport.update({
+    id: '/transactional/setup',
+    path: '/transactional/setup',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
 const WWorkspaceCampaignsCampaignIdEditRoute =
   WWorkspaceCampaignsCampaignIdEditRouteImport.update({
     id: '/campaigns/$campaignId/edit',
@@ -566,6 +589,18 @@ const WWorkspaceAppSettingsTeamMemberIdRoute =
     path: '/settings/team/$memberId',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
+const WWorkspaceAppTransactionalMessagesIndexRoute =
+  WWorkspaceAppTransactionalMessagesIndexRouteImport.update({
+    id: '/transactional/messages/',
+    path: '/transactional/messages/',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppTransactionalMessagesMessageIdRoute =
+  WWorkspaceAppTransactionalMessagesMessageIdRouteImport.update({
+    id: '/transactional/messages/$messageId',
+    path: '/transactional/messages/$messageId',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
 const WWorkspaceAppCampaignsDigestsDigestIdIndexRoute =
   WWorkspaceAppCampaignsDigestsDigestIdIndexRouteImport.update({
     id: '/campaigns/digests/$digestId/',
@@ -593,6 +628,7 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/notifications': typeof WWorkspaceAppNotificationsRoute
   '/w/$workspace/automations/$automationId': typeof WWorkspaceAutomationsAutomationIdRoute
   '/w/$workspace/campaigns/new': typeof WWorkspaceCampaignsNewRoute
+  '/w/$workspace/transactional/guide': typeof WWorkspaceTransactionalGuideRoute
   '/w/$workspace/': typeof WWorkspaceAppIndexRoute
   '/w/$workspace/import/': typeof WWorkspaceImportIndexRoute
   '/w/$workspace/admin/audit': typeof WWorkspaceAppAdminAuditRoute
@@ -620,6 +656,8 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/settings/providers': typeof WWorkspaceAppSettingsProvidersRoute
   '/w/$workspace/settings/webhooks': typeof WWorkspaceAppSettingsWebhooksRoute
   '/w/$workspace/transactional/import': typeof WWorkspaceAppTransactionalImportRoute
+  '/w/$workspace/transactional/settings': typeof WWorkspaceAppTransactionalSettingsRoute
+  '/w/$workspace/transactional/setup': typeof WWorkspaceAppTransactionalSetupRoute
   '/w/$workspace/campaigns/$campaignId/edit': typeof WWorkspaceCampaignsCampaignIdEditRoute
   '/w/$workspace/import/$importId/consent': typeof WWorkspaceImportImportIdConsentRoute
   '/w/$workspace/import/$importId/fields': typeof WWorkspaceImportImportIdFieldsRoute
@@ -655,12 +693,14 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/settings/roles/$roleId': typeof WWorkspaceAppSettingsRolesRoleIdRoute
   '/w/$workspace/settings/senders/$domainId': typeof WWorkspaceAppSettingsSendersDomainIdRoute
   '/w/$workspace/settings/team/$memberId': typeof WWorkspaceAppSettingsTeamMemberIdRoute
+  '/w/$workspace/transactional/messages/$messageId': typeof WWorkspaceAppTransactionalMessagesMessageIdRoute
   '/w/$workspace/admin/sso/': typeof WWorkspaceAppAdminSsoIndexRoute
   '/w/$workspace/audience/segments/': typeof WWorkspaceAppAudienceSegmentsIndexRoute
   '/w/$workspace/settings/integrations/': typeof WWorkspaceAppSettingsIntegrationsIndexRoute
   '/w/$workspace/settings/roles/': typeof WWorkspaceAppSettingsRolesIndexRoute
   '/w/$workspace/settings/senders/': typeof WWorkspaceAppSettingsSendersIndexRoute
   '/w/$workspace/settings/team/': typeof WWorkspaceAppSettingsTeamIndexRoute
+  '/w/$workspace/transactional/messages/': typeof WWorkspaceAppTransactionalMessagesIndexRoute
   '/w/$workspace/campaigns/digests/$digestId/settings': typeof WWorkspaceAppCampaignsDigestsDigestIdSettingsRoute
   '/w/$workspace/campaigns/digests/$digestId/': typeof WWorkspaceAppCampaignsDigestsDigestIdIndexRoute
 }
@@ -678,6 +718,7 @@ export interface FileRoutesByTo {
   '/w/$workspace/notifications': typeof WWorkspaceAppNotificationsRoute
   '/w/$workspace/automations/$automationId': typeof WWorkspaceAutomationsAutomationIdRoute
   '/w/$workspace/campaigns/new': typeof WWorkspaceCampaignsNewRoute
+  '/w/$workspace/transactional/guide': typeof WWorkspaceTransactionalGuideRoute
   '/w/$workspace/import': typeof WWorkspaceImportIndexRoute
   '/w/$workspace/admin/audit': typeof WWorkspaceAppAdminAuditRoute
   '/w/$workspace/admin/authentication': typeof WWorkspaceAppAdminAuthenticationRoute
@@ -704,6 +745,8 @@ export interface FileRoutesByTo {
   '/w/$workspace/settings/providers': typeof WWorkspaceAppSettingsProvidersRoute
   '/w/$workspace/settings/webhooks': typeof WWorkspaceAppSettingsWebhooksRoute
   '/w/$workspace/transactional/import': typeof WWorkspaceAppTransactionalImportRoute
+  '/w/$workspace/transactional/settings': typeof WWorkspaceAppTransactionalSettingsRoute
+  '/w/$workspace/transactional/setup': typeof WWorkspaceAppTransactionalSetupRoute
   '/w/$workspace/campaigns/$campaignId/edit': typeof WWorkspaceCampaignsCampaignIdEditRoute
   '/w/$workspace/import/$importId/consent': typeof WWorkspaceImportImportIdConsentRoute
   '/w/$workspace/import/$importId/fields': typeof WWorkspaceImportImportIdFieldsRoute
@@ -739,12 +782,14 @@ export interface FileRoutesByTo {
   '/w/$workspace/settings/roles/$roleId': typeof WWorkspaceAppSettingsRolesRoleIdRoute
   '/w/$workspace/settings/senders/$domainId': typeof WWorkspaceAppSettingsSendersDomainIdRoute
   '/w/$workspace/settings/team/$memberId': typeof WWorkspaceAppSettingsTeamMemberIdRoute
+  '/w/$workspace/transactional/messages/$messageId': typeof WWorkspaceAppTransactionalMessagesMessageIdRoute
   '/w/$workspace/admin/sso': typeof WWorkspaceAppAdminSsoIndexRoute
   '/w/$workspace/audience/segments': typeof WWorkspaceAppAudienceSegmentsIndexRoute
   '/w/$workspace/settings/integrations': typeof WWorkspaceAppSettingsIntegrationsIndexRoute
   '/w/$workspace/settings/roles': typeof WWorkspaceAppSettingsRolesIndexRoute
   '/w/$workspace/settings/senders': typeof WWorkspaceAppSettingsSendersIndexRoute
   '/w/$workspace/settings/team': typeof WWorkspaceAppSettingsTeamIndexRoute
+  '/w/$workspace/transactional/messages': typeof WWorkspaceAppTransactionalMessagesIndexRoute
   '/w/$workspace/campaigns/digests/$digestId/settings': typeof WWorkspaceAppCampaignsDigestsDigestIdSettingsRoute
   '/w/$workspace/campaigns/digests/$digestId': typeof WWorkspaceAppCampaignsDigestsDigestIdIndexRoute
 }
@@ -764,6 +809,7 @@ export interface FileRoutesById {
   '/w/$workspace/_app/notifications': typeof WWorkspaceAppNotificationsRoute
   '/w/$workspace/automations/$automationId': typeof WWorkspaceAutomationsAutomationIdRoute
   '/w/$workspace/campaigns/new': typeof WWorkspaceCampaignsNewRoute
+  '/w/$workspace/transactional/guide': typeof WWorkspaceTransactionalGuideRoute
   '/w/$workspace/_app/': typeof WWorkspaceAppIndexRoute
   '/w/$workspace/import/': typeof WWorkspaceImportIndexRoute
   '/w/$workspace/_app/admin/audit': typeof WWorkspaceAppAdminAuditRoute
@@ -791,6 +837,8 @@ export interface FileRoutesById {
   '/w/$workspace/_app/settings/providers': typeof WWorkspaceAppSettingsProvidersRoute
   '/w/$workspace/_app/settings/webhooks': typeof WWorkspaceAppSettingsWebhooksRoute
   '/w/$workspace/_app/transactional/import': typeof WWorkspaceAppTransactionalImportRoute
+  '/w/$workspace/_app/transactional/settings': typeof WWorkspaceAppTransactionalSettingsRoute
+  '/w/$workspace/_app/transactional/setup': typeof WWorkspaceAppTransactionalSetupRoute
   '/w/$workspace/campaigns/$campaignId/edit': typeof WWorkspaceCampaignsCampaignIdEditRoute
   '/w/$workspace/import/$importId/consent': typeof WWorkspaceImportImportIdConsentRoute
   '/w/$workspace/import/$importId/fields': typeof WWorkspaceImportImportIdFieldsRoute
@@ -826,12 +874,14 @@ export interface FileRoutesById {
   '/w/$workspace/_app/settings/roles/$roleId': typeof WWorkspaceAppSettingsRolesRoleIdRoute
   '/w/$workspace/_app/settings/senders/$domainId': typeof WWorkspaceAppSettingsSendersDomainIdRoute
   '/w/$workspace/_app/settings/team/$memberId': typeof WWorkspaceAppSettingsTeamMemberIdRoute
+  '/w/$workspace/_app/transactional/messages/$messageId': typeof WWorkspaceAppTransactionalMessagesMessageIdRoute
   '/w/$workspace/_app/admin/sso/': typeof WWorkspaceAppAdminSsoIndexRoute
   '/w/$workspace/_app/audience/segments/': typeof WWorkspaceAppAudienceSegmentsIndexRoute
   '/w/$workspace/_app/settings/integrations/': typeof WWorkspaceAppSettingsIntegrationsIndexRoute
   '/w/$workspace/_app/settings/roles/': typeof WWorkspaceAppSettingsRolesIndexRoute
   '/w/$workspace/_app/settings/senders/': typeof WWorkspaceAppSettingsSendersIndexRoute
   '/w/$workspace/_app/settings/team/': typeof WWorkspaceAppSettingsTeamIndexRoute
+  '/w/$workspace/_app/transactional/messages/': typeof WWorkspaceAppTransactionalMessagesIndexRoute
   '/w/$workspace/_app/campaigns/digests/$digestId/settings': typeof WWorkspaceAppCampaignsDigestsDigestIdSettingsRoute
   '/w/$workspace/_app/campaigns/digests/$digestId/': typeof WWorkspaceAppCampaignsDigestsDigestIdIndexRoute
 }
@@ -851,6 +901,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/notifications'
     | '/w/$workspace/automations/$automationId'
     | '/w/$workspace/campaigns/new'
+    | '/w/$workspace/transactional/guide'
     | '/w/$workspace/'
     | '/w/$workspace/import/'
     | '/w/$workspace/admin/audit'
@@ -878,6 +929,8 @@ export interface FileRouteTypes {
     | '/w/$workspace/settings/providers'
     | '/w/$workspace/settings/webhooks'
     | '/w/$workspace/transactional/import'
+    | '/w/$workspace/transactional/settings'
+    | '/w/$workspace/transactional/setup'
     | '/w/$workspace/campaigns/$campaignId/edit'
     | '/w/$workspace/import/$importId/consent'
     | '/w/$workspace/import/$importId/fields'
@@ -913,12 +966,14 @@ export interface FileRouteTypes {
     | '/w/$workspace/settings/roles/$roleId'
     | '/w/$workspace/settings/senders/$domainId'
     | '/w/$workspace/settings/team/$memberId'
+    | '/w/$workspace/transactional/messages/$messageId'
     | '/w/$workspace/admin/sso/'
     | '/w/$workspace/audience/segments/'
     | '/w/$workspace/settings/integrations/'
     | '/w/$workspace/settings/roles/'
     | '/w/$workspace/settings/senders/'
     | '/w/$workspace/settings/team/'
+    | '/w/$workspace/transactional/messages/'
     | '/w/$workspace/campaigns/digests/$digestId/settings'
     | '/w/$workspace/campaigns/digests/$digestId/'
   fileRoutesByTo: FileRoutesByTo
@@ -936,6 +991,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/notifications'
     | '/w/$workspace/automations/$automationId'
     | '/w/$workspace/campaigns/new'
+    | '/w/$workspace/transactional/guide'
     | '/w/$workspace/import'
     | '/w/$workspace/admin/audit'
     | '/w/$workspace/admin/authentication'
@@ -962,6 +1018,8 @@ export interface FileRouteTypes {
     | '/w/$workspace/settings/providers'
     | '/w/$workspace/settings/webhooks'
     | '/w/$workspace/transactional/import'
+    | '/w/$workspace/transactional/settings'
+    | '/w/$workspace/transactional/setup'
     | '/w/$workspace/campaigns/$campaignId/edit'
     | '/w/$workspace/import/$importId/consent'
     | '/w/$workspace/import/$importId/fields'
@@ -997,12 +1055,14 @@ export interface FileRouteTypes {
     | '/w/$workspace/settings/roles/$roleId'
     | '/w/$workspace/settings/senders/$domainId'
     | '/w/$workspace/settings/team/$memberId'
+    | '/w/$workspace/transactional/messages/$messageId'
     | '/w/$workspace/admin/sso'
     | '/w/$workspace/audience/segments'
     | '/w/$workspace/settings/integrations'
     | '/w/$workspace/settings/roles'
     | '/w/$workspace/settings/senders'
     | '/w/$workspace/settings/team'
+    | '/w/$workspace/transactional/messages'
     | '/w/$workspace/campaigns/digests/$digestId/settings'
     | '/w/$workspace/campaigns/digests/$digestId'
   id:
@@ -1021,6 +1081,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/_app/notifications'
     | '/w/$workspace/automations/$automationId'
     | '/w/$workspace/campaigns/new'
+    | '/w/$workspace/transactional/guide'
     | '/w/$workspace/_app/'
     | '/w/$workspace/import/'
     | '/w/$workspace/_app/admin/audit'
@@ -1048,6 +1109,8 @@ export interface FileRouteTypes {
     | '/w/$workspace/_app/settings/providers'
     | '/w/$workspace/_app/settings/webhooks'
     | '/w/$workspace/_app/transactional/import'
+    | '/w/$workspace/_app/transactional/settings'
+    | '/w/$workspace/_app/transactional/setup'
     | '/w/$workspace/campaigns/$campaignId/edit'
     | '/w/$workspace/import/$importId/consent'
     | '/w/$workspace/import/$importId/fields'
@@ -1083,12 +1146,14 @@ export interface FileRouteTypes {
     | '/w/$workspace/_app/settings/roles/$roleId'
     | '/w/$workspace/_app/settings/senders/$domainId'
     | '/w/$workspace/_app/settings/team/$memberId'
+    | '/w/$workspace/_app/transactional/messages/$messageId'
     | '/w/$workspace/_app/admin/sso/'
     | '/w/$workspace/_app/audience/segments/'
     | '/w/$workspace/_app/settings/integrations/'
     | '/w/$workspace/_app/settings/roles/'
     | '/w/$workspace/_app/settings/senders/'
     | '/w/$workspace/_app/settings/team/'
+    | '/w/$workspace/_app/transactional/messages/'
     | '/w/$workspace/_app/campaigns/digests/$digestId/settings'
     | '/w/$workspace/_app/campaigns/digests/$digestId/'
   fileRoutesById: FileRoutesById
@@ -1216,6 +1281,13 @@ declare module '@tanstack/react-router' {
       path: '/import'
       fullPath: '/w/$workspace/import/'
       preLoaderRoute: typeof WWorkspaceImportIndexRouteImport
+      parentRoute: typeof WWorkspaceRouteRoute
+    }
+    '/w/$workspace/transactional/guide': {
+      id: '/w/$workspace/transactional/guide'
+      path: '/transactional/guide'
+      fullPath: '/w/$workspace/transactional/guide'
+      preLoaderRoute: typeof WWorkspaceTransactionalGuideRouteImport
       parentRoute: typeof WWorkspaceRouteRoute
     }
     '/w/$workspace/_app/admin/audit': {
@@ -1470,6 +1542,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceAppTransactionalImportRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
+    '/w/$workspace/_app/transactional/settings': {
+      id: '/w/$workspace/_app/transactional/settings'
+      path: '/transactional/settings'
+      fullPath: '/w/$workspace/transactional/settings'
+      preLoaderRoute: typeof WWorkspaceAppTransactionalSettingsRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/transactional/setup': {
+      id: '/w/$workspace/_app/transactional/setup'
+      path: '/transactional/setup'
+      fullPath: '/w/$workspace/transactional/setup'
+      preLoaderRoute: typeof WWorkspaceAppTransactionalSetupRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
     '/w/$workspace/campaigns/$campaignId/edit': {
       id: '/w/$workspace/campaigns/$campaignId/edit'
       path: '/campaigns/$campaignId/edit'
@@ -1680,6 +1766,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceAppSettingsTeamMemberIdRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
+    '/w/$workspace/_app/transactional/messages/': {
+      id: '/w/$workspace/_app/transactional/messages/'
+      path: '/transactional/messages'
+      fullPath: '/w/$workspace/transactional/messages/'
+      preLoaderRoute: typeof WWorkspaceAppTransactionalMessagesIndexRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/transactional/messages/$messageId': {
+      id: '/w/$workspace/_app/transactional/messages/$messageId'
+      path: '/transactional/messages/$messageId'
+      fullPath: '/w/$workspace/transactional/messages/$messageId'
+      preLoaderRoute: typeof WWorkspaceAppTransactionalMessagesMessageIdRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
     '/w/$workspace/_app/campaigns/digests/$digestId/': {
       id: '/w/$workspace/_app/campaigns/digests/$digestId/'
       path: '/campaigns/digests/$digestId'
@@ -1738,6 +1838,8 @@ interface WWorkspaceAppRouteRouteChildren {
   WWorkspaceAppSettingsProvidersRoute: typeof WWorkspaceAppSettingsProvidersRoute
   WWorkspaceAppSettingsWebhooksRoute: typeof WWorkspaceAppSettingsWebhooksRoute
   WWorkspaceAppTransactionalImportRoute: typeof WWorkspaceAppTransactionalImportRoute
+  WWorkspaceAppTransactionalSettingsRoute: typeof WWorkspaceAppTransactionalSettingsRoute
+  WWorkspaceAppTransactionalSetupRoute: typeof WWorkspaceAppTransactionalSetupRoute
   WWorkspaceAppApprovalsIndexRoute: typeof WWorkspaceAppApprovalsIndexRoute
   WWorkspaceAppAudienceIndexRoute: typeof WWorkspaceAppAudienceIndexRoute
   WWorkspaceAppAutomationsIndexRoute: typeof WWorkspaceAppAutomationsIndexRoute
@@ -1761,12 +1863,14 @@ interface WWorkspaceAppRouteRouteChildren {
   WWorkspaceAppSettingsRolesRoleIdRoute: typeof WWorkspaceAppSettingsRolesRoleIdRoute
   WWorkspaceAppSettingsSendersDomainIdRoute: typeof WWorkspaceAppSettingsSendersDomainIdRoute
   WWorkspaceAppSettingsTeamMemberIdRoute: typeof WWorkspaceAppSettingsTeamMemberIdRoute
+  WWorkspaceAppTransactionalMessagesMessageIdRoute: typeof WWorkspaceAppTransactionalMessagesMessageIdRoute
   WWorkspaceAppAdminSsoIndexRoute: typeof WWorkspaceAppAdminSsoIndexRoute
   WWorkspaceAppAudienceSegmentsIndexRoute: typeof WWorkspaceAppAudienceSegmentsIndexRoute
   WWorkspaceAppSettingsIntegrationsIndexRoute: typeof WWorkspaceAppSettingsIntegrationsIndexRoute
   WWorkspaceAppSettingsRolesIndexRoute: typeof WWorkspaceAppSettingsRolesIndexRoute
   WWorkspaceAppSettingsSendersIndexRoute: typeof WWorkspaceAppSettingsSendersIndexRoute
   WWorkspaceAppSettingsTeamIndexRoute: typeof WWorkspaceAppSettingsTeamIndexRoute
+  WWorkspaceAppTransactionalMessagesIndexRoute: typeof WWorkspaceAppTransactionalMessagesIndexRoute
   WWorkspaceAppCampaignsDigestsDigestIdSettingsRoute: typeof WWorkspaceAppCampaignsDigestsDigestIdSettingsRoute
   WWorkspaceAppCampaignsDigestsDigestIdIndexRoute: typeof WWorkspaceAppCampaignsDigestsDigestIdIndexRoute
 }
@@ -1802,6 +1906,9 @@ const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
   WWorkspaceAppSettingsProvidersRoute: WWorkspaceAppSettingsProvidersRoute,
   WWorkspaceAppSettingsWebhooksRoute: WWorkspaceAppSettingsWebhooksRoute,
   WWorkspaceAppTransactionalImportRoute: WWorkspaceAppTransactionalImportRoute,
+  WWorkspaceAppTransactionalSettingsRoute:
+    WWorkspaceAppTransactionalSettingsRoute,
+  WWorkspaceAppTransactionalSetupRoute: WWorkspaceAppTransactionalSetupRoute,
   WWorkspaceAppApprovalsIndexRoute: WWorkspaceAppApprovalsIndexRoute,
   WWorkspaceAppAudienceIndexRoute: WWorkspaceAppAudienceIndexRoute,
   WWorkspaceAppAutomationsIndexRoute: WWorkspaceAppAutomationsIndexRoute,
@@ -1835,6 +1942,8 @@ const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
     WWorkspaceAppSettingsSendersDomainIdRoute,
   WWorkspaceAppSettingsTeamMemberIdRoute:
     WWorkspaceAppSettingsTeamMemberIdRoute,
+  WWorkspaceAppTransactionalMessagesMessageIdRoute:
+    WWorkspaceAppTransactionalMessagesMessageIdRoute,
   WWorkspaceAppAdminSsoIndexRoute: WWorkspaceAppAdminSsoIndexRoute,
   WWorkspaceAppAudienceSegmentsIndexRoute:
     WWorkspaceAppAudienceSegmentsIndexRoute,
@@ -1844,6 +1953,8 @@ const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
   WWorkspaceAppSettingsSendersIndexRoute:
     WWorkspaceAppSettingsSendersIndexRoute,
   WWorkspaceAppSettingsTeamIndexRoute: WWorkspaceAppSettingsTeamIndexRoute,
+  WWorkspaceAppTransactionalMessagesIndexRoute:
+    WWorkspaceAppTransactionalMessagesIndexRoute,
   WWorkspaceAppCampaignsDigestsDigestIdSettingsRoute:
     WWorkspaceAppCampaignsDigestsDigestIdSettingsRoute,
   WWorkspaceAppCampaignsDigestsDigestIdIndexRoute:
@@ -1857,6 +1968,7 @@ interface WWorkspaceRouteRouteChildren {
   WWorkspaceAppRouteRoute: typeof WWorkspaceAppRouteRouteWithChildren
   WWorkspaceAutomationsAutomationIdRoute: typeof WWorkspaceAutomationsAutomationIdRoute
   WWorkspaceCampaignsNewRoute: typeof WWorkspaceCampaignsNewRoute
+  WWorkspaceTransactionalGuideRoute: typeof WWorkspaceTransactionalGuideRoute
   WWorkspaceImportIndexRoute: typeof WWorkspaceImportIndexRoute
   WWorkspaceCampaignsCampaignIdEditRoute: typeof WWorkspaceCampaignsCampaignIdEditRoute
   WWorkspaceImportImportIdConsentRoute: typeof WWorkspaceImportImportIdConsentRoute
@@ -1877,6 +1989,7 @@ const WWorkspaceRouteRouteChildren: WWorkspaceRouteRouteChildren = {
   WWorkspaceAutomationsAutomationIdRoute:
     WWorkspaceAutomationsAutomationIdRoute,
   WWorkspaceCampaignsNewRoute: WWorkspaceCampaignsNewRoute,
+  WWorkspaceTransactionalGuideRoute: WWorkspaceTransactionalGuideRoute,
   WWorkspaceImportIndexRoute: WWorkspaceImportIndexRoute,
   WWorkspaceCampaignsCampaignIdEditRoute:
     WWorkspaceCampaignsCampaignIdEditRoute,

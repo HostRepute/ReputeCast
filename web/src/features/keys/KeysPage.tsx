@@ -1,3 +1,4 @@
+import { Link } from '@tanstack/react-router'
 import { useState } from 'react'
 import { $api, errorMessage, type Schemas } from '@/api/client'
 import { Page } from '@/components/shell/Page'
@@ -18,6 +19,8 @@ import { CreateKeyDialog, type KeyKind } from './CreateKeyDialog'
 import { KeyActionDialog, type KeyAction } from './KeyActionDialogs'
 import { KeySecretDialog } from './KeySecretDialog'
 import { DashedEmpty, ExpiresCell, LastUsedCell, PermBadges, scopeText, TableSkeleton, type Key } from './parts'
+import { SendOnlyKeyDialog } from '@/features/transactional/CreateKeyDialog'
+import { KeyBadges } from '@/features/transactional/shared'
 
 type Secret = { created: Schemas['APIKeyCreated']; action: 'created' | 'rotated' | 'replaced' }
 
@@ -30,6 +33,8 @@ export function KeysPage() {
   const keys = $api.useQuery('get', '/api/v1/workspaces/{workspace}/api-keys', path, { enabled: canKeys })
   const agents = $api.useQuery('get', '/api/v1/workspaces/{workspace}/mcp-agents', path, { enabled: canAgents })
   const [create, setCreate] = useState<KeyKind>()
+  const [sendOnly, setSendOnly] = useState(false)
+  const canTransactional = me.permissions.includes('transactional:view')
   const [act, setAct] = useState<{ k: Key; action: KeyAction }>()
   const [secret, setSecret] = useState<Secret>()
   const createList = create === 'mcp_agent' ? agents.data : keys.data
@@ -69,8 +74,17 @@ export function KeysPage() {
             setCreate(undefined)
             setSecret({ created: c, action: 'created' })
           }}
+          onSendOnly={
+            create === 'api_key' && canTransactional
+              ? () => {
+                  setCreate(undefined)
+                  setSendOnly(true)
+                }
+              : undefined
+          }
         />
       ) : null}
+      {sendOnly ? <SendOnlyKeyDialog onClose={() => setSendOnly(false)} /> : null}
       {act ? (
         <KeyActionDialog
           k={act.k}
@@ -102,7 +116,11 @@ function KeysCard({ q, onCreate, onAction }: { q: ListQuery; onCreate: () => voi
           </Button>
         }
       >
-        Create a scoped key to add contacts, log events or send transactional mail from your product.
+        Create a scoped key to add contacts, log events or{' '}
+        <Link to="/w/$workspace/transactional/setup" params={{ workspace: slug }}>
+          send transactional mail from your product
+        </Link>
+        .
       </DashedEmpty>
     )
   return (
@@ -151,6 +169,11 @@ function KeysCard({ q, onCreate, onAction }: { q: ListQuery; onCreate: () => voi
                   <div className="col gap-0.5">
                     <span className="font-semibold">{k.name}</span>
                     <span className="k mono">{k.masked}</span>
+                    {k.transactional ? (
+                      <span className="mt-[3px]">
+                        <KeyBadges preset={k.transactional.preset} mode={k.transactional.mode} />
+                      </span>
+                    ) : null}
                   </div>
                 </Td>
                 <Td>

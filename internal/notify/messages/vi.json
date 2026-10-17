@@ -12,5 +12,7 @@
   "short.invite_accepted": "lời mời",
   "short.hostrepute_alert": "cảnh báo HostRepute",
   "short.integration_attention": "sự cố tích hợp",
-  "short.post_draft_created": "bản nháp bài viết"
+  "short.post_draft_created": "bản nháp bài viết",
+  "short.transactional_alert": "cảnh báo gửi email giao dịch",
+  "short.smtp_relay_unreachable": "sự cố SMTP relay"
 }

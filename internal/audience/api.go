@@ -58,13 +58,16 @@ type activityQuery struct {
 
 type suppressionsQuery struct {
 	api.WorkspaceInput
-	Q        string `query:"q" maxLength:"200" doc:"Address or domain"`
-	Reason   string `query:"reason" enum:"hard_bounce,complaint,unsubscribe,manual,"`
-	Source   string `query:"source" maxLength:"60"`
-	Since    string `query:"since" enum:"7d,30d,"`
-	Import   string `query:"import" doc:"Show the rows of one import group"`
-	Page     int    `query:"page" minimum:"1" default:"1"`
-	PageSize int    `query:"pageSize" minimum:"1" maximum:"100" default:"10"`
+	Q      string `query:"q" maxLength:"200" doc:"Address or domain"`
+	Reason string `query:"reason" enum:"hard_bounce,complaint,unsubscribe,manual,"`
+	Source string `query:"source" maxLength:"60"`
+	Since  string `query:"since" enum:"7d,30d,"`
+	Import string `query:"import" doc:"Show the rows of one import group"`
+	// AppliesTo: all mail, or marketing only (transactional mail still
+	// reaches the address).
+	AppliesTo string `query:"appliesTo" enum:"all,marketing," doc:"all: every stream; marketing: Broadcasts and Automations only (unsubscribes, role addresses)"`
+	Page      int    `query:"page" minimum:"1" default:"1"`
+	PageSize  int    `query:"pageSize" minimum:"1" maximum:"100" default:"10"`
 }
 
 type AudienceIDInput struct {
@@ -266,7 +269,7 @@ func Register(h huma.API, s *Service, box Box) {
 	stags := []string{"Suppressions"}
 	api.Get(h, api.Op{ID: "list-suppressions", Path: ws + "/suppressions", Summary: "The shared suppression list with reasons, sources and provider sync", Tags: stags, Access: view},
 		func(ctx context.Context, in *suppressionsQuery) (*api.Body[SuppressionList], error) {
-			out, err := s.ListSuppressions(ctx, api.WorkspaceFrom(ctx), SuppressionFilter{Q: in.Q, Reason: in.Reason, Source: in.Source, Since: in.Since, Import: in.Import}, in.Page, in.PageSize)
+			out, err := s.ListSuppressions(ctx, api.WorkspaceFrom(ctx), SuppressionFilter{Q: in.Q, Reason: in.Reason, Source: in.Source, Since: in.Since, Import: in.Import, AppliesTo: in.AppliesTo}, in.Page, in.PageSize)
 			return api.OK(out), err
 		})
 	api.Post(h, api.Op{ID: "add-suppressions", Path: ws + "/suppressions", Summary: "Add addresses to the suppression list", Tags: stags, Access: edit},

@@ -15,6 +15,7 @@ import { m as lm } from '@/features/language/messages'
 import { useT } from '@/i18n'
 import { ago, usDate } from '@/lib/format'
 import { AdminPage } from '../AdminPage'
+import { RelayAdminCard } from '@/features/transactional/RelayAdminCard'
 import { WorkspacesCard } from './WorkspacesCard'
 
 const twoCards = 'grid items-start gap-5 [&>*]:min-w-0 grid-cols-[repeat(auto-fit,minmax(min(560px,100%),1fr))] max-md:grid-cols-1'
@@ -26,6 +27,7 @@ export function InstancePage() {
       <div className={twoCards}>
         <InstanceCard />
         <VersionCard />
+        <RelayAdminCard />
       </div>
       <WorkspacesCard />
     </AdminPage>

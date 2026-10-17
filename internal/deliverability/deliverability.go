@@ -340,6 +340,13 @@ func (st *state) assetHealth(builtin int) []DeliverabilityAssetHealth {
 		}
 		if m, ok := st.monitored[strings.ToLower(c.Asset)]; ok && via == "hostrepute" {
 			a.Score, a.Verdict = m.Score, m.Verdict
+		} else if via == "hostrepute" && st.conn != nil && len(st.monitored) > 0 {
+			// HostRepute checks only what it monitors: no blocklist results
+			// to show until the asset is added.
+			a.NotMonitored = true
+			if a.Blocklists.CheckedAt == nil {
+				a.Blocklists = DeliverabilityAssetBlocklists{Via: "none", Listings: []string{}}
+			}
 		}
 		switch c.Type {
 		case hostrepute.AssetDomain:
@@ -375,6 +382,16 @@ func (st *state) assetHealth(builtin int) []DeliverabilityAssetHealth {
 		a.Tone = assetTone(a)
 		out = append(out, a)
 	}
+	// Monitored assets first, in their order; then the ones not monitored.
+	slices.SortStableFunc(out, func(x, y DeliverabilityAssetHealth) int {
+		switch {
+		case x.NotMonitored == y.NotMonitored:
+			return 0
+		case x.NotMonitored:
+			return 1
+		}
+		return -1
+	})
 	return out
 }
 

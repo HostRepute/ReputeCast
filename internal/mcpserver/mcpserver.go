@@ -24,6 +24,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/mailer"
 	"github.com/hostrepute/reputecast/internal/sending"
 	"github.com/hostrepute/reputecast/internal/store"
+	"github.com/hostrepute/reputecast/internal/transactional"
 )
 
 type Service struct {
@@ -37,6 +38,9 @@ type Service struct {
 	Languages *languages.Service
 	// Accessibility reads campaigns' accessibility issues (nil: unavailable).
 	Accessibility AccessibilityReader
+	// Transactional lists templates, renders previews and reads the log
+	// for agents (they never send).
+	Transactional *transactional.Service
 	// Digests reads recurring digests and their issues (nil: unavailable).
 	Digests   DigestReader
 	PublicURL func(context.Context) string
@@ -83,6 +87,9 @@ var Tools = []MCPToolInfo{
 	{"send_test_email", "Send a test of a campaign to a member of the workspace.", string(authz.CampaignsEdit), true},
 	{"get_campaign_languages", "A campaign's language versions: each one's status (up to date, outdated, draft, missing) and who gets it.", string(authz.CampaignsView), false},
 	{"get_accessibility_issues", "Accessibility issues of a campaign in every language: what is serious, where it is and how to fix it.", string(authz.CampaignsView), false},
+	{"list_transactional_templates", "Transactional templates with their category, live version and numbers.", string(authz.TransactionalView), false},
+	{"render_transactional_template", "Render a transactional template with test data or given data. Nothing is sent or stored.", string(authz.TransactionalView), false},
+	{"search_transactional_messages", "Search the transactional message log by status, template or recipient, without message content.", string(authz.TransactionalView), false},
 	{"list_digests", "Recurring digests with their status, schedule, next issue and owner. Agents can't turn a digest on.", string(authz.CampaignsView), false},
 	{"get_digest_issues", "A digest's issues: sent, skipped, held and waiting, each with its posts and results. Agents can't release or skip an issue.", string(authz.CampaignsView), false},
 }

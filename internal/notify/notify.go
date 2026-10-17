@@ -32,6 +32,13 @@ const (
 	// Integrations hub (design expansion, phase 2).
 	KindIntegrationAttention = "integration_attention" // an integration needs attention
 	KindPostDraftCreated     = "post_draft_created"    // a WordPress post became a campaign draft
+	// KindTransactionalAlert is a delivery alert of transactional mail: a
+	// template's bounce rate, failed messages or the median delivery time
+	// over the last hour passed its limit.
+	KindTransactionalAlert = "transactional_alert"
+	// KindSMTPRelayUnreachable tells instance admins the SMTP relay can't
+	// be reached from the internet.
+	KindSMTPRelayUnreachable = "smtp_relay_unreachable"
 	// Recurring digests (design expansion, phase 3).
 	KindDigestIssueHeld   = "digest_issue_held"   // Send Readiness blocked a digest issue: it waits for a person
 	KindDigestPaused      = "digest_paused"       // a digest paused (by a person, its owner's permissions, the feed)
