@@ -18925,6 +18925,9 @@
           "grantedBy": {
             "type": "string"
           },
+          "importId": {
+            "type": "string"
+          },
           "kind": {
             "enum": [
               "campaign",
@@ -72630,6 +72633,33 @@
       "post": {
         "description": "Subscriptions keep billing in the provider; paid members keep access until the end of what they've paid for.",
         "operationId": "disconnect-payment-provider",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -72672,6 +72702,33 @@
       "post": {
         "description": "Creates the eight member emails as drafts in Transactional › Templates the first time.",
         "operationId": "finish-payment-connection",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -72721,6 +72778,33 @@
       "put": {
         "description": "Write-only: the new key is sealed and never returned.",
         "operationId": "replace-payment-key",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -72769,6 +72853,33 @@
     "/api/v1/workspaces/{workspace}/earn/connections/{id}/step": {
       "put": {
         "operationId": "set-payment-connection-step",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -72884,6 +72995,33 @@
       "put": {
         "description": "Write-only: sealed and never returned.",
         "operationId": "set-payment-webhook-secret",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -73285,6 +73423,33 @@
     "/api/v1/workspaces/{workspace}/earn/imports/{id}/columns": {
       "put": {
         "operationId": "set-paid-member-import-columns",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -73333,6 +73498,33 @@
     "/api/v1/workspaces/{workspace}/earn/imports/{id}/decisions": {
       "put": {
         "operationId": "set-paid-member-import-decisions",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -74096,6 +74288,33 @@
     "/api/v1/workspaces/{workspace}/earn/members/{id}/cancel": {
       "post": {
         "operationId": "cancel-paid-subscription",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -74200,6 +74419,33 @@
       },
       "put": {
         "operationId": "change-complimentary-access",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -74248,6 +74494,33 @@
     "/api/v1/workspaces/{workspace}/earn/members/{id}/resend": {
       "post": {
         "operationId": "resend-member-email",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -75142,6 +75415,33 @@
       "put": {
         "description": "A new price becomes the tier's price for new members; members on the old one keep it as a legacy price.",
         "operationId": "update-earn-tier",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -75255,6 +75555,33 @@
     "/api/v1/workspaces/{workspace}/earn/unmapped-prices/{id}/map": {
       "post": {
         "operationId": "map-earn-price",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
