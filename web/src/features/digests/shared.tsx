@@ -15,6 +15,28 @@ export type DigestNextIssue = Schemas['DigestNextIssue']
 export type FeedItem = Schemas['DigestFeedItem']
 export type HistoryItem = Schemas['DigestHistoryItem']
 export type IssueStatus = DigestIssue['status']
+export type IssueInfo = Schemas['DigestIssueInfo']
+
+/**
+ * The digest issues among some campaigns, for the screens that show a
+ * campaign (approvals, Review & send, the report, the composer).
+ */
+export function useIssueInfos(campaignIds: readonly string[]) {
+  const { slug } = useWorkspace()
+  const ids = [...new Set(campaignIds.filter(Boolean))].sort().slice(0, 100)
+  return $api.useQuery(
+    'get',
+    '/api/v1/workspaces/{workspace}/digest-issues',
+    { params: { path: { workspace: slug }, query: { campaigns: ids.join(',') } } },
+    { enabled: ids.length > 0, staleTime: 15_000 },
+  )
+}
+
+/** The digest issue a campaign is, if it is one. */
+export function useIssueInfo(campaignId: string | undefined): IssueInfo | undefined {
+  const q = useIssueInfos(campaignId ? [campaignId] : [])
+  return q.data?.items.find((x) => x.campaignId === campaignId)
+}
 
 /** The digest's queries, keyed as openapi-react-query keys them. */
 export function useDigest(id: string) {

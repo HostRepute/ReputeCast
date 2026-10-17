@@ -259,6 +259,8 @@ type DigestFeedItem struct {
 	Image        string `json:"image,omitempty"`
 	ImageAlt     string `json:"imageAlt,omitempty"`
 	AltFromTitle bool   `json:"altFromTitle"`
+	// Fallback: the post has no image, so the block's fallback image is used.
+	Fallback bool `json:"fallback"`
 	// Status: new (goes in the next issue), sent (in issue SentIn),
 	// left_out (by LeftOutBy: category, tag, age), before_start (published
 	// before the digest was turned on).

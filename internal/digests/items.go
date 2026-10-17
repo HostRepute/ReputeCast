@@ -109,7 +109,7 @@ func blockItemOf(it store.DigestItem) BlockItem {
 func feedItem(it item, b DigestFeedBlock) DigestFeedItem {
 	bi := b.withImage(blockItem(it.DigestItemsRow))
 	out := DigestFeedItem{ID: it.ID.String(), Title: it.Title, URL: it.Url, Author: it.Author, Published: it.PublishedAt, Categories: nonNil(it.Categories),
-		Tags: nonNil(it.Tags), Excerpt: it.Excerpt, Image: bi.Image, ImageAlt: bi.ImageAlt, AltFromTitle: bi.AltFromTitle, Status: it.Status,
+		Tags: nonNil(it.Tags), Excerpt: it.Excerpt, Image: bi.Image, ImageAlt: bi.ImageAlt, AltFromTitle: bi.AltFromTitle, Fallback: bi.Fallback, Status: it.Status,
 		SentIn: int(it.SentIn), LeftOutBy: it.LeftOutBy, FirstSeenAt: it.FirstSeenAt, FirstSeenVia: it.FirstSeenVia}
 	return out
 }

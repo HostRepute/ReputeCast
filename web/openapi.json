@@ -14482,6 +14482,9 @@
           "excerpt": {
             "type": "string"
           },
+          "fallback": {
+            "type": "boolean"
+          },
           "firstSeenAt": {
             "format": "date-time",
             "type": "string"
@@ -14546,6 +14549,7 @@
           "tags",
           "excerpt",
           "altFromTitle",
+          "fallback",
           "status",
           "firstSeenAt",
           "firstSeenVia"
@@ -15727,6 +15731,9 @@
             },
             "type": "array"
           },
+          "starterSubject": {
+            "type": "string"
+          },
           "subject": {
             "type": "string"
           },
@@ -15754,7 +15761,8 @@
           "subjects",
           "sizes",
           "checks",
-          "tokens"
+          "tokens",
+          "starterSubject"
         ],
         "type": "object"
       },

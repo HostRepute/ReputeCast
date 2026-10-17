@@ -5,6 +5,10 @@ import { Popover } from '@/components/ui/Menu'
 import { clock, count } from '@/lib/format'
 import { CanvasPreviewAs, ComposerLanguageBanner, LanguageTags } from '@/features/languages/composerParts'
 import { DigestPreviewWith, useDigestMode } from '@/features/digests/composer/DigestMode'
+import { DigestCanvasCards } from '@/features/digests/composer/IssueMode'
+import { dc } from '@/features/digests/composer/messages'
+import { AltTextNote, WHOLE_ZOOM, WholeIssue } from '@/features/digests/composer/WholeIssue'
+import { t as tt } from '@/i18n'
 import { useComposer, type Issue } from './context'
 import { DEVICES, type DeviceId } from './editor/grapes'
 import { componentLabel, mjChildren, tagOf } from './editor/labels'
@@ -184,7 +188,12 @@ function Toolbar({ zoom }: { zoom: number }) {
       <DeviceSeg />
       <ViewSeg />
       {digest ? <DigestPreviewWith /> : <CanvasPreviewAs />}
-      {issues.length ? (
+      {digest?.preview === 'six' ? (
+        // "6 items" shows the whole issue, zoomed out, instead of the canvas.
+        <span className="k" style={{ marginLeft: 'auto' }}>
+          {tt(dc.zoomWhole, { pct: Math.round(WHOLE_ZOOM * 100) })}
+        </span>
+      ) : issues.length ? (
         <>
           {blocks ? (
             <Badge tone="bad" dot>
@@ -215,7 +224,7 @@ function Toolbar({ zoom }: { zoom: number }) {
         <>
           <UndoRedo />
           {/* A digest's issues have no A/B test: each issue's subject comes from its posts. */}
-          {digest ? null : <VariantSeg />}
+          {digest || c.campaign.digestRole ? null : <VariantSeg />}
           <span className="k" style={{ marginLeft: 'auto' }}>
             {pct} · ⌘Z undo · ⌘S save · ⌘/ shortcuts
           </span>
@@ -676,6 +685,8 @@ export function CanvasArea({
   slots?: CanvasSlots
 }) {
   const c = useComposer()
+  // Digest mode's "6 items" covers the canvas with the whole issue (the editor stays loaded underneath).
+  const whole = useDigestMode()?.preview === 'six'
   const [host, setHost] = useState<HTMLDivElement | null>(null)
   const [stage, setStage] = useState<HTMLDivElement | null>(null)
   const ed = c.editor
@@ -707,9 +718,17 @@ export function CanvasArea({
     <>
       {slots?.toolbar ? slots.toolbar(zoom) : <Toolbar zoom={zoom} />}
       <div className="cmp-canvas" id={c.view === 'visual' ? 'main' : undefined} tabIndex={-1}>
-        <div className="cmp-stage" ref={setStage}>
+        {whole ? <WholeIssue /> : null}
+        <div
+          className="cmp-stage"
+          ref={setStage}
+          style={whole ? { visibility: 'hidden', position: 'absolute', inset: '0 0 auto 0', height: 0, overflow: 'hidden' } : undefined}
+          aria-hidden={whole || undefined}
+        >
           {slots?.cards ?? <StateCards saved={savedCard} onCloseSaved={onCloseSaved} onReview={onReview} />}
-          <ComposerLanguageBanner width={frameWidth} />
+          <DigestCanvasCards onReview={onReview} />
+          {/* A digest's template and issues have one language: no language banner. */}
+          {c.campaign.digestRole ? null : <ComposerLanguageBanner width={frameWidth} />}
           <div ref={setHost} className="relative">
             <div ref={setContainer} role="region" aria-label={`Email canvas, ${c.device === 'mobile' ? 'mobile 375 px' : 'desktop 600 px'}`} />
             {ed ? null : (
@@ -733,6 +752,7 @@ export function CanvasArea({
           {ed ? (
             <div className="mx-auto" style={{ width: frameWidth }}>
               {slots && 'below' in slots ? slots.below : <MissingFooter width={frameWidth} />}
+              <AltTextNote />
             </div>
           ) : null}
         </div>

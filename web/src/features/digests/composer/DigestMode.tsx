@@ -6,14 +6,14 @@ import { errorMessage, http, type Schemas } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
 import { OptionCard } from '@/components/ui/Field'
 import { Icon } from '@/components/icons/Icon'
-import { Menu, MenuItem } from '@/components/ui/Menu'
+import { Menu, MenuItem, MenuLabel, MenuSeparator } from '@/components/ui/Menu'
 import { toast } from '@/components/ui/Toast'
 import { t as tt, useT } from '@/i18n'
 import { cn } from '@/lib/cn'
 import { useCan } from '@/lib/session'
 import { useComposer } from '@/features/composer/context'
 import { blockDefs, type BlockDef } from '@/features/composer/editor/blocks'
-import { TestDialog } from '../Dialogs'
+import { PreviewDialog, TestDialog } from '../Dialogs'
 import { useDigest, useRefreshDigest } from '../shared'
 import { blockOf, DEFAULT_BLOCK, FEED_TYPE, isFeedItems, markerFor, setBlock, setFeedPreview, type FeedBlock } from './feedComponent'
 import { dc } from './messages'
@@ -74,7 +74,8 @@ function Provider({ digestId, children }: { digestId: string; children: ReactNod
     queryFn: async () => {
       const { data } = await http.POST('/api/v1/workspaces/{workspace}/digests/{digestId}/render', {
         params: { path: { workspace: c.slug, digestId } },
-        body: { preview, block: JSON.parse(settled.blockKey) as FeedBlock, subject: settled.subject, preheader: settled.preheader },
+        // "6 items" shows the whole issue with its size by number of posts.
+        body: { preview, block: JSON.parse(settled.blockKey) as FeedBlock, subject: settled.subject, preheader: settled.preheader, sizes: preview === 'six' },
       })
       return data!
     },
@@ -109,11 +110,11 @@ export function digestLeftPanel(campaign: { digestRole?: string; digestId?: stri
   }
 }
 
-/** The header's "Recurring digest" badge. */
+/** The header's "Recurring digest" chip, on the template and on its issues. */
 export function DigestBadge() {
   const t = useT()
-  const mode = useDigestMode()
-  if (!mode) return null
+  const c = useComposer()
+  if (!c.campaign.digestId || !c.campaign.digestRole) return null
   return (
     <span className="chip">
       <Icon name="repeat" size={13} className="text-ink-3" />
@@ -134,6 +135,8 @@ export function DigestHeaderActions() {
   const [checking, setChecking] = useState(false)
   const digest = mode?.digest
   if (!mode) return null
+  // Without campaigns:edit the template is read-only: its next issue can still be previewed.
+  if (!canEdit) return <PreviewNextIssueButton />
   const check = async () => {
     if (!digest) return
     setChecking(true)
@@ -157,20 +160,37 @@ export function DigestHeaderActions() {
   }
   return (
     <>
-      {canEdit ? (
-        <button type="button" className="btn" disabled={!digest} onClick={() => setTesting(true)}>
-          {t(dc.sendTest)}
-        </button>
-      ) : null}
-      {canEdit ? (
-        <button type="button" className="btn pri" disabled={!digest || checking} aria-busy={checking || undefined} onClick={() => void check()}>
-          {checking ? t(dc.checking) : t(dc.checkNext)}
-        </button>
-      ) : null}
+      <button type="button" className="btn" disabled={!digest} onClick={() => setTesting(true)}>
+        {t(dc.sendTest)}
+      </button>
+      <button type="button" className="btn pri" disabled={!digest || checking} aria-busy={checking || undefined} onClick={() => void check()}>
+        {checking ? t(dc.checking) : t(dc.checkNext)}
+      </button>
       {testing && digest ? <TestDialog digest={digest} onOpenChange={() => setTesting(false)} /> : null}
     </>
   )
 }
+
+/** "Preview next issue": what a member who can't edit the template can do from its header. */
+function PreviewNextIssueButton() {
+  const t = useT()
+  const mode = useDigestMode()
+  const [open, setOpen] = useState(false)
+  if (!mode?.digest) return null
+  return (
+    <>
+      <button type="button" className="btn" onClick={() => setOpen(true)}>
+        {t(dc.previewNextIssue)}
+      </button>
+      {open ? <PreviewDialog digest={mode.digest} onOpenChange={() => setOpen(false)} /> : null}
+    </>
+  )
+}
+
+/** A Liquid token as the boards show one: mono, on purple. */
+export const tokenClass = 'mono inline-flex items-center whitespace-nowrap rounded-[5px] bg-purple-bg px-1.5 text-[0.86em] font-medium leading-[1.55] text-purple-fg'
+
+const contactToken = '{{ first_name | default: "there" }}'
 
 /** "Feed tokens": the issue's tokens with their values for the next issue; picking one adds it to the subject. */
 export function FeedTokensMenu({ onInsert }: { onInsert: (token: string) => void }) {
@@ -181,6 +201,7 @@ export function FeedTokensMenu({ onInsert }: { onInsert: (token: string) => void
   return (
     <Menu
       label={t(dc.feedTokensLabel)}
+      className="w-[min(460px,calc(100vw-24px))]"
       trigger={
         <button type="button" className="btn sm" style={{ minHeight: 24, padding: '0 8px', fontSize: 11.5 }} aria-label={t(dc.feedTokensLabel)}>
           <span className="mono" aria-hidden="true">
@@ -190,42 +211,93 @@ export function FeedTokensMenu({ onInsert }: { onInsert: (token: string) => void
         </button>
       }
     >
+      <MenuLabel>{t(dc.tokensHead)}</MenuLabel>
       {tokens.map((x) => (
-        <MenuItem key={x.token} onSelect={() => onInsert(x.token)}>
-          <span className="flex min-w-0 flex-col">
-            <span className="mono text-[12px]">{x.token}</span>
-            <span className="k max-w-[280px] truncate text-[11.5px]">{x.value}</span>
-          </span>
+        <MenuItem key={x.token} onSelect={() => onInsert(x.token)} className="justify-between">
+          <span className={tokenClass}>{x.token}</span>
+          <span className="k min-w-0 truncate">{x.value}</span>
         </MenuItem>
       ))}
+      <div className="flex flex-col gap-[3px]" style={{ padding: '6px 10px 4px' }}>
+        <span className={cn(tokenClass, 'self-start')}>issue.items</span>
+        <span className="k">{t(dc.tokensItems)}</span>
+      </div>
+      <MenuSeparator />
+      <MenuLabel>{t(dc.tokensContact)}</MenuLabel>
+      <MenuItem onSelect={() => onInsert(contactToken)} className="justify-between">
+        <span className={tokenClass}>{contactToken}</span>
+        <span className="k min-w-0 truncate">{t(dc.tokensContactValue)}</span>
+      </MenuItem>
     </Menu>
   )
 }
 
+const countToken = /\s*(?:and|\+)?\s*\{\{\s*issue\.items\.size\s*\|\s*minus:\s*1\s*\}\}(?:\s*more)?/i
+const sizeGuard = /\{%-?\s*if\s+issue\.items\.size\s*>\s*1\s*-?%\}/
+
+/** The subject with its "and N more" wrapped so it only shows with 2 or more items, or null when there is nothing to wrap. */
+export function wrapCount(subject: string): string | null {
+  if (sizeGuard.test(subject)) return null
+  const m = countToken.exec(subject)
+  if (!m) return null
+  return `${subject.slice(0, m.index)}{% if issue.items.size > 1 %}${m[0]}{% endif %}${subject.slice(m.index + m[0].length)}`
+}
+
 /** "Subject with 1 item · 3 items · 6 items": the subject as each issue size would read, so "…and 0 more" is caught. */
-export function SubjectPreviews() {
+export function SubjectPreviews({ subject, onSubject }: { subject: string; onSubject: (v: string) => void }) {
   const t = useT()
+  const c = useComposer()
   const mode = useDigestMode()
   if (!mode) return null
   const subjects = mode.render?.subjects ?? []
   if (!subjects.length) return null
+  const zero = subjects.find((x) => x.zeroMore)
+  const wrapped = zero ? wrapCount(subject) : null
+  const starter = mode.render?.starterSubject ?? ''
   return (
-    // A section, not a div: the subject bar lays its divs out as columns.
-    <section className="flex w-full basis-full flex-wrap items-center gap-2" aria-label={t(dc.subjectWith)}>
-      <span className="k">{t(dc.subjectWith)}</span>
-      {subjects.map((x) => (
-        <span
-          key={x.items}
-          className={cn('flex min-w-0 flex-[1_1_260px] items-center gap-2 rounded-md border px-2.5 py-1.5 text-[12.5px]', x.zeroMore ? 'border-bad-line bg-bad-tint' : 'border-line bg-surface')}
-        >
-          <span className="shrink-0 font-semibold">{t(dc.subjectItems, { count: x.items })}</span>
-          <span className={cn('shrink-0', x.zeroMore ? 'text-bad-fg' : 'text-ok-fg')} aria-label={x.zeroMore ? t(dc.zeroMore) : t(dc.subjectOk)} role="img">
-            <Icon name={x.zeroMore ? 'alert' : 'check'} size={13} />
+    // Sections, not divs: the subject bar lays its divs out as columns.
+    <>
+      <section className="flex w-full basis-full flex-wrap items-center gap-2" aria-label={t(dc.subjectWith)}>
+        <span className="k">{t(dc.subjectWith)}</span>
+        {subjects.map((x) => (
+          <span
+            key={x.items}
+            className={cn('flex min-w-0 flex-[1_1_260px] items-center gap-2 rounded-md border px-2.5 py-1.5 text-[12.5px]', x.zeroMore ? 'border-warn-line bg-warn-tint' : 'border-line bg-surface')}
+          >
+            <span className="shrink-0 font-semibold">{t(dc.subjectItems, { count: x.items })}</span>
+            <span className={cn('shrink-0', x.zeroMore ? 'text-warn-fg' : 'text-ok-fg')} aria-label={x.zeroMore ? t(dc.zeroMore) : t(dc.subjectOk)} role="img">
+              <Icon name={x.zeroMore ? 'alert' : 'check'} size={13} />
+            </span>
+            <span className="truncate">{x.text}</span>
           </span>
-          <span className="truncate">{x.text}</span>
-        </span>
-      ))}
-    </section>
+        ))}
+      </section>
+      {zero ? (
+        <section className="note w w-full basis-full" role="note" aria-label={t(dc.zeroMoreTitle)}>
+          <span className="text-warn-fg">
+            <Icon name="alert" size={16} />
+          </span>
+          <div className="flex min-w-0 flex-[1_1_320px] flex-col gap-1">
+            <span className="font-bold">{t(dc.zeroMoreTitle)}</span>
+            <span>{t(dc.zeroMoreBody, { count: zero.items, text: zero.text })}</span>
+            {c.canEdit ? (
+              <span className="mt-1 flex flex-wrap gap-2">
+                {wrapped ? (
+                  <button type="button" className="btn sm pri" onClick={() => onSubject(wrapped)}>
+                    {t(dc.wrapIt)}
+                  </button>
+                ) : null}
+                {starter && starter !== subject ? (
+                  <button type="button" className="btn sm" onClick={() => onSubject(starter)}>
+                    {t(dc.useStarter)}
+                  </button>
+                ) : null}
+              </span>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
+    </>
   )
 }
 
@@ -261,11 +333,12 @@ export function DigestFooterSummary() {
   return (
     <span className="k">
       {t(dc.footerSummary, {
+        preview: mode.preview,
         size: kb(r.checks.bytes || r.checks.maxBytes),
         count: r.checks.maxPosts,
         max: kb(r.checks.maxBytes),
         limit: kb(r.checks.limit),
-        images: t(dc.footerImages, { count: r.checks.images }),
+        images: t(dc.footerImages, { count: r.checks.images, fromTitle: Math.min(r.checks.altFromTitle, r.checks.images) }),
         links: t(dc.footerLinks, { count: r.checks.links }),
       })}
     </span>

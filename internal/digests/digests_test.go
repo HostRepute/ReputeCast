@@ -375,6 +375,20 @@ func TestDigestSetupAndPermissions(t *testing.T) {
 	if !render.Subjects[0].ZeroMore {
 		t.Fatalf("zero more: %+v", render.Subjects)
 	}
+	// "6 items": the starter's subject (the fix), and the size with 1 to 8 posts.
+	var six struct {
+		StarterSubject string
+		Items          []struct {
+			Title    string
+			Fallback bool
+		}
+		Sizes  []struct{ Posts, Bytes int }
+		Checks struct{ FitPosts, MaxPosts int }
+	}
+	linh.Do("POST", ws+"/digests/"+d.ID+"/render", map[string]any{"preview": "six", "sizes": true}).MustStatus(t, 200).JSON(t, &six)
+	if !strings.Contains(six.StarterSubject, "{% if issue.items.size > 1 %}") || len(six.Items) == 0 || len(six.Sizes) != 8 || six.Sizes[7].Bytes <= six.Sizes[0].Bytes || six.Checks.FitPosts != 8 {
+		t.Fatalf("six: %+v", six)
+	}
 }
 
 func mustLoc(t *testing.T, name string) *time.Location {

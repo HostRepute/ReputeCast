@@ -12391,6 +12391,7 @@ export interface components {
             author: string;
             categories: string[];
             excerpt: string;
+            fallback: boolean;
             /** Format: date-time */
             firstSeenAt: string;
             firstSeenVia: string;
@@ -12751,6 +12752,7 @@ export interface components {
             /** Format: date-time */
             sendAt?: string;
             sizes: components["schemas"]["DigestSize"][];
+            starterSubject: string;
             subject: string;
             subjects: components["schemas"]["DigestSubject"][];
             tokens: components["schemas"]["DigestToken"][];

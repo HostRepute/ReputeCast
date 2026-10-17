@@ -31,7 +31,7 @@ export function SubjectBar() {
   const digest = useDigestMode()
   // A digest's template reads as its next issue: the subject with that issue's posts, sent at its time.
   const shown = digest?.render ? { subject: digest.render.subject, preheader: digest.render.preheader } : { subject, preheader: c.preheader }
-  const time = inboxTime(digest?.render?.sendAt ?? c.campaign.scheduledAt ?? now)
+  const time = inboxTime(digest?.render?.sendAt ?? digest?.digest?.next?.sendAt ?? digest?.digest?.nextSend ?? c.campaign.scheduledAt ?? now)
   const sender = c.campaign.sender?.name ?? c.context.senders[0]?.name ?? 'Your name'
   const heuristics = useMemo(() => c.checks?.subjectHeuristics ?? [], [c.checks])
   const spam = heuristics.length > 0 && subject.trim() !== ''
@@ -79,7 +79,16 @@ export function SubjectBar() {
       </label>
       <div style={{ flex: digest ? '3 1 340px' : '3 1 360px' }}>
         <span className="k" id="inbox-label">
-          {language ? t(mz.inboxIn, { client: mobile ? 'iPhone Mail' : 'Gmail', language }) : digest?.render ? t(dc.inboxNext, { number: digest.render.number, client: mobile ? 'iPhone Mail' : 'Gmail' }) : `Inbox preview · ${mobile ? 'iPhone Mail' : 'Gmail'}`}
+          {language
+            ? t(mz.inboxIn, { client: mobile ? 'iPhone Mail' : 'Gmail', language })
+            : digest?.render
+              ? // The inbox preview follows "Preview with".
+                digest.preview === 'next'
+                ? t(dc.inboxNext, { number: digest.render.number, client: mobile ? 'iPhone Mail' : 'Gmail' })
+                : digest.preview === 'last'
+                  ? t(dc.inboxLast, { number: digest.render.number, client: mobile ? 'iPhone Mail' : 'Gmail' })
+                  : t(dc.inboxItems, { count: digest.render.count, client: mobile ? 'iPhone Mail' : 'Gmail' })
+              : `Inbox preview · ${mobile ? 'iPhone Mail' : 'Gmail'}`}
         </span>
         {empty ? (
           <div className="cmp-inbox empty" aria-labelledby="inbox-label">
@@ -115,7 +124,7 @@ export function SubjectBar() {
           </div>
         )}
       </div>
-      {digest ? <SubjectPreviews /> : null}
+      {digest ? <SubjectPreviews subject={subject} onSubject={setSubject} /> : null}
     </div>
   )
 }

@@ -98,6 +98,10 @@ var (
 	mDeleteOn       = msgs.M("delete.on")
 )
 
+// StarterSubject is the Blog digest starter's subject: the count only shows
+// with 2 or more posts, so one post never reads "and 0 more".
+const StarterSubject = `{{ issue.items.first.title }}{% if issue.items.size > 1 %} and {{ issue.items.size | minus: 1 }} more{% endif %} from {{ feed.title }}`
+
 // Create makes a digest from the type picker: off, in draft mode for a
 // member without campaigns:send, with the Blog digest template, the
 // workspace's default sender and its time zone.
@@ -129,7 +133,7 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	by := actorID(p)
 	sched, _ := json.Marshal(DefaultSchedule(ws.Timezone))
 	mjmlSrc, _ := templates.StarterMJML(templates.BlogDigestStarter, templates.WorkspaceAddress(ws))
-	subject := `{{ issue.items.first.title }}{% if issue.items.size > 1 %} and {{ issue.items.size | minus: 1 }} more{% endif %} from {{ feed.title }}`
+	subject := StarterSubject
 	preheader := "New on " + firstNonEmpty(hostOf(feedURL), "the blog") + " · issue {{ issue.number }}"
 	html := mjml.Compile(mjmlSrc).HTML
 	html = accessibility.FinalizeStored(ctx, s.Q, ws.ID, accessibility.OwnerCampaign, uuid.Nil, 0, html)

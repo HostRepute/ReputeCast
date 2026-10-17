@@ -78,6 +78,8 @@ type DigestRender struct {
 	SendAt *time.Time `json:"sendAt,omitempty"`
 	// Tokens are the feed tokens' values for the next issue (the token menu).
 	Tokens []DigestToken `json:"tokens"`
+	// StarterSubject is the Blog digest starter's subject ("Use the starter's subject").
+	StarterSubject string `json:"starterSubject"`
 }
 
 // DigestToken is a feed token with its value for the next issue.
@@ -124,7 +126,7 @@ func (s *Service) Render(ctx context.Context, ws *store.Workspace, id uuid.UUID,
 		return DigestRender{}, err
 	}
 	loc := location(ParseSchedule(d.Schedule, ws.Timezone).Timezone)
-	out := DigestRender{Preview: in.Preview, Number: int(number), Items: []DigestFeedItem{}, Sizes: []DigestSize{}, Tokens: []DigestToken{}}
+	out := DigestRender{Preview: in.Preview, Number: int(number), Items: []DigestFeedItem{}, Sizes: []DigestSize{}, Tokens: []DigestToken{}, StarterSubject: StarterSubject}
 	// The preview's posts.
 	var posts []item
 	pool := []item{}

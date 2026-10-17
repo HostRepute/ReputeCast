@@ -10,6 +10,7 @@ import { AudiencePicker, SenderPicker } from './Pickers'
 import { SendTestButton } from './SendTest'
 import { ComposerLanguageSwitcher, versionLanguage, withoutVersion } from '@/features/languages/composerParts'
 import { DigestBadge, DigestHeaderActions, isDigestTemplate } from '@/features/digests/composer/DigestMode'
+import { IssueHeaderLabel, IssueHeaderStatus, isDigestIssue } from '@/features/digests/composer/IssueMode'
 import { dc } from '@/features/digests/composer/messages'
 import { useT } from '@/i18n'
 
@@ -84,8 +85,11 @@ export function Header({ onReview }: { onReview: () => void }) {
   const { campaign, view, slug, status, canEdit } = c
   const t = useT()
   // A recurring digest's template: back to the digest, and its own actions.
+  // One of its issues: back to the digest too, with the issue's state and Check this issue.
   const digest = isDigestTemplate(campaign)
+  const issue = isDigestIssue(campaign)
   const word = digest ? t(dc.template) : campaign.status
+  const saveTrouble = status.kind === 'offline' || status.kind === 'error' || status.kind === 'conflict'
   const blocks = c.checks?.issues.filter((i) => i.severity === 'block' && i.group !== 'Subject').length ?? 0
   const empty = c.isEmpty
   const preview = view === 'preview'
@@ -96,7 +100,7 @@ export function Header({ onReview }: { onReview: () => void }) {
         <button type="button" className="btn ic" aria-label="Back to editor" onClick={() => c.setView('visual')}>
           <ToolIcon name="back" size={16} />
         </button>
-      ) : digest ? (
+      ) : digest || issue ? (
         <Link to="/w/$workspace/campaigns/digests/$digestId" params={{ workspace: slug, digestId: campaign.digestId! }} className="btn ic" aria-label={t(dc.backToDigest, { name: c.name })}>
           <ToolIcon name="back" size={16} />
         </Link>
@@ -109,14 +113,14 @@ export function Header({ onReview }: { onReview: () => void }) {
         {preview || view === 'mjml' || view === 'html' || !canEdit ? (
           <>
             <span className="k" style={{ fontSize: 11 }}>
-              {preview ? 'Preview' : digest ? t(dc.template) : 'Campaign'}
+              {preview ? 'Preview' : digest ? t(dc.template) : issue ? <IssueHeaderLabel fallback="Campaign" /> : 'Campaign'}
             </span>
             <span className="text-[15px] font-bold">{c.name || 'Untitled campaign'}</span>
           </>
         ) : (
           <>
             <label className="k" htmlFor="cname" style={{ fontSize: 11 }}>
-              {digest ? t(dc.template) : 'Campaign'}
+              {digest ? t(dc.template) : issue ? <IssueHeaderLabel fallback="Campaign" /> : 'Campaign'}
             </label>
             <input
               id="cname"
@@ -139,13 +143,23 @@ export function Header({ onReview }: { onReview: () => void }) {
         )}
       </div>
       <DigestBadge />
-      <Badge id="cstatus" tone={status.kind === 'offline' || status.kind === 'error' ? 'bad' : status.kind === 'conflict' ? 'warn' : 'neutral'} role="status">
-        {withoutVersion(
-          preview ? `${statusWord(word)} · v${status.kind === 'new' ? 1 : status.version}` : statusText(status, word),
-          Boolean(versionLanguage(campaign) || c.missingLanguage),
-        )}
-      </Badge>
-      {preview || digest ? null : <ComposerLanguageSwitcher />}
+      {digest && !canEdit && !preview ? (
+        <Badge id="cstatus" tone="neutral" role="status">
+          {t(dc.readOnly)}
+        </Badge>
+      ) : issue && !preview && !saveTrouble ? (
+        <span id="cstatus" role="status" className="contents">
+          <IssueHeaderStatus />
+        </span>
+      ) : (
+        <Badge id="cstatus" tone={status.kind === 'offline' || status.kind === 'error' ? 'bad' : status.kind === 'conflict' ? 'warn' : 'neutral'} role="status">
+          {withoutVersion(
+            preview ? `${statusWord(word)} · v${status.kind === 'new' ? 1 : status.version}` : statusText(status, word),
+            Boolean(versionLanguage(campaign) || c.missingLanguage),
+          )}
+        </Badge>
+      )}
+      {preview || digest || issue ? null : <ComposerLanguageSwitcher />}
       {preview ? null : (
         <div className="flex flex-wrap gap-2" style={{ marginLeft: 12 }}>
           <AudiencePicker />
@@ -159,6 +173,13 @@ export function Header({ onReview }: { onReview: () => void }) {
           <PreviewAsSlot />
         ) : digest ? (
           <DigestHeaderActions />
+        ) : issue ? (
+          <>
+            <SendTestButton disabled={empty} />
+            <button type="button" className={`btn pri${blocks ? ' bad-pri' : ''}`} disabled={empty} onClick={onReview}>
+              {t(dc.checkThis)}
+            </button>
+          </>
         ) : (
           <>
             <button type="button" className="btn" disabled={empty} style={empty ? { opacity: 0.5 } : undefined} onClick={() => c.setView('preview')}>
