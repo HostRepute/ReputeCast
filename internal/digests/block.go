@@ -175,7 +175,9 @@ func esc(s string) string { return braces.Replace(html.EscapeString(s)) }
 var braces = strings.NewReplacer("{", "&#123;", "}", "&#125;")
 
 // RenderBlock writes the block for an issue's posts as MJML sections, one
-// per post (two per row in the grid), each marked css-class="rc-feed-item".
+// per post (two per row in the grid), each marked css-class="rc-feed-item";
+// each post's column is marked css-class="rc-feed-post" (the composer's
+// canvas labels them).
 func RenderBlock(b DigestFeedBlock, items []BlockItem, loc *time.Location) string {
 	b = b.normalized()
 	if loc == nil {
@@ -187,12 +189,12 @@ func RenderBlock(b DigestFeedBlock, items []BlockItem, loc *time.Location) strin
 		for i := 0; i < len(items); i += 2 {
 			pad := "18px 24px 4px"
 			if i == 0 {
-				pad = "16px 24px 4px"
+				pad = "28px 24px 4px"
 			}
 			fmt.Fprintf(&out, `<mj-section background-color="#ffffff" padding="%s" css-class="rc-feed-item">`, pad)
-			fmt.Fprintf(&out, `<mj-column width="50%%" padding="0px 8px 0px 0px">%s</mj-column>`, gridCell(b, b.withImage(items[i]), loc))
+			fmt.Fprintf(&out, `<mj-column width="50%%" padding="0px 8px 0px 0px" css-class="rc-feed-post">%s</mj-column>`, gridCell(b, b.withImage(items[i]), loc))
 			if i+1 < len(items) {
-				fmt.Fprintf(&out, `<mj-column width="50%%" padding="0px 0px 0px 8px">%s</mj-column>`, gridCell(b, b.withImage(items[i+1]), loc))
+				fmt.Fprintf(&out, `<mj-column width="50%%" padding="0px 0px 0px 8px" css-class="rc-feed-post">%s</mj-column>`, gridCell(b, b.withImage(items[i+1]), loc))
 			}
 			out.WriteString(`</mj-section>`)
 		}
@@ -201,9 +203,9 @@ func RenderBlock(b DigestFeedBlock, items []BlockItem, loc *time.Location) strin
 			it = b.withImage(it)
 			pad := "0px 24px 4px"
 			if i == 0 {
-				pad = "16px 24px 4px"
+				pad = "28px 24px 4px"
 			}
-			fmt.Fprintf(&out, `<mj-section background-color="#ffffff" padding="%s" css-class="rc-feed-item"><mj-column>`, pad)
+			fmt.Fprintf(&out, `<mj-section background-color="#ffffff" padding="%s" css-class="rc-feed-item"><mj-column css-class="rc-feed-post">`, pad)
 			if i > 0 {
 				fmt.Fprintf(&out, `<mj-divider border-width="1px" border-color="%s" padding="14px 0px 18px"></mj-divider>`, divider)
 			}

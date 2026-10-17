@@ -246,6 +246,19 @@ func TestDigestSetupAndPermissions(t *testing.T) {
 	if n.audit("digest.created", d.ID) != 1 {
 		t.Fatal("digest.created isn't audited")
 	}
+	// The composer's checks know the feed tokens of the template; a misspelt field still warns.
+	var checks struct{ Issues []struct{ ID, Title string } }
+	linh.Do("POST", ws+"/campaigns/"+d.TemplateID+"/checks", map[string]any{"subject": "{{ issue.items.first.title }} from {{ feed.title }}", "preheader": "Issue {{ issue.number }}",
+		"mjml": "", "html": "<p>Hi {{ frist_name }}</p>"}).MustStatus(t, 200).JSON(t, &checks)
+	unknown := []string{}
+	for _, is := range checks.Issues {
+		if is.ID == "personalization.unknown_field" {
+			unknown = append(unknown, is.Title)
+		}
+	}
+	if len(unknown) != 1 || !strings.Contains(unknown[0], "frist_name") {
+		t.Fatalf("unknown fields in the template: %v", unknown)
+	}
 	// The template and the next issue stay out of the campaigns list.
 	var list struct{ Items []struct{ Name string } }
 	linh.Do("GET", ws+"/campaigns?pageSize=100&q=Test%20roundup", nil).MustStatus(t, 200).JSON(t, &list)

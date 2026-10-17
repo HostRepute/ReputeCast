@@ -14027,6 +14027,10 @@
             "format": "int64",
             "type": "integer"
           },
+          "bytes": {
+            "format": "int64",
+            "type": "integer"
+          },
           "fallback": {
             "format": "int64",
             "type": "integer"
@@ -14064,7 +14068,8 @@
           "altFromTitle",
           "fallback",
           "links",
-          "fitPosts"
+          "fitPosts",
+          "bytes"
         ],
         "type": "object"
       },

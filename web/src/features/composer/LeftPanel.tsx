@@ -1,5 +1,5 @@
 import type { Component } from 'grapesjs'
-import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { $api, errorMessage, http } from '@/api/client'
 import { Dialog } from '@/components/ui/Dialog'
 import { PanelTabs, TabPanel } from '@/components/ui/Tabs'
@@ -81,7 +81,7 @@ function BlockTile({ def, flagged, onSaved }: { def: BlockDef | { id: string; la
   )
 }
 
-function BlocksTab({ onShowSections, blocks, note }: { onShowSections: () => void; blocks?: BlockDef[]; note?: ReactNode }) {
+function BlocksTab({ onShowSections, blocks, note, reputecastFirst }: { onShowSections: () => void; blocks?: BlockDef[]; note?: ReactNode; reputecastFirst?: boolean }) {
   const c = useComposer()
   const [q, setQ] = useState('')
   const sections = $api.useQuery('get', '/api/v1/workspaces/{workspace}/templates', { params: { path: { workspace: c.slug } } }, { staleTime: 60_000 })
@@ -103,11 +103,17 @@ function BlocksTab({ onShowSections, blocks, note }: { onShowSections: () => voi
         { key: 'content', label: 'Content · MJML' },
         { key: 'layout', label: 'Layout · MJML' },
       ]
-    : [
-        { key: 'layout', label: 'Layout · MJML' },
-        { key: 'content', label: 'Content · MJML' },
-        { key: 'reputecast', label: 'ReputeCast blocks' },
-      ]
+    : reputecastFirst
+      ? [
+          { key: 'reputecast', label: 'ReputeCast blocks' },
+          { key: 'layout', label: 'Layout · MJML' },
+          { key: 'content', label: 'Content · MJML' },
+        ]
+      : [
+          { key: 'layout', label: 'Layout · MJML' },
+          { key: 'content', label: 'Content · MJML' },
+          { key: 'reputecast', label: 'ReputeCast blocks' },
+        ]
   return (
     <>
       <div style={{ padding: '8px 12px' }}>
@@ -118,20 +124,23 @@ function BlocksTab({ onShowSections, blocks, note }: { onShowSections: () => voi
         const showSaved = g.key === 'reputecast' && (!needle || 'saved sections'.includes(needle))
         if (!items.length && !showSaved) return null
         return (
-          <div key={g.key}>
-            <div className="grp">{g.label}</div>
-            <div className="blk-grid">
-              {items.map((d) => (
-                <BlockTile key={d.id} def={d} flagged={footerMissing && d.id === 'rc-footer'} />
-              ))}
-              {showSaved ? (
-                <BlockTile def={{ id: 'rc-saved', label: `Saved sections · ${savedCount}`, icon: 'saved', group: 'reputecast', kind: 'section', content: '' }} onSaved={onShowSections} />
-              ) : null}
+          <Fragment key={g.key}>
+            <div>
+              <div className="grp">{g.label}</div>
+              <div className="blk-grid">
+                {items.map((d) => (
+                  <BlockTile key={d.id} def={d} flagged={footerMissing && d.id === 'rc-footer'} />
+                ))}
+                {showSaved ? (
+                  <BlockTile def={{ id: 'rc-saved', label: `Saved sections · ${savedCount}`, icon: 'saved', group: 'reputecast', kind: 'section', content: '' }} onSaved={onShowSections} />
+                ) : null}
+              </div>
             </div>
-          </div>
+            {reputecastFirst && g.key === 'reputecast' ? note : null}
+          </Fragment>
         )
       })}
-      {note}
+      {reputecastFirst ? null : note}
     </>
   )
 }
@@ -308,9 +317,10 @@ function TemplatesTab({ sectionsRef }: { sectionsRef: RefObject<HTMLDivElement |
 
 /**
  * Left panel: Blocks · Layers · Templates. The transactional mode passes its
- * own blocks (the transactional footer) and a note under them.
+ * own blocks (the transactional footer) and a note under them; digest mode
+ * puts ReputeCast's blocks (Feed items first) on top, with its note under them.
  */
-export function LeftPanel({ blocks, note }: { blocks?: BlockDef[]; note?: ReactNode } = {}) {
+export function LeftPanel({ blocks, note, reputecastFirst }: { blocks?: BlockDef[]; note?: ReactNode; reputecastFirst?: boolean } = {}) {
   const c = useComposer()
   const sectionsRef = useRef<HTMLDivElement | null>(null)
   if (c.isEmpty) {
@@ -368,6 +378,7 @@ export function LeftPanel({ blocks, note }: { blocks?: BlockDef[]; note?: ReactN
           <BlocksTab
             blocks={blocks}
             note={note}
+            reputecastFirst={reputecastFirst}
             onShowSections={() => {
               c.setLeftTab('templates')
               window.setTimeout(() => sectionsRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' }), 50)

@@ -12062,6 +12062,8 @@ export interface components {
             /** Format: int64 */
             altFromTitle: number;
             /** Format: int64 */
+            bytes: number;
+            /** Format: int64 */
             fallback: number;
             /** Format: int64 */
             fitPosts: number;

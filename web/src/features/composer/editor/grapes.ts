@@ -1,5 +1,6 @@
 import type { Editor } from 'grapesjs'
 import type { ComponentPluginOptions } from 'grapesjs-mjml'
+import { loadFeedItems } from '@/features/digests/composer/feedComponent'
 import { canvasCss } from './canvasCss'
 import { encodeTables, loadTable } from './components'
 import { installMjmlHooks, type MjmlCompile } from './mjmlHooks'
@@ -95,6 +96,8 @@ export async function createComposerEditor(container: HTMLElement, opts: CreateO
           columnsPadding: '0px',
           customComponents: [
             (e: Editor, o: ComponentPluginOptions) => loadTable(e, o),
+            // A recurring digest's Feed items block (it only appears in digest templates).
+            (e: Editor, o: ComponentPluginOptions) => loadFeedItems(e, o),
             (_e: Editor, o: ComponentPluginOptions) => {
               compile = installMjmlHooks(ed, o, opts.head)
             },

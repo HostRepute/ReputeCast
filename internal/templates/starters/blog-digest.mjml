@@ -15,7 +15,7 @@
         <mj-text align="right" font-family="'IBM Plex Sans', Helvetica, Arial, sans-serif" font-size="12px" color="#5B6472">{{ feed.title }}</mj-text>
       </mj-column>
     </mj-section>
-    <mj-section background-color="#ffffff" padding="24px 24px 0px">
+    <mj-section background-color="#ffffff" padding="24px 24px 24px">
       <mj-column>
         <mj-text font-size="16px" line-height="1.55">Hi {{ first_name | default: "there" }}, here's what's new on the blog this week.</mj-text>
       </mj-column>

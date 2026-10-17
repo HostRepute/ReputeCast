@@ -96,7 +96,12 @@ func seedDigestsImpl(ctx context.Context, s *Seeder) error {
 	// at 10:24): the Acme logo, "Engineering blog" in the header, the intro
 	// about the engineering blog, the Feed items block with the fallback
 	// image, and the footer saying why readers get it.
-	src, _ := templates.StarterMJML(templates.BlogDigestStarter, templates.WorkspaceAddress(&ws))
+	// The workspace as the earlier seeders left it (its footer address).
+	current, err := s.Q.GetWorkspace(ctx, ws.ID)
+	if err != nil {
+		return err
+	}
+	src, _ := templates.StarterMJML(templates.BlogDigestStarter, templates.WorkspaceAddress(&current))
 	var logo uuid.UUID
 	if err := s.Tx.QueryRow(ctx, `SELECT id FROM media_assets WHERE workspace_id = $1 AND file_name = 'acme-logo.png' LIMIT 1`, ws.ID).Scan(&logo); err == nil {
 		src = strings.Replace(src, `src="/media/starters/logo.png" alt="Your logo"`, `src="`+media.URL(logo, "acme-logo.png")+`" alt="Acme"`, 1)
@@ -133,7 +138,17 @@ func seedDigestsImpl(ctx context.Context, s *Seeder) error {
 		by    uuid.UUID
 		at    time.Time
 		label string
-	}{{1, daniel.ID, created, "created from the Blog digest starter"}, {8, sofia.ID, clamp(s.designDay(1, 15, 2)), "intro and footer reworded"}, {9, sofia.ID, autosaved, "autosaved"}} {
+	}{
+		{1, daniel.ID, created, "created from the Blog digest starter"},
+		{2, daniel.ID, clamp(s.designDay(20, 11, 5)), "Acme logo and the blog's name in the header"},
+		{3, daniel.ID, clamp(s.designDay(20, 11, 18)), "autosaved"},
+		{4, sofia.ID, clamp(s.designDay(19, 9, 30)), "Feed items: cards, up to 6 posts"},
+		{5, sofia.ID, clamp(s.designDay(14, 16, 10)), "autosaved"},
+		{6, sofia.ID, clamp(s.designDay(7, 10, 45)), "subject with feed tokens"},
+		{7, sofia.ID, clamp(s.designDay(3, 14, 20)), "autosaved"},
+		{8, sofia.ID, clamp(s.designDay(1, 15, 2)), "intro and footer reworded"},
+		{9, sofia.ID, autosaved, "autosaved"},
+	} {
 		if _, err := s.Tx.Exec(ctx, `INSERT INTO campaign_versions (campaign_id, version, subject, preheader, mjml, html, plain_text, saved_by, saved_at, label, source, size_bytes)
 			VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'template',$11)`, tplID, v.n, subject, preheader, src, tplHTML, contentcheck.PlainText(tplHTML), v.by, v.at, v.label, len(tplHTML)); err != nil {
 			return err

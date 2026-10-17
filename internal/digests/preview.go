@@ -56,6 +56,8 @@ type DigestBlockChecks struct {
 	Links int `json:"links"`
 	// FitPosts is how many posts fit before Gmail clips.
 	FitPosts int `json:"fitPosts"`
+	// Bytes is the size of the issue the preview shows (the next issue as it stands).
+	Bytes int `json:"bytes"`
 }
 
 // DigestRender is the Feed items block drawn with a preview's posts.
@@ -235,6 +237,7 @@ func (s *Service) Render(ctx context.Context, ws *store.Workspace, id uuid.UUID,
 			if in.Sizes {
 				from, to = 1, max(8, block.Max)
 			}
+			out.Checks.Bytes = issueSize(src, shown, data, loc)
 			for n := from; n <= to; n++ {
 				items := make([]BlockItem, 0, n)
 				for i := 0; i < n; i++ {

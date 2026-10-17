@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Popover } from '@/components/ui/Menu'
 import { clock, count } from '@/lib/format'
 import { CanvasPreviewAs, ComposerLanguageBanner, LanguageTags } from '@/features/languages/composerParts'
+import { DigestPreviewWith, useDigestMode } from '@/features/digests/composer/DigestMode'
 import { useComposer, type Issue } from './context'
 import { DEVICES, type DeviceId } from './editor/grapes'
 import { componentLabel, mjChildren, tagOf } from './editor/labels'
@@ -172,6 +173,7 @@ export function ViewSeg({ dim }: { dim?: boolean }) {
 
 function Toolbar({ zoom }: { zoom: number }) {
   const c = useComposer()
+  const digest = useDigestMode()
   const issues = contentIssues(c.checks?.issues)
   const blocks = issues.filter((i) => i.severity === 'block').length
   const warns = issues.length - blocks
@@ -181,7 +183,7 @@ function Toolbar({ zoom }: { zoom: number }) {
     <div className="cmp-tools">
       <DeviceSeg />
       <ViewSeg />
-      <CanvasPreviewAs />
+      {digest ? <DigestPreviewWith /> : <CanvasPreviewAs />}
       {issues.length ? (
         <>
           {blocks ? (
@@ -212,7 +214,8 @@ function Toolbar({ zoom }: { zoom: number }) {
       ) : (
         <>
           <UndoRedo />
-          <VariantSeg />
+          {/* A digest's issues have no A/B test: each issue's subject comes from its posts. */}
+          {digest ? null : <VariantSeg />}
           <span className="k" style={{ marginLeft: 'auto' }}>
             {pct} · ⌘Z undo · ⌘S save · ⌘/ shortcuts
           </span>
