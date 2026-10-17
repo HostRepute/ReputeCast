@@ -251,4 +251,15 @@ export const entries: Entry[] = [
   { board: 'TransactionalSetupStates', manual: true },
   { board: 'TransactionalSettings', path: `${ws}/transactional/settings`, widths: [1440] },
   { board: 'PublicUnsubscribeCategory', manual: true },
+  // X11 · conditional content, polls and surveys. Weekly Digest #143's Beta corner is section 7 and
+  // its topics poll section 9; the composer's other frames (the picker open, a deleted segment, an
+  // empty version, more than 50 versions, Gmail's clipping size) and the answer pages (signed links,
+  // see internal/publicpages/polls_test.go) need data changes or a signed token.
+  { board: 'ComposerVisibility', path: `${ws}/campaigns/{campaign:Weekly Digest #143}/edit?select=7&panel=settings&left=layers`, widths: [1440] },
+  { board: 'VisibilityStates', manual: true },
+  { board: 'ComposerPoll', path: `${ws}/campaigns/{campaign:Weekly Digest #143}/edit?select=9&panel=settings`, widths: [1440] },
+  { board: 'PublicPoll', manual: true },
+  { board: 'PublicPollPhone', manual: true, widths: [390] },
+  { board: 'PollResults', path: `${ws}/campaigns/{campaign:Weekly Digest #141}/report`, widths: [1440] },
+  { board: 'SurveyBuilder', path: `${ws}/forms/surveys/{survey:Beta feedback · October 2026}?q=q3`, widths: [1440] },
 ]
