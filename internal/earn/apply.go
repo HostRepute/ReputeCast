@@ -249,8 +249,11 @@ func (s *Service) timeline(ctx context.Context, q *store.Queries, wsID, contact 
 		data = map[string]any{}
 	}
 	b, _ := json.Marshal(data)
-	return q.EarnEventInsert(ctx, store.EarnEventInsertParams{ID: newID(), WorkspaceID: wsID, ContactID: contact, SubscriptionID: sub, Mode: mode, Kind: kind,
-		OccurredAt: at, AmountCents: amount, Currency: currency, PaymentEventID: pe, StripeEvent: stripeEvent, ActorID: actor, Data: b})
+	if err := q.EarnEventInsert(ctx, store.EarnEventInsertParams{ID: newID(), WorkspaceID: wsID, ContactID: contact, SubscriptionID: sub, Mode: mode, Kind: kind,
+		OccurredAt: at, AmountCents: amount, Currency: currency, PaymentEventID: pe, StripeEvent: stripeEvent, ActorID: actor, Data: b}); err != nil {
+		return err
+	}
+	return s.emitHook(ctx, q, wsID, contact, sub, mode, kind, at, amount, currency, data)
 }
 
 // resolvePrice finds the tier and price a provider price stands for. A

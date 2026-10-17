@@ -74,6 +74,11 @@ type Descriptor struct {
 	KeyPrefixes map[Mode]string
 	// Open connects to an account. Nil when the provider isn't available.
 	Open func(cfg Config) (Client, error)
+	// Hint is the part of a key that's safe to show ("rk_live_…9fQ2").
+	Hint func(key string) string
+	// Dashboard links to the provider's dashboard: an object of a kind
+	// ("customers", "prices"), or a page ("apikeys", "webhooks", "emails").
+	Dashboard func(mode Mode, kind, id string) string
 }
 
 // Config opens a client on an account.

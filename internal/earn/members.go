@@ -18,7 +18,6 @@ import (
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/payments"
-	"github.com/hostrepute/reputecast/internal/payments/stripe"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -50,6 +49,10 @@ type EarnMemberFilter struct {
 	Source string `query:"source" enum:"campaign,automation,page,offer,website,import,gift,grant,direct,"`
 	Offer  string `query:"offer" maxLength:"60" doc:"An offer's label (FALL26)"`
 	Since  string `query:"since" enum:"7d,30d,90d,1y,"`
+	// Campaign is the email a paid member came from (Weekly Digest #141).
+	Campaign string `query:"campaign" doc:"Campaign id: paid members credited to it"`
+	// Before is "Before the move": paid members since before a date.
+	Before string `query:"before" format:"date" doc:"Paid members since before this date"`
 	// Test shows test paid members too (Show test data).
 	Test bool `query:"test"`
 	// AllStatuses searches Ended too ("Search Ended too").
@@ -150,6 +153,12 @@ type EarnMemberList struct {
 	ExportHelpers []string      `json:"exportHelpers"`
 	AccessRule    string        `json:"accessRule" enum:"keep,end"`
 	Connected     bool          `json:"connected"`
+	// Campaigns are the emails paid members are credited to, newest first
+	// (the Source filter's choices); Platforms the imports' old platforms.
+	Campaigns []EarnListRef `json:"campaigns"`
+	Platforms []string      `json:"platforms"`
+	// MovedAt is the first import's day ("Before the move (18 Sep)").
+	MovedAt *time.Time `json:"movedAt,omitempty"`
 }
 
 type sqlBuild struct {
@@ -197,7 +206,7 @@ func (s *Service) memberWhere(ws *store.Workspace, f EarnMemberFilter, b *sqlBui
 	case FilterGift:
 		b.add("s.ended_at IS NULL AND s.status = 'gift'")
 	case FilterEnded:
-		b.add("s.ended_at IS NOT NULL AND s.ended_at >= ?", s.now().Add(-EndedWindow))
+		b.add("s.ended_at IS NOT NULL AND s.ended_at >= ? AND NOT "+unpaidTrialSQL, s.now().Add(-EndedWindow))
 	}
 	if q != "" {
 		like := "%" + strings.ToLower(q) + "%"
@@ -218,7 +227,17 @@ func (s *Service) memberWhere(ws *store.Workspace, f EarnMemberFilter, b *sqlBui
 	if d := sinceDuration(f.Since); d > 0 {
 		b.add("s.started_at >= ?", s.now().Add(-d))
 	}
+	if id, err := uuid.Parse(f.Campaign); err == nil {
+		b.add("s.source_campaign_id = ?", id)
+	}
+	if t, err := time.Parse("2006-01-02", f.Before); err == nil {
+		b.add("s.started_at < ?", t)
+	}
 }
+
+// unpaidTrialSQL is a trial that ended without a payment: it was never a
+// paid member, so Ended leaves it out (the trials' numbers keep it).
+const unpaidTrialSQL = "(s.kind = 'stripe' AND s.paid_cents = 0 AND s.end_reason = 'trial_ended')"
 
 func sinceDuration(v string) time.Duration {
 	switch v {
@@ -399,23 +418,11 @@ func (s *Service) Members(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	if err := rows.Err(); err != nil {
 		return out, err
 	}
-	if err := s.Pool.QueryRow(ctx, `SELECT
-		count(*) FILTER (WHERE `+accessSQL+`),
-		count(*) FILTER (WHERE s.ended_at IS NULL AND s.kind = 'stripe' AND s.status IN ('active','past_due')),
-		count(*) FILTER (WHERE s.ended_at IS NULL AND s.status = 'trialing'),
-		count(*) FILTER (WHERE s.ended_at IS NULL AND s.status = 'past_due'),
-		count(*) FILTER (WHERE s.ended_at IS NULL AND s.status = 'active' AND s.cancel_at IS NOT NULL),
-		count(*) FILTER (WHERE s.ended_at IS NULL AND s.status = 'complimentary'),
-		count(*) FILTER (WHERE s.ended_at IS NULL AND s.status = 'gift'),
-		count(*) FILTER (WHERE s.ended_at IS NOT NULL AND s.ended_at >= $2),
-		coalesce(sum(CASE WHEN s.ended_at IS NULL AND s.kind = 'stripe' AND s.status IN ('active','past_due') THEN
-			CASE WHEN s.period = 'year' THEN round(coalesce((s.discount->>'amountCents')::bigint, s.amount_cents) / 12.0)
-			ELSE coalesce((s.discount->>'amountCents')::bigint, s.amount_cents) END ELSE 0 END), 0)::bigint
-		FROM paid_subscriptions s WHERE s.workspace_id = $1 AND s.mode = 'live' AND s.status <> 'incomplete'`, ws.ID, s.now().Add(-EndedWindow)).Scan(
-		&out.Counts.WithAccess, &out.Counts.Paying, &out.Counts.Trialing, &out.Counts.PastDue, &out.Counts.CancelsSoon, &out.Counts.Complimentary,
-		&out.Counts.Gift, &out.Counts.Ended, &out.MRRCents); err != nil {
+	counts, mrr, err := s.countMembers(ctx, ws.ID)
+	if err != nil {
 		return out, err
 	}
+	out.Counts, out.MRRCents = counts, mrr
 	_ = s.Pool.QueryRow(ctx, `SELECT count(*) FROM paid_subscriptions WHERE workspace_id = $1 AND mode = 'test' AND status <> 'incomplete'`, ws.ID).Scan(&out.TestMembers)
 	tiers, err := s.Q.EarnTiers(ctx, ws.ID)
 	if err != nil {
@@ -442,6 +449,31 @@ func (s *Service) Members(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	}
 	conns, _ := s.connections(ctx, ws.ID)
 	_, out.Connected = active(conns)
+	out.Campaigns, out.Platforms = []EarnListRef{}, []string{}
+	if rows, err := s.Pool.Query(ctx, `SELECT c.id, c.name FROM campaigns c WHERE c.workspace_id = $1 AND c.id IN
+		(SELECT DISTINCT source_campaign_id FROM paid_subscriptions WHERE workspace_id = $1 AND mode = 'live' AND source_campaign_id IS NOT NULL)
+		ORDER BY coalesce(c.started_at, c.scheduled_at, c.created_at) DESC LIMIT 6`, ws.ID); err == nil {
+		for rows.Next() {
+			var r EarnListRef
+			var id uuid.UUID
+			if rows.Scan(&id, &r.Name) == nil {
+				r.ID = id.String()
+				out.Campaigns = append(out.Campaigns, r)
+			}
+		}
+		rows.Close()
+	}
+	if rows, err := s.Pool.Query(ctx, `SELECT DISTINCT source_detail->>'platform' FROM paid_subscriptions WHERE workspace_id = $1 AND source_kind = 'import'
+		AND coalesce(source_detail->>'platform', '') <> '' ORDER BY 1`, ws.ID); err == nil {
+		for rows.Next() {
+			var p string
+			if rows.Scan(&p) == nil {
+				out.Platforms = append(out.Platforms, p)
+			}
+		}
+		rows.Close()
+	}
+	_ = s.Pool.QueryRow(ctx, `SELECT min(created_at) FROM earn_imports WHERE workspace_id = $1 AND mode = 'live' AND status = 'done'`, ws.ID).Scan(&out.MovedAt)
 	return out, nil
 }
 
@@ -535,10 +567,10 @@ func (s *Service) Member(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	}
 	mode := payments.Mode(sub.Mode)
 	if sub.StripeCustomerID != "" {
-		out.CustomerID, out.CustomerURL = sub.StripeCustomerID, stripe.Dashboard(mode, "customers", sub.StripeCustomerID)
+		out.CustomerID, out.CustomerURL = sub.StripeCustomerID, dashboard(DefaultProvider, mode, "customers", sub.StripeCustomerID)
 	}
 	if sub.StripeSubscriptionID != "" {
-		out.SubscriptionID, out.SubscriptionURL = sub.StripeSubscriptionID, stripe.Dashboard(mode, "subscriptions", sub.StripeSubscriptionID)
+		out.SubscriptionID, out.SubscriptionURL = sub.StripeSubscriptionID, dashboard(DefaultProvider, mode, "subscriptions", sub.StripeSubscriptionID)
 	}
 	if !out.Hidden {
 		out.BillingEmail = sub.BillingEmail
@@ -625,7 +657,7 @@ func (s *Service) timelineOf(ctx context.Context, ws *store.Workspace, contact u
 		out = append(out, it)
 	}
 	if len(msgIDs) > 0 {
-		q, err := s.Pool.Query(ctx, `SELECT m.id, m.status, coalesce(p.name, '') FROM transactional_messages m LEFT JOIN providers p ON p.id = m.provider_id WHERE m.id = ANY($1)`, msgIDs)
+		q, err := s.Pool.Query(ctx, `SELECT m.id, m.status, coalesce(p.name, '') FROM messages m LEFT JOIN providers p ON p.id = m.provider_id WHERE m.id = ANY($1) AND m.workspace_id = $2`, msgIDs, ws.ID)
 		if err == nil {
 			st := map[string][2]string{}
 			for q.Next() {
@@ -711,4 +743,28 @@ func (s *Service) Export(ctx context.Context, ws *store.Workspace, p *authz.Prin
 			TargetName: ws.Name, Metadata: map[string]any{"rows": n, "status": f.Status, "tier": f.Tier, "test": f.Test, "q": f.Q}})
 	})
 	return buf.Bytes(), n, err
+}
+
+// countMembers counts the live paid members by status, with the MRR: yearly
+// prices count a twelfth, after any discount; trials, complimentary access
+// and gifts count nothing (ROADMAP defaults).
+func (s *Service) countMembers(ctx context.Context, wsID uuid.UUID) (EarnMemberCounts, int64, error) {
+	var c EarnMemberCounts
+	var mrr int64
+	err := s.Pool.QueryRow(ctx, `SELECT
+		count(*) FILTER (WHERE `+accessSQL+`),
+		count(*) FILTER (WHERE s.ended_at IS NULL AND s.kind = 'stripe' AND s.status IN ('active','past_due')),
+		count(*) FILTER (WHERE s.ended_at IS NULL AND s.status = 'trialing'),
+		count(*) FILTER (WHERE s.ended_at IS NULL AND s.status = 'past_due'),
+		count(*) FILTER (WHERE s.ended_at IS NULL AND s.status = 'active' AND s.cancel_at IS NOT NULL),
+		count(*) FILTER (WHERE s.ended_at IS NULL AND s.status = 'complimentary'),
+		count(*) FILTER (WHERE s.ended_at IS NULL AND s.status = 'gift'),
+		count(*) FILTER (WHERE s.ended_at IS NOT NULL AND s.ended_at >= $2 AND NOT `+unpaidTrialSQL+`),
+		round(coalesce(sum(CASE WHEN s.ended_at IS NULL AND s.kind = 'stripe' AND s.status IN ('active','past_due') THEN
+			CASE WHEN s.period = 'year' THEN coalesce((s.discount->>'amountCents')::bigint, s.amount_cents) / 12.0
+			ELSE coalesce((s.discount->>'amountCents')::bigint, s.amount_cents) END ELSE 0 END), 0))::bigint
+		FROM paid_subscriptions s WHERE s.workspace_id = $1 AND s.mode = 'live' AND s.status <> 'incomplete'`, wsID, s.now().Add(-EndedWindow)).Scan(
+		&c.WithAccess, &c.Paying, &c.Trialing, &c.PastDue, &c.CancelsSoon, &c.Complimentary,
+		&c.Gift, &c.Ended, &mrr)
+	return c, mrr, err
 }

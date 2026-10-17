@@ -694,7 +694,7 @@ FROM payment_events e
 LEFT JOIN contacts c ON c.id = e.contact_id
 WHERE e.workspace_id = $1 AND e.received_at >= $2
   AND ($3::boolean OR e.mode = 'live')
-  AND ($4::text = '' OR e.type = $4)
+  AND (cardinality($4::text[]) = 0 OR e.type = ANY($4::text[]))
   AND ($5::text = '' OR e.type ILIKE '%' || $5 || '%' OR e.provider_event_id ILIKE '%' || $5 || '%'
        OR c.email ILIKE '%' || $5 || '%' OR (c.first_name || ' ' || c.last_name) ILIKE '%' || $5 || '%'
        OR e.payload::text ILIKE '%' || $5 || '%')
@@ -706,7 +706,7 @@ type PayEventLogParams struct {
 	WorkspaceID uuid.UUID `json:"workspaceId"`
 	Since       time.Time `json:"since"`
 	IncludeTest bool      `json:"includeTest"`
-	Type        string    `json:"type"`
+	Types       []string  `json:"types"`
 	Q           string    `json:"q"`
 	Off         int32     `json:"off"`
 	Lim         int32     `json:"lim"`
@@ -738,7 +738,7 @@ func (q *Queries) PayEventLog(ctx context.Context, arg PayEventLogParams) ([]Pay
 		arg.WorkspaceID,
 		arg.Since,
 		arg.IncludeTest,
-		arg.Type,
+		arg.Types,
 		arg.Q,
 		arg.Off,
 		arg.Lim,
@@ -784,7 +784,7 @@ SELECT count(*)::bigint FROM payment_events e
 LEFT JOIN contacts c ON c.id = e.contact_id
 WHERE e.workspace_id = $1 AND e.received_at >= $2
   AND ($3::boolean OR e.mode = 'live')
-  AND ($4::text = '' OR e.type = $4)
+  AND (cardinality($4::text[]) = 0 OR e.type = ANY($4::text[]))
   AND ($5::text = '' OR e.type ILIKE '%' || $5 || '%' OR e.provider_event_id ILIKE '%' || $5 || '%'
        OR c.email ILIKE '%' || $5 || '%' OR (c.first_name || ' ' || c.last_name) ILIKE '%' || $5 || '%'
        OR e.payload::text ILIKE '%' || $5 || '%')
@@ -794,7 +794,7 @@ type PayEventLogCountParams struct {
 	WorkspaceID uuid.UUID `json:"workspaceId"`
 	Since       time.Time `json:"since"`
 	IncludeTest bool      `json:"includeTest"`
-	Type        string    `json:"type"`
+	Types       []string  `json:"types"`
 	Q           string    `json:"q"`
 }
 
@@ -803,7 +803,7 @@ func (q *Queries) PayEventLogCount(ctx context.Context, arg PayEventLogCountPara
 		arg.WorkspaceID,
 		arg.Since,
 		arg.IncludeTest,
-		arg.Type,
+		arg.Types,
 		arg.Q,
 	)
 	var column_1 int64

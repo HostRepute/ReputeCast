@@ -22,7 +22,6 @@ import (
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/payments"
-	"github.com/hostrepute/reputecast/internal/payments/stripe"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -159,8 +158,8 @@ func (s *Service) loadFacts(ctx context.Context, ws *store.Workspace, mode strin
 	for _, l := range lists {
 		f.lists[l.ID] = l.Name
 	}
-	rows, err := s.Pool.Query(ctx, `SELECT tier_id, coalesce(sum(CASE WHEN period = 'year' THEN round(coalesce((discount->>'amountCents')::bigint, amount_cents) / 12.0)
-		ELSE coalesce((discount->>'amountCents')::bigint, amount_cents) END), 0)::bigint
+	rows, err := s.Pool.Query(ctx, `SELECT tier_id, round(coalesce(sum(CASE WHEN period = 'year' THEN coalesce((discount->>'amountCents')::bigint, amount_cents) / 12.0
+		ELSE coalesce((discount->>'amountCents')::bigint, amount_cents) END), 0))::bigint
 		FROM paid_subscriptions WHERE workspace_id = $1 AND mode = $2 AND kind = 'stripe' AND ended_at IS NULL AND status IN ('active','past_due') AND tier_id IS NOT NULL
 		GROUP BY tier_id`, ws.ID, mode)
 	if err != nil {
@@ -206,7 +205,7 @@ func (s *Service) tierView(ctx context.Context, ws *store.Workspace, t store.Ear
 		out.ProductID = t.StripeProductTest
 	}
 	if out.ProductID != "" {
-		out.ProductURL = stripe.Dashboard(mode, "products", out.ProductID)
+		out.ProductURL = dashboard(DefaultProvider, mode, "products", out.ProductID)
 	}
 	out.HiddenLink = s.pageHost(ctx, ws, "upgrade/"+t.Slug)
 	for _, p := range f.prices[t.ID] {
@@ -219,7 +218,7 @@ func (s *Service) tierView(ctx context.Context, ws *store.Workspace, t store.Ear
 			ep.StripeID = p.StripeTestID
 		}
 		if ep.StripeID != "" {
-			ep.StripeURL = stripe.Dashboard(mode, "prices", ep.StripeID)
+			ep.StripeURL = dashboard(DefaultProvider, mode, "prices", ep.StripeID)
 		}
 		out.Prices = append(out.Prices, ep)
 		out.Paying += ep.Paying

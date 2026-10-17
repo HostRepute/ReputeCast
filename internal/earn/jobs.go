@@ -98,8 +98,8 @@ func (w *DailyWorker) Work(ctx context.Context, _ *river.Job[DailyArgs]) error {
 	return w.S.DailyFailed(ctx)
 }
 
-// Register adds Earn's workers and periodic jobs.
-func Register(reg *jobs.Registry, s *Service) {
+// RegisterJobs adds Earn's workers and periodic jobs.
+func RegisterJobs(reg *jobs.Registry, s *Service) {
 	river.AddWorker(reg.Workers, &ApplyWorker{S: s})
 	river.AddWorker(reg.Workers, &HourlyWorker{S: s})
 	river.AddWorker(reg.Workers, &SweepWorker{S: s})

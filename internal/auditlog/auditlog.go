@@ -129,6 +129,8 @@ var Categories = []AuditCategory{
 	{Key: "settings", Label: "Settings", Groups: []string{"workspace", "webhook", "audit", "settings", "mcp", "instance"}},
 	{Key: "integrations", Label: "Integrations", Groups: []string{"integration", "wordpress", "hostrepute"}},
 	{Key: "transactional", Label: "Transactional", Groups: []string{"transactional", "smtp_relay"}},
+	// Design expansion (append-only).
+	{Key: "earn", Label: "Earn", Groups: []string{"payments", "earn", "paid_member"}},
 }
 
 // Filter narrows the log.

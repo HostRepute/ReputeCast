@@ -125,7 +125,7 @@ FROM payment_events e
 LEFT JOIN contacts c ON c.id = e.contact_id
 WHERE e.workspace_id = @workspace_id AND e.received_at >= @since
   AND (@include_test::boolean OR e.mode = 'live')
-  AND (@type::text = '' OR e.type = @type)
+  AND (cardinality(@types::text[]) = 0 OR e.type = ANY(@types::text[]))
   AND (@q::text = '' OR e.type ILIKE '%' || @q || '%' OR e.provider_event_id ILIKE '%' || @q || '%'
        OR c.email ILIKE '%' || @q || '%' OR (c.first_name || ' ' || c.last_name) ILIKE '%' || @q || '%'
        OR e.payload::text ILIKE '%' || @q || '%')
@@ -137,7 +137,7 @@ SELECT count(*)::bigint FROM payment_events e
 LEFT JOIN contacts c ON c.id = e.contact_id
 WHERE e.workspace_id = @workspace_id AND e.received_at >= @since
   AND (@include_test::boolean OR e.mode = 'live')
-  AND (@type::text = '' OR e.type = @type)
+  AND (cardinality(@types::text[]) = 0 OR e.type = ANY(@types::text[]))
   AND (@q::text = '' OR e.type ILIKE '%' || @q || '%' OR e.provider_event_id ILIKE '%' || @q || '%'
        OR c.email ILIKE '%' || @q || '%' OR (c.first_name || ' ' || c.last_name) ILIKE '%' || @q || '%'
        OR e.payload::text ILIKE '%' || @q || '%');

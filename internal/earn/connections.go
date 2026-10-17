@@ -21,7 +21,6 @@ import (
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/payments"
-	"github.com/hostrepute/reputecast/internal/payments/stripe"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -348,8 +347,8 @@ func (s *Service) view(ctx context.Context, c connRow, activeSubs int64) EarnCon
 		Account:     EarnAccount{ID: c.AccountID, Name: c.AccountName, Country: c.AccountCountry, Currency: c.Currency, TaxEnabled: c.TaxEnabled},
 		Permissions: permissionChecks(d, c.Permissions), CheckedAt: c.CheckedAt, KeyRejectedAt: c.KeyRejectedAt,
 		ConnectedAt: c.ConnectedAt, ConnectedBy: c.ConnectedByName, PortalSet: c.PortalConfiguration != "", Demo: c.Demo,
-		DashboardURL: stripe.Dashboard(mode, "", ""), KeysURL: stripe.Dashboard(mode, "apikeys", ""), CreateKeyURL: stripe.Dashboard(mode, "apikeys_create", ""),
-		WebhooksURL: stripe.Dashboard(mode, "webhooks", c.WebhookID), EmailsURL: stripe.Dashboard(mode, "emails", "")}
+		DashboardURL: dashboard(c.Provider, mode, "", ""), KeysURL: dashboard(c.Provider, mode, "apikeys", ""), CreateKeyURL: dashboard(c.Provider, mode, "apikeys_create", ""),
+		WebhooksURL: dashboard(c.Provider, mode, "webhooks", c.WebhookID), EmailsURL: dashboard(c.Provider, mode, "emails", "")}
 	for _, p := range out.Permissions {
 		if p.OK != nil && *p.OK {
 			out.Granted++
@@ -457,7 +456,7 @@ func (s *Service) Payments(ctx context.Context, ws *store.Workspace, p *authz.Pr
 	if err != nil {
 		return EarnPayments{}, err
 	}
-	d, _ := payments.Lookup(stripe.Key)
+	d, _ := payments.Lookup(DefaultProvider)
 	out := EarnPayments{Providers: catalogCards(), Permissions: permissionChecks(d, nil), WebhookEvents: d.WebhookEvents, Unmapped: []EarnUnmappedPrice{},
 		CanManage: p.Can(authz.PaymentsManage), CanEditPrices: p.Can(authz.EarnEdit), Helpers: s.helpers(ctx, ws.ID, authz.PaymentsManage, p.UserID)}
 	out.ActiveSubscriptions = s.activeSubscriptions(ctx, ws.ID, "live")
@@ -549,7 +548,7 @@ func (s *Service) Connect(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	key := strings.TrimSpace(in.Key)
 	provider := in.Provider
 	if provider == "" {
-		provider = stripe.Key
+		provider = DefaultProvider
 	}
 	d, ok := payments.Lookup(provider)
 	if !ok || d.Open == nil {
@@ -593,7 +592,7 @@ func (s *Service) Connect(ctx context.Context, ws *store.Workspace, p *authz.Pri
 			}
 			tok := newToken()
 			if err := q.PayConnectionInsert(ctx, store.PayConnectionInsertParams{ID: id, WorkspaceID: ws.ID, Provider: provider, Mode: mode, Step: step,
-				KeySealed: sealed, KeyHint: stripe.Hint(key), AccountID: chk.Account.ID, AccountName: chk.Account.Name, AccountCountry: chk.Account.Country,
+				KeySealed: sealed, KeyHint: keyHint(provider, key), AccountID: chk.Account.ID, AccountName: chk.Account.Name, AccountCountry: chk.Account.Country,
 				Currency: chk.Account.Currency, TaxEnabled: chk.Account.TaxEnabled, Permissions: perms, CheckedAt: &now, WebhookToken: &tok,
 				CreatedBy: userID(p)}); err != nil {
 				return err
@@ -603,7 +602,7 @@ func (s *Service) Connect(ctx context.Context, ws *store.Workspace, p *authz.Pri
 			if err != nil {
 				return err
 			}
-			if err := q.PayConnectionChecked(ctx, store.PayConnectionCheckedParams{ID: id, KeySealed: sealed, KeyHint: stripe.Hint(key), AccountID: chk.Account.ID,
+			if err := q.PayConnectionChecked(ctx, store.PayConnectionCheckedParams{ID: id, KeySealed: sealed, KeyHint: keyHint(provider, key), AccountID: chk.Account.ID,
 				AccountName: chk.Account.Name, AccountCountry: chk.Account.Country, Currency: chk.Account.Currency, TaxEnabled: chk.Account.TaxEnabled,
 				Permissions: perms, CheckedAt: &now, Step: step}); err != nil {
 				return err
@@ -1074,13 +1073,13 @@ func (s *Service) ReplaceKey(ctx context.Context, ws *store.Workspace, p *authz.
 	now := s.now()
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
-		if err := q.PayConnectionChecked(ctx, store.PayConnectionCheckedParams{ID: c.ID, KeySealed: sealed, KeyHint: stripe.Hint(key), AccountID: chk.Account.ID,
+		if err := q.PayConnectionChecked(ctx, store.PayConnectionCheckedParams{ID: c.ID, KeySealed: sealed, KeyHint: keyHint(c.Provider, key), AccountID: chk.Account.ID,
 			AccountName: firstNonEmpty(chk.Account.Name, c.AccountName), AccountCountry: chk.Account.Country, Currency: chk.Account.Currency,
 			TaxEnabled: chk.Account.TaxEnabled, Permissions: perms, CheckedAt: &now, Step: c.Step}); err != nil {
 			return err
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "payments.key_replaced", TargetType: "payment_connection", TargetID: c.ID.String(),
-			TargetName: connName(c), Before: map[string]any{"key": c.KeyHint}, After: map[string]any{"key": stripe.Hint(key)}, Metadata: map[string]any{"mode": c.Mode}})
+			TargetName: connName(c), Before: map[string]any{"key": c.KeyHint}, After: map[string]any{"key": keyHint(c.Provider, key)}, Metadata: map[string]any{"mode": c.Mode}})
 	})
 	if err != nil {
 		return EarnConnection{}, err

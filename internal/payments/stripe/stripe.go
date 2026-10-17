@@ -94,6 +94,8 @@ func init() {
 		WebhookEvents: Events,
 		KeyPrefixes:   map[payments.Mode]string{payments.Live: livePrefix, payments.Test: testPrefix},
 		Open:          func(cfg payments.Config) (payments.Client, error) { return New(cfg) },
+		Hint:          Hint,
+		Dashboard:     Dashboard,
 	})
 	payments.RegisterParser(Key, Verifier{})
 }

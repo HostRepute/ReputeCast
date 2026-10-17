@@ -777,9 +777,9 @@ func (s *Service) nextIssue(ctx context.Context, ws *store.Workspace, tier *uuid
 		return s.t(l, "welcome.soon", nil)
 	}
 	var at *time.Time
-	_ = s.Pool.QueryRow(ctx, `SELECT min((c.schedule->>'at')::timestamptz) FROM campaigns c, earn_tiers t
-		WHERE t.id = $1 AND c.workspace_id = t.workspace_id AND c.status IN ('scheduled','approved','draft')
-		AND (c.schedule->>'at') IS NOT NULL AND (c.schedule->>'at')::timestamptz > now()
+	_ = s.Pool.QueryRow(ctx, `SELECT min(c.scheduled_at) FROM campaigns c, earn_tiers t
+		WHERE t.id = $1 AND c.workspace_id = t.workspace_id AND c.status IN ('scheduled','approved','draft') AND c.deleted_at IS NULL
+		AND c.scheduled_at IS NOT NULL AND c.scheduled_at > now()
 		AND EXISTS (SELECT 1 FROM jsonb_array_elements_text(coalesce(c.audience->'lists', '[]'::jsonb)) x(id) WHERE x.id::uuid = ANY(t.list_ids))`, *tier).Scan(&at)
 	if at == nil {
 		return s.t(l, "welcome.soon", nil)

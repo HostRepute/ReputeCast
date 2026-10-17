@@ -126,6 +126,26 @@ func starterOf(email string) (starter, bool) {
 	return starter{}, false
 }
 
+// Starter is a member email's starter, as the drafts begin (the demo
+// publishes them as they are).
+type Starter struct {
+	Email, Key, Name, Description string
+	Subject, Preheader, MJML      string
+	Variables                     []TemplateVariable
+	Sample                        map[string]any
+}
+
+// Starters returns the eight member emails' starters for a publication and
+// its postal address, in the settings table's order.
+func Starters(product, address string) []Starter {
+	out := make([]Starter, 0, len(starters))
+	for _, st := range starters {
+		out = append(out, Starter{Email: st.email, Key: st.key, Name: st.name, Description: st.description, Subject: st.subject, Preheader: st.preheader,
+			MJML: st.mjml(product, address), Variables: st.vars, Sample: sampleData(st)})
+	}
+	return out
+}
+
 // StarterKey is a member email's template ID ("member-welcome").
 func StarterKey(email string) string {
 	st, _ := starterOf(email)
