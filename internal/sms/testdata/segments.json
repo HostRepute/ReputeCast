@@ -1,0 +1,242 @@
+{
+ "cases": [
+  {
+   "name": "Summit: 8 days to go",
+   "text": "Acme: 8 days to Acme Summit 2026! The agenda is live: go.acme.io/k3P9xq See you 22 Oct in Chicago or online. Reply STOP to opt out",
+   "characters": 130,
+   "encoding": "gsm7",
+   "segments": 1,
+   "fill": [
+    130
+   ],
+   "left": 30
+  },
+  {
+   "name": "Daniel's draft with a curly apostrophe",
+   "text": "Acme: Doors open at 8:30 tomorrow. You\u2019ll find badges at the north entrance. Reply STOP to opt out",
+   "characters": 98,
+   "encoding": "ucs2",
+   "segments": 2,
+   "fill": [
+    67,
+    31
+   ],
+   "left": 36,
+   "outside": [
+    {
+     "char": "\u2019",
+     "kind": "curly_apostrophe",
+     "replacement": "'",
+     "count": 1,
+     "first": 38
+    }
+   ],
+   "fixed": "Acme: Doors open at 8:30 tomorrow. You'll find badges at the north entrance. Reply STOP to opt out"
+  },
+  {
+   "name": "Daniel's draft after Replace",
+   "text": "Acme: Doors open at 8:30 tomorrow. You'll find badges at the north entrance. Reply STOP to opt out",
+   "characters": 98,
+   "encoding": "gsm7",
+   "segments": 1,
+   "fill": [
+    98
+   ],
+   "left": 62
+  },
+  {
+   "name": "Over 3 segments",
+   "text": "Acme: 8 days to Acme Summit 2026! Here is everything you need before you arrive. The agenda is live at go.acme.io/k3P9xq with all 24 talks, the workshop schedule and the speaker list. Doors open at 8:30 at Lakeside Hall, 1800 S Lake Shore Dr, Chicago. Bring the QR code from your confirmation email; badges are printed at the north entrance. Parking is in the Lakeside garage, $18 for the day. Can't make it in person? Join online: the livestream starts at 09:00 Central. Reply STOP to opt out",
+   "characters": 493,
+   "encoding": "gsm7",
+   "segments": 4,
+   "fill": [
+    153,
+    153,
+    153,
+    34
+   ],
+   "left": 119
+  },
+  {
+   "name": "Help reply over one segment",
+   "text": "Acme: Help at acme.io/sms or support@acme.io. Questions about Acme Summit 2026? Visit news.acme.io/summit or call +1 888 555 0142, weekdays 9 to 5 Central. Msg & data rates may apply. Reply STOP to cancel.",
+   "characters": 205,
+   "encoding": "gsm7",
+   "segments": 2,
+   "fill": [
+    153,
+    52
+   ],
+   "left": 101
+  },
+  {
+   "name": "Help reply",
+   "text": "Acme: Help at acme.io/sms or support@acme.io. Msg & data rates may apply. Reply STOP to cancel.",
+   "characters": 95,
+   "encoding": "gsm7",
+   "segments": 1,
+   "fill": [
+    95
+   ],
+   "left": 65
+  },
+  {
+   "name": "Opt-out reply",
+   "text": "Acme: You're unsubscribed from Acme texts and won't get more. Reply START to resubscribe.",
+   "characters": 89,
+   "encoding": "gsm7",
+   "segments": 1,
+   "fill": [
+    89
+   ],
+   "left": 71
+  },
+  {
+   "name": "Opt-in confirmation",
+   "text": "Acme: You're signed up for Acme Summit 2026 texts. Up to 4 msgs. Msg & data rates may apply. Reply HELP for help, STOP to cancel.",
+   "characters": 129,
+   "encoding": "gsm7",
+   "segments": 1,
+   "fill": [
+    129
+   ],
+   "left": 31
+  },
+  {
+   "name": "Christopher's personalized text",
+   "text": "Acme: Hi Christopher! Only 8 days to Acme Summit 2026. The full agenda is now live at go.acme.io/r7Tq2m See you 22 Oct in Chicago or online. Reply STOP to opt out",
+   "characters": 162,
+   "encoding": "gsm7",
+   "segments": 2,
+   "fill": [
+    153,
+    9
+   ],
+   "left": 144
+  },
+  {
+   "name": "160 characters fit one segment",
+   "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "characters": 160,
+   "encoding": "gsm7",
+   "segments": 1,
+   "fill": [
+    160
+   ],
+   "left": 0
+  },
+  {
+   "name": "161 characters take two",
+   "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "characters": 161,
+   "encoding": "gsm7",
+   "segments": 2,
+   "fill": [
+    153,
+    8
+   ],
+   "left": 145
+  },
+  {
+   "name": "The euro sign takes two septets",
+   "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\u20ac",
+   "characters": 160,
+   "encoding": "gsm7",
+   "segments": 2,
+   "fill": [
+    153,
+    8
+   ],
+   "left": 145
+  },
+  {
+   "name": "An escape never straddles two segments",
+   "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\u20acbbbbbbbbbb",
+   "characters": 163,
+   "encoding": "gsm7",
+   "segments": 2,
+   "fill": [
+    152,
+    12
+   ],
+   "left": 141
+  },
+  {
+   "name": "Emoji are two UTF-16 units",
+   "text": "Hi \ud83d\udc4b",
+   "characters": 4,
+   "encoding": "ucs2",
+   "segments": 1,
+   "fill": [
+    5
+   ],
+   "left": 65,
+   "outside": [
+    {
+     "char": "\ud83d\udc4b",
+     "kind": "emoji",
+     "replacement": "",
+     "count": 1,
+     "first": 3
+    }
+   ]
+  },
+  {
+   "name": "70 UCS-2 characters fit one segment",
+   "text": "\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u2019",
+   "characters": 70,
+   "encoding": "ucs2",
+   "segments": 1,
+   "fill": [
+    70
+   ],
+   "left": 0
+  },
+  {
+   "name": "71 UCS-2 characters take two",
+   "text": "\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u2019",
+   "characters": 71,
+   "encoding": "ucs2",
+   "segments": 2,
+   "fill": [
+    67,
+    4
+   ],
+   "left": 63
+  },
+  {
+   "name": "A surrogate pair never straddles two segments",
+   "text": "\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\u00fc\ud83d\ude00xxxxx",
+   "characters": 72,
+   "encoding": "ucs2",
+   "segments": 2,
+   "fill": [
+    66,
+    7
+   ],
+   "left": 60
+  },
+  {
+   "name": "Dashes, quotes and spaces are fixed together",
+   "text": "Acme: \u201cDoors\u201d \u2013 8:30\u2026\u00a0see you",
+   "characters": 29,
+   "encoding": "ucs2",
+   "segments": 1,
+   "fill": [
+    29
+   ],
+   "left": 41,
+   "fixed": "Acme: \"Doors\" - 8:30... see you"
+  },
+  {
+   "name": "Empty",
+   "text": "",
+   "characters": 0,
+   "encoding": "gsm7",
+   "segments": 0,
+   "fill": [],
+   "left": 160
+  }
+ ]
+}
