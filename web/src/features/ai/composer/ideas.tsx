@@ -11,7 +11,7 @@ import { versionLanguage } from '@/features/languages/composerParts'
 import { estimateMicros, langName } from '../format'
 import { m, ms } from '../messages'
 import { AINote, tags } from '../parts'
-import { Refusal, sendingText, sentText, Sparkle, useOutcome, Writing } from '../suggest'
+import { Refusal, retryable, RetryButton, sendingText, sentText, Sparkle, useOutcome, Writing } from '../suggest'
 import { useComposerAssist, type Ideas, type IdeasInput } from './state'
 
 /** The text of the email, as the subject ideas send it (no images, no markup): for the estimate. */
@@ -175,16 +175,22 @@ export function IdeasPanel() {
           </Button>
         ) : (
           <>
-            <Button size="sm" icon="refresh" onClick={() => ca.openIdeas({ ...(panel?.input ?? { campaignId: c.campaign.id, subject, mjml: c.currentMjml() }), subject })}>
-              {t(m.tryAgain)}
-            </Button>
+            {s.phase === 'error' ? (
+              retryable(s.error) ? (
+                <RetryButton error={s.error} onRetry={() => ca.openIdeas({ ...(panel?.input ?? { campaignId: c.campaign.id, subject, mjml: c.currentMjml() }), subject })} />
+              ) : null
+            ) : (
+              <Button size="sm" icon="refresh" onClick={() => ca.openIdeas({ ...(panel?.input ?? { campaignId: c.campaign.id, subject, mjml: c.currentMjml() }), subject })}>
+                {t(m.tryAgain)}
+              </Button>
+            )}
             <Button size="sm" onClick={close}>
               {t(m.close)}
             </Button>
           </>
         )}
       </div>
-      {ca.assist.status ? <div className="ai-panel-f">{sentLine}</div> : null}
+      {ca.assist.status && s.phase !== 'error' ? <div className="ai-panel-f">{sentLine}</div> : null}
     </aside>
   )
 }

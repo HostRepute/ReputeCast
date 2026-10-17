@@ -256,12 +256,15 @@ func (s *Service) providerProblem(ctx context.Context, c *connection, err error)
 	}
 	switch e.Kind {
 	case llm.ErrRateLimit:
+		// 503, not 429: it's the provider limiting the workspace's key, not
+		// this API limiting the browser (which the app answers with its own
+		// rate-limit notice).
 		secs := int(math.Ceil(e.RetryAfter.Seconds()))
 		var p *api.Problem
 		if secs <= 0 {
-			p = problem(ctx, http.StatusTooManyRequests, codeRateLimited, mRateLimitedNow, i18n.Args{"provider": name})
+			p = problem(ctx, http.StatusServiceUnavailable, codeRateLimited, mRateLimitedNow, i18n.Args{"provider": name})
 		} else {
-			p = problem(ctx, http.StatusTooManyRequests, codeRateLimited, mRateLimited, i18n.Args{"provider": name, "seconds": secs})
+			p = problem(ctx, http.StatusServiceUnavailable, codeRateLimited, mRateLimited, i18n.Args{"provider": name, "seconds": secs})
 		}
 		return p.WithMeta("retryAfter", secs)
 	case llm.ErrAuth:

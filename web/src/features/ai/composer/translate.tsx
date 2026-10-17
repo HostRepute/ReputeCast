@@ -15,7 +15,7 @@ import '@/features/languages/languages.css'
 import { estimateMicros } from '../format'
 import { m, ms } from '../messages'
 import { AINote } from '../parts'
-import { Refusal, sendingText, sentText, Sparkle, useOutcome, Writing, type Assist } from '../suggest'
+import { Refusal, retryable, RetryButton, sendingText, sentText, Sparkle, useOutcome, Writing, type Assist } from '../suggest'
 import { useComposerAssist, type Translation } from './state'
 
 type Block = Schemas['AITranslationBlock']
@@ -375,7 +375,9 @@ export function AITranslateView() {
                   </Button>
                 </>
               ) : null}
-              {s.phase !== 'working' ? (
+              {s.phase === 'error' ? (
+                retryable(s.error) ? <RetryButton error={s.error} onRetry={ca.translation.retry} /> : null
+              ) : s.phase !== 'working' ? (
                 <Button size="sm" icon="refresh" onClick={ca.translation.retry}>
                   {t(m.tryAgain)}
                 </Button>

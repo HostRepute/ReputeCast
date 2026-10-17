@@ -581,8 +581,9 @@ func TestAIConnectionCapAndErrors(t *testing.T) {
 	// Rate limited: try again in 20 s.
 	f.set("rate_limit")
 	r = c.Do(http.MethodPost, ws+"/ai/rewrite", map[string]any{"campaignId": digest, "action": "shorten", "html": "Hi there, this is a long paragraph to shorten."})
-	p = r.MustStatus(t, 429).Problem(t)
-	if !strings.Contains(p["detail"].(string), "Try again in 20 s") {
+	// 503, so the app doesn't read it as its own API's rate limit.
+	p = r.MustStatus(t, 503).Problem(t)
+	if p["code"] != "ai_rate_limited" || !strings.Contains(p["detail"].(string), "Try again in 20 s") {
 		t.Fatalf("rate limit: %v", p)
 	}
 	// A refusal is an answer, in the model's words, and changes nothing.

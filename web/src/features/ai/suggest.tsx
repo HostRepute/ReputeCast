@@ -85,6 +85,11 @@ export function suggestError(e: unknown): SuggestError {
   return { kind: 'error', message }
 }
 
+/** Whether asking again can help: a provider error or limit, not the cap, the key or the settings. */
+export function retryable(e: SuggestError): boolean {
+  return e.kind === 'rate' || e.kind === 'provider' || e.kind === 'error'
+}
+
 export type SuggestState<T> = { phase: 'idle' } | { phase: 'working' } | { phase: 'done'; data: T } | { phase: 'error'; error: SuggestError }
 
 /**
@@ -236,7 +241,7 @@ export function Writing() {
 }
 
 /** "Try again in 20 s", counting down, then Try again (AIStates · rate limit). */
-function RetryButton({ error, onRetry }: { error: SuggestError; onRetry: () => void }) {
+export function RetryButton({ error, onRetry }: { error: SuggestError; onRetry: () => void }) {
   const t = useT()
   const [now, setNow] = useState(() => Date.now())
   const left = error.retryAt ? Math.max(0, Math.ceil((error.retryAt - now) / 1000)) : 0
@@ -296,7 +301,7 @@ export function SuggestFlow<T>({
   }
   if (s.phase === 'error') {
     const e = s.error
-    const retry = e.kind === 'rate' || e.kind === 'provider' || e.kind === 'error'
+    const retry = retryable(e)
     return (
       <SuggestionCard
         title={title}

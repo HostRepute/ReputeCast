@@ -1,6 +1,7 @@
 import type { Component } from 'grapesjs'
 import { useState } from 'react'
 import { Icon } from '@/components/icons/Icon'
+import { ButtonLink } from '@/components/ui/Button'
 import { Popover } from '@/components/ui/Menu'
 import { formatList, useT } from '@/i18n'
 import { dayMonthDate } from '@/lib/format'
@@ -9,8 +10,8 @@ import { useAccessibility } from '@/features/accessibility/composer/state'
 import { useCampaignLanguages } from '@/features/languages/composer'
 import { versionLanguage } from '@/features/languages/composerParts'
 import { useWorkspace } from '@/lib/session'
-import { ms } from '../messages'
-import { ConnectButton, NotConfigured, Sparkle, usageLine } from '../suggest'
+import { m, ms } from '../messages'
+import { NotConfigured, Sparkle, usageLine } from '../suggest'
 import { useIdeasInput } from './ideas'
 import { useRewriteSelected } from './rewrite'
 import { useComposerAssist } from './state'
@@ -81,7 +82,9 @@ export function AssistMenu() {
         </p>
         {s.canManage ? (
           <div>
-            <ConnectButton assist={a} />
+            <ButtonLink size="sm" variant="primary" to="/w/$workspace/settings/integrations/ai" params={{ workspace: c.slug }}>
+              {s.state === 'key_rejected' ? t(m.replaceKey) : t(m.raiseCap)}
+            </ButtonLink>
           </div>
         ) : null}
         <span className="k">{usageLine(t, s)}</span>
