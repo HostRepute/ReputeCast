@@ -35,6 +35,15 @@ func TestTransactionalDemo(t *testing.T) {
 		}
 	}
 	c.Do("GET", base+"/templates?period=7d", nil).MustStatus(t, 200).JSON(t, &list)
+	// Earn's eight member emails (phase 6) are in the list too, in their
+	// Memberships category; the boards' numbers are Acme Cloud's six.
+	items := list.Items[:0]
+	for _, it := range list.Items {
+		if !strings.HasPrefix(it.Key, "member-") && !strings.HasPrefix(it.Key, "gift-") {
+			items = append(items, it)
+		}
+	}
+	list.Items = items
 	type row struct {
 		version         int
 		sent            int64
@@ -177,7 +186,8 @@ func TestTransactionalDemo(t *testing.T) {
 	for _, it := range cats.Items {
 		got = append(got, it.Name+":"+it.Kind+":"+itoa(it.OptedOut))
 	}
-	if strings.Join(got, " ") != "Account:essential:0 Billing:essential:0 Reminders:optional:2 Product updates:optional:31" {
+	// Memberships holds Earn's member emails (phase 6).
+	if strings.Join(got, " ") != "Account:essential:0 Billing:essential:0 Reminders:optional:2 Product updates:optional:31 Memberships:essential:0" {
 		t.Fatalf("categories: %v", got)
 	}
 
