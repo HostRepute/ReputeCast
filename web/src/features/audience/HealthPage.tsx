@@ -12,6 +12,8 @@ import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
 import { TableScroll } from '@/components/ui/Table'
 import { WelcomePromptCard } from '@/features/welcome-prompt/WelcomePromptCard'
+import { NetGrowthBySource } from '@/features/growth/BySource'
+import { TiersNote } from '@/features/scoring/TiersNote'
 import { clock, count, pct, rate } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { AudienceTabs } from './AudienceTabs'
@@ -67,6 +69,7 @@ export function HealthPage() {
       ) : (
         <>
           <WelcomePromptCard where={{ context: 'health' }} />
+          <TiersNote on="health" />
           <TierCards h={h} />
           <div className="flex flex-wrap items-start gap-5">
             <Trend h={h} />
@@ -315,7 +318,9 @@ function PerList({ h }: { h: Health }) {
         <h2 className="h2" id="perlist-h">
           Health per list
         </h2>
-        <span className="k">30-day figures</span>
+        <span className="k">
+          30-day figures · <NetGrowthBySource />
+        </span>
       </div>
       <TableScroll label="Health per list">
         <table className="tbl compact first160 phone-wrap fit">

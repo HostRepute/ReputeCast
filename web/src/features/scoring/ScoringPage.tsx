@@ -1,5 +1,4 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { Link } from '@tanstack/react-router'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { $api, ApiError, errorMessage } from '@/api/client'
 import { Icon } from '@/components/icons/Icon'
@@ -23,6 +22,7 @@ import { BandTiles, DecayCard, SpreadCard, TiersCard, UsedByCard } from './Scori
 import { changesOf, configProblems, newRuleID, sameConfig, useImpact, type Config, type ScoringPageData } from './useScoringDraft'
 import { ruleFor, signed, type Rule } from './ruleText'
 import '@/features/audience/audience.css'
+import { TiersNote } from './TiersNote'
 import './scoring.css'
 
 interface PanelState {
@@ -197,7 +197,7 @@ function ScoringBody({
   if (!page.configured && !draft) {
     return (
       <>
-        <TiersNote />
+        <TiersNote on="scoring" />
         {canEdit ? null : <ReadOnlyNote helpers={helpers} />}
         <EmptyCard
           page={page}
@@ -212,7 +212,7 @@ function ScoringBody({
 
   return (
     <>
-      <TiersNote />
+      <TiersNote on="scoring" />
       {canEdit ? null : <ReadOnlyNote helpers={helpers} />}
       {page.recalculation ? <RecalcStatus rc={page.recalculation} canEdit={canEdit} /> : null}
       {conflict ? (
@@ -296,28 +296,6 @@ function ScoringBody({
       ) : null}
       <UnsavedChangesGuard dirty={dirty && !saving} description={t(m.leaveDescription)} />
     </>
-  )
-}
-
-/** The score and engagement tiers do different jobs. */
-function TiersNote() {
-  const t = useT()
-  const { slug } = useWorkspace()
-  return (
-    <div className="note i" role="note">
-      <span className="sc-note-ic" style={{ color: '#1D4ED8' }}>
-        <Icon name="info" size={16} strokeWidth={1.8} />
-      </span>
-      <div className="flex min-w-0 flex-[1_1_320px] flex-col gap-1">
-        <span className="font-bold">{t(m.tiersTitle)}</span>
-        <div>
-          {t(m.tiersBody)}{' '}
-          <Link to="/w/$workspace/audience/health" params={{ workspace: slug }}>
-            {t(m.tiersLink)}
-          </Link>
-        </div>
-      </div>
-    </div>
   )
 }
 

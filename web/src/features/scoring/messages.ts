@@ -18,6 +18,7 @@ export const m = defineMessages('scoring', {
   tiersBody:
     'Engagement tiers protect your sender reputation: they decide who gets Broadcasts and who enters the sunset policy. The score measures interest: use it to find your most interested readers and customers. A score never stops or starts mail by itself.',
   tiersLink: 'Tiers on List health',
+  tiersLinkScoring: 'Scores on Audience › Scoring',
 
   // Bands.
   cold: 'Cold',
