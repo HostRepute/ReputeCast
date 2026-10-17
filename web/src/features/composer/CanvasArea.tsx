@@ -16,6 +16,7 @@ import { StateCards } from './StateCards'
 import { AccessibilityOverlays } from '@/features/accessibility/composer/Overlays'
 import { ConditionalOverlays, ConditionalToggle } from '@/features/conditional/Canvas'
 import { VersionsPanel } from '@/features/conditional/Versions'
+import { SurveyLinkChoices } from '@/features/surveys/LinkChoices'
 
 interface Box {
   top: number
@@ -532,6 +533,8 @@ function RteToolbar({ host, tick }: { host: HTMLElement | null; tick: number }) 
               <input className="in mono" value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://" autoFocus />
             </label>
             <span className="k">Leave it empty to remove the link. Tokens like {'{{ unsubscribe_url }}'} work too.</span>
+            {/* A campaign links to a survey with each contact's token (design expansion, X11). */}
+            {c.kind !== 'transactional' ? <SurveyLinkChoices value={link} onPick={setLink} /> : null}
             <div className="flex justify-end gap-2">
               <button type="button" className="btn sm" onClick={() => setLinkOpen(false)}>
                 Cancel
