@@ -246,12 +246,11 @@
 }
 .sv-move {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  gap: 0;
 }
 .sv-move .btn.xs {
-  width: 20px;
-  height: 16px;
+  width: 24px;
+  height: 24px;
   min-height: 0;
   padding: 0;
   border: 0;

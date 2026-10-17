@@ -279,7 +279,7 @@ export function PollSettings({ c: comp }: { c: Component }) {
           <Prop title={t(m.answers, { count: answers.length })} hint={t(m.answersHint)}>
             {answers.map((a, i) => (
               <div key={i} className="pl-answer">
-                <div className="flex flex-col">
+                <div className="flex">
                   <button type="button" className="btn sm ic pl-move" aria-label={t(m.moveUp, { n: i + 1 })} disabled={disabled || i === 0} onClick={() => move(i, -1)}>
                     ▲
                   </button>
