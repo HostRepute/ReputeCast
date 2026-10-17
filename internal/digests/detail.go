@@ -59,6 +59,38 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace) (DigestList, er
 	return out, nil
 }
 
+// DigestNextAcross is the soonest issue among a workspace's digests that
+// are on, for the overview's "Next scheduled campaign".
+type DigestNextAcross struct {
+	DigestID, DigestName string
+	Number               int
+	SendAt               time.Time
+	Timezone             string
+	Posts                int
+	Status               string
+	NeedsApproval        bool
+}
+
+// NextAcross finds the workspace's soonest digest issue with a send time.
+func (s *Service) NextAcross(ctx context.Context, ws *store.Workspace) (*DigestNextAcross, error) {
+	list, err := s.List(ctx, ws)
+	if err != nil {
+		return nil, err
+	}
+	var best *DigestNextAcross
+	for _, d := range list.Items {
+		n := d.Next
+		if d.State != "on" || n == nil || n.SendAt == nil {
+			continue
+		}
+		if best == nil || n.SendAt.Before(best.SendAt) {
+			best = &DigestNextAcross{DigestID: d.ID, DigestName: d.Name, Number: n.Number, SendAt: *n.SendAt, Timezone: d.Schedule.Timezone,
+				Posts: n.Posts, Status: n.Status, NeedsApproval: n.NeedsApproval}
+		}
+	}
+	return best, nil
+}
+
 func digestOf(r store.DigestListRow) store.Digest {
 	return store.Digest{ID: r.ID, WorkspaceID: r.WorkspaceID, Name: r.Name, TemplateID: r.TemplateID, State: r.State, Mode: r.Mode, Source: r.Source, FeedUrl: r.FeedUrl,
 		SiteID: r.SiteID, Categories: r.Categories, Tags: r.Tags, MaxAgeDays: r.MaxAgeDays, StartMode: r.StartMode, StartLatest: r.StartLatest, Schedule: r.Schedule,

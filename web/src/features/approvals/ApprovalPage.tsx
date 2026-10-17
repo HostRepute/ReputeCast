@@ -20,6 +20,10 @@ import { agoWords, countsShort, groupTitles, groupWords, linkParts, minutes, pro
 import { PreviewLanguagePicker } from '@/features/languages/approvals'
 import { AppHref, CheckBadge, whenText } from '@/features/review/parts'
 import { TransactionalApprovalCard, TransactionalDecisionDetail, TransactionalDecisionNote } from '@/features/transactional-templates/ApprovalCard'
+import { IssueApprovalCard, RecurringDigestBadge } from '@/features/digests/IssueParts'
+import { im } from '@/features/digests/issueMessages'
+import { useIssueInfo, type IssueInfo } from '@/features/digests/shared'
+import { useT } from '@/i18n'
 import { ApprovalStatusBadge, approverNames, decidedText, deciderFirst, DiffLines, requestTone, unchangedText, type Change } from './parts'
 import '@/features/review/review.css'
 
@@ -169,11 +173,13 @@ function DetailBody({ detail: d }: { detail: Detail }) {
   }
 
   const canEdit = useCan('campaigns:edit')
+  // A recurring digest's issue: its posts, what changed since the last approved issue, "Approve issue #3".
+  const issue = useIssueInfo(d.campaign?.id)
   const invalidated = d.status === 'invalidated'
   const others = [d.author, ...d.approvers].filter((p, i, all) => p.name !== me?.user.name && all.findIndex((x) => x.id === p.id) === i)
   return (
     <>
-      <HeaderCard detail={d} me={me?.user.name} />
+      <HeaderCard detail={d} me={me?.user.name} issue={issue} />
       <div className="ap-review">
         <div className="col gap-5!">
           {invalidated ? <InvalidatedCard detail={d} busy={busy} onApprove={() => void decide('approve').catch(() => undefined)} onChanges={() => setAsk('request_changes')} /> : null}
@@ -189,6 +195,7 @@ function DetailBody({ detail: d }: { detail: Detail }) {
           ) : null}
           {d.subjectType === 'automation' ? <AutomationCard detail={d} /> : null}
           {d.transactional ? <TransactionalApprovalCard snapshot={d.transactional} /> : null}
+          {issue ? <IssueApprovalCard issue={issue} /> : null}
           {d.campaign ? <CampaignCard detail={d} busy={busy === 'test'} onTest={() => void sendTest()} /> : null}
           {d.readiness ? <ReadinessCard detail={d} busy={busy} onFix={(c, f) => void applyFix(c, f)} /> : null}
           {d.audience || d.route ? <AudienceRouteCard detail={d} /> : null}
@@ -197,6 +204,7 @@ function DetailBody({ detail: d }: { detail: Detail }) {
         </div>
         <DecisionCard
           detail={d}
+          issueNumber={issue?.number}
           busy={busy}
           onApprove={() => void decide('approve').catch(() => undefined)}
           onChanges={() => setAsk('request_changes')}
@@ -227,7 +235,7 @@ function DetailBody({ detail: d }: { detail: Detail }) {
   )
 }
 
-function HeaderCard({ detail: d, me }: { detail: Detail; me?: string }) {
+function HeaderCard({ detail: d, me, issue }: { detail: Detail; me?: string; issue?: IssueInfo }) {
   const now = useNow()
   const tone = requestTone(d.status)
   const edge = { ok: 'h-ok', bad: 'h-bad', info: 'h-info', neutral: 'h-mut', purple: 'h-pur', warn: '' }[tone]
@@ -237,6 +245,7 @@ function HeaderCard({ detail: d, me }: { detail: Detail; me?: string }) {
       <div className="col flex-[1_1_360px] gap-1!">
         <div className="row gap-2!">
           <span className="text-[18px] font-bold">{d.name}</span>
+          {issue ? <RecurringDigestBadge issue={issue} /> : null}
           <ApprovalStatusBadge status={d.status} long />
         </div>
         <span className="k">
@@ -804,9 +813,25 @@ function DiscussionCard({
   )
 }
 
-function DecisionCard({ detail: d, busy, onApprove, onChanges, onReject }: { detail: Detail; busy?: string; onApprove: () => void; onChanges: () => void; onReject: () => void }) {
+function DecisionCard({
+  detail: d,
+  issueNumber,
+  busy,
+  onApprove,
+  onChanges,
+  onReject,
+}: {
+  detail: Detail
+  /** A recurring digest's issue: the button reads "Approve issue #3". */
+  issueNumber?: number
+  busy?: string
+  onApprove: () => void
+  onChanges: () => void
+  onReject: () => void
+}) {
   const { slug } = useWorkspace()
   const now = useNow()
+  const t = useT()
   const open = d.status === 'pending'
   const reason = d.can.decide ? undefined : d.can.decideReason || 'Only approvers can decide.'
   const last = d.decisions[d.decisions.length - 1]
@@ -821,7 +846,7 @@ function DecisionCard({ detail: d, busy, onApprove, onChanges, onReject }: { det
         {open ? (
           <>
             <Button variant="primary" className="justify-center" loading={busy === 'approve'} disabledReason={reason} onClick={onApprove}>
-              Approve
+              {issueNumber ? t(im.approveIssue, { number: issueNumber }) : 'Approve'}
             </Button>
             <Button className="justify-center" loading={busy === 'request_changes'} disabledReason={reason} onClick={onChanges}>
               Request changes

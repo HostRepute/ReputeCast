@@ -11,8 +11,10 @@ import (
 	"github.com/hostrepute/reputecast/internal/digests"
 	"github.com/hostrepute/reputecast/internal/digests/feed"
 	"github.com/hostrepute/reputecast/internal/netguard"
+	"github.com/hostrepute/reputecast/internal/overview"
 	"github.com/hostrepute/reputecast/internal/sending"
 	"github.com/hostrepute/reputecast/internal/sending/engine"
+	"github.com/hostrepute/reputecast/internal/store"
 )
 
 // Recurring and RSS digests (X10, M20). Each issue is a campaign: it goes
@@ -90,6 +92,17 @@ func init() {
 	// A post a connected WordPress site reports is read into its digests at once.
 	integrationPostReported = func(a *App) func(ctx context.Context, siteID uuid.UUID) {
 		return func(ctx context.Context, siteID uuid.UUID) { digestsService(a).PostReported(ctx, siteID) }
+	}
+	// The overview's "Next scheduled campaign" can be a digest's issue.
+	overviewNextIssue = func(a *App) func(ctx context.Context, ws *store.Workspace) (*overview.OverviewNextIssue, error) {
+		return func(ctx context.Context, ws *store.Workspace) (*overview.OverviewNextIssue, error) {
+			n, err := digestsService(a).NextAcross(ctx, ws)
+			if err != nil || n == nil {
+				return nil, err
+			}
+			return &overview.OverviewNextIssue{DigestID: n.DigestID, DigestName: n.DigestName, Number: n.Number, SendAt: n.SendAt, Timezone: n.Timezone,
+				Posts: n.Posts, Status: n.Status, NeedsApproval: n.NeedsApproval}, nil
+		}
 	}
 	// The engine names the system behind an issue's start and completion.
 	startHooks = append(startHooks, func(a *App) error {

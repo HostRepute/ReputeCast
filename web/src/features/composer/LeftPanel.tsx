@@ -9,6 +9,7 @@ import { blockDefs, type BlockDef } from './editor/blocks'
 import { componentLabel, mjChildren, sectionOf, tagOf } from './editor/labels'
 import { BlockIcon, ToolIcon } from './icons'
 import { Thumb } from './Thumb'
+import { isDigestTemplate } from '@/features/digests/composer/DigestMode'
 
 type BlocksAPI = { startDrag(b: unknown, ev?: Event): void; endDrag(cancel?: boolean): void; get(id: string): unknown; add(id: string, p: Record<string, unknown>): unknown }
 
@@ -251,7 +252,13 @@ function LayersTab() {
 
 function TemplatesTab({ sectionsRef }: { sectionsRef: RefObject<HTMLDivElement | null> }) {
   const c = useComposer()
-  const g = $api.useQuery('get', '/api/v1/workspaces/{workspace}/templates', { params: { path: { workspace: c.slug } } }, { staleTime: 60_000 })
+  const g = $api.useQuery(
+    'get',
+    '/api/v1/workspaces/{workspace}/templates',
+    // A recurring digest's template also gets the digest starters (Blog digest).
+    { params: { path: { workspace: c.slug }, query: isDigestTemplate(c.campaign) ? { mode: 'digest' } : {} } },
+    { staleTime: 60_000 },
+  )
   const [confirm, setConfirm] = useState<{ id: string; name: string } | null>(null)
   if (g.isPending) return <p className="k p-3">Loading templates…</p>
   if (g.isError) return <p className="k p-3">Templates couldn't load. {errorMessage(g.error)}</p>

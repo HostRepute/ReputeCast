@@ -54,6 +54,20 @@ func TestDemoDigest(t *testing.T) {
 	if it.Last == nil || it.Last.Number != 2 || it.Last.HumanOpens == nil || math.Abs(*it.Last.HumanOpens-38.9) > 0.05 || it.Last.HumanOpensDelta == nil || math.Abs(*it.Last.HumanOpensDelta+1.4) > 0.05 {
 		t.Fatalf("last: %+v", it.Last)
 	}
+	// The overview's "Next scheduled campaign" knows the next issue.
+	var next struct {
+		Issue *struct {
+			DigestName, Status string
+			Number, Posts      int
+			NeedsApproval      bool
+			SendAt             time.Time
+		}
+	}
+	aisha.Do("GET", ws+"/overview/next-campaign", nil).MustStatus(t, 200).JSON(t, &next)
+	if next.Issue == nil || next.Issue.DigestName != "Engineering blog roundup" || next.Issue.Number != 3 || next.Issue.Posts != 2 || !next.Issue.NeedsApproval ||
+		next.Issue.Status != "collecting" || next.Issue.SendAt.IsZero() {
+		t.Fatalf("overview's next issue: %+v", next.Issue)
+	}
 
 	var d struct {
 		Feed struct {

@@ -5,6 +5,7 @@ import { Button, ButtonLink } from '@/components/ui/Button'
 import { useNow } from '@/lib/hooks'
 import { count, money, until } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
+import { OverviewIssueCard } from '@/features/digests/IssueParts'
 import { clockIn, dateIn, minutes, readinessBadge, routeLine } from './words'
 
 /** "Next scheduled campaign" with its Send Readiness, route and estimates (Main board). */
@@ -13,6 +14,8 @@ export function NextCampaignCard({ n }: { n: Schemas['OverviewNextCampaign'] }) 
   const now = useNow(60_000)
   const editReason = usePermissionReason('campaigns:edit')
   const c = n.campaign
+  // A recurring digest's issue that goes out before the next scheduled campaign takes the card.
+  if (n.issue && (!c || new Date(n.issue.sendAt) < new Date(c.scheduledAt))) return <OverviewIssueCard issue={n.issue} />
   if (!c) {
     return (
       <section className="card flex flex-col gap-3.5 px-[22px] py-5" aria-labelledby="ov-next-h">

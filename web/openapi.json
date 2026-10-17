@@ -26274,10 +26274,64 @@
           "drafts": {
             "format": "int64",
             "type": "integer"
+          },
+          "issue": {
+            "$ref": "#/components/schemas/OverviewNextIssue"
           }
         },
         "required": [
           "drafts"
+        ],
+        "type": "object"
+      },
+      "OverviewNextIssue": {
+        "additionalProperties": false,
+        "properties": {
+          "digestId": {
+            "type": "string"
+          },
+          "digestName": {
+            "type": "string"
+          },
+          "needsApproval": {
+            "type": "boolean"
+          },
+          "number": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "posts": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "sendAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "collecting",
+              "preparing",
+              "prepared",
+              "waiting",
+              "held",
+              "draft"
+            ],
+            "type": "string"
+          },
+          "timezone": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "digestId",
+          "digestName",
+          "number",
+          "sendAt",
+          "timezone",
+          "posts",
+          "status",
+          "needsApproval"
         ],
         "type": "object"
       },

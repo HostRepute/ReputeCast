@@ -15803,6 +15803,21 @@ export interface components {
             campaign?: components["schemas"]["OverviewScheduledCampaign"];
             /** Format: int64 */
             drafts: number;
+            issue?: components["schemas"]["OverviewNextIssue"];
+        };
+        OverviewNextIssue: {
+            digestId: string;
+            digestName: string;
+            needsApproval: boolean;
+            /** Format: int64 */
+            number: number;
+            /** Format: int64 */
+            posts: number;
+            /** Format: date-time */
+            sendAt: string;
+            /** @enum {string} */
+            status: "collecting" | "preparing" | "prepared" | "waiting" | "held" | "draft";
+            timezone: string;
         };
         OverviewProviderCard: {
             card: components["schemas"]["ProviderCard"];
