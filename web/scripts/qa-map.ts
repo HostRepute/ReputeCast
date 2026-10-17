@@ -287,4 +287,13 @@ export const entries: Entry[] = [
   // refused, read-only, disconnect) and AIStates' cap and key states need clicks or data changes.
   { board: 'AISettings', path: `${ws}/settings/integrations/ai`, widths: [1440] },
   { board: 'AIStates', manual: true },
+  // The composer with the assistant: Weekly Digest #143, the draft. Its frames (Ideas, a rewrite
+  // shown inline, alt text, the accessibility fixes, a translation's blocks) open from the Assist
+  // menu and the selection's toolbar, so the sweep compares the composer around them.
+  { board: 'AIComposer', path: `${ws}/campaigns/{campaign:Weekly Digest #143}/edit`, widths: [1440], viewportOnly: true, height: 1000 },
+  { board: 'AIComposerTablet', path: `${ws}/campaigns/{campaign:Weekly Digest #143}/edit`, widths: [834], viewportOnly: true, height: 1000 },
+  { board: 'AIComposerPhone', path: `${ws}/campaigns/{campaign:Weekly Digest #143}/edit`, widths: [390], viewportOnly: true, height: 1000 },
+  // Describe the segment (a new segment) and Summarize results (the October Product Update's report,
+  // with its kept summary): each starts from a click.
+  { board: 'AISegmentReport', manual: true },
 ]
