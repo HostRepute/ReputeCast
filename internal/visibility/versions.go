@@ -212,6 +212,16 @@ type VisibilityVersion struct {
 	Checked bool `json:"checked"`
 }
 
+// key is the version's hidden set as Hidden.String() writes it (Hidden
+// lists the blocks in the email's order).
+func (v VisibilityVersion) key() string {
+	h := make(Hidden, len(v.Hidden))
+	for _, id := range v.Hidden {
+		h[id] = true
+	}
+	return h.String()
+}
+
 // orderVersions sorts versions: by their mask when few, the blocks seen by fewer
 // recipients counting more (none first, then each rarer block's versions
 // together); by recipients when there are more than MaxChecked.

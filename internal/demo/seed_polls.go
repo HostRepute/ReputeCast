@@ -24,10 +24,11 @@ import (
 // Conditional content, polls and surveys (design expansion, X11; brief
 // reputecast-design-addon-create.md §4):
 //
-//   - Weekly Digest #143 gets its three conditional blocks (We've missed
-//     you, Beta corner, Start a free trial) and the topics poll in every
-//     version (x11Digest143, called while the accessibility sample writes
-//     its versions), and the count of its six versions at 10:27;
+//   - Weekly Digest #143 gets its four conditional blocks (We've missed
+//     you, Beta corner, Start a free trial, and Book a demo for the Hot
+//     score band, which Scoring lists under Used by) and the topics poll in
+//     every version (x11Digest143, called while the accessibility sample
+//     writes its versions), and the count of its eight versions at 10:27;
 //   - Weekly Digest #141 gets its NPS poll and 2,412 answers: NPS 26,
 //     318 comments, 74 changed answers, 9 from the web archive and 1,377
 //     automated visits ignored;
@@ -41,6 +42,7 @@ const (
 	x11Missed = "missed"
 	x11Beta   = "beta"
 	x11Trial  = "trial"
+	x11Demo   = "demo"
 	x11Topics = "topics"
 )
 
@@ -63,8 +65,8 @@ func x11Rule(id string, c visibility.VisibilityCondition) string {
 
 // x11Digest143 adds the brief's blocks to a version of Weekly Digest #143:
 // the "We've missed you" note after the hero (the phase-2 sample's
-// sections keep their places), the Beta corner, the free trial banner and
-// the topics poll before the social links.
+// sections keep their places), the Beta corner, the free trial banner, the
+// topics poll and Book a demo (ScoringUses) before the social links.
 func x11Digest143(s *Seeder, src string) string {
 	// Its family names are single-quoted, so it fits in a style attribute.
 	plex := composerPlexFont
@@ -89,23 +91,34 @@ func x11Digest143(s *Seeder, src string) string {
       </mj-column>
     </mj-section>
 `
+	demo := `    <mj-section rc-name="Book a demo" rc-visible="` + x11Rule(x11Demo, visibility.VisibilityCondition{Kind: visibility.KindScoreBand, Op: "is", Value: "hot"}) +
+		`" background-color="#ffffff" padding="32px 24px 16px">
+      <mj-column>
+        <mj-text font-size="15px" line-height="1.55" color="#374151" padding="0px"><div style="font-size:17px;line-height:1.35;font-weight:700;color:#0B1220;padding-bottom:4px">Want a walkthrough for your team?</div><div style="padding-bottom:12px">Book 20 minutes with an engineer.</div><a href="https://acme.io/demo" style="display:inline-block;background-color:#0F766E;color:#ffffff;font-family:` + plex + `;font-size:13px;font-weight:600;line-height:1;padding:10px 14px;border-radius:6px;text-decoration:none">Book a demo</a></mj-text>
+      </mj-column>
+    </mj-section>
+`
 	poll := "    " + strings.ReplaceAll(polls.Section(x11Topics143, nil), "\n", "\n    ") + "\n"
 	if i := strings.Index(src, "    <!-- rc:intro -->"); i >= 0 {
 		src = src[:i] + missed + src[i:]
 	}
 	if i := strings.Index(src, `    <mj-raw><table align="center"`); i >= 0 {
-		src = src[:i] + beta + trial + poll + src[i:]
+		src = src[:i] + beta + trial + poll + demo + src[i:]
 	}
 	return src
 }
 
-// x11Versions143 are #143's versions as the brief counts them (6 of the 8
-// combinations): the blocks each leaves out, and how many get it.
+// x11Versions143 are #143's versions (8 of the 16 combinations): the
+// brief's six (ComposerVisibility), with Book a demo for the 3,164 Hot
+// readers among them (ScoringUses: those with a plan and those without;
+// none at risk or on Beta Program): the blocks each leaves out, and how
+// many get it.
 var x11Versions143 = []struct {
 	hidden string
 	n      int64
 }{
-	{"beta,missed,trial", 9812}, {"beta,missed", 16940}, {"beta,trial", 1166}, {"beta", 2284}, {"missed,trial", 812}, {"missed", 590},
+	{"beta,demo,missed,trial", 7936}, {"beta,missed,trial", 1876}, {"beta,demo,missed", 15652}, {"beta,missed", 1288},
+	{"beta,demo,trial", 1166}, {"beta,demo", 2284}, {"demo,missed,trial", 812}, {"demo,missed", 590},
 }
 
 func seedPollsImpl(ctx context.Context, s *Seeder) error {
@@ -157,7 +170,7 @@ func x11Count143(ctx context.Context, s *Seeder) error {
 		Recipients int64  `json:"recipients"`
 	}
 	var vs []stored
-	shown := map[string]int64{x11Missed: 0, x11Beta: 0, x11Trial: 0}
+	shown := map[string]int64{x11Missed: 0, x11Beta: 0, x11Trial: 0, x11Demo: 0}
 	var total int64
 	for _, v := range x11Versions143 {
 		vs = append(vs, stored{v.hidden, v.n})

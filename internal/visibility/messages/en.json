@@ -83,5 +83,44 @@
   "trait.inSegment": "in {segment}",
   "trait.notInSegment": "not in {segment}",
   "trait.tag": "tag {tag}",
-  "trait.noTag": "no tag {tag}"
+  "trait.noTag": "no tag {tag}",
+  "band.hot": {
+    "message": "Hot",
+    "note": "a score band"
+  },
+  "band.warm": {
+    "message": "Warm",
+    "note": "a score band"
+  },
+  "band.cold": {
+    "message": "Cold",
+    "note": "a score band"
+  },
+  "describe.score": {
+    "message": "Score {op, select, at_most {is at most {value}} between {is between {value} and {to}} other {is at least {value}}}",
+    "note": "a Visibility badge: contacts whose score is at least 50 see the block"
+  },
+  "describe.scoreBand": {
+    "message": "Score band is {band}",
+    "note": "a Visibility badge: Score band is Hot"
+  },
+  "describe.notScoreBand": "Score band isn’t {band}",
+  "why.score": {
+    "message": "{name}’s score is {score}",
+    "note": "Sam Rivera’s score is 52"
+  },
+  "why.noScore": {
+    "message": "{name} has no score",
+    "note": "the workspace has no scoring rules yet"
+  },
+  "why.scoreBand": "{name}’s score band is {band}",
+  "why.scoreBandNot": {
+    "message": "{name}’s score band is {actual}, not {band}",
+    "note": "Sam Rivera’s score band is Warm, not Hot"
+  },
+  "trait.score": {
+    "message": "score {score} · {band}",
+    "note": "what a rule reads about a contact: score 52 · Hot"
+  },
+  "trait.noScore": "no score"
 }

@@ -124,7 +124,7 @@ func (s *Service) preview(ctx context.Context, ws *store.Workspace, campaignID u
 			out.Versions = len(vs)
 			key := d.Hidden.String()
 			for _, v := range vs {
-				if strings.Join(v.Hidden, ",") == key {
+				if v.key() == key {
 					out.Version, out.Recipients = v.Number, v.Recipients
 				}
 			}
@@ -179,6 +179,8 @@ func traits(e Email, f *Facts, n *Names) []string {
 				}
 			case KindLanguage:
 				add("language", languageName(f.Language))
+			case KindScore, KindScoreBand:
+				add("score", scoreTrait(f, n))
 			}
 		}
 	}
@@ -223,6 +225,13 @@ func (s *Service) PreviewContacts(ctx context.Context, ws *store.Workspace, camp
 	if err != nil {
 		return out, err
 	}
+	byID := make(map[uuid.UUID]*Facts, len(recipients))
+	for _, f := range recipients {
+		byID[f.ID] = f
+	}
+	if err := loadExtra(ctx, s.Q, ws.ID, byID, e); err != nil {
+		return out, err
+	}
 	res, err := s.tally(ctx, ws, campaignID, c.Audience, e, n, false)
 	if err != nil {
 		return out, err
@@ -230,7 +239,7 @@ func (s *Service) PreviewContacts(ctx context.Context, ws *store.Workspace, camp
 	vs := Versions(e, res.Tally, "")
 	numbers := map[string]int{}
 	for _, v := range vs {
-		numbers[strings.Join(v.Hidden, ",")] = v.Number
+		numbers[v.key()] = v.Number
 	}
 	// Prefer contacts with a name, the way the composer's preview does.
 	sort.SliceStable(recipients, func(i, j int) bool {
@@ -248,7 +257,7 @@ func (s *Service) PreviewContacts(ctx context.Context, ws *store.Workspace, camp
 		trait := languageName(f.Language)
 		for _, b := range e.Blocks {
 			if !d.Hidden[b.ID] {
-				trait = blockTrait(b, n)
+				trait = blockTrait(b, f, n)
 				break
 			}
 		}
@@ -273,8 +282,9 @@ func (s *Service) PreviewContacts(ctx context.Context, ws *store.Workspace, camp
 }
 
 // blockTrait is the short name of what a shown block's rule reads: the
-// list, segment, tier or field it checks ("Beta Program").
-func blockTrait(b Block, n *Names) string {
+// list, segment, tier or field it checks ("Beta Program"), or the contact's
+// own score ("score 52 · Hot").
+func blockTrait(b Block, f *Facts, n *Names) string {
 	if len(b.Rule.Conditions) == 0 {
 		return b.Name
 	}
@@ -290,6 +300,8 @@ func blockTrait(b Block, n *Names) string {
 		return languageName(c.Value)
 	case KindTag:
 		return c.Value
+	case KindScore, KindScoreBand:
+		return scoreTrait(f, n)
 	}
 	return b.Name
 }

@@ -38311,6 +38311,13 @@
             "format": "int64",
             "type": "integer"
           },
+          "show": {
+            "enum": [
+              "only",
+              "except"
+            ],
+            "type": "string"
+          },
           "since": {
             "format": "date-time",
             "type": "string"
@@ -48550,6 +48557,12 @@
       "VisibilityCatalog": {
         "additionalProperties": false,
         "properties": {
+          "bands": {
+            "items": {
+              "$ref": "#/components/schemas/VisibilityOption"
+            },
+            "type": "array"
+          },
           "fields": {
             "items": {
               "$ref": "#/components/schemas/VisibilityCatalogField"
@@ -48580,6 +48593,9 @@
             },
             "type": "array"
           },
+          "score": {
+            "$ref": "#/components/schemas/VisibilityCatalogScore"
+          },
           "segments": {
             "items": {
               "$ref": "#/components/schemas/VisibilityOption"
@@ -48607,7 +48623,9 @@
           "tags",
           "fields",
           "languages",
-          "tiers"
+          "tiers",
+          "bands",
+          "score"
         ],
         "type": "object"
       },
@@ -48668,6 +48686,28 @@
         ],
         "type": "object"
       },
+      "VisibilityCatalogScore": {
+        "additionalProperties": false,
+        "properties": {
+          "configured": {
+            "type": "boolean"
+          },
+          "hotFrom": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "warmFrom": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "configured",
+          "warmFrom",
+          "hotFrom"
+        ],
+        "type": "object"
+      },
       "VisibilityCondition": {
         "additionalProperties": false,
         "properties": {
@@ -48681,6 +48721,9 @@
             "type": "string"
           },
           "op": {
+            "type": "string"
+          },
+          "to": {
             "type": "string"
           },
           "value": {

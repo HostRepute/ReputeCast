@@ -10,7 +10,7 @@
 // compiled HTML (Apply). No MJML is compiled per recipient.
 //
 // Conditions come from a registry (RegisterKind) so later phases add their own:
-// the score and its band (phase 4) join the Engagement group, a paid tier
+// the score and its band (score.go) are in the Engagement group, a paid tier
 // (phase 6) gets a group of its own.
 package visibility
 
@@ -62,9 +62,11 @@ type VisibilityCondition struct {
 	Op   string `json:"op"`
 	// Field is the custom field a field condition reads ("plan").
 	Field string `json:"field,omitempty"`
-	// Value is a segment or list id, a tag, a field value, a language code
-	// or a tier key, depending on the kind.
+	// Value is a segment or list id, a tag, a field value, a language code,
+	// a tier key, a score (0–100) or a score band, depending on the kind.
 	Value string `json:"value,omitempty"`
+	// To is the top of a score range ("is between Value and To").
+	To string `json:"to,omitempty"`
 	// Label is the name of the segment or list when it was picked, so a
 	// condition still names it after it was deleted.
 	Label string `json:"label,omitempty"`

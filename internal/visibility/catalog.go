@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/hostrepute/reputecast/internal/languages"
+	"github.com/hostrepute/reputecast/internal/scoring"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -32,6 +33,15 @@ type VisibilityCatalogField struct {
 	Options []string   `json:"options"`
 }
 
+// VisibilityCatalogScore is how the workspace's scores fall into bands.
+type VisibilityCatalogScore struct {
+	// Configured is false while the workspace has no scoring: nobody has a
+	// score or a band yet.
+	Configured bool `json:"configured"`
+	WarmFrom   int  `json:"warmFrom"`
+	HotFrom    int  `json:"hotFrom"`
+}
+
 // VisibilityCatalog is everything the condition picker offers.
 type VisibilityCatalog struct {
 	// Groups in the picker's order; kinds in each group's order.
@@ -43,12 +53,14 @@ type VisibilityCatalog struct {
 	Fields    []VisibilityCatalogField `json:"fields"`
 	Languages []VisibilityOption       `json:"languages"`
 	Tiers     []VisibilityOption       `json:"tiers"`
+	Bands     []VisibilityOption       `json:"bands"`
+	Score     VisibilityCatalogScore   `json:"score"`
 }
 
 // Catalog returns the condition picker's kinds and values.
 func (s *Service) Catalog(ctx context.Context, ws *store.Workspace) (VisibilityCatalog, error) {
 	out := VisibilityCatalog{Groups: []string{}, Kinds: []VisibilityCatalogKind{}, Segments: []VisibilityOption{}, Lists: []VisibilityOption{}, Tags: []VisibilityOption{},
-		Fields: []VisibilityCatalogField{}, Languages: []VisibilityOption{}, Tiers: []VisibilityOption{}}
+		Fields: []VisibilityCatalogField{}, Languages: []VisibilityOption{}, Tiers: []VisibilityOption{}, Bands: []VisibilityOption{}}
 	for _, k := range Kinds() {
 		found := false
 		for _, g := range out.Groups {
@@ -114,6 +126,14 @@ func (s *Service) Catalog(ctx context.Context, ws *store.Workspace) (VisibilityC
 	l := lang(ctx)
 	for _, t := range Tiers {
 		out.Tiers = append(out.Tiers, VisibilityOption{Value: t, Label: tierName(l, t)})
+	}
+	bands, configured, err := scoring.AppliedBands(ctx, s.Q, ws.ID)
+	if err != nil {
+		return out, err
+	}
+	out.Score = VisibilityCatalogScore{Configured: configured, WarmFrom: bands.WarmFrom, HotFrom: bands.HotFrom}
+	for _, b := range Bands {
+		out.Bands = append(out.Bands, VisibilityOption{Value: b, Label: bandName(l, b)})
 	}
 	return out, nil
 }

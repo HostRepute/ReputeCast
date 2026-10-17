@@ -55,6 +55,25 @@
   border-radius: 8px;
   background: var(--ground-3);
 }
+/* "is between 20 and 49": both ends in the value's column. */
+.cv-range {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.cv-range > input {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0 6px;
+  /* Room for "100" in half the row: no spin buttons. */
+  appearance: textfield;
+}
+.cv-range > input::-webkit-inner-spin-button,
+.cv-range > input::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
+}
 .cv-cond.broken {
   border-color: var(--bad-line);
   background: var(--bad-tint);
@@ -130,7 +149,9 @@
   flex-direction: column;
   gap: 4px;
   padding: 10px;
-  max-height: 420px;
+  /* Every group fits where there is room (the score and its band included);
+     the list scrolls inside the space the popover has. */
+  max-height: min(600px, calc(var(--radix-popover-content-available-height, 600px) - 14px));
   overflow: auto;
 }
 .cv-pick-group {

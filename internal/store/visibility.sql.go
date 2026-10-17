@@ -464,23 +464,24 @@ func (q *Queries) VisibilityTags(ctx context.Context, workspaceID uuid.UUID) ([]
 }
 
 const visibilityUnsent = `-- name: VisibilityUnsent :many
-SELECT c.id, c.name, c.status, c.mjml, c.scheduled_at
+SELECT c.id, c.name, c.status, c.mjml, c.scheduled_at, c.audience
 FROM campaigns c
 WHERE c.workspace_id = $1 AND c.status IN ('draft', 'approval', 'approved', 'scheduled') AND c.mjml LIKE '%rc-visible%'
 ORDER BY c.updated_at DESC
 `
 
 type VisibilityUnsentRow struct {
-	ID          uuid.UUID  `json:"id"`
-	Name        string     `json:"name"`
-	Status      string     `json:"status"`
-	Mjml        string     `json:"mjml"`
-	ScheduledAt *time.Time `json:"scheduledAt"`
+	ID          uuid.UUID       `json:"id"`
+	Name        string          `json:"name"`
+	Status      string          `json:"status"`
+	Mjml        string          `json:"mjml"`
+	ScheduledAt *time.Time      `json:"scheduledAt"`
+	Audience    json.RawMessage `json:"audience"`
 }
 
 // Emails that aren't sent yet and have Visibility rules: drafts, campaigns
-// waiting for approval and scheduled ones ("used by" and the warning before
-// a segment, list or field is deleted).
+// waiting for approval and scheduled ones ("used by", the warning before a
+// segment, list or field is deleted, and the blocks Scoring lists).
 func (q *Queries) VisibilityUnsent(ctx context.Context, workspaceID uuid.UUID) ([]VisibilityUnsentRow, error) {
 	rows, err := q.db.Query(ctx, visibilityUnsent, workspaceID)
 	if err != nil {
@@ -496,6 +497,7 @@ func (q *Queries) VisibilityUnsent(ctx context.Context, workspaceID uuid.UUID) (
 			&i.Status,
 			&i.Mjml,
 			&i.ScheduledAt,
+			&i.Audience,
 		); err != nil {
 			return nil, err
 		}

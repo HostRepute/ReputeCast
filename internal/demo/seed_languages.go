@@ -311,6 +311,9 @@ var (
 		">On-call stories<", ">Historias de guardias<", //nolint:misspell // Spanish, not misspelt English
 		">Rust in production<", ">Rust en producción<",
 		"One click opens a page that saves your answer. You&#39;ll see the results there.", "Un clic abre una página que guarda tu respuesta. Allí verás los resultados.",
+		"Want a walkthrough for your team?", "¿Quieres una demostración para tu equipo?",
+		"Book 20 minutes with an engineer.", "Reserva 20 minutos con un ingeniero.",
+		">Book a demo<", ">Reservar una demo<",
 	}
 	// German was translated from v6, before the intro gained "in any
 	// timezone" and the CSV card its new sentence.
@@ -355,6 +358,9 @@ var (
 		">On-call stories<", ">Geschichten aus der Rufbereitschaft<",
 		">Rust in production<", ">Rust in Produktion<", //nolint:misspell // German, not misspelt English
 		"One click opens a page that saves your answer. You&#39;ll see the results there.", "Ein Klick öffnet eine Seite, die Ihre Antwort speichert. Dort sehen Sie die Ergebnisse.",
+		"Want a walkthrough for your team?", "Möchten Sie eine Vorführung für Ihr Team?",
+		"Book 20 minutes with an engineer.", "Buchen Sie 20 Minuten mit einem unserer Entwickler.",
+		">Book a demo<", ">Demo buchen<",
 	}
 )
 

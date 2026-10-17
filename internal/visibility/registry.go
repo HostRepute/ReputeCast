@@ -16,7 +16,8 @@ import (
 )
 
 // Groups of the condition picker, in its order. Later phases add theirs
-// (paid tiers get a group of their own; the score joins Engagement).
+// (paid tiers get a group of their own); the score and its band are in
+// Engagement (score.go).
 const (
 	GroupLists      = "lists"
 	GroupContact    = "contact"
@@ -31,6 +32,9 @@ const (
 	KindField    = "field"
 	KindLanguage = "language"
 	KindTier     = "tier"
+	// The contact's score and its band (contact scoring, score.go).
+	KindScore     = "score"
+	KindScoreBand = "score_band"
 )
 
 // Facts is what conditions read about one contact. Contacts are read in
@@ -50,8 +54,8 @@ type Facts struct {
 	// Language is the contact's language code as stored ("es-MX").
 	Language string
 	Tier     string
-	// Extra is what registered kinds load for themselves (Kind.Load), by
-	// kind key: the score and band of phase 4.
+	// Extra is what kinds load for themselves (Kind.Load), by kind key: the
+	// score and band under KindScore.
 	Extra map[string]any
 }
 
@@ -92,8 +96,10 @@ type Kind struct {
 	// Match decides the condition for a contact.
 	Match func(c VisibilityCondition, f *Facts) bool
 	// Load reads what Match needs beyond the base facts, for the given
-	// contacts, into Facts.Extra[Key]. Nil for built-in kinds.
+	// contacts, into Facts.Extra. Nil for kinds that read the base facts.
 	Load func(ctx context.Context, q *store.Queries, workspaceID uuid.UUID, conditions []VisibilityCondition, facts map[uuid.UUID]*Facts) error
+	// Check validates a condition's value beyond "there is one" (nil: any).
+	Check func(c VisibilityCondition) error
 	// Describe says the condition in words for badges and summaries
 	// ("Beta Program list", "plan is empty").
 	Describe func(c VisibilityCondition, n *Names) string
@@ -109,7 +115,7 @@ var (
 )
 
 // RegisterKind adds a condition kind. Later phases call it from their own
-// package's init (phase 4's score and band, phase 6's paid tier).
+// package's init (phase 6's paid tier).
 func RegisterKind(k Kind) {
 	registryMu.Lock()
 	defer registryMu.Unlock()
@@ -213,6 +219,10 @@ func init() {
 			return is
 		},
 		Describe: describeTier, Why: whyTier})
+	RegisterKind(Kind{Key: KindScore, Group: GroupEngagement, Ops: []Operator{{Key: "at_least"}, {Key: "at_most"}, {Key: "between"}},
+		Load: loadScores, Match: matchScore, Check: checkScore, Describe: describeScore, Why: whyScore})
+	RegisterKind(Kind{Key: KindScoreBand, Group: GroupEngagement, Ops: []Operator{{Key: "is"}, {Key: "is_not"}},
+		Load: loadScores, Match: matchScoreBand, Check: checkScoreBand, Describe: describeScoreBand, Why: whyScoreBand})
 }
 
 // baseLanguage is the language part of a code: "es-MX" → "es".
@@ -344,6 +354,11 @@ func Validate(r VisibilityRule, n *Names) error {
 		}
 		if !ops[idx].NoValue && strings.TrimSpace(c.Value) == "" {
 			return fmt.Errorf("condition %d: pick a value", i+1)
+		}
+		if k.Check != nil {
+			if err := k.Check(c); err != nil {
+				return fmt.Errorf("condition %d: %w", i+1, err)
+			}
 		}
 	}
 	return nil

@@ -19,43 +19,44 @@ func TestRegistry(t *testing.T) {
 		keys = append(keys, k.Key)
 		groups[k.Key] = k.Group
 	}
-	if got := strings.Join(keys, ","); got != "segment,list,tag,field,language,tier" {
-		t.Fatalf("built-in kinds in the picker's order: %s", got)
+	if got := strings.Join(keys, ","); got != "segment,list,tag,field,language,tier,score,score_band" {
+		t.Fatalf("kinds in the picker's order: %s", got)
 	}
-	if groups["segment"] != GroupLists || groups["tag"] != GroupLists || groups["field"] != GroupContact || groups["language"] != GroupContact || groups["tier"] != GroupEngagement {
+	if groups["segment"] != GroupLists || groups["tag"] != GroupLists || groups["field"] != GroupContact || groups["language"] != GroupContact || groups["tier"] != GroupEngagement ||
+		groups["score"] != GroupEngagement || groups["score_band"] != GroupEngagement {
 		t.Fatalf("groups: %v", groups)
 	}
 
-	// A later phase registers its own kind (the score joins Engagement);
-	// registering it again replaces it without moving it.
-	score := Kind{Key: "score", Group: GroupEngagement, Ops: []Operator{{Key: "gt"}},
-		Match: func(c VisibilityCondition, f *Facts) bool { s, _ := f.Extra["score"].(int); return s > 50 }}
-	RegisterKind(score)
+	// A later phase registers its own kind (a paid tier); registering it
+	// again replaces it without moving it.
+	paid := Kind{Key: "paid_tier", Group: "paid", Ops: []Operator{{Key: "is"}},
+		Match: func(c VisibilityCondition, f *Facts) bool { s, _ := f.Extra["paid_tier"].(string); return s == c.Value }}
+	RegisterKind(paid)
 	t.Cleanup(func() {
 		registryMu.Lock()
 		defer registryMu.Unlock()
-		delete(registry, "score")
-		order = slices.DeleteFunc(order, func(k string) bool { return k == "score" })
+		delete(registry, "paid_tier")
+		order = slices.DeleteFunc(order, func(k string) bool { return k == "paid_tier" })
 	})
-	score.Ops = []Operator{{Key: "gt"}, {Key: "lt"}}
-	RegisterKind(score)
+	paid.Ops = []Operator{{Key: "is"}, {Key: "is_not"}}
+	RegisterKind(paid)
 	keys = keys[:0]
 	for _, k := range Kinds() {
 		keys = append(keys, k.Key)
 	}
-	if got := strings.Join(keys, ","); got != "segment,list,tag,field,language,tier,score" {
-		t.Fatalf("after registering score twice: %s", got)
+	if got := strings.Join(keys, ","); got != "segment,list,tag,field,language,tier,score,score_band,paid_tier" {
+		t.Fatalf("after registering paid_tier twice: %s", got)
 	}
-	if k, ok := Lookup("score"); !ok || len(k.Ops) != 2 || k.Group != GroupEngagement {
-		t.Fatalf("score: %+v %v", k, ok)
+	if k, ok := Lookup("paid_tier"); !ok || len(k.Ops) != 2 || k.Group != "paid" {
+		t.Fatalf("paid_tier: %+v %v", k, ok)
 	}
 	// Its conditions decide with what it loads into Facts.Extra.
-	e := Read(email(section("hot", rule("hot", ShowOnly, MatchAll, VisibilityCondition{Kind: "score", Op: "gt", Value: "50"}), "Hot leads")))
-	if d := Decide(e, &Facts{Extra: map[string]any{"score": 72}}, nil); d.Hidden["hot"] {
-		t.Fatalf("a score of 72 should see the block")
+	e := Read(email(section("gold", rule("gold", ShowOnly, MatchAll, VisibilityCondition{Kind: "paid_tier", Op: "is", Value: "gold"}), "Gold members")))
+	if d := Decide(e, &Facts{Extra: map[string]any{"paid_tier": "gold"}}, nil); d.Hidden["gold"] {
+		t.Fatalf("a gold member should see the block")
 	}
-	if d := Decide(e, &Facts{Extra: map[string]any{"score": 12}}, nil); !d.Hidden["hot"] {
-		t.Fatalf("a score of 12 shouldn't see the block")
+	if d := Decide(e, &Facts{Extra: map[string]any{"paid_tier": "free"}}, nil); !d.Hidden["gold"] {
+		t.Fatalf("a free member shouldn't see the block")
 	}
 
 	// The field operators are the segment builder's, by type.
@@ -78,6 +79,95 @@ func TestRegistry(t *testing.T) {
 	}
 	if got := opKeys(FieldOps("text")); got != "equals,not_equals,contains,is_empty*,is_not_empty*" {
 		t.Fatalf("text ops: %s", got)
+	}
+}
+
+// The score and its band read as the segment builder's: "Score band is"
+// matches only contacts with that band, "isn't" everyone else (contacts
+// without a score too), and without scoring nobody has a score.
+func TestScoreConditions(t *testing.T) {
+	src := email(
+		section("demo", rule("demo", ShowOnly, MatchAll, VisibilityCondition{Kind: KindScoreBand, Op: "is", Value: "hot"}), "Book a demo"),
+		section("nothot", rule("nothot", ShowOnly, MatchAll, VisibilityCondition{Kind: KindScoreBand, Op: "is_not", Value: "hot"}), "Read more"),
+		section("least", rule("least", ShowOnly, MatchAll, VisibilityCondition{Kind: KindScore, Op: "at_least", Value: "50"}), "50 or more"),
+		section("most", rule("most", ShowOnly, MatchAll, VisibilityCondition{Kind: KindScore, Op: "at_most", Value: "19"}), "19 or less"),
+		section("range", rule("range", ShowExcept, MatchAll, VisibilityCondition{Kind: KindScore, Op: "between", Value: "20", To: "49"}), "Not warm"),
+	)
+	e := Read(src)
+	hidden := func(s scoreFact) string {
+		return Decide(e, &Facts{Extra: map[string]any{KindScore: s}}, nil).Hidden.String()
+	}
+	cases := []struct {
+		s    scoreFact
+		want string
+	}{
+		{scoreFact{Has: true, Score: 52, Band: "hot"}, "most,nothot"},
+		{scoreFact{Has: true, Score: 50, Band: "hot"}, "most,nothot"},
+		{scoreFact{Has: true, Score: 49, Band: "warm"}, "demo,least,most,range"},
+		{scoreFact{Has: true, Score: 20, Band: "warm"}, "demo,least,most,range"},
+		{scoreFact{Has: true, Score: 19, Band: "cold"}, "demo,least"},
+		{scoreFact{Has: true, Score: 0, Band: "cold"}, "demo,least"},
+		// No scoring: no score and no band.
+		{scoreFact{}, "demo,least,most"},
+	}
+	for _, c := range cases {
+		if got := hidden(c.s); got != c.want {
+			t.Errorf("%+v: hidden %s, want %s", c.s, got, c.want)
+		}
+	}
+	// Facts nothing was loaded into have no score either.
+	if got := Decide(e, &Facts{}, nil).Hidden.String(); got != "demo,least,most" {
+		t.Errorf("no facts: hidden %s", got)
+	}
+
+	n := &Names{}
+	words := map[string]string{}
+	for _, b := range e.Blocks {
+		words[b.ID] = Describe(b.Rule, n)
+	}
+	if words["demo"] != "Score band is Hot" || words["nothot"] != "Score band isn’t Hot" || words["least"] != "Score is at least 50" ||
+		words["most"] != "Score is at most 19" || words["range"] != "Except Score is between 20 and 49" {
+		t.Fatalf("badges: %v", words)
+	}
+	sam := &Facts{FirstName: "Sam", LastName: "Rivera", Extra: map[string]any{KindScore: scoreFact{Has: true, Score: 41, Band: "warm"}}}
+	demo, _ := e.Block("demo")
+	if got := Why(demo.Rule, Decide(e, sam, nil).Matched["demo"], sam, n); got != "Sam Rivera’s score band is Warm, not Hot" {
+		t.Fatalf("why: %s", got)
+	}
+	least, _ := e.Block("least")
+	if got := Why(least.Rule, []bool{false}, sam, n); got != "Sam Rivera’s score is 41" {
+		t.Fatalf("why: %s", got)
+	}
+	noScore := &Facts{Email: "kenji.w@icloud.com", Extra: map[string]any{KindScore: scoreFact{}}}
+	if got := Why(demo.Rule, []bool{false}, noScore, n); got != "kenji.w@icloud.com has no score" {
+		t.Fatalf("why without scoring: %s", got)
+	}
+	if got := strings.Join(traits(e, sam, n), " | "); got != "score 41 · Warm" {
+		t.Fatalf("traits: %s", got)
+	}
+	if got := blockTrait(demo, sam, n); got != "score 41 · Warm" {
+		t.Fatalf("block trait: %s", got)
+	}
+
+	// Values are checked: whole scores from 0 to 100, ranges in order, bands by key.
+	for _, c := range []struct {
+		cond VisibilityCondition
+		ok   bool
+	}{
+		{VisibilityCondition{Kind: KindScore, Op: "at_least", Value: "50"}, true},
+		{VisibilityCondition{Kind: KindScore, Op: "at_least", Value: "101"}, false},
+		{VisibilityCondition{Kind: KindScore, Op: "at_most", Value: "4.5"}, false},
+		{VisibilityCondition{Kind: KindScore, Op: "between", Value: "20", To: "49"}, true},
+		{VisibilityCondition{Kind: KindScore, Op: "between", Value: "20"}, false},
+		{VisibilityCondition{Kind: KindScore, Op: "between", Value: "49", To: "20"}, false},
+		{VisibilityCondition{Kind: KindScore, Op: "is", Value: "50"}, false},
+		{VisibilityCondition{Kind: KindScoreBand, Op: "is", Value: "hot"}, true},
+		{VisibilityCondition{Kind: KindScoreBand, Op: "is_not", Value: "lukewarm"}, false},
+	} {
+		err := Validate(VisibilityRule{ID: "x1y2z3", Show: ShowOnly, Conditions: []VisibilityCondition{c.cond}}, n)
+		if (err == nil) != c.ok {
+			t.Errorf("%+v: %v", c.cond, err)
+		}
 	}
 }
 

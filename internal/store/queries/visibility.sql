@@ -84,9 +84,9 @@ WHERE c.workspace_id = @workspace_id AND c.id = @id;
 
 -- name: VisibilityUnsent :many
 -- Emails that aren't sent yet and have Visibility rules: drafts, campaigns
--- waiting for approval and scheduled ones ("used by" and the warning before
--- a segment, list or field is deleted).
-SELECT c.id, c.name, c.status, c.mjml, c.scheduled_at
+-- waiting for approval and scheduled ones ("used by", the warning before a
+-- segment, list or field is deleted, and the blocks Scoring lists).
+SELECT c.id, c.name, c.status, c.mjml, c.scheduled_at, c.audience
 FROM campaigns c
 WHERE c.workspace_id = @workspace_id AND c.status IN ('draft', 'approval', 'approved', 'scheduled') AND c.mjml LIKE '%rc-visible%'
 ORDER BY c.updated_at DESC;

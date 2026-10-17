@@ -19986,6 +19986,8 @@ export interface components {
             of?: number;
             /** Format: int64 */
             onceInDays?: number;
+            /** @enum {string} */
+            show?: "only" | "except";
             /** Format: date-time */
             since?: string;
             status?: string;
@@ -22953,11 +22955,13 @@ export interface components {
             name: string;
         };
         VisibilityCatalog: {
+            bands: components["schemas"]["VisibilityOption"][];
             fields: components["schemas"]["VisibilityCatalogField"][];
             groups: string[];
             kinds: components["schemas"]["VisibilityCatalogKind"][];
             languages: components["schemas"]["VisibilityOption"][];
             lists: components["schemas"]["VisibilityOption"][];
+            score: components["schemas"]["VisibilityCatalogScore"];
             segments: components["schemas"]["VisibilityOption"][];
             tags: components["schemas"]["VisibilityOption"][];
             tiers: components["schemas"]["VisibilityOption"][];
@@ -22974,11 +22978,19 @@ export interface components {
             key: string;
             ops: components["schemas"]["Operator"][];
         };
+        VisibilityCatalogScore: {
+            configured: boolean;
+            /** Format: int64 */
+            hotFrom: number;
+            /** Format: int64 */
+            warmFrom: number;
+        };
         VisibilityCondition: {
             field?: string;
             kind: string;
             label?: string;
             op: string;
+            to?: string;
             value?: string;
         };
         VisibilityHiddenBlock: {

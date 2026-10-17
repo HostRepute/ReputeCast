@@ -2324,8 +2324,8 @@ type Querier interface {
 	// Tags in use, most used first.
 	VisibilityTags(ctx context.Context, workspaceID uuid.UUID) ([]VisibilityTagsRow, error)
 	// Emails that aren't sent yet and have Visibility rules: drafts, campaigns
-	// waiting for approval and scheduled ones ("used by" and the warning before
-	// a segment, list or field is deleted).
+	// waiting for approval and scheduled ones ("used by", the warning before a
+	// segment, list or field is deleted, and the blocks Scoring lists).
 	VisibilityUnsent(ctx context.Context, workspaceID uuid.UUID) ([]VisibilityUnsentRow, error)
 	// Runs waiting at a branch for an open or click: wake them as soon as the
 	// email they wait on has one, instead of at the end of the window.

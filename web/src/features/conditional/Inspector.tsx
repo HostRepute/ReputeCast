@@ -35,6 +35,9 @@ const OP_LABEL: Record<string, keyof typeof m> = {
   is_not_empty: 'opIsNotEmpty',
   is_true: 'opIsTrue',
   is_false: 'opIsFalse',
+  at_least: 'opAtLeast',
+  at_most: 'opAtMost',
+  between: 'opBetween',
 }
 
 const KIND_LABEL: Record<string, keyof typeof m> = {
@@ -44,6 +47,8 @@ const KIND_LABEL: Record<string, keyof typeof m> = {
   field: 'kindField',
   language: 'kindLanguage',
   tier: 'kindTier',
+  score: 'kindScore',
+  score_band: 'kindScoreBand',
 }
 
 const GROUP_LABEL: Record<string, keyof typeof m> = { lists: 'groupLists', contact: 'groupContact', engagement: 'groupEngagement' }
@@ -76,6 +81,10 @@ function kindNote(t: T, cat: VisibilityCatalog | undefined, kind: string): strin
       return names(cat.languages)
     case 'tier':
       return names(cat.tiers)
+    case 'score':
+      return cat.score.configured ? t(m.noteScore, { hot: cat.score.hotFrom, warm: cat.score.warmFrom }) : t(m.noteNoScoring)
+    case 'score_band':
+      return cat.score.configured ? names(cat.bands) : t(m.noteNoScoring)
   }
   return ''
 }
@@ -96,6 +105,10 @@ function rowLabel(t: T, cat: VisibilityCatalog | undefined, cond: VisibilityCond
       return t(m.rowLanguage)
     case 'tier':
       return t(m.rowTier)
+    case 'score':
+      return t(m.rowScore)
+    case 'score_band':
+      return t(m.rowScoreBand)
   }
   return cond.kind
 }
@@ -112,6 +125,10 @@ function defaultCondition(cat: VisibilityCatalog | undefined, kind: string): Vis
       return { kind, op, value: 'at_risk' }
     case 'language':
       return { kind, op, value: cat?.languages[0]?.value ?? '' }
+    case 'score':
+      return { kind, op, value: String(cat?.score.hotFrom ?? 50) }
+    case 'score_band':
+      return { kind, op, value: 'hot' }
     case 'field': {
       const f = cat?.fields[0]
       return { kind, op: f?.ops[0]?.key ?? 'equals', field: f?.key ?? '', value: '' }
@@ -121,7 +138,25 @@ function defaultCondition(cat: VisibilityCatalog | undefined, kind: string): Vis
 }
 
 /** A text value committed on Enter or blur (one undo step per edit). */
-function ValueInput({ value, onCommit, label, disabled, type = 'text', list }: { value: string; onCommit: (v: string) => void; label: string; disabled?: boolean; type?: string; list?: string }) {
+function ValueInput({
+  value,
+  onCommit,
+  label,
+  disabled,
+  type = 'text',
+  list,
+  min,
+  max,
+}: {
+  value: string
+  onCommit: (v: string) => void
+  label: string
+  disabled?: boolean
+  type?: string
+  list?: string
+  min?: number
+  max?: number
+}) {
   const [draft, setDraft] = useState(value)
   const focused = useRef(false)
   useEffect(() => {
@@ -134,6 +169,8 @@ function ValueInput({ value, onCommit, label, disabled, type = 'text', list }: {
       aria-label={label}
       type={type}
       list={list}
+      min={min}
+      max={max}
       value={draft}
       disabled={disabled}
       onFocus={() => (focused.current = true)}
@@ -182,6 +219,19 @@ function ValueField({ cond, onChange, disabled }: { cond: VisibilityCondition; o
       return pick(cat?.languages ?? [], cond.value ?? '')
     case 'tier':
       return pick(cat?.tiers ?? [], cond.value ?? '')
+    case 'score_band':
+      return pick(cat?.bands ?? [], cond.value ?? '')
+    case 'score':
+      // A whole score from 0 to 100; "is between" takes both ends.
+      return cond.op === 'between' ? (
+        <span className="cv-range">
+          <ValueInput label={t(m.scoreFrom)} type="number" min={0} max={100} value={cond.value ?? ''} disabled={disabled} onCommit={(v) => onChange({ ...cond, value: v })} />
+          <span className="k">{t(m.rangeAnd)}</span>
+          <ValueInput label={t(m.scoreTo)} type="number" min={0} max={100} value={cond.to ?? ''} disabled={disabled} onCommit={(v) => onChange({ ...cond, to: v })} />
+        </span>
+      ) : (
+        <ValueInput label={label} type="number" min={0} max={100} value={cond.value ?? ''} disabled={disabled} onCommit={(v) => onChange({ ...cond, value: v })} />
+      )
     case 'tag':
       return (
         <>
@@ -314,7 +364,17 @@ function ConditionRow({
         )}
       </div>
       <div className="row2">
-        <select className="in" aria-label={t(m.operator)} value={cond.op} disabled={disabled} onChange={(e) => onChange({ ...cond, op: e.target.value })}>
+        <select
+          className="in"
+          aria-label={t(m.operator)}
+          value={cond.op}
+          disabled={disabled}
+          onChange={(e) => {
+            const op = e.target.value
+            // A score range starts as "… and 100"; other operators take one value.
+            onChange(cond.kind === 'score' ? { ...cond, op, to: op === 'between' ? cond.to || '100' : undefined } : { ...cond, op })
+          }}
+        >
           {ops.map((o) => (
             <option key={o.key} value={o.key}>
               {opLabel(t, o.key)}
