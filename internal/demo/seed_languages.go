@@ -295,6 +295,22 @@ var (
 		">Unsubscribe<", ">Darse de baja<",
 		">Changelog<", ">Novedades<",
 		">Docs<", ">Documentación<",
+		// The X11 sample's conditional blocks and topics poll (seed_polls.go).
+		"We've missed you. Here's the short version of the month, in two minutes. Too much email?", "Te hemos echado de menos. Aquí tienes el resumen del mes, en dos minutos. ¿Demasiados correos?",
+		"Choose how often you hear from us", "Elige con qué frecuencia te escribimos",
+		">Beta corner<", ">Rincón beta<",
+		"Flag rules by region are in beta", "Las reglas de flags por región están en beta",
+		"Target a rollout by country or data region. Try it before general release, and tell us what's confusing.",
+		"Dirige un despliegue por país o región de datos. Pruébalo antes del lanzamiento general y cuéntanos qué resulta confuso.",
+		"Try region rules", "Probar las reglas por región",
+		"Run your own flags on Acme Cloud, free for 14 days.", "Gestiona tus propios flags en Acme Cloud, gratis durante 14 días.",
+		">Start a free trial<", ">Empieza una prueba gratis<",
+		">What should we write about next?<", ">¿Sobre qué deberíamos escribir ahora?<",
+		">Postgres internals<", ">Postgres por dentro<",
+		">Feature flag patterns<", ">Patrones de feature flags<",
+		">On-call stories<", ">Historias de guardias<",
+		">Rust in production<", ">Rust en producción<",
+		"One click opens a page that saves your answer. You&#39;ll see the results there.", "Un clic abre una página que guarda tu respuesta. Allí verás los resultados.",
 	}
 	// German was translated from v6, before the intro gained "in any
 	// timezone" and the CSV card its new sentence.
@@ -323,6 +339,22 @@ var (
 		"Read the docs", "Zur Dokumentation",
 		">Unsubscribe<", ">Abmelden<",
 		">Docs<", ">Doku<",
+		// The X11 sample's conditional blocks and topics poll (seed_polls.go).
+		"We've missed you. Here's the short version of the month, in two minutes. Too much email?", "Wir haben Sie vermisst. Hier ist der Monat in Kürze, in zwei Minuten. Zu viele E-Mails?",
+		"Choose how often you hear from us", "Wählen Sie, wie oft Sie von uns hören",
+		">Beta corner<", ">Beta-Ecke<",
+		"Flag rules by region are in beta", "Flag-Regeln nach Region sind in der Beta",
+		"Target a rollout by country or data region. Try it before general release, and tell us what's confusing.",
+		"Steuern Sie einen Rollout nach Land oder Datenregion. Testen Sie es vor der allgemeinen Verfügbarkeit und sagen Sie uns, was unklar ist.",
+		"Try region rules", "Regionsregeln testen",
+		"Run your own flags on Acme Cloud, free for 14 days.", "Betreiben Sie Ihre eigenen Flags in Acme Cloud, 14 Tage kostenlos.",
+		">Start a free trial<", ">Kostenlos testen<",
+		">What should we write about next?<", ">Worüber sollen wir als Nächstes schreiben?<",
+		">Postgres internals<", ">Postgres-Interna<",
+		">Feature flag patterns<", ">Feature-Flag-Muster<",
+		">On-call stories<", ">Geschichten aus der Rufbereitschaft<",
+		">Rust in production<", ">Rust in Produktion<",
+		"One click opens a page that saves your answer. You&#39;ll see the results there.", "Ein Klick öffnet eine Seite, die Ihre Antwort speichert. Dort sehen Sie die Ergebnisse.",
 	}
 )
 

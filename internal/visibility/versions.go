@@ -48,6 +48,13 @@ func ParseAudience(raw json.RawMessage) Audience {
 // Empty reports whether the audience selects nobody.
 func (a Audience) Empty() bool { return len(a.Lists) == 0 && len(a.Segments) == 0 }
 
+// CountKeys are the hashes a count is kept under (visibility_counts): the
+// email's rules and the campaign's audience. The demo seeds the sample's
+// count with them.
+func CountKeys(src string, audience json.RawMessage) (rules, aud string) {
+	return Read(src).Hash(), ParseAudience(audience).hash()
+}
+
 func (a Audience) hash() string {
 	parts := []string{strings.Join(sorted(a.Lists), ","), strings.Join(sorted(a.Segments), ","), strings.Join(sorted(a.ExcludeLists), ","),
 		strings.Join(sorted(a.ExcludeSegments), ","), strings.Join(sorted(a.ExcludeTiers), ",")}

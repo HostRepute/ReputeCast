@@ -143,9 +143,11 @@ func TestCampaignChecks(t *testing.T) {
 	id := campaignID(t, linh, "Weekly Digest #143")
 
 	// The saved content: six issues; "Click here" gets the docs page's title.
+	// The board's 13 of 15 links, plus seven that say where they go: the
+	// conditional blocks' three and the topics poll's four answers (X11).
 	var r accessibility.AccessibilityReport
 	aisha.Do("GET", ws+"/campaigns/"+id+"/accessibility", nil).MustStatus(t, 200).JSON(t, &r)
-	if len(r.Issues) != 6 || r.Serious != 2 || r.Policy != "warn" || r.Counts.Images != 7 || r.Counts.LinksOK != 13 {
+	if len(r.Issues) != 6 || r.Serious != 2 || r.Policy != "warn" || r.Counts.Images != 7 || r.Counts.Links != 22 || r.Counts.LinksOK != 20 {
 		t.Fatalf("report: %d issues, %d serious, %+v", len(r.Issues), r.Serious, r.Counts)
 	}
 	// #143 goes out in English, Spanish and German (ComposerAccessibility):
