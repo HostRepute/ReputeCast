@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/url"
 	"slices"
 	"strings"
 	"time"
@@ -37,6 +36,9 @@ type UpgradeRequest struct {
 	Period string
 	// Canceled is set when Checkout sent the reader back (?canceled=1).
 	Canceled bool
+	// TestToken is a team member's test checkout link (?test=): the page
+	// sells with the test key.
+	TestToken string
 	// Preview renders for the editor: As is anonymous, free, paid.
 	Preview bool
 	As      string
@@ -244,6 +246,9 @@ func (s *Service) Upgrade(ctx context.Context, ws *store.Workspace, r UpgradeReq
 		return UpgradeView{}, err
 	}
 	conn, connectedNow := active(conns)
+	if s.TestMode(ws, r.TestToken) {
+		conn, connectedNow = connected(conns, "test")
+	}
 	mode := ""
 	if connectedNow {
 		mode = conn.Mode
@@ -265,7 +270,7 @@ func (s *Service) Upgrade(ctx context.Context, ws *store.Workspace, r UpgradeReq
 		Monthly: s.t(l, "page.monthly", nil), Yearly: s.t(l, "page.yearly", nil), Token: r.Token,
 		Words: map[string]string{"testRibbon": s.t(l, "page.testRibbon", nil), "testNote": s.t(l, "page.testNote", nil), "terms": s.t(l, "page.terms", nil),
 			"back": s.t(l, "page.backToArchive", nil), "notYou": s.t(l, "page.notYou", nil), "tryAgain": s.t(l, "page.tryAgain", nil),
-			"mostPopular": s.t(l, "page.mostPopular", nil)}}
+			"mostPopular": s.t(l, "page.mostPopular", nil), "billingPeriod": s.t(l, "page.billingPeriod", nil), "privacy": s.t(l, "page.privacy", nil)}}
 	if !connectedNow && !r.Preview {
 		v.Unavailable = true
 	}
@@ -535,8 +540,10 @@ type CheckoutRequest struct {
 	Tier   string
 	Period string
 	Token  string
-	// Test is a test checkout from the editor, by a team member.
+	// Test is a test checkout from the editor, by a team member; TestToken
+	// is a test checkout link's token.
 	Test      bool
+	TestToken string
 	StartedBy *authz.Principal
 	// ReturnTo is the page Checkout comes back to (the hidden tier's).
 	ReturnTo string
@@ -556,6 +563,9 @@ func (s *Service) StartCheckout(ctx context.Context, ws *store.Workspace, r Chec
 		return "", err
 	}
 	conn, ok := active(conns)
+	if r.TestToken != "" && s.TestMode(ws, r.TestToken) {
+		r.Test = true
+	}
 	if r.Test {
 		conn, ok = connected(conns, "test")
 	}
@@ -876,5 +886,3 @@ func (s *Service) CancelURL(ctx context.Context, ws *store.Workspace, contact uu
 	tok := s.Links.Sign(linktoken.Claims{Kind: TokenCancel, WorkspaceID: ws.ID, ContactID: contact})
 	return s.pageURL(ctx, ws, "cancel/"+tok)
 }
-
-var _ = url.QueryEscape

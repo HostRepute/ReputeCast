@@ -1210,8 +1210,17 @@ func (e *earnSeed) checkouts(ctx context.Context) error {
 			n++
 		}
 	}
-	_, err := s.Tx.CopyFrom(ctx, pgx.Identifier{"earn_checkouts"}, []string{"id", "workspace_id", "mode", "tier_id", "price_id", "period", "trial_days",
-		"stripe_session_id", "status", "attribution", "created_at", "completed_at"}, pgx.CopyFromRows(rows))
+	if _, err := s.Tx.CopyFrom(ctx, pgx.Identifier{"earn_checkouts"}, []string{"id", "workspace_id", "mode", "tier_id", "price_id", "period", "trial_days",
+		"stripe_session_id", "status", "attribution", "created_at", "completed_at"}, pgx.CopyFromRows(rows)); err != nil {
+		return err
+	}
+	// Sam Rivera's checkout from Weekly Digest #141, for the welcome page:
+	// /upgrade/welcome?session=cs_live_demoSamRiveraFALL26.
+	sam, sub := e.contacts["sam"].id, e.byKey["sam"]
+	_, err := s.Tx.Exec(ctx, `INSERT INTO earn_checkouts (id, workspace_id, mode, tier_id, price_id, period, trial_days, contact_id, email, stripe_session_id, status,
+		attribution, offer, created_at, completed_at, subscription_id) VALUES ($1, $2, 'live', $3, $4, 'year', 0, $5, 'sam.rivera@outlook.com', 'cs_live_demoSamRiveraFALL26',
+		'completed', $6, 'FALL26', $7, $8, $9)`, ID(), e.ws.ID, e.insider, e.pYear, sam, mustJSON(map[string]any{"kind": "campaign", "label": "Weekly Digest #141"}),
+		s.earnDay(2026, 10, 7, 9, 45), s.earnDay(2026, 10, 7, 9, 52), sub)
 	return err
 }
 

@@ -1,0 +1,18 @@
+{{define "content"}}{{with .Body}}<main class="card g18" id="main">
+  {{template "brand" $}}
+  <div class="headrow">
+    <svg class="tick" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="19"></circle><path d="m12 20.5 5.5 5.5L28 15" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></svg>
+    <h1 class="h26">{{.Heading}}</h1>
+  </div>
+  {{with .Line}}<p class="lead">{{.}}</p>{{end}}
+  {{if .Benefits}}<section class="col8" aria-labelledby="ea-inc">
+    <h2 class="t13b" id="ea-inc">{{.Included}}</h2>
+    <ul class="ea-ben">{{range .Benefits}}<li>{{.}}</li>{{end}}</ul>
+  </section>{{end}}
+  <div class="btns">{{with .Manage}}<a class="btn-sm" href="{{.}}">{{$.Body.Button}}</a>{{end}}{{with .Archive}}<a class="btn-ghost" href="{{.}}">{{$.Body.Past}}</a>{{end}}</div>
+  {{with .Note}}<p class="t13">{{.}}</p>{{end}}
+</main>{{end}}{{end}}
+{{define "foot"}}<footer class="foot">
+  {{- with .Privacy}}<a href="{{.}}">{{$.T "page.privacy"}}</a>{{end}}
+  {{- if and .Privacy .PoweredBy}}{{template "sep"}}{{end}}
+  {{- template "rcplain" .}}</footer>{{end}}

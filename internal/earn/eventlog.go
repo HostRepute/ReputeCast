@@ -105,6 +105,13 @@ func (s *Service) EventLog(ctx context.Context, ws *store.Workspace, p *authz.Pr
 		seen = []string{}
 	}
 	hide := !p.Can(authz.SubscribersView)
+	short := map[string]string{}
+	if tiers, err := s.Q.EarnTiers(ctx, ws.ID); err == nil {
+		names := s.listNamer(ctx, ws.ID)
+		for _, t := range tiers {
+			short[t.Name] = shortTier(t.Name, names(&t.ID))
+		}
+	}
 	out := EarnEventLog{Items: []EarnEvent{}, Total: total, Page: f.Page, PageSize: f.PageSize, Range: f.Range, Types: seen}
 	for _, r := range rows {
 		e := EarnEvent{ID: r.ID.String(), Mode: r.Mode, EventID: r.ProviderEventID, Type: r.Type, Source: r.Source, OccurredAt: r.OccurredAt,
@@ -112,6 +119,9 @@ func (s *Service) EventLog(ctx context.Context, ws *store.Workspace, p *authz.Pr
 			MemberName: r.MemberName, MemberEmail: r.MemberEmail}
 		if len(r.OutcomeDetail) > 0 {
 			_ = json.Unmarshal(r.OutcomeDetail, &e.Detail)
+		}
+		if t, ok := e.Detail["tier"].(string); ok && short[t] != "" {
+			e.Detail["tier"] = short[t]
 		}
 		if r.SubscriptionID != nil {
 			e.MemberID = r.SubscriptionID.String()

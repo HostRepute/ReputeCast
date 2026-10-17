@@ -17028,6 +17028,110 @@
         ],
         "type": "object"
       },
+      "EarnChecklist": {
+        "additionalProperties": false,
+        "properties": {
+          "canEdit": {
+            "type": "boolean"
+          },
+          "canManage": {
+            "type": "boolean"
+          },
+          "done": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "launched": {
+            "type": "boolean"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/EarnChecklistStep"
+            },
+            "type": "array"
+          },
+          "testCheckoutUrl": {
+            "type": "string"
+          },
+          "testCheckouts": {
+            "items": {
+              "$ref": "#/components/schemas/EarnMemberRow"
+            },
+            "type": "array"
+          },
+          "upgradeHost": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "steps",
+          "done",
+          "launched",
+          "testCheckouts",
+          "upgradeHost",
+          "canManage",
+          "canEdit"
+        ],
+        "type": "object"
+      },
+      "EarnChecklistStep": {
+        "additionalProperties": false,
+        "properties": {
+          "account": {
+            "type": "string"
+          },
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "blocked": {
+            "enum": [
+              "no_route",
+              ""
+            ],
+            "type": "string"
+          },
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "done": {
+            "type": "boolean"
+          },
+          "key": {
+            "enum": [
+              "connect",
+              "tier",
+              "emails",
+              "page",
+              "test",
+              "live"
+            ],
+            "type": "string"
+          },
+          "mode": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "priceLine": {
+            "type": "string"
+          },
+          "total": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "key",
+          "done"
+        ],
+        "type": "object"
+      },
       "EarnCheckoutInput": {
         "additionalProperties": false,
         "properties": {
@@ -18255,6 +18359,9 @@
             ],
             "type": "string"
           },
+          "periodShown": {
+            "type": "boolean"
+          },
           "refundedCents": {
             "format": "int64",
             "type": "integer"
@@ -18291,6 +18398,9 @@
             "type": "boolean"
           },
           "tier": {
+            "type": "string"
+          },
+          "tierId": {
             "type": "string"
           },
           "tierName": {
@@ -18333,7 +18443,8 @@
           "ltvCents",
           "refundedCents",
           "source",
-          "accessPaused"
+          "accessPaused",
+          "periodShown"
         ],
         "type": "object"
       },
@@ -18742,6 +18853,9 @@
             ],
             "type": "string"
           },
+          "periodShown": {
+            "type": "boolean"
+          },
           "refundedCents": {
             "format": "int64",
             "type": "integer"
@@ -18770,6 +18884,9 @@
           "tier": {
             "type": "string"
           },
+          "tierId": {
+            "type": "string"
+          },
           "tierName": {
             "type": "string"
           }
@@ -18794,7 +18911,8 @@
           "ltvCents",
           "refundedCents",
           "source",
-          "accessPaused"
+          "accessPaused",
+          "periodShown"
         ],
         "type": "object"
       },
@@ -19119,6 +19237,41 @@
           "billingEmail",
           "switchPeriod",
           "cancel"
+        ],
+        "type": "object"
+      },
+      "EarnPreview": {
+        "additionalProperties": false,
+        "properties": {
+          "html": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "html"
+        ],
+        "type": "object"
+      },
+      "EarnPreviewInput": {
+        "additionalProperties": false,
+        "properties": {
+          "as": {
+            "default": "visitor",
+            "enum": [
+              "visitor",
+              "free",
+              "paid",
+              "offer"
+            ],
+            "type": "string"
+          },
+          "page": {
+            "$ref": "#/components/schemas/UpgradePage"
+          }
+        },
+        "required": [
+          "page",
+          "as"
         ],
         "type": "object"
       },
@@ -19836,6 +19989,9 @@
             "format": "int64",
             "type": "integer"
           },
+          "testCheckoutUrl": {
+            "type": "string"
+          },
           "testMode": {
             "type": "boolean"
           },
@@ -19899,6 +20055,9 @@
           },
           "testCheckout": {
             "type": "boolean"
+          },
+          "testCheckoutUrl": {
+            "type": "string"
           },
           "tiers": {
             "items": {
@@ -72148,6 +72307,63 @@
         "x-permission": "domains:manage"
       }
     },
+    "/api/v1/workspaces/{workspace}/earn/checklist": {
+      "get": {
+        "operationId": "get-earn-checklist",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EarnChecklist"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The launch checklist: connect, a tier, member emails, the upgrade page, a test checkout, the live key",
+        "tags": [
+          "Earn"
+        ],
+        "x-access": "workspace",
+        "x-permission": "earn:view"
+      }
+    },
     "/api/v1/workspaces/{workspace}/earn/checkout": {
       "put": {
         "operationId": "save-earn-checkout",
@@ -75194,6 +75410,74 @@
         ],
         "x-access": "workspace",
         "x-permission": "earn:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/earn/upgrade-page/preview": {
+      "post": {
+        "description": "Nothing is saved; the page's links and buttons don't work in the preview.",
+        "operationId": "preview-upgrade-page",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EarnPreviewInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EarnPreview"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Render the upgrade page with unsaved settings",
+        "tags": [
+          "Earn"
+        ],
+        "x-access": "workspace",
+        "x-permission": "earn:view"
       }
     },
     "/api/v1/workspaces/{workspace}/export": {

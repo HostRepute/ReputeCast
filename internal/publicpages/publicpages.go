@@ -40,6 +40,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/hostrepute/reputecast/internal/audience"
+	"github.com/hostrepute/reputecast/internal/earn"
 	"github.com/hostrepute/reputecast/internal/forms"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/linktoken"
@@ -71,6 +72,9 @@ type Handler struct {
 	// the preference center has no such section).
 	Notifications Notifications
 	Now           func() time.Time
+	// Earn serves the upgrade page, its welcome page and the billing
+	// links, and the paid parts of the preference center (nil: none).
+	Earn *earn.Service
 
 	tmpl    map[string]*template.Template
 	version string
@@ -91,7 +95,7 @@ func (h *Handler) log() *slog.Logger {
 }
 
 // pages are the templates, each rendered inside layout.html.
-var pages = []string{"subscribe", "confirm", "preferences", "request", "unsubscribe", "done", "message", "archive", "challenge", "category"}
+var pages = []string{"subscribe", "confirm", "preferences", "request", "unsubscribe", "done", "message", "archive", "challenge", "category", "upgrade", "welcome"}
 
 // Init parses the templates; Routes calls it.
 func (h *Handler) Init() error {
@@ -146,6 +150,9 @@ func (h *Handler) Routes(r chi.Router) {
 		"/unsubscribe/*", "/view/*", "/archive", "/archive/*", "/archive.rss", "/sitemap.xml"} {
 		r.Handle(p, custom)
 	}
+	for _, p := range earnRootPaths {
+		r.Handle(p, custom)
+	}
 }
 
 func (h *Handler) pageRoutes(r chi.Router) {
@@ -178,6 +185,7 @@ func (h *Handler) pageRoutes(r chi.Router) {
 	r.Options("/forms/{id}/session", h.formPreflight)
 	r.Post("/forms/{id}/submit", h.formSubmit)
 	r.Options("/forms/{id}/submit", h.formPreflight)
+	h.earnRoutes(r)
 }
 
 type hostKey struct{}

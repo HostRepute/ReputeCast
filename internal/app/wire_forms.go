@@ -73,6 +73,8 @@ func (a *App) publicPages() *publicpages.Handler {
 		// Root paths on hosts that aren't a custom domain stay the web app's.
 		SPA:           server.NewSPA(web.Dist()),
 		Notifications: publicNotifications(a),
+		// The upgrade page, its welcome page and the billing links (X16).
+		Earn: earnService(a),
 	}
 	formsPages[a] = h
 	return h
