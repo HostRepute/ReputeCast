@@ -129,6 +129,17 @@ export function ScoreGrowthFields({ draft, onChange, open }: { draft: ScoreGrowt
   )
 }
 
+/** "and [80]": the upper end of "is between" in the segment builder (Score is between 50 and 80). */
+export function BetweenTo({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const t = useT()
+  return (
+    <>
+      <span className="k">{t(m.and)}</span>
+      <input className="in w-[70px]" inputMode="numeric" aria-label={t(m.highest)} value={value} onChange={(e) => onChange(e.target.value)} />
+    </>
+  )
+}
+
 /** Chips for the score and growth filters (Growth links here with one set). */
 export function ScoreGrowthChips({ search, onChange }: { search: ScoreGrowthSearch; onChange: (patch: Partial<ScoreGrowthSearch>) => void }) {
   const t = useT()

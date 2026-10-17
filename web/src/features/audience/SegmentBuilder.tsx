@@ -16,6 +16,7 @@ import { AudienceTabs } from './AudienceTabs'
 import { FitSelect } from './FitSelect'
 import { SqlBlock, SqlEditor } from './SqlCode'
 import { tierColor, tierLabel, type Tier } from './labels'
+import { BetweenTo } from '@/features/scoring/ContactsScore'
 import './audience.css'
 
 type Catalog = Schemas['SegmentCatalog']
@@ -26,6 +27,8 @@ interface Cond {
   field: string
   op: string
   value: string
+  /** The upper end of "is between" (Score, X13). */
+  to: string
   amount: number
   unit: 'days' | 'weeks'
 }
@@ -46,7 +49,7 @@ let nextKey = 1
 const k = () => nextKey++
 
 function blankCond(f: CatalogField | undefined): Cond {
-  return { key: k(), field: f?.key ?? 'mailbox_provider', op: f?.ops[0]?.key ?? 'is', value: f?.options[0]?.value ?? '', amount: 30, unit: 'days' }
+  return { key: k(), field: f?.key ?? 'mailbox_provider', op: f?.ops[0]?.key ?? 'is', value: f?.options[0]?.value ?? '', to: '', amount: 30, unit: 'days' }
 }
 
 function fromDetail(d: Schemas['SegmentDetail']): Draft {
@@ -63,6 +66,7 @@ function fromDetail(d: Schemas['SegmentDetail']): Draft {
         field: c.field,
         op: c.op,
         value: c.value ?? '',
+        to: c.to ?? '',
         amount: c.amount || 30,
         unit: c.unit === 'weeks' ? 'weeks' : 'days',
       })),
@@ -81,7 +85,9 @@ function toInput(d: Draft, catalog?: Catalog): Schemas['SegmentInput'] {
       groups: d.groups.map((g) => ({
         match: g.match,
         conditions: g.conditions.map((c) =>
-          kindOf(c.field) === 'period' ? { field: c.field, op: c.op, amount: c.amount, unit: c.unit } : { field: c.field, op: c.op, value: c.value },
+          kindOf(c.field) === 'period'
+            ? { field: c.field, op: c.op, amount: c.amount, unit: c.unit }
+            : { field: c.field, op: c.op, value: c.value, to: c.op === 'between' ? c.to : undefined },
         ),
       })),
     },
@@ -440,6 +446,7 @@ function Condition({
           onChange={(e) => onChange({ value: e.target.value })}
         />
       )}
+      {c.op === 'between' ? <BetweenTo value={c.to} onChange={(to) => onChange({ to })} /> : null}
       <Button size="sm" aria-label="Remove condition" disabled={!canRemove} onClick={onRemove}>
         ×
       </Button>
