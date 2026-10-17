@@ -268,7 +268,7 @@ func (h *Handler) renderSurvey(w http.ResponseWriter, r *http.Request, s *site, 
 }
 
 func (h *Handler) badSurveyLink(w http.ResponseWriter, r *http.Request, s *site) {
-	h.message(w, r, s, http.StatusNotFound, "Link not valid · "+s.set.Branding.PublisherName, messageBody{
+	h.pollMessage(w, r, s, http.StatusNotFound, "Link not valid · "+s.set.Branding.PublisherName, messageBody{
 		Kicker:  "Survey",
 		Heading: "This link doesn't work anymore",
 		Text:    "It may have been cut short, or changed after it was sent, or the survey was removed. Open it again from your email. Nothing was recorded.",

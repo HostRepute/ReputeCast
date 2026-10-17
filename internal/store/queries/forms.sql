@@ -32,6 +32,8 @@ UPDATE forms
 SET name = @name, kind = @kind, list_ids = @list_ids, default_list_ids = @default_list_ids, list_choice = @list_choice,
     double_opt_in = @double_opt_in, fields = @fields, content = @content, spam_protection = @spam_protection,
     consent_text = @consent_text, consent_version = @consent_version, allowed_origins = @allowed_origins,
+    consent_changed_by = CASE WHEN @consent_version::int <> consent_version THEN @updated_by ELSE consent_changed_by END,
+    consent_changed_at = CASE WHEN @consent_version::int <> consent_version THEN @at::timestamptz ELSE consent_changed_at END,
     after_submit = @after_submit, redirect_url = @redirect_url, status = @status,
     published_at = CASE WHEN @status::text = 'live' THEN @at::timestamptz ELSE published_at END,
     updated_by = @updated_by, updated_at = @at
@@ -100,8 +102,8 @@ UPDATE form_rejections SET dismissed_at = @at
 WHERE form_id = @form_id AND reason = 'origin' AND origin = @origin AND dismissed_at IS NULL;
 
 -- name: FormSubmissionInsert :exec
-INSERT INTO form_submissions (id, workspace_id, form_id, contact_id, list_ids, double_opt_in, created_at, confirmed_at)
-VALUES (@id, @workspace_id, @form_id, @contact_id, @list_ids, @double_opt_in, @at, @confirmed_at);
+INSERT INTO form_submissions (id, workspace_id, form_id, contact_id, list_ids, double_opt_in, language, created_at, confirmed_at)
+VALUES (@id, @workspace_id, @form_id, @contact_id, @list_ids, @double_opt_in, @language, @at, @confirmed_at);
 
 -- name: FormSubmissionsConfirm :many
 -- Marks a contact's waiting submissions confirmed; returns the form and the
@@ -114,7 +116,7 @@ RETURNING id, form_id, created_at;
 -- name: FormSubmissionsToSend :many
 -- Double opt-in confirmations that couldn't go out yet (no System provider,
 -- a provider error): retried by the confirmations job for three days.
-SELECT fs.id, fs.workspace_id, fs.form_id, fs.contact_id, fs.send_attempts
+SELECT fs.id, fs.workspace_id, fs.form_id, fs.contact_id, fs.send_attempts, fs.language
 FROM form_submissions fs
 WHERE fs.double_opt_in AND fs.confirmed_at IS NULL AND fs.confirm_sent_at IS NULL
   AND fs.created_at > @since AND fs.send_attempts < 20
@@ -123,7 +125,7 @@ LIMIT @lim;
 
 -- name: FormSubmissionsToRemind :many
 -- Confirmations sent more than 24 hours ago without a click: one reminder.
-SELECT fs.id, fs.workspace_id, fs.form_id, fs.contact_id
+SELECT fs.id, fs.workspace_id, fs.form_id, fs.contact_id, fs.language
 FROM form_submissions fs
 WHERE fs.double_opt_in AND fs.confirmed_at IS NULL AND fs.reminded_at IS NULL
   AND fs.confirm_sent_at IS NOT NULL AND fs.confirm_sent_at < @before AND fs.created_at > @since

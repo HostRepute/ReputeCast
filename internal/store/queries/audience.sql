@@ -176,7 +176,7 @@ WHERE lm.contact_id = @contact_id
 ORDER BY l.created_at, l.id;
 
 -- name: ContactConsentEvents :many
-SELECT ce.id, ce.list_id, ce.action, ce.source, ce.ip, ce.user_agent, ce.detail, ce.note, ce.consent_version, ce.occurred_at,
+SELECT ce.id, ce.list_id, ce.action, ce.source, ce.ip, ce.user_agent, ce.detail, ce.note, ce.consent_version, ce.language, ce.occurred_at,
        coalesce(u.name, '')::text AS actor_name
 FROM consent_events ce
 LEFT JOIN users u ON u.id = ce.actor_id

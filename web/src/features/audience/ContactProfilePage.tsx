@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Dialog } from '@/components/ui/Dialog'
 import { ErrorPanel, Loading, Skeleton } from '@/components/ui/Feedback'
-import { Field, Input } from '@/components/ui/Field'
+import { Field, Input, Select } from '@/components/ui/Field'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
 import { clock, count, dayMonthDate, notificationTime, shortDate, usDate } from '@/lib/format'
@@ -15,6 +15,11 @@ import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { useInvalidateAudience } from './ContactDialogs'
 import { fileName, saveBlob } from './download'
 import { consentLabel, consentTone, mailboxColor, providerColor, tierClass, tierLabel, type Consent, type Tier } from './labels'
+import { brandOf } from '@/features/languages/LanguagesCard'
+import { languageLabel } from '@/features/languages/composerParts'
+import { ContactLanguageField, consentVersionText, deliveryLanguage } from '@/features/page-languages/contacts'
+import { mc } from '@/features/page-languages/messages'
+import { useI18n, useT } from '@/i18n'
 import { NotificationsRow, TransactionalActivityRow, transactionalCount, useContactTransactional, withTransactional } from '@/features/transactional/ContactActivity'
 import { FieldSourceNote, useAnswerActivity, useFieldSources } from '@/features/polls/contact'
 import './audience.css'
@@ -228,18 +233,22 @@ function FieldsCard({ p }: { p: Profile }) {
           Edit
         </Button>
       </div>
-      {p.fields.map((f) => (
-        <div key={f.key} className="pkv">
-          <span className="k">
-            {f.label}
-            {f.custom ? <> <span className="mono">{f.type === 'text' || f.type === 'select' ? 'custom' : `custom · ${f.type}`}</span></> : null}
-          </span>
-          <span>
-            {fieldValue(f)}
-            <FieldSourceNote source={sources.get(f.key)} />
-          </span>
-        </div>
-      ))}
+      {p.fields.map((f) =>
+        f.key === 'language' ? (
+          <ContactLanguageField key={f.key} p={p} />
+        ) : (
+          <div key={f.key} className="pkv">
+            <span className="k">
+              {f.label}
+              {f.custom ? <> <span className="mono">{f.type === 'text' || f.type === 'select' ? 'custom' : `custom · ${f.type}`}</span></> : null}
+            </span>
+            <span>
+              {fieldValue(f)}
+              <FieldSourceNote source={sources.get(f.key)} />
+            </span>
+          </div>
+        ),
+      )}
       <div className="mt-2.5 flex flex-wrap gap-1.5">
         {p.tags.map((t) => (
           <span key={t} className="ptag">
@@ -294,7 +303,9 @@ function TagInput({ onSave, onCancel }: { onSave: (tag: string) => Promise<void>
 }
 
 function EditFieldsDialog({ p, onClose, onSave }: { p: Profile; onClose: () => void; onSave: (b: Schemas['ContactUpdate']) => Promise<void> }) {
-  const builtin = (key: string) => p.fields.find((f) => f.key === key)?.value ?? ''
+  const t = useT()
+  const { locale } = useI18n()
+  const builtin = (key: string) => (key === 'language' ? p.language.code : (p.fields.find((f) => f.key === key)?.value ?? ''))
   const [vals, setVals] = useState<Record<string, string>>(() => {
     const out: Record<string, string> = { firstName: p.firstName, lastName: p.lastName, company: builtin('company'), language: builtin('language') }
     for (const f of p.fields) if (f.custom) out[`custom:${f.key}`] = f.value
@@ -313,7 +324,7 @@ function EditFieldsDialog({ p, onClose, onSave }: { p: Profile; onClose: () => v
         const v = vals[`custom:${f.key}`] ?? ''
         if (v !== f.value) fields[f.key] = v === '' ? null : v
       }
-      await onSave({ firstName: vals.firstName, lastName: vals.lastName, company: vals.company, language: vals.language, fields })
+      await onSave({ firstName: vals.firstName, lastName: vals.lastName, company: vals.company, ...(vals.language !== p.language.code ? { language: vals.language } : {}), fields })
       onClose()
       toast({ kind: 'success', title: 'Saved the fields' })
     } catch (e) {
@@ -356,8 +367,15 @@ function EditFieldsDialog({ p, onClose, onSave }: { p: Profile; onClose: () => v
         <Field label="Company">
           <Input value={vals.company} onChange={(e) => set('company', e.target.value)} />
         </Field>
-        <Field label="Language" hint="A language code like en or de.">
-          <Input value={vals.language} onChange={(e) => set('language', e.target.value)} maxLength={16} />
+        <Field label={t(mc.fieldLabel)}>
+          <Select value={vals.language} onChange={(e) => set('language', e.target.value)}>
+            {p.language.options.map((o) => (
+              <option key={o.code} value={o.code}>
+                {t(mc.option, { language: languageLabel(o.code, locale), code: o.code })}
+              </option>
+            ))}
+            <option value="">{t(mc.optionNone)}</option>
+          </Select>
         </Field>
         {p.fields
           .filter((f) => f.custom)
@@ -376,8 +394,9 @@ function EditFieldsDialog({ p, onClose, onSave }: { p: Profile; onClose: () => v
   )
 }
 
-/** One sentence per list from its consent history. */
-function consentText(l: Schemas['ContactListConsent']) {
+/** One sentence per list from its consent history. consentLanguage names
+ * the language a consent text was shown in, when the workspace has several. */
+function consentText(l: Schemas['ContactListConsent'], consentLanguage?: (version: string, language: string) => string) {
   if (l.events.length === 0) {
     switch (l.status) {
       case 'none':
@@ -401,7 +420,8 @@ function consentText(l: Schemas['ContactListConsent']) {
         break
       case 'confirmed': {
         const how = e.source === 'repermission' ? 're-permission confirmed' : parts.length ? 'confirmed' : `Confirmed via ${src}`
-        parts.push(`${how} ${fullDateTime(e.at)}${e.ip ? ` from ${e.ip}` : ''}${e.consentVersion ? ` · consent text ${e.consentVersion}` : ''}`)
+        const version = e.consentVersion ? (e.language && consentLanguage ? consentLanguage(e.consentVersion, e.language) : `consent text ${e.consentVersion}`) : ''
+        parts.push(`${how} ${fullDateTime(e.at)}${e.ip ? ` from ${e.ip}` : ''}${version ? ` · ${version}` : ''}`)
         break
       }
       case 'unsubscribed':
@@ -435,6 +455,10 @@ function consentBadge(l: Schemas['ContactListConsent'], p: Profile) {
 
 function ConsentCard({ p }: { p: Profile }) {
   const { slug } = useWorkspace()
+  const t = useT()
+  const { locale } = useI18n()
+  const multilingual = p.language.options.filter((o) => o.offered).length > 1
+  const consentLanguage = multilingual ? (version: string, language: string) => consentVersionText(version, language, t, locale) : undefined
   const link = $api.useMutation('post', '/api/v1/workspaces/{workspace}/contacts/{contact}/preference-link')
   const allDouble = p.lists.length > 0 && p.lists.every((l) => l.doubleOptIn)
   const freq = { all: 'every email', weekly: 'weekly', monthly: 'monthly' }[p.preferences.frequency] ?? p.preferences.frequency
@@ -452,7 +476,7 @@ function ConsentCard({ p }: { p: Profile }) {
           <div key={l.listId} className="pkv items-start">
             <div className="flex flex-col gap-0.5">
               <span className="font-semibold">{l.name}</span>
-              <span className="k">{consentText(l)}</span>
+              <span className="k">{consentText(l, consentLanguage)}</span>
             </div>
             {consentBadge(l, p)}
           </div>
@@ -680,6 +704,11 @@ function ActivityRow({ it }: { it: Item }) {
   const answerActivity = useAnswerActivity()
   const [icon, t] = eventIcon(it)
   const c = tone[t]
+  const tr = useT()
+  const { locale } = useI18n()
+  const { me } = useWorkspace()
+  // The language version a delivery sent (ContactProfile, LanguageStates).
+  const dl = deliveryLanguage(it, tr, locale, brandOf(me.workspace.name))
   let title: ReactNode
   let meta: string[] = [dateTime(it.at)]
   const answer = answerActivity(it)
@@ -770,6 +799,7 @@ function ActivityRow({ it }: { it: Item }) {
       <>
         <b>{verb[it.type] ?? it.type}</b> {it.subject}
         {it.variant ? ` · variant ${it.variant}` : ''}
+        {dl.label ? ` · ${dl.label}${dl.fallback ? ' ·' : ''}` : ''}
         {it.provider ? (
           <>
             {' via '}
@@ -787,7 +817,7 @@ function ActivityRow({ it }: { it: Item }) {
       </>
     )
     const code = [it.code, it.diagnostic].filter(Boolean).join(' ')
-    meta = [...meta, ...present(code, it.routeNote ?? '', it.retriedDeliveredAt ? `retried and delivered ${clock(it.retriedDeliveredAt)}` : '')]
+    meta = [...meta, ...present(code, it.routeNote ?? '', it.retriedDeliveredAt ? `retried and delivered ${clock(it.retriedDeliveredAt)}` : '', dl.why)]
   }
   return (
     <li className="ev">

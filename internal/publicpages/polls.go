@@ -277,9 +277,19 @@ func (h *Handler) visit(r *http.Request) polls.Visit {
 	return v
 }
 
+// pollMessage is a message page of the poll and survey pages, in the
+// pages' own language (their words are English).
+func (h *Handler) pollMessage(w http.ResponseWriter, r *http.Request, s *site, status int, title string, body messageBody, private bool) {
+	v := h.view(s, title, body)
+	if !private && status == http.StatusOK {
+		v.Robots = "noindex, follow"
+	}
+	h.render(w, r, s, "message", status, v, csp{}, private)
+}
+
 // badPollLink is a broken or altered link: nothing is recorded.
 func (h *Handler) badPollLink(w http.ResponseWriter, r *http.Request, s *site) {
-	h.message(w, r, s, http.StatusNotFound, "Link not valid · "+s.set.Branding.PublisherName, messageBody{
+	h.pollMessage(w, r, s, http.StatusNotFound, "Link not valid · "+s.set.Branding.PublisherName, messageBody{
 		Kicker:  "Poll",
 		Heading: "This link doesn't work anymore",
 		Text:    "It may have been cut short, or changed after it was sent. Open the poll again from your email. Nothing was recorded.",

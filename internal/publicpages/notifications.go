@@ -11,7 +11,9 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/linktoken"
+	"github.com/hostrepute/reputecast/internal/pagelabels"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -60,12 +62,40 @@ type NotificationCategory struct {
 	OptedOutAt  *time.Time
 }
 
-// notificationReasons are the answers to "Why did you turn it off?".
-var notificationReasons = []reasonView{
-	{"too_often", "Too often"},
-	{"not_useful", "Not useful to me"},
-	{"in_app", "I read this in the app"},
-	{"other", "Other"},
+// notificationReasons are the answers to "Why did you turn it off?"
+// (labels category.reason.<value>).
+var notificationReasons = []string{"too_often", "not_useful", "in_app", "other"}
+
+func notificationReasonsIn(l pagelabels.Set) []reasonView {
+	out := make([]reasonView, 0, len(notificationReasons))
+	for _, v := range notificationReasons {
+		out = append(out, reasonView{Value: v, Label: l.Text("category.reason."+v, nil)})
+	}
+	return out
+}
+
+// messageLang is the language of a page reached from a transactional
+// message: the menu's pick, then the language the message was sent in, then
+// the recipient contact's, then the fallback.
+func (h *Handler) messageLang(w http.ResponseWriter, r *http.Request, s *site, c linktoken.Claims) pageLang {
+	code := ""
+	if c.MessageID != uuid.Nil {
+		if mv, err := h.Q.PublicMessageVersion(r.Context(), store.PublicMessageVersionParams{ID: c.MessageID, WorkspaceID: s.ws.ID}); err == nil {
+			code = mv.Language
+		}
+	}
+	if code == "" && c.ContactID != uuid.Nil {
+		if pc, err := h.Audience.LoadPublicContact(r.Context(), h.Q, s.ws, c.ContactID); err == nil {
+			code = pc.Language
+		}
+	}
+	return h.contactLang(w, r, s, code)
+}
+
+// productTitle is the browser tab's title of a product's page: "Email
+// preferences · Acme Cloud".
+func productTitle(l pagelabels.Set, heading, product string) string {
+	return l.Text("page.title", i18n.Args{"heading": heading, "publisher": product})
 }
 
 // notificationsView is the preference center's section.
@@ -75,7 +105,7 @@ type notificationsView struct {
 	Shown string
 }
 
-func (h *Handler) notificationsSection(ctx context.Context, s *site, email string) (*notificationsView, error) {
+func (h *Handler) notificationsSection(ctx context.Context, s *site, email string, l pagelabels.Set) (*notificationsView, error) {
 	if h.Notifications == nil || email == "" {
 		return nil, nil
 	}
@@ -83,7 +113,7 @@ func (h *Handler) notificationsSection(ctx context.Context, s *site, email strin
 	if err != nil || len(set.Categories) == 0 {
 		return nil, err
 	}
-	v := &notificationsView{Title: "Notifications from " + set.Product}
+	v := &notificationsView{Title: l.Text("prefs.notifications", i18n.Args{"product": set.Product})}
 	shown := make([]string, 0, len(set.Categories))
 	for _, c := range set.Categories {
 		v.Items = append(v.Items, listView{ID: c.ID.String(), Name: c.Name, Text: c.Description, Checked: c.On})
@@ -118,19 +148,25 @@ func (h *Handler) transactionalMessage(ctx context.Context, s *site, c linktoken
 
 // notificationsPage is the preference center for someone who got
 // transactional mail but isn't a contact: just the notifications section.
-func (h *Handler) notificationsPage(w http.ResponseWriter, r *http.Request, s *site, c linktoken.Claims, m NotificationMessage, token, saved, alert string, status int) {
-	body := preferencesBody{Email: m.Email, Action: s.links.Preferences(token), Saved: saved, Alert: alert}
-	sec, err := h.notificationsSection(r.Context(), s, m.Email)
+func (h *Handler) notificationsPage(w http.ResponseWriter, r *http.Request, s *site, c linktoken.Claims, m NotificationMessage, token string, saved bool, status int) {
+	pl := h.messageLang(w, r, s, c)
+	l := pl.Labels
+	body := preferencesBody{Email: m.Email, Action: s.links.Preferences(token)}
+	if saved {
+		body.Saved = l.Text("prefs.savedNotifications", nil)
+	}
+	sec, err := h.notificationsSection(r.Context(), s, m.Email, l)
 	if err != nil {
 		h.serverError(w, r, s, err)
 		return
 	}
 	body.Notifications = sec
 	if sec == nil {
-		body.Note = "Emails from " + m.Product + " to this address are account and billing emails, like password resets and invoices. They always arrive."
+		body.Note = l.Text("prefs.accountOnly", i18n.Args{"product": m.Product})
 	}
-	v := h.view(s, "Email preferences · "+m.Product, body)
+	v := h.view(s, productTitle(l, l.Text("prefs.heading", nil), m.Product), body)
 	v.Brand.Name, v.Brand.Initial = m.Product, initialOf(m.Product)
+	h.setLang(v, r, s, pl, nil)
 	h.render(w, r, s, "preferences", status, v, csp{}, true)
 }
 
@@ -149,19 +185,31 @@ type categoryBody struct {
 
 // categoryPage answers a category's unsubscribe link: the category is off
 // (or back on), and the page says what still arrives.
-func (h *Handler) categoryPage(w http.ResponseWriter, r *http.Request, s *site, c linktoken.Claims, m NotificationMessage, token string, off bool, status string) {
+func (h *Handler) categoryPage(w http.ResponseWriter, r *http.Request, s *site, c linktoken.Claims, m NotificationMessage, token string, off, thanks bool) {
+	pl := h.messageLang(w, r, s, c)
+	l := pl.Labels
 	name := m.CategoryName
-	b := categoryBody{Email: m.Email, Action: s.links.Unsubscribe(token), Category: name, Off: off, Status: status,
+	// In a sentence English writes the category in lower case ("is off
+	// product updates emails"); other languages keep its name.
+	inText := name
+	if l.Code() == "en" {
+		inText = strings.ToLower(name)
+	}
+	args := i18n.Args{"email": m.Email, "category": inText, "product": m.Product}
+	b := categoryBody{Email: m.Email, Action: s.links.Unsubscribe(token), Category: name, Off: off,
 		PrefsHref: s.links.Preferences(h.sign(s, linktoken.Preferences, c.ContactID, c.MessageID))}
+	if thanks {
+		b.Status = l.Text("category.thanks", nil)
+	}
 	if off {
-		b.Heading = "You won't get " + name + " anymore"
-		b.Text = " is off " + strings.ToLower(name) + " emails from " + m.Product + "."
-		if status == "" {
-			b.Reasons = notificationReasons
+		b.Heading = l.Text("category.off.heading", i18n.Args{"category": name})
+		b.Text = l.Text("category.off.text", args)
+		if !thanks {
+			b.Reasons = notificationReasonsIn(l)
 		}
 	} else {
-		b.Heading = name + " is on again"
-		b.Text = " gets " + strings.ToLower(name) + " emails from " + m.Product + " again."
+		b.Heading = l.Text("category.on.heading", i18n.Args{"category": name})
+		b.Text = l.Text("category.on.text", args)
 	}
 	if set, err := h.Notifications.For(r.Context(), s.ws, m.Email); err == nil {
 		var on []string
@@ -171,11 +219,12 @@ func (h *Handler) categoryPage(w http.ResponseWriter, r *http.Request, s *site, 
 			}
 		}
 		if len(on) > 0 {
-			b.Others = listNames(on) + " " + map[bool]string{true: "stays", false: "stay"}[len(on) == 1] + " on"
+			b.Others = l.Text("category.stayOn", i18n.Args{"names": l.Join(on), "count": len(on)})
 		}
 	}
-	v := h.view(s, name+" · "+m.Product, b)
+	v := h.view(s, productTitle(l, name, m.Product), b)
 	v.Brand.Name, v.Brand.Initial = m.Product, initialOf(m.Product)
+	h.setLang(v, r, s, pl, nil)
 	h.render(w, r, s, "category", http.StatusOK, v, csp{}, true)
 }
 
@@ -193,9 +242,11 @@ func (h *Handler) categoryUnsubscribe(w http.ResponseWriter, r *http.Request, s 
 	}
 	token := chi.URLParam(r, "token")
 	if m.CategoryID == nil || !m.Optional {
-		h.message(w, r, s, http.StatusOK, "Email preferences · "+m.Product, messageBody{Heading: "These emails can't be turned off",
-			Text:    "Account and billing emails from " + m.Product + ", like password resets and invoices, aren't marketing, and your account needs them.",
-			Actions: []action{{Label: "Email preferences", Href: s.links.Preferences(h.sign(s, linktoken.Preferences, c.ContactID, c.MessageID))}}}, true)
+		pl := h.messageLang(w, r, s, c)
+		l := pl.Labels
+		h.messageIn(w, r, s, pl, http.StatusOK, productTitle(l, l.Text("prefs.heading", nil), m.Product), messageBody{Heading: l.Text("category.locked.heading", nil),
+			Text:    l.Text("category.locked.text", i18n.Args{"product": m.Product}),
+			Actions: []action{{Label: l.Text("page.preferences", nil), Href: s.links.Preferences(h.sign(s, linktoken.Preferences, c.ContactID, c.MessageID))}}}, true)
 		return true
 	}
 	err = db.Tx(r.Context(), h.Pool, func(tx pgx.Tx) error {
@@ -205,7 +256,7 @@ func (h *Handler) categoryUnsubscribe(w http.ResponseWriter, r *http.Request, s 
 		h.serverError(w, r, s, err)
 		return true
 	}
-	h.categoryPage(w, r, s, c, m, token, true, "")
+	h.categoryPage(w, r, s, c, m, token, true, false)
 	return true
 }
 
@@ -255,19 +306,19 @@ func (h *Handler) categoryPost(w http.ResponseWriter, r *http.Request, s *site, 
 	case "on":
 		err = db.Tx(r.Context(), h.Pool, func(tx pgx.Tx) error { return h.Notifications.TurnOn(r.Context(), tx, s.ws, m.Email, cat) })
 		if err == nil {
-			h.categoryPage(w, r, s, c, m, token, false, "")
+			h.categoryPage(w, r, s, c, m, token, false, false)
 		}
 	case "reason":
 		err = h.Notifications.Reason(r.Context(), s.ws, m.Email, cat, f.Get("reason"))
 		if err == nil {
-			h.categoryPage(w, r, s, c, m, token, true, "Thanks for telling us.")
+			h.categoryPage(w, r, s, c, m, token, true, true)
 		}
 	default:
 		err = db.Tx(r.Context(), h.Pool, func(tx pgx.Tx) error {
 			return h.Notifications.TurnOff(r.Context(), tx, s.ws, m.Email, cat, "unsubscribe_link", c.MessageID)
 		})
 		if err == nil {
-			h.categoryPage(w, r, s, c, m, token, true, "")
+			h.categoryPage(w, r, s, c, m, token, true, false)
 		}
 	}
 	if err != nil {

@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouterState } from '@tanstack/react-router'
 import { $api, ApiError, type Schemas } from '@/api/client'
+import { Badge } from '@/components/ui/Badge'
 import { NavTabs } from '@/components/ui/Tabs'
 import { useT } from '@/i18n'
 import { count } from '@/lib/format'
@@ -66,6 +67,31 @@ export function FormsTabs() {
       ]}
     />
   )
+}
+
+/** The form's state in the top bar: Published · news.acme.io/subscribe. */
+export function FormStatusBadge({ form }: { form: SignupForm }) {
+  const where = hostPath(form.hostedUrl)
+  switch (form.status) {
+    case 'live':
+      return (
+        <Badge tone="ok" dot>
+          Published · {where}
+        </Badge>
+      )
+    case 'paused':
+      return (
+        <Badge tone="warn" dot>
+          Paused · {where}
+        </Badge>
+      )
+    default:
+      return (
+        <Badge tone="neutral" dot>
+          Draft · not published yet
+        </Badge>
+      )
+  }
 }
 
 /** "news.acme.io/subscribe" for "https://news.acme.io/subscribe". */

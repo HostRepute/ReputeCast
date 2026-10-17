@@ -161,6 +161,11 @@ label.row input { margin-top: 4px; }
 .foot a { color: var(--ink-3); }
 .foot a:hover { color: var(--ink); }
 .foot a.rc { display: inline-flex; align-items: center; gap: 6px; }
+/* The language menu: plain links, each in its language's own name. */
+.langs { display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap; margin-top: 10px; font-size: 12.5px; color: var(--ink-3); }
+.langs a { color: var(--ink-3); display: inline-flex; align-items: center; min-height: 24px; }
+.langs a:hover { color: var(--ink); }
+.langs a[aria-current] { color: #1f2937; font-weight: 700; }
 
 /* Archive */
 .wide { width: 100%; max-width: 640px; display: flex; flex-direction: column; gap: 20px; }

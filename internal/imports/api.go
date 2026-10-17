@@ -138,6 +138,7 @@ func Register(h huma.API, s *Service) {
 			out, err := s.Fields(ctx, api.WorkspaceFrom(ctx), id(in.ImportPathInput))
 			return api.OK(out), err
 		})
+	registerLanguageColumn(h, s)
 	api.Put(h, api.Op{ID: "save-import-fields", Path: base + "/{id}/fields", Summary: "Save the field mapping", Tags: tags, Access: imp},
 		func(ctx context.Context, in *importBody[ImportSaveFieldsInput]) (*api.Body[ImportFieldMapping], error) {
 			out, err := s.SaveFields(ctx, api.WorkspaceFrom(ctx), id(in.ImportPathInput), in.Body)

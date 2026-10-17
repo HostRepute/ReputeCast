@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="{{.Lang}}" dir="{{.Dir}}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -7,6 +7,7 @@
 {{with .Description}}<meta name="description" content="{{.}}">
 {{end}}<meta name="robots" content="{{.Robots}}">
 {{with .Canonical}}<link rel="canonical" href="{{.}}">
+{{end}}{{range .Alternates}}<link rel="alternate" hreflang="{{.Lang}}" href="{{.Href}}">
 {{end}}{{with .OG}}<meta property="og:type" content="{{.Type}}">
 <meta property="og:site_name" content="{{.SiteName}}">
 <meta property="og:title" content="{{.Title}}">
@@ -25,14 +26,16 @@
 {{end}}{{range .Scripts}}<script src="{{.}}" defer></script>
 {{end}}</head>
 <body{{if .Preview}} class="preview" inert{{end}}>
-<a href="#main" class="skip">Skip to content</a>
+<a href="#main" class="skip">{{.T "page.skip"}}</a>
 <div class="page">
 {{template "content" .}}
 {{template "foot" .}}
+{{template "langs" .}}
 </div>
 </body>
 </html>
 {{define "brand"}}<div class="brand">{{if .Brand.Logo}}<span class="mark logo"><img src="{{.Brand.Logo}}" alt="" width="40" height="40"></span>{{else}}<span class="mark" aria-hidden="true">{{.Brand.Initial}}</span>{{end}}<span class="brand-name">{{.Brand.Name}}</span></div>{{end}}
-{{define "rc"}}{{if .PoweredBy}}<a href="{{.Landing}}" class="rc"><svg width="14" height="14" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>Sent with ReputeCast</a>{{end}}{{end}}
-{{define "rcplain"}}{{if .PoweredBy}}<a href="{{.Landing}}">Sent with ReputeCast</a>{{end}}{{end}}
+{{define "rc"}}{{if .PoweredBy}}<a href="{{.Landing}}" class="rc"><svg width="14" height="14" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>{{.T "page.poweredBy"}}</a>{{end}}{{end}}
+{{define "rcplain"}}{{if .PoweredBy}}<a href="{{.Landing}}">{{.T "page.poweredBy"}}</a>{{end}}{{end}}
 {{define "sep"}}<span aria-hidden="true">·</span>{{end}}
+{{define "langs"}}{{with .Menu}}<nav class="langs" aria-label="{{$.T "page.languages"}}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M1.8 8h12.4M8 1.8c1.8 1.7 2.7 3.8 2.7 6.2S9.8 12.5 8 14.2C6.2 12.5 5.3 10.4 5.3 8S6.2 3.5 8 1.8z"></path></svg>{{range $i, $l := .}}{{if $i}}<span aria-hidden="true">·</span>{{end}}<a href="{{$l.Href}}" lang="{{$l.Code}}" hreflang="{{$l.Code}}"{{if $l.Current}} aria-current="true"{{end}}>{{$l.Name}}</a>{{end}}</nav>{{end}}{{end}}
