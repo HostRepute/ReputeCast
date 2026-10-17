@@ -26086,6 +26086,15 @@
             ],
             "type": "string"
           },
+          "personalization": {
+            "description": "data: a transactional template's test data set, the first one unless testData names one",
+            "enum": [
+              "fallbacks",
+              "data",
+              ""
+            ],
+            "type": "string"
+          },
           "providers": {
             "items": {
               "type": "string"

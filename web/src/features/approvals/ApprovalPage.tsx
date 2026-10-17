@@ -20,6 +20,7 @@ import { agoWords, countsShort, groupTitles, groupWords, linkParts, minutes, pro
 import { PreviewLanguagePicker } from '@/features/languages/approvals'
 import { AppHref, CheckBadge, whenText } from '@/features/review/parts'
 import { TransactionalApprovalCard, TransactionalDecisionDetail, TransactionalDecisionNote } from '@/features/transactional-templates/ApprovalCard'
+import { PlacementApprovalCard } from '@/features/placement/EntryPoints'
 import { ApprovalStatusBadge, approverNames, decidedText, deciderFirst, DiffLines, requestTone, unchangedText, type Change } from './parts'
 import '@/features/review/review.css'
 
@@ -192,6 +193,7 @@ function DetailBody({ detail: d }: { detail: Detail }) {
           {d.campaign ? <CampaignCard detail={d} busy={busy === 'test'} onTest={() => void sendTest()} /> : null}
           {d.readiness ? <ReadinessCard detail={d} busy={busy} onFix={(c, f) => void applyFix(c, f)} /> : null}
           {d.audience || d.route ? <AudienceRouteCard detail={d} /> : null}
+          {d.campaign ? <PlacementApprovalCard campaignId={d.campaign.id} /> : null}
           <ScheduleNoteCard detail={d} />
           <DiscussionCard detail={d} comment={comment} setComment={setComment} busy={busy === 'comment'} onPost={() => void post()} others={others} />
         </div>

@@ -17,6 +17,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/emailaddr"
 	"github.com/hostrepute/reputecast/internal/placement"
 	"github.com/hostrepute/reputecast/internal/placement/seedbox"
+	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/verification"
 )
@@ -386,7 +387,9 @@ func pdNA(deferrals int) placementDemoCell {
 
 type placementDemoProvider struct {
 	key, short, host, ip, selector, spf string
-	warmDay                             int
+	// warming: the provider's warm-up plan was running; the day comes
+	// from the plan (demoWarmDay).
+	warming bool
 }
 
 type placementDemoTest struct {
@@ -446,8 +449,15 @@ func seedPlacementDemo(ctx context.Context, s *Seeder) error {
 	}
 
 	ses := placementDemoProvider{key: "ses", short: "SES", host: "a8-25.smtp-out.amazonses.com", ip: "54.240.8.25", selector: "7kq2n3x", spf: "bounce.news.acme.io"}
-	postal := func(day int) placementDemoProvider {
-		return placementDemoProvider{key: "postal", short: "Postal", host: "mta.acme.io", ip: "203.0.113.25", selector: "postal-2026", spf: "rp.news.acme.io", warmDay: day}
+	postal := placementDemoProvider{key: "postal", short: "Postal", host: "mta.acme.io", ip: "203.0.113.25", selector: "postal-2026", spf: "rp.news.acme.io", warming: true}
+	// The warm-up tests ran on days 2 and 5 of Postal's plan (seed_providers.go,
+	// day 9 today), so ProvidersWarmup and the tests tell the same story.
+	warmAt := func(day, hour, minute int, otherwise time.Time) time.Time {
+		start, _, ok := demoWarmPlan(ctx, s, s.Providers["postal"])
+		if !ok {
+			return otherwise
+		}
+		return time.Date(start.Year(), start.Month(), start.Day()+day-1, hour, minute, 0, 0, state.Location(ws.Timezone))
 	}
 	postmark := placementDemoProvider{key: "postmark", short: "Postmark", host: "mta-out.pstmrk.it", ip: "50.31.156.6", selector: "pm2026", spf: "pm-bounces.notify.acme.io"}
 	tue14, tue7, tue30, thu2 := s.designDay(1, 9, 0), s.designDay(8, 9, 0), s.designDay(15, 9, 0), s.designDay(13, 15, 0)
@@ -459,16 +469,16 @@ func seedPlacementDemo(ctx context.Context, s *Seeder) error {
 			cells: [][]placementDemoCell{{pdTab(10), pdTab(12), pdIn("Primary", 9), pdIn("Focused", 13), pdIn("Other", 11), pdIn("", 19), pdIn("", 22), pdIn("", 16), pdIn("", 14), pdIn("", 15)}}},
 		{name: "Weekly Digest #140 · Postal", kind: "campaign", content: "Weekly Digest #140", note: "sent", contentAt: &tue30, through: "provider",
 			stream: "broadcast", origin: "warmup", subject: "Weekly Digest #140: the September roundup", startedBy: "linh@acme.io",
-			at: s.designDay(10, 10, 15), providers: []placementDemoProvider{postal(2)}, fromName: "Acme Newsletter", fromEmail: "digest@news.acme.io",
+			at: warmAt(2, 10, 15, s.designDay(10, 10, 15)), providers: []placementDemoProvider{postal}, fromName: "Acme Newsletter", fromEmail: "digest@news.acme.io",
 			cells: [][]placementDemoCell{{pdTab(41), pdTab(47), pdSpam(36), pdSpam(58), pdIn("Other", 63), pdSpam(140), pdSpam(121), pdNA(0), pdIn("", 62),
 				{kind: "late", secs: 34*60 + 5, deferrals: 2}}}},
 		{name: "Weekly Digest #141 · Postal", kind: "campaign", content: "Weekly Digest #141", note: "sent", contentAt: &tue7, through: "provider",
 			stream: "broadcast", origin: "warmup", subject: "Weekly Digest #141: what shipped in the first week of October", startedBy: "linh@acme.io",
-			at: s.designDay(7, 11, 30), providers: []placementDemoProvider{postal(5)}, fromName: "Acme Newsletter", fromEmail: "digest@news.acme.io",
+			at: warmAt(5, 11, 30, s.designDay(7, 11, 30)), providers: []placementDemoProvider{postal}, fromName: "Acme Newsletter", fromEmail: "digest@news.acme.io",
 			cells: [][]placementDemoCell{{pdTab(33), pdTab(40), pdIn("Primary", 22), pdSpam(51), pdIn("Other", 47), pdSpam(95), pdSpam(88), pdIn("", 39), pdIn("", 44), pdNA(2)}}},
 		{name: "Weekly Digest #142 · SES vs Postal", kind: "campaign", content: "Weekly Digest #142", note: "scheduled", contentAt: &tue14, through: "compare",
 			stream: "broadcast", origin: "review", variant: "A", language: "en", subject: "Three launches, one deprecation, and the roadmap for Q4",
-			startedBy: "sofia@acme.io", at: s.designDay(3, 16, 20), providers: []placementDemoProvider{ses, postal(9)}, fromName: "Acme Newsletter", fromEmail: "digest@news.acme.io",
+			startedBy: "sofia@acme.io", at: s.designDay(3, 16, 20), providers: []placementDemoProvider{ses, postal}, fromName: "Acme Newsletter", fromEmail: "digest@news.acme.io",
 			cells: [][]placementDemoCell{
 				{pdTab(9), pdTab(11), pdIn("Primary", 8), pdIn("Focused", 14), pdIn("Other", 12), pdIn("", 21), pdIn("", 24), pdIn("", 17), pdIn("", 15), pdIn("", 16)},
 				{pdTab(26), pdTab(31), pdIn("Primary", 19), pdSpam(44), pdIn("Other", 52), pdSpam(130), pdIn("", 108), pdIn("", 41), pdIn("", 37), pdNA(3)},
@@ -551,6 +561,29 @@ func placementMailbox(provider string) string {
 
 // seedPlacementTest writes one test, its copies, the copies' messages and
 // the providers' events.
+// demoWarmPlan is a provider's warm-up plan: its first day and length.
+func demoWarmPlan(ctx context.Context, s *Seeder, pid uuid.UUID) (time.Time, int, bool) {
+	var start time.Time
+	var days int
+	err := s.Tx.QueryRow(ctx, `SELECT start_date, days FROM warmup_plans WHERE provider_id = $1 ORDER BY created_at DESC LIMIT 1`, pid).Scan(&start, &days)
+	return start, days, err == nil
+}
+
+// demoWarmDay is the day of the provider's warm-up a moment falls on, in
+// the workspace's calendar, and the plan's length (0 outside the plan).
+func demoWarmDay(ctx context.Context, s *Seeder, pid uuid.UUID, at time.Time) (int, int) {
+	start, days, ok := demoWarmPlan(ctx, s, pid)
+	if !ok {
+		return 0, 0
+	}
+	a := at.In(state.Location(s.WS().Timezone))
+	day := int(time.Date(a.Year(), a.Month(), a.Day(), 0, 0, 0, 0, time.UTC).Sub(time.Date(start.Year(), start.Month(), start.Day(), 0, 0, 0, 0, time.UTC)).Hours()/24) + 1
+	if day < 1 || day > days {
+		return 0, 0
+	}
+	return day, days
+}
+
 func seedPlacementTest(ctx context.Context, s *Seeder, t placementDemoTest, ti int, seeds []placementDemoSeed) (uuid.UUID, error) {
 	ws := s.WS()
 	id := ID()
@@ -596,8 +629,8 @@ func seedPlacementTest(ctx context.Context, s *Seeder, t placementDemoTest, ti i
 		if adapter == "ses" {
 			ps["cost"] = 0.0001
 		}
-		if p.warmDay > 0 {
-			ps["status"], ps["warmDay"], ps["warmDays"], ps["ip"] = "warming_up", p.warmDay, 21, p.ip
+		if day, days := demoWarmDay(ctx, s, pid, t.at); p.warming && day > 0 {
+			ps["status"], ps["warmDay"], ps["warmDays"], ps["ip"] = "warming_up", day, days, p.ip
 		}
 		snap[pid.String()] = ps
 	}

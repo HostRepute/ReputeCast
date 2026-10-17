@@ -16098,6 +16098,11 @@ export interface components {
             language?: string;
             /** @enum {string} */
             origin?: "placement" | "review" | "composer" | "warmup" | "template" | "";
+            /**
+             * @description data: a transactional template's test data set, the first one unless testData names one
+             * @enum {string}
+             */
+            personalization?: "fallbacks" | "data" | "";
             providers?: string[];
             seeds?: string[];
             senderId?: string;

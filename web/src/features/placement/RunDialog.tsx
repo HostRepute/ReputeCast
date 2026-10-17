@@ -85,6 +85,8 @@ export function RunDialog({ open, onOpenChange, preset }: { open: boolean; onOpe
         seeds,
         variant,
         language,
+        // Test data without a set picked yet is the first one, as the select shows.
+        personalization: personal === 'data' ? 'data' : undefined,
         testData: personal === 'data' ? testData : undefined,
       }
     : undefined
@@ -670,18 +672,18 @@ function FromRow({ plan, senderId, onSender }: { plan: Plan; senderId?: string; 
         ))}
       </select>
       {problem ? (
-        <div className="note b flex-col items-start!" role="alert">
-          <div className="flex gap-2.5">
-            <Icon name="alertCircle" size={16} className="mt-px flex-none" />
+        <div className="note b" role="alert">
+          <Icon name="alertCircle" size={16} className="mt-px flex-none" />
+          <div className="flex flex-col items-start gap-2">
             <span>
               {others.length
                 ? t(m.noSenderProblem, { missing, stream: plan.stream, domain: plan.senderDomain ?? '', others: orList(others) })
                 : t(m.noSenderProblemAlone, { missing, stream: plan.stream, domain: plan.senderDomain ?? '' })}
             </span>
+            <ButtonLink size="sm" to="/w/$workspace/settings/senders" params={{ workspace: slug }}>
+              {t(m.openSenders)}
+            </ButtonLink>
           </div>
-          <ButtonLink size="sm" className="ml-[26px]" to="/w/$workspace/settings/senders" params={{ workspace: slug }}>
-            {t(m.openSenders)}
-          </ButtonLink>
         </div>
       ) : (
         <span className="k">{plan.stream === 'transactional' ? t(m.sendersHelpTransactional) : t(m.sendersHelp, { stream: plan.stream })}</span>

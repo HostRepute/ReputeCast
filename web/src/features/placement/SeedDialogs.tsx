@@ -237,16 +237,14 @@ export function AddSeedDialog({ d, open, onOpenChange, preset, note }: { d: Seed
               <span>{t(m.oauthFailed, { app: appName(provider), reason: oauthNote.reason ?? '' })}</span>
             </div>
           ) : gmailCom ? (
-            <div className="note w flex-col items-start!" role="note">
-              <div className="flex gap-2.5">
-                <Icon name="alertCircle" size={16} className="mt-px flex-none text-warn-bar" />
-                <div className="flex flex-col gap-1">
-                  <span className="font-bold">{t(m.gmailOAuthTitle)}</span>
-                  <span>{t(m.gmailOAuthBody)}</span>
-                  <Button size="sm" className="mt-1.5 w-fit" onClick={() => setMode('imap')}>
-                    {t(m.useAppPassword)}
-                  </Button>
-                </div>
+            <div className="note w" role="note">
+              <Icon name="alertCircle" size={16} className="mt-px flex-none text-warn-bar" />
+              <div className="flex flex-col gap-1">
+                <span className="font-bold">{t(m.gmailOAuthTitle)}</span>
+                <span>{t(m.gmailOAuthBody)}</span>
+                <Button size="sm" className="mt-1.5 w-fit" onClick={() => setMode('imap')}>
+                  {t(m.useAppPassword)}
+                </Button>
               </div>
             </div>
           ) : oauthReady ? (
@@ -271,6 +269,17 @@ export function AddSeedDialog({ d, open, onOpenChange, preset, note }: { d: Seed
       ) : null}
       {provider && mode === 'imap' ? (
         <>
+          {provider.oauth === 'microsoft' && !done ? (
+            <div className="note w" role="note">
+              <Icon name="alertCircle" size={16} className="mt-px flex-none text-warn-bar" />
+              <div className="flex flex-col gap-1">
+                <span>{t(m.microsoftImap)}</span>
+                <Button size="sm" className="mt-1.5 w-fit" onClick={() => setMode('oauth')}>
+                  {t(m.useOAuth)}
+                </Button>
+              </div>
+            </div>
+          ) : null}
           <div className="grid gap-2.5" style={{ gridTemplateColumns: 'minmax(0,1fr) 128px' }}>
             <Field label={t(m.imapServer)} id={ids.host}>
               <input id={ids.host} className="in" value={host} onChange={(e) => setHost(e.target.value)} disabled={Boolean(done)} autoComplete="off" spellCheck={false} />
@@ -302,17 +311,15 @@ export function AddSeedDialog({ d, open, onOpenChange, preset, note }: { d: Seed
             </a>
           ) : null}
           {error ? (
-            <div className="note b flex-col items-start!" role="alert">
-              <div className="flex gap-2.5">
-                <Icon name="alertCircle" size={16} className="mt-px flex-none" />
-                <div className="flex flex-col gap-2">
-                  <span>{error}</span>
-                  {provider.imapHelp ? (
-                    <ButtonAnchor size="sm" href={provider.imapHelp} className="w-fit">
-                      {t(m.imapHelp, { provider: provider.name })}
-                    </ButtonAnchor>
-                  ) : null}
-                </div>
+            <div className="note b" role="alert">
+              <Icon name="alertCircle" size={16} className="mt-px flex-none" />
+              <div className="flex flex-col gap-2">
+                <span>{error}</span>
+                {provider.imapHelp ? (
+                  <ButtonAnchor size="sm" href={provider.imapHelp} className="w-fit">
+                    {t(m.imapHelp, { provider: provider.name })}
+                  </ButtonAnchor>
+                ) : null}
               </div>
             </div>
           ) : null}

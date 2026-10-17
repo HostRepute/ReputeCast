@@ -28,6 +28,7 @@ import { IncompleteBanner, RunningBanner, ScheduledBanner, ScheduledTiles, Stale
 import { ByVersion, EACH, languageRows, sentVersions } from '@/features/languages/review'
 import { mr } from '@/features/languages/messages'
 import { ReadinessVerifyDialog } from '@/features/verification/HealthEntry'
+import { PlacementReviewCard } from '@/features/placement/EntryPoints'
 import './review.css'
 
 const reviewPath = '/api/v1/workspaces/{workspace}/campaigns/{campaignId}/review' as const
@@ -640,6 +641,12 @@ function ReviewBody({
               versions={versions}
             />
           ) : null}
+          <PlacementReviewCard
+            className="rv-card c-tight"
+            campaignId={campaignId}
+            campaignName={d.campaign.name}
+            providers={run.estimates.route.shares.filter((s) => s.recipients > 0).map((s) => s.providerId)}
+          />
           {showCTA ? (
             blocked ? (
               <>

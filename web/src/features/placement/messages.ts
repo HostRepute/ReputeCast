@@ -557,4 +557,31 @@ export const m = defineMessages('placement', {
   runProblems: 'The test can’t start yet:',
   loadPlanError: 'Couldn’t work out the test',
   noSeedsConnected: 'Connect a seed mailbox first: tests send one copy to each.',
+
+  // ── Entry points: Review & send, approvals, Send test menus, the warm-up planner, Instance admin ──
+  entryTitle: 'Placement test',
+  entryOptional: 'Optional',
+  entryNotRun: 'Not run for this campaign',
+  entryLatest: '{time} · {name}',
+  entryViewResults: 'View results',
+  entryFound: '{found, number} of {copies, number} found',
+  approvalCaption: 'The campaign’s latest test, for context: {time} · {name} · {through}',
+  sendTest: 'Send test',
+  testMore: 'More ways to test',
+  testMenuEmail: 'Send a test email…',
+  testMenuMe: 'Send test to me',
+  testMenuPlacement: 'Run a placement test…',
+  testMenuNeeds: 'needs placement:run',
+  testMenuPublish: 'publish it first',
+  warmTitle: 'Placement during this warm-up',
+  warmDay: 'Day {day, number}',
+  warmNone: 'No placement test through {provider} during this warm-up yet.',
+  warmRun: 'Run a test through {provider}',
+  warmFrom: '{provider}, day {day, number} of {days, number}',
+  seedAppGoogle:
+    'Seed mailboxes for placement tests use this app too, for mail access. Add <mono>{uri}</mono> as a second redirect URI, and the scope <mono>https://mail.google.com/</mono>. Google limits mail access for apps it hasn’t verified, so a gmail.com seed connected this way may have to sign in again every 7 days: an IMAP app password suits gmail.com seeds better.',
+  seedAppMicrosoft:
+    'Seed mailboxes for placement tests use this app too, for mail access. Add <mono>{uri}</mono> as a second redirect URI, and the delegated Microsoft Graph permission <mono>Mail.ReadWrite</mono>. Outlook.com seeds need personal accounts allowed. Microsoft no longer accepts passwords over IMAP, so Outlook.com and Microsoft 365 seeds connect through this app.',
+  microsoftImap: 'Microsoft no longer accepts passwords over IMAP for Outlook.com and Microsoft 365, so this sign-in is refused. Connect with OAuth instead.',
+  useOAuth: 'Use OAuth instead',
 })

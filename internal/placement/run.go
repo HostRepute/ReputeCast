@@ -45,10 +45,11 @@ type PlacementRunInput struct {
 	Content PlacementContentRef `json:"content"`
 	// Variant is the A/B variant, Language the language version ("" for
 	// the source), TestData a transactional template's test data set
-	// ("" for the fallbacks).
-	Variant  string `json:"variant,omitempty" maxLength:"8"`
-	Language string `json:"language,omitempty" maxLength:"16"`
-	TestData string `json:"testData,omitempty" maxLength:"120"`
+	// ("" for the fallbacks, or its first set with Personalization data).
+	Variant         string `json:"variant,omitempty" maxLength:"8"`
+	Language        string `json:"language,omitempty" maxLength:"16"`
+	TestData        string `json:"testData,omitempty" maxLength:"120"`
+	Personalization string `json:"personalization,omitempty" enum:"fallbacks,data," doc:"data: a transactional template's test data set, the first one unless testData names one"`
 	// Through: the route as configured, one provider, or several compared.
 	Through   string   `json:"through" enum:"route,provider,compare"`
 	Providers []string `json:"providers,omitempty" maxItems:"6"`
@@ -228,6 +229,8 @@ type content struct {
 	at       *time.Time
 	template string
 	rendered bool // transactional: already rendered with its test data
+	// testData is the test data set used ("" for the fallbacks).
+	testData string
 	langUsed string
 }
 
@@ -335,9 +338,13 @@ func (s *Service) loadContent(ctx context.Context, ws *store.Workspace, in Place
 				data[x.Name] = val
 			}
 		}
+		c.testData = in.TestData
+		if c.testData == "" && in.Personalization == "data" && len(sets) > 0 {
+			c.testData = sets[0].Name
+		}
 		for _, d := range sets {
 			c.view.TestData = append(c.view.TestData, d.Name)
-			if d.Name == in.TestData {
+			if d.Name == c.testData {
 				for k, val := range d.Data {
 					data[k] = val
 				}
@@ -1028,7 +1035,7 @@ func (s *Service) Start(ctx context.Context, ws *store.Workspace, in PlacementRu
 		q := store.New(tx)
 		if err := q.PlacementTestInsert(ctx, store.PlacementTestInsertParams{ID: id, WorkspaceID: ws.ID, Name: name, ContentKind: in.Content.Kind,
 			ContentID: contentID, ContentName: c.view.Name, ContentNote: c.note, ContentKey: c.view.Key, ContentVersion: int32(c.view.Version), ContentAt: c.at,
-			Variant: in.Variant, Language: c.langUsed, Personalization: in.TestData, Through: in.Through, Stream: string(c.stream), ProviderIds: pids,
+			Variant: in.Variant, Language: c.langUsed, Personalization: c.testData, Through: in.Through, Stream: string(c.stream), ProviderIds: pids,
 			SenderID: &sender, FromName: fromName, FromEmail: fromEmail, Origin: origin, Subject: c.subject, Html: c.html, TextBody: c.text, Links: lb,
 			Providers: sb, TrackOpens: c.tracking.Opens, TrackClicks: c.tracking.Clicks, StartedBy: actor(ctx), StartedAt: now, WaitUntil: &wait,
 			DeleteAfter: deleteAfter}); err != nil {
