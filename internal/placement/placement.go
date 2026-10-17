@@ -60,6 +60,12 @@ type Transactional interface {
 	RenderLive(ctx context.Context, ws *store.Workspace, key string, data map[string]any, to string) (subject, html, text string, version int, err error)
 }
 
+// Digests gives the campaign of a recurring digest's next issue
+// (internal/digests): the one already built for checks, or a fresh build.
+type Digests interface {
+	NextIssueCampaign(ctx context.Context, ws *store.Workspace, p *authz.Principal, digestID uuid.UUID, fresh bool) (uuid.UUID, error)
+}
+
 // MailApp is the instance's Google or Microsoft sign-in app (Instance admin
 // › Authentication) as seed mailboxes use it for mail access.
 type MailApp struct {
@@ -105,9 +111,11 @@ type Service struct {
 	Links         *linktoken.Signer
 	URLs          publicurl.Builder
 	Transactional Transactional
-	Apps          MailApps
-	Readiness     Readiness
-	Notify        Notifier
+	// Digests builds a recurring digest's next issue (nil: no digests).
+	Digests   Digests
+	Apps      MailApps
+	Readiness Readiness
+	Notify    Notifier
 	// LangOf is a member's language, for what ReputeCast writes to them.
 	LangOf func(ctx context.Context, userID uuid.UUID) i18n.Lang
 	// Jobs is River's client (read lazily); nil or Inline runs work in

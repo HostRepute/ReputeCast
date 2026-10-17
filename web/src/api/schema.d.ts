@@ -17314,16 +17314,16 @@ export interface components {
             at: string;
             id: string;
             /** @enum {string} */
-            kind: "campaign" | "template" | "transactional";
+            kind: "campaign" | "template" | "digest" | "transactional";
             name: string;
-            /** @description A campaign's status, template, or a transactional template's key */
+            /** @description A campaign's status, template, a transactional template's key, or a digest's state (on, paused, off) */
             note: string;
         };
         PlacementContentRef: {
-            /** @description A campaign, template or transactional template id */
+            /** @description A campaign, template, recurring digest (its next issue) or transactional template id */
             id: string;
             /** @enum {string} */
-            kind: "campaign" | "template" | "transactional";
+            kind: "campaign" | "template" | "digest" | "transactional";
         };
         PlacementContentView: {
             audience?: string;
@@ -17332,7 +17332,7 @@ export interface components {
             id: string;
             key?: string;
             /** @enum {string} */
-            kind: "campaign" | "template" | "transactional";
+            kind: "campaign" | "template" | "digest" | "transactional";
             languages: components["schemas"]["PlacementLanguage"][];
             name: string;
             /** Format: int64 */

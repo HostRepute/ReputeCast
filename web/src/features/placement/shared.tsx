@@ -255,6 +255,8 @@ function contentFactList(row: TestRow): string[] {
     if (row.personalization) out.push(tr(m.factTestData, { name: row.personalization }))
   } else if (row.contentKind === 'template') {
     out.push(tr(m.factTemplate))
+  } else if (row.contentKind === 'digest') {
+    out.push(tr(m.factDigest), tr(m.factNextIssue))
   } else {
     out.push(tr(m.factCampaign))
     switch (row.contentNote) {

@@ -232,17 +232,22 @@ WHERE t.owner_kind = 'campaign' AND t.owner_id = @owner_id AND t.owner_version =
 SELECT l.name FROM lists l WHERE l.workspace_id = @workspace_id AND l.id = ANY(@ids::uuid[]) ORDER BY l.name;
 
 -- name: PlacementContentSearch :many
--- What a test can send, for the dialog's search: campaigns with content,
--- campaign templates and published transactional templates.
+-- What a test can send, for the dialog's search: campaigns with content
+-- (not a digest's template or next issue: the digest stands for them),
+-- campaign templates, published transactional templates and digests.
 SELECT x.kind::text AS kind, x.id, x.name::text AS name, x.note::text AS note, x.at::timestamptz AS at FROM (
     SELECT 'campaign' AS kind, c.id, c.name, c.status AS note, coalesce(c.scheduled_at, c.started_at, c.updated_at) AS at
-    FROM campaigns c WHERE c.workspace_id = @workspace_id AND c.deleted_at IS NULL AND c.html <> ''
+    FROM campaigns c WHERE c.workspace_id = @workspace_id AND c.deleted_at IS NULL AND c.html <> '' AND c.digest_role IN ('', 'issue')
     UNION ALL
     SELECT 'template', t.id, t.name, 'template', t.updated_at
     FROM templates t WHERE t.workspace_id = @workspace_id AND t.kind = 'template' AND t.html <> ''
     UNION ALL
     SELECT 'transactional', tt.id, tt.name, tt.key, tt.updated_at
     FROM transactional_templates tt WHERE tt.workspace_id = @workspace_id AND tt.live_version IS NOT NULL AND tt.archived_at IS NULL AND tt.deleted_at IS NULL
+    UNION ALL
+    -- A recurring digest stands for its next issue; the note is its state.
+    SELECT 'digest', d.id, d.name, d.state, d.updated_at
+    FROM digests d WHERE d.workspace_id = @workspace_id AND d.deleted_at IS NULL AND d.template_id IS NOT NULL
 ) x
 WHERE @q::text = '' OR x.name ILIKE '%' || @q::text || '%' OR x.note ILIKE '%' || @q::text || '%'
 ORDER BY x.at DESC

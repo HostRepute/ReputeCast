@@ -80,10 +80,10 @@ type redirectOutput struct {
 
 // PlacementContentOption is something a test can send.
 type PlacementContentOption struct {
-	Kind string    `json:"kind" enum:"campaign,template,transactional"`
+	Kind string    `json:"kind" enum:"campaign,template,digest,transactional"`
 	ID   string    `json:"id"`
 	Name string    `json:"name"`
-	Note string    `json:"note" doc:"A campaign's status, template, or a transactional template's key"`
+	Note string    `json:"note" doc:"A campaign's status, template, a transactional template's key, or a digest's state (on, paused, off)"`
 	At   time.Time `json:"at"`
 }
 

@@ -35,6 +35,7 @@ func (a *App) placement() *placement.Service {
 		Links:         a.Links,
 		URLs:          a.URLs,
 		Transactional: placementTransactional{a: a},
+		Digests:       digestsService(a),
 		Apps:          placementApps{s: a.ssoService()},
 		Readiness:     placementReadiness{a: a},
 		Notify:        placementNotifier{a: a},

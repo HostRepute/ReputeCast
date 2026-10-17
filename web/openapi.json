@@ -28657,6 +28657,7 @@
             "enum": [
               "campaign",
               "template",
+              "digest",
               "transactional"
             ],
             "type": "string"
@@ -28665,7 +28666,7 @@
             "type": "string"
           },
           "note": {
-            "description": "A campaign's status, template, or a transactional template's key",
+            "description": "A campaign's status, template, a transactional template's key, or a digest's state (on, paused, off)",
             "type": "string"
           }
         },
@@ -28682,13 +28683,14 @@
         "additionalProperties": false,
         "properties": {
           "id": {
-            "description": "A campaign, template or transactional template id",
+            "description": "A campaign, template, recurring digest (its next issue) or transactional template id",
             "type": "string"
           },
           "kind": {
             "enum": [
               "campaign",
               "template",
+              "digest",
               "transactional"
             ],
             "type": "string"
@@ -28722,6 +28724,7 @@
             "enum": [
               "campaign",
               "template",
+              "digest",
               "transactional"
             ],
             "type": "string"

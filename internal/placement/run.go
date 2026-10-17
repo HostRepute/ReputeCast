@@ -36,8 +36,8 @@ import (
 
 // PlacementContentRef names what a test sends.
 type PlacementContentRef struct {
-	Kind string `json:"kind" enum:"campaign,template,transactional"`
-	ID   string `json:"id" doc:"A campaign, template or transactional template id"`
+	Kind string `json:"kind" enum:"campaign,template,digest,transactional"`
+	ID   string `json:"id" doc:"A campaign, template, recurring digest (its next issue) or transactional template id"`
 }
 
 // PlacementRunInput is the Run a placement test dialog's choices.
@@ -57,6 +57,8 @@ type PlacementRunInput struct {
 	// Seeds are the chosen seeds; empty means every connected seed.
 	Seeds  []string `json:"seeds,omitempty" maxItems:"100"`
 	Origin string   `json:"origin,omitempty" enum:"placement,review,composer,warmup,template,"`
+	// fresh builds a digest's next issue again (starting a test).
+	fresh bool
 }
 
 // PlacementVariant is an A/B variant of the email.
@@ -73,7 +75,7 @@ type PlacementLanguage struct {
 
 // PlacementContentView is the email the dialog shows under Content.
 type PlacementContentView struct {
-	Kind        string     `json:"kind" enum:"campaign,template,transactional"`
+	Kind        string     `json:"kind" enum:"campaign,template,digest,transactional"`
 	ID          string     `json:"id"`
 	Name        string     `json:"name"`
 	Status      string     `json:"status,omitempty"`
@@ -243,6 +245,25 @@ func (s *Service) loadContent(ctx context.Context, ws *store.Workspace, in Place
 		return c, api.Invalid("body.content.id", mTestNoContent.Text(l, nil))
 	}
 	switch in.Content.Kind {
+	case "digest":
+		// A digest's next issue, built as it would go out now: its
+		// campaign is tested as a campaign, under the digest's name.
+		if s.Digests == nil {
+			return c, api.NotFound("Digest")
+		}
+		cid, err := s.Digests.NextIssueCampaign(ctx, ws, api.PrincipalFrom(ctx), id, in.fresh)
+		if err != nil {
+			return c, err
+		}
+		issue := in
+		issue.Content = PlacementContentRef{Kind: "campaign", ID: cid.String()}
+		ic, err := s.loadContent(ctx, ws, issue)
+		if err != nil {
+			return ic, err
+		}
+		ic.view.Kind, ic.view.ID, ic.campaign = "digest", id.String(), nil
+		ic.note = s.contentNote(&ic)
+		return ic, nil
 	case "campaign":
 		r, err := s.Q.SendingCampaignContext(ctx, id)
 		if err != nil || r.WorkspaceID != ws.ID {
@@ -467,6 +488,9 @@ func (s *Service) contentNote(c *content) string {
 		return "draft"
 	case "transactional":
 		return "transactional"
+	case "digest":
+		c.at = c.view.ScheduledAt
+		return "digest"
 	}
 	return "template"
 }
@@ -923,6 +947,7 @@ type providerSnapshot struct {
 
 // Start creates a test and its copies and starts sending (audited).
 func (s *Service) Start(ctx context.Context, ws *store.Workspace, in PlacementRunInput) (PlacementTestDetail, error) {
+	in.fresh = true
 	res, err := s.plan(ctx, ws, in)
 	if err != nil {
 		return PlacementTestDetail{}, err

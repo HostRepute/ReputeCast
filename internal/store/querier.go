@@ -1213,8 +1213,9 @@ type Querier interface {
 	// A campaign's translated language versions.
 	PlacementCampaignLanguages(ctx context.Context, ownerID uuid.UUID) ([]string, error)
 	PlacementCampaignTranslation(ctx context.Context, arg PlacementCampaignTranslationParams) (PlacementCampaignTranslationRow, error)
-	// What a test can send, for the dialog's search: campaigns with content,
-	// campaign templates and published transactional templates.
+	// What a test can send, for the dialog's search: campaigns with content
+	// (not a digest's template or next issue: the digest stands for them),
+	// campaign templates, published transactional templates and digests.
 	PlacementContentSearch(ctx context.Context, arg PlacementContentSearchParams) ([]PlacementContentSearchRow, error)
 	PlacementCopies(ctx context.Context, testID uuid.UUID) ([]PlacementCopy, error)
 	// The demo seeds' simulated mailboxes look copies up by token.

@@ -277,7 +277,9 @@ function About({ d }: { d: TestDetail }) {
       ? t(m.contentTransactional, { name: d.contentName, key: d.contentKey ?? '', version: d.contentVersion ?? 0 })
       : d.contentKind === 'template'
         ? t(m.contentTemplate, { name: d.contentName })
-        : t(m.contentCampaign, { name: d.contentName, note: d.contentNote, review: d.origin === 'review' ? 'yes' : 'no', sent: d.contentAt ? shortDate(d.contentAt) : '' })
+        : d.contentKind === 'digest'
+          ? t(m.contentDigest, { name: d.contentName })
+          : t(m.contentCampaign, { name: d.contentName, note: d.contentNote, review: d.origin === 'review' ? 'yes' : 'no', sent: d.contentAt ? shortDate(d.contentAt) : '' })
   const contentSub = [
     d.variant ? t(m.aboutVariant, { variant: d.variant }) : '',
     d.language ? languageName(d.language) : '',

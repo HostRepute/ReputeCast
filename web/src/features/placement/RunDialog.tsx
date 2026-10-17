@@ -242,6 +242,12 @@ function contentLine(c: Plan['content'], origin: RunOrigin, t: ReturnType<typeof
     return out.join(' · ')
   }
   if (c.kind === 'template') return t(m.kindTemplate)
+  if (c.kind === 'digest') {
+    out.push(t(m.kindDigest), t(m.contentNextIssue))
+    if (c.audience) out.push(t(m.contentAudience, { audience: c.audience }))
+    if (c.recipients) out.push(t(m.contentRecipients, { count: c.recipients }))
+    return out.join(' · ')
+  }
   out.push(t(m.kindCampaign))
   if (c.status === 'scheduled' && c.scheduledAt) out.push(t(m.contentScheduledFor, { date: dayTime(c.scheduledAt) }))
   else if (c.status === 'sent' && c.sentAt) out.push(t(m.contentSentOn, { date: dayTime(c.sentAt) }))
@@ -354,6 +360,7 @@ function ContentPicker({ onPick, onCancel }: { onPick: (c: ContentRef) => void; 
 function optionLine(c: { kind: string; note: string; at: string }, t: ReturnType<typeof useT>): string {
   if (c.kind === 'transactional') return `${t(m.kindTransactional)} · ${c.note}`
   if (c.kind === 'template') return t(m.kindTemplate)
+  if (c.kind === 'digest') return `${t(m.kindDigest)} · ${t(m.optionNextIssue, { state: c.note })}`
   switch (c.note) {
     case 'scheduled':
       return `${t(m.kindCampaign)} · ${t(m.contentScheduledFor, { date: dayTime(c.at) })}`
