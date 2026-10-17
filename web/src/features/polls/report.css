@@ -201,9 +201,18 @@
   gap: 6px;
   font-size: 13px;
 }
-.pr-choice .cv-bar {
+.pr-track {
+  display: block;
   height: 8px;
   border-radius: 4px;
+  background: var(--line-2);
+  overflow: hidden;
+}
+.pr-track i {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--accent);
 }
 .pr-tag {
   display: inline-flex;

@@ -73,8 +73,8 @@ export function ShowWhyToggle({ v }: { v: PreviewVersion }) {
   const t = useT()
   if (!v.preview) return null
   return (
-    <label className="cv-switch">
-      <input type="checkbox" role="switch" checked={v.showWhy} onChange={(e) => v.setShowWhy(e.target.checked)} />
+    <label className="k flex items-center gap-2 font-semibold">
+      <input type="checkbox" role="switch" className="tg" checked={v.showWhy} onChange={(e) => v.setShowWhy(e.target.checked)} />
       {t(m.showWhy)}
     </label>
   )

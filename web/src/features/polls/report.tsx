@@ -334,7 +334,7 @@ function ChoiceResults({ p }: { p: PollResults }) {
                 <b>{count(c.count)}</b> <span className="k">{pct(c.percent)}</span>
               </span>
             </div>
-            <span className="cv-bar">
+            <span className="pr-track">
               <i style={{ width: `${c.percent}%` }} />
             </span>
           </div>
