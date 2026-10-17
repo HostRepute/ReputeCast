@@ -17,6 +17,7 @@ import { useCan, usePermissionReason, useWorkspace } from '@/lib/session'
 import { m as cm } from '@/features/campaigns/messages'
 import { PauseDialog, PreviewDialog, TurnOnDialog } from './Dialogs'
 import { FeedItemRow } from './FeedItemRow'
+import { FindButton, FoundBadge, FoundNote, SiteBadge, SiteStatusNote, useFeedFinder } from './FeedFinder'
 import { m } from './messages'
 import { s } from './settingsMessages'
 import { ruleClauses } from './NextIssueCard'
@@ -211,7 +212,7 @@ function SettingsForm({ d }: { d: Digest }) {
 
 type CardProps = { f: Form; set: <K extends keyof Form>(k: K, v: Form[K]) => void; errors: Record<string, string>; d: Digest }
 
-function Card({ title, sub, id, children }: { title: string; sub?: string; id: string; children: ReactNode }) {
+function Card({ title, sub, id, badge, children }: { title: string; sub?: string; id: string; badge?: ReactNode; children: ReactNode }) {
   return (
     <section className="card" aria-labelledby={id} id={id === 'set-feed' ? 'feed' : undefined}>
       <div className="sec">
@@ -221,6 +222,7 @@ function Card({ title, sub, id, children }: { title: string; sub?: string; id: s
           </h2>
           {sub ? <span className="k">{sub}</span> : null}
         </div>
+        {badge}
       </div>
       <div className="pad flex flex-col gap-4">{children}</div>
     </section>
@@ -275,8 +277,10 @@ function FeedCard({ f, set, errors, d, sites }: CardProps & { sites: Schemas['Di
   const draftCats = site?.draftCategories ?? []
   const toggleCat = (c: string) => set('categories', f.categories.includes(c) ? f.categories.filter((x) => x !== c) : [...f.categories, c])
   const fd = d.feed
+  // "Find feed" reads the address as typed; what it finds can replace it.
+  const finder = useFeedFinder()
   return (
-    <Card title={t(s.feed)} sub={t(s.feedSub)} id="set-feed">
+    <Card title={t(s.feed)} sub={t(s.feedSub)} id="set-feed" badge={finder.found ? <FoundBadge found={finder.found} /> : null}>
       <div className="grid grid-cols-2 gap-3 max-md:grid-cols-1" role="radiogroup" aria-label={t(s.feed)}>
         <OptionCard name="feed-source" value="wordpress" checked={f.source === 'wordpress'} onChange={() => set('source', 'wordpress')} disabled={!sites.length} title={t(s.sourceWp)} description={t(s.sourceWpHint)}>
           {f.source === 'wordpress' && sites.length ? (
@@ -288,7 +292,12 @@ function FeedCard({ f, set, errors, d, sites }: CardProps & { sites: Schemas['Di
                   </option>
                 ))}
               </Select>
-              {site ? <span className="k">{t(s.siteFeed, { feed: site.feedUrl.replace(/^https?:\/\//, ''), name: site.connectedBy, date: dayMonthDate(site.connectedAt) })}</span> : null}
+              {site ? (
+                <span className="flex flex-wrap items-center gap-2">
+                  <span className="k">{t(s.siteFeed, { feed: site.feedUrl.replace(/^https?:\/\//, ''), name: site.connectedBy, date: dayMonthDate(site.connectedAt) })}</span>
+                  {site.status !== 'ok' ? <SiteBadge site={site} /> : null}
+                </span>
+              ) : null}
             </div>
           ) : null}
         </OptionCard>
@@ -296,12 +305,44 @@ function FeedCard({ f, set, errors, d, sites }: CardProps & { sites: Schemas['Di
           {f.source === 'url' ? (
             <div className="mt-2">
               <Field label={t(m.feedOrPage)} error={errors.feedUrl}>
-                <Input type="url" value={f.feedUrl} onChange={(e) => set('feedUrl', e.target.value)} placeholder="https://blog.example.com/feed/" />
+                <span className="flex flex-wrap gap-2">
+                  <Input
+                    type="url"
+                    className="min-w-0 flex-[1_1_200px]"
+                    value={f.feedUrl}
+                    onChange={(e) => {
+                      set('feedUrl', e.target.value)
+                      finder.clear()
+                    }}
+                    placeholder="https://blog.example.com/feed/"
+                  />
+                  <FindButton busy={Boolean(finder.finding)} disabled={!f.feedUrl.trim()} onFind={() => void finder.find(f.feedUrl)} />
+                </span>
               </Field>
             </div>
           ) : null}
         </OptionCard>
       </div>
+      {f.source === 'url' ? (
+        <FoundNote
+          address={f.feedUrl}
+          finding={finder.finding}
+          found={finder.found}
+          sites={sites}
+          onUse={(url) => {
+            set('feedUrl', url)
+            finder.clear()
+          }}
+          onKeep={finder.clear}
+          onRetry={() => void finder.find(f.feedUrl)}
+          onUseSite={() => {
+            set('source', 'wordpress')
+            finder.clear()
+          }}
+        />
+      ) : site ? (
+        <SiteStatusNote site={site} />
+      ) : null}
       <div className={cn('flex flex-wrap items-center gap-3 rounded-lg border px-3.5 py-2.5', fd.status === 'ok' ? 'border-line bg-ground' : 'border-bad-line bg-bad-tint')} role="status">
         {fd.status === 'ok' && fd.lastReadAt ? (
           <Badge tone="ok" dot>

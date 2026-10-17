@@ -251,4 +251,18 @@ export const entries: Entry[] = [
   { board: 'TransactionalSetupStates', manual: true },
   { board: 'TransactionalSettings', path: `${ws}/transactional/settings`, widths: [1440] },
   { board: 'PublicUnsubscribeCategory', manual: true },
+  // X10 · recurring digests. The Engineering blog roundup (#3 collecting two posts, #2 and #1 sent),
+  // its settings and its template in the composer's digest mode. The overview's states (waiting,
+  // held, feed failing, sending, paused, skipped, draft mode, first run), the setup's states (feed
+  // errors, a site's feed, a schedule by post count) and the composer's states (6 items, "and 0
+  // more", the token menu, a post without an image, a prepared issue, read-only) need data changes
+  // or clicks: "6 items" and the token menu are a pick in the composer.
+  { board: 'DigestOverview', path: `${ws}/campaigns/digests/{digest:Engineering blog roundup}`, widths: [1440] },
+  { board: 'DigestOverviewTablet', path: `${ws}/campaigns/digests/{digest:Engineering blog roundup}`, widths: [834] },
+  { board: 'DigestOverviewPhone', path: `${ws}/campaigns/digests/{digest:Engineering blog roundup}`, widths: [390] },
+  { board: 'DigestStates', manual: true },
+  { board: 'DigestSetup', path: `${ws}/campaigns/digests/{digest:Engineering blog roundup}/settings`, widths: [1440] },
+  { board: 'DigestSetupTablet', path: `${ws}/campaigns/digests/{digest:Engineering blog roundup}/settings`, widths: [834] },
+  { board: 'DigestSetupStates', manual: true },
+  { board: 'DigestComposer', path: `${ws}/campaigns/{digestTemplate:Engineering blog roundup}/edit?select=2&panel=settings`, widths: [1440], viewportOnly: true, height: 1000 },
 ]

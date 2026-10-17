@@ -64,7 +64,7 @@ export function DigestOverviewPage({ digestId }: { digestId: string }) {
       badges={
         <>
           <DigestStateBadge state={d.state} mode={d.mode} />
-          <span className="k max-lg:hidden">
+          <span className="k max-lg:basis-full">
             {d.owner
               ? t(m.overviewSub, { owner: d.owner.name, schedule: scheduleText(d.schedule, 'lower'), audience: d.audience.label || '–', count: count(d.audience.final) })
               : t(m.overviewSubNoOwner, { schedule: scheduleText(d.schedule, 'lower'), audience: d.audience.label || '–', count: count(d.audience.final) })}
@@ -112,48 +112,62 @@ function HeaderActions({ d, onDialog }: { d: Digest; onDialog: (x: Dialogs) => v
     }
   }
   const params = { workspace: slug, digestId: d.id }
+  // Narrower than the desktop boards, Pause, Settings, Design and Send test move into More.
   return (
     <>
-      {d.state === 'on' ? (
-        <Button icon="pause" disabledReason={pauseReason} onClick={() => onDialog({ kind: 'pause' })}>
-          {t(m.pause)}
-        </Button>
-      ) : (
-        <Button icon="play" disabledReason={editReason} onClick={() => onDialog({ kind: 'turn-on' })}>
-          {t(m.turnOn)}
-        </Button>
-      )}
-      <ButtonLink to="/w/$workspace/campaigns/digests/$digestId/settings" params={params} className="max-md:hidden">
-        {t(m.settings)}
-      </ButtonLink>
-      {d.templateId ? (
-        <ButtonLink to="/w/$workspace/campaigns/$campaignId/edit" params={{ workspace: slug, campaignId: d.templateId }} className="max-lg:hidden">
-          {t(m.design)}
-        </ButtonLink>
-      ) : null}
-      {canEdit ? (
-        <Button className="max-lg:hidden" onClick={() => onDialog({ kind: 'test' })}>
-          {t(m.sendTest)}
-        </Button>
-      ) : null}
-      <Button className="max-xl:hidden" onClick={() => onDialog({ kind: 'preview' })}>
-        {t(m.previewNext)}
-      </Button>
-      {canEdit ? (
-        <Button variant="primary" loading={checking} busyLabel={t(m.checking)} onClick={() => void check()}>
-          {t(m.checkNext)}
-        </Button>
-      ) : null}
-      <Menu trigger={<Button iconOnly icon="more" aria-label={t(m.more)} className="xl:hidden" />}>
-        <MenuItem onSelect={() => onDialog({ kind: 'preview' })}>{t(m.previewNext)}</MenuItem>
-        {canEdit ? <MenuItem onSelect={() => onDialog({ kind: 'test' })}>{t(m.sendTest)}</MenuItem> : null}
+      <Menu trigger={<Button icon="more" className="xl:hidden">{t(m.more)}</Button>}>
+        {d.state === 'on' ? (
+          <MenuItem disabled={Boolean(pauseReason)} onSelect={() => onDialog({ kind: 'pause' })}>
+            {t(m.pause)}
+          </MenuItem>
+        ) : (
+          <MenuItem disabled={Boolean(editReason)} onSelect={() => onDialog({ kind: 'turn-on' })}>
+            {t(m.turnOn)}
+          </MenuItem>
+        )}
         <MenuItem asChild>
           <Link to="/w/$workspace/campaigns/digests/$digestId/settings" params={params}>
             {t(m.settings)}
           </Link>
         </MenuItem>
+        {d.templateId ? (
+          <MenuItem asChild>
+            <Link to="/w/$workspace/campaigns/$campaignId/edit" params={{ workspace: slug, campaignId: d.templateId }}>
+              {t(m.design)}
+            </Link>
+          </MenuItem>
+        ) : null}
+        {canEdit ? <MenuItem onSelect={() => onDialog({ kind: 'test' })}>{t(m.sendTest)}</MenuItem> : null}
         {canEdit && d.state !== 'on' ? <MenuItem onSelect={() => onDialog({ kind: 'delete' })}>{t(m.deleteDigest)}</MenuItem> : null}
       </Menu>
+      {d.state === 'on' ? (
+        <Button icon="pause" className="max-xl:hidden" disabledReason={pauseReason} onClick={() => onDialog({ kind: 'pause' })}>
+          {t(m.pause)}
+        </Button>
+      ) : (
+        <Button icon="play" className="max-xl:hidden" disabledReason={editReason} onClick={() => onDialog({ kind: 'turn-on' })}>
+          {t(m.turnOn)}
+        </Button>
+      )}
+      <ButtonLink to="/w/$workspace/campaigns/digests/$digestId/settings" params={params} className="max-xl:hidden">
+        {t(m.settings)}
+      </ButtonLink>
+      {d.templateId ? (
+        <ButtonLink to="/w/$workspace/campaigns/$campaignId/edit" params={{ workspace: slug, campaignId: d.templateId }} className="max-xl:hidden">
+          {t(m.design)}
+        </ButtonLink>
+      ) : null}
+      {canEdit ? (
+        <Button className="max-xl:hidden" onClick={() => onDialog({ kind: 'test' })}>
+          {t(m.sendTest)}
+        </Button>
+      ) : null}
+      <Button onClick={() => onDialog({ kind: 'preview' })}>{t(m.previewNext)}</Button>
+      {canEdit ? (
+        <Button variant="primary" loading={checking} busyLabel={t(m.checking)} onClick={() => void check()}>
+          {t(m.checkNext)}
+        </Button>
+      ) : null}
     </>
   )
 }

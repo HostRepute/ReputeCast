@@ -1,4 +1,4 @@
-import { Link } from '@tanstack/react-router'
+import { Link, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { $api, errorMessage, http, type Schemas } from '@/api/client'
 import { Button } from '@/components/ui/Button'
@@ -48,7 +48,6 @@ export function IssueApprovalCard({ issue }: { issue: IssueInfo }) {
           </h2>
           <span className="k">{t(im.postsCaption, { count: issue.posts.length, digest: issue.digestName })}</span>
         </div>
-        <RecurringDigestBadge issue={issue} />
       </div>
       <div className="pad flex flex-col gap-3">
         {issue.posts.length ? (
@@ -80,12 +79,13 @@ export function IssueApprovalCard({ issue }: { issue: IssueInfo }) {
  * it is, that the approval rules apply to each issue, and in place of
  * Schedule: Release issue when it's held, or how the digest sends it.
  */
-export function IssueReviewCard({ issue, recipients, needsApproval }: { issue: IssueInfo; recipients: number; needsApproval: boolean }) {
+export function IssueReviewCard({ issue, recipients, needsApproval }: { issue: IssueInfo; recipients?: number; needsApproval: boolean }) {
   const t = useT()
   const { slug } = useWorkspace()
   const refresh = useRefreshDigest()
   const releaseReason = usePermissionReason('campaigns:send', issue.releaseHelpers)
   const skipReason = usePermissionReason('campaigns:pause')
+  const navigate = useNavigate()
   const [busy, setBusy] = useState(false)
   const [skipping, setSkipping] = useState(false)
   const held = issue.status === 'held'
@@ -119,8 +119,12 @@ export function IssueReviewCard({ issue, recipients, needsApproval }: { issue: I
         <IssueStatusBadge status={issue.status} />
         <span className="min-w-0 font-semibold">
           {issue.preparedAt
-            ? t(im.issueOf, { number: issue.number, name: issue.digestName, time: clock(issue.preparedAt), recipients: count(recipients) })
-            : t(im.issueOfCollecting, { number: issue.number, name: issue.digestName, recipients: count(recipients) })}
+            ? recipients
+              ? t(im.issueOf, { number: issue.number, name: issue.digestName, time: clock(issue.preparedAt), recipients: count(recipients) })
+              : t(im.issueOfPrepared, { number: issue.number, name: issue.digestName, time: clock(issue.preparedAt) })
+            : recipients
+              ? t(im.issueOfCollecting, { number: issue.number, name: issue.digestName, recipients: count(recipients) })
+              : t(im.issueOfPlain, { number: issue.number, name: issue.digestName })}
         </span>
         <Link to="/w/$workspace/campaigns/digests/$digestId" params={{ workspace: slug, digestId: issue.digestId }} className="btn sm ml-auto">
           {t(im.openDigest)}
@@ -149,7 +153,15 @@ export function IssueReviewCard({ issue, recipients, needsApproval }: { issue: I
       ) : draft && issue.deadline ? (
         <span className="text-[13px]">{t(im.draftBody, { number: issue.number, date: dateTime(issue.deadline) })}</span>
       ) : null}
-      {skipping ? <SkipDialog digestId={issue.digestId} issueId={issue.issueId} number={issue.number} onOpenChange={() => setSkipping(false)} /> : null}
+      {skipping ? (
+        <SkipDialog
+          digestId={issue.digestId}
+          issueId={issue.issueId}
+          number={issue.number}
+          onOpenChange={() => setSkipping(false)}
+          onSkipped={() => void navigate({ to: '/w/$workspace/campaigns/digests/$digestId', params: { workspace: slug, digestId: issue.digestId } })}
+        />
+      ) : null}
     </section>
   )
 }

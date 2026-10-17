@@ -131,7 +131,7 @@ export function IssuesCard({ d, onSkip, onPreview }: { d: Digest; onSkip: (issue
         </div>
       ) : (
         <>
-          <div className="max-md:hidden">
+          <div className="max-lg:hidden">
             <Table caption={t(m.issuesLabel, { name: d.name })} className="[&_td]:align-top">
               <thead>
                 <tr>
@@ -211,7 +211,7 @@ export function IssuesCard({ d, onSkip, onPreview }: { d: Digest; onSkip: (issue
               </tbody>
             </Table>
           </div>
-          <ul className="m-0 flex list-none flex-col p-0 md:hidden" aria-label={t(m.issuesLabel, { name: d.name })}>
+          <ul className="m-0 flex list-none flex-col p-0 lg:hidden" aria-label={t(m.issuesLabel, { name: d.name })}>
             {items.map((is) => (
               <li key={is.id} className="flex flex-col gap-1.5 border-b border-line-2 px-4 py-3 last:border-b-0">
                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -276,7 +276,7 @@ export function OpensChart({ d }: { d: Digest }) {
           <p className="k m-0">{t(m.chartEmpty)}</p>
         ) : (
           <div
-            className="flex gap-2 pt-2"
+            className="flex gap-2 pt-2 max-md:hidden"
             role="img"
             aria-label={t(m.chartLabel, { values: sent.map((x) => t(m.chartValue, { number: x.number!, value: pct(x.humanOpens) })).join(', ') })}
           >
@@ -304,7 +304,33 @@ export function OpensChart({ d }: { d: Digest }) {
           </div>
         )}
         {sent.length ? (
-          <div className="ml-10 flex justify-around gap-4" aria-hidden="true">
+          <ul className="m-0 flex list-none flex-col gap-3 p-0 md:hidden" aria-label={t(m.chartTitle)}>
+            {sent.map((x) => (
+              <li key={x.id} className="flex flex-col gap-1">
+                <span className="flex items-center justify-between gap-2 text-[12.5px]">
+                  <span className="font-semibold">{t(m.chartBar, { number: x.number!, date: x.sendAt ? shortDate(x.sendAt) : '' })}</span>
+                  <span className="font-bold">{pct(x.humanOpens)}</span>
+                </span>
+                <div className="bar" style={{ height: 8 }}>
+                  <i style={{ width: `${Math.min(100, ((x.humanOpens ?? 0) / max) * 100)}%`, background: 'var(--accent)' }} />
+                </div>
+                <span className="k text-[11.5px]">{t(m.chartClicks, { value: pct(x.clicks) })}</span>
+              </li>
+            ))}
+            {next && d.state === 'on' ? (
+              <li className="flex flex-col gap-1">
+                <span className="flex items-center justify-between gap-2 text-[12.5px]">
+                  <span className="font-semibold">{t(m.chartBar, { number: next.number, date: next.sendAt ? shortDate(next.sendAt) : '' })}</span>
+                  <span className="k">–</span>
+                </span>
+                <div className="bar" style={{ height: 8 }} />
+                <span className="k text-[11.5px]">{t(m.chartCollectingNotSent)}</span>
+              </li>
+            ) : null}
+          </ul>
+        ) : null}
+        {sent.length ? (
+          <div className="ml-10 flex justify-around gap-4 max-md:hidden" aria-hidden="true">
             {sent.map((x) => (
               <div key={x.id} className="flex max-w-[90px] flex-1 flex-col items-center text-center">
                 <span className="text-[12px] font-semibold">{t(m.chartBar, { number: x.number!, date: x.sendAt ? shortDate(x.sendAt) : '' })}</span>

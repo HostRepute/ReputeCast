@@ -71,6 +71,9 @@ export function useRefreshDigest() {
       '/api/v1/workspaces/{workspace}/digests/{digestId}/feed',
       '/api/v1/workspaces/{workspace}/campaigns',
       '/api/v1/workspaces/{workspace}/digest-issues',
+      // An issue's Review & send and its approval request.
+      '/api/v1/workspaces/{workspace}/campaigns/{campaignId}/review',
+      '/api/v1/workspaces/{workspace}/approvals',
     ]) {
       void qc.invalidateQueries({ queryKey: ['get', key] })
     }

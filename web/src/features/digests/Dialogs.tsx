@@ -118,7 +118,20 @@ export function PauseDialog({ digest, onOpenChange }: { digest: Digest; onOpenCh
 }
 
 /** Skip an issue: nothing goes out, its posts stay new. */
-export function SkipDialog({ digestId, issueId, number, onOpenChange }: { digestId: string; issueId: string; number: number; onOpenChange: Close }) {
+export function SkipDialog({
+  digestId,
+  issueId,
+  number,
+  onOpenChange,
+  onSkipped,
+}: {
+  digestId: string
+  issueId: string
+  number: number
+  onOpenChange: Close
+  /** After the skip: a skipped issue's campaign is gone, so a screen showing it moves on. */
+  onSkipped?: () => void
+}) {
   const t = useT()
   const { slug } = useWorkspace()
   const refresh = useRefreshDigest()
@@ -135,6 +148,7 @@ export function SkipDialog({ digestId, issueId, number, onOpenChange }: { digest
       refresh()
       toast({ kind: 'success', title: t(m.skipped) })
       onOpenChange(false)
+      onSkipped?.()
     } catch (e) {
       setError(errorMessage(e))
     } finally {

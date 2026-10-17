@@ -325,6 +325,7 @@ export const m = defineMessages('digests', {
   chartClicks: '{value} clicks',
   chartNotSent: 'not sent yet',
   chartCollecting: 'collecting',
+  chartCollectingNotSent: 'collecting, not sent yet',
   chartNote: 'Human opens only: machine opens are left out, as in every report.',
   chartCompare: 'Human opens only: machine opens are left out, as in every report. #{number} against #{previous}: human opens {opens} points, clicks {clicks} points, recipients {recipients}.',
   chartEmpty: 'Results appear here once the first issue goes out.',

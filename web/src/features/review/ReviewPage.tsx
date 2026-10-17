@@ -354,18 +354,21 @@ function ReviewBody({
 
   if (!run) {
     return (
-      <EmptyState
-        title={t(m.neverRanTitle)}
-        action={
-          d.access.canEdit && d.campaign.editable ? (
-            <Button variant="primary" onClick={() => void runChecks()}>
-              {t(m.runChecks)}
-            </Button>
-          ) : null
-        }
-      >
-        {t(m.neverRanBody)}
-      </EmptyState>
+      <>
+        {issue ? <IssueReviewCard issue={issue} needsApproval={d.approval.required && !d.approval.valid} /> : null}
+        <EmptyState
+          title={t(m.neverRanTitle)}
+          action={
+            d.access.canEdit && d.campaign.editable ? (
+              <Button variant="primary" onClick={() => void runChecks()}>
+                {t(m.runChecks)}
+              </Button>
+            ) : null
+          }
+        >
+          {t(m.neverRanBody)}
+        </EmptyState>
+      </>
     )
   }
 
