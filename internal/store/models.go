@@ -56,6 +56,77 @@ type AdapterRuntime struct {
 	UpdatedAt          time.Time  `json:"updatedAt"`
 }
 
+type AiConnection struct {
+	WorkspaceID    uuid.UUID  `json:"workspaceId"`
+	Provider       string     `json:"provider"`
+	Label          string     `json:"label"`
+	BaseUrl        string     `json:"baseUrl"`
+	Deployment     string     `json:"deployment"`
+	ApiVersion     string     `json:"apiVersion"`
+	Model          string     `json:"model"`
+	ModelName      string     `json:"modelName"`
+	ImageInput     bool       `json:"imageInput"`
+	KeySealed      []byte     `json:"keySealed"`
+	KeyAddedBy     *uuid.UUID `json:"keyAddedBy"`
+	KeyAddedAt     *time.Time `json:"keyAddedAt"`
+	ConnectedBy    *uuid.UUID `json:"connectedBy"`
+	ConnectedAt    time.Time  `json:"connectedAt"`
+	DisconnectedBy *uuid.UUID `json:"disconnectedBy"`
+	DisconnectedAt *time.Time `json:"disconnectedAt"`
+	Status         string     `json:"status"`
+	StatusDetail   string     `json:"statusDetail"`
+	StatusAt       *time.Time `json:"statusAt"`
+	LastTestAt     *time.Time `json:"lastTestAt"`
+	LastTestOk     *bool      `json:"lastTestOk"`
+	LastTestMs     *int32     `json:"lastTestMs"`
+	CapKind        string     `json:"capKind"`
+	CapUsd         float64    `json:"capUsd"`
+	CapTokens      int64      `json:"capTokens"`
+	CapSetBy       *uuid.UUID `json:"capSetBy"`
+	CapSetAt       *time.Time `json:"capSetAt"`
+	InputPrice     float64    `json:"inputPrice"`
+	OutputPrice    float64    `json:"outputPrice"`
+	PricesFrom     *time.Time `json:"pricesFrom"`
+	FeaturesOff    []string   `json:"featuresOff"`
+	NoticeMonth    string     `json:"noticeMonth"`
+	CapNoticeMonth string     `json:"capNoticeMonth"`
+	Demo           bool       `json:"demo"`
+	UpdatedBy      *uuid.UUID `json:"updatedBy"`
+	UpdatedAt      time.Time  `json:"updatedAt"`
+}
+
+type AiReportSummary struct {
+	CampaignID  uuid.UUID  `json:"campaignId"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	Summary     string     `json:"summary"`
+	Model       string     `json:"model"`
+	ModelName   string     `json:"modelName"`
+	RequestID   *uuid.UUID `json:"requestId"`
+	KeptBy      *uuid.UUID `json:"keptBy"`
+	KeptAt      time.Time  `json:"keptAt"`
+}
+
+type AiRequest struct {
+	ID            uuid.UUID  `json:"id"`
+	WorkspaceID   uuid.UUID  `json:"workspaceId"`
+	UserID        *uuid.UUID `json:"userId"`
+	Feature       string     `json:"feature"`
+	Action        string     `json:"action"`
+	TargetKind    string     `json:"targetKind"`
+	TargetID      *uuid.UUID `json:"targetId"`
+	TargetLabel   string     `json:"targetLabel"`
+	Provider      string     `json:"provider"`
+	Model         string     `json:"model"`
+	InputTokens   int32      `json:"inputTokens"`
+	OutputTokens  int32      `json:"outputTokens"`
+	CostMicros    int64      `json:"costMicros"`
+	Outcome       string     `json:"outcome"`
+	OutcomeDetail string     `json:"outcomeDetail"`
+	DurationMs    int32      `json:"durationMs"`
+	CreatedAt     time.Time  `json:"createdAt"`
+	DecidedAt     *time.Time `json:"decidedAt"`
+}
+
 type ApiKey struct {
 	ID             uuid.UUID       `json:"id"`
 	WorkspaceID    uuid.UUID       `json:"workspaceId"`
@@ -640,6 +711,10 @@ type ContentTranslation struct {
 	UpdatedBy      *uuid.UUID      `json:"updatedBy"`
 	UpdatedAt      time.Time       `json:"updatedAt"`
 	AutosavedAt    *time.Time      `json:"autosavedAt"`
+	AiModel        string          `json:"aiModel"`
+	AiVersion      int32           `json:"aiVersion"`
+	AiReviewedBy   *uuid.UUID      `json:"aiReviewedBy"`
+	AiReviewedAt   *time.Time      `json:"aiReviewedAt"`
 }
 
 type ContentTranslationVersion struct {
