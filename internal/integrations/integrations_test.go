@@ -510,14 +510,19 @@ func TestActionsKeepConsent(t *testing.T) {
 	if !res.Created || len(res.Lists) != 1 || res.Lists[0].Status != "subscribed" {
 		t.Fatalf("created: %+v", res)
 	}
-	var lang string
-	_ = env.App.Pool.QueryRow(context.Background(), `SELECT language FROM contacts WHERE id = $1`, res.ContactID).Scan(&lang)
-	if lang != "es-MX" {
-		t.Errorf("language normalized: %q", lang)
+	var lang, langSource, langBy string
+	_ = env.App.Pool.QueryRow(context.Background(), `SELECT language, language_source, language_source_name FROM contacts WHERE id = $1`, res.ContactID).Scan(&lang, &langSource, &langBy)
+	if lang != "es-MX" || langSource != "api" || langBy != "Make" {
+		t.Errorf("language normalized and set by Make: %q %q %q", lang, langSource, langBy)
+	}
+	// A value that isn't a language answers 422 with the closest match.
+	r := call(t, env, made.Secret, "POST", ws+"/contacts/upsert", map[string]any{"email": "rob@example.net", "language": "Spanosh"}, nil)
+	if r.Status != 422 || !strings.Contains(string(r.Body), "Did you mean Spanish (es)?") || !strings.Contains(string(r.Body), `"closest":"es"`) {
+		t.Fatalf("invalid language: %d %s", r.Status, r.Body)
 	}
 	// Rob leaves Beta Program.
 	exec(t, env, `UPDATE list_memberships SET status = 'unsubscribed', unsubscribed_at = now() - interval '13 days' WHERE contact_id = $1`, res.ContactID)
-	r := call(t, env, made.Secret, "POST", ws+"/contacts/upsert", map[string]any{"email": "rob@example.net", "lists": []string{beta}}, nil)
+	r = call(t, env, made.Secret, "POST", ws+"/contacts/upsert", map[string]any{"email": "rob@example.net", "lists": []string{beta}}, nil)
 	if r.Status != 409 || code(t, r) != "unsubscribed" || !strings.Contains(string(r.Body), "rob@example.net left Beta Program on") ||
 		!strings.Contains(string(r.Body), "ReputeCast doesn't add people back to a list they left.") {
 		t.Fatalf("back to a list they left: %d %s", r.Status, r.Body)

@@ -16,6 +16,9 @@ import (
 	"github.com/hostrepute/reputecast/internal/automations"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/emailaddr"
+	"github.com/hostrepute/reputecast/internal/i18n"
+	"github.com/hostrepute/reputecast/internal/languages"
+	"github.com/hostrepute/reputecast/internal/pagelabels"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -29,6 +32,12 @@ type Submission struct {
 	// Lists are the checked lists (ids) when visitors pick lists.
 	Lists   []string `json:"lists"`
 	Consent bool     `json:"consent"`
+	// Language is the language the form was shown in (the embed script's
+	// _lang, the hosted page's); empty is the form's own language, which a
+	// copied plain HTML form shows. BrowserLanguage is the browser's first
+	// language: a new contact gets it as their language.
+	Language        string `json:"language,omitempty"`
+	BrowserLanguage string `json:"browserLanguage,omitempty"`
 	// Honeypot is the invisible field only bots fill in.
 	Honeypot string `json:"-"`
 	// Token is the timestamp token rendered with the form.
@@ -67,18 +76,44 @@ type Outcome struct {
 	Email     string      `json:"-"`
 	FirstName string      `json:"-"`
 	Lists     []uuid.UUID `json:"-"`
+	// Language is the language the form was shown in: the result page
+	// follows it.
+	Language string `json:"-"`
 }
 
-// Messages a visitor sees. They say what happened and what to do.
-const (
-	msgSaveFailed  = "We couldn't save your subscription just now. Nothing was lost; please try again in a minute."
-	msgTooFast     = "That was quick. Wait a moment and send the form again."
-	msgRateLimited = "Too many tries from your network. Wait a minute and try again."
-	msgClosed      = "This form isn't taking signups right now."
-	msgOrigin      = "This form can't be used on this site."
-	msgChallenge   = "One more step: confirm you're a person."
-	msgExpired     = "This form has expired. Reload the page and send it again."
-)
+// Messages a visitor sees are built-in labels (internal/pagelabels), in
+// the language the form was shown in. They say what happened and what to do.
+const msgSaveFailed = "We couldn't save your subscription just now. Nothing was lost; please try again in a minute."
+
+// localize is the form as it was shown to the visitor: the language the
+// submission says, when the form is Live in it, else its fallback.
+func (s *Service) localize(ctx context.Context, ws *store.Workspace, set *Settings, c Config, requested string) Config {
+	out, _, err := s.LocalizedForm(ctx, ws, set, c, requested)
+	if err != nil {
+		s.log().WarnContext(ctx, "load form copy", "form", c.ID, "err", err)
+		return c
+	}
+	return out
+}
+
+// fieldErrorText is an audience field error in the form's language.
+func fieldErrorText(fe *audience.FieldError, l pagelabels.Set) string {
+	switch fe.Code {
+	case "email":
+		return l.Text("error.emailInvalid", nil)
+	case "pick_list":
+		return l.Text("error.pickList", nil)
+	case "list_gone":
+		return l.Text("error.listGone", nil)
+	case "number", "date", "boolean":
+		return l.Text("error."+fe.Code, nil)
+	case "select":
+		return l.Text("error.select", i18n.Args{"options": strings.Join(fe.Options, ", ")})
+	case "too_long":
+		return l.Text("error.tooLong", nil)
+	}
+	return fe.Message
+}
 
 func (s *Service) recordReject(ctx context.Context, ws *store.Workspace, c Config, reason, origin string) {
 	if c.Builtin || c.ID == uuid.Nil {
@@ -126,8 +161,16 @@ func (s *Service) RecordView(ctx context.Context, ws *store.Workspace, c Config,
 // submission that fails only the token checks goes to a Turnstile challenge
 // when Turnstile is set up.
 func (s *Service) Submit(ctx context.Context, ws *store.Workspace, set *Settings, c Config, sub Submission) Outcome {
+	c = s.localize(ctx, ws, set, c, sub.Language)
+	out := s.submit(ctx, ws, set, c, sub)
+	out.Language = c.ShownLanguage()
+	return out
+}
+
+func (s *Service) submit(ctx context.Context, ws *store.Workspace, set *Settings, c Config, sub Submission) Outcome {
+	l := c.Labels
 	if c.Status != StatusLive {
-		return Outcome{Status: OutcomeClosed, Message: msgClosed}
+		return Outcome{Status: OutcomeClosed, Message: l.Text("error.closed", nil)}
 	}
 	now := s.now()
 	limits := s.rates()
@@ -137,11 +180,11 @@ func (s *Service) Submit(ctx context.Context, ws *store.Workspace, set *Settings
 	}
 	if !limits.allow("ip:"+ws.ID.String()+":"+ip, c.Spam.RateLimitPerIP, now) || !limits.allow("form:"+formKey(c), formSubmitsPerMinute, now) {
 		s.recordReject(ctx, ws, c, "rate_limit", sub.Origin)
-		return Outcome{Status: OutcomeRateLimited, Message: msgRateLimited}
+		return Outcome{Status: OutcomeRateLimited, Message: l.Text("error.rateLimited", nil)}
 	}
 	if !OriginAllowed(sub.Origin, c.AllowedOrigins, s.OwnOrigins(set)) {
 		s.recordReject(ctx, ws, c, "origin", sub.Origin)
-		return Outcome{Status: OutcomeRejected, Message: msgOrigin}
+		return Outcome{Status: OutcomeRejected, Message: l.Text("error.origin", nil)}
 	}
 	if c.Spam.Honeypot && strings.TrimSpace(sub.Honeypot) != "" {
 		s.recordReject(ctx, ws, c, "honeypot", sub.Origin)
@@ -167,11 +210,11 @@ func (s *Service) Submit(ctx context.Context, ws *store.Workspace, set *Settings
 	if c.Spam.BlockDisposable {
 		if emailaddr.IsDisposable(emailaddr.Domain(sub.Email)) {
 			s.recordReject(ctx, ws, c, "disposable", sub.Origin)
-			return Outcome{Status: OutcomeInvalid, Errors: map[string]string{FieldEmail: "Use a permanent address: disposable inboxes expire before you could confirm."}}
+			return Outcome{Status: OutcomeInvalid, Errors: map[string]string{FieldEmail: l.Text("error.emailDisposable", nil)}}
 		}
 		if emailaddr.IsRole(sub.Email) {
 			s.recordReject(ctx, ws, c, "role", sub.Origin)
-			return Outcome{Status: OutcomeInvalid, Errors: map[string]string{FieldEmail: "Use a personal address. Addresses like info@ reach several people, so they can't give consent."}}
+			return Outcome{Status: OutcomeInvalid, Errors: map[string]string{FieldEmail: l.Text("error.emailRole", nil)}}
 		}
 	}
 	if suspicious {
@@ -179,15 +222,15 @@ func (s *Service) Submit(ctx context.Context, ws *store.Workspace, set *Settings
 			id, err := s.holdForChallenge(ctx, ws, c, sub)
 			if err != nil {
 				s.log().ErrorContext(ctx, "hold submission for turnstile", "err", err)
-				return Outcome{Status: OutcomeError, Message: msgSaveFailed}
+				return Outcome{Status: OutcomeError, Message: l.Text("error.saveFailed", nil)}
 			}
-			return Outcome{Status: OutcomeChallenge, ChallengeID: id, Message: msgChallenge}
+			return Outcome{Status: OutcomeChallenge, ChallengeID: id, Message: l.Text("error.challenge", nil)}
 		}
 		s.recordReject(ctx, ws, c, "timing", sub.Origin)
 		if expired {
-			return Outcome{Status: OutcomeInvalid, Message: msgExpired}
+			return Outcome{Status: OutcomeInvalid, Message: l.Text("error.expired", nil)}
 		}
-		return Outcome{Status: OutcomeInvalid, Message: msgTooFast}
+		return Outcome{Status: OutcomeInvalid, Message: l.Text("error.tooFast", nil)}
 	}
 	return s.accept(ctx, ws, set, c, sub, lists)
 }
@@ -204,15 +247,17 @@ func firstMessage(errs map[string]string) string {
 	return ""
 }
 
-// check validates the fields and returns the lists to join.
+// check validates the fields and returns the lists to join. Its messages
+// are in the form's language.
 func (s *Service) check(c Config, sub *Submission) ([]uuid.UUID, map[string]string) {
+	l := c.Labels
 	errs := map[string]string{}
 	email, problem := emailaddr.Check(sub.Email)
 	switch {
 	case strings.TrimSpace(sub.Email) == "":
-		errs[FieldEmail] = "Enter your email address."
+		errs[FieldEmail] = l.Text("error.emailMissing", nil)
 	case problem != "":
-		errs[FieldEmail] = "That doesn't look like a complete email address."
+		errs[FieldEmail] = l.Text("error.emailInvalid", nil)
 	}
 	sub.Email = email
 	for _, f := range c.Fields {
@@ -231,12 +276,12 @@ func (s *Service) check(c Config, sub *Submission) ([]uuid.UUID, map[string]stri
 			v = sub.Fields[f.Key]
 		}
 		if strings.TrimSpace(v) == "" {
-			errs[f.Key] = "Fill this in."
+			errs[f.Key] = l.Text("error.required", nil)
 		}
 	}
 	for k, v := range sub.Fields {
 		if len(v) > 500 {
-			errs[k] = "Keep it under 500 characters."
+			errs[k] = l.Text("error.tooLong", nil)
 		}
 	}
 	if !c.HasField(FieldFirstName) {
@@ -249,7 +294,7 @@ func (s *Service) check(c Config, sub *Submission) ([]uuid.UUID, map[string]stri
 		sub.Company = ""
 	}
 	if len(sub.FirstName) > 100 || len(sub.LastName) > 100 || len(sub.Company) > 200 {
-		errs[FieldFirstName] = "That's longer than a name needs to be."
+		errs[FieldFirstName] = l.Text("error.nameTooLong", nil)
 	}
 	var lists []uuid.UUID
 	if c.ListChoice && len(c.Lists) > 1 {
@@ -260,16 +305,16 @@ func (s *Service) check(c Config, sub *Submission) ([]uuid.UUID, map[string]stri
 			}
 		}
 		if len(lists) == 0 {
-			errs["lists"] = "Pick at least one newsletter."
+			errs["lists"] = l.Text("error.pickList", nil)
 		}
 	} else {
 		lists = slices.Clone(c.Lists)
 	}
 	if len(lists) == 0 && errs["lists"] == "" {
-		errs["lists"] = "This form has no newsletter to join yet."
+		errs["lists"] = l.Text("error.noList", nil)
 	}
 	if c.ConsentText != "" && !sub.Consent {
-		errs["consent"] = "Tick the box to agree to receive emails."
+		errs["consent"] = l.Text("error.consent", nil)
 	}
 	return lists, errs
 }
@@ -277,7 +322,12 @@ func (s *Service) check(c Config, sub *Submission) ([]uuid.UUID, map[string]stri
 // accept subscribes the contact and records the submission.
 func (s *Service) accept(ctx context.Context, ws *store.Workspace, set *Settings, c Config, sub Submission, lists []uuid.UUID) Outcome {
 	now := s.now()
-	ev := audience.PublicEvidence{Source: c.Source(), IP: sub.IP, UserAgent: sub.UserAgent, ConsentText: c.ConsentText, ConsentVersion: c.ConsentVersionLabel(), At: now}
+	lang := c.ShownLanguage()
+	ev := audience.PublicEvidence{Source: c.Source(), IP: sub.IP, UserAgent: sub.UserAgent, ConsentText: c.ConsentText, ConsentVersion: c.ConsentVersionLabel(), Language: lang, At: now}
+	formName := c.Name
+	if c.Builtin {
+		formName = ""
+	}
 	fields := map[string]string{}
 	for k, v := range sub.Fields {
 		if c.HasField(k) {
@@ -290,7 +340,7 @@ func (s *Service) accept(ctx context.Context, ws *store.Workspace, set *Settings
 		var err error
 		res, err = s.Audience.Signup(ctx, tx, ws, audience.SignupInput{
 			Email: sub.Email, FirstName: sub.FirstName, LastName: sub.LastName, Company: sub.Company, Fields: fields,
-			Lists: lists, DoubleOptIn: c.DoubleOptIn, Evidence: ev,
+			Lists: lists, DoubleOptIn: c.DoubleOptIn, Evidence: ev, BrowserLanguage: sub.BrowserLanguage, FormName: formName,
 		})
 		if err != nil || res.Blocked {
 			return err
@@ -312,7 +362,7 @@ func (s *Service) accept(ctx context.Context, ws *store.Workspace, set *Settings
 		}
 		submissionID = uuid.Must(uuid.NewV7())
 		if err := q.FormSubmissionInsert(ctx, store.FormSubmissionInsertParams{ID: submissionID, WorkspaceID: ws.ID, FormID: formID, ContactID: res.ContactID,
-			ListIds: touched, DoubleOptIn: double, At: now, ConfirmedAt: confirmedAt}); err != nil {
+			ListIds: touched, DoubleOptIn: double, Language: lang, At: now, ConfirmedAt: confirmedAt}); err != nil {
 			return err
 		}
 		if formID != nil {
@@ -348,17 +398,18 @@ func (s *Service) accept(ctx context.Context, ws *store.Workspace, set *Settings
 	if err != nil {
 		var fe *audience.FieldError
 		if errors.As(err, &fe) {
-			return Outcome{Status: OutcomeInvalid, Errors: map[string]string{fe.Field: fe.Message}, Message: fe.Message}
+			msg := fieldErrorText(fe, c.Labels)
+			return Outcome{Status: OutcomeInvalid, Errors: map[string]string{fe.Field: msg}, Message: msg}
 		}
 		s.log().ErrorContext(ctx, "form submission", "form", c.ID, "err", err)
-		return Outcome{Status: OutcomeError, Message: msgSaveFailed}
+		return Outcome{Status: OutcomeError, Message: c.Labels.Text("error.saveFailed", nil)}
 	}
 	out := Outcome{Status: OutcomeSubscribed, Email: sub.Email, FirstName: res.FirstName, Lists: lists}
 	if c.DoubleOptIn || res.NeedsConfirmation() || res.Blocked {
 		out.Status = OutcomeConfirm
 	}
 	if res.NeedsConfirmation() && submissionID != uuid.Nil {
-		if err := s.sendConfirmation(ctx, ws, set, submissionID, res.ContactID, false); err != nil && !errors.Is(err, errNoSystemMail) {
+		if err := s.sendConfirmation(ctx, ws, set, submissionID, res.ContactID, false, lang); err != nil && !errors.Is(err, errNoSystemMail) {
 			s.log().WarnContext(ctx, "send confirmation", "err", err)
 		}
 	}
@@ -410,33 +461,49 @@ type ChallengeForm func(ctx context.Context, formID string, builtin bool) (Confi
 
 // SolveChallenge verifies a Turnstile answer for a held submission and,
 // when Cloudflare agrees, completes it.
-func (s *Service) SolveChallenge(ctx context.Context, ws *store.Workspace, set *Settings, challengeID, answer string, ip *netip.Addr, formOf ChallengeForm) Outcome {
+func (s *Service) SolveChallenge(ctx context.Context, ws *store.Workspace, set *Settings, challengeID, answer, requested string, ip *netip.Addr, formOf ChallengeForm) Outcome {
+	out, lang := s.solveChallenge(ctx, ws, set, challengeID, answer, requested, ip, formOf)
+	out.Language = lang
+	return out
+}
+
+func (s *Service) solveChallenge(ctx context.Context, ws *store.Workspace, set *Settings, challengeID, answer, requested string, ip *netip.Addr, formOf ChallengeForm) (Outcome, string) {
+	// Until the held submission is open, messages follow the language the
+	// challenge page is shown in (requested).
+	pl := pagelabels.English()
+	if pc, err := s.loadPagesCopy(ctx, s.Q, ws, set); err == nil {
+		if code := languages.Base(requested); code != "" && pc.Live(code) {
+			pl = pc.Labels(code)
+		}
+	}
 	id, err := uuid.Parse(challengeID)
 	if err != nil {
-		return Outcome{Status: OutcomeInvalid, Message: "This check expired. Fill in the form again."}
+		return Outcome{Status: OutcomeInvalid, Message: pl.Text("error.challengeExpired", nil)}, pl.Code()
 	}
 	row, err := s.Q.FormChallengeTake(ctx, store.FormChallengeTakeParams{ID: id, WorkspaceID: ws.ID, At: s.now()})
 	if err != nil {
-		return Outcome{Status: OutcomeInvalid, Message: "This check expired. Fill in the form again."}
+		return Outcome{Status: OutcomeInvalid, Message: pl.Text("error.challengeExpired", nil)}, pl.Code()
 	}
 	raw, err := s.Box.Open(row.PayloadEnc, "form_challenge:"+row.ID.String())
 	if err != nil {
-		return Outcome{Status: OutcomeError, Message: msgSaveFailed}
+		return Outcome{Status: OutcomeError, Message: pl.Text("error.saveFailed", nil)}, pl.Code()
 	}
 	var h heldSubmission
 	if err := json.Unmarshal(raw, &h); err != nil {
-		return Outcome{Status: OutcomeError, Message: msgSaveFailed}
+		return Outcome{Status: OutcomeError, Message: pl.Text("error.saveFailed", nil)}, pl.Code()
 	}
 	c, err := formOf(ctx, h.FormID, h.Builtin)
 	if err != nil {
-		return Outcome{Status: OutcomeClosed, Message: msgClosed}
+		return Outcome{Status: OutcomeClosed, Message: pl.Text("error.closed", nil)}, pl.Code()
 	}
+	c = s.localize(ctx, ws, set, c, h.Sub.Language)
+	l := c.Labels
 	if c.Status != StatusLive {
-		return Outcome{Status: OutcomeClosed, Message: msgClosed}
+		return Outcome{Status: OutcomeClosed, Message: l.Text("error.closed", nil)}, c.ShownLanguage()
 	}
 	secret, ok := s.turnstileSecret(set)
 	if !ok {
-		return Outcome{Status: OutcomeError, Message: msgSaveFailed}
+		return Outcome{Status: OutcomeError, Message: l.Text("error.saveFailed", nil)}, c.ShownLanguage()
 	}
 	remote := ""
 	if ip != nil {
@@ -445,7 +512,7 @@ func (s *Service) SolveChallenge(ctx context.Context, ws *store.Workspace, set *
 	res, err := s.Turnstile.Verify(ctx, secret, answer, remote, row.ID.String())
 	if err != nil {
 		s.log().WarnContext(ctx, "turnstile verify", "err", err)
-		return Outcome{Status: OutcomeError, Message: "We couldn't reach the verification service. Nothing was lost; please try again in a minute."}
+		return Outcome{Status: OutcomeError, Message: l.Text("error.verifyUnreachable", nil)}, c.ShownLanguage()
 	}
 	if !res.Success {
 		if res.SecretRejected() {
@@ -454,7 +521,7 @@ func (s *Service) SolveChallenge(ctx context.Context, ws *store.Workspace, set *
 			}
 		}
 		s.recordReject(ctx, ws, c, "turnstile", h.Origin)
-		return Outcome{Status: OutcomeRejected, Message: "We couldn't confirm you're a person. Try the form again in a minute."}
+		return Outcome{Status: OutcomeRejected, Message: l.Text("error.verifyFailed", nil)}, c.ShownLanguage()
 	}
 	sub := h.Sub
 	if h.IP != "" {
@@ -465,7 +532,7 @@ func (s *Service) SolveChallenge(ctx context.Context, ws *store.Workspace, set *
 	sub.UserAgent, sub.Origin = h.UserAgent, h.Origin
 	lists, errs := s.check(c, &sub)
 	if len(errs) > 0 {
-		return Outcome{Status: OutcomeInvalid, Errors: errs, Message: firstMessage(errs)}
+		return Outcome{Status: OutcomeInvalid, Errors: errs, Message: firstMessage(errs)}, c.ShownLanguage()
 	}
-	return s.accept(ctx, ws, set, c, sub, lists)
+	return s.accept(ctx, ws, set, c, sub, lists), c.ShownLanguage()
 }

@@ -319,6 +319,14 @@ type Settings struct {
 
 type pageSettings = Settings
 
+// CopyLanguage is the language the pages are written in.
+func (s *Settings) CopyLanguage() string {
+	if s.row.CopyLanguage == "" {
+		return "en"
+	}
+	return s.row.CopyLanguage
+}
+
 // HostedFormID is the form behind /subscribe, if any.
 func (s *Settings) HostedFormID() *uuid.UUID { return s.row.HostedFormID }
 
@@ -758,6 +766,10 @@ func (s *Service) SavePage(ctx context.Context, ws *store.Workspace, in PublicPa
 		}
 		raw, _ := json.Marshal(after)
 		if err := q.PublicSettingsSetPages(ctx, store.PublicSettingsSetPagesParams{WorkspaceID: ws.ID, Pages: raw, UpdatedBy: actor(ctx), At: s.now()}); err != nil {
+			return err
+		}
+		// New or changed text leaves the other languages' copy to catch up.
+		if err := s.syncPageCopy(ctx, q, ws); err != nil {
 			return err
 		}
 		var hostedBefore, hostedAfter string

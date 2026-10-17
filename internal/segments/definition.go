@@ -85,6 +85,7 @@ var builtinFields = map[string]fieldSpec{
 	"source":           {"Source", KindEnum, []string{"is", "is_not"}},
 	"tag":              {"Tag", KindText, []string{"has", "has_not"}},
 	"country":          {"Country", KindText, []string{"is", "is_not"}},
+	"language":         {"Language", KindEnum, []string{"is", "is_not"}},
 	"last_open":        {"Last open", KindPeriod, []string{"in_last", "not_in_last", "never"}},
 	"opened":           {"Opened any email", KindPeriod, []string{"in_last", "not_in_last"}},
 	"clicked":          {"Clicked any email", KindPeriod, []string{"in_last", "not_in_last"}},
@@ -95,7 +96,7 @@ var builtinFields = map[string]fieldSpec{
 // builtinOrder is the order of fields in the builder's select.
 var builtinOrder = []string{
 	"mailbox_provider", "email_domain", "list", "tier", "last_open", "opened", "clicked",
-	"opened_campaign", "consent", "source", "tag", "country", "joined",
+	"opened_campaign", "consent", "source", "tag", "country", "language", "joined",
 }
 
 // Enum values of the built-in enum fields.
@@ -191,6 +192,10 @@ func (c SegmentCondition) validate(custom map[string]CustomField, lists map[uuid
 	case kind == KindCampaign:
 		if _, err := uuid.Parse(c.Value); err != nil {
 			return problemf("Pick a campaign.")
+		}
+	case c.Field == "language":
+		if !validLanguage(c.Value) {
+			return problemf("Pick a language for %s.", strings.ToLower(label))
 		}
 	case kind == KindEnum && c.Field != "source":
 		ok := false

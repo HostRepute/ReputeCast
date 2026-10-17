@@ -4,10 +4,11 @@
   {{with .Description}}<p class="lead">{{.}}</p>{{end}}
   <form class="form" method="post" action="{{.Action}}" novalidate>
     <input type="hidden" name="_t" value="{{.Token}}">
+    <input type="hidden" name="_lang" value="{{$.Lang}}">
     {{range .Fields}}{{$f := .}}<div class="col6">
-      <label class="field">{{if $f.Optional}}<span>{{$f.Label}} <span class="opt">optional</span></span>{{else}}{{$f.Label}}{{end}}
+      <label class="field">{{if $f.Optional}}<span>{{$f.Label}} <span class="opt">{{$.T "form.optional"}}</span></span>{{else}}{{$f.Label}}{{end}}
         {{if eq $f.Type "select"}}<select class="in" name="{{$f.Name}}" id="{{$f.ID}}"{{if $f.Required}} required{{end}}{{if $f.Error}} aria-invalid="true" aria-describedby="{{$f.ID}}-err"{{end}}>
-          <option value="">{{if $f.Placeholder}}{{$f.Placeholder}}{{else}}Choose…{{end}}</option>
+          <option value="">{{if $f.Placeholder}}{{$f.Placeholder}}{{else}}{{$.T "form.choose"}}{{end}}</option>
           {{range $f.Options}}<option value="{{.}}"{{if eq . $f.Value}} selected{{end}}>{{.}}</option>{{end}}
         </select>{{else}}<input class="in" type="{{$f.Type}}" name="{{$f.Name}}" id="{{$f.ID}}" value="{{$f.Value}}"{{with $f.Placeholder}} placeholder="{{.}}"{{end}}{{with $f.Autocomplete}} autocomplete="{{.}}"{{end}}{{if $f.Required}} required{{end}}{{if $f.Error}} aria-invalid="true" aria-describedby="{{$f.ID}}-err"{{end}}>{{end}}
       </label>
@@ -20,15 +21,15 @@
     </fieldset>
     {{end}}{{if .Consent.Text}}<label class="consent"><input type="checkbox" name="consent" value="1"{{if .ConsentChecked}} checked{{end}} required{{if .ConsentError}} aria-invalid="true" aria-describedby="consent-err"{{end}}><span>{{.Consent.Before}}{{if .Consent.Href}}<a href="{{.Consent.Href}}">{{.Consent.Link}}</a>{{end}}{{.Consent.After}}</span></label>
     {{with .ConsentError}}<span class="err" id="consent-err" role="alert">{{.}}</span>{{end}}
-    {{end}}{{if .Honeypot}}<div class="hp" aria-hidden="true"><label>Leave this empty <input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
+    {{end}}{{if .Honeypot}}<div class="hp" aria-hidden="true"><label>{{$.T "form.honeypot"}} <input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
     {{end}}<button class="btn-pri" type="submit"{{if $.Preview}} disabled{{end}}>{{.Button}}</button>
     {{with .Alert}}<div class="alert" role="alert">{{.}}</div>{{end}}
     {{with .Footnote}}<span class="foot-note">{{.}}</span>{{end}}
   </form>
 </main>{{end}}{{end}}
 {{define "foot"}}<footer class="foot">
-  {{- if .Body.ArchiveURL}}<a href="{{.Body.ArchiveURL}}">Read past issues</a>{{end}}
+  {{- if .Body.ArchiveURL}}<a href="{{.Body.ArchiveURL}}">{{.T "page.pastIssues"}}</a>{{end}}
   {{- if and .Body.ArchiveURL .Privacy}}{{template "sep"}}{{end}}
-  {{- with .Privacy}}<a href="{{.}}">Privacy</a>{{end}}
+  {{- with .Privacy}}<a href="{{.}}">{{$.T "page.privacy"}}</a>{{end}}
   {{- if and .PoweredBy (or .Body.ArchiveURL .Privacy)}}{{template "sep"}}{{end}}
   {{- template "rc" .}}</footer>{{end}}
