@@ -9,6 +9,7 @@ const search = z.object({
   reason: z.enum(['hard_bounce', 'complaint', 'unsubscribe', 'manual']).optional().catch(undefined),
   source: z.string().max(60).optional().catch(undefined),
   since: z.enum(['7d', '30d']).optional().catch(undefined),
+  appliesTo: z.enum(['all', 'marketing']).optional().catch(undefined),
   import: z.string().uuid().optional().catch(undefined),
   page: z.coerce.number().int().min(1).optional().catch(undefined),
 })

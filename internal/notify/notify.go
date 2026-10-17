@@ -32,6 +32,13 @@ const (
 	// Integrations hub (design expansion, phase 2).
 	KindIntegrationAttention = "integration_attention" // an integration needs attention
 	KindPostDraftCreated     = "post_draft_created"    // a WordPress post became a campaign draft
+	// KindTransactionalAlert is a delivery alert of transactional mail: a
+	// template's bounce rate, failed messages or the median delivery time
+	// over the last hour passed its limit.
+	KindTransactionalAlert = "transactional_alert"
+	// KindSMTPRelayUnreachable tells instance admins the SMTP relay can't
+	// be reached from the internet.
+	KindSMTPRelayUnreachable = "smtp_relay_unreachable"
 	// Address verification and placement tests (design expansion, phase 4).
 	KindVerificationEnded      = "verification_ended"       // a verification job finished or stopped
 	KindVerificationCreditsLow = "verification_credits_low" // a service's balance runs low

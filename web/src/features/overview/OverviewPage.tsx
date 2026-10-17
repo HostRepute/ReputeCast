@@ -17,6 +17,7 @@ import { RecentCampaigns } from './RecentCampaigns'
 import { SenderHealthCard } from './SenderHealthCard'
 import { HealthSkeleton, NextSkeleton, ProvidersSkeleton, CardSkeleton } from './Skeletons'
 import { overviewSubtitle, refreshSentences } from './words'
+import { TransactionalOverviewCard } from '@/features/transactional/OverviewCard'
 
 /** A card whose data failed to load: what failed and a retry, the rest of the page stays. */
 function CardError({ title, error, onRetry }: { title: string; error: unknown; onRetry: () => void }) {
@@ -173,6 +174,7 @@ export function OverviewPage() {
               <p className="k m-0">Checking blocklists and provider APIs… usually under 5 seconds.</p>
             ) : null}
           </section>
+          <TransactionalOverviewCard />
           <Grid min={380} gap={20}>
             <Section q={audience} perm="subscribers:view" title="Subscriber growth" skeleton={<CardSkeleton lines={5} />}>
               {(a) => <GrowthCard a={a} />}

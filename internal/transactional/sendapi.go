@@ -30,6 +30,16 @@ type batchInput struct {
 	Body           TransactionalBatch
 }
 
+// sendSource is where a send came from: an app's key ("api"), or a person
+// signed in to ReputeCast, which is the first-send guide's "Send it from
+// here instead" ("guide": the log and the detail say who sent it).
+func sendSource(ctx context.Context) string {
+	if p := api.PrincipalFrom(ctx); p != nil && p.Type == authz.ActorUser {
+		return "guide"
+	}
+	return "api"
+}
+
 // RegisterSending adds the send and batch operations.
 func RegisterSending(h huma.API, s *Service) {
 	send := api.Workspace(authz.TransactionalSend)
@@ -44,7 +54,7 @@ func RegisterSending(h huma.API, s *Service) {
 			if err := refuseAgents(ctx); err != nil {
 				return nil, err
 			}
-			status, raw, err := s.Send(ctx, api.WorkspaceFrom(ctx), in.Body, in.IdempotencyKey, "api")
+			status, raw, err := s.Send(ctx, api.WorkspaceFrom(ctx), in.Body, in.IdempotencyKey, sendSource(ctx))
 			if err != nil {
 				return nil, err
 			}

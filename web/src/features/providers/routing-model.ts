@@ -13,11 +13,13 @@ export interface StreamDraft {
   fallback: string
   failover: FailoverPolicy
   conditions: Condition[]
+  /** Transactional: first in line on providers that also send campaigns. */
+  priority: boolean
 }
 
 export type Draft = Record<Stream, StreamDraft>
 
-export const streams: Stream[] = ['broadcast', 'automation', 'system']
+export const streams: Stream[] = ['broadcast', 'automation', 'system', 'transactional']
 
 /** The routing being edited starts from what is saved. */
 export function toDraft(cfg: RoutingConfig): Draft {
@@ -29,6 +31,7 @@ export function toDraft(cfg: RoutingConfig): Draft {
       fallback: v?.fallback ?? '',
       failover: (v?.failover ?? (s === 'broadcast' ? 'pause_and_ask' : 'automatic')) as FailoverPolicy,
       conditions: v ? v.conditions.map((c) => ({ field: c.field, values: [...c.values], providerId: c.providerId, note: c.note, valueLabels: c.valueLabels })) : [],
+      priority: v?.priority ?? true,
     }
   }
   return out
@@ -44,6 +47,7 @@ export function toInput(d: Draft, acknowledgeBulkTerms = false): Schemas['Routin
       fallback: d[s].fallback || undefined,
       failover: d[s].failover,
       conditions: d[s].conditions.map((c) => ({ field: c.field, values: c.values, providerId: c.providerId, note: c.note || undefined })),
+      priority: s === 'transactional' ? d[s].priority : undefined,
     })),
   }
 }
@@ -120,7 +124,7 @@ export const fieldText: Record<Condition['field'], string> = {
   category: 'category',
 }
 
-const streamTitle: Record<Stream, string> = { broadcast: 'Broadcasts', automation: 'Automations', system: 'System' }
+const streamTitle: Record<Stream, string> = { broadcast: 'Broadcasts', automation: 'Automations', system: 'System', transactional: 'Transactional' }
 
 /** One step of the route tester as a sentence. */
 export function stepText(st: Schemas['RouteTestStep'], stream: Stream, hasConditions: boolean): string {
@@ -131,7 +135,14 @@ export function stepText(st: Schemas['RouteTestStep'], stream: Stream, hasCondit
         : `Stream is ${streamTitle[stream]}: primary ${st.provider ?? 'not set'}, no conditions.`
     case 'condition': {
       const value = st.value ?? ''
-      const head = st.field === 'list' ? `list is ${value}` : st.field === 'sender_domain' ? `sender domain is ${value}` : `recipient mailbox provider is ${value}`
+      const head =
+        st.field === 'list'
+          ? `list is ${value}`
+          : st.field === 'sender_domain'
+            ? `sender domain is ${value}`
+            : st.field === 'category'
+              ? `category is ${value}`
+              : `recipient mailbox provider is ${value}`
       return `Condition matched: ${head}, so ${st.provider} only.${st.warming ? ` ${st.warming} is still warming up.` : ''}`
     }
     case 'split': {

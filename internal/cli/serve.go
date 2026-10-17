@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"context"
+
 	"github.com/spf13/cobra"
 
 	"github.com/hostrepute/reputecast/internal/app"
@@ -40,7 +42,7 @@ func newServeCmd(o *rootOpts) *cobra.Command {
 					printInstall(cmd.ErrOrStderr(), cfg, res)
 				}
 			}
-			return a.Run(ctx)
+			return runServe(ctx, a)
 		},
 	}
 	cmd.Flags().String("role", "", "comma-separated roles: web, worker, ingest (default all)")
@@ -48,6 +50,21 @@ func newServeCmd(o *rootOpts) *cobra.Command {
 	cmd.Flags().BoolVar(&autoMigrate, "auto-migrate", envBool("REPUTECAST_AUTO_MIGRATE", false), "apply pending migrations at start (REPUTECAST_AUTO_MIGRATE)")
 	cmd.Flags().BoolVar(&autoInstall, "auto-install", envBool("REPUTECAST_AUTO_INSTALL", false), "create the first Owner when the database has no users (REPUTECAST_AUTO_INSTALL; uses REPUTECAST_ADMIN_EMAIL)")
 	return cmd
+}
+
+// runServe runs the app and, in web processes, the SMTP relay (off until an
+// instance admin turns it on); both stop gracefully when ctx ends.
+func runServe(ctx context.Context, a *app.App) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	relay := make(chan error, 1)
+	go func() { relay <- a.RunSMTPRelay(ctx) }()
+	err := a.Run(ctx)
+	cancel()
+	if rerr := <-relay; rerr != nil && err == nil {
+		err = rerr
+	}
+	return err
 }
 
 func newWorkerCmd(o *rootOpts) *cobra.Command {

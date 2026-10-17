@@ -1,0 +1,31 @@
+{{define "content"}}{{with .Body}}<main class="card g18" id="main">
+  {{template "brand" $}}
+  <div class="col4"><h1 class="h26">{{.Heading}}</h1><span class="sub">{{.Email}}{{.Text}}</span></div>
+  {{with .Status}}<div class="notice ok" role="status">{{.}}</div>{{end}}
+  {{if .Off}}<div class="aside"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4M12 8h.01"></path></svg><span>Account and billing emails still arrive, like password resets, sign-in links and invoices. They aren't marketing, and your account needs them.</span></div>
+  <form class="fewer" method="post" action="{{.Action}}">
+    <input type="hidden" name="action" value="on">
+    <span class="nm">Turned it off by mistake?</span>
+    <button class="btn-sm start" type="submit"{{if $.Preview}} disabled{{end}}>Turn {{.Category}} back on</button>
+  </form>
+  {{if .Reasons}}<form class="col10" method="post" action="{{.Action}}">
+    <input type="hidden" name="action" value="reason">
+    <label class="field"><span>Why did you turn it off? <span class="opt">optional</span></span>
+      <select class="in" name="reason">
+        <option value="">Choose a reason</option>
+        {{range .Reasons}}<option value="{{.Value}}">{{.Label}}</option>
+        {{end}}
+      </select>
+    </label>
+    <button class="btn-ghost start" type="submit"{{if $.Preview}} disabled{{end}}>Send</button>
+  </form>
+  {{end}}{{else}}<form method="post" action="{{.Action}}">
+    <input type="hidden" name="action" value="off">
+    <button class="btn-ghost" type="submit"{{if $.Preview}} disabled{{end}}>Turn {{.Category}} off</button>
+  </form>
+  {{end}}<div class="split rule"><span>Other notifications: <a href="{{.PrefsHref}}">manage all of them</a></span>{{with .Others}}<span>{{.}}</span>{{end}}</div>
+</main>{{end}}{{end}}
+{{define "foot"}}<footer class="foot">
+  <span>The unsubscribe button in your mail app does the same.</span>
+  {{- if .PoweredBy}}{{template "sep"}}{{end}}
+  {{- template "rcplain" .}}</footer>{{end}}

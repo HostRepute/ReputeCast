@@ -128,6 +128,7 @@ var Categories = []AuditCategory{
 	{Key: "team", Label: "Team & access", Groups: []string{"team", "member", "role", "apikey", "agent", "auth", "invitation", "user", "session", "sso"}},
 	{Key: "settings", Label: "Settings", Groups: []string{"workspace", "webhook", "audit", "settings", "mcp", "instance"}},
 	{Key: "integrations", Label: "Integrations", Groups: []string{"integration", "wordpress", "hostrepute"}},
+	{Key: "transactional", Label: "Transactional", Groups: []string{"transactional", "smtp_relay"}},
 	{Key: "verification", Label: "Verification", Groups: []string{"verification"}},
 	{Key: "placement", Label: "Placement tests", Groups: []string{"placement"}},
 }
@@ -539,6 +540,18 @@ func link(ws, targetType, targetID, override string) (string, string) {
 		}
 	case "contacts", "contact":
 		return base + "/audience", "Open audience"
+	case "transactional_template":
+		if targetID != "" {
+			return base + "/transactional/templates/" + targetID, "Open template"
+		}
+	case "transactional_message":
+		if targetID != "" {
+			return base + "/transactional/messages/" + targetID, "Open message"
+		}
+	case "transactional_log":
+		return base + "/transactional/messages", "Open messages"
+	case "transactional_category", "transactional_settings":
+		return base + "/transactional/settings", "Open settings"
 	}
 	return "", ""
 }
@@ -557,6 +570,11 @@ var verbs = map[string]string{
 	"resume": "Resumed", "restore": "Restored", "restored": "Restored", "unscheduled": "Unscheduled", "cancel": "Cancelled",
 	"cancelled": "Cancelled", "revoke": "Revoked", "publish": "Published", "upload": "Uploaded", "connect": "Connected",
 	"disconnect": "Disconnected", "duplicate": "Duplicated", "erase": "Erased", "add": "Added",
+	// Transactional email.
+	"template_created": "Created", "template_updated": "Changed", "template_saved": "Saved the draft of", "template_published": "Published",
+	"template_rolled_back": "Rolled back", "template_archived": "Archived", "template_restored": "Restored", "template_deleted": "Deleted",
+	"category_created": "Created", "category_updated": "Changed", "category_deleted": "Deleted", "content_viewed": "Viewed the content of",
+	"message_resent": "Resent", "log_exported": "Exported", "enabled": "Turned on", "disabled": "Turned off",
 }
 
 // Describe writes "Changed the Broadcasts routing rule" style sentences from an action.

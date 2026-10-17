@@ -84,7 +84,13 @@ export function ExpiresCell({ k }: { k: Key }) {
 }
 
 /** "Weekly Digest only" or "All lists". */
-export function scopeText(k: Pick<Key, 'scope'>) {
+export function scopeText(k: Pick<Key, 'scope'> & Partial<Pick<Key, 'transactional'>>) {
+  const tx = k.transactional
+  if (tx) {
+    // Transactional keys are scoped by template or category, and test keys by address.
+    const what = tx.templates.length ? `Templates ${tx.templates.join(', ')}` : tx.categories.length ? `Category ${tx.categories.map((c) => c.name).join(', ')}` : 'All templates'
+    return tx.mode === 'test' ? `${what} · test addresses only` : what
+  }
   return k.scope.all || !k.scope.label ? 'All lists' : k.scope.label
 }
 

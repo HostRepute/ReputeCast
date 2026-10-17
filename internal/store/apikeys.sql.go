@@ -302,7 +302,9 @@ WHERE k.workspace_id = $1 AND k.kind = $2
   AND (k.expires_at IS NULL OR k.expires_at > now() - interval '90 days')
   -- Integrations' keys are listed apart ("Managed by integrations").
   AND k.integration_id IS NULL
-ORDER BY (k.expires_at IS NOT NULL AND k.expires_at <= now()), coalesce(k.last_used_at, k.created_at) DESC, k.created_at DESC
+ORDER BY (k.expires_at IS NOT NULL AND k.expires_at <= now()), (k.preset = ''),
+         CASE WHEN k.preset <> '' THEN k.created_at END,
+         coalesce(k.last_used_at, k.created_at) DESC, k.created_at DESC
 `
 
 type KeysListParams struct {
@@ -339,6 +341,8 @@ type KeysListRow struct {
 }
 
 // API keys and MCP agents. Both live in api_keys (kind api_key | mcp_agent).
+// Expired keys last; the keys that send transactional mail (send-only
+// and SMTP presets) first, as they were created; the rest by last use.
 func (q *Queries) KeysList(ctx context.Context, arg KeysListParams) ([]KeysListRow, error) {
 	rows, err := q.db.Query(ctx, keysList, arg.WorkspaceID, arg.Kind)
 	if err != nil {

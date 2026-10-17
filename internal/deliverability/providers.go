@@ -172,8 +172,12 @@ func (st *state) providerHealth() []DeliverabilityProviderHealth {
 				kind = "Broadcast"
 			}
 			v := kind
-			if s := st.primaryStreams(p); len(s) == 1 {
+			switch s := st.primaryStreams(p); len(s) {
+			case 1:
 				v += " · " + streamName(s[0]) + " mail only"
+			case 2:
+				// Postmark often carries System and Transactional mail.
+				v += " · " + streamName(s[0]) + " and " + streamName(s[1]) + " mail"
 			}
 			h.Note = &DeliverabilityProviderNote{Label: "Stream", Value: v}
 		case selfHosted(p.Adapter):
@@ -192,6 +196,8 @@ func streamName(s string) string {
 		return "Automation"
 	case "system":
 		return "System"
+	case "transactional":
+		return "Transactional"
 	}
 	return s
 }

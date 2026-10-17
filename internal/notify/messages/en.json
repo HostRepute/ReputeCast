@@ -13,6 +13,8 @@
   "short.hostrepute_alert": "HostRepute alerts",
   "short.integration_attention": "integration problems",
   "short.post_draft_created": "post drafts",
+  "short.transactional_alert": "transactional delivery alerts",
+  "short.smtp_relay_unreachable": "SMTP relay outages",
   "short.verification_ended": "verification jobs",
   "short.verification_credits_low": "low verification credits",
   "short.placement_finished": "placement tests",
