@@ -142,6 +142,8 @@ func Seed(ctx context.Context, pool *pgxpool.Pool, cfg *config.Config, box *secr
 		{"page languages", seedPageLanguages},
 		{"scoring and growth", seedScoringGrowth},
 		{"digests", seedDigests},
+		{"polls", seedPolls},
+		{"earn", seedEarn},
 		{"ai", seedAI},
 	}
 	for _, st := range steps {

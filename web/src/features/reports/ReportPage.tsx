@@ -12,6 +12,7 @@ import { toast } from '@/components/ui/Toast'
 import { TableScroll } from '@/components/ui/Table'
 import { clock, count } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
+import { useCampaignPolls } from '@/features/polls/report'
 import { ReportBody, type ReportActions } from './ReportBody'
 import { IssueComparison } from '@/features/digests/IssueParts'
 import { useIssueInfo } from '@/features/digests/shared'
@@ -199,6 +200,8 @@ export function ReportPage({ campaignId }: { campaignId: string }) {
   const editReason = usePermissionReason('campaigns:edit')
   const suppressReason = usePermissionReason('subscribers:edit')
   const shares = useShares(campaignId, !shareReason && Boolean(r) && !r?.notSent)
+  // The email's polls (design expansion, X11).
+  const polls = useCampaignPolls(campaignId, Boolean(r) && !r?.notSent)
   const [sharing, setSharing] = useState(false)
   const [exporting, setExporting] = useState<'csv' | 'pdf'>()
   const [suppressing, setSuppressing] = useState<BounceRow>()
@@ -312,7 +315,7 @@ export function ReportPage({ campaignId }: { campaignId: string }) {
           {r.backlog ? <BacklogAlert b={r.backlog} onRefresh={() => void q.refetch()} /> : null}
           {ai.panel}
           {issue ? <IssueComparison issue={issue} report={r} /> : null}
-          <ReportBody r={r} actions={actions} />
+          <ReportBody r={r} actions={actions} polls={{ items: polls.data?.items, error: polls.error ?? undefined, retry: () => void polls.refetch() }} />
           <ShareCard ref={shareCard} campaignId={campaignId} onCreate={() => setSharing(true)} />
         </>
       )}

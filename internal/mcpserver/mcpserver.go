@@ -38,6 +38,8 @@ type Service struct {
 	Languages *languages.Service
 	// Accessibility reads campaigns' accessibility issues (nil: unavailable).
 	Accessibility AccessibilityReader
+	// PaidMembers counts paid members (internal/earn; nil: unavailable).
+	PaidMembers PaidMembersReader
 	// Transactional lists templates, renders previews and reads the log
 	// for agents (they never send).
 	Transactional *transactional.Service
@@ -47,6 +49,8 @@ type Service struct {
 	Digests   DigestReader
 	PublicURL func(context.Context) string
 	Now       func() time.Time
+	// Polls reads poll and survey results (nil: unavailable).
+	Polls PollReader
 
 	limiters sync.Map // agent id → *limiter
 }
@@ -95,6 +99,7 @@ var Tools = []MCPToolInfo{
 	{"get_growth_sources", "Joins, departures, quality and cohort retention per growth source over a period (totals only, no addresses).", string(authz.SubscribersView), false},
 	{"list_digests", "Recurring digests with their status, schedule, next issue and owner. Agents can't turn a digest on.", string(authz.CampaignsView), false},
 	{"get_digest_issues", "A digest's issues: sent, skipped, held and waiting, each with its posts and results. Agents can't release or skip an issue.", string(authz.CampaignsView), false},
+	{"get_poll_results", "Results of a campaign's polls or of a survey: answers by answer, NPS, by tier and language. Aggregate only.", string(authz.ReportsView), false},
 }
 
 // Settings are the per-workspace MCP options.

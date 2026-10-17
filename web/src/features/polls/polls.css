@@ -1,0 +1,120 @@
+/*
+ * The Poll block in the composer (design expansion, X11; ComposerPoll):
+ * its tile, its settings and its test answers.
+ */
+
+/* Blocks panel: the "New" badge and the line under the ReputeCast blocks. */
+.blk {
+  position: relative;
+}
+.blk-new {
+  position: absolute;
+  top: -8px;
+  right: 6px;
+  height: 18px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--info-bg);
+  color: var(--info-fg);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+}
+.blk-hint {
+  margin: 4px 12px 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--ground-3);
+}
+
+/* Settings. */
+.pl-answer {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) 32px;
+  align-items: center;
+  gap: 6px;
+}
+.btn.sm.ic.pl-move {
+  width: 24px;
+  height: 24px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 9px;
+  color: var(--ink-3);
+}
+.btn.sm.ic.pl-move:hover:not(:disabled) {
+  color: var(--ink);
+  background: var(--line-2);
+}
+.pl-tags {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  align-items: center;
+  gap: 6px 10px;
+  padding: 2px 0 4px 26px;
+}
+.prop .pl-tags label.k {
+  display: contents;
+  color: var(--ink);
+  font-size: 12.5px;
+}
+.pl-tags > .k:last-child {
+  grid-column: 1 / -1;
+}
+.pl-survey {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  column-gap: 10px;
+  row-gap: 2px;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.pl-survey input {
+  grid-row: span 3;
+  margin-top: 1px;
+}
+.pl-survey.on {
+  border-color: var(--accent);
+  background: var(--accent-tint);
+}
+.pl-survey.off {
+  cursor: default;
+}
+.pl-fit.ok {
+  color: var(--ok-fg);
+}
+.btn.pl-wide {
+  width: 100%;
+  justify-content: center;
+  gap: 6px;
+}
+.pl-preview {
+  display: block;
+  width: 100%;
+  height: min(70vh, 640px);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--ground);
+}
+.pl-tests td {
+  white-space: nowrap;
+}
+.pl-tests td.mono {
+  font-size: 12px;
+}
+.pl-test-note {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--ground-3);
+  font-size: 12px;
+}

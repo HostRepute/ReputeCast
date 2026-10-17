@@ -55,7 +55,9 @@ func Compile(src string) Result {
 		}
 		return Result{Errors: []MJMLProblem{{Message: err.Error()}}, Duration: time.Since(start)}
 	}
-	prepared := protect.Replace(markBodyRaw(src))
+	// ReputeCast's rc-* attributes come out and conditional blocks get their
+	// markers (conditional.go).
+	prepared := protect.Replace(markBodyRaw(PrepareCompile(src)))
 	prepared = voidHTML.ReplaceAllStringFunc(prepared, func(m string) string {
 		if strings.HasSuffix(m, "/>") {
 			return m

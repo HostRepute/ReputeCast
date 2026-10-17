@@ -15,7 +15,10 @@ type EventType struct {
 	// Urgent emails ignore quiet hours and digests ("Auto-pauses and
 	// provider outages always send immediately").
 	Urgent bool
-	Kinds  []string
+	// OffByDefault event types are neither in-app nor emailed until the
+	// person turns them on, and summaries leave them out while off.
+	OffByDefault bool
+	Kinds        []string
 }
 
 // Events lists the event types in the order of the preferences table.
@@ -41,6 +44,10 @@ var Events = []EventType{
 	// AI assistant (design expansion, phase 3).
 	{Key: KindAIUsage, Label: "AI usage at 80% and cap reached", Audience: "Everyone with integrations:manage", Short: "AI usage notices", DefaultEmail: true, Kinds: []string{KindAIUsage}},
 	{Key: KindAIKeyRejected, Label: "AI key rejected by the provider", Audience: "Everyone with integrations:manage", Short: "rejected AI keys", DefaultEmail: true, Kinds: []string{KindAIKeyRejected}},
+	{Key: KindPaymentsAttention, Label: "Payments: key rejected, webhook missing or silent", Audience: "Everyone with payments:manage", Short: "payment problems", DefaultEmail: true, Kinds: []string{KindPaymentsAttention}},
+	{Key: KindUnmappedPrice, Label: "Payments: a Stripe price isn't mapped to a tier", Audience: "Everyone with payments:manage", Short: "unmapped prices", DefaultEmail: false, Kinds: []string{KindUnmappedPrice}},
+	{Key: KindPaidImportDone, Label: "Paid members import finished", Audience: "Whoever ran the import", Short: "paid-members imports", DefaultEmail: false, Kinds: []string{KindPaidImportDone}},
+	{Key: KindFailedPayments, Label: "Failed payments · daily summary", Audience: "Everyone with earn:view · off by default", Short: "failed payments", OffByDefault: true, Kinds: []string{KindFailedPayments}},
 }
 
 // otherEvent covers kinds without a preference row (send finished, jobs):
@@ -74,6 +81,8 @@ const (
 	CategoryTransactional = "transactional"
 	// CategoryAI holds the AI assistant's cap and key notices.
 	CategoryAI = "ai"
+	// CategoryEarn holds payments and paid members.
+	CategoryEarn = "earn"
 )
 
 var categoryKinds = map[string][]string{
@@ -85,6 +94,7 @@ var categoryKinds = map[string][]string{
 	CategoryIntegrations:  {KindIntegrationAttention, KindPostDraftCreated},
 	CategoryTransactional: {KindTransactionalAlert, KindSMTPRelayUnreachable},
 	CategoryAI:            {KindAIUsage, KindAIKeyRejected},
+	CategoryEarn:          {KindPaymentsAttention, KindUnmappedPrice, KindPaidImportDone, KindFailedPayments},
 }
 
 var categoryLabels = map[string]string{
@@ -97,6 +107,7 @@ var categoryLabels = map[string]string{
 	CategoryIntegrations:  "Integrations",
 	CategoryTransactional: "Transactional",
 	CategoryAI:            "AI",
+	CategoryEarn:          "Earn",
 }
 
 // CategoryOf returns the center tab a kind is listed under.

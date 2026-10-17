@@ -37,7 +37,10 @@ var (
 	// contact scoring and growth sources: rules, scores, sources, "Sales-ready handoff" (seed_scoring_growth.go)
 	seedScoringGrowth = noop
 	seedDigests       = noop // recurring digests: Engineering blog roundup, its feed, issues #1–#3 (seed_digests.go)
-	seedAI            = noop // AI assistant: Anthropic connected, this month's usage and activity log, a kept report summary (seed_ai.go)
+	// conditional content of #143, the NPS poll of #141, the survey and its check-in campaign (seed_polls.go)
+	seedPolls = noop
+	seedEarn  = noop // payments and paid subscriptions: Stripe, tiers, paid members, the Substack import (seed_earn.go)
+	seedAI    = noop // AI assistant: Anthropic connected, this month's usage and activity log, a kept report summary (seed_ai.go)
 )
 
 func noop(context.Context, *Seeder) error { return nil }

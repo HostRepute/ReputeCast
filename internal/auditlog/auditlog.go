@@ -132,8 +132,11 @@ var Categories = []AuditCategory{
 	{Key: "scoring", Label: "Scoring", Groups: []string{"scoring"}},
 	// Recurring digests (design expansion, phase 3).
 	{Key: "digests", Label: "Digests", Groups: []string{"digest"}},
+	{Key: "polls", Label: "Polls & surveys", Groups: []string{"poll", "survey"}},
 	// The AI assistant's connection, key, cap, prices and features (phase 3).
 	{Key: "ai", Label: "AI", Groups: []string{"ai"}},
+	// Earn (design expansion, phase 6).
+	{Key: "earn", Label: "Earn", Groups: []string{"payments", "earn", "paid_member"}},
 }
 
 // Filter narrows the log.

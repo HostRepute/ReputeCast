@@ -31,6 +31,9 @@ type Service struct {
 	Links *linktoken.Signer
 	URLs  publicurl.Builder
 	Now   func() time.Time
+	// Answers adds poll answers and survey responses to the timeline (nil:
+	// none).
+	Answers ActivitySource
 }
 
 func (s *Service) now() time.Time {

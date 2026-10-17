@@ -330,6 +330,15 @@ func (s *Settings) CopyLanguage() string {
 // HostedFormID is the form behind /subscribe, if any.
 func (s *Settings) HostedFormID() *uuid.UUID { return s.row.HostedFormID }
 
+// DomainState is the custom domain as set, verified or not, with its
+// check's status and finding (polls warn while answer links can't use it).
+func (s *Settings) DomainState() (domain, status, detail string) {
+	if s.row.CustomDomain == nil {
+		return "", "", ""
+	}
+	return *s.row.CustomDomain, s.row.DomainStatus, s.row.DomainDetail
+}
+
 // CustomDomain is the verified custom domain, or "".
 func (s *Settings) CustomDomain() string {
 	if s.row.CustomDomain != nil && s.row.DomainStatus == "verified" {
@@ -446,6 +455,10 @@ func (l PageLinks) Subscribe(form string) string {
 
 // Challenge receives Turnstile answers.
 func (l PageLinks) Challenge() string { return l.page("subscribe", "challenge") }
+
+// Poll is a poll's answer page, and Survey a survey's page (internal/polls).
+func (l PageLinks) Poll(token string) string  { return l.page("poll", token) }
+func (l PageLinks) Survey(slug string) string { return l.page("s", slug) }
 
 // Confirm, Preferences, Unsubscribe and View are the token pages.
 func (l PageLinks) Confirm(token string) string     { return l.page("confirm", token) }

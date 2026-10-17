@@ -29,6 +29,11 @@ import { withVisibilityStyles } from './editor/mjmlDoc'
 import { TextRoleProp } from '@/features/accessibility/composer/TextRole'
 import { ContrastColorField } from '@/features/accessibility/composer/ColorPicker'
 import { useContrastSpec, type ContrastSpec } from '@/features/accessibility/composer/contrastSpec'
+import { NameInLayers, VersionsWithBlock, VisibilitySection } from '@/features/conditional/Inspector'
+import { m as cm } from '@/features/conditional/messages'
+import { useConditional } from '@/features/conditional/state'
+import { PollSettings } from '@/features/polls/Inspector'
+import { useT } from '@/i18n'
 
 /** A text input that edits a draft and commits on Enter or blur (one undo step per edit). */
 function DraftInput({
@@ -693,6 +698,9 @@ function AltProp({ c }: { c: Component }) {
 function VisibilityProp({ c }: { c: Component }) {
   const ctx = useComposer()
   const id = useId()
+  const t = useT()
+  // Beside who sees a block (conditional content), this is about devices.
+  const conditional = useConditional()?.enabled
   const toggle = (which: 'mobile' | 'desktop', on: boolean) => {
     toggleClass(c, VISIBILITY[which], on)
     // Keep the media-query rule in the head only while something uses it.
@@ -708,7 +716,7 @@ function VisibilityProp({ c }: { c: Component }) {
     if (next !== ctx.head) ctx.setHead(next)
   }
   return (
-    <Prop title="Visibility" id={id}>
+    <Prop title={conditional ? t(cm.onDevices) : 'Visibility'} id={id}>
       <label className="tg">
         <input type="checkbox" checked={hasClass(c, VISIBILITY.mobile)} onChange={(e) => toggle('mobile', e.target.checked)} />
         Hide on mobile
@@ -717,7 +725,7 @@ function VisibilityProp({ c }: { c: Component }) {
         <input type="checkbox" checked={hasClass(c, VISIBILITY.desktop)} onChange={(e) => toggle('desktop', e.target.checked)} />
         Hide on desktop
       </label>
-      <span className="k">Adds a CSS class and its media-query rule to the head; the layer tree marks hidden components.</span>
+      <span className="k">{conditional ? t(cm.devicesNote) : 'Adds a CSS class and its media-query rule to the head; the layer tree marks hidden components.'}</span>
     </Prop>
   )
 }
@@ -770,6 +778,8 @@ export function SettingsFields({ c }: { c: Component }) {
   const tag = tagOf(c)
   const head = useHead()
   const rows: ReactNode[] = []
+  // A Poll block's settings, and who sees the block (design expansion, X11).
+  rows.push(<PollSettings key="poll" c={c} />, <VisibilitySection key="who" c={c} />)
   switch (tag) {
     case 'mj-image':
       rows.push(<ImageSourceProp key="src" c={c} />, <AltProp key="alt" c={c} />, <LinkProp key="href" c={c} title="Link URL (optional)" />)
@@ -846,6 +856,7 @@ export function SettingsFields({ c }: { c: Component }) {
       return <RawNote />
   }
   if (tag !== 'mj-body' && tag !== 'mjml') rows.push(<VisibilityProp key="vis" c={c} />, <CssClassProp key="css" c={c} />)
+  rows.push(<NameInLayers key="name" c={c} />, <VersionsWithBlock key="versions" c={c} />)
   if (tag === 'mj-column' || tag === 'mj-group')
     rows.push(
       <Prop key="valign" title="Vertical alignment">

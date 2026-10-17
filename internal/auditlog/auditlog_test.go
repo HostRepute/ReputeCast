@@ -100,6 +100,10 @@ func TestAuditLog(t *testing.T) {
 		}
 	}
 	c.Do("GET", ws+"/audit?category=nope", nil).MustStatus(t, 422)
+	// Every category of the action filter is one the API accepts.
+	for _, cat := range auditlog.Categories {
+		c.Do("GET", ws+"/audit?category="+cat.Key, nil).MustStatus(t, 200)
+	}
 	// Paging with a cursor over the whole history.
 	c.Do("GET", ws+"/audit?range=all&limit=20", nil).MustStatus(t, 200).JSON(t, &l)
 	if l.NextCursor == "" || len(l.Items) != 20 {

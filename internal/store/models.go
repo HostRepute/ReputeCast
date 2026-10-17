@@ -981,6 +981,158 @@ type DmarcReport struct {
 	Via         string          `json:"via"`
 }
 
+type EarnCheckout struct {
+	ID              uuid.UUID       `json:"id"`
+	WorkspaceID     uuid.UUID       `json:"workspaceId"`
+	Mode            string          `json:"mode"`
+	TierID          *uuid.UUID      `json:"tierId"`
+	PriceID         *uuid.UUID      `json:"priceId"`
+	Period          string          `json:"period"`
+	TrialDays       int32           `json:"trialDays"`
+	ContactID       *uuid.UUID      `json:"contactId"`
+	Email           string          `json:"email"`
+	StripeSessionID string          `json:"stripeSessionId"`
+	Status          string          `json:"status"`
+	Attribution     json.RawMessage `json:"attribution"`
+	Offer           string          `json:"offer"`
+	StartedBy       *uuid.UUID      `json:"startedBy"`
+	CreatedAt       time.Time       `json:"createdAt"`
+	CompletedAt     *time.Time      `json:"completedAt"`
+	SubscriptionID  *uuid.UUID      `json:"subscriptionId"`
+}
+
+type EarnImport struct {
+	ID          uuid.UUID       `json:"id"`
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	Mode        string          `json:"mode"`
+	Source      string          `json:"source"`
+	Status      string          `json:"status"`
+	FileName    string          `json:"fileName"`
+	FileSize    int64           `json:"fileSize"`
+	Columns     json.RawMessage `json:"columns"`
+	Mapping     json.RawMessage `json:"mapping"`
+	Decisions   json.RawMessage `json:"decisions"`
+	SendWelcome bool            `json:"sendWelcome"`
+	Total       int32           `json:"total"`
+	DoneRows    int32           `json:"doneRows"`
+	Stats       json.RawMessage `json:"stats"`
+	Error       string          `json:"error"`
+	CreatedBy   *uuid.UUID      `json:"createdBy"`
+	CreatedAt   time.Time       `json:"createdAt"`
+	MatchedAt   *time.Time      `json:"matchedAt"`
+	StartedAt   *time.Time      `json:"startedAt"`
+	FinishedAt  *time.Time      `json:"finishedAt"`
+}
+
+type EarnImportFile struct {
+	ImportID uuid.UUID `json:"importId"`
+	Data     []byte    `json:"data"`
+}
+
+type EarnImportRow struct {
+	ImportID             uuid.UUID       `json:"importId"`
+	RowNo                int32           `json:"rowNo"`
+	Email                string          `json:"email"`
+	Name                 string          `json:"name"`
+	CustomerID           string          `json:"customerId"`
+	Plan                 string          `json:"plan"`
+	PaidThrough          *time.Time      `json:"paidThrough"`
+	Match                string          `json:"match"`
+	MatchedBy            string          `json:"matchedBy"`
+	StripeCustomerID     string          `json:"stripeCustomerId"`
+	StripeSubscriptionID string          `json:"stripeSubscriptionId"`
+	StripePriceID        string          `json:"stripePriceId"`
+	Subscription         json.RawMessage `json:"subscription"`
+	Candidates           json.RawMessage `json:"candidates"`
+	Result               string          `json:"result"`
+	ContactID            *uuid.UUID      `json:"contactId"`
+}
+
+type EarnMemberEmail struct {
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	Email       string     `json:"email"`
+	TemplateID  *uuid.UUID `json:"templateId"`
+}
+
+type EarnPageVisit struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Day         time.Time `json:"day"`
+	Page        string    `json:"page"`
+	Visits      int64     `json:"visits"`
+}
+
+type EarnPrice struct {
+	ID           uuid.UUID  `json:"id"`
+	WorkspaceID  uuid.UUID  `json:"workspaceId"`
+	TierID       uuid.UUID  `json:"tierId"`
+	Period       string     `json:"period"`
+	AmountCents  int64      `json:"amountCents"`
+	Currency     string     `json:"currency"`
+	Status       string     `json:"status"`
+	StripeLiveID string     `json:"stripeLiveId"`
+	StripeTestID string     `json:"stripeTestId"`
+	Origin       string     `json:"origin"`
+	CreatedAt    time.Time  `json:"createdAt"`
+	RetiredAt    *time.Time `json:"retiredAt"`
+}
+
+type EarnSetting struct {
+	WorkspaceID        uuid.UUID       `json:"workspaceId"`
+	Currency           string          `json:"currency"`
+	TaxAtCheckout      bool            `json:"taxAtCheckout"`
+	PricesIncludeTax   bool            `json:"pricesIncludeTax"`
+	Portal             json.RawMessage `json:"portal"`
+	OnPaymentFailure   string          `json:"onPaymentFailure"`
+	TermsUrl           string          `json:"termsUrl"`
+	SupportEmail       string          `json:"supportEmail"`
+	UpgradePage        json.RawMessage `json:"upgradePage"`
+	UpgradePublishedAt *time.Time      `json:"upgradePublishedAt"`
+	UpgradePublishedBy *uuid.UUID      `json:"upgradePublishedBy"`
+	AttributionDays    int32           `json:"attributionDays"`
+	UpdatedAt          time.Time       `json:"updatedAt"`
+	UpdatedBy          *uuid.UUID      `json:"updatedBy"`
+}
+
+type EarnTier struct {
+	ID                uuid.UUID       `json:"id"`
+	WorkspaceID       uuid.UUID       `json:"workspaceId"`
+	Name              string          `json:"name"`
+	Slug              string          `json:"slug"`
+	Description       string          `json:"description"`
+	Benefits          []string        `json:"benefits"`
+	TrialDays         int32           `json:"trialDays"`
+	ListIds           []uuid.UUID     `json:"listIds"`
+	AccessRank        int32           `json:"accessRank"`
+	Visibility        string          `json:"visibility"`
+	StripeProductLive string          `json:"stripeProductLive"`
+	StripeProductTest string          `json:"stripeProductTest"`
+	SyncStatus        string          `json:"syncStatus"`
+	SyncSteps         json.RawMessage `json:"syncSteps"`
+	SyncedAt          *time.Time      `json:"syncedAt"`
+	Origin            string          `json:"origin"`
+	CreatedBy         *uuid.UUID      `json:"createdBy"`
+	CreatedAt         time.Time       `json:"createdAt"`
+	UpdatedAt         time.Time       `json:"updatedAt"`
+	ArchivedAt        *time.Time      `json:"archivedAt"`
+	DeletedAt         *time.Time      `json:"deletedAt"`
+}
+
+type EarnUnmappedPrice struct {
+	ID            uuid.UUID  `json:"id"`
+	WorkspaceID   uuid.UUID  `json:"workspaceId"`
+	Mode          string     `json:"mode"`
+	StripePriceID string     `json:"stripePriceId"`
+	Period        string     `json:"period"`
+	AmountCents   int64      `json:"amountCents"`
+	Currency      string     `json:"currency"`
+	FoundAt       time.Time  `json:"foundAt"`
+	FoundBy       string     `json:"foundBy"`
+	NotifiedAt    *time.Time `json:"notifiedAt"`
+	MappedAt      *time.Time `json:"mappedAt"`
+	MappedPriceID *uuid.UUID `json:"mappedPriceId"`
+	MappedBy      *uuid.UUID `json:"mappedBy"`
+}
+
 type EmailChange struct {
 	ID        uuid.UUID  `json:"id"`
 	UserID    uuid.UUID  `json:"userId"`
@@ -1432,6 +1584,7 @@ type Message struct {
 	Language          string          `json:"language"`
 	ContactLanguage   string          `json:"contactLanguage"`
 	LanguageReason    string          `json:"languageReason"`
+	HiddenBlocks      string          `json:"hiddenBlocks"`
 }
 
 type MxCache struct {
@@ -1487,6 +1640,70 @@ type PageCopy struct {
 	LabelsAt    *time.Time      `json:"labelsAt"`
 }
 
+type PaidEvent struct {
+	ID             uuid.UUID       `json:"id"`
+	WorkspaceID    uuid.UUID       `json:"workspaceId"`
+	ContactID      uuid.UUID       `json:"contactId"`
+	SubscriptionID *uuid.UUID      `json:"subscriptionId"`
+	Mode           string          `json:"mode"`
+	Kind           string          `json:"kind"`
+	OccurredAt     time.Time       `json:"occurredAt"`
+	AmountCents    *int64          `json:"amountCents"`
+	Currency       string          `json:"currency"`
+	PaymentEventID *uuid.UUID      `json:"paymentEventId"`
+	StripeEvent    string          `json:"stripeEvent"`
+	MessageID      *uuid.UUID      `json:"messageId"`
+	ActorID        *uuid.UUID      `json:"actorId"`
+	Data           json.RawMessage `json:"data"`
+}
+
+type PaidSubscription struct {
+	ID                   uuid.UUID       `json:"id"`
+	WorkspaceID          uuid.UUID       `json:"workspaceId"`
+	ContactID            uuid.UUID       `json:"contactId"`
+	Mode                 string          `json:"mode"`
+	Kind                 string          `json:"kind"`
+	TierID               *uuid.UUID      `json:"tierId"`
+	PriceID              *uuid.UUID      `json:"priceId"`
+	StripePriceID        string          `json:"stripePriceId"`
+	Status               string          `json:"status"`
+	Period               string          `json:"period"`
+	AmountCents          int64           `json:"amountCents"`
+	Currency             string          `json:"currency"`
+	Discount             json.RawMessage `json:"discount"`
+	StartedAt            time.Time       `json:"startedAt"`
+	TrialEnd             *time.Time      `json:"trialEnd"`
+	CurrentPeriodEnd     *time.Time      `json:"currentPeriodEnd"`
+	CancelAt             *time.Time      `json:"cancelAt"`
+	CanceledAt           *time.Time      `json:"canceledAt"`
+	CanceledBy           *uuid.UUID      `json:"canceledBy"`
+	EndedAt              *time.Time      `json:"endedAt"`
+	EndReason            string          `json:"endReason"`
+	CancelReason         string          `json:"cancelReason"`
+	PaidCents            int64           `json:"paidCents"`
+	RefundedCents        int64           `json:"refundedCents"`
+	FailedAt             *time.Time      `json:"failedAt"`
+	AccessPaused         bool            `json:"accessPaused"`
+	FailureReason        string          `json:"failureReason"`
+	NextRetryAt          *time.Time      `json:"nextRetryAt"`
+	StripeCustomerID     string          `json:"stripeCustomerId"`
+	StripeSubscriptionID string          `json:"stripeSubscriptionId"`
+	BillingEmail         string          `json:"billingEmail"`
+	SourceKind           string          `json:"sourceKind"`
+	SourceCampaignID     *uuid.UUID      `json:"sourceCampaignId"`
+	SourceLabel          string          `json:"sourceLabel"`
+	SourceDetail         json.RawMessage `json:"sourceDetail"`
+	GrantReason          string          `json:"grantReason"`
+	GrantNote            string          `json:"grantNote"`
+	GrantedBy            *uuid.UUID      `json:"grantedBy"`
+	GrantUntil           *time.Time      `json:"grantUntil"`
+	ImportID             *uuid.UUID      `json:"importId"`
+	StripeSyncedAt       *time.Time      `json:"stripeSyncedAt"`
+	Emailed              []string        `json:"emailed"`
+	CreatedAt            time.Time       `json:"createdAt"`
+	UpdatedAt            time.Time       `json:"updatedAt"`
+}
+
 type PasswordReset struct {
 	ID        uuid.UUID  `json:"id"`
 	UserID    uuid.UUID  `json:"userId"`
@@ -1495,6 +1712,134 @@ type PasswordReset struct {
 	ExpiresAt time.Time  `json:"expiresAt"`
 	UsedAt    *time.Time `json:"usedAt"`
 	Source    string     `json:"source"`
+}
+
+type PaymentConnection struct {
+	ID                  uuid.UUID       `json:"id"`
+	WorkspaceID         uuid.UUID       `json:"workspaceId"`
+	Provider            string          `json:"provider"`
+	Mode                string          `json:"mode"`
+	Status              string          `json:"status"`
+	Step                string          `json:"step"`
+	KeySealed           []byte          `json:"keySealed"`
+	KeyHint             string          `json:"keyHint"`
+	AccountID           string          `json:"accountId"`
+	AccountName         string          `json:"accountName"`
+	AccountCountry      string          `json:"accountCountry"`
+	Currency            string          `json:"currency"`
+	TaxEnabled          bool            `json:"taxEnabled"`
+	Permissions         json.RawMessage `json:"permissions"`
+	CheckedAt           *time.Time      `json:"checkedAt"`
+	KeyRejectedAt       *time.Time      `json:"keyRejectedAt"`
+	WebhookToken        *string         `json:"webhookToken"`
+	WebhookID           string          `json:"webhookId"`
+	WebhookSecretSealed []byte          `json:"webhookSecretSealed"`
+	WebhookManual       bool            `json:"webhookManual"`
+	WebhookEvents       []string        `json:"webhookEvents"`
+	WebhookRegisteredAt *time.Time      `json:"webhookRegisteredAt"`
+	WebhookMissingAt    *time.Time      `json:"webhookMissingAt"`
+	WebhookReach        json.RawMessage `json:"webhookReach"`
+	FirstEventAt        *time.Time      `json:"firstEventAt"`
+	FirstEventType      string          `json:"firstEventType"`
+	LastEventAt         *time.Time      `json:"lastEventAt"`
+	LastEventType       string          `json:"lastEventType"`
+	GapCheckedAt        *time.Time      `json:"gapCheckedAt"`
+	GapHistory          json.RawMessage `json:"gapHistory"`
+	PortalConfiguration string          `json:"portalConfiguration"`
+	Demo                bool            `json:"demo"`
+	ConnectedBy         *uuid.UUID      `json:"connectedBy"`
+	ConnectedAt         *time.Time      `json:"connectedAt"`
+	DisconnectedAt      *time.Time      `json:"disconnectedAt"`
+	DisconnectedBy      *uuid.UUID      `json:"disconnectedBy"`
+	CreatedBy           *uuid.UUID      `json:"createdBy"`
+	CreatedAt           time.Time       `json:"createdAt"`
+	UpdatedAt           time.Time       `json:"updatedAt"`
+}
+
+type PaymentEvent struct {
+	ID              uuid.UUID       `json:"id"`
+	WorkspaceID     uuid.UUID       `json:"workspaceId"`
+	ConnectionID    *uuid.UUID      `json:"connectionId"`
+	Mode            string          `json:"mode"`
+	ProviderEventID string          `json:"providerEventId"`
+	Type            string          `json:"type"`
+	Source          string          `json:"source"`
+	OccurredAt      time.Time       `json:"occurredAt"`
+	ReceivedAt      time.Time       `json:"receivedAt"`
+	Payload         json.RawMessage `json:"payload"`
+	SignatureOk     bool            `json:"signatureOk"`
+	Status          string          `json:"status"`
+	Outcome         string          `json:"outcome"`
+	OutcomeDetail   json.RawMessage `json:"outcomeDetail"`
+	ContactID       *uuid.UUID      `json:"contactId"`
+	SubscriptionID  *uuid.UUID      `json:"subscriptionId"`
+	AmountCents     *int64          `json:"amountCents"`
+	Currency        string          `json:"currency"`
+	Attempts        int32           `json:"attempts"`
+	Error           string          `json:"error"`
+	AppliedAt       *time.Time      `json:"appliedAt"`
+}
+
+type Poll struct {
+	ID                uuid.UUID       `json:"id"`
+	WorkspaceID       uuid.UUID       `json:"workspaceId"`
+	Number            int64           `json:"number"`
+	CampaignID        *uuid.UUID      `json:"campaignId"`
+	AutomationEmailID *uuid.UUID      `json:"automationEmailId"`
+	BlockID           string          `json:"blockId"`
+	Kind              string          `json:"kind"`
+	Question          string          `json:"question"`
+	Answers           json.RawMessage `json:"answers"`
+	Settings          json.RawMessage `json:"settings"`
+	ClosesAt          *time.Time      `json:"closesAt"`
+	ClosedAt          *time.Time      `json:"closedAt"`
+	ClosedBy          *uuid.UUID      `json:"closedBy"`
+	ReopenedAt        *time.Time      `json:"reopenedAt"`
+	CreatedAt         time.Time       `json:"createdAt"`
+	UpdatedAt         time.Time       `json:"updatedAt"`
+}
+
+type PollAnswer struct {
+	ID          uuid.UUID  `json:"id"`
+	PollID      uuid.UUID  `json:"pollId"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	ContactID   *uuid.UUID `json:"contactId"`
+	MessageID   *uuid.UUID `json:"messageId"`
+	Kind        string     `json:"kind"`
+	TestEmail   string     `json:"testEmail"`
+	Answer      int32      `json:"answer"`
+	FirstAnswer int32      `json:"firstAnswer"`
+	Changes     int32      `json:"changes"`
+	Comment     string     `json:"comment"`
+	CommentedAt *time.Time `json:"commentedAt"`
+	Client      string     `json:"client"`
+	AnsweredAt  time.Time  `json:"answeredAt"`
+	UpdatedAt   time.Time  `json:"updatedAt"`
+}
+
+type PollAnswerEvent struct {
+	ID       int64     `json:"id"`
+	AnswerID uuid.UUID `json:"answerId"`
+	PollID   uuid.UUID `json:"pollId"`
+	Kind     string    `json:"kind"`
+	Answer   *int32    `json:"answer"`
+	Previous *int32    `json:"previous"`
+	At       time.Time `json:"at"`
+}
+
+type PollAutomatedVisit struct {
+	PollID uuid.UUID `json:"pollId"`
+	Reason string    `json:"reason"`
+	N      int64     `json:"n"`
+	LastAt time.Time `json:"lastAt"`
+}
+
+type PollTestRecipient struct {
+	ID          uuid.UUID  `json:"id"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	CampaignID  *uuid.UUID `json:"campaignId"`
+	Email       string     `json:"email"`
+	CreatedAt   time.Time  `json:"createdAt"`
 }
 
 type PostmasterDaily struct {
@@ -1994,6 +2339,44 @@ type Suppression struct {
 	ImportID         *uuid.UUID `json:"importId"`
 }
 
+type Survey struct {
+	ID          uuid.UUID       `json:"id"`
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	Number      int64           `json:"number"`
+	Slug        string          `json:"slug"`
+	Name        string          `json:"name"`
+	Description string          `json:"description"`
+	Status      string          `json:"status"`
+	Questions   json.RawMessage `json:"questions"`
+	Settings    json.RawMessage `json:"settings"`
+	ClosesAt    *time.Time      `json:"closesAt"`
+	PublishedAt *time.Time      `json:"publishedAt"`
+	PublishedBy *uuid.UUID      `json:"publishedBy"`
+	ClosedAt    *time.Time      `json:"closedAt"`
+	ClosedBy    *uuid.UUID      `json:"closedBy"`
+	CreatedBy   *uuid.UUID      `json:"createdBy"`
+	UpdatedBy   *uuid.UUID      `json:"updatedBy"`
+	CreatedAt   time.Time       `json:"createdAt"`
+	UpdatedAt   time.Time       `json:"updatedAt"`
+	DeletedAt   *time.Time      `json:"deletedAt"`
+}
+
+type SurveyResponse struct {
+	ID          uuid.UUID       `json:"id"`
+	SurveyID    uuid.UUID       `json:"surveyId"`
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	ContactID   *uuid.UUID      `json:"contactId"`
+	MessageID   *uuid.UUID      `json:"messageId"`
+	Kind        string          `json:"kind"`
+	TestEmail   string          `json:"testEmail"`
+	Answers     json.RawMessage `json:"answers"`
+	Source      string          `json:"source"`
+	StartedAt   time.Time       `json:"startedAt"`
+	CompletedAt *time.Time      `json:"completedAt"`
+	UpdatedAt   time.Time       `json:"updatedAt"`
+	Changes     int32           `json:"changes"`
+}
+
 type Template struct {
 	ID               uuid.UUID       `json:"id"`
 	WorkspaceID      uuid.UUID       `json:"workspaceId"`
@@ -2349,6 +2732,19 @@ type UserRecoveryCode struct {
 	CodeHash  []byte     `json:"codeHash"`
 	UsedAt    *time.Time `json:"usedAt"`
 	CreatedAt time.Time  `json:"createdAt"`
+}
+
+type VisibilityCount struct {
+	CampaignID   uuid.UUID       `json:"campaignId"`
+	WorkspaceID  uuid.UUID       `json:"workspaceId"`
+	RulesHash    string          `json:"rulesHash"`
+	AudienceHash string          `json:"audienceHash"`
+	Total        int64           `json:"total"`
+	Versions     json.RawMessage `json:"versions"`
+	Shown        json.RawMessage `json:"shown"`
+	Factors      json.RawMessage `json:"factors"`
+	CountedAt    time.Time       `json:"countedAt"`
+	DurationMs   int32           `json:"durationMs"`
 }
 
 type WarmupEvent struct {

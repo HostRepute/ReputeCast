@@ -18,6 +18,7 @@ import { SqlBlock, SqlEditor } from './SqlCode'
 import { tierColor, tierLabel, type Tier } from './labels'
 import { BetweenTo } from '@/features/scoring/ContactsScore'
 import { DraftBanner, DraftFooter, DraftMark, DraftSqlNote, draftCountLabels, useSegmentAssist, type SegmentDraft } from '@/features/ai/segment'
+import { DeleteSegmentButton, SegmentUsageCard } from '@/features/conditional/usage'
 import { useT } from '@/i18n'
 import './audience.css'
 
@@ -302,6 +303,8 @@ function Builder({ segmentId, detail, catalog }: { segmentId: string; detail?: S
           <Button variant="primary" disabledReason={editReason} loading={create.isPending || update.isPending} onClick={() => void save().catch(() => undefined)}>
             Save segment
           </Button>
+          {/* Deleting warns first when a Visibility rule uses the segment (design expansion, X11). */}
+          <DeleteSegmentButton segmentId={segmentId} name={draft.name || detail?.name || ''} />
         </>
       }
       contentClassName="flex-row flex-wrap items-start"
@@ -462,6 +465,7 @@ function Builder({ segmentId, detail, catalog }: { segmentId: string; detail?: S
           segmentId={segmentId}
           draftLabels={ai ? draftCountLabels(t, { count: ai.beforeCount, empty: ai.beforeEmpty }) : undefined}
         />
+        <SegmentUsageCard segmentId={segmentId} />
         <SavedSegments current={segmentId} />
       </aside>
     </Page>
