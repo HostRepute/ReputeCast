@@ -11117,7 +11117,13 @@
             "description": "Provider code: 250 2.6.0, 452 4.2.2",
             "type": "string"
           },
+          "consentLanguage": {
+            "type": "string"
+          },
           "consentVersion": {
+            "type": "string"
+          },
+          "contactLanguageName": {
             "type": "string"
           },
           "detail": {
@@ -11136,6 +11142,22 @@
             "type": "string"
           },
           "ip": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string"
+          },
+          "languageReason": {
+            "enum": [
+              "",
+              "match",
+              "no_language",
+              "not_offered",
+              "missing",
+              "draft",
+              "held",
+              "requested"
+            ],
             "type": "string"
           },
           "linkLabel": {
@@ -11355,6 +11377,9 @@
           "ip": {
             "type": "string"
           },
+          "language": {
+            "type": "string"
+          },
           "note": {
             "type": "string"
           },
@@ -11436,6 +11461,10 @@
             "maxLength": 10,
             "type": "string"
           },
+          "language": {
+            "maxLength": 16,
+            "type": "string"
+          },
           "list": {
             "description": "List id",
             "type": "string"
@@ -11477,6 +11506,82 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "ContactLanguage": {
+        "additionalProperties": false,
+        "properties": {
+          "browser": {
+            "description": "A signup form read it from the browser",
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "gets": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "offered": {
+            "type": "boolean"
+          },
+          "options": {
+            "items": {
+              "$ref": "#/components/schemas/ContactLanguageOption"
+            },
+            "type": "array"
+          },
+          "setAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "import",
+              "form",
+              "preference_center",
+              "api",
+              "team",
+              ""
+            ],
+            "type": "string"
+          },
+          "sourceName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "offered",
+          "gets",
+          "source",
+          "sourceName",
+          "browser",
+          "options"
+        ],
+        "type": "object"
+      },
+      "ContactLanguageOption": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "offered": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "offered"
+        ],
         "type": "object"
       },
       "ContactList": {
@@ -11706,6 +11811,9 @@
             "format": "date-time",
             "type": "string"
           },
+          "language": {
+            "$ref": "#/components/schemas/ContactLanguage"
+          },
           "lastName": {
             "type": "string"
           },
@@ -11777,7 +11885,8 @@
           "tags",
           "lists",
           "preferences",
-          "activityTotal"
+          "activityTotal",
+          "language"
         ],
         "type": "object"
       },
@@ -12023,7 +12132,8 @@
             "type": "string"
           },
           "language": {
-            "maxLength": 16,
+            "description": "A BCP 47 code such as es-MX; \"Spanish\" and \"es_MX\" are normalized. Empty clears it.",
+            "maxLength": 40,
             "type": "string"
           },
           "lastName": {
@@ -15508,7 +15618,7 @@
             "type": "string"
           },
           "type": {
-            "description": "What ReputeCast stores: email, text, number, date, timezone, consent, tags, or – when skipped",
+            "description": "What ReputeCast stores: email, text, number, date, timezone, language, consent, tags, or – when skipped",
             "type": "string"
           }
         },
@@ -15611,6 +15721,70 @@
         },
         "required": [
           "items"
+        ],
+        "type": "object"
+      },
+      "ImportLanguageColumn": {
+        "additionalProperties": false,
+        "properties": {
+          "languages": {
+            "items": {
+              "$ref": "#/components/schemas/ImportLanguageValue"
+            },
+            "type": "array"
+          },
+          "normalized": {
+            "items": {
+              "$ref": "#/components/schemas/ImportLanguageValue"
+            },
+            "type": "array"
+          },
+          "unknown": {
+            "items": {
+              "$ref": "#/components/schemas/ImportLanguageValue"
+            },
+            "type": "array"
+          },
+          "unknownRows": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "unknownValues": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "normalized",
+          "unknown",
+          "unknownValues",
+          "unknownRows",
+          "languages"
+        ],
+        "type": "object"
+      },
+      "ImportLanguageValue": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "rows": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "value": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "value",
+          "code",
+          "name",
+          "rows"
         ],
         "type": "object"
       },
@@ -23156,6 +23330,10 @@
             "maxLength": 100,
             "type": "string"
           },
+          "language": {
+            "maxLength": 40,
+            "type": "string"
+          },
           "lastName": {
             "maxLength": 100,
             "type": "string"
@@ -26493,6 +26671,38 @@
         ],
         "type": "object"
       },
+      "PublicCopyLabels": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "by": {
+            "description": "Who wrote them last",
+            "type": "string"
+          },
+          "shipped": {
+            "type": "boolean"
+          },
+          "total": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "written": {
+            "description": "Labels with text in the language (all of them when they ship)",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "shipped",
+          "written",
+          "total",
+          "by"
+        ],
+        "type": "object"
+      },
       "PublicCustomDomain": {
         "additionalProperties": false,
         "properties": {
@@ -26562,6 +26772,104 @@
         ],
         "type": "object"
       },
+      "PublicPageCopy": {
+        "additionalProperties": false,
+        "properties": {
+          "copyLanguage": {
+            "description": "The language the pages are written in",
+            "type": "string"
+          },
+          "default": {
+            "type": "string"
+          },
+          "fallback": {
+            "type": "string"
+          },
+          "language": {
+            "description": "The language of strings (?language=)",
+            "type": "string"
+          },
+          "languages": {
+            "items": {
+              "$ref": "#/components/schemas/PublicPageLanguage"
+            },
+            "type": "array"
+          },
+          "strings": {
+            "items": {
+              "$ref": "#/components/schemas/PublicPageCopyString"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "copyLanguage",
+          "default",
+          "fallback",
+          "languages",
+          "language",
+          "strings"
+        ],
+        "type": "object"
+      },
+      "PublicPageCopyInput": {
+        "additionalProperties": false,
+        "properties": {
+          "strings": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "maxProperties": 500,
+            "type": "object"
+          }
+        },
+        "required": [
+          "strings"
+        ],
+        "type": "object"
+      },
+      "PublicPageCopyString": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "examples": [
+              "subscribe.heading"
+            ],
+            "type": "string"
+          },
+          "listId": {
+            "type": "string"
+          },
+          "optional": {
+            "type": "boolean"
+          },
+          "page": {
+            "enum": [
+              "subscribe",
+              "confirm",
+              "preferences",
+              "unsubscribe",
+              "lists",
+              "privacy"
+            ],
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "page",
+          "source",
+          "text",
+          "optional"
+        ],
+        "type": "object"
+      },
       "PublicPageInput": {
         "additionalProperties": false,
         "properties": {
@@ -26588,6 +26896,176 @@
             "$ref": "#/components/schemas/UnsubscribePage"
           }
         },
+        "type": "object"
+      },
+      "PublicPageLabel": {
+        "additionalProperties": false,
+        "properties": {
+          "arguments": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "key": {
+            "examples": [
+              "form.button"
+            ],
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          },
+          "source": {
+            "description": "The English text",
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "source",
+          "arguments",
+          "text"
+        ],
+        "type": "object"
+      },
+      "PublicPageLabels": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "by": {
+            "description": "Who wrote them last",
+            "type": "string"
+          },
+          "labels": {
+            "items": {
+              "$ref": "#/components/schemas/PublicPageLabel"
+            },
+            "type": "array"
+          },
+          "language": {
+            "type": "string"
+          },
+          "shipped": {
+            "type": "boolean"
+          },
+          "total": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "written": {
+            "description": "Labels with text in the language (all of them when they ship)",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "language",
+          "labels",
+          "shipped",
+          "written",
+          "total",
+          "by"
+        ],
+        "type": "object"
+      },
+      "PublicPageLabelsInput": {
+        "additionalProperties": false,
+        "properties": {
+          "labels": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "maxProperties": 500,
+            "type": "object"
+          }
+        },
+        "required": [
+          "labels"
+        ],
+        "type": "object"
+      },
+      "PublicPageLanguage": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "by": {
+            "type": "string"
+          },
+          "code": {
+            "examples": [
+              "es"
+            ],
+            "type": "string"
+          },
+          "isDefault": {
+            "type": "boolean"
+          },
+          "isFallback": {
+            "type": "boolean"
+          },
+          "isSource": {
+            "type": "boolean"
+          },
+          "labels": {
+            "$ref": "#/components/schemas/PublicCopyLabels"
+          },
+          "missing": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "examples": [
+              "Spanish"
+            ],
+            "type": "string"
+          },
+          "native": {
+            "examples": [
+              "Español"
+            ],
+            "type": "string"
+          },
+          "own": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "live",
+              "incomplete",
+              "not_set_up"
+            ],
+            "type": "string"
+          },
+          "written": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "native",
+          "isDefault",
+          "isFallback",
+          "isSource",
+          "status",
+          "missing",
+          "own",
+          "written",
+          "by",
+          "labels"
+        ],
         "type": "object"
       },
       "PublicPageList": {
@@ -34390,9 +34868,41 @@
         ],
         "type": "object"
       },
+      "SignupFormConsentEvidence": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "contactId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "version": {
+            "examples": [
+              "v1"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "contactId",
+          "name",
+          "at",
+          "version"
+        ],
+        "type": "object"
+      },
       "SignupFormContent": {
         "additionalProperties": false,
         "properties": {
+          "afterSubmitText": {
+            "maxLength": 300,
+            "type": "string"
+          },
           "button": {
             "maxLength": 40,
             "type": "string"
@@ -34454,6 +34964,226 @@
           "popupDelay",
           "popupScroll",
           "popupRepeatDays"
+        ],
+        "type": "object"
+      },
+      "SignupFormCopy": {
+        "additionalProperties": false,
+        "properties": {
+          "consentChangedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "consentChangedBy": {
+            "type": "string"
+          },
+          "consentVersion": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "copyLanguage": {
+            "description": "The language the form is written in",
+            "type": "string"
+          },
+          "fallback": {
+            "description": "The language the form shows where one isn't Live",
+            "type": "string"
+          },
+          "fields": {
+            "items": {
+              "$ref": "#/components/schemas/SignupFormCopyField"
+            },
+            "type": "array"
+          },
+          "fixedLanguage": {
+            "type": "string"
+          },
+          "formId": {
+            "type": "string"
+          },
+          "languageMode": {
+            "enum": [
+              "page",
+              "browser",
+              "fixed"
+            ],
+            "type": "string"
+          },
+          "languages": {
+            "items": {
+              "$ref": "#/components/schemas/SignupFormCopyLanguage"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "formId",
+          "languageMode",
+          "fixedLanguage",
+          "copyLanguage",
+          "fallback",
+          "consentVersion",
+          "consentChangedBy",
+          "fields",
+          "languages"
+        ],
+        "type": "object"
+      },
+      "SignupFormCopyField": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "source": {
+            "description": "Its label in the form's own language",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "source"
+        ],
+        "type": "object"
+      },
+      "SignupFormCopyLanguage": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "by": {
+            "type": "string"
+          },
+          "code": {
+            "examples": [
+              "es"
+            ],
+            "type": "string"
+          },
+          "consentFor": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "consentReview": {
+            "description": "The form's own consent text changed since: Review the translation",
+            "type": "boolean"
+          },
+          "consentVersion": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "copy": {
+            "$ref": "#/components/schemas/SignupFormCopyText"
+          },
+          "defaultAfterSubmit": {
+            "type": "string"
+          },
+          "evidence": {
+            "$ref": "#/components/schemas/SignupFormConsentEvidence"
+          },
+          "isDefault": {
+            "type": "boolean"
+          },
+          "isSource": {
+            "type": "boolean"
+          },
+          "labels": {
+            "$ref": "#/components/schemas/PublicCopyLabels"
+          },
+          "missing": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "examples": [
+              "Spanish"
+            ],
+            "type": "string"
+          },
+          "native": {
+            "examples": [
+              "Español"
+            ],
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "live",
+              "incomplete",
+              "not_set_up"
+            ],
+            "type": "string"
+          },
+          "total": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "written": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "native",
+          "isDefault",
+          "isSource",
+          "status",
+          "missing",
+          "written",
+          "total",
+          "by",
+          "copy",
+          "consentVersion",
+          "consentFor",
+          "consentReview",
+          "labels",
+          "defaultAfterSubmit"
+        ],
+        "type": "object"
+      },
+      "SignupFormCopyText": {
+        "additionalProperties": false,
+        "properties": {
+          "afterSubmit": {
+            "description": "What the form says after a signup",
+            "maxLength": 300,
+            "type": "string"
+          },
+          "button": {
+            "maxLength": 40,
+            "type": "string"
+          },
+          "consentText": {
+            "maxLength": 600,
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "fields": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "maxProperties": 20,
+            "type": "object"
+          },
+          "heading": {
+            "maxLength": 120,
+            "type": "string"
+          }
+        },
+        "required": [
+          "heading",
+          "description",
+          "button",
+          "consentText",
+          "afterSubmit",
+          "fields"
         ],
         "type": "object"
       },
@@ -34628,6 +35358,27 @@
           "allowedOrigins",
           "content",
           "publish"
+        ],
+        "type": "object"
+      },
+      "SignupFormLanguageInput": {
+        "additionalProperties": false,
+        "properties": {
+          "fixed": {
+            "description": "The language of a form always shown in one (mode fixed)",
+            "type": "string"
+          },
+          "mode": {
+            "enum": [
+              "page",
+              "browser",
+              "fixed"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "mode"
         ],
         "type": "object"
       },
@@ -59600,6 +60351,17 @@
             }
           },
           {
+            "description": "A workspace language's code (es also matches es-MX), none or not_offered",
+            "explode": false,
+            "in": "query",
+            "name": "language",
+            "schema": {
+              "description": "A workspace language's code (es also matches es-MX), none or not_offered",
+              "maxLength": 16,
+              "type": "string"
+            }
+          },
+          {
             "explode": false,
             "in": "query",
             "name": "page",
@@ -62657,6 +63419,326 @@
         "x-permission": "forms:edit"
       }
     },
+    "/api/v1/workspaces/{workspace}/forms/{form}/copy": {
+      "get": {
+        "description": "The form's language mode, each language's status and text, its consent text's version and the latest consent given in it.",
+        "operationId": "get-signup-form-copy",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Form id",
+            "in": "path",
+            "name": "form",
+            "required": true,
+            "schema": {
+              "description": "Form id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignupFormCopy"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a signup form's copy in every language",
+        "tags": [
+          "Forms"
+        ],
+        "x-access": "workspace",
+        "x-permission": "subscribers:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/forms/{form}/copy/{language}": {
+      "put": {
+        "description": "In the form's own language this is its content and consent text. Changing a consent text starts a new version of it in that language; consent evidence keeps the version and language shown.",
+        "operationId": "save-signup-form-copy",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Form id",
+            "in": "path",
+            "name": "form",
+            "required": true,
+            "schema": {
+              "description": "Form id",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "A workspace language (es)",
+            "in": "path",
+            "name": "language",
+            "required": true,
+            "schema": {
+              "description": "A workspace language (es)",
+              "maxLength": 35,
+              "pattern": "^[A-Za-z]{2,3}([-_][A-Za-z0-9]{2,8})*$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignupFormCopyText"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignupFormCopy"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Save a signup form's text in a language",
+        "tags": [
+          "Forms"
+        ],
+        "x-access": "workspace",
+        "x-permission": "forms:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/forms/{form}/copy/{language}/consent-reviewed": {
+      "post": {
+        "description": "Clears \"Review the translation\" after the form's own consent text changed, keeping the translation and its version.",
+        "operationId": "confirm-signup-form-consent",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Form id",
+            "in": "path",
+            "name": "form",
+            "required": true,
+            "schema": {
+              "description": "Form id",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "A workspace language (es)",
+            "in": "path",
+            "name": "language",
+            "required": true,
+            "schema": {
+              "description": "A workspace language (es)",
+              "maxLength": 35,
+              "pattern": "^[A-Za-z]{2,3}([-_][A-Za-z0-9]{2,8})*$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignupFormCopy"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mark a language's consent text still right",
+        "tags": [
+          "Forms"
+        ],
+        "x-access": "workspace",
+        "x-permission": "forms:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/forms/{form}/language": {
+      "put": {
+        "description": "page: the lang of the page it's on; browser: the visitor's browser; fixed: always one language. A language whose copy isn't Live shows the fallback.",
+        "operationId": "set-signup-form-language",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Form id",
+            "in": "path",
+            "name": "form",
+            "required": true,
+            "schema": {
+              "description": "Form id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignupFormLanguageInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignupFormCopy"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Pick which language a signup form shows",
+        "tags": [
+          "Forms"
+        ],
+        "x-access": "workspace",
+        "x-permission": "forms:edit"
+      }
+    },
     "/api/v1/workspaces/{workspace}/forms/{form}/rename": {
       "post": {
         "description": "The form's hosted page follows the new name (/subscribe/\u003cname\u003e); embed code keeps working.",
@@ -63708,6 +64790,83 @@
           }
         ],
         "summary": "Save the field mapping",
+        "tags": [
+          "Imports"
+        ],
+        "x-access": "workspace",
+        "x-permission": "subscribers:import"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/imports/{id}/fields/{field}/languages": {
+      "get": {
+        "operationId": "get-import-language-column",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The source field's key",
+            "in": "path",
+            "name": "field",
+            "required": true,
+            "schema": {
+              "description": "The source field's key",
+              "maxLength": 200,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportLanguageColumn"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What a source field becomes as the contact's language, and the values that aren't languages",
         "tags": [
           "Imports"
         ],
@@ -71391,6 +72550,155 @@
         "x-permission": "forms:edit"
       }
     },
+    "/api/v1/workspaces/{workspace}/public-pages/copy": {
+      "get": {
+        "description": "Each workspace language's status (Live, Incomplete with the strings still to write, or Not set up) and, with ?language=, that language's strings next to the pages' own.",
+        "operationId": "get-public-page-copy",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Also return this language's strings",
+            "explode": false,
+            "in": "query",
+            "name": "language",
+            "schema": {
+              "description": "Also return this language's strings",
+              "maxLength": 35,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicPageCopy"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get the public pages' copy in every language",
+        "tags": [
+          "Public pages"
+        ],
+        "x-access": "workspace",
+        "x-permission": "subscribers:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/public-pages/copy/{language}": {
+      "put": {
+        "description": "Send the strings to change; an empty text removes a translation. A language's pages are shown once every string and its built-in labels are written.",
+        "operationId": "save-public-page-copy",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "A workspace language (es)",
+            "in": "path",
+            "name": "language",
+            "required": true,
+            "schema": {
+              "description": "A workspace language (es)",
+              "maxLength": 35,
+              "pattern": "^[A-Za-z]{2,3}([-_][A-Za-z0-9]{2,8})*$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicPageCopyInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicPageCopy"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Save the public pages' own text in a language",
+        "tags": [
+          "Public pages"
+        ],
+        "x-access": "workspace",
+        "x-permission": "forms:edit"
+      }
+    },
     "/api/v1/workspaces/{workspace}/public-pages/domain": {
       "put": {
         "description": "The pages move to the domain once its DNS points at this server (a CNAME, matching addresses or the TXT record _reputecast.\u003cdomain\u003e).",
@@ -71509,6 +72817,154 @@
           }
         ],
         "summary": "Check the custom domain's DNS now",
+        "tags": [
+          "Public pages"
+        ],
+        "x-access": "workspace",
+        "x-permission": "forms:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/public-pages/labels/{language}": {
+      "get": {
+        "description": "Buttons, field labels, messages and the confirmation email. ReputeCast ships them in English and Vietnamese; for other languages the workspace writes them.",
+        "operationId": "get-public-page-labels",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "A workspace language (es)",
+            "in": "path",
+            "name": "language",
+            "required": true,
+            "schema": {
+              "description": "A workspace language (es)",
+              "maxLength": 35,
+              "pattern": "^[A-Za-z]{2,3}([-_][A-Za-z0-9]{2,8})*$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicPageLabels"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get the built-in labels of a language",
+        "tags": [
+          "Public pages"
+        ],
+        "x-access": "workspace",
+        "x-permission": "subscribers:view"
+      },
+      "put": {
+        "description": "Each text may use only its English label's placeholders and tags. Languages ReputeCast ships answer 409.",
+        "operationId": "save-public-page-labels",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "A workspace language (es)",
+            "in": "path",
+            "name": "language",
+            "required": true,
+            "schema": {
+              "description": "A workspace language (es)",
+              "maxLength": 35,
+              "pattern": "^[A-Za-z]{2,3}([-_][A-Za-z0-9]{2,8})*$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicPageLabelsInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicPageLabels"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Save the built-in labels the workspace writes for a language",
         "tags": [
           "Public pages"
         ],
@@ -71784,6 +73240,17 @@
             "schema": {
               "description": "Preview the pages of this subscriber",
               "maxLength": 320,
+              "type": "string"
+            }
+          },
+          {
+            "description": "Preview the page in this language",
+            "explode": false,
+            "in": "query",
+            "name": "language",
+            "schema": {
+              "description": "Preview the page in this language",
+              "maxLength": 35,
               "type": "string"
             }
           }

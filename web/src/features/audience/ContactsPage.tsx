@@ -18,6 +18,7 @@ import { AudienceTabs, useAudienceSummary } from './AudienceTabs'
 import { AddContactDialog, BulkDialog, BulkResultPanel, EraseDialog, SaveViewDialog, type BulkKind } from './ContactDialogs'
 import { fileName, saveBlob } from './download'
 import { consentFilterLabel, consentLabel, consentTone, mailboxColor, mailboxes, mailboxLabel, tierClass, tierColor, tierLabel, tiers, type Consent, type Mailbox, type Tier } from './labels'
+import { LanguageFilter } from '@/features/page-languages/contacts'
 import './audience.css'
 
 export interface ContactsSearch {
@@ -30,6 +31,7 @@ export interface ContactsSearch {
   tag?: string
   joinedAfter?: string
   segment?: string
+  language?: string
   page?: number
   size?: number
 }
@@ -37,7 +39,7 @@ export interface ContactsSearch {
 type Item = Schemas['ContactListItem']
 type Filter = Schemas['ContactFilter']
 
-const filterKeys = ['q', 'list', 'tier', 'mailbox', 'consent', 'source', 'tag', 'joinedAfter', 'segment'] as const
+const filterKeys = ['q', 'list', 'tier', 'mailbox', 'consent', 'source', 'tag', 'joinedAfter', 'segment', 'language'] as const
 
 /** The filter part of the search params, without empty values. */
 export function filterOf(s: ContactsSearch): Filter {
@@ -319,6 +321,7 @@ function Filters({
           </option>
         ))}
       </select>
+      <LanguageFilter className={sel} value={search.language} onChange={(language) => onChange({ language })} />
       <MoreFilters search={search} n={more} onChange={onChange} />
       <span className="k ml-auto">{total === undefined ? '' : `${count(total)} ${total === 1 ? 'contact' : 'contacts'} · sorted by last activity`}</span>
     </div>

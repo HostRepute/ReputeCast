@@ -40,6 +40,8 @@ type previewInput struct {
 	Form    string `query:"form" doc:"Show a form's hosted page (drafts too) instead of the subscribe page"`
 	Draft   string `query:"draft" maxLength:"20000" doc:"Unsaved page options to show: the body of save-public-pages, as JSON"`
 	Contact string `query:"contact" maxLength:"320" doc:"Preview the pages of this subscriber"`
+	// Language previews the page in a workspace language (its copy must be Live).
+	Language string `query:"language" maxLength:"35" doc:"Preview the page in this language"`
 }
 
 // RegisterAPI adds the preview operation.
@@ -47,13 +49,13 @@ func RegisterAPI(h huma.API, p *Handler) {
 	api.Get(h, api.Op{ID: "preview-public-page", Path: "/workspaces/{workspace}/public-pages/preview/{page}",
 		Summary: "Preview a public page as a subscriber sees it", Tags: []string{"Public pages"}, Access: api.Workspace(authz.SubscribersView)},
 		func(ctx context.Context, in *previewInput) (*api.Body[PublicPagePreview], error) {
-			out, err := p.Preview(ctx, api.WorkspaceFrom(ctx), in.Page, in.Form, in.Draft, in.Contact)
+			out, err := p.Preview(ctx, api.WorkspaceFrom(ctx), in.Page, in.Form, in.Draft, in.Contact, in.Language)
 			return api.OK(out), err
 		})
 }
 
 // Preview renders one public page for the app.
-func (h *Handler) Preview(ctx context.Context, ws *store.Workspace, page, form, draft, contact string) (PublicPagePreview, error) {
+func (h *Handler) Preview(ctx context.Context, ws *store.Workspace, page, form, draft, contact, language string) (PublicPagePreview, error) {
 	if err := h.Init(); err != nil {
 		return PublicPagePreview{}, err
 	}
@@ -82,16 +84,23 @@ func (h *Handler) Preview(ctx context.Context, ws *store.Workspace, page, form, 
 		if err != nil {
 			return out, err
 		}
-		body, err := h.subscribeBody(ctx, s, c, hosted, nil, forms.Outcome{})
+		fl, err := h.formLangIn(ctx, s, c, language)
 		if err != nil {
 			return out, err
 		}
-		v = h.view(s, subscribeTitle(body.Heading), body)
-		out.URL = s.canon.Subscribe(slugOf(c, hosted))
-	case "archive":
-		if v, _, err = h.archiveView(ctx, s, url.Values{}, true); err != nil {
+		body, err := h.subscribeBody(ctx, s, fl, hosted, nil, forms.Outcome{})
+		if err != nil {
 			return out, err
 		}
+		v = h.view(s, subscribeTitle(fl.Labels, body.Heading), body)
+		h.setLangCtx(v, ctx, s, fl.pageLang)
+		out.URL = s.canon.Subscribe(slugOf(fl.form, hosted))
+	case "archive":
+		pl := h.fixedLang(ctx, s, language, nil)
+		if v, _, err = h.archiveView(ctx, s, url.Values{}, pl, pl.Code, true); err != nil {
+			return out, err
+		}
+		h.setLangCtx(v, ctx, s, pl)
 		out.URL = s.canon.Archive()
 	default:
 		pc, err := h.previewContact(ctx, s, contact)
@@ -100,32 +109,34 @@ func (h *Handler) Preview(ctx context.Context, ws *store.Workspace, page, form, 
 		}
 		out.Contact = pc.Email
 		claims := linktoken.Claims{WorkspaceID: ws.ID, ContactID: pc.ID}
-		publisher := s.set.Branding.PublisherName
+		// The tabs preview the language they edit; the pages' own by default.
+		pl := h.fixedLang(ctx, s, language, nil)
 		switch page {
 		case "confirm":
-			body, err := h.confirmBody(ctx, s, pc)
+			body, err := h.confirmBody(ctx, s, pc, pl)
 			if err != nil {
 				return out, err
 			}
-			v = h.view(s, "You're in · "+publisher, body)
+			v = h.view(s, pageTitle(pl, s, "confirm.title"), body)
 		case "preferences":
 			token := h.sign(s, linktoken.Preferences, pc.ID, uuid.Nil)
-			body, err := h.preferencesBody(ctx, s, pc, s.links.Preferences(token), claims)
+			body, err := h.preferencesBody(ctx, s, pc, s.links.Preferences(token), claims, pl)
 			if err != nil {
 				return out, err
 			}
-			v = h.view(s, "Email preferences · "+publisher, body)
+			v = h.view(s, pageTitle(pl, s, "prefs.heading"), body)
 			out.URL = s.canon.PreferencesRequest()
 		case "unsubscribe":
 			token := h.sign(s, linktoken.Unsubscribe, pc.ID, uuid.Nil)
-			body, err := h.unsubscribeBody(ctx, s, pc, claims, token)
+			body, err := h.unsubscribeBody(ctx, s, pc, claims, token, pl)
 			if err != nil {
 				return out, err
 			}
-			v = h.view(s, "Unsubscribe · "+publisher, body)
+			v = h.view(s, pageTitle(pl, s, "unsub.title"), body)
 		default:
 			return out, api.NotFound("Public page")
 		}
+		h.setLangCtx(v, ctx, s, pl)
 	}
 	v.Preview = true
 	html, err := h.html(tmpl, v)

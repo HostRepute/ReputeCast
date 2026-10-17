@@ -142,6 +142,8 @@ func condition(t *sqlText, c SegmentCondition, custom map[string]CustomField) {
 		}
 		t.raw("c." + c.Field + op)
 		t.bind(str(c.Value))
+	case "language":
+		languageCondition(t, c)
 	case "email_domain":
 		switch c.Op {
 		case "ends_with":

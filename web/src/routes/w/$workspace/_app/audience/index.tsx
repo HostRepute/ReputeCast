@@ -18,6 +18,11 @@ const search = z.object({
     .optional()
     .catch(undefined),
   segment: z.string().uuid().optional().catch(undefined),
+  language: z
+    .string()
+    .regex(/^([a-z]{2,3}|none|not_offered)$/)
+    .optional()
+    .catch(undefined),
   page: z.coerce.number().int().min(1).optional().catch(undefined),
   size: z.coerce.number().int().min(1).max(100).optional().catch(undefined),
 })

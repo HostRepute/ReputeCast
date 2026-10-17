@@ -81,7 +81,7 @@ func (q *Queries) SignupConfirmPending(ctx context.Context, arg SignupConfirmPen
 
 const signupContactByEmail = `-- name: SignupContactByEmail :one
 
-SELECT id, workspace_id, email, first_name, last_name, status, tier, source, timezone, country, mailbox_provider, tags, attributes, last_sent_at, last_open_at, last_click_at, created_at, updated_at, erased_at, company, language, mailbox_detail, consent, consent_evidence, import_id, role_address, last_human_open_at, last_open_machine, last_activity_at, tier_changed_at, sunset_at, broadcasts_stopped_at FROM contacts
+SELECT id, workspace_id, email, first_name, last_name, status, tier, source, timezone, country, mailbox_provider, tags, attributes, last_sent_at, last_open_at, last_click_at, created_at, updated_at, erased_at, company, language, mailbox_detail, consent, consent_evidence, import_id, role_address, last_human_open_at, last_open_machine, last_activity_at, tier_changed_at, sunset_at, broadcasts_stopped_at, language_source, language_source_name, language_browser, language_set_at, language_set_by FROM contacts
 WHERE workspace_id = $1 AND email = $2 AND erased_at IS NULL
 FOR UPDATE
 `
@@ -131,12 +131,17 @@ func (q *Queries) SignupContactByEmail(ctx context.Context, arg SignupContactByE
 		&i.TierChangedAt,
 		&i.SunsetAt,
 		&i.BroadcastsStoppedAt,
+		&i.LanguageSource,
+		&i.LanguageSourceName,
+		&i.LanguageBrowser,
+		&i.LanguageSetAt,
+		&i.LanguageSetBy,
 	)
 	return i, err
 }
 
 const signupContactByID = `-- name: SignupContactByID :one
-SELECT id, workspace_id, email, first_name, last_name, status, tier, source, timezone, country, mailbox_provider, tags, attributes, last_sent_at, last_open_at, last_click_at, created_at, updated_at, erased_at, company, language, mailbox_detail, consent, consent_evidence, import_id, role_address, last_human_open_at, last_open_machine, last_activity_at, tier_changed_at, sunset_at, broadcasts_stopped_at FROM contacts
+SELECT id, workspace_id, email, first_name, last_name, status, tier, source, timezone, country, mailbox_provider, tags, attributes, last_sent_at, last_open_at, last_click_at, created_at, updated_at, erased_at, company, language, mailbox_detail, consent, consent_evidence, import_id, role_address, last_human_open_at, last_open_machine, last_activity_at, tier_changed_at, sunset_at, broadcasts_stopped_at, language_source, language_source_name, language_browser, language_set_at, language_set_by FROM contacts
 WHERE workspace_id = $1 AND id = $2 AND erased_at IS NULL
 FOR UPDATE
 `
@@ -182,6 +187,11 @@ func (q *Queries) SignupContactByID(ctx context.Context, arg SignupContactByIDPa
 		&i.TierChangedAt,
 		&i.SunsetAt,
 		&i.BroadcastsStoppedAt,
+		&i.LanguageSource,
+		&i.LanguageSourceName,
+		&i.LanguageBrowser,
+		&i.LanguageSetAt,
+		&i.LanguageSetBy,
 	)
 	return i, err
 }
@@ -258,8 +268,8 @@ func (q *Queries) SignupFillContact(ctx context.Context, arg SignupFillContactPa
 }
 
 const signupInsertConsent = `-- name: SignupInsertConsent :exec
-INSERT INTO consent_events (id, contact_id, list_id, action, source, ip, user_agent, detail, note, consent_version, consent_text, occurred_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+INSERT INTO consent_events (id, contact_id, list_id, action, source, ip, user_agent, detail, note, consent_version, consent_text, language, occurred_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 `
 
 type SignupInsertConsentParams struct {
@@ -274,6 +284,7 @@ type SignupInsertConsentParams struct {
 	Note           string      `json:"note"`
 	ConsentVersion string      `json:"consentVersion"`
 	ConsentText    string      `json:"consentText"`
+	Language       string      `json:"language"`
 	OccurredAt     time.Time   `json:"occurredAt"`
 }
 
@@ -290,6 +301,7 @@ func (q *Queries) SignupInsertConsent(ctx context.Context, arg SignupInsertConse
 		arg.Note,
 		arg.ConsentVersion,
 		arg.ConsentText,
+		arg.Language,
 		arg.OccurredAt,
 	)
 	return err
@@ -301,7 +313,7 @@ INSERT INTO contacts (id, workspace_id, email, first_name, last_name, company, m
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9,
         '{}', $10, $11, $12::timestamptz, $12::timestamptz, $12::timestamptz)
 ON CONFLICT (workspace_id, email) DO NOTHING
-RETURNING id, workspace_id, email, first_name, last_name, status, tier, source, timezone, country, mailbox_provider, tags, attributes, last_sent_at, last_open_at, last_click_at, created_at, updated_at, erased_at, company, language, mailbox_detail, consent, consent_evidence, import_id, role_address, last_human_open_at, last_open_machine, last_activity_at, tier_changed_at, sunset_at, broadcasts_stopped_at
+RETURNING id, workspace_id, email, first_name, last_name, status, tier, source, timezone, country, mailbox_provider, tags, attributes, last_sent_at, last_open_at, last_click_at, created_at, updated_at, erased_at, company, language, mailbox_detail, consent, consent_evidence, import_id, role_address, last_human_open_at, last_open_machine, last_activity_at, tier_changed_at, sunset_at, broadcasts_stopped_at, language_source, language_source_name, language_browser, language_set_at, language_set_by
 `
 
 type SignupInsertContactParams struct {
@@ -370,12 +382,17 @@ func (q *Queries) SignupInsertContact(ctx context.Context, arg SignupInsertConta
 		&i.TierChangedAt,
 		&i.SunsetAt,
 		&i.BroadcastsStoppedAt,
+		&i.LanguageSource,
+		&i.LanguageSourceName,
+		&i.LanguageBrowser,
+		&i.LanguageSetAt,
+		&i.LanguageSetBy,
 	)
 	return i, err
 }
 
 const signupLastConsent = `-- name: SignupLastConsent :one
-SELECT occurred_at, ip, source, consent_version, consent_text
+SELECT occurred_at, ip, source, consent_version, consent_text, language
 FROM consent_events
 WHERE contact_id = $1 AND action = $2
 ORDER BY occurred_at DESC, id DESC
@@ -393,6 +410,7 @@ type SignupLastConsentRow struct {
 	Source         string      `json:"source"`
 	ConsentVersion string      `json:"consentVersion"`
 	ConsentText    string      `json:"consentText"`
+	Language       string      `json:"language"`
 }
 
 // The latest consent event of one kind (the confirmation shown under the
@@ -406,6 +424,7 @@ func (q *Queries) SignupLastConsent(ctx context.Context, arg SignupLastConsentPa
 		&i.Source,
 		&i.ConsentVersion,
 		&i.ConsentText,
+		&i.Language,
 	)
 	return i, err
 }
