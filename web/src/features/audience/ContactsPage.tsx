@@ -14,6 +14,7 @@ import { TableScroll } from '@/components/ui/Table'
 import { andList, count, dayMonthDate, shortDate } from '@/lib/format'
 import { trackJob, updateJob } from '@/lib/jobs'
 import { useCan, usePermissionReason, useWorkspace } from '@/lib/session'
+import { AddressCheckFilter } from '@/features/verification/AddressCheck'
 import { AudienceTabs, useAudienceSummary } from './AudienceTabs'
 import { AddContactDialog, BulkDialog, BulkResultPanel, EraseDialog, SaveViewDialog, type BulkKind } from './ContactDialogs'
 import { fileName, saveBlob } from './download'
@@ -30,6 +31,8 @@ export interface ContactsSearch {
   tag?: string
   joinedAfter?: string
   segment?: string
+  /** The latest address check (X14). */
+  check?: 'valid' | 'invalid' | 'risky' | 'unknown' | 'never'
   page?: number
   size?: number
 }
@@ -37,7 +40,7 @@ export interface ContactsSearch {
 type Item = Schemas['ContactListItem']
 type Filter = Schemas['ContactFilter']
 
-const filterKeys = ['q', 'list', 'tier', 'mailbox', 'consent', 'source', 'tag', 'joinedAfter', 'segment'] as const
+const filterKeys = ['q', 'list', 'tier', 'mailbox', 'consent', 'source', 'tag', 'joinedAfter', 'segment', 'check'] as const
 
 /** The filter part of the search params, without empty values. */
 export function filterOf(s: ContactsSearch): Filter {
@@ -319,6 +322,7 @@ function Filters({
           </option>
         ))}
       </select>
+      <AddressCheckFilter className={sel} value={search.check} onChange={(check) => onChange({ check })} />
       <MoreFilters search={search} n={more} onChange={onChange} />
       <span className="k ml-auto">{total === undefined ? '' : `${count(total)} ${total === 1 ? 'contact' : 'contacts'} · sorted by last activity`}</span>
     </div>

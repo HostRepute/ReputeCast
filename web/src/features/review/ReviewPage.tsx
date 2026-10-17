@@ -27,6 +27,7 @@ import { fixReason, whenText } from './parts'
 import { IncompleteBanner, RunningBanner, ScheduledBanner, ScheduledTiles, StaleBanner, VerdictBanner } from './Verdict'
 import { ByVersion, EACH, languageRows, sentVersions } from '@/features/languages/review'
 import { mr } from '@/features/languages/messages'
+import { ReadinessVerifyDialog } from '@/features/verification/HealthEntry'
 import './review.css'
 
 const reviewPath = '/api/v1/workspaces/{workspace}/campaigns/{campaignId}/review' as const
@@ -162,6 +163,8 @@ function ReviewBody({
   const [unschedule, setUnschedule] = useState(false)
   // "Fix 2 in one click" shows what it changes first.
   const [oneClick, setOneClick] = useState<{ check: Check; fix: Fix }>()
+  // "Verify N addresses first" opens Verify addresses (X14); the dialog starts the job.
+  const [verifying, setVerifying] = useState(false)
 
   // The checks run on their own when the campaign changed since the last
   // run (or never ran): once per visit, for people who may run them.
@@ -376,11 +379,15 @@ function ReviewBody({
   const can = { edit: a.canEdit, send: a.canSend, editable: c.editable }
   const reasonFor = (f: Fix) => fixReason(f, can, helpers)
   const apply = (check: Check, fix: Fix) =>
-    fix.action === 'accessibility_one_click' ? setOneClick({ check, fix }) : void applyFixes([{ check, fix }], `${check.key}:${fix.action}`)
+    fix.action === 'verify_addresses'
+      ? setVerifying(true)
+      : fix.action === 'accessibility_one_click'
+        ? setOneClick({ check, fix })
+        : void applyFixes([{ check, fix }], `${check.key}:${fix.action}`)
   const fixAll = (status: 'warn' | 'block') => {
     const items = run.checks.filter((x) => x.status === status).flatMap((x) => {
       const f = primaryFix(x)
-      return f && !reasonFor(f) ? [{ check: x, fix: f }] : []
+      return f && f.action !== 'verify_addresses' && !reasonFor(f) ? [{ check: x, fix: f }] : []
     })
     return items
   }
@@ -585,6 +592,16 @@ function ReviewBody({
               campaignId={campaignId}
               onOpenChange={(open) => (open ? undefined : setOneClick(undefined))}
               onConfirm={() => applyFixes([oneClick], `${oneClick.check.key}:${oneClick.fix.action}`)}
+            />
+          ) : null}
+          {verifying ? (
+            <ReadinessVerifyDialog
+              campaignId={campaignId}
+              campaignName={d.campaign.name}
+              onClose={() => {
+                setVerifying(false)
+                void refresh()
+              }}
             />
           ) : null}
         </div>

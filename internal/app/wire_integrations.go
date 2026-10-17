@@ -23,6 +23,7 @@ func (a *App) integrations() *integrations.Service {
 		Confirm:      a.audience(),
 		AllowPrivate: func() bool { return cfg.Webhooks.AllowPrivateNetworks },
 		Languages:    draftLanguages{languagesService(a)},
+		Sources:      map[string]integrations.GroupSource{"verification": verificationCatalog(a)},
 	}
 }
 

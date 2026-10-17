@@ -81,6 +81,7 @@ import { Route as WWorkspaceAppAdminSsoProviderIdRouteImport } from './routes/w/
 import { Route as WWorkspaceAppAudienceContactsContactIdRouteImport } from './routes/w/$workspace/_app/audience/contacts/$contactId'
 import { Route as WWorkspaceAppAudienceSegmentsIndexRouteImport } from './routes/w/$workspace/_app/audience/segments/index'
 import { Route as WWorkspaceAppAudienceSegmentsSegmentIdRouteImport } from './routes/w/$workspace/_app/audience/segments/$segmentId'
+import { Route as WWorkspaceAppAudienceVerificationJobIdRouteImport } from './routes/w/$workspace/_app/audience/verification/$jobId'
 import { Route as WWorkspaceAppCampaignsCampaignIdLiveRouteImport } from './routes/w/$workspace/_app/campaigns/$campaignId/live'
 import { Route as WWorkspaceAppCampaignsCampaignIdReportRouteImport } from './routes/w/$workspace/_app/campaigns/$campaignId/report'
 import { Route as WWorkspaceAppCampaignsCampaignIdReviewRouteImport } from './routes/w/$workspace/_app/campaigns/$campaignId/review'
@@ -90,6 +91,7 @@ import { Route as WWorkspaceAppDeliverabilityPlacementSeedsRouteImport } from '.
 import { Route as WWorkspaceAppSettingsIntegrationsIndexRouteImport } from './routes/w/$workspace/_app/settings/integrations/index'
 import { Route as WWorkspaceAppSettingsIntegrationsKindRouteImport } from './routes/w/$workspace/_app/settings/integrations/$kind'
 import { Route as WWorkspaceAppSettingsIntegrationsHostreputeRouteImport } from './routes/w/$workspace/_app/settings/integrations/hostrepute'
+import { Route as WWorkspaceAppSettingsIntegrationsVerificationRouteImport } from './routes/w/$workspace/_app/settings/integrations/verification'
 import { Route as WWorkspaceAppSettingsIntegrationsWordpressRouteImport } from './routes/w/$workspace/_app/settings/integrations/wordpress'
 import { Route as WWorkspaceAppSettingsRolesIndexRouteImport } from './routes/w/$workspace/_app/settings/roles/index'
 import { Route as WWorkspaceAppSettingsRolesRoleIdRouteImport } from './routes/w/$workspace/_app/settings/roles/$roleId'
@@ -512,6 +514,12 @@ const WWorkspaceAppAudienceSegmentsSegmentIdRoute =
     path: '/audience/segments/$segmentId',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
+const WWorkspaceAppAudienceVerificationJobIdRoute =
+  WWorkspaceAppAudienceVerificationJobIdRouteImport.update({
+    id: '/audience/verification/$jobId',
+    path: '/audience/verification/$jobId',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
 const WWorkspaceAppCampaignsCampaignIdLiveRoute =
   WWorkspaceAppCampaignsCampaignIdLiveRouteImport.update({
     id: '/campaigns/$campaignId/live',
@@ -564,6 +572,12 @@ const WWorkspaceAppSettingsIntegrationsHostreputeRoute =
   WWorkspaceAppSettingsIntegrationsHostreputeRouteImport.update({
     id: '/settings/integrations/hostrepute',
     path: '/settings/integrations/hostrepute',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppSettingsIntegrationsVerificationRoute =
+  WWorkspaceAppSettingsIntegrationsVerificationRouteImport.update({
+    id: '/settings/integrations/verification',
+    path: '/settings/integrations/verification',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
 const WWorkspaceAppSettingsIntegrationsWordpressRoute =
@@ -691,6 +705,7 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/admin/sso/$providerId': typeof WWorkspaceAppAdminSsoProviderIdRoute
   '/w/$workspace/audience/contacts/$contactId': typeof WWorkspaceAppAudienceContactsContactIdRoute
   '/w/$workspace/audience/segments/$segmentId': typeof WWorkspaceAppAudienceSegmentsSegmentIdRoute
+  '/w/$workspace/audience/verification/$jobId': typeof WWorkspaceAppAudienceVerificationJobIdRoute
   '/w/$workspace/campaigns/$campaignId/live': typeof WWorkspaceAppCampaignsCampaignIdLiveRoute
   '/w/$workspace/campaigns/$campaignId/report': typeof WWorkspaceAppCampaignsCampaignIdReportRoute
   '/w/$workspace/campaigns/$campaignId/review': typeof WWorkspaceAppCampaignsCampaignIdReviewRoute
@@ -698,6 +713,7 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/deliverability/placement/seeds': typeof WWorkspaceAppDeliverabilityPlacementSeedsRoute
   '/w/$workspace/settings/integrations/$kind': typeof WWorkspaceAppSettingsIntegrationsKindRoute
   '/w/$workspace/settings/integrations/hostrepute': typeof WWorkspaceAppSettingsIntegrationsHostreputeRoute
+  '/w/$workspace/settings/integrations/verification': typeof WWorkspaceAppSettingsIntegrationsVerificationRoute
   '/w/$workspace/settings/integrations/wordpress': typeof WWorkspaceAppSettingsIntegrationsWordpressRoute
   '/w/$workspace/settings/roles/$roleId': typeof WWorkspaceAppSettingsRolesRoleIdRoute
   '/w/$workspace/settings/senders/$domainId': typeof WWorkspaceAppSettingsSendersDomainIdRoute
@@ -781,6 +797,7 @@ export interface FileRoutesByTo {
   '/w/$workspace/admin/sso/$providerId': typeof WWorkspaceAppAdminSsoProviderIdRoute
   '/w/$workspace/audience/contacts/$contactId': typeof WWorkspaceAppAudienceContactsContactIdRoute
   '/w/$workspace/audience/segments/$segmentId': typeof WWorkspaceAppAudienceSegmentsSegmentIdRoute
+  '/w/$workspace/audience/verification/$jobId': typeof WWorkspaceAppAudienceVerificationJobIdRoute
   '/w/$workspace/campaigns/$campaignId/live': typeof WWorkspaceAppCampaignsCampaignIdLiveRoute
   '/w/$workspace/campaigns/$campaignId/report': typeof WWorkspaceAppCampaignsCampaignIdReportRoute
   '/w/$workspace/campaigns/$campaignId/review': typeof WWorkspaceAppCampaignsCampaignIdReviewRoute
@@ -788,6 +805,7 @@ export interface FileRoutesByTo {
   '/w/$workspace/deliverability/placement/seeds': typeof WWorkspaceAppDeliverabilityPlacementSeedsRoute
   '/w/$workspace/settings/integrations/$kind': typeof WWorkspaceAppSettingsIntegrationsKindRoute
   '/w/$workspace/settings/integrations/hostrepute': typeof WWorkspaceAppSettingsIntegrationsHostreputeRoute
+  '/w/$workspace/settings/integrations/verification': typeof WWorkspaceAppSettingsIntegrationsVerificationRoute
   '/w/$workspace/settings/integrations/wordpress': typeof WWorkspaceAppSettingsIntegrationsWordpressRoute
   '/w/$workspace/settings/roles/$roleId': typeof WWorkspaceAppSettingsRolesRoleIdRoute
   '/w/$workspace/settings/senders/$domainId': typeof WWorkspaceAppSettingsSendersDomainIdRoute
@@ -874,6 +892,7 @@ export interface FileRoutesById {
   '/w/$workspace/_app/admin/sso/$providerId': typeof WWorkspaceAppAdminSsoProviderIdRoute
   '/w/$workspace/_app/audience/contacts/$contactId': typeof WWorkspaceAppAudienceContactsContactIdRoute
   '/w/$workspace/_app/audience/segments/$segmentId': typeof WWorkspaceAppAudienceSegmentsSegmentIdRoute
+  '/w/$workspace/_app/audience/verification/$jobId': typeof WWorkspaceAppAudienceVerificationJobIdRoute
   '/w/$workspace/_app/campaigns/$campaignId/live': typeof WWorkspaceAppCampaignsCampaignIdLiveRoute
   '/w/$workspace/_app/campaigns/$campaignId/report': typeof WWorkspaceAppCampaignsCampaignIdReportRoute
   '/w/$workspace/_app/campaigns/$campaignId/review': typeof WWorkspaceAppCampaignsCampaignIdReviewRoute
@@ -881,6 +900,7 @@ export interface FileRoutesById {
   '/w/$workspace/_app/deliverability/placement/seeds': typeof WWorkspaceAppDeliverabilityPlacementSeedsRoute
   '/w/$workspace/_app/settings/integrations/$kind': typeof WWorkspaceAppSettingsIntegrationsKindRoute
   '/w/$workspace/_app/settings/integrations/hostrepute': typeof WWorkspaceAppSettingsIntegrationsHostreputeRoute
+  '/w/$workspace/_app/settings/integrations/verification': typeof WWorkspaceAppSettingsIntegrationsVerificationRoute
   '/w/$workspace/_app/settings/integrations/wordpress': typeof WWorkspaceAppSettingsIntegrationsWordpressRoute
   '/w/$workspace/_app/settings/roles/$roleId': typeof WWorkspaceAppSettingsRolesRoleIdRoute
   '/w/$workspace/_app/settings/senders/$domainId': typeof WWorkspaceAppSettingsSendersDomainIdRoute
@@ -967,6 +987,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/admin/sso/$providerId'
     | '/w/$workspace/audience/contacts/$contactId'
     | '/w/$workspace/audience/segments/$segmentId'
+    | '/w/$workspace/audience/verification/$jobId'
     | '/w/$workspace/campaigns/$campaignId/live'
     | '/w/$workspace/campaigns/$campaignId/report'
     | '/w/$workspace/campaigns/$campaignId/review'
@@ -974,6 +995,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/deliverability/placement/seeds'
     | '/w/$workspace/settings/integrations/$kind'
     | '/w/$workspace/settings/integrations/hostrepute'
+    | '/w/$workspace/settings/integrations/verification'
     | '/w/$workspace/settings/integrations/wordpress'
     | '/w/$workspace/settings/roles/$roleId'
     | '/w/$workspace/settings/senders/$domainId'
@@ -1057,6 +1079,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/admin/sso/$providerId'
     | '/w/$workspace/audience/contacts/$contactId'
     | '/w/$workspace/audience/segments/$segmentId'
+    | '/w/$workspace/audience/verification/$jobId'
     | '/w/$workspace/campaigns/$campaignId/live'
     | '/w/$workspace/campaigns/$campaignId/report'
     | '/w/$workspace/campaigns/$campaignId/review'
@@ -1064,6 +1087,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/deliverability/placement/seeds'
     | '/w/$workspace/settings/integrations/$kind'
     | '/w/$workspace/settings/integrations/hostrepute'
+    | '/w/$workspace/settings/integrations/verification'
     | '/w/$workspace/settings/integrations/wordpress'
     | '/w/$workspace/settings/roles/$roleId'
     | '/w/$workspace/settings/senders/$domainId'
@@ -1149,6 +1173,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/_app/admin/sso/$providerId'
     | '/w/$workspace/_app/audience/contacts/$contactId'
     | '/w/$workspace/_app/audience/segments/$segmentId'
+    | '/w/$workspace/_app/audience/verification/$jobId'
     | '/w/$workspace/_app/campaigns/$campaignId/live'
     | '/w/$workspace/_app/campaigns/$campaignId/report'
     | '/w/$workspace/_app/campaigns/$campaignId/review'
@@ -1156,6 +1181,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/_app/deliverability/placement/seeds'
     | '/w/$workspace/_app/settings/integrations/$kind'
     | '/w/$workspace/_app/settings/integrations/hostrepute'
+    | '/w/$workspace/_app/settings/integrations/verification'
     | '/w/$workspace/_app/settings/integrations/wordpress'
     | '/w/$workspace/_app/settings/roles/$roleId'
     | '/w/$workspace/_app/settings/senders/$domainId'
@@ -1688,6 +1714,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceAppAudienceSegmentsSegmentIdRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
+    '/w/$workspace/_app/audience/verification/$jobId': {
+      id: '/w/$workspace/_app/audience/verification/$jobId'
+      path: '/audience/verification/$jobId'
+      fullPath: '/w/$workspace/audience/verification/$jobId'
+      preLoaderRoute: typeof WWorkspaceAppAudienceVerificationJobIdRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
     '/w/$workspace/_app/campaigns/$campaignId/live': {
       id: '/w/$workspace/_app/campaigns/$campaignId/live'
       path: '/campaigns/$campaignId/live'
@@ -1749,6 +1782,13 @@ declare module '@tanstack/react-router' {
       path: '/settings/integrations/hostrepute'
       fullPath: '/w/$workspace/settings/integrations/hostrepute'
       preLoaderRoute: typeof WWorkspaceAppSettingsIntegrationsHostreputeRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/settings/integrations/verification': {
+      id: '/w/$workspace/_app/settings/integrations/verification'
+      path: '/settings/integrations/verification'
+      fullPath: '/w/$workspace/settings/integrations/verification'
+      preLoaderRoute: typeof WWorkspaceAppSettingsIntegrationsVerificationRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
     '/w/$workspace/_app/settings/integrations/wordpress': {
@@ -1874,6 +1914,7 @@ interface WWorkspaceAppRouteRouteChildren {
   WWorkspaceAppAdminSsoProviderIdRoute: typeof WWorkspaceAppAdminSsoProviderIdRoute
   WWorkspaceAppAudienceContactsContactIdRoute: typeof WWorkspaceAppAudienceContactsContactIdRoute
   WWorkspaceAppAudienceSegmentsSegmentIdRoute: typeof WWorkspaceAppAudienceSegmentsSegmentIdRoute
+  WWorkspaceAppAudienceVerificationJobIdRoute: typeof WWorkspaceAppAudienceVerificationJobIdRoute
   WWorkspaceAppCampaignsCampaignIdLiveRoute: typeof WWorkspaceAppCampaignsCampaignIdLiveRoute
   WWorkspaceAppCampaignsCampaignIdReportRoute: typeof WWorkspaceAppCampaignsCampaignIdReportRoute
   WWorkspaceAppCampaignsCampaignIdReviewRoute: typeof WWorkspaceAppCampaignsCampaignIdReviewRoute
@@ -1881,6 +1922,7 @@ interface WWorkspaceAppRouteRouteChildren {
   WWorkspaceAppDeliverabilityPlacementSeedsRoute: typeof WWorkspaceAppDeliverabilityPlacementSeedsRoute
   WWorkspaceAppSettingsIntegrationsKindRoute: typeof WWorkspaceAppSettingsIntegrationsKindRoute
   WWorkspaceAppSettingsIntegrationsHostreputeRoute: typeof WWorkspaceAppSettingsIntegrationsHostreputeRoute
+  WWorkspaceAppSettingsIntegrationsVerificationRoute: typeof WWorkspaceAppSettingsIntegrationsVerificationRoute
   WWorkspaceAppSettingsIntegrationsWordpressRoute: typeof WWorkspaceAppSettingsIntegrationsWordpressRoute
   WWorkspaceAppSettingsRolesRoleIdRoute: typeof WWorkspaceAppSettingsRolesRoleIdRoute
   WWorkspaceAppSettingsSendersDomainIdRoute: typeof WWorkspaceAppSettingsSendersDomainIdRoute
@@ -1946,6 +1988,8 @@ const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
     WWorkspaceAppAudienceContactsContactIdRoute,
   WWorkspaceAppAudienceSegmentsSegmentIdRoute:
     WWorkspaceAppAudienceSegmentsSegmentIdRoute,
+  WWorkspaceAppAudienceVerificationJobIdRoute:
+    WWorkspaceAppAudienceVerificationJobIdRoute,
   WWorkspaceAppCampaignsCampaignIdLiveRoute:
     WWorkspaceAppCampaignsCampaignIdLiveRoute,
   WWorkspaceAppCampaignsCampaignIdReportRoute:
@@ -1960,6 +2004,8 @@ const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
     WWorkspaceAppSettingsIntegrationsKindRoute,
   WWorkspaceAppSettingsIntegrationsHostreputeRoute:
     WWorkspaceAppSettingsIntegrationsHostreputeRoute,
+  WWorkspaceAppSettingsIntegrationsVerificationRoute:
+    WWorkspaceAppSettingsIntegrationsVerificationRoute,
   WWorkspaceAppSettingsIntegrationsWordpressRoute:
     WWorkspaceAppSettingsIntegrationsWordpressRoute,
   WWorkspaceAppSettingsRolesRoleIdRoute: WWorkspaceAppSettingsRolesRoleIdRoute,

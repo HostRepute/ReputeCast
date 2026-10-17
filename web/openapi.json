@@ -18726,7 +18726,12 @@
               "hostrepute",
               "api",
               "webhooks",
-              "mcp"
+              "mcp",
+              "zerobounce",
+              "neverbounce",
+              "kickbox",
+              "bouncer",
+              "emailable"
             ],
             "type": "string"
           },

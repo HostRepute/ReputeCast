@@ -146,8 +146,16 @@ func TestCatalogAndReadOnly(t *testing.T) {
 	for _, g := range cat.Groups {
 		keys = append(keys, g.Key)
 	}
-	if strings.Join(keys, ",") != "automation,websites,deliverability,developer" {
+	if strings.Join(keys, ",") != "automation,websites,deliverability,developer,verification" {
 		t.Fatalf("groups with nothing in them aren't shown: %v", keys)
+	}
+	// Verification lists every address verification service (X14).
+	services := []string{}
+	for _, e := range cat.Groups[4].Entries {
+		services = append(services, e.Key)
+	}
+	if strings.Join(services, ",") != "zerobounce,neverbounce,kickbox,bouncer,emailable" {
+		t.Fatalf("verification cards = %v", services)
 	}
 	if st, wf, _ := cat.entry("zapier"); st != "connected" || wf != 3 {
 		t.Errorf("Zapier: %s, %d Zaps", st, wf)

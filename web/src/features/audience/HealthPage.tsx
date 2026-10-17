@@ -14,6 +14,7 @@ import { TableScroll } from '@/components/ui/Table'
 import { WelcomePromptCard } from '@/features/welcome-prompt/WelcomePromptCard'
 import { clock, count, pct, rate } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
+import { ListVerifyDialog, TierChecked, TierVerify, useVerifyLabel } from '@/features/verification/HealthEntry'
 import { AudienceTabs } from './AudienceTabs'
 import { DeleteListDialog } from './DeleteListDialog'
 import { tierColor, tierLabel, tierWindow, tiers, type Tier } from './labels'
@@ -100,7 +101,9 @@ function TierCards({ h }: { h: Health }) {
                 </>
               ) : null}
               {t === 'sunset' && h.thisWeek.entering > 0 ? ` · ${count(h.thisWeek.entering)} entering this week` : ''}
+              {t === 'at_risk' || t === 'sunset' ? <TierChecked tier={t} /> : null}
             </span>
+            {t === 'at_risk' || t === 'sunset' ? <TierVerify tier={t} /> : null}
           </div>
         )
       })}
@@ -309,6 +312,9 @@ function PerList({ h }: { h: Health }) {
   const manage = !usePermissionReason('lists:manage')
   const [deleting, setDeleting] = useState<{ id: string; name: string }>()
   const [menu, setMenu] = useState<string>()
+  // Verify addresses… sits in the same menu, for people who can verify (X14).
+  const verifyLabel = useVerifyLabel()
+  const [verifying, setVerifying] = useState<{ id: string; name: string }>()
   return (
     <section className="card" aria-labelledby="perlist-h">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line-2 px-4.5 py-3.5">
@@ -361,7 +367,7 @@ function PerList({ h }: { h: Health }) {
                       <>
                         {r.name} <span className="k">(saved view)</span>
                       </>
-                    ) : manage ? (
+                    ) : manage || verifyLabel ? (
                       // The row menu sits with the name, so the table keeps
                       // the board's columns and the menu is in view on phones.
                       <div className="flex items-center justify-between gap-2">
@@ -382,10 +388,13 @@ function PerList({ h }: { h: Health }) {
                             </button>
                           }
                         >
-                          <MenuItem className="text-bad-fg" onSelect={() => setDeleting({ id: r.id, name: r.name })}>
-                            <Icon name="trash" />
-                            Delete list
-                          </MenuItem>
+                          {verifyLabel ? <MenuItem onSelect={() => setVerifying({ id: r.id, name: r.name })}>{verifyLabel}</MenuItem> : null}
+                          {manage ? (
+                            <MenuItem className="text-bad-fg" onSelect={() => setDeleting({ id: r.id, name: r.name })}>
+                              <Icon name="trash" />
+                              Delete list
+                            </MenuItem>
+                          ) : null}
                         </Menu>
                       </div>
                     ) : (
@@ -438,6 +447,7 @@ function PerList({ h }: { h: Health }) {
         </div>
       ) : null}
       {deleting ? <DeleteListDialog list={deleting} open onOpenChange={(o) => !o && setDeleting(undefined)} /> : null}
+      {verifying ? <ListVerifyDialog list={verifying} onClose={() => setVerifying(undefined)} /> : null}
     </section>
   )
 }

@@ -16,6 +16,7 @@ import { useInvalidateAudience } from './ContactDialogs'
 import { fileName, saveBlob } from './download'
 import { consentLabel, consentTone, mailboxColor, providerColor, tierClass, tierLabel, type Consent, type Tier } from './labels'
 import { NotificationsRow, TransactionalActivityRow, transactionalCount, useContactTransactional, withTransactional } from '@/features/transactional/ContactActivity'
+import { AddressCheckRow } from '@/features/verification/AddressCheck'
 import './audience.css'
 
 type Profile = Schemas['ContactProfile']
@@ -225,6 +226,7 @@ function FieldsCard({ p }: { p: Profile }) {
           Edit
         </Button>
       </div>
+      <AddressCheckRow contactId={p.id} />
       {p.fields.map((f) => (
         <div key={f.key} className="pkv">
           <span className="k">

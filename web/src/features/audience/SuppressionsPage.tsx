@@ -30,7 +30,7 @@ export interface SuppressionsSearch {
   page?: number
 }
 
-export type SuppressionReason = 'hard_bounce' | 'complaint' | 'unsubscribe' | 'manual'
+export type SuppressionReason = 'hard_bounce' | 'complaint' | 'unsubscribe' | 'manual' | 'invalid' | 'spam_trap'
 type Item = Schemas['SuppressionItem']
 type List = Schemas['SuppressionList']
 
@@ -254,7 +254,7 @@ function Filters({ search, d, onChange }: { search: SuppressionsSearch; d: List;
         onChange={(e) => onChange({ reason: (e.target.value || undefined) as SuppressionReason | undefined })}
       >
         <option value="">Any reason</option>
-        {(['hard_bounce', 'complaint', 'unsubscribe', 'manual'] as const).map((r) => (
+        {(['hard_bounce', 'complaint', 'unsubscribe', 'manual', 'invalid', 'spam_trap'] as const).map((r) => (
           <option key={r} value={r}>
             {reasonLabel[r]}
           </option>
