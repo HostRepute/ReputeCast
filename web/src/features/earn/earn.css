@@ -1252,4 +1252,54 @@
     padding: 13px;
     background: #f0fdfa;
   }
+
+  /* The connect wizard's provider cards (EarnConnect, step 1). */
+  .ea-provider {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #fff;
+  }
+  .ea-provider.on {
+    border: 2px solid var(--accent);
+    padding: 15px;
+  }
+  .ea-provider.off {
+    background: #f9fafb;
+  }
+  .ea-cap {
+    display: inline-flex;
+    align-items: center;
+    height: 22px;
+    padding: 0 8px;
+    border-radius: 999px;
+    background: #f3f4f6;
+    color: var(--ink-nav);
+    font-size: 11.5px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .ea-done-ic {
+    width: 40px;
+    height: 40px;
+    flex: none;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #dcfce7;
+    color: #166534;
+  }
+
+  .ea-evlink {
+    color: inherit;
+    text-decoration: none;
+  }
+  .ea-evlink:hover {
+    text-decoration: underline;
+  }
 }

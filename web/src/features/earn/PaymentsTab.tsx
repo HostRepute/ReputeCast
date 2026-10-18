@@ -1,12 +1,13 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { $api, errorMessage, type Schemas } from '@/api/client'
+import { Icon } from '@/components/icons/Icon'
 import { Badge, type Tone } from '@/components/ui/Badge'
 import { Button, ButtonAnchor, ButtonLink } from '@/components/ui/Button'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Dialog } from '@/components/ui/Dialog'
 import { Field, Input, Select, Toggle } from '@/components/ui/Field'
-import { Banner, Note } from '@/components/ui/Note'
+import { Banner } from '@/components/ui/Note'
 import { TableScroll } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { useT } from '@/i18n'
@@ -27,6 +28,7 @@ const countries: Record<string, string> = { US: 'United States', GB: 'United Kin
 export function PaymentsTab({ pay }: { pay: Payments }) {
   const t = useT()
   const { slug } = useWorkspace()
+  const [showTest, setShowTest] = useState(false)
   const live = pay.live
   const main = live ?? pay.test
   if (!main) {
@@ -47,12 +49,12 @@ export function PaymentsTab({ pay }: { pay: Payments }) {
     <div className="flex flex-col gap-4">
       <HealthBanner pay={pay} c={main} />
       <div className="grid items-start gap-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(480px, 100%), 1fr))' }}>
-        <ConnectionCard pay={pay} c={main} />
+        <ConnectionCard pay={pay} c={main} showTest={showTest} onShowTest={setShowTest} />
         <WebhookCard pay={pay} c={main} />
       </div>
       {main.webhook.status === 'silent' || main.webhook.status === 'missing' ? <GapRuns c={main} /> : null}
       <CheckoutCard pay={pay} c={main} />
-      <EventLog />
+      <EventLog test={showTest} />
     </div>
   )
 }
@@ -144,7 +146,7 @@ function portalLine(t: T, p: Schemas['EarnPortal']): string {
   return t(ms.portalLine, { features: parts.join(', ') })
 }
 
-function ConnectionCard({ pay, c }: { pay: Payments; c: Conn }) {
+function ConnectionCard({ pay, c, showTest, onShowTest }: { pay: Payments; c: Conn; showTest: boolean; onShowTest: (on: boolean) => void }) {
   const t = useT()
   const { slug } = useWorkspace()
   const qc = useQueryClient()
@@ -192,7 +194,10 @@ function ConnectionCard({ pay, c }: { pay: Payments; c: Conn }) {
             {c.keyRejectedAt ? (
               <span className="k">{t(ms.permsCantCheck)}</span>
             ) : (
-              <span>{t(ms.permsLine, { granted: c.granted, total: c.permissions.length, when: c.checkedAt ? `${dayMonthDate(c.checkedAt)}, ${clock(c.checkedAt)}` : '—' })}</span>
+              <span className="inline-flex items-center gap-1.5">
+                {c.granted === c.permissions.length ? <Icon name="check" size={14} strokeWidth={2.2} className="text-ok-fg" /> : null}
+                {t(ms.permsLine, { granted: c.granted, total: c.permissions.length, when: c.checkedAt ? `${dayMonthDate(c.checkedAt)}, ${clock(c.checkedAt)}` : '—' })}
+              </span>
             )}
             {pay.canManage ? (
               <Button
@@ -235,9 +240,7 @@ function ConnectionCard({ pay, c }: { pay: Payments; c: Conn }) {
           </div>
           {pay.canManage ? (
             <div className="flex flex-wrap items-center gap-2">
-              <ButtonLink to="/w/$workspace/earn/members" params={{ workspace: slug }} search={{ test: true }} size="sm">
-                {t(ms.showTest)}
-              </ButtonLink>
+              <Toggle label={t(ms.showTest)} checked={showTest} onChange={(e) => onShowTest(e.target.checked)} />
               <Button size="sm" variant="danger" onClick={() => setDialog('clearTest')}>
                 {t(ms.clearTest)}
               </Button>
@@ -258,9 +261,9 @@ function ConnectionCard({ pay, c }: { pay: Payments; c: Conn }) {
               {t(ms.addTestKey)}
             </ButtonLink>
           ) : (
-            <Button size="sm" icon="plus" disabledReason={t(ms.notAvailable)}>
+            <ButtonLink to="/w/$workspace/earn/connect" params={{ workspace: slug }} search={{ step: 'provider' }} size="sm" icon="plus">
               {t(ms.addProvider)}
-            </Button>
+            </ButtonLink>
           )}
           <Button size="sm" variant="danger" onClick={() => setDialog('disconnect')}>
             {t(ms.disconnect, { provider: c.providerName })}
@@ -451,12 +454,36 @@ function CheckoutCard({ pay, c }: { pay: Payments; c: Conn }) {
   const { slug } = useWorkspace()
   const qc = useQueryClient()
   const ch = pay.checkout
-  const [tax, setTax] = useState(ch.taxAtCheckout)
-  const [incl, setIncl] = useState(ch.pricesIncludeTax)
-  const [portal, setPortal] = useState(ch.portal)
+  const [tax, setTaxState] = useState(ch.taxAtCheckout)
+  const [incl, setInclState] = useState(ch.pricesIncludeTax)
+  const [portal, setPortalState] = useState(ch.portal)
   const save = $api.useMutation('put', `${EARN}/checkout`)
-  const dirty = tax !== ch.taxAtCheckout || incl !== ch.pricesIncludeTax || JSON.stringify(portal) !== JSON.stringify(ch.portal)
   const ro = !pay.canManage
+  // Each change saves at once, with Undo.
+  const commit = (next: { taxAtCheckout: boolean; pricesIncludeTax: boolean; portal: typeof portal }, undo?: () => void) => {
+    setTaxState(next.taxAtCheckout)
+    setInclState(next.pricesIncludeTax)
+    setPortalState(next.portal)
+    save.mutate(
+      { params: { path: { workspace: slug } }, body: next },
+      {
+        onSuccess: () => {
+          void qc.invalidateQueries({ queryKey: ['get', `${EARN}/payments`] })
+          toast({ kind: 'success', title: t(ms.saved), undo })
+        },
+        onError: (e) => {
+          setTaxState(ch.taxAtCheckout)
+          setInclState(ch.pricesIncludeTax)
+          setPortalState(ch.portal)
+          toast({ kind: 'error', title: errorMessage(e) })
+        },
+      },
+    )
+  }
+  const before = { taxAtCheckout: tax, pricesIncludeTax: incl, portal }
+  const setTax = (v: boolean) => commit({ ...before, taxAtCheckout: v }, () => commit(before))
+  const setIncl = (v: boolean) => commit({ ...before, pricesIncludeTax: v }, () => commit(before))
+  const setPortal = (v: typeof portal) => commit({ ...before, portal: v }, () => commit(before))
   return (
     <section className="card">
       <div className="sec">
@@ -464,34 +491,12 @@ function CheckoutCard({ pay, c }: { pay: Payments; c: Conn }) {
           <h2 className="h2">{t(ms.checkoutTitle)}</h2>
           <span className="k">{t(ms.checkoutCaption)}</span>
         </div>
-        {ro ? null : (
-          <Button
-            size="sm"
-            variant="primary"
-            disabled={!dirty}
-            loading={save.isPending}
-            onClick={() =>
-              save.mutate(
-                { params: { path: { workspace: slug } }, body: { taxAtCheckout: tax, pricesIncludeTax: incl, portal } },
-                {
-                  onSuccess: () => {
-                    void qc.invalidateQueries({ queryKey: ['get', `${EARN}/payments`] })
-                    toast({ kind: 'success', title: t(ms.saved) })
-                  },
-                  onError: (e) => toast({ kind: 'error', title: errorMessage(e) }),
-                },
-              )
-            }
-          >
-            {t(ms.save)}
-          </Button>
-        )}
       </div>
       <div className="pad grid gap-5" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
         <div className="flex flex-col gap-2">
           <h3 className="m-0 text-[14px] font-semibold">{t(ms.currency)}</h3>
           <span className="k">{ch.currencyFixed ? t(ms.currencyFixed, { account: c.account.name, currency: ch.currency.toUpperCase() }) : t(ms.currencyFree, { account: c.account.name, currency: ch.currency.toUpperCase() })}</span>
-          <span className="badge mut w-fit">{ch.currency.toUpperCase()}</span>
+          <span className="ea-pill w-fit">{ch.currency.toUpperCase()}</span>
         </div>
         <div className="flex flex-col gap-2">
           <h3 className="m-0 text-[14px] font-semibold">{t(ms.tax)}</h3>
@@ -528,7 +533,10 @@ function CheckoutCard({ pay, c }: { pay: Payments; c: Conn }) {
         </div>
       </div>
       <div className="px-5 pb-4">
-        <Note tone="neutral">{t(ms.sellerNote)}</Note>
+        <div className="note n" role="note">
+          <Icon name="info" size={16} />
+          <div>{t(ms.sellerNote)}</div>
+        </div>
       </div>
     </section>
   )
@@ -537,14 +545,14 @@ function CheckoutCard({ pay, c }: { pay: Payments; c: Conn }) {
 type Group = 'all' | 'payments' | 'failures' | 'refunds' | 'changes' | 'trials'
 type Range = '24h' | '7d' | '30d' | '90d'
 
-function EventLog() {
+function EventLog({ test }: { test: boolean }) {
   const t = useT()
   const { slug } = useWorkspace()
   const [q, setQ] = useState('')
   const [group, setGroup] = useState<Group>('all')
   const [range, setRange] = useState<Range>('7d')
   const [page, setPage] = useState(1)
-  const log = $api.useQuery('get', `${EARN}/payments/events`, { params: { path: { workspace: slug }, query: { q, group, range, page, pageSize: 8 } } }, { placeholderData: (p) => p })
+  const log = $api.useQuery('get', `${EARN}/payments/events`, { params: { path: { workspace: slug }, query: { q, group, range, page, pageSize: 8, test } } }, { placeholderData: (p) => p })
   const d = log.data
   return (
     <section className="card" aria-labelledby="ea-log">
@@ -557,7 +565,10 @@ function EventLog() {
         </div>
       </div>
       <div className="grid gap-2.5 px-5 pb-3" style={{ gridTemplateColumns: 'minmax(220px, 1fr) 190px 150px' }}>
-        <Input type="search" aria-label={t(ms.logSearchLabel)} placeholder={t(ms.logSearch)} value={q} onChange={(e) => (setQ(e.target.value), setPage(1))} />
+        <label className="ea-search">
+          <Icon name="search" size={15} />
+          <input type="search" aria-label={t(ms.logSearchLabel)} placeholder={t(ms.logSearch)} value={q} onChange={(e) => (setQ(e.target.value), setPage(1))} />
+        </label>
         <Select aria-label={t(ms.logGroup)} value={group} onChange={(e) => (setGroup(e.target.value as Group), setPage(1))}>
           <option value="all">{t(ms.groupAll)}</option>
           <option value="payments">{t(ms.groupPayments)}</option>
@@ -591,15 +602,20 @@ function EventLog() {
               const st = eventStatus(t, e)
               return (
                 <tr key={e.id}>
-                  <td className="ea-mono whitespace-nowrap">{logTime(e.receivedAt)}</td>
+                  <td className="ea-mono whitespace-nowrap">{logWhen(e.receivedAt)}</td>
                   <td className="ea-mono">
                     {e.eventUrl ? (
-                      <a href={e.eventUrl} target="_blank" rel="noopener noreferrer">
+                      <a className="ea-evlink" href={e.eventUrl} target="_blank" rel="noopener noreferrer">
                         {e.type}
                       </a>
                     ) : (
                       e.type
                     )}
+                    {e.mode === 'test' ? (
+                      <Badge tone="purple" size="sm" className="ml-2">
+                        {t(me.test)}
+                      </Badge>
+                    ) : null}
                   </td>
                   <td className="font-semibold">{e.memberName || '—'}</td>
                   <td className="r ea-num whitespace-nowrap">{e.amountCents === undefined ? '–' : money(e.amountCents, e.currency || 'usd', 'always')}</td>
@@ -640,7 +656,8 @@ function EventLog() {
 function eventStatus(t: T, e: Schemas['EarnEvent']): { label: string; tone: Tone } {
   switch (e.status) {
     case 'applied': {
-      const tone: Tone = e.outcome === 'past_due' ? 'warn' : e.outcome === 'access_ended' || e.outcome === 'refunded' || e.outcome === 'cancel_scheduled' ? 'neutral' : 'ok'
+      const tone: Tone =
+        e.outcome === 'past_due' ? 'warn' : ['access_ended', 'refunded', 'refund_recorded', 'cancel_scheduled', 'ended', 'canceled'].includes(e.outcome) ? 'neutral' : 'ok'
       return { label: t(ms.stApplied), tone }
     }
     case 'ignored':
@@ -833,4 +850,10 @@ function ClearTestDialog({ n, onClose }: { n: number; onClose: () => void }) {
       }}
     />
   )
+}
+
+/** "09:56" today, "13 Oct 16:41" before. */
+function logWhen(d: string): string {
+  // logTime gives the time alone on the workspace's today.
+  return logTime(d) === clock(d) ? clock(d) : `${dayMonthDate(d)} ${clock(d)}`
 }
