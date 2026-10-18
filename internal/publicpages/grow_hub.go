@@ -1,6 +1,7 @@
 package publicpages
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"strings"
@@ -12,6 +13,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/emailaddr"
 	"github.com/hostrepute/reputecast/internal/linktoken"
 	"github.com/hostrepute/reputecast/internal/referrals"
+	"github.com/hostrepute/reputecast/internal/store"
 )
 
 // --- The referrer's hub (/referrals/{token}) ----------------------------------------------
@@ -650,15 +652,25 @@ func (h *Handler) boardPage(w http.ResponseWriter, r *http.Request) {
 		h.notFound(w, r, s)
 		return
 	}
+	b, err := h.boardBody(ctx, s, rs, p, list, started, r.URL.Query().Get("period") == "month", me, meName, token)
+	if err != nil {
+		h.serverError(w, r, s, err)
+		return
+	}
+	h.growPage(w, r, s, "grow-board", http.StatusOK, gt("board.title")+" · "+s.set.Branding.PublisherName, b, token != "")
+}
+
+// boardBody is the leaderboard of a program; me is the referrer whose hub
+// opened it (their row and rank), if any.
+func (h *Handler) boardBody(ctx context.Context, s *site, rs *referrals.Service, p store.ReferralProgram, list string, started *time.Time, month bool,
+	me *uuid.UUID, meName, token string) (boardBody, error) {
 	period := referrals.PeriodAll
-	month := r.URL.Query().Get("period") == "month"
 	if month {
 		period = referrals.PeriodMonth
 	}
 	lb, err := rs.Leaderboard(ctx, p, period, me)
 	if err != nil {
-		h.serverError(w, r, s, err)
-		return
+		return boardBody{}, err
 	}
 	base := s.links.Leaderboard()
 	if token != "" {
@@ -693,5 +705,5 @@ func (h *Handler) boardPage(w http.ResponseWriter, r *http.Request) {
 			b.MeText = gt("board.youNone")
 		}
 	}
-	h.growPage(w, r, s, "grow-board", http.StatusOK, gt("board.title")+" · "+s.set.Branding.PublisherName, b, token != "")
+	return b, nil
 }

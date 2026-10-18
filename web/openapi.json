@@ -40247,6 +40247,9 @@
             "format": "int64",
             "type": "integer"
           },
+          "nextIssue": {
+            "$ref": "#/components/schemas/ReferralCampaignRef"
+          },
           "pass": {
             "type": "boolean"
           }
@@ -90260,6 +90263,88 @@
         ],
         "x-access": "workspace",
         "x-permission": "grow:connect"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/previews/{page}": {
+      "get": {
+        "description": "Rendered for the referrer with the most signups. Inert: links and buttons don't work and nothing is recorded.",
+        "operationId": "preview-grow-page",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "page",
+            "required": true,
+            "schema": {
+              "enum": [
+                "invite",
+                "hub",
+                "leaderboard",
+                "recommends"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "The program (the first one by default)",
+            "explode": false,
+            "in": "query",
+            "name": "program",
+            "schema": {
+              "description": "The program (the first one by default)",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicPagePreview"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Preview a Grow public page: the invite page, a referrer's hub, the leaderboard or the recommendations page",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:view"
       }
     },
     "/api/v1/workspaces/{workspace}/grow/recommendations": {

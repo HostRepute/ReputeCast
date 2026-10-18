@@ -6158,6 +6158,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/grow/previews/{page}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Preview a Grow public page: the invite page, a referrer's hub, the leaderboard or the recommendations page
+         * @description Rendered for the referrer with the most signups. Inert: links and buttons don't work and nothing is recorded.
+         */
+        get: operations["preview-grow-page"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/grow/recommendations": {
         parameters: {
             query?: never;
@@ -22853,6 +22873,7 @@ export interface components {
             checks: components["schemas"]["ReferralCheck"][];
             /** Format: int64 */
             links: number;
+            nextIssue?: components["schemas"]["ReferralCampaignRef"];
             pass: boolean;
         };
         ReferralClaimLink: {
@@ -43406,6 +43427,42 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PartnerPreview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "preview-grow-page": {
+        parameters: {
+            query?: {
+                /** @description The program (the first one by default) */
+                program?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                page: "invite" | "hub" | "leaderboard" | "recommends";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPagePreview"];
                 };
             };
             /** @description Error */

@@ -122,4 +122,23 @@ func TestGrowPages(t *testing.T) {
 	// "While you're here" on the confirmation page.
 	confirm := sign(env, linktoken.Confirm, ids.ws, friend, uuid.Nil)
 	must(t, get(t, env, "/p/"+wsSlug+"/confirm/"+confirm), 200, "While you're here: newsletters Acme recommends", "Ops Weekly", "Fabrikam Engineering Letter")
+
+	// The app's previews (Referrals › Settings, the set-up guide): inert,
+	// and nothing is recorded.
+	c := env.Client()
+	c.SignInDemo("aisha@acme.io")
+	visits := count(t, env, `SELECT coalesce(sum(visits), 0)::int FROM referral_links`)
+	for page, text := range map[string]string{"invite": "invited you to", "hub": "Your referrals", "leaderboard": "Top referrers", "recommends": "Newsletters Acme recommends"} {
+		var pv struct{ HTML, URL string }
+		c.Do("GET", "/api/v1/workspaces/"+wsSlug+"/grow/previews/"+page, nil).MustStatus(t, 200).JSON(t, &pv)
+		if !strings.Contains(pv.HTML, text) {
+			t.Errorf("%s preview lacks %q", page, text)
+		}
+		if strings.Contains(pv.HTML, "/referrals/"+hubToken) {
+			t.Errorf("%s preview carries a working hub link", page)
+		}
+	}
+	if after := count(t, env, `SELECT coalesce(sum(visits), 0)::int FROM referral_links`); after != visits {
+		t.Fatalf("a preview recorded visits: %d → %d", visits, after)
+	}
 }

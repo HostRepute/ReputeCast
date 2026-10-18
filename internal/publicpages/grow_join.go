@@ -1,6 +1,7 @@
 package publicpages
 
 import (
+	"context"
 	"net/http"
 	"strings"
 
@@ -24,8 +25,8 @@ type joinBody struct {
 }
 
 // joinForm is the hosted page's form for a program's list only.
-func (h *Handler) joinForm(r *http.Request, s *site, iv *referrals.InviteView) (forms.Config, bool, error) {
-	c, page, err := h.resolveForm(r.Context(), s, "", false)
+func (h *Handler) joinForm(ctx context.Context, s *site, iv *referrals.InviteView) (forms.Config, bool, error) {
+	c, page, err := h.resolveForm(ctx, s, "", false)
 	if err != nil {
 		return c, page, err
 	}
@@ -34,7 +35,7 @@ func (h *Handler) joinForm(r *http.Request, s *site, iv *referrals.InviteView) (
 }
 
 func (h *Handler) joinBody(w http.ResponseWriter, r *http.Request, s *site, iv *referrals.InviteView, code string, values *forms.Submission, out forms.Outcome) (joinBody, formLang, error) {
-	c, page, err := h.joinForm(r, s, iv)
+	c, page, err := h.joinForm(r.Context(), s, iv)
 	if err != nil {
 		return joinBody{}, formLang{}, err
 	}
@@ -42,10 +43,17 @@ func (h *Handler) joinBody(w http.ResponseWriter, r *http.Request, s *site, iv *
 	if err != nil {
 		return joinBody{}, formLang{}, err
 	}
+	b, err := h.joinBodyWith(r.Context(), s, iv, code, c, page, fl, values, out)
+	return b, fl, err
+}
+
+// joinBodyWith is the invite page's body in a language already picked
+// (joinBody, and the app's preview).
+func (h *Handler) joinBodyWith(ctx context.Context, s *site, iv *referrals.InviteView, code string, c forms.Config, page bool, fl formLang, values *forms.Submission, out forms.Outcome) (joinBody, error) {
 	fl.form.Lists, fl.form.DefaultLists, fl.form.ListChoice = c.Lists, c.DefaultLists, false
-	sb, err := h.subscribeBody(r.Context(), s, fl, page, values, out)
+	sb, err := h.subscribeBody(ctx, s, fl, page, values, out)
 	if err != nil {
-		return joinBody{}, formLang{}, err
+		return joinBody{}, err
 	}
 	b := joinBody{subscribeBody: sb}
 	name := iv.Name
@@ -63,7 +71,7 @@ func (h *Handler) joinBody(w http.ResponseWriter, r *http.Request, s *site, iv *
 	} else {
 		b.Credit = gt("join.creditAnon")
 	}
-	if lists, err := h.Audience.PublicLists(r.Context(), h.Q, s.ws); err == nil {
+	if lists, err := h.Audience.PublicLists(ctx, h.Q, s.ws); err == nil {
 		for _, l := range lists {
 			if l.ID == iv.ListID {
 				b.ListName = l.Name
@@ -71,7 +79,7 @@ func (h *Handler) joinBody(w http.ResponseWriter, r *http.Request, s *site, iv *
 			}
 		}
 	}
-	return b, fl, nil
+	return b, nil
 }
 
 func (h *Handler) joinPage(w http.ResponseWriter, r *http.Request) {
@@ -138,7 +146,7 @@ func (h *Handler) joinPost(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, h.visitorLang(nil, r, s, nil).Labels.Text("page.unreadable", nil), http.StatusBadRequest)
 		return
 	}
-	c, page, err := h.joinForm(r, s, iv)
+	c, page, err := h.joinForm(r.Context(), s, iv)
 	if err != nil {
 		h.serverError(w, r, s, err)
 		return

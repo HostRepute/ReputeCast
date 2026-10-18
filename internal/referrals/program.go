@@ -213,6 +213,9 @@ type ReferralChecks struct {
 	Pass   bool            `json:"pass"`
 	// Links is how many links turning on creates (confirmed subscribers).
 	Links int64 `json:"links"`
+	// NextIssue is the list's next draft, to add the Referral block to
+	// (the guide's step 4).
+	NextIssue *ReferralCampaignRef `json:"nextIssue,omitempty"`
 }
 
 // ReferralTurnedOn is what turning a program on did.
@@ -704,7 +707,7 @@ func (s *Service) Checks(ctx context.Context, ws *store.Workspace, id uuid.UUID)
 	if err != nil {
 		return ReferralChecks{}, err
 	}
-	out := ReferralChecks{Checks: []ReferralCheck{}}
+	out := ReferralChecks{Checks: []ReferralCheck{}, NextIssue: s.nextIssue(ctx, ws, p.ListID)}
 	newCheck := func(key string) ReferralCheck {
 		return ReferralCheck{Key: key, Status: "pass", Counts: []int{}, Files: []ReferralCheckFile{}, Rewards: []string{}, Missing: []string{}}
 	}
