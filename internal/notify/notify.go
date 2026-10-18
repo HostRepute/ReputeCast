@@ -51,6 +51,9 @@ const (
 	KindUnmappedPrice     = "payments_unmapped_price" // a Stripe price isn't mapped to a tier
 	KindPaidImportDone    = "paid_import_finished"    // a paid-members import finished
 	KindFailedPayments    = "failed_payments_daily"   // the daily summary of failed payments (off by default)
+	// Sponsorships (design expansion, phase 6).
+	KindSponsorCreative = "sponsor_creative"        // a sponsor's creative is due tomorrow, or late
+	KindSponsorPayment  = "sponsor_payment_overdue" // a sponsor's payment is past its due date
 )
 
 // Notification is what appears in the notification center.

@@ -44,6 +44,8 @@ var Events = []EventType{
 	{Key: KindPaymentsAttention, Label: "Payments: key rejected, webhook missing or silent", Audience: "Everyone with payments:manage", Short: "payment problems", DefaultEmail: true, Kinds: []string{KindPaymentsAttention}},
 	{Key: KindUnmappedPrice, Label: "Payments: a Stripe price isn't mapped to a tier", Audience: "Everyone with payments:manage", Short: "unmapped prices", DefaultEmail: false, Kinds: []string{KindUnmappedPrice}},
 	{Key: KindPaidImportDone, Label: "Paid members import finished", Audience: "Whoever ran the import", Short: "paid-members imports", DefaultEmail: false, Kinds: []string{KindPaidImportDone}},
+	{Key: KindSponsorCreative, Label: "Sponsor creative due tomorrow or late", Audience: "Everyone with sponsors:manage", Short: "sponsor creatives", DefaultEmail: true, Kinds: []string{KindSponsorCreative}},
+	{Key: KindSponsorPayment, Label: "Sponsor payment overdue", Audience: "Everyone with sponsors:manage", Short: "overdue sponsor payments", DefaultEmail: false, Kinds: []string{KindSponsorPayment}},
 	{Key: KindFailedPayments, Label: "Failed payments · daily summary", Audience: "Everyone with earn:view · off by default", Short: "failed payments", OffByDefault: true, Kinds: []string{KindFailedPayments}},
 }
 
@@ -88,7 +90,7 @@ var categoryKinds = map[string][]string{
 	CategoryHostRepute:    {KindHostReputeAlert},
 	CategoryIntegrations:  {KindIntegrationAttention, KindPostDraftCreated},
 	CategoryTransactional: {KindTransactionalAlert, KindSMTPRelayUnreachable},
-	CategoryEarn:          {KindPaymentsAttention, KindUnmappedPrice, KindPaidImportDone, KindFailedPayments},
+	CategoryEarn:          {KindPaymentsAttention, KindUnmappedPrice, KindPaidImportDone, KindFailedPayments, KindSponsorCreative, KindSponsorPayment},
 }
 
 var categoryLabels = map[string]string{
