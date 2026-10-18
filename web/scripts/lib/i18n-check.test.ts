@@ -130,6 +130,8 @@ export default { ...translate(mb, { footer: 'Chân trang' }), ...translate(m, { 
     expect(typeof icuShape('{broken')).toBe('string')
   })
 
+  // It reads every catalog in the repository, which takes longer than
+  // Vitest's 5 seconds on a busy machine.
   it('keeps status.gen.ts up to date with the catalogs', () => {
     // Vitest runs from web/ (its config); the files are read from the repository.
     const web = existsSync('scripts/lib/i18n-check.ts') ? process.cwd() : resolve(process.cwd(), 'web')
@@ -138,5 +140,5 @@ export default { ...translate(mb, { footer: 'Chân trang' }), ...translate(m, { 
     expect(r.errors).toEqual([])
     const committed = readFileSync(resolve(web, 'src/i18n/status.gen.ts'), 'utf8')
     expect(committed, 'run pnpm run i18n:check and commit src/i18n/status.gen.ts').toBe(statusModule(r))
-  })
+  }, 60_000)
 })
