@@ -404,22 +404,21 @@ function VersionRow({
   }
   return (
     <Row label={t(m.rowVersion)}>
-      {conditional ? (
-        <div className="flex min-w-0 flex-col gap-1.5">
-          <label htmlFor={cid} className="text-[12.5px] font-semibold">
-            {t(m.conditionalContent)}
-          </label>
-          <select id={cid} className="in" value={c.conditionalVersion ?? c.conditional[0]!.number} onChange={(e) => onVersion(Number(e.target.value))}>
-            {c.conditional.map((v) => (
-              <option key={v.number} value={v.number}>
-                {t(m.conditionalOption, { number: v.number, shows: v.shows || t(m.conditionalNone), count: v.recipients })}
-              </option>
-            ))}
-          </select>
-          <span className="k">{t(m.conditionalHint)}</span>
-        </div>
-      ) : null}
       <div className="grid gap-2.5" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(min(220px,100%),1fr))' }}>
+        {conditional ? (
+          <div className="flex min-w-0 flex-col gap-1.5">
+            <label htmlFor={cid} className="text-[12.5px] font-semibold">
+              {t(m.conditionalContent)}
+            </label>
+            <select id={cid} className="in" value={c.conditionalVersion ?? c.conditional[0]!.number} onChange={(e) => onVersion(Number(e.target.value))}>
+              {c.conditional.map((v) => (
+                <option key={v.number} value={v.number}>
+                  {t(m.conditionalOption, { number: v.number, shows: v.shows || t(m.conditionalNone), count: v.recipients })}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : null}
         {c.variants.length ? (
           <div className="flex min-w-0 flex-col gap-1.5">
             <label htmlFor={vid} className="text-[12.5px] font-semibold">
@@ -449,7 +448,7 @@ function VersionRow({
           </div>
         ) : null}
       </div>
-      {!conditional && (c.kind === 'campaign' || c.kind === 'digest') ? <span className="k">{t(m.noConditional)}</span> : null}
+      {conditional ? <span className="k">{t(m.conditionalHint)}</span> : c.kind === 'campaign' || c.kind === 'digest' ? <span className="k">{t(m.noConditional)}</span> : null}
     </Row>
   )
 }
