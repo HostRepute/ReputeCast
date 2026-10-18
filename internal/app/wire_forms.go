@@ -52,6 +52,7 @@ func (a *App) formsService() *forms.Service {
 		Mail:   func() mailer.Sender { return a.Mail },
 		Tokens: a.Links, URLs: a.URLs, DNS: resolver,
 		Turnstile: &forms.Turnstile{Client: guard.Client(10 * time.Second)},
+		Addresses: formAddressChecks{a: a},
 	}
 	formsServices[a] = s
 	return s
@@ -81,6 +82,8 @@ func (a *App) publicPages() *publicpages.Handler {
 		// their version of conditional content and their poll links.
 		Polls:   pl,
 		Browser: browserContent{a},
+		// The upgrade page, its welcome page and the billing links (X16).
+		Earn: earnService(a),
 		// The publication website's pages (X18).
 		Website: site,
 	}

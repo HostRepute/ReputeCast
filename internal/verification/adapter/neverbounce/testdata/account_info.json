@@ -1,0 +1,17 @@
+{
+  "status": "success",
+  "billing_type": "default",
+  "credits_info": {
+    "paid_credits_used": 1344,
+    "free_credits_used": 1000,
+    "paid_credits_remaining": 36656,
+    "free_credits_remaining": 0
+  },
+  "job_counts": {
+    "completed": 2,
+    "under_review": 0,
+    "queued": 0,
+    "processing": 0
+  },
+  "execution_time": 21
+}

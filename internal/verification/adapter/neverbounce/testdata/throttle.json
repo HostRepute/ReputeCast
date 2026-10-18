@@ -1,0 +1,5 @@
+{
+  "status": "throttle_triggered",
+  "message": "Too many requests in a short amount of time",
+  "execution_time": 3
+}

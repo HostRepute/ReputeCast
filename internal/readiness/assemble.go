@@ -84,6 +84,7 @@ func Assemble(f Facts) ReadinessResult {
 	b.conditional()
 	b.compliance()
 	b.audience()
+	b.verification()
 	b.routing()
 	b.everyVersion()
 	for i := range b.checks {

@@ -16,6 +16,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/audience"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/earn"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/linktoken"
@@ -224,6 +225,8 @@ type preferencesBody struct {
 	// stands in for it when there are none.
 	Notifications *notificationsView
 	Note          string
+	// Paid is "Your paid subscription" (Earn), nil when there's nothing to show.
+	Paid *earn.PreferencesPaid
 }
 
 func (h *Handler) preferencesPage(w http.ResponseWriter, r *http.Request) {
@@ -232,6 +235,12 @@ func (h *Handler) preferencesPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	token := chi.URLParam(r, "token")
+	// A placement test copy's links carry its message alone, as
+	// transactional mail's do; they never change anything.
+	if h.placementCopy(r, s, token, linktoken.Preferences) {
+		h.placementNotice(w, r, s)
+		return
+	}
 	c, ok := h.claims(s, token, linktoken.Preferences)
 	if !ok {
 		h.notFound(w, r, s)
@@ -301,6 +310,11 @@ func (h *Handler) preferencesBody(ctx context.Context, s *site, pc audience.Publ
 	b.Shown = strings.Join(shown, ",")
 	if b.Notifications, err = h.notificationsSection(ctx, s, pc.Email, l); err != nil {
 		return b, err
+	}
+	if h.Earn != nil {
+		if b.Paid, err = h.Earn.PreferencesPaid(ctx, s.ws, pc.ID, earn.PageLang); err != nil {
+			return b, err
+		}
 	}
 	if p.Frequency {
 		for _, f := range []struct{ v, key string }{{"all", "prefs.all"}, {"weekly", "prefs.weekly"}, {"monthly", "prefs.monthly"}} {
@@ -538,6 +552,8 @@ type unsubscribeBody struct {
 	Fewer                                                           bool
 	FewerTitle, FewerText, FewerButton                              string
 	Reasons                                                         []reasonView
+	// Paid tells a paid member that unsubscribing doesn't cancel (Earn).
+	Paid *earn.UnsubscribePaid
 }
 
 type doneBody struct {
@@ -564,6 +580,10 @@ func (h *Handler) unsubscribePage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	token := chi.URLParam(r, "token")
+	if h.placementCopy(r, s, token, linktoken.Unsubscribe) {
+		h.placementNotice(w, r, s)
+		return
+	}
 	c, ok := h.claims(s, token, linktoken.Unsubscribe)
 	if !ok {
 		h.notFound(w, r, s)
@@ -631,6 +651,12 @@ func (h *Handler) unsubscribeBody(ctx context.Context, s *site, pc audience.Publ
 	} else {
 		b.OnLists = l.Text("unsub.on", i18n.Args{"lists": l.Join(on)})
 	}
+	if h.Earn != nil {
+		var err error
+		if b.Paid, err = h.Earn.UnsubscribePaid(ctx, s.ws, pc.ID, earn.PageLang); err != nil {
+			return b, err
+		}
+	}
 	return b, nil
 }
 
@@ -659,6 +685,14 @@ func (h *Handler) unsubscribePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	token := chi.URLParam(r, "token")
+	if h.placementCopy(r, s, token, linktoken.Unsubscribe) {
+		if h.parseForm(w, r, 16<<10) && r.PostForm.Get("List-Unsubscribe") == "One-Click" {
+			placementOneClick(w)
+			return
+		}
+		h.placementNotice(w, r, s)
+		return
+	}
 	c, ok := h.claims(s, token, linktoken.Unsubscribe)
 	if !ok {
 		http.NotFound(w, r)
@@ -836,6 +870,10 @@ func (h *Handler) viewOnline(w http.ResponseWriter, r *http.Request) {
 	token := chi.URLParam(r, "token")
 	c, ok := h.claims(s, token, linktoken.ViewOnline)
 	if !ok || c.MessageID == uuid.Nil {
+		if h.placementCopy(r, s, token, linktoken.ViewOnline) {
+			h.placementNotice(w, r, s)
+			return
+		}
 		h.notFound(w, r, s)
 		return
 	}

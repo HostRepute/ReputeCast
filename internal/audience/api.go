@@ -36,6 +36,7 @@ type contactsQuery struct {
 	Tag         string `query:"tag" maxLength:"80"`
 	Segment     string `query:"segment" doc:"Segment id"`
 	JoinedAfter string `query:"joinedAfter" maxLength:"10"`
+	Check       string `query:"check" enum:"valid,invalid,risky,unknown,never," doc:"The latest address check's result"`
 	Language    string `query:"language" maxLength:"16" doc:"A workspace language's code (es also matches es-MX), none or not_offered"`
 	ScoreGrowthQuery
 	WebsiteQuery
@@ -45,7 +46,7 @@ type contactsQuery struct {
 
 func (q contactsQuery) filter() ContactFilter {
 	return ContactFilter{Q: q.Q, List: q.List, Tier: q.Tier, Mailbox: q.Mailbox, Consent: q.Consent, Source: q.Source, Tag: q.Tag, Segment: q.Segment, JoinedAfter: q.JoinedAfter,
-		Language: q.Language, ScoreGrowthFilter: q.ScoreGrowthQuery.filter(), WebsiteFilter: q.WebsiteQuery.filter()}
+		Language: q.Language, ScoreGrowthFilter: q.ScoreGrowthQuery.filter(), Check: q.Check, WebsiteFilter: q.WebsiteQuery.filter()}
 }
 
 type ContactPathInput struct {
@@ -63,7 +64,7 @@ type activityQuery struct {
 type suppressionsQuery struct {
 	api.WorkspaceInput
 	Q      string `query:"q" maxLength:"200" doc:"Address or domain"`
-	Reason string `query:"reason" enum:"hard_bounce,complaint,unsubscribe,manual,"`
+	Reason string `query:"reason" enum:"hard_bounce,complaint,unsubscribe,manual,invalid,spam_trap,"`
 	Source string `query:"source" maxLength:"60"`
 	Since  string `query:"since" enum:"7d,30d,"`
 	Import string `query:"import" doc:"Show the rows of one import group"`

@@ -14,7 +14,7 @@ import (
 // with their progress, and ones that ended in the last two hours.
 type ImportJob struct {
 	ID   string `json:"id"`
-	Kind string `json:"kind" enum:"import"`
+	Kind string `json:"kind" enum:"import,verification"`
 	// Title: "Importing 13,739 contacts from Mailchimp".
 	Title  string `json:"title"`
 	Status string `json:"status" enum:"queued,running,done,failed,canceled"`
@@ -29,6 +29,9 @@ type ImportJob struct {
 	StartedAt  *time.Time `json:"startedAt,omitempty"`
 	FinishedAt *time.Time `json:"finishedAt,omitempty"`
 }
+
+// JobSource adds another domain's jobs to the tray (address verification).
+type JobSource func(ctx context.Context, ws *store.Workspace) ([]ImportJob, error)
 
 // ImportJobList is the jobs tray's list.
 type ImportJobList struct {
@@ -93,6 +96,11 @@ func (s *Service) BackgroundJobs(ctx context.Context, ws *store.Workspace) (Impo
 			continue
 		}
 		out.Items = append(out.Items, j)
+	}
+	for _, src := range s.JobSources {
+		if more, err := src(ctx, ws); err == nil {
+			out.Items = append(out.Items, more...)
+		}
 	}
 	return out, nil
 }

@@ -263,6 +263,8 @@ type EarnUpgradeCard struct {
 	Completed        int64 `json:"completed"`
 	Trials           int64 `json:"trials"`
 	PaidAtOnce       int64 `json:"paidAtOnce"`
+	// TestCheckoutURL opens the page in test mode for a day (team members).
+	TestCheckoutURL string `json:"testCheckoutUrl,omitempty"`
 }
 
 // EarnFreeCard is the free list's card.
@@ -327,6 +329,7 @@ func (s *Service) Plans(ctx context.Context, ws *store.Workspace, p *authz.Princ
 	since := s.now().AddDate(0, 0, -30)
 	card := EarnUpgradeCard{URL: s.pageURL(ctx, ws, "upgrade"), Host: s.pageHost(ctx, ws, "upgrade"), Live: public && connectedNow, TestMode: connectedNow && act.Mode == "test"}
 	card.Visits, _ = s.Q.EarnPageVisits(ctx, store.EarnPageVisitsParams{WorkspaceID: ws.ID, Page: "upgrade", Since: since})
+	card.TestCheckoutURL = s.TestCheckoutURL(ctx, ws)
 	if c, err := s.Q.EarnCheckoutCounts(ctx, store.EarnCheckoutCountsParams{WorkspaceID: ws.ID, Since: since}); err == nil {
 		card.CheckoutsStarted, card.Completed, card.Trials = c.Started, c.Completed, c.Trials
 		card.PaidAtOnce = c.Completed - c.Trials

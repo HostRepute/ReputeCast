@@ -1,17 +1,16 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { m } from '@/components/shell/messages'
 import { NotBuilt } from '@/components/shell/NotBuilt'
-import { Page } from '@/components/shell/Page'
+import { me } from '@/features/earn/messages'
+import { EarnOverviewPage } from '@/features/earn/Overview'
 import { useT } from '@/i18n'
 
-// The sidebar's Earn section (phase 6, payments and paid subscriptions).
+/**
+ * Earn › Overview: the launch checklist until Earn is live (the six steps
+ * done, the live key among them), then the revenue overview.
+ */
 export const Route = createFileRoute('/w/$workspace/_app/earn/')({
   component: function EarnRoute() {
     const t = useT()
-    return (
-      <Page title={t(m.navEarn)}>
-        <NotBuilt screen={t(m.navEarn)} />
-      </Page>
-    )
+    return <EarnOverviewPage launched={<NotBuilt screen={t(me.tabOverview)} />} />
   },
 })

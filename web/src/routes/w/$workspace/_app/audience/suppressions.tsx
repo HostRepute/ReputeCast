@@ -6,7 +6,7 @@ import '@/features/imports/jobsSource'
 
 const search = z.object({
   q: z.string().max(200).optional().catch(undefined),
-  reason: z.enum(['hard_bounce', 'complaint', 'unsubscribe', 'manual']).optional().catch(undefined),
+  reason: z.enum(['hard_bounce', 'complaint', 'unsubscribe', 'manual', 'invalid', 'spam_trap']).optional().catch(undefined),
   source: z.string().max(60).optional().catch(undefined),
   since: z.enum(['7d', '30d']).optional().catch(undefined),
   appliesTo: z.enum(['all', 'marketing']).optional().catch(undefined),

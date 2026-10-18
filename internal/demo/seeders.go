@@ -40,6 +40,8 @@ var (
 	// conditional content of #143, the NPS poll of #141, the survey and its check-in campaign (seed_polls.go)
 	seedPolls = noop
 	seedEarn  = noop // payments and paid subscriptions: Stripe, tiers, paid members, the Substack import (seed_earn.go)
+	// address verification services and their uses, seed mailboxes and placement tests (seed_verification_placement.go)
+	seedVerificationPlacement = noop
 )
 
 func noop(context.Context, *Seeder) error { return nil }

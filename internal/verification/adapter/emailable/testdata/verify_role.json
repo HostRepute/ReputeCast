@@ -1,0 +1,23 @@
+{
+  "accept_all": false,
+  "did_you_mean": null,
+  "disposable": false,
+  "domain": "contract.test",
+  "duration": 0.49,
+  "email": "role@contract.test",
+  "first_name": null,
+  "free": false,
+  "full_name": null,
+  "gender": null,
+  "last_name": null,
+  "mailbox_full": false,
+  "mx_record": "mx1.contract.test",
+  "no_reply": false,
+  "reason": "accepted_email",
+  "role": true,
+  "score": 100,
+  "smtp_provider": null,
+  "state": "deliverable",
+  "tag": null,
+  "user": "role"
+}

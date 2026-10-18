@@ -6,6 +6,7 @@ import { Dialog } from '@/components/ui/Dialog'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
 import { copyText, ProviderMark } from '@/features/access/parts'
+import { SeedAppNote } from '@/features/placement/EntryPoints'
 import { usDate } from '@/lib/format'
 
 const help: Record<string, { where: string; console: string }> = {
@@ -155,6 +156,7 @@ export function SocialSettingsDialog({ provider, onClose }: { provider: Schemas[
           Microsoft doesn&apos;t verify the email it sends, so a Microsoft sign-in is only linked through an invitation link or Account &amp; security › Link.
         </Note>
       ) : null}
+      <SeedAppNote kind={provider.kind} signInRedirect={provider.redirectUri} />
       {error ? <Note tone="bad">{error}</Note> : null}
     </Dialog>
   )
