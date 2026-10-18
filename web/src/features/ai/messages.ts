@@ -421,7 +421,7 @@ export const ms = defineMessages('ai.suggest', {
   trips: '“{phrase}” trips a spam heuristic',
   tripsHeuristic: 'Trips the {heuristic} heuristic',
   useThis: 'Use this',
-  useThisLabel: 'Use “{subject}”',
+  useThisLabel: 'Use this: “{subject}”',
   ideasNone: "The model didn't suggest any subject. Try again, or write one yourself.",
   sentSubjectIdeas: "Sent to {provider} ({model}): the subject, the preheader, the email's text without images ({count, number} characters), {language}, and the subject rules. No contact data.",
   subjectUpdated: 'Subject updated',
