@@ -64,6 +64,7 @@ export function RunDialog({ open, onOpenChange, preset }: { open: boolean; onOpe
   const deleteAfter = useTests().data?.deleteAfter ?? '24h'
   const [content, setContent] = useState<ContentRef | undefined>(preset.content)
   const [variant, setVariant] = useState<string>()
+  const [version, setVersion] = useState<number>()
   const [language, setLanguage] = useState<string>()
   const [personal, setPersonal] = useState<'fallbacks' | 'data'>(preset.content?.kind === 'transactional' ? 'data' : 'fallbacks')
   const [testData, setTestData] = useState<string>()
@@ -84,6 +85,7 @@ export function RunDialog({ open, onOpenChange, preset }: { open: boolean; onOpe
         senderId,
         seeds,
         variant,
+        version,
         language,
         // Test data without a set picked yet is the first one, as the select shows.
         personalization: personal === 'data' ? 'data' : undefined,
@@ -96,6 +98,7 @@ export function RunDialog({ open, onOpenChange, preset }: { open: boolean; onOpe
   const pickContent = (c: ContentRef) => {
     setContent(c)
     setVariant(undefined)
+    setVersion(undefined)
     setLanguage(undefined)
     setTestData(undefined)
     setSenderId(undefined)
@@ -189,7 +192,7 @@ export function RunDialog({ open, onOpenChange, preset }: { open: boolean; onOpe
         ) : null}
         {p ? (
           <>
-            <VersionRow plan={p} variant={variant} language={language} onVariant={setVariant} onLanguage={setLanguage} />
+            <VersionRow plan={p} variant={variant} language={language} onVariant={setVariant} onLanguage={setLanguage} onVersion={setVersion} />
             <PersonalRow plan={p} mode={personal} onMode={setPersonal} testData={testData} onTestData={setTestData} />
             <Row label={t(m.rowThrough)}>
               <ThroughRow plan={p} through={through} providers={providers ?? p.chosen} onThrough={pickThrough} onProviders={setProviders} />
@@ -370,13 +373,29 @@ function optionLine(c: { kind: string; note: string; at: string }, t: ReturnType
   return `${t(m.kindCampaign)} · ${t(m.contentDraft, { version: 0 })}`
 }
 
-function VersionRow({ plan, variant, language, onVariant, onLanguage }: { plan: Plan; variant?: string; language?: string; onVariant: (v: string) => void; onLanguage: (v: string) => void }) {
+function VersionRow({
+  plan,
+  variant,
+  language,
+  onVariant,
+  onLanguage,
+  onVersion,
+}: {
+  plan: Plan
+  variant?: string
+  language?: string
+  onVariant: (v: string) => void
+  onLanguage: (v: string) => void
+  onVersion: (v: number) => void
+}) {
   const t = useT()
   const { locale } = useI18n()
   const c = plan.content
   const vid = useId()
   const lid = useId()
-  if (c.variants.length === 0 && c.languages.length <= 1) {
+  const cid = useId()
+  const conditional = c.conditional.length > 1
+  if (c.variants.length === 0 && c.languages.length <= 1 && !conditional) {
     return (
       <Row label={t(m.rowVersion)}>
         <span className="pt-2 text-[13px] text-ink-2">{c.kind === 'campaign' || c.kind === 'digest' ? t(m.noConditional) : t(m.noVersions)}</span>
@@ -385,6 +404,21 @@ function VersionRow({ plan, variant, language, onVariant, onLanguage }: { plan: 
   }
   return (
     <Row label={t(m.rowVersion)}>
+      {conditional ? (
+        <div className="flex min-w-0 flex-col gap-1.5">
+          <label htmlFor={cid} className="text-[12.5px] font-semibold">
+            {t(m.conditionalContent)}
+          </label>
+          <select id={cid} className="in" value={c.conditionalVersion ?? c.conditional[0]!.number} onChange={(e) => onVersion(Number(e.target.value))}>
+            {c.conditional.map((v) => (
+              <option key={v.number} value={v.number}>
+                {t(m.conditionalOption, { number: v.number, shows: v.shows || t(m.conditionalNone), count: v.recipients })}
+              </option>
+            ))}
+          </select>
+          <span className="k">{t(m.conditionalHint)}</span>
+        </div>
+      ) : null}
       <div className="grid gap-2.5" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(min(220px,100%),1fr))' }}>
         {c.variants.length ? (
           <div className="flex min-w-0 flex-col gap-1.5">
@@ -415,7 +449,7 @@ function VersionRow({ plan, variant, language, onVariant, onLanguage }: { plan: 
           </div>
         ) : null}
       </div>
-      {c.kind === 'campaign' || c.kind === 'digest' ? <span className="k">{t(m.noConditional)}</span> : null}
+      {!conditional && (c.kind === 'campaign' || c.kind === 'digest') ? <span className="k">{t(m.noConditional)}</span> : null}
     </Row>
   )
 }

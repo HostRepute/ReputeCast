@@ -282,6 +282,7 @@ function About({ d }: { d: TestDetail }) {
           : t(m.contentCampaign, { name: d.contentName, note: d.contentNote, review: d.origin === 'review' ? 'yes' : 'no', sent: d.contentAt ? shortDate(d.contentAt) : '' })
   const contentSub = [
     d.variant ? t(m.aboutVariant, { variant: d.variant }) : '',
+    d.conditionalVersion ? t(m.aboutConditional, { number: d.conditionalVersion, shows: d.conditionalShows || t(m.conditionalNone) }) : '',
     d.language ? languageName(d.language) : '',
     d.personalization ? t(m.aboutTestData, { name: d.personalization }) : d.fallbackGreeting ? t(m.aboutFallbacks, { greeting: d.fallbackGreeting }) : t(m.aboutFallbacksPlain),
   ]

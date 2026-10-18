@@ -46,7 +46,10 @@ type PlacementRunInput struct {
 	// Variant is the A/B variant, Language the language version ("" for
 	// the source), TestData a transactional template's test data set
 	// ("" for the fallbacks, or its first set with Personalization data).
-	Variant         string `json:"variant,omitempty" maxLength:"8"`
+	Variant string `json:"variant,omitempty" maxLength:"8"`
+	// Version is a conditional-content version's number (X11); 0 sends
+	// the one with the most recipients.
+	Version         int    `json:"version,omitempty" minimum:"0" doc:"A conditional-content version's number; 0 picks the one with the most recipients"`
 	Language        string `json:"language,omitempty" maxLength:"16"`
 	TestData        string `json:"testData,omitempty" maxLength:"120"`
 	Personalization string `json:"personalization,omitempty" enum:"fallbacks,data," doc:"data: a transactional template's test data set, the first one unless testData names one"`
@@ -96,6 +99,20 @@ type PlacementContentView struct {
 	TestValues []PlacementTestValue `json:"testValues"`
 	// FallbackGreeting is the fallbacks' greeting ("Hi there").
 	FallbackGreeting string `json:"fallbackGreeting,omitempty"`
+	// Conditional are the email's conditional-content versions (X11),
+	// ConditionalVersion the one the test sends.
+	Conditional        []PlacementConditionalVersion `json:"conditional"`
+	ConditionalVersion int                           `json:"conditionalVersion,omitempty"`
+}
+
+// PlacementConditionalVersion is a version of an email with conditional
+// content: who gets which blocks.
+type PlacementConditionalVersion struct {
+	Number int `json:"number"`
+	// Shows names its conditional blocks ("Beta corner, Start a free
+	// trial"), "" for none of them.
+	Shows      string `json:"shows"`
+	Recipients int64  `json:"recipients"`
 }
 
 // PlacementTestValue is a variable of the chosen test data set.
@@ -234,12 +251,15 @@ type content struct {
 	// testData is the test data set used ("" for the fallbacks).
 	testData string
 	langUsed string
+	// hidden are the conditional blocks the version leaves out; shows
+	// names what it shows.
+	hidden, shows string
 }
 
 func (s *Service) loadContent(ctx context.Context, ws *store.Workspace, in PlacementRunInput) (content, error) {
 	l := i18n.LangFrom(ctx)
 	c := content{view: PlacementContentView{Kind: in.Content.Kind, ID: in.Content.ID, Variants: []PlacementVariant{}, Languages: []PlacementLanguage{},
-		TestData: []string{}, Sensitive: []string{}, TestValues: []PlacementTestValue{}}}
+		TestData: []string{}, Sensitive: []string{}, TestValues: []PlacementTestValue{}, Conditional: []PlacementConditionalVersion{}}}
 	id, err := uuid.Parse(in.Content.ID)
 	if err != nil {
 		return c, api.Invalid("body.content.id", mTestNoContent.Text(l, nil))
@@ -306,6 +326,9 @@ func (s *Service) loadContent(ctx context.Context, ws *store.Workspace, in Place
 		}
 		if strings.TrimSpace(c.html) == "" {
 			return c, api.Conflict(mTestContentEmpty.Text(l, i18n.Args{"name": r.Name}))
+		}
+		if err := s.conditional(ctx, ws, r.ID, in.Version, &c); err != nil {
+			return c, err
 		}
 		c.html = media.Absolutize(c.html, s.URLs.Base())
 		c.view.FallbackGreeting = greeting(c.html)
@@ -394,6 +417,34 @@ func (s *Service) loadContent(ctx context.Context, ws *store.Workspace, in Place
 	}
 	c.note = s.contentNote(&c)
 	return c, nil
+}
+
+// conditional picks the conditional-content version a test sends (X11):
+// the one asked for, else the one with the most recipients, and cuts the
+// blocks it leaves out of the compiled HTML, as a send does per recipient.
+func (s *Service) conditional(ctx context.Context, ws *store.Workspace, campaignID uuid.UUID, want int, c *content) error {
+	if s.Visibility == nil || !strings.Contains(c.html, "<!--rc:") {
+		return nil
+	}
+	versions, err := s.Visibility.Versions(ctx, ws, campaignID)
+	if err != nil {
+		return err
+	}
+	var pick *ConditionalVersion
+	for i, v := range versions {
+		c.view.Conditional = append(c.view.Conditional, PlacementConditionalVersion{Number: v.Number, Shows: v.Shows, Recipients: v.Recipients})
+		switch {
+		case v.Number == want && want > 0:
+			pick = &versions[i]
+		case want <= 0 && (pick == nil || v.Recipients > pick.Recipients):
+			pick = &versions[i]
+		}
+	}
+	if pick != nil {
+		c.view.ConditionalVersion, c.shows, c.hidden = pick.Number, pick.Shows, pick.Hidden
+	}
+	c.html = s.Visibility.Cut(c.html, c.hidden)
+	return nil
 }
 
 // greeting finds the fallbacks' greeting ("Hi there") in an email's Liquid.
@@ -1063,7 +1114,7 @@ func (s *Service) Start(ctx context.Context, ws *store.Workspace, in PlacementRu
 			Variant: in.Variant, Language: c.langUsed, Personalization: c.testData, Through: in.Through, Stream: string(c.stream), ProviderIds: pids,
 			SenderID: &sender, FromName: fromName, FromEmail: fromEmail, Origin: origin, Subject: c.subject, Html: c.html, TextBody: c.text, Links: lb,
 			Providers: sb, TrackOpens: c.tracking.Opens, TrackClicks: c.tracking.Clicks, StartedBy: actor(ctx), StartedAt: now, WaitUntil: &wait,
-			DeleteAfter: deleteAfter}); err != nil {
+			DeleteAfter: deleteAfter, ConditionalVersion: int32(c.view.ConditionalVersion), ConditionalShows: c.shows}); err != nil {
 			return err
 		}
 		for _, x := range copies {

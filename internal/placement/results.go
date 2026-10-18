@@ -578,10 +578,14 @@ type PlacementTestDetail struct {
 	Variant          string `json:"variant,omitempty"`
 	Language         string `json:"language,omitempty"`
 	FallbackGreeting string `json:"fallbackGreeting,omitempty"`
-	Subject          string `json:"subject"`
-	FromName         string `json:"fromName"`
-	FromEmail        string `json:"fromEmail"`
-	Stream           string `json:"stream"`
+	// ConditionalVersion is the conditional-content version sent (0:
+	// none), ConditionalShows what it shows.
+	ConditionalVersion int    `json:"conditionalVersion,omitempty"`
+	ConditionalShows   string `json:"conditionalShows,omitempty"`
+	Subject            string `json:"subject"`
+	FromName           string `json:"fromName"`
+	FromEmail          string `json:"fromEmail"`
+	Stream             string `json:"stream"`
 	// Rounds is how many copies each seed got (one per compared provider),
 	// GapMinutes how far apart.
 	Rounds     int `json:"rounds"`
@@ -638,6 +642,7 @@ func (s *Service) Test(ctx context.Context, ws *store.Workspace, id uuid.UUID) (
 		}
 	}
 	out := PlacementTestDetail{PlacementTestRow: testRow(t, row.StartedByName, row.StartedByColor, copies), Variant: t.Variant, Language: t.Language,
+		ConditionalVersion: int(t.ConditionalVersion), ConditionalShows: t.ConditionalShows,
 		FallbackGreeting: greeting(t.Html), Subject: t.Subject, FromName: t.FromName, FromEmail: t.FromEmail, Stream: t.Stream, Rounds: 1,
 		DeleteAfter: t.DeleteAfter, DeleteAt: t.DeleteAt, CopiesDeletedAt: t.CopiesDeletedAt, CopiesDeletedBy: row.CopiesDeletedByName,
 		StoppedAt: t.StoppedAt, StoppedBy: row.StoppedByName, Seeds: []PlacementResultSeed{}, Copies: []PlacementCopyView{}, Guidance: []PlacementGuidance{},

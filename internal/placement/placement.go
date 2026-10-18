@@ -60,6 +60,23 @@ type Transactional interface {
 	RenderLive(ctx context.Context, ws *store.Workspace, key string, data map[string]any, to string) (subject, html, text string, version int, err error)
 }
 
+// Visibility gives a campaign's conditional-content versions and cuts one
+// out of the compiled HTML (internal/visibility, X11).
+type Visibility interface {
+	Versions(ctx context.Context, ws *store.Workspace, campaignID uuid.UUID) ([]ConditionalVersion, error)
+	Cut(html, hidden string) string
+}
+
+// ConditionalVersion is a version of an email with conditional content:
+// what it shows, how many recipients get it and the blocks it leaves out
+// (as messages.hidden_blocks stores them).
+type ConditionalVersion struct {
+	Number     int
+	Shows      string
+	Recipients int64
+	Hidden     string
+}
+
 // Digests gives the campaign of a recurring digest's next issue
 // (internal/digests): the one already built for checks, or a fresh build.
 type Digests interface {
@@ -112,10 +129,12 @@ type Service struct {
 	URLs          publicurl.Builder
 	Transactional Transactional
 	// Digests builds a recurring digest's next issue (nil: no digests).
-	Digests   Digests
-	Apps      MailApps
-	Readiness Readiness
-	Notify    Notifier
+	Digests Digests
+	// Visibility gives conditional-content versions (nil: every block).
+	Visibility Visibility
+	Apps       MailApps
+	Readiness  Readiness
+	Notify     Notifier
 	// LangOf is a member's language, for what ReputeCast writes to them.
 	LangOf func(ctx context.Context, userID uuid.UUID) i18n.Lang
 	// Jobs is River's client (read lazily); nil or Inline runs work in

@@ -32011,6 +32011,28 @@
         ],
         "type": "object"
       },
+      "PlacementConditionalVersion": {
+        "additionalProperties": false,
+        "properties": {
+          "number": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "recipients": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "shows": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "number",
+          "shows",
+          "recipients"
+        ],
+        "type": "object"
+      },
       "PlacementContentList": {
         "additionalProperties": false,
         "properties": {
@@ -32094,6 +32116,16 @@
           "category": {
             "type": "string"
           },
+          "conditional": {
+            "items": {
+              "$ref": "#/components/schemas/PlacementConditionalVersion"
+            },
+            "type": "array"
+          },
+          "conditionalVersion": {
+            "format": "int64",
+            "type": "integer"
+          },
           "fallbackGreeting": {
             "type": "string"
           },
@@ -32173,7 +32205,8 @@
           "languages",
           "testData",
           "sensitive",
-          "testValues"
+          "testValues",
+          "conditional"
         ],
         "type": "object"
       },
@@ -33239,6 +33272,12 @@
           "variant": {
             "maxLength": 8,
             "type": "string"
+          },
+          "version": {
+            "description": "A conditional-content version's number; 0 picks the one with the most recipients",
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
           }
         },
         "required": [
@@ -33654,6 +33693,13 @@
         "properties": {
           "canRun": {
             "type": "boolean"
+          },
+          "conditionalShows": {
+            "type": "string"
+          },
+          "conditionalVersion": {
+            "format": "int64",
+            "type": "integer"
           },
           "contentAt": {
             "description": "When the campaign is scheduled or was sent",

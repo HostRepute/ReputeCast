@@ -19477,6 +19477,13 @@ export interface components {
             spf: components["schemas"]["PlacementAuthCount"];
             spfDomain?: string;
         };
+        PlacementConditionalVersion: {
+            /** Format: int64 */
+            number: number;
+            /** Format: int64 */
+            recipients: number;
+            shows: string;
+        };
         PlacementContentList: {
             items: components["schemas"]["PlacementContentOption"][];
         };
@@ -19499,6 +19506,9 @@ export interface components {
         PlacementContentView: {
             audience?: string;
             category?: string;
+            conditional: components["schemas"]["PlacementConditionalVersion"][];
+            /** Format: int64 */
+            conditionalVersion?: number;
             fallbackGreeting?: string;
             id: string;
             key?: string;
@@ -19825,6 +19835,11 @@ export interface components {
             /** @enum {string} */
             through: "route" | "provider" | "compare";
             variant?: string;
+            /**
+             * Format: int64
+             * @description A conditional-content version's number; 0 picks the one with the most recipients
+             */
+            version?: number;
         };
         PlacementSeedCheck: {
             folders: components["schemas"]["PlacementFolder"][];
@@ -19933,6 +19948,9 @@ export interface components {
         };
         PlacementTestDetail: {
             canRun: boolean;
+            conditionalShows?: string;
+            /** Format: int64 */
+            conditionalVersion?: number;
             /**
              * Format: date-time
              * @description When the campaign is scheduled or was sent

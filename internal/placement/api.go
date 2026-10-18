@@ -120,7 +120,7 @@ func (s *Service) RunAgain(ctx context.Context, ws *store.Workspace, testID uuid
 	if err != nil || t.WorkspaceID != ws.ID {
 		return PlacementTestDetail{}, api.NotFound("Placement test")
 	}
-	in := PlacementRunInput{Content: PlacementContentRef{Kind: t.ContentKind}, Variant: t.Variant, Language: t.Language, TestData: t.Personalization,
+	in := PlacementRunInput{Content: PlacementContentRef{Kind: t.ContentKind}, Variant: t.Variant, Version: int(t.ConditionalVersion), Language: t.Language, TestData: t.Personalization,
 		Through: t.Through, Origin: "placement"}
 	if t.ContentID != nil {
 		in.Content.ID = t.ContentID.String()

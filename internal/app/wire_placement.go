@@ -20,6 +20,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/sso"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/transactional"
+	"github.com/hostrepute/reputecast/internal/visibility"
 )
 
 // Placement tests (design expansion, M24): seed mailboxes the workspace
@@ -36,6 +37,7 @@ func (a *App) placement() *placement.Service {
 		URLs:          a.URLs,
 		Transactional: placementTransactional{a: a},
 		Digests:       digestsService(a),
+		Visibility:    placementVisibility{a: a},
 		Apps:          placementApps{s: a.ssoService()},
 		Readiness:     placementReadiness{a: a},
 		Notify:        placementNotifier{a: a},
@@ -147,3 +149,25 @@ func (n placementNotifier) SeedFailed(ctx context.Context, ws *store.Workspace, 
 			Link: fmt.Sprintf("/w/%s/deliverability/placement/seeds", ws.Slug), Data: map[string]any{"seed": seed.ID.String()}})
 	}
 }
+
+// placementVisibility gives placement tests the conditional-content
+// versions of a campaign (X11) and cuts one out of the compiled HTML.
+type placementVisibility struct{ a *App }
+
+func (v placementVisibility) Versions(ctx context.Context, ws *store.Workspace, campaignID uuid.UUID) ([]placement.ConditionalVersion, error) {
+	r, err := v.a.visibility().Report(ctx, ws, campaignID, visibility.ReportInput{})
+	if err != nil {
+		return nil, err
+	}
+	out := make([]placement.ConditionalVersion, 0, len(r.Versions))
+	for _, x := range r.Versions {
+		h := visibility.Hidden{}
+		for _, id := range x.Hidden {
+			h[id] = true
+		}
+		out = append(out, placement.ConditionalVersion{Number: x.Number, Shows: x.Shows, Recipients: x.Recipients, Hidden: h.String()})
+	}
+	return out, nil
+}
+
+func (placementVisibility) Cut(html, hidden string) string { return visibility.Cut(html, hidden) }
