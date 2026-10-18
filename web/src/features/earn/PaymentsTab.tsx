@@ -154,6 +154,8 @@ function ConnectionCard({ pay, c, showTest, onShowTest }: { pay: Payments; c: Co
   const check = $api.useMutation('post', `${EARN}/connections/{id}/check`)
   const h = healthLabel(t, c)
   const test = pay.test && pay.live ? pay.test : undefined
+  // Read-only: the actions stay where they are, disabled, saying why.
+  const ro = pay.canManage ? undefined : t(ms.needsPaymentsManage)
   const refresh = () => {
     void qc.invalidateQueries({ queryKey: ['get', `${EARN}/payments`] })
     void qc.invalidateQueries({ queryKey: ['get', `${EARN}/status`] })
@@ -183,11 +185,9 @@ function ConnectionCard({ pay, c, showTest, onShowTest }: { pay: Payments; c: Co
           <dd className="flex flex-wrap items-center gap-2">
             <span className="ea-mono">{c.keyHint}</span>
             {c.keyRejectedAt ? <Badge tone="bad">{t(ms.rejectedAt, { date: monthDayTime(c.keyRejectedAt) })}</Badge> : <Badge tone="neutral">{t(ms.writeOnly)}</Badge>}
-            {pay.canManage ? (
-              <Button size="sm" onClick={() => setDialog('replace')}>
-                {t(ms.replaceKey)}
-              </Button>
-            ) : null}
+            <Button size="sm" disabledReason={ro} onClick={() => setDialog('replace')}>
+              {t(ms.replaceKey)}
+            </Button>
           </dd>
           <dt>{t(ms.permissions)}</dt>
           <dd className="flex flex-wrap items-center gap-2">
@@ -199,9 +199,10 @@ function ConnectionCard({ pay, c, showTest, onShowTest }: { pay: Payments; c: Co
                 {t(ms.permsLine, { granted: c.granted, total: c.permissions.length, when: c.checkedAt ? `${dayMonthDate(c.checkedAt)}, ${clock(c.checkedAt)}` : '—' })}
               </span>
             )}
-            {pay.canManage ? (
+            {c.keyRejectedAt ? null : (
               <Button
                 size="sm"
+                disabledReason={ro}
                 loading={check.isPending}
                 onClick={() =>
                   check.mutate(
@@ -218,7 +219,7 @@ function ConnectionCard({ pay, c, showTest, onShowTest }: { pay: Payments; c: Co
               >
                 {t(ms.checkAgain)}
               </Button>
-            ) : null}
+            )}
           </dd>
           <dt>{t(ms.account)}</dt>
           <dd>{t(ms.accountLine, { name: c.account.name, country: countries[c.account.country] ?? c.account.country, currency: c.account.currency.toUpperCase() })}</dd>
@@ -238,38 +239,38 @@ function ConnectionCard({ pay, c, showTest, onShowTest }: { pay: Payments; c: Co
             </span>
             <span className="k">{test.connectedAt ? t(ms.testKeyLine, { date: dayMonthDate(test.connectedAt) }) : ''}</span>
           </div>
-          {pay.canManage ? (
-            <div className="flex flex-wrap items-center gap-2">
-              <Toggle label={t(ms.showTest)} checked={showTest} onChange={(e) => onShowTest(e.target.checked)} />
-              <Button size="sm" variant="danger" onClick={() => setDialog('clearTest')}>
-                {t(ms.clearTest)}
-              </Button>
-              <Button size="sm" onClick={() => setDialog('removeTest')}>
-                {t(ms.removeTestKey)}
-              </Button>
-            </div>
-          ) : null}
+          <div className="flex flex-wrap items-center gap-2">
+            <Toggle label={t(ms.showTest)} checked={showTest} onChange={(e) => onShowTest(e.target.checked)} />
+            <Button size="sm" variant="danger" disabledReason={ro} onClick={() => setDialog('clearTest')}>
+              {t(ms.clearTest)}
+            </Button>
+            <Button size="sm" disabledReason={ro} onClick={() => setDialog('removeTest')}>
+              {t(ms.removeTestKey)}
+            </Button>
+          </div>
         </div>
       ) : null}
       <div className="border-t border-line-2 px-5 py-4">
         <OtherProviders pay={pay} />
       </div>
-      {pay.canManage ? (
-        <div className="flex flex-wrap justify-between gap-2 border-t border-line-2 px-5 py-3">
-          {pay.live && !pay.test ? (
-            <ButtonLink to="/w/$workspace/earn/connect" params={{ workspace: slug }} search={{ mode: 'test' }} size="sm" icon="plus">
-              {t(ms.addTestKey)}
-            </ButtonLink>
-          ) : (
-            <ButtonLink to="/w/$workspace/earn/connect" params={{ workspace: slug }} search={{ step: 'provider' }} size="sm" icon="plus">
-              {t(ms.addProvider)}
-            </ButtonLink>
-          )}
-          <Button size="sm" variant="danger" onClick={() => setDialog('disconnect')}>
-            {t(ms.disconnect, { provider: c.providerName })}
+      <div className="flex flex-wrap justify-between gap-2 border-t border-line-2 px-5 py-3">
+        {ro ? (
+          <Button size="sm" icon="plus" disabledReason={ro}>
+            {pay.live && !pay.test ? t(ms.addTestKey) : t(ms.addProvider)}
           </Button>
-        </div>
-      ) : null}
+        ) : pay.live && !pay.test ? (
+          <ButtonLink to="/w/$workspace/earn/connect" params={{ workspace: slug }} search={{ mode: 'test' }} size="sm" icon="plus">
+            {t(ms.addTestKey)}
+          </ButtonLink>
+        ) : (
+          <ButtonLink to="/w/$workspace/earn/connect" params={{ workspace: slug }} search={{ step: 'provider' }} size="sm" icon="plus">
+            {t(ms.addProvider)}
+          </ButtonLink>
+        )}
+        <Button size="sm" variant="danger" disabledReason={ro} onClick={() => setDialog('disconnect')}>
+          {t(ms.disconnect, { provider: c.providerName })}
+        </Button>
+      </div>
       {dialog === 'replace' ? <ReplaceKeyDialog c={c} onClose={() => setDialog(undefined)} /> : null}
       {dialog === 'disconnect' ? <DisconnectDialog c={c} onClose={() => setDialog(undefined)} /> : null}
       {dialog === 'removeTest' && test ? <RemoveTestDialog c={test} onClose={() => setDialog(undefined)} /> : null}

@@ -1302,4 +1302,37 @@
   .ea-evlink:hover {
     text-decoration: underline;
   }
+
+  /* No paid members yet (EarnMembersStates). */
+  .ea-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 44px 28px;
+    text-align: center;
+    border-style: dashed;
+  }
+  .ea-empty .tt {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .ea-empty .ds {
+    margin: 0;
+    max-width: 560px;
+    color: var(--color-ink-2);
+  }
+  .ea-empty-ico {
+    display: inline-flex;
+    width: 52px;
+    height: 52px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--color-line);
+    border-radius: 12px;
+    background: var(--color-ground);
+    color: var(--color-ink-2);
+  }
 }

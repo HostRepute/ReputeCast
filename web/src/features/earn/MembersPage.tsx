@@ -109,6 +109,9 @@ export function MembersPage({ search, onSearch }: { search: MembersSearch; onSea
             </div>
           ) : null}
           <Header list={d} search={search} onImport={() => onSearch({ ...search, import: 'new' })} onComp={() => onSearch({ ...search, comp: true })} />
+          {d.counts.withAccess === 0 && d.counts.ended === 0 && d.testMembers === 0 && !search.q ? (
+            <NoMembers list={d} />
+          ) : (
           <section className="card" aria-label={t(mm.tableLabel)}>
             <div className="ea-filters">
               <label className="ea-search">
@@ -215,6 +218,7 @@ export function MembersPage({ search, onSearch }: { search: MembersSearch; onSea
               </div>
             </div>
           </section>
+          )}
         </div>
       )}
       {search.member ? <MemberPanel id={search.member} onClose={() => onSearch({ ...search, member: undefined })} /> : null}
@@ -380,7 +384,6 @@ function TestBanner({ list }: { list: List }) {
 
 function MembersTable({ list, search, onOpen, onClear, onSearchEnded }: { list: List; search: MembersSearch; onOpen: (id: string) => void; onClear: () => void; onSearchEnded: () => void }) {
   const t = useT()
-  const { slug } = useWorkspace()
   if (list.items.length === 0) {
     if (search.q) {
       return (
@@ -395,29 +398,6 @@ function MembersTable({ list, search, onOpen, onClear, onSearchEnded }: { list: 
             }
           >
             {t(mm.noResultsText)}
-          </EmptyState>
-        </div>
-      )
-    }
-    if (list.counts.withAccess === 0 && list.counts.ended === 0 && !search.test) {
-      return (
-        <div className="px-[18px] pb-6">
-          <EmptyState
-            title={t(mm.noMembersTitle)}
-            action={
-              <>
-                <Button icon="copy" onClick={() => void copyText(list.upgradeUrl, t, toast)}>
-                  {t(mm.copyUpgrade)}
-                </Button>
-                {list.canImport ? (
-                  <ButtonLink to="/w/$workspace/earn/members" params={{ workspace: slug }} search={{ import: 'new' }}>
-                    {t(mm.importMembers)}
-                  </ButtonLink>
-                ) : null}
-              </>
-            }
-          >
-            {t(mm.noMembersText)} <span className="mono">{list.upgradeHost}</span>
           </EmptyState>
         </div>
       )
@@ -549,4 +529,32 @@ function SourceCell({ r }: { r: MemberRow }) {
     )
   }
   return <span>{label}</span>
+}
+
+/** No paid members yet (EarnMembersStates): the upgrade page's link to share, or an import. */
+function NoMembers({ list }: { list: List }) {
+  const t = useT()
+  const { slug } = useWorkspace()
+  return (
+    <section className="card ea-empty" aria-labelledby="ea-nomembers">
+      <span className="ea-empty-ico" aria-hidden="true">
+        <Icon name="user" size={22} strokeWidth={1.6} />
+      </span>
+      <h2 className="tt" id="ea-nomembers">
+        {t(mm.noMembersTitle)}
+      </h2>
+      <p className="ds">{t(mm.noMembersText)}</p>
+      <div className="flex flex-wrap justify-center gap-2.5">
+        <Button variant="primary" icon="copy" onClick={() => void copyText(list.upgradeUrl, t, toast)}>
+          {t(mm.copyUpgrade)}
+        </Button>
+        {list.canImport ? (
+          <ButtonLink to="/w/$workspace/earn/members" params={{ workspace: slug }} search={{ import: 'new' }}>
+            {t(mm.importMembers)}
+          </ButtonLink>
+        ) : null}
+      </div>
+      <span className="k mono">{list.upgradeHost}</span>
+    </section>
+  )
 }

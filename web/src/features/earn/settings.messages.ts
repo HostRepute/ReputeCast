@@ -8,6 +8,8 @@ export const ms = defineMessages('earn.settings', {
   tabAccess: 'Access',
   tabAttribution: 'Attribution',
   tabPages: 'Pages',
+  needsPaymentsManage: 'Needs payments:manage.',
+  readOnlyTitle: 'Read-only · {name}, {role}',
   readOnly: 'Payment settings need {payments}; member emails need {publish} to publish. Ask {helpers}.',
   readOnlyNoHelpers: 'Payment settings need {payments}; member emails need {publish} to publish.',
   // The connection card.

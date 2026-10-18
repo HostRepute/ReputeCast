@@ -52,6 +52,7 @@ export const mp = defineMessages('earn.plans', {
   view: 'View',
   syncRetry: 'Retry in Stripe',
   noPrice: 'No price yet',
+  readOnlyTitle: 'Read-only · {name}, {role}',
   readOnly: 'Changing plans and offers needs {permission}. Ask {helpers}.',
   readOnlyNoHelpers: 'Changing plans and offers needs {permission}.',
   noTiersTitle: 'Create your first tier',

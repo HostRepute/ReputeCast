@@ -12,7 +12,8 @@ import { TableScroll } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { T, useT } from '@/i18n'
 import { dayMonthYear, orList } from '@/lib/format'
-import { useCan, useWorkspace } from '@/lib/session'
+import { roleName } from '@/lib/roles'
+import { useCan, useMe, useWorkspace } from '@/lib/session'
 import { EARN, EarnPage } from './EarnPage'
 import { memberEmailName } from './MemberPanel'
 import { me } from './messages'
@@ -25,7 +26,8 @@ const tabs: SettingsTab[] = ['payments', 'emails', 'access', 'attribution', 'pag
 /** Earn › Settings (EarnSettings, EarnSettingsTabs): Payments · Member emails · Access · Attribution · Pages. */
 export function SettingsPage({ tab, onTab }: { tab: SettingsTab; onTab: (t: SettingsTab) => void }) {
   const t = useT()
-  const { slug } = useWorkspace()
+  const { slug, me: who } = useWorkspace()
+  const user = useMe().data
   const pay = $api.useQuery('get', `${EARN}/payments`, { params: { path: { workspace: slug } } })
   const labels: Record<SettingsTab, string> = { payments: t(ms.tabPayments), emails: t(ms.tabEmails), access: t(ms.tabAccess), attribution: t(ms.tabAttribution), pages: t(ms.tabPages) }
   return (
@@ -39,12 +41,19 @@ export function SettingsPage({ tab, onTab }: { tab: SettingsTab; onTab: (t: Sett
           ))}
         </div>
         {pay.data && !pay.data.canManage ? (
-          <Note tone="neutral">
-            <T
-              msg={pay.data.helpers.length ? ms.readOnly : ms.readOnlyNoHelpers}
-              values={{ payments: <span className="mono">payments:manage</span>, publish: <span className="mono">transactional:publish</span>, helpers: orList(pay.data.helpers) }}
-            />
-          </Note>
+          // Read-only (EarnSettingsStates): who is looking, and who can change settings.
+          <div className="note n" role="note">
+            <Icon name="info" size={16} />
+            <div className="flex min-w-0 flex-col gap-1">
+              <span className="font-semibold">{t(ms.readOnlyTitle, { name: user?.user.name ?? '', role: roleName({ key: who.workspace.roleKey, name: who.workspace.roleName }) })}</span>
+              <div>
+                <T
+                  msg={pay.data.helpers.length ? ms.readOnly : ms.readOnlyNoHelpers}
+                  values={{ payments: <span className="mono">payments:manage</span>, publish: <span className="mono">transactional:publish</span>, helpers: orList(pay.data.helpers) }}
+                />
+              </div>
+            </div>
+          </div>
         ) : null}
         {pay.error ? (
           <ErrorPanel title={t(me.errorLoad)} actions={<Button onClick={() => void pay.refetch()}>{t(me.retry)}</Button>}>
