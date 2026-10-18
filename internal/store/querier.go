@@ -215,6 +215,45 @@ type Querier interface {
 	BumpNotificationEmailAttempts(ctx context.Context, arg BumpNotificationEmailAttemptsParams) error
 	CampaignCostSince(ctx context.Context, arg CampaignCostSinceParams) ([]CampaignCostSinceRow, error)
 	CampaignTotalsSince(ctx context.Context, arg CampaignTotalsSinceParams) (CampaignTotalsSinceRow, error)
+	ChanConsentEventInsert(ctx context.Context, arg ChanConsentEventInsertParams) error
+	ChanConsentEvents(ctx context.Context, contactID uuid.UUID) ([]ChanConsentEventsRow, error)
+	ChanConsentUpsert(ctx context.Context, arg ChanConsentUpsertParams) error
+	// A contact's consent per list on the text channels.
+	ChanConsents(ctx context.Context, contactID uuid.UUID) ([]ChannelConsent, error)
+	// Every contact with this number: a STOP applies to all of them.
+	ChanContactsByPhone(ctx context.Context, arg ChanContactsByPhoneParams) ([]ChanContactsByPhoneRow, error)
+	// The last text a number got from the workspace, for its replies.
+	ChanLastTextTo(ctx context.Context, arg ChanLastTextToParams) (ChannelMessage, error)
+	ChanMessage(ctx context.Context, id uuid.UUID) (ChannelMessage, error)
+	ChanMessageByProviderID(ctx context.Context, arg ChanMessageByProviderIDParams) (ChannelMessage, error)
+	// Claims a due text for sending: it leaves the queue, so it's never sent twice.
+	ChanMessageClaim(ctx context.Context, arg ChanMessageClaimParams) (ChannelMessage, error)
+	ChanMessageEventInsert(ctx context.Context, arg ChanMessageEventInsertParams) error
+	ChanMessageEvents(ctx context.Context, messageID uuid.UUID) ([]ChannelMessageEvent, error)
+	ChanMessageFail(ctx context.Context, arg ChanMessageFailParams) error
+	ChanMessageInsert(ctx context.Context, arg ChanMessageInsertParams) error
+	// A delivery receipt: a final status wins over an earlier one.
+	ChanMessageReceipt(ctx context.Context, arg ChanMessageReceiptParams) error
+	// A temporary failure: back in the queue after a pause.
+	ChanMessageRequeue(ctx context.Context, arg ChanMessageRequeueParams) error
+	ChanMessageSent(ctx context.Context, arg ChanMessageSentParams) error
+	// Texts whose time has come, oldest first, for one sender.
+	ChanMessagesDue(ctx context.Context, arg ChanMessagesDueParams) ([]ChannelMessage, error)
+	// The senders with texts due now.
+	ChanSendersDue(ctx context.Context, now *time.Time) ([]*uuid.UUID, error)
+	// What a provider learned about a number, for every contact who has it.
+	ChanSetLineType(ctx context.Context, arg ChanSetLineTypeParams) error
+	ChanSetPhone(ctx context.Context, arg ChanSetPhoneParams) error
+	// Which of these numbers are suppressed.
+	ChanSuppressedPhones(ctx context.Context, arg ChanSuppressedPhonesParams) ([]ChanSuppressedPhonesRow, error)
+	ChanSuppression(ctx context.Context, arg ChanSuppressionParams) (ChannelSuppression, error)
+	ChanSuppressionByPhone(ctx context.Context, arg ChanSuppressionByPhoneParams) (ChannelSuppression, error)
+	ChanSuppressionCount(ctx context.Context, arg ChanSuppressionCountParams) (int64, error)
+	ChanSuppressionCounts(ctx context.Context, arg ChanSuppressionCountsParams) ([]ChanSuppressionCountsRow, error)
+	ChanSuppressionInsert(ctx context.Context, arg ChanSuppressionInsertParams) error
+	ChanSuppressionRemove(ctx context.Context, arg ChanSuppressionRemoveParams) error
+	// A page of the SMS suppression list, newest first.
+	ChanSuppressions(ctx context.Context, arg ChanSuppressionsParams) ([]ChanSuppressionsRow, error)
 	ClaimAutomationEvents(ctx context.Context, lim int32) ([]ClaimAutomationEventsRow, error)
 	// Runs ready to move on, in flows that are live (paused flows hold their runs).
 	ClaimDueAutomationRuns(ctx context.Context, arg ClaimDueAutomationRunsParams) ([]ClaimDueAutomationRunsRow, error)
@@ -2104,6 +2143,83 @@ type Querier interface {
 	SignupUnsubscribeAll(ctx context.Context, arg SignupUnsubscribeAllParams) ([]uuid.UUID, error)
 	SignupUpsertPreferences(ctx context.Context, arg SignupUpsertPreferencesParams) error
 	SlugTaken(ctx context.Context, slug string) (bool, error)
+	// Notes a budget alert once per month and level; false when it was sent already.
+	SmsBudgetAlertInsert(ctx context.Context, arg SmsBudgetAlertInsertParams) (bool, error)
+	SmsCampaign(ctx context.Context, arg SmsCampaignParams) (SmsCampaignRow, error)
+	SmsCampaignBodySave(ctx context.Context, arg SmsCampaignBodySaveParams) error
+	SmsCampaignDetailInsert(ctx context.Context, arg SmsCampaignDetailInsertParams) error
+	SmsCampaignInsert(ctx context.Context, arg SmsCampaignInsertParams) error
+	// An autosave: the text, name and audience, with the next version number.
+	SmsCampaignSave(ctx context.Context, arg SmsCampaignSaveParams) error
+	SmsCampaignScheduleSave(ctx context.Context, arg SmsCampaignScheduleSaveParams) error
+	SmsCampaignSetStatus(ctx context.Context, arg SmsCampaignSetStatusParams) error
+	SmsCampaignVersionInsert(ctx context.Context, arg SmsCampaignVersionInsertParams) error
+	SmsCampaignVersions(ctx context.Context, campaignID uuid.UUID) ([]SmsCampaignVersionsRow, error)
+	SmsInboundInsert(ctx context.Context, arg SmsInboundInsertParams) error
+	SmsLink(ctx context.Context, code string) (SmsLink, error)
+	SmsLinkClickInsert(ctx context.Context, arg SmsLinkClickInsertParams) error
+	SmsLinkInsert(ctx context.Context, arg SmsLinkInsertParams) error
+	SmsOptOutSync(ctx context.Context, workspaceID uuid.UUID) ([]SmsOptOutSync, error)
+	SmsOptOutSyncUpsert(ctx context.Context, arg SmsOptOutSyncUpsertParams) error
+	SmsPriceUpsert(ctx context.Context, arg SmsPriceUpsertParams) error
+	SmsPrices(ctx context.Context, workspaceID uuid.UUID) ([]SmsPrice, error)
+	SmsProvider(ctx context.Context, arg SmsProviderParams) (SmsProvider, error)
+	// A provider by id, removed or not (old messages still name it).
+	SmsProviderAny(ctx context.Context, id uuid.UUID) (SmsProvider, error)
+	// The provider a webhook request is for.
+	SmsProviderByToken(ctx context.Context, arg SmsProviderByTokenParams) (SmsProvider, error)
+	SmsProviderInsert(ctx context.Context, arg SmsProviderInsertParams) error
+	SmsProviderRegistrationsRead(ctx context.Context, arg SmsProviderRegistrationsReadParams) error
+	SmsProviderRemove(ctx context.Context, arg SmsProviderRemoveParams) error
+	SmsProviderSetCredentials(ctx context.Context, arg SmsProviderSetCredentialsParams) error
+	SmsProviderSetHealth(ctx context.Context, arg SmsProviderSetHealthParams) error
+	SmsProviderSetWebhooks(ctx context.Context, arg SmsProviderSetWebhooksParams) error
+	SmsProviderTouchInbound(ctx context.Context, arg SmsProviderTouchInboundParams) error
+	SmsProviderTouchReceipt(ctx context.Context, arg SmsProviderTouchReceiptParams) error
+	// SMS (internal/texting): providers, senders and their registrations,
+	// routes, prices, the SMS rules, test numbers, the text message terms,
+	// consent per channel, the SMS suppression list, SMS campaigns, the message
+	// log, inbound texts, short links and raw provider events.
+	// The workspace's connected SMS providers, oldest first.
+	SmsProviders(ctx context.Context, workspaceID uuid.UUID) ([]SmsProvidersRow, error)
+	// Every connected SMS provider of the instance, for the health job.
+	SmsProvidersAll(ctx context.Context) ([]SmsProvider, error)
+	SmsRaw(ctx context.Context, id uuid.UUID) (SmsRawEvent, error)
+	SmsRawInsert(ctx context.Context, arg SmsRawInsertParams) error
+	SmsRawNormalized(ctx context.Context, arg SmsRawNormalizedParams) error
+	SmsRawPending(ctx context.Context, before time.Time) ([]uuid.UUID, error)
+	SmsRegistrationUpsert(ctx context.Context, arg SmsRegistrationUpsertParams) error
+	SmsRegistrations(ctx context.Context, workspaceID uuid.UUID) ([]SmsRegistrationsRow, error)
+	SmsRouteInsert(ctx context.Context, arg SmsRouteInsertParams) error
+	SmsRoutes(ctx context.Context, workspaceID uuid.UUID) ([]SmsRoute, error)
+	SmsRoutesDelete(ctx context.Context, workspaceID uuid.UUID) error
+	SmsSend(ctx context.Context, campaignID uuid.UUID) (SmsSend, error)
+	SmsSendSetPhase(ctx context.Context, arg SmsSendSetPhaseParams) error
+	SmsSendTouch(ctx context.Context, arg SmsSendTouchParams) error
+	SmsSendUpsert(ctx context.Context, arg SmsSendUpsertParams) error
+	SmsSender(ctx context.Context, arg SmsSenderParams) (SmsSenderRow, error)
+	SmsSenderInsert(ctx context.Context, arg SmsSenderInsertParams) error
+	SmsSenderRemove(ctx context.Context, arg SmsSenderRemoveParams) error
+	SmsSenderUpdate(ctx context.Context, arg SmsSenderUpdateParams) error
+	// The workspace's senders with their provider.
+	SmsSenders(ctx context.Context, workspaceID uuid.UUID) ([]SmsSendersRow, error)
+	// Sends that are scheduled, sending or held by an outage.
+	SmsSendsActive(ctx context.Context) ([]SmsSend, error)
+	SmsSettings(ctx context.Context, workspaceID uuid.UUID) (SmsSetting, error)
+	// The rules a workspace starts with: the brief's defaults.
+	SmsSettingsEnsure(ctx context.Context, arg SmsSettingsEnsureParams) error
+	SmsSettingsSave(ctx context.Context, arg SmsSettingsSaveParams) error
+	SmsSettingsShortDomain(ctx context.Context, arg SmsSettingsShortDomainParams) error
+	SmsSetup(ctx context.Context, arg SmsSetupParams) (SmsSetup, error)
+	SmsSetupInsert(ctx context.Context, arg SmsSetupInsertParams) error
+	SmsSetupUpdate(ctx context.Context, arg SmsSetupUpdateParams) error
+	// The workspace whose verified short-link domain a request came to.
+	SmsShortDomainWorkspace(ctx context.Context, host string) (uuid.UUID, error)
+	SmsTermsInsert(ctx context.Context, arg SmsTermsInsertParams) error
+	SmsTermsLatest(ctx context.Context, workspaceID uuid.UUID) (SmsTermsVersion, error)
+	SmsTestNumberDelete(ctx context.Context, arg SmsTestNumberDeleteParams) error
+	SmsTestNumberInsert(ctx context.Context, arg SmsTestNumberInsertParams) error
+	SmsTestNumbers(ctx context.Context, workspaceID uuid.UUID) ([]SmsTestNumbersRow, error)
 	SoftDeleteAutomation(ctx context.Context, arg SoftDeleteAutomationParams) error
 	SoftDeleteEmailTemplate(ctx context.Context, arg SoftDeleteEmailTemplateParams) (int64, error)
 	// The list goes from every screen and send; paused notes what deleting it

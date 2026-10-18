@@ -51,6 +51,11 @@ const (
 	KindUnmappedPrice     = "payments_unmapped_price" // a Stripe price isn't mapped to a tier
 	KindPaidImportDone    = "paid_import_finished"    // a paid-members import finished
 	KindFailedPayments    = "failed_payments_daily"   // the daily summary of failed payments (off by default)
+	// SMS (design expansion, phase 8).
+	KindSMSBudget       = "sms_budget"        // the month's SMS budget reached its alert level or ran out
+	KindSMSRegistration = "sms_registration"  // a sender's registration was approved or rejected
+	KindSMSProviderDown = "sms_provider_down" // an SMS provider is down, its credentials rejected, or its receipts silent
+	KindSMSSendPaused   = "sms_send_paused"   // an SMS campaign auto-paused
 )
 
 // Notification is what appears in the notification center.

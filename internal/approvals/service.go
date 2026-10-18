@@ -45,6 +45,9 @@ type Service struct {
 	// TransactionalTemplates describes what publishing a transactional
 	// template would change, for its approval request.
 	TransactionalTemplates TransactionalTemplates
+	// Channels describe campaigns on channels other than email, by channel
+	// ("sms"): their facts and snapshots (channels.go).
+	Channels map[string]ChannelCampaigns
 }
 
 func (s *Service) now() time.Time {
@@ -160,6 +163,10 @@ func memberByID(ms []member, id *uuid.UUID) *member {
 
 // current describes the campaign as it stands, in snapshot terms.
 func (s *Service) current(ctx context.Context, ws *store.Workspace, c store.ReadinessCampaignRow) (Current, error) {
+	if hook := s.channelHook(ctx, c.ID); hook != nil {
+		d, err := hook.DescribeForApproval(ctx, ws, c.ID)
+		return d.Current, err
+	}
 	cur := Current{Version: int(c.Version), ContentHash: c.ContentHash, Subject: c.Subject, Preheader: c.Preheader, From: fromLine(c.SenderName, c.SenderEmail),
 		MJML: c.Mjml, HTML: c.Html, Audience: c.Audience, Schedule: c.Schedule, UpdatedBy: c.UpdatedByName, AudienceCount: -1}
 	if c.SenderID != nil {

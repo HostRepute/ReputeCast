@@ -152,6 +152,9 @@ func (s *Service) buildSnapshot(ctx context.Context, ws *store.Workspace, c stor
 
 // RequestApproval asks the workspace's approvers to approve a send.
 func (s *Service) RequestApproval(ctx context.Context, ws *store.Workspace, p *authz.Principal, campaignID uuid.UUID, in ApprovalRequestInput) (uuid.UUID, error) {
+	if hook := s.channelHook(ctx, campaignID); hook != nil {
+		return s.requestChannel(ctx, ws, p, campaignID, hook, in)
+	}
 	c, err := s.Readiness.Campaign(ctx, ws, campaignID)
 	if err != nil {
 		return uuid.Nil, err
@@ -447,6 +450,9 @@ func statusWord(status string) string {
 func (s *Service) rerequest(ctx context.Context, ws *store.Workspace, prev store.ApprovalGetRow) (uuid.UUID, error) {
 	if prev.CampaignID == nil || prev.RequestedBy == nil {
 		return uuid.Nil, api.Conflict("This request can't be renewed.")
+	}
+	if hook := s.channelHook(ctx, *prev.CampaignID); hook != nil {
+		return s.rerequestChannel(ctx, ws, prev, hook)
 	}
 	c, err := s.Readiness.Campaign(ctx, ws, *prev.CampaignID)
 	if err != nil {

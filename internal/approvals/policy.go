@@ -28,6 +28,9 @@ const (
 	// RuleTransactionalPublish: publishing a transactional template needs
 	// approval (add-on transactional §3.6; off by default).
 	RuleTransactionalPublish = "transactional_publish"
+	// RuleChannelCost: an SMS or WhatsApp campaign is estimated to cost at
+	// least an amount (phase 8 brief §3.6; off by default).
+	RuleChannelCost = "channel_cost_min"
 )
 
 // InvalidationShare is how far the audience may move (in percent) before an
@@ -61,6 +64,10 @@ type policyDoc struct {
 		Lists struct {
 			Enabled bool `json:"enabled"`
 		} `json:"approval_lists"`
+		ChannelCost struct {
+			Enabled bool    `json:"enabled"`
+			Amount  float64 `json:"amount"`
+		} `json:"channel_cost_min"`
 	} `json:"rules"`
 	ApprovalsRequired    int      `json:"approvals_required"`
 	ApproverRoles        []string `json:"approver_roles,omitempty"`
@@ -91,6 +98,15 @@ type ApprovalPolicy struct {
 	// approver other than the publisher (off by default).
 	TransactionalPublish bool `json:"transactionalPublish"`
 	EmergencyBypass      bool `json:"emergencyBypass"`
+	// ChannelCost: an SMS or WhatsApp campaign is estimated to cost at
+	// least Amount (off by default).
+	ChannelCost ApprovalCostRule `json:"channelCost,omitempty"`
+}
+
+// ApprovalCostRule is the cost rule for SMS and WhatsApp campaigns.
+type ApprovalCostRule struct {
+	Enabled bool    `json:"enabled"`
+	Amount  float64 `json:"amount" minimum:"0.01" maximum:"1000000"`
 }
 
 // ParsePolicy reads the stored policy. An empty policy is the default of a
@@ -112,9 +128,13 @@ func ParsePolicy(raw json.RawMessage) ApprovalPolicy {
 		AutomationPublish:    d.AutomationPublish,
 		TransactionalPublish: d.TransactionalPublish,
 		EmergencyBypass:      d.EmergencyBypass == nil || *d.EmergencyBypass,
+		ChannelCost:          ApprovalCostRule{Enabled: d.Rules.ChannelCost.Enabled, Amount: d.Rules.ChannelCost.Amount},
 	}
 	if p.AudienceMin.N <= 0 {
 		p.AudienceMin.N = 10000
+	}
+	if p.ChannelCost.Amount <= 0 {
+		p.ChannelCost.Amount = 50
 	}
 	if p.NewProviderDays <= 0 {
 		p.NewProviderDays = 14
@@ -143,6 +163,7 @@ func (p ApprovalPolicy) toDB(prev json.RawMessage) json.RawMessage {
 	d.ApprovalsRequired = p.ApprovalsRequired
 	d.AutomationPublish = p.AutomationPublish
 	d.TransactionalPublish = p.TransactionalPublish
+	d.Rules.ChannelCost.Enabled, d.Rules.ChannelCost.Amount = p.ChannelCost.Enabled, p.ChannelCost.Amount
 	b := p.EmergencyBypass
 	d.EmergencyBypass = &b
 	if len(d.ApproverRoles) == 0 {
@@ -170,12 +191,23 @@ func (p ApprovalPolicy) RuleLabels() []string {
 	if p.ApprovalLists {
 		out = append(out, "list requires approval")
 	}
+	if p.ChannelCost.Enabled {
+		out = append(out, "SMS or WhatsApp cost ≥ "+costLabel(p.ChannelCost.Amount))
+	}
 	return out
+}
+
+// costLabel writes an amount in dollars: "$50", "$19.54".
+func costLabel(v float64) string {
+	if v == float64(int64(v)) {
+		return "$" + readiness.Count(int64(v))
+	}
+	return fmt.Sprintf("$%.2f", v)
 }
 
 // ApprovalRuleMatch is a rule that matched a send.
 type ApprovalRuleMatch struct {
-	Key string `json:"key" enum:"audience_min,warming_provider,new_provider,ready_with_warnings,author_lacks_send,approval_lists,automation_publish,transactional_publish"`
+	Key string `json:"key" enum:"audience_min,warming_provider,new_provider,ready_with_warnings,author_lacks_send,approval_lists,automation_publish,transactional_publish,channel_cost_min"`
 	// Label is the sentence ("Audience of 47,912 is at least 10,000"),
 	// Short the inbox phrase ("audience ≥ 10,000") and Badge the chip.
 	Label string `json:"label"`
@@ -193,13 +225,20 @@ type RuleFacts struct {
 	Shares     []RuleShare
 	Verdict    string
 	Warnings   int
-	// AuthorCanSend is whether the person sending holds campaigns:send.
+	// AuthorCanSend is whether the person sending holds campaigns:send (and
+	// the channel's own send permission for SMS, push and WhatsApp).
 	AuthorCanSend bool
 	AuthorName    string
 	AuthorRole    string
 	// ApprovalLists are the audience's lists marked "Requires approval".
 	ApprovalLists []string
 	Now           time.Time
+	// Channel is the campaign's channel ("" or "email" for email); Cost its
+	// estimated cost; SendPermission the permission the author lacks
+	// ("sms:send"), named by the "author lacks send" rule.
+	Channel        string
+	Cost           float64
+	SendPermission string
 }
 
 // RuleShare is a provider of the route.
@@ -255,8 +294,17 @@ func (p ApprovalPolicy) Evaluate(f RuleFacts) []ApprovalRuleMatch {
 		out = append(out, ApprovalRuleMatch{Key: RuleReadyWithWarnings, Short: "Ready with warnings", Badge: "Ready with warnings",
 			Label: fmt.Sprintf("Send Readiness is Ready with warnings (%d %s)", f.Warnings, readiness.Plural(int64(f.Warnings), "warning", "warnings"))})
 	}
+	if p.ChannelCost.Enabled && (f.Channel == "sms" || f.Channel == "whatsapp") && f.Cost >= p.ChannelCost.Amount {
+		short := "cost ≥ " + costLabel(p.ChannelCost.Amount)
+		out = append(out, ApprovalRuleMatch{Key: RuleChannelCost, Short: short, Badge: short,
+			Label: fmt.Sprintf("Estimated cost of %s is at least %s", costLabel(f.Cost), costLabel(p.ChannelCost.Amount))})
+	}
 	if p.AuthorLacksSend && !f.AuthorCanSend {
-		label := f.AuthorName + " doesn't hold campaigns:send"
+		perm := "campaigns:send"
+		if f.SendPermission != "" {
+			perm = f.SendPermission
+		}
+		label := f.AuthorName + " doesn't hold " + perm
 		if f.AuthorRole != "" {
 			label += " · " + f.AuthorRole
 		}

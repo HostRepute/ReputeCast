@@ -272,7 +272,8 @@ SELECT r.id, r.workspace_id, r.subject_type, r.campaign_id, r.automation_id, r.r
        coalesce(c.status, '')::text AS campaign_status,
        c.scheduled_at AS campaign_scheduled_at,
        c.started_at AS campaign_started_at,
-       coalesce(c.version, 0)::integer AS campaign_current_version
+       coalesce(c.version, 0)::integer AS campaign_current_version,
+       coalesce(c.channel, 'email')::text AS campaign_channel
 FROM approval_requests r
 LEFT JOIN users u ON u.id = r.requested_by
 LEFT JOIN users d ON d.id = r.decided_by
@@ -324,6 +325,7 @@ type ApprovalGetRow struct {
 	CampaignScheduledAt     *time.Time      `json:"campaignScheduledAt"`
 	CampaignStartedAt       *time.Time      `json:"campaignStartedAt"`
 	CampaignCurrentVersion  int32           `json:"campaignCurrentVersion"`
+	CampaignChannel         string          `json:"campaignChannel"`
 }
 
 func (q *Queries) ApprovalGet(ctx context.Context, arg ApprovalGetParams) (ApprovalGetRow, error) {
@@ -365,6 +367,7 @@ func (q *Queries) ApprovalGet(ctx context.Context, arg ApprovalGetParams) (Appro
 		&i.CampaignScheduledAt,
 		&i.CampaignStartedAt,
 		&i.CampaignCurrentVersion,
+		&i.CampaignChannel,
 	)
 	return i, err
 }
@@ -694,7 +697,8 @@ SELECT r.id, r.subject_type, r.campaign_id, r.automation_id, r.transactional_tem
        coalesce(c.status, '')::text AS campaign_status,
        c.scheduled_at AS campaign_scheduled_at,
        c.started_at AS campaign_started_at,
-       coalesce((SELECT x.comment FROM approval_decisions x WHERE x.request_id = r.id ORDER BY x.created_at DESC LIMIT 1), '')::text AS last_comment
+       coalesce((SELECT x.comment FROM approval_decisions x WHERE x.request_id = r.id ORDER BY x.created_at DESC LIMIT 1), '')::text AS last_comment,
+       coalesce(c.channel, 'email')::text AS campaign_channel
 FROM approval_requests r
 LEFT JOIN users u ON u.id = r.requested_by
 LEFT JOIN users d ON d.id = r.decided_by
@@ -753,6 +757,7 @@ type ApprovalListRow struct {
 	CampaignScheduledAt     *time.Time      `json:"campaignScheduledAt"`
 	CampaignStartedAt       *time.Time      `json:"campaignStartedAt"`
 	LastComment             string          `json:"lastComment"`
+	CampaignChannel         string          `json:"campaignChannel"`
 }
 
 // The approval inbox. Approvers see every request; others only their own.
@@ -803,6 +808,7 @@ func (q *Queries) ApprovalList(ctx context.Context, arg ApprovalListParams) ([]A
 			&i.CampaignScheduledAt,
 			&i.CampaignStartedAt,
 			&i.LastComment,
+			&i.CampaignChannel,
 		); err != nil {
 			return nil, err
 		}

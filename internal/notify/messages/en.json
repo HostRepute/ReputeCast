@@ -23,5 +23,9 @@
   "short.payments_attention": "payment problems",
   "short.payments_unmapped_price": "unmapped prices",
   "short.paid_import_finished": "paid-members imports",
-  "short.failed_payments_daily": "failed payments"
+  "short.failed_payments_daily": "failed payments",
+  "short.sms_budget": "SMS budget alerts",
+  "short.sms_registration": "sender registrations",
+  "short.sms_provider_down": "SMS provider problems",
+  "short.sms_send_paused": "SMS auto-pauses"
 }
