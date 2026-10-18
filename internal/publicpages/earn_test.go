@@ -35,6 +35,15 @@ func TestEarnPages(t *testing.T) {
 	}
 	// A paid member's own link says they're a member instead.
 	must(t, get(t, env, "/p/"+wsSlug+"/upgrade?r="+earnToken(earn.TokenUpgrade, ids.sam)), 200, "You're an Insider", "Manage your subscription")
+	// A campaign's {{ upgrade_url }} credits the email: the click lands on
+	// the reader's timeline, once per email.
+	msg := one[uuid.UUID](t, env, `SELECT id FROM messages WHERE contact_id = $1 AND campaign_id IS NOT NULL ORDER BY id DESC LIMIT 1`, ids.sam)
+	fromEmail := env.App.Links.Sign(linktoken.Claims{Kind: earn.TokenUpgrade, WorkspaceID: ids.ws, ContactID: ids.sam, MessageID: msg})
+	must(t, get(t, env, "/p/"+wsSlug+"/upgrade?r="+fromEmail), 200)
+	must(t, get(t, env, "/p/"+wsSlug+"/upgrade?r="+fromEmail), 200)
+	if n := count(t, env, `SELECT count(*) FROM paid_events WHERE contact_id = $1 AND kind = 'clicked_upgrade' AND message_id = $2`, ids.sam, msg); n != 1 {
+		t.Errorf("the upgrade click from an email is on the timeline %d times", n)
+	}
 	r = do(t, env, http.MethodPost, "/p/"+wsSlug+"/upgrade/checkout", url.Values{"tier": {insider.String()}, "period": {"year"}}, nil)
 	if r.Status != http.StatusSeeOther || !strings.HasPrefix(r.Header.Get("Location"), "https://checkout.stripe.com/") {
 		t.Fatalf("checkout: %d %s", r.Status, r.Header.Get("Location"))

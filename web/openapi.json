@@ -9686,6 +9686,9 @@
           "origin": {
             "type": "string"
           },
+          "paidOnly": {
+            "type": "boolean"
+          },
           "readiness": {
             "$ref": "#/components/schemas/ReadinessSummary"
           },
@@ -9742,7 +9745,8 @@
           "updatedAt",
           "updatedBy",
           "routes",
-          "notes"
+          "notes",
+          "paidOnly"
         ],
         "type": "object"
       },
@@ -10376,6 +10380,17 @@
             },
             "type": "array"
           },
+          "paid": {
+            "enum": [
+              "paid",
+              "free",
+              ""
+            ],
+            "type": "string"
+          },
+          "paidTier": {
+            "type": "string"
+          },
           "segments": {
             "items": {
               "type": "string"
@@ -10431,6 +10446,19 @@
             },
             "maxItems": 100,
             "type": "array"
+          },
+          "paid": {
+            "description": "paid: paid members only; free: free subscribers only; empty: everyone on the lists",
+            "enum": [
+              "paid",
+              "free",
+              ""
+            ],
+            "type": "string"
+          },
+          "paidTier": {
+            "description": "With paid: the lowest tier (the tier and above); empty for any paid tier",
+            "type": "string"
           },
           "segments": {
             "items": {
@@ -19471,6 +19499,121 @@
           "country",
           "currency",
           "taxEnabled"
+        ],
+        "type": "object"
+      },
+      "EarnAudience": {
+        "additionalProperties": false,
+        "properties": {
+          "complimentary": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "connected": {
+            "type": "boolean"
+          },
+          "everyone": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "free": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "gift": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "leftOut": {
+            "$ref": "#/components/schemas/EarnAudienceLeftOut"
+          },
+          "paid": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "pastDue": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "tiers": {
+            "items": {
+              "$ref": "#/components/schemas/EarnAudienceTier"
+            },
+            "type": "array"
+          },
+          "trialing": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "withAccess": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "everyone",
+          "paid",
+          "free",
+          "withAccess",
+          "leftOut",
+          "pastDue",
+          "trialing",
+          "complimentary",
+          "gift",
+          "tiers",
+          "connected"
+        ],
+        "type": "object"
+      },
+      "EarnAudienceLeftOut": {
+        "additionalProperties": false,
+        "properties": {
+          "inactive": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "notOnList": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "suppressed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "unsubscribed": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "notOnList",
+          "unsubscribed",
+          "suppressed",
+          "inactive"
+        ],
+        "type": "object"
+      },
+      "EarnAudienceTier": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "short": {
+            "type": "string"
+          },
+          "top": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "short",
+          "top"
         ],
         "type": "object"
       },
@@ -58197,6 +58340,15 @@
             },
             "type": "array"
           },
+          "options": {
+            "additionalProperties": {
+              "items": {
+                "$ref": "#/components/schemas/VisibilityOption"
+              },
+              "type": "array"
+            },
+            "type": "object"
+          },
           "score": {
             "$ref": "#/components/schemas/VisibilityCatalogScore"
           },
@@ -58229,7 +58381,8 @@
           "languages",
           "tiers",
           "bands",
-          "score"
+          "score",
+          "options"
         ],
         "type": "object"
       },
@@ -75123,6 +75276,16 @@
             }
           },
           {
+            "description": "Only campaigns sent to paid members only",
+            "explode": false,
+            "in": "query",
+            "name": "paidOnly",
+            "schema": {
+              "description": "Only campaigns sent to paid members only",
+              "type": "boolean"
+            }
+          },
+          {
             "explode": false,
             "in": "query",
             "name": "page",
@@ -86329,6 +86492,85 @@
         ],
         "x-access": "workspace",
         "x-permission": "domains:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/earn/audience": {
+      "get": {
+        "description": "Counts only. Drafting a paid-only campaign needs campaigns:edit, like any draft.",
+        "operationId": "get-earn-audience",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The campaign's list",
+            "explode": false,
+            "in": "query",
+            "name": "list",
+            "schema": {
+              "description": "The campaign's list",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The lowest tier of paid members; empty for any paid tier",
+            "explode": false,
+            "in": "query",
+            "name": "tier",
+            "schema": {
+              "description": "The lowest tier of paid members; empty for any paid tier",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EarnAudience"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Who on a list a paid-only campaign reaches: everyone, paid members only or free subscribers only",
+        "tags": [
+          "Earn"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
       }
     },
     "/api/v1/workspaces/{workspace}/earn/checklist": {

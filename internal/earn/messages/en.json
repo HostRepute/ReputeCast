@@ -135,5 +135,15 @@
   "welcome.note": "{tier, select, none {Stripe emails your receipt.} other {Stripe emails your receipt. “Welcome to {tier}” is on its way too.}}",
   "welcome.past": "Read past issues",
   "welcome.soon": "soon",
-  "welcome.there": "there"
+  "welcome.there": "there",
+
+  "visibility.aTier": "a tier and above",
+  "visibility.describeAny": "Paid · any paid tier",
+  "visibility.describeFree": "Free subscribers only",
+  "visibility.describeTier": { "message": "Paid · {tier}", "note": "tier: the choice as picked (Insider and above, Founding member)" },
+  "visibility.traitFree": "Free subscriber",
+  "visibility.traitPaid": { "message": "{tier} member · {status, select, trialing {trialing} past_due {past due} complimentary {complimentary} gift {gift} other {active}}", "note": "tier: the tier's short name (Insider)" },
+  "visibility.whyBelow": "{name}'s {tier} access doesn't include {needed}",
+  "visibility.whyNoAccess": "{name} has no paid access",
+  "visibility.whyPaid": "{name} has paid access ({tier})"
 }

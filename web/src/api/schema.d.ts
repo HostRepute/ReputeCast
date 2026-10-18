@@ -5243,6 +5243,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/earn/audience": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Who on a list a paid-only campaign reaches: everyone, paid members only or free subscribers only
+         * @description Counts only. Drafting a paid-only campaign needs campaigns:edit, like any draft.
+         */
+        get: operations["get-earn-audience"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/earn/checklist": {
         parameters: {
             query?: never;
@@ -13988,6 +14008,7 @@ export interface components {
             name: string;
             notes: string[];
             origin?: string;
+            paidOnly: boolean;
             readiness?: components["schemas"]["ReadinessSummary"];
             /** Format: int64 */
             recipients?: number;
@@ -14177,6 +14198,9 @@ export interface components {
             excludeLists: string[];
             excludeSegments: string[];
             lists: string[];
+            /** @enum {string} */
+            paid?: "paid" | "free" | "";
+            paidTier?: string;
             segments: string[];
         };
         ComposerAudienceCount: {
@@ -14188,6 +14212,13 @@ export interface components {
             excludeLists?: string[];
             excludeSegments?: string[];
             lists?: string[];
+            /**
+             * @description paid: paid members only; free: free subscribers only; empty: everyone on the lists
+             * @enum {string}
+             */
+            paid?: "paid" | "free" | "";
+            /** @description With paid: the lowest tier (the tier and above); empty for any paid tier */
+            paidTier?: string;
             segments?: string[];
         };
         ComposerAudienceOption: {
@@ -16678,6 +16709,43 @@ export interface components {
             id: string;
             name: string;
             taxEnabled: boolean;
+        };
+        EarnAudience: {
+            /** Format: int64 */
+            complimentary: number;
+            connected: boolean;
+            /** Format: int64 */
+            everyone: number;
+            /** Format: int64 */
+            free: number;
+            /** Format: int64 */
+            gift: number;
+            leftOut: components["schemas"]["EarnAudienceLeftOut"];
+            /** Format: int64 */
+            paid: number;
+            /** Format: int64 */
+            pastDue: number;
+            tiers: components["schemas"]["EarnAudienceTier"][];
+            /** Format: int64 */
+            trialing: number;
+            /** Format: int64 */
+            withAccess: number;
+        };
+        EarnAudienceLeftOut: {
+            /** Format: int64 */
+            inactive: number;
+            /** Format: int64 */
+            notOnList: number;
+            /** Format: int64 */
+            suppressed: number;
+            /** Format: int64 */
+            unsubscribed: number;
+        };
+        EarnAudienceTier: {
+            id: string;
+            name: string;
+            short: string;
+            top: boolean;
         };
         EarnCancelInput: {
             /** @description Send the Membership canceled email */
@@ -27784,6 +27852,9 @@ export interface components {
             kinds: components["schemas"]["VisibilityCatalogKind"][];
             languages: components["schemas"]["VisibilityOption"][];
             lists: components["schemas"]["VisibilityOption"][];
+            options: {
+                [key: string]: components["schemas"]["VisibilityOption"][];
+            };
             score: components["schemas"]["VisibilityCatalogScore"];
             segments: components["schemas"]["VisibilityOption"][];
             tags: components["schemas"]["VisibilityOption"][];
@@ -35705,6 +35776,8 @@ export interface operations {
                 status?: "all" | "drafts" | "scheduled" | "sending" | "sent";
                 /** @description Search by name */
                 q?: string;
+                /** @description Only campaigns sent to paid members only */
+                paidOnly?: boolean;
                 page?: number;
                 pageSize?: number;
             };
@@ -41110,6 +41183,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SendingDomainDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-earn-audience": {
+        parameters: {
+            query?: {
+                /** @description The campaign's list */
+                list?: string;
+                /** @description The lowest tier of paid members; empty for any paid tier */
+                tier?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnAudience"];
                 };
             };
             /** @description Error */

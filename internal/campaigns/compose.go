@@ -21,6 +21,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/mailer"
 	"github.com/hostrepute/reputecast/internal/media"
 	"github.com/hostrepute/reputecast/internal/mjml"
+	"github.com/hostrepute/reputecast/internal/paidaccess"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/templates"
 )
@@ -163,7 +164,18 @@ func (s *Service) countAudience(ctx context.Context, q *store.Queries, wsID uuid
 		return out
 	}
 	var out ComposerAudienceCount
-	if len(def.Lists) > 0 {
+	if len(def.Lists) > 0 && def.Paid != "" {
+		// A paid-only campaign: the paid members on the lists (at the tier
+		// and above), or the free subscribers.
+		n, err := paidaccess.CountLists(ctx, q, wsID, ids(def.Lists), ids(def.ExcludeLists), def.PaidTier)
+		if err != nil {
+			return out, err
+		}
+		out.Count = n.Paid
+		if def.Paid == paidaccess.Free {
+			out.Count = n.Free
+		}
+	} else if len(def.Lists) > 0 {
 		n, err := q.ComposerCountListAudience(ctx, store.ComposerCountListAudienceParams{WorkspaceID: wsID, Lists: ids(def.Lists), ExcludeLists: ids(def.ExcludeLists)})
 		if err != nil {
 			return out, err
