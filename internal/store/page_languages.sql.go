@@ -424,7 +424,7 @@ SET content = $1, fields = $2, consent_text = $3, consent_version = $4,
     consent_changed_at = CASE WHEN $4::int <> consent_version THEN $6::timestamptz ELSE consent_changed_at END,
     updated_by = $5, updated_at = $6::timestamptz
 WHERE workspace_id = $7 AND id = $8
-RETURNING id, workspace_id, name, kind, slug, list_ids, double_opt_in, fields, content, spam_protection, status, views, submissions, confirmed, blocked, created_by, created_at, updated_at, public_id, default_list_ids, list_choice, consent_text, consent_version, allowed_origins, after_submit, redirect_url, published_at, updated_by, copy_language, language_mode, fixed_language, consent_changed_by, consent_changed_at
+RETURNING id, workspace_id, name, kind, slug, list_ids, double_opt_in, fields, content, spam_protection, status, views, submissions, confirmed, blocked, created_by, created_at, updated_at, public_id, default_list_ids, list_choice, consent_text, consent_version, allowed_origins, after_submit, redirect_url, published_at, updated_by, copy_language, language_mode, fixed_language, consent_changed_by, consent_changed_at, download_file_id, download_days
 `
 
 type FormSetCopyParams struct {
@@ -486,6 +486,8 @@ func (q *Queries) FormSetCopy(ctx context.Context, arg FormSetCopyParams) (Form,
 		&i.FixedLanguage,
 		&i.ConsentChangedBy,
 		&i.ConsentChangedAt,
+		&i.DownloadFileID,
+		&i.DownloadDays,
 	)
 	return i, err
 }
@@ -493,7 +495,7 @@ func (q *Queries) FormSetCopy(ctx context.Context, arg FormSetCopyParams) (Form,
 const formSetLanguage = `-- name: FormSetLanguage :one
 UPDATE forms SET language_mode = $1, fixed_language = $2, updated_by = $3, updated_at = $4::timestamptz
 WHERE workspace_id = $5 AND id = $6
-RETURNING id, workspace_id, name, kind, slug, list_ids, double_opt_in, fields, content, spam_protection, status, views, submissions, confirmed, blocked, created_by, created_at, updated_at, public_id, default_list_ids, list_choice, consent_text, consent_version, allowed_origins, after_submit, redirect_url, published_at, updated_by, copy_language, language_mode, fixed_language, consent_changed_by, consent_changed_at
+RETURNING id, workspace_id, name, kind, slug, list_ids, double_opt_in, fields, content, spam_protection, status, views, submissions, confirmed, blocked, created_by, created_at, updated_at, public_id, default_list_ids, list_choice, consent_text, consent_version, allowed_origins, after_submit, redirect_url, published_at, updated_by, copy_language, language_mode, fixed_language, consent_changed_by, consent_changed_at, download_file_id, download_days
 `
 
 type FormSetLanguageParams struct {
@@ -549,6 +551,8 @@ func (q *Queries) FormSetLanguage(ctx context.Context, arg FormSetLanguageParams
 		&i.FixedLanguage,
 		&i.ConsentChangedBy,
 		&i.ConsentChangedAt,
+		&i.DownloadFileID,
+		&i.DownloadDays,
 	)
 	return i, err
 }

@@ -2329,7 +2329,7 @@ func (q *Queries) DigestNextNumber(ctx context.Context, digestID uuid.UUID) (int
 }
 
 const digestOpenApproval = `-- name: DigestOpenApproval :one
-SELECT id, workspace_id, subject_type, campaign_id, automation_id, requested_by, requested_at, note, status, matched_rules, approvals_required, snapshot, invalidated_at, invalidated_reason, changes, bypass_reason, decided_at, campaign_version, readiness_run_id, decided_by, invalidated_by, reminded_at, previous_id, invalidated_from, transactional_template_id, website_post_id FROM approval_requests WHERE campaign_id = $1 AND status IN ('pending', 'approved') ORDER BY requested_at DESC LIMIT 1
+SELECT id, workspace_id, subject_type, campaign_id, automation_id, requested_by, requested_at, note, status, matched_rules, approvals_required, snapshot, invalidated_at, invalidated_reason, changes, bypass_reason, decided_at, campaign_version, readiness_run_id, decided_by, invalidated_by, reminded_at, previous_id, invalidated_from, transactional_template_id, website_post_id, website_page_id FROM approval_requests WHERE campaign_id = $1 AND status IN ('pending', 'approved') ORDER BY requested_at DESC LIMIT 1
 `
 
 func (q *Queries) DigestOpenApproval(ctx context.Context, campaignID *uuid.UUID) (ApprovalRequest, error) {
@@ -2362,6 +2362,7 @@ func (q *Queries) DigestOpenApproval(ctx context.Context, campaignID *uuid.UUID)
 		&i.InvalidatedFrom,
 		&i.TransactionalTemplateID,
 		&i.WebsitePostID,
+		&i.WebsitePageID,
 	)
 	return i, err
 }

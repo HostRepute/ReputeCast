@@ -1384,6 +1384,13 @@ type Querier interface {
 	OverviewListChanges(ctx context.Context, arg OverviewListChangesParams) ([]OverviewListChangesRow, error)
 	// Overview (spec 7.1).
 	OverviewNextScheduled(ctx context.Context, arg OverviewNextScheduledParams) (OverviewNextScheduledRow, error)
+	// The published (or unpublished) page answering at an address.
+	PageByLiveSlug(ctx context.Context, arg PageByLiveSlugParams) (Page, error)
+	// Conversions per page and kind between two times.
+	PageConversionCounts(ctx context.Context, arg PageConversionCountsParams) ([]PageConversionCountsRow, error)
+	// A refunded sale leaves the page's numbers.
+	PageConversionDeleteOrder(ctx context.Context, orderID *uuid.UUID) error
+	PageConversionInsert(ctx context.Context, arg PageConversionInsertParams) error
 	// The page copy a workspace wrote, per language, with who wrote it.
 	PageCopyList(ctx context.Context, workspaceID uuid.UUID) ([]PageCopyListRow, error)
 	// Serializes changes to a workspace's page copy (the statuses are computed
@@ -1392,6 +1399,55 @@ type Querier interface {
 	PageCopySetLabels(ctx context.Context, arg PageCopySetLabelsParams) error
 	PageCopySetPages(ctx context.Context, arg PageCopySetPagesParams) error
 	PageCopyUserName(ctx context.Context, id uuid.UUID) (string, error)
+	// A page deleted after being published still answers 410 at its address.
+	PageEverLiveBySlug(ctx context.Context, arg PageEverLiveBySlugParams) (Page, error)
+	PageGet(ctx context.Context, arg PageGetParams) (Page, error)
+	PageInsert(ctx context.Context, arg PageInsertParams) error
+	PageLock(ctx context.Context, arg PageLockParams) (Page, error)
+	// The names of who saved and who published a page.
+	PageNames(ctx context.Context, arg PageNamesParams) (PageNamesRow, error)
+	// The version published before the live one (Undo).
+	PagePreviousPublished(ctx context.Context, arg PagePreviousPublishedParams) (PageVersion, error)
+	// Puts a version live at the page's address.
+	PagePublish(ctx context.Context, arg PagePublishParams) error
+	PageRedirectDelete(ctx context.Context, arg PageRedirectDeleteParams) error
+	PageRedirectGet(ctx context.Context, arg PageRedirectGetParams) (uuid.UUID, error)
+	// Earlier addresses
+	PageRedirectInsert(ctx context.Context, arg PageRedirectInsertParams) error
+	// Undo of a publish: the version that was live before, or none.
+	PageRestoreLive(ctx context.Context, arg PageRestoreLiveParams) error
+	// Saves the draft's content; the version goes up by one.
+	PageSaveContent(ctx context.Context, arg PageSaveContentParams) error
+	PageSaveSettings(ctx context.Context, arg PageSaveSettingsParams) error
+	PageSchedule(ctx context.Context, arg PageScheduleParams) error
+	// Whether another page holds the address (as its draft's or its live one),
+	// or an earlier address of another page redirects from it.
+	PageSlugTaken(ctx context.Context, arg PageSlugTakenParams) (bool, error)
+	PageSoftDelete(ctx context.Context, arg PageSoftDeleteParams) error
+	// Header links (internal/website's navigation names custom pages by slug)
+	// The published pages among slugs, with the label their header link uses.
+	PageTitlesBySlug(ctx context.Context, arg PageTitlesBySlugParams) ([]PageTitlesBySlugRow, error)
+	PageUnpublish(ctx context.Context, arg PageUnpublishParams) error
+	PageVersionCount(ctx context.Context, pageID uuid.UUID) (int64, error)
+	PageVersionGet(ctx context.Context, arg PageVersionGetParams) (PageVersionGetRow, error)
+	// Versions
+	PageVersionInsert(ctx context.Context, arg PageVersionInsertParams) error
+	PageVersionPublished(ctx context.Context, arg PageVersionPublishedParams) error
+	PageVersions(ctx context.Context, pageID uuid.UUID) ([]PageVersionsRow, error)
+	// Numbers
+	// Views per page between two days (website_view_days, kind 'page'). The
+	// shop counts as the nil page.
+	PageViewCounts(ctx context.Context, arg PageViewCountsParams) ([]PageViewCountsRow, error)
+	// Scheduled pages whose time has come and that wait for no approval.
+	PagesDue(ctx context.Context, now *time.Time) ([]PagesDueRow, error)
+	// Landing and sales pages (internal/pages, design expansion phase 7, M29):
+	// the pages, their saved and published versions, earlier addresses, what
+	// each page brought in, and the shop's switch.
+	// Every page with who edited it last.
+	PagesList(ctx context.Context, workspaceID uuid.UUID) ([]PagesListRow, error)
+	// Every published page (the sitemap, the navigation picker).
+	PagesPublished(ctx context.Context, workspaceID uuid.UUID) ([]PagesPublishedRow, error)
+	PagesPublishedCount(ctx context.Context, workspaceID uuid.UUID) (int64, error)
 	PauseAutomation(ctx context.Context, arg PauseAutomationParams) error
 	PayConnection(ctx context.Context, arg PayConnectionParams) (PayConnectionRow, error)
 	// The connection a webhook request is for.
@@ -2185,6 +2241,10 @@ type Querier interface {
 	// Unfinished setups of a workspace, newest first (resume "Connect SES").
 	SetupOpen(ctx context.Context, arg SetupOpenParams) ([]ProviderSetup, error)
 	SetupSave(ctx context.Context, arg SetupSaveParams) (ProviderSetup, error)
+	// The shop
+	ShopSettingsEnsure(ctx context.Context, workspaceID uuid.UUID) error
+	ShopSettingsGet(ctx context.Context, workspaceID uuid.UUID) (ShopSetting, error)
+	ShopSettingsSave(ctx context.Context, arg ShopSettingsSaveParams) error
 	// Sidebar sections (Settings › General): the sections a workspace hides.
 	SidebarHiddenSectionsForUpdate(ctx context.Context, id uuid.UUID) ([]string, error)
 	SidebarSetHiddenSections(ctx context.Context, arg SidebarSetHiddenSectionsParams) error

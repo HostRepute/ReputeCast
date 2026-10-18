@@ -262,7 +262,7 @@ func (q *Queries) ApprovalDecisions(ctx context.Context, requestIds []uuid.UUID)
 }
 
 const approvalGet = `-- name: ApprovalGet :one
-SELECT r.id, r.workspace_id, r.subject_type, r.campaign_id, r.automation_id, r.requested_by, r.requested_at, r.note, r.status, r.matched_rules, r.approvals_required, r.snapshot, r.invalidated_at, r.invalidated_reason, r.changes, r.bypass_reason, r.decided_at, r.campaign_version, r.readiness_run_id, r.decided_by, r.invalidated_by, r.reminded_at, r.previous_id, r.invalidated_from, r.transactional_template_id, r.website_post_id,
+SELECT r.id, r.workspace_id, r.subject_type, r.campaign_id, r.automation_id, r.requested_by, r.requested_at, r.note, r.status, r.matched_rules, r.approvals_required, r.snapshot, r.invalidated_at, r.invalidated_reason, r.changes, r.bypass_reason, r.decided_at, r.campaign_version, r.readiness_run_id, r.decided_by, r.invalidated_by, r.reminded_at, r.previous_id, r.invalidated_from, r.transactional_template_id, r.website_post_id, r.website_page_id,
        coalesce(u.name, '')::text AS requested_by_name,
        coalesce(u.email, '')::text AS requested_by_email,
        coalesce(u.avatar_color, '')::text AS requested_by_color,
@@ -316,6 +316,7 @@ type ApprovalGetRow struct {
 	InvalidatedFrom         string          `json:"invalidatedFrom"`
 	TransactionalTemplateID *uuid.UUID      `json:"transactionalTemplateId"`
 	WebsitePostID           *uuid.UUID      `json:"websitePostId"`
+	WebsitePageID           *uuid.UUID      `json:"websitePageId"`
 	RequestedByName         string          `json:"requestedByName"`
 	RequestedByEmail        string          `json:"requestedByEmail"`
 	RequestedByColor        string          `json:"requestedByColor"`
@@ -358,6 +359,7 @@ func (q *Queries) ApprovalGet(ctx context.Context, arg ApprovalGetParams) (Appro
 		&i.InvalidatedFrom,
 		&i.TransactionalTemplateID,
 		&i.WebsitePostID,
+		&i.WebsitePageID,
 		&i.RequestedByName,
 		&i.RequestedByEmail,
 		&i.RequestedByColor,
@@ -603,7 +605,7 @@ func (q *Queries) ApprovalLastAudit(ctx context.Context, arg ApprovalLastAuditPa
 }
 
 const approvalLatestForCampaign = `-- name: ApprovalLatestForCampaign :one
-SELECT r.id, r.workspace_id, r.subject_type, r.campaign_id, r.automation_id, r.requested_by, r.requested_at, r.note, r.status, r.matched_rules, r.approvals_required, r.snapshot, r.invalidated_at, r.invalidated_reason, r.changes, r.bypass_reason, r.decided_at, r.campaign_version, r.readiness_run_id, r.decided_by, r.invalidated_by, r.reminded_at, r.previous_id, r.invalidated_from, r.transactional_template_id, r.website_post_id,
+SELECT r.id, r.workspace_id, r.subject_type, r.campaign_id, r.automation_id, r.requested_by, r.requested_at, r.note, r.status, r.matched_rules, r.approvals_required, r.snapshot, r.invalidated_at, r.invalidated_reason, r.changes, r.bypass_reason, r.decided_at, r.campaign_version, r.readiness_run_id, r.decided_by, r.invalidated_by, r.reminded_at, r.previous_id, r.invalidated_from, r.transactional_template_id, r.website_post_id, r.website_page_id,
        coalesce(u.name, '')::text AS requested_by_name,
        coalesce(d.name, '')::text AS decided_by_name,
        coalesce(i.name, '')::text AS invalidated_by_name
@@ -642,6 +644,7 @@ type ApprovalLatestForCampaignRow struct {
 	InvalidatedFrom         string          `json:"invalidatedFrom"`
 	TransactionalTemplateID *uuid.UUID      `json:"transactionalTemplateId"`
 	WebsitePostID           *uuid.UUID      `json:"websitePostId"`
+	WebsitePageID           *uuid.UUID      `json:"websitePageId"`
 	RequestedByName         string          `json:"requestedByName"`
 	DecidedByName           string          `json:"decidedByName"`
 	InvalidatedByName       string          `json:"invalidatedByName"`
@@ -678,6 +681,7 @@ func (q *Queries) ApprovalLatestForCampaign(ctx context.Context, campaignID *uui
 		&i.InvalidatedFrom,
 		&i.TransactionalTemplateID,
 		&i.WebsitePostID,
+		&i.WebsitePageID,
 		&i.RequestedByName,
 		&i.DecidedByName,
 		&i.InvalidatedByName,
@@ -828,7 +832,7 @@ func (q *Queries) ApprovalList(ctx context.Context, arg ApprovalListParams) ([]A
 }
 
 const approvalLock = `-- name: ApprovalLock :one
-SELECT id, workspace_id, subject_type, campaign_id, automation_id, requested_by, requested_at, note, status, matched_rules, approvals_required, snapshot, invalidated_at, invalidated_reason, changes, bypass_reason, decided_at, campaign_version, readiness_run_id, decided_by, invalidated_by, reminded_at, previous_id, invalidated_from, transactional_template_id, website_post_id FROM approval_requests WHERE workspace_id = $1 AND id = $2 FOR UPDATE
+SELECT id, workspace_id, subject_type, campaign_id, automation_id, requested_by, requested_at, note, status, matched_rules, approvals_required, snapshot, invalidated_at, invalidated_reason, changes, bypass_reason, decided_at, campaign_version, readiness_run_id, decided_by, invalidated_by, reminded_at, previous_id, invalidated_from, transactional_template_id, website_post_id, website_page_id FROM approval_requests WHERE workspace_id = $1 AND id = $2 FOR UPDATE
 `
 
 type ApprovalLockParams struct {
@@ -866,6 +870,7 @@ func (q *Queries) ApprovalLock(ctx context.Context, arg ApprovalLockParams) (App
 		&i.InvalidatedFrom,
 		&i.TransactionalTemplateID,
 		&i.WebsitePostID,
+		&i.WebsitePageID,
 	)
 	return i, err
 }
@@ -998,7 +1003,7 @@ func (q *Queries) ApprovalMembers(ctx context.Context, workspaceID uuid.UUID) ([
 }
 
 const approvalOpenForCampaign = `-- name: ApprovalOpenForCampaign :one
-SELECT id, workspace_id, subject_type, campaign_id, automation_id, requested_by, requested_at, note, status, matched_rules, approvals_required, snapshot, invalidated_at, invalidated_reason, changes, bypass_reason, decided_at, campaign_version, readiness_run_id, decided_by, invalidated_by, reminded_at, previous_id, invalidated_from, transactional_template_id, website_post_id FROM approval_requests WHERE campaign_id = $1 AND status IN ('pending', 'approved')
+SELECT id, workspace_id, subject_type, campaign_id, automation_id, requested_by, requested_at, note, status, matched_rules, approvals_required, snapshot, invalidated_at, invalidated_reason, changes, bypass_reason, decided_at, campaign_version, readiness_run_id, decided_by, invalidated_by, reminded_at, previous_id, invalidated_from, transactional_template_id, website_post_id, website_page_id FROM approval_requests WHERE campaign_id = $1 AND status IN ('pending', 'approved')
 ORDER BY requested_at DESC LIMIT 1
 `
 
@@ -1033,6 +1038,7 @@ func (q *Queries) ApprovalOpenForCampaign(ctx context.Context, campaignID *uuid.
 		&i.InvalidatedFrom,
 		&i.TransactionalTemplateID,
 		&i.WebsitePostID,
+		&i.WebsitePageID,
 	)
 	return i, err
 }
