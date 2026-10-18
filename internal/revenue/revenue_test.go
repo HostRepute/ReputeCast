@@ -293,6 +293,16 @@ func TestConversionAttribution(t *testing.T) {
 	if r.Matched != "click_token" || r.Credited == nil || r.Credited.ID != campaign.String() {
 		t.Fatalf("by token: %+v", r)
 	}
+	// The campaign report's Revenue section counts them with their value.
+	var cr revenue.CampaignRevenue
+	owner.Do("GET", ws+"/campaigns/"+campaign.String()+"/revenue", nil).MustStatus(t, 200).JSON(t, &cr)
+	var n, sum int64
+	if err := env.App.Pool.QueryRow(ctx, `SELECT count(*), coalesce(sum(value_cents), 0) FROM conversions WHERE campaign_id = $1 AND NOT test`, campaign).Scan(&n, &sum); err != nil {
+		t.Fatal(err)
+	}
+	if !cr.Active || cr.Conversions.Count != n || cr.Conversions.ValueCents != sum || cr.Conversions.ByToken < 1 || cr.Conversions.ByEmail < 1 {
+		t.Fatalf("campaign revenue: %+v, want %d worth %d", cr.Conversions, n, sum)
+	}
 	// Shorten the window to a day: the token from three days ago and the
 	// click from two days ago are both outside it.
 	owner.Do("PUT", ws+"/earn/attribution", map[string]any{"days": 1, "clickToken": true, "domains": []string{"https://App.Acme.io/pricing"}}).MustStatus(t, 200)

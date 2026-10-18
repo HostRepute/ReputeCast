@@ -213,3 +213,10 @@ ORDER BY coalesce(c.started_at, c.scheduled_at);
 SELECT c.id, c.name, c.status, c.audience, c.scheduled_at, c.started_at, c.mjml, coalesce(u.name, '')::text AS author
 FROM campaigns c LEFT JOIN users u ON u.id = c.created_by
 WHERE c.id = @id AND c.workspace_id = @workspace_id AND c.deleted_at IS NULL;
+
+-- name: SponsorCampaignChips :many
+-- The sponsor of each campaign with a booking: the Campaigns list's chip.
+SELECT b.campaign_id, sp.name AS sponsor
+FROM sponsor_bookings b JOIN sponsors sp ON sp.id = b.sponsor_id
+WHERE b.workspace_id = @workspace_id AND b.campaign_id IS NOT NULL AND b.status IN ('booked','sent')
+ORDER BY b.issue_on DESC;

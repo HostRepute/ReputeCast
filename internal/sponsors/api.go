@@ -351,6 +351,22 @@ func Register(h huma.API, s *Service) {
 			return api.NoContent, s.RevokeShare(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id)
 		})
 
+	api.Get(h, api.Op{ID: "list-sponsor-campaign-chips", Path: ws + "/sponsors/campaign-chips", Summary: "The sponsor of each campaign with a booking, for the Campaigns list",
+		Tags: tags, Access: api.Workspace(authz.CampaignsView)},
+		func(ctx context.Context, in *api.WorkspaceInput) (*api.Body[CampaignChips], error) {
+			out, err := s.Chips(ctx, api.WorkspaceFrom(ctx))
+			return api.OK(out), err
+		})
+	api.Get(h, api.Op{ID: "get-campaign-sponsor", Path: ws + "/campaigns/{id}/sponsor", Summary: "A campaign report's Sponsor section: the issue's booking and its report",
+		Description: "Answers without a booking when the issue had no sponsor.", Tags: tags, Access: view},
+		func(ctx context.Context, in *idPath) (*api.Body[CampaignSponsor], error) {
+			id, err := in.id()
+			if err != nil {
+				return nil, api.NotFound("Campaign")
+			}
+			out, err := s.CampaignSponsor(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id)
+			return api.OK(out), err
+		})
 	api.Get(h, api.Op{ID: "get-campaign-sponsor-block", Path: ws + "/campaigns/{id}/sponsor-block", Summary: "The Sponsor block of a campaign: its booking, creative and content",
 		Description: "The price shows only to people who hold earn:view.", Tags: tags, Access: api.Workspace(authz.CampaignsView)},
 		func(ctx context.Context, in *blockInput) (*api.Body[SponsorBlock], error) {

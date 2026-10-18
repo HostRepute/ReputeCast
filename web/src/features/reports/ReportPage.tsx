@@ -21,6 +21,7 @@ import { copyText, ShareCard, ShareDialog, useShares } from './ShareCard'
 import { StateAlert } from './StateAlert'
 import { headerCaption, notSentLead, statusBadge, type CampaignReport } from './words'
 import './reports.css'
+import { CampaignEarn } from '@/features/earn/revenue/CampaignEarn'
 
 type BounceRow = Schemas['ReportBounceRow']
 
@@ -310,7 +311,12 @@ export function ReportPage({ campaignId }: { campaignId: string }) {
         <>
           {r.backlog ? <BacklogAlert b={r.backlog} onRefresh={() => void q.refetch()} /> : null}
           {issue ? <IssueComparison issue={issue} report={r} /> : null}
-          <ReportBody r={r} actions={actions} polls={{ items: polls.data?.items, error: polls.error ?? undefined, retry: () => void polls.refetch() }} />
+          <ReportBody
+            r={r}
+            actions={actions}
+            polls={{ items: polls.data?.items, error: polls.error ?? undefined, retry: () => void polls.refetch() }}
+            earn={<CampaignEarn campaignId={campaignId} />}
+          />
           <ShareCard ref={shareCard} campaignId={campaignId} onCreate={() => setSharing(true)} />
         </>
       )}

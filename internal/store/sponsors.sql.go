@@ -1095,6 +1095,39 @@ func (q *Queries) SponsorCampaignBrief(ctx context.Context, arg SponsorCampaignB
 	return i, err
 }
 
+const sponsorCampaignChips = `-- name: SponsorCampaignChips :many
+SELECT b.campaign_id, sp.name AS sponsor
+FROM sponsor_bookings b JOIN sponsors sp ON sp.id = b.sponsor_id
+WHERE b.workspace_id = $1 AND b.campaign_id IS NOT NULL AND b.status IN ('booked','sent')
+ORDER BY b.issue_on DESC
+`
+
+type SponsorCampaignChipsRow struct {
+	CampaignID *uuid.UUID `json:"campaignId"`
+	Sponsor    string     `json:"sponsor"`
+}
+
+// The sponsor of each campaign with a booking: the Campaigns list's chip.
+func (q *Queries) SponsorCampaignChips(ctx context.Context, workspaceID uuid.UUID) ([]SponsorCampaignChipsRow, error) {
+	rows, err := q.db.Query(ctx, sponsorCampaignChips, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SponsorCampaignChipsRow{}
+	for rows.Next() {
+		var i SponsorCampaignChipsRow
+		if err := rows.Scan(&i.CampaignID, &i.Sponsor); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const sponsorCampaignsOfList = `-- name: SponsorCampaignsOfList :many
 SELECT c.id, c.name, c.status, c.scheduled_at, c.started_at
 FROM campaigns c

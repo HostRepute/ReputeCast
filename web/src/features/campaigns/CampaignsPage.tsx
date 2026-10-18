@@ -19,6 +19,7 @@ import { CampaignStatusBadge } from './StatusBadge'
 import { NewCampaignDialog } from '@/features/digests/TypePicker'
 import { DigestBadgeLink, RecurringTable, useDigestCount } from '@/features/digests/RecurringTable'
 import { IssueStatusBadge } from '@/features/digests/shared'
+import { SponsorChip, useSponsorChips } from '@/features/earn/sponsors/chips'
 import { m as dm } from '@/features/digests/messages'
 
 export type CampaignFilter = 'all' | 'drafts' | 'scheduled' | 'sending' | 'sent' | 'recurring'
@@ -237,6 +238,7 @@ function CampaignTable({ data, page, status, q }: { data: Schemas['CampaignList'
   const from = (page - 1) * data.pageSize
   const shown = from + data.items.length
   const params = (id: string) => ({ workspace: slug, campaignId: id })
+  const sponsors = useSponsorChips()
   return (
     <section className="card" aria-label={t(m.title)}>
       {/* The board's key and provider cells wrap; a long audience ("Weekly Digest + Product
@@ -283,9 +285,10 @@ function CampaignTable({ data, page, status, q }: { data: Schemas['CampaignList'
                       </Link>
                     )}
                   </Truncate>
-                  {c.digest ? (
-                    <div className="my-1">
-                      <DigestBadgeLink digest={c.digest} />
+                  {c.digest || sponsors.has(c.id) ? (
+                    <div className="my-1 flex flex-wrap gap-1.5">
+                      {c.digest ? <DigestBadgeLink digest={c.digest} /> : null}
+                      {sponsors.has(c.id) ? <SponsorChip sponsor={sponsors.get(c.id) ?? ''} /> : null}
                     </div>
                   ) : null}
                   <div className="k">{subtitle(c)}</div>

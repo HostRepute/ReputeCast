@@ -1771,6 +1771,9 @@ type Querier interface {
 	// New paid members of a window by the email they're credited to, with
 	// their new MRR (twelve times, in minor units).
 	RevenueUpgradesByEmail(ctx context.Context, arg RevenueUpgradesByEmailParams) ([]RevenueUpgradesByEmailRow, error)
+	// Whether a campaign report shows a Revenue section: the workspace takes
+	// payments or records conversions.
+	RevenueUsesEarn(ctx context.Context, workspaceID uuid.UUID) (bool, error)
 	RevokeAPIKey(ctx context.Context, arg RevokeAPIKeyParams) (int64, error)
 	RevokeAPIKeysCreatedBy(ctx context.Context, arg RevokeAPIKeysCreatedByParams) (int64, error)
 	RevokeAllUserSessions(ctx context.Context, userID uuid.UUID) (int64, error)
@@ -2235,6 +2238,8 @@ type Querier interface {
 	// Booked issues whose campaign has been sent.
 	SponsorBookingsToSend(ctx context.Context) ([]SponsorBookingsToSendRow, error)
 	SponsorCampaignBrief(ctx context.Context, arg SponsorCampaignBriefParams) (SponsorCampaignBriefRow, error)
+	// The sponsor of each campaign with a booking: the Campaigns list's chip.
+	SponsorCampaignChips(ctx context.Context, workspaceID uuid.UUID) ([]SponsorCampaignChipsRow, error)
 	// A list's campaigns scheduled or sent in a time range, to link issues by
 	// list and date.
 	SponsorCampaignsOfList(ctx context.Context, arg SponsorCampaignsOfListParams) ([]SponsorCampaignsOfListRow, error)

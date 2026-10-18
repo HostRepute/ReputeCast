@@ -253,6 +253,26 @@ func TestSponsorReportCountsOnlyBlockRecipients(t *testing.T) {
 	if r.LinkHost != "fabrikam-x17.example/shop" || r.LinkCampaign != "9" {
 		t.Errorf("link line: %s %s", r.LinkHost, r.LinkCampaign)
 	}
+	// The campaign's report shows the booking in its Sponsor section, and
+	// the Campaigns list's chip names the sponsor.
+	var cs sponsors.CampaignSponsor
+	c.Do("GET", ws+"/campaigns/"+camp.String()+"/sponsor", nil).MustStatus(t, 200).JSON(t, &cs)
+	if cs.Booking == nil || cs.Booking.ID != bid.String() || cs.Booking.Report == nil || cs.Booking.Report.Delivered != 3 {
+		t.Fatalf("campaign sponsor: %+v", cs.Booking)
+	}
+	chip := func(cl *apptest.Client) string {
+		var chips sponsors.CampaignChips
+		cl.Do("GET", ws+"/sponsors/campaign-chips", nil).MustStatus(t, 200).JSON(t, &chips)
+		for _, ch := range chips.Items {
+			if ch.CampaignID == camp.String() {
+				return ch.Sponsor
+			}
+		}
+		return ""
+	}
+	if chip(c) == "" {
+		t.Error("no chip for the sponsored campaign")
+	}
 
 	// Share it: the link works without signing in, shows no contact data,
 	// and stops working once revoked.
@@ -281,6 +301,11 @@ func TestSponsorReportCountsOnlyBlockRecipients(t *testing.T) {
 	d := env.Client()
 	d.SignInDemo("daniel@acme.io")
 	d.Do("POST", ws+"/sponsor-bookings/"+bid.String()+"/shares", map[string]any{}).MustStatus(t, 403)
+	// He sees the chip (campaigns:view) but not the Sponsor section (earn:view).
+	if chip(d) == "" {
+		t.Error("no chip for a Content Writer")
+	}
+	d.Do("GET", ws+"/campaigns/"+camp.String()+"/sponsor", nil).MustStatus(t, 403)
 }
 
 func TestSponsorProposalAndBlock(t *testing.T) {

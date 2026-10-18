@@ -3545,6 +3545,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/campaigns/{id}/sponsor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A campaign report's Sponsor section: the issue's booking and its report
+         * @description Answers without a booking when the issue had no sponsor.
+         */
+        get: operations["get-campaign-sponsor"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/campaigns/{id}/sponsor-block": {
         parameters: {
             query?: never;
@@ -8843,6 +8863,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/sponsors/campaign-chips": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The sponsor of each campaign with a booking, for the Campaigns list */
+        get: operations["list-sponsor-campaign-chips"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/sponsors/logo": {
         parameters: {
             query?: never;
@@ -12491,6 +12528,13 @@ export interface components {
             title?: string;
             version?: string;
         };
+        CampaignChip: {
+            campaignId: string;
+            sponsor: string;
+        };
+        CampaignChips: {
+            items: components["schemas"]["CampaignChip"][];
+        };
         CampaignConversions: {
             /** Format: int64 */
             byEmail: number;
@@ -12589,6 +12633,7 @@ export interface components {
             unsubscribes: components["schemas"]["ReportUnsubscribes"];
         };
         CampaignRevenue: {
+            active: boolean;
             /** Format: int64 */
             checkouts: number;
             collected: components["schemas"]["CampaignPayment"][];
@@ -12642,6 +12687,9 @@ export interface components {
             testSends: components["schemas"]["ReviewTestSend"][];
             thresholds: components["schemas"]["ReadinessThresholds"];
             timezone: string;
+        };
+        CampaignSponsor: {
+            booking?: components["schemas"]["SponsorBookingDetail"];
         };
         CampaignStatusCounts: {
             /** Format: int64 */
@@ -34845,6 +34893,40 @@ export interface operations {
             };
         };
     };
+    "get-campaign-sponsor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampaignSponsor"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "get-campaign-sponsor-block": {
         parameters: {
             query?: {
@@ -47267,6 +47349,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SponsorItem"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-sponsor-campaign-chips": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampaignChips"];
                 };
             };
             /** @description Error */

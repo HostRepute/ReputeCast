@@ -19,6 +19,9 @@ import (
 // CampaignRevenue is a campaign report's Revenue section: the upgrades and
 // conversions credited to it.
 type CampaignRevenue struct {
+	// Active: the workspace takes payments or records conversions, so the
+	// report shows the section.
+	Active bool `json:"active"`
 	// Locked: the person can't see revenue (earn:view); Helpers can.
 	Locked   bool       `json:"locked"`
 	Helpers  []string   `json:"helpers"`
@@ -94,6 +97,9 @@ func (s *Service) Campaign(ctx context.Context, ws *store.Workspace, p *authz.Pr
 	}
 	out.Name = c.Name
 	out.SentAt = c.StartedAt
+	if out.Active, err = s.Q.RevenueUsesEarn(ctx, ws.ID); err != nil {
+		return out, err
+	}
 	if !p.Can(authz.EarnView) {
 		out.Locked = true
 		out.Helpers = s.helpers(ctx, ws.ID, p.UserID, 3, authz.EarnView)
@@ -203,7 +209,7 @@ func (s *Service) Campaign(ctx context.Context, ws *store.Workspace, p *authz.Pr
 		}
 		cc := &out.Conversions
 		cc.Count += r.Conversions
-		cc.ValueCents += r.ValueCents
+		cc.ValueCents += r.ValueCents * r.Conversions
 		switch r.Matched {
 		case "click_token":
 			cc.ByToken += r.Conversions

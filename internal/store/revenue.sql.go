@@ -1898,3 +1898,17 @@ func (q *Queries) RevenueUpgradesByEmail(ctx context.Context, arg RevenueUpgrade
 	}
 	return items, nil
 }
+
+const revenueUsesEarn = `-- name: RevenueUsesEarn :one
+SELECT (EXISTS (SELECT 1 FROM payment_connections pc WHERE pc.workspace_id = $1::uuid AND pc.status = 'connected')
+     OR EXISTS (SELECT 1 FROM conversions cv WHERE cv.workspace_id = $1::uuid AND NOT cv.test))::boolean AS uses
+`
+
+// Whether a campaign report shows a Revenue section: the workspace takes
+// payments or records conversions.
+func (q *Queries) RevenueUsesEarn(ctx context.Context, workspaceID uuid.UUID) (bool, error) {
+	row := q.db.QueryRow(ctx, revenueUsesEarn, workspaceID)
+	var uses bool
+	err := row.Scan(&uses)
+	return uses, err
+}

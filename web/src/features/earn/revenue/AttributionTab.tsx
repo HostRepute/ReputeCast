@@ -197,7 +197,7 @@ function WindowCard({ s }: { s: Settings }) {
         </span>
         <ul className="m-0 flex list-none flex-wrap gap-1.5 p-0" aria-labelledby="at-domains">
           {domains.map((d) => (
-            <li key={d} className="er-chip">
+            <li key={d} className="chip pr-1">
               <span className="mono">{d}</span>
               {ro ? null : (
                 <button type="button" aria-label={t(ma.removeDomain, { domain: d })} onClick={() => setDomains(domains.filter((x) => x !== d))}>

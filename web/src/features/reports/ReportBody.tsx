@@ -382,8 +382,12 @@ function ABTestCard({ t }: { t: Schemas['ReportABTest'] }) {
   )
 }
 
-/** Everything below the header: the report's cards in the board's order. */
-export function ReportBody({ r, actions, polls }: { r: CampaignReport; actions?: ReportActions; polls?: ReportPolls }) {
+/**
+ * Everything below the header: the report's cards in the board's order.
+ * `earn` is the Revenue and Sponsor sections (EarnInReport), after the
+ * click map; shared read-only reports leave it out.
+ */
+export function ReportBody({ r, actions, polls, earn }: { r: CampaignReport; actions?: ReportActions; polls?: ReportPolls; earn?: ReactNode }) {
   const t = useT()
   const items = polls?.items?.length ? polls.items : undefined
   const mapPolls = useMapPolls(items)
@@ -424,6 +428,7 @@ export function ReportBody({ r, actions, polls }: { r: CampaignReport; actions?:
         </div>
       )}
       {polls?.error ? <PollsError error={polls.error} onRetry={polls.retry} /> : null}
+      {earn}
       <div className="flex flex-wrap items-start gap-5">
         <MailboxTable rows={r.mailboxes} />
         {r.providers.columns.length ? <ProviderTable t={r.providers} /> : null}

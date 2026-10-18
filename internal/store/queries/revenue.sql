@@ -355,3 +355,9 @@ SELECT count(*)::bigint AS conversions, coalesce(sum(value_cents), 0)::bigint AS
        coalesce(sum(value_cents) FILTER (WHERE campaign_id IS NOT NULL OR automation_id IS NOT NULL), 0)::bigint AS credited_cents,
        coalesce(min(received_at), now())::timestamptz AS first_at
 FROM conversions WHERE workspace_id = @workspace_id AND NOT test AND lower(currency) = lower(@currency::text);
+
+-- name: RevenueUsesEarn :one
+-- Whether a campaign report shows a Revenue section: the workspace takes
+-- payments or records conversions.
+SELECT (EXISTS (SELECT 1 FROM payment_connections pc WHERE pc.workspace_id = @workspace_id::uuid AND pc.status = 'connected')
+     OR EXISTS (SELECT 1 FROM conversions cv WHERE cv.workspace_id = @workspace_id::uuid AND NOT cv.test))::boolean AS uses;

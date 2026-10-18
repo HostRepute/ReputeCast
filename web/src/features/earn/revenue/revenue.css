@@ -388,28 +388,6 @@
     justify-content: flex-start;
     gap: 10px 12px;
   }
-  .er-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    height: 28px;
-    padding: 0 10px;
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    background: var(--surface);
-    font-size: 12.5px;
-  }
-  .er-chip button {
-    display: inline-flex;
-    padding: 2px;
-    margin-right: -4px;
-    border-radius: 50%;
-    color: var(--ink-3);
-  }
-  .er-chip button:hover {
-    color: var(--ink);
-    background: var(--line-2);
-  }
   .er-at-foot {
     display: flex;
     flex-wrap: wrap;
