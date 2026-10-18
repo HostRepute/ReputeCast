@@ -1,0 +1,26 @@
+{
+  "status": 200,
+  "body": {
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "Ready."
+            }
+          ],
+          "role": "model"
+        },
+        "finishReason": "STOP",
+        "index": 0
+      }
+    ],
+    "usageMetadata": {
+      "promptTokenCount": 12,
+      "candidatesTokenCount": 2,
+      "totalTokenCount": 14
+    },
+    "modelVersion": "gemini-2.5-flash",
+    "responseId": "q5TvaMb8LZ2N-8YP0p-x8Q4"
+  }
+}

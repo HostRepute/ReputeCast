@@ -35,9 +35,6 @@ export const im = defineMessages('digestIssues', {
   draftBody: 'Draft mode: issue #{number} goes out when someone sends it here. It is skipped if it isn’t sent by {date}.',
   scheduleNote: 'The digest sends this issue at {when}.',
 
-  // Settings › MCP server, under the agents matrix.
-  mcpAgents: "Agents can list digests and their issues. They can't turn on a digest, or release or skip an issue.",
-
   // The overview's "Next scheduled campaign".
   nextScheduled: 'Next scheduled campaign',
   issueName: '{name} #{number}',

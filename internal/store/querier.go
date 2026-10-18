@@ -13,6 +13,50 @@ import (
 )
 
 type Querier interface {
+	// What the assistant needs about a campaign: its name, content and language.
+	AICampaignBrief(ctx context.Context, arg AICampaignBriefParams) (AICampaignBriefRow, error)
+	// AI assistant (design expansion M22): the workspace's model, the AI
+	// activity log, kept report summaries and AI translations.
+	AIConnection(ctx context.Context, workspaceID uuid.UUID) (AiConnection, error)
+	// Claims this month's cap-reached notice, once.
+	AIConnectionClaimCapNotice(ctx context.Context, arg AIConnectionClaimCapNoticeParams) (int64, error)
+	// Claims this month's 80% notice, once.
+	AIConnectionClaimNotice(ctx context.Context, arg AIConnectionClaimNoticeParams) (int64, error)
+	AIConnectionForUpdate(ctx context.Context, workspaceID uuid.UUID) (AiConnection, error)
+	AIConnectionSave(ctx context.Context, arg AIConnectionSaveParams) error
+	// The provider rejected the saved key (or a passing request cleared it).
+	AIConnectionSetStatus(ctx context.Context, arg AIConnectionSetStatusParams) (int64, error)
+	AIConnectionSetTest(ctx context.Context, arg AIConnectionSetTestParams) error
+	// The people who can allow private addresses for model servers.
+	AIInstanceAdmins(ctx context.Context) ([]string, error)
+	// An image of the workspace's media library, for alt text.
+	AIMediaImage(ctx context.Context, arg AIMediaImageParams) (AIMediaImageRow, error)
+	// The members with their role, for "Members with ai:use: Owner, Admin…".
+	AIMembersRoles(ctx context.Context, workspaceID uuid.UUID) ([]AIMembersRolesRow, error)
+	AIReportSummary(ctx context.Context, arg AIReportSummaryParams) (AIReportSummaryRow, error)
+	AIReportSummaryDelete(ctx context.Context, arg AIReportSummaryDeleteParams) (int64, error)
+	AIReportSummarySave(ctx context.Context, arg AIReportSummarySaveParams) error
+	AIRequest(ctx context.Context, arg AIRequestParams) (AiRequest, error)
+	AIRequestCount(ctx context.Context, arg AIRequestCountParams) (int64, error)
+	AIRequestInsert(ctx context.Context, arg AIRequestInsertParams) error
+	// A person accepted, kept, rejected or discarded a suggestion; only the
+	// person who asked can, and only once it has an answer.
+	AIRequestSetOutcome(ctx context.Context, arg AIRequestSetOutcomeParams) (int64, error)
+	// The AI activity log, newest first.
+	AIRequests(ctx context.Context, arg AIRequestsParams) ([]AIRequestsRow, error)
+	// The activity log keeps 90 days.
+	AIRequestsPurge(ctx context.Context, before time.Time) (int64, error)
+	AISegmentName(ctx context.Context, arg AISegmentNameParams) (string, error)
+	// The workspace's tag names, for the segment drafts' condition schema
+	// (names only: no contact is named or counted).
+	AITagNames(ctx context.Context, workspaceID uuid.UUID) ([]string, error)
+	AITranslationMark(ctx context.Context, arg AITranslationMarkParams) (int64, error)
+	// A campaign's language versions an accepted AI translation wrote.
+	AITranslationMarks(ctx context.Context, arg AITranslationMarksParams) ([]AITranslationMarksRow, error)
+	AITranslationReviewed(ctx context.Context, arg AITranslationReviewedParams) (int64, error)
+	AIUsageByFeature(ctx context.Context, arg AIUsageByFeatureParams) ([]AIUsageByFeatureRow, error)
+	AIUsageByMember(ctx context.Context, arg AIUsageByMemberParams) ([]AIUsageByMemberRow, error)
+	AIUsageTotal(ctx context.Context, arg AIUsageTotalParams) (AIUsageTotalRow, error)
 	AcceptInvitation(ctx context.Context, arg AcceptInvitationParams) error
 	AcceptPendingInvitation(ctx context.Context, arg AcceptPendingInvitationParams) (int64, error)
 	// Access requests from the "403 · no permission" screen (internal/accessrequests).

@@ -1,6 +1,2211 @@
 {
   "components": {
     "schemas": {
+      "AIAcceptedBlock": {
+        "additionalProperties": false,
+        "properties": {
+          "edited": {
+            "type": "boolean"
+          },
+          "index": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "segments": {
+            "items": {
+              "$ref": "#/components/schemas/AIAcceptedSegment"
+            },
+            "maxItems": 200,
+            "type": "array"
+          }
+        },
+        "required": [
+          "index",
+          "segments"
+        ],
+        "type": "object"
+      },
+      "AIAcceptedSegment": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "enum": [
+              "text",
+              "button",
+              "nav",
+              "image",
+              "social",
+              "table"
+            ],
+            "type": "string"
+          },
+          "path": {
+            "items": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "text": {
+            "maxLength": 60000,
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "kind",
+          "text"
+        ],
+        "type": "object"
+      },
+      "AIActivityList": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AIActivityRow"
+            },
+            "type": "array"
+          },
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/AIActivityMember"
+            },
+            "type": "array"
+          },
+          "monthRequests": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "next": {
+            "type": "string"
+          },
+          "retentionDays": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "monthRequests",
+          "members",
+          "retentionDays"
+        ],
+        "type": "object"
+      },
+      "AIActivityMember": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
+      "AIActivityRow": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "description": "The rewrite's action, or the language translated to",
+            "type": "string"
+          },
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "costMicros": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "detail": {
+            "description": "1 of 5, 529 overloaded",
+            "type": "string"
+          },
+          "feature": {
+            "enum": [
+              "subject_ideas",
+              "rewrite",
+              "translate",
+              "alt_text",
+              "accessibility_fix",
+              "segment_draft",
+              "report_summary"
+            ],
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "inputTokens": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "member": {
+            "type": "string"
+          },
+          "memberColor": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "on": {
+            "description": "What it was about: Weekly Digest #143",
+            "type": "string"
+          },
+          "outcome": {
+            "enum": [
+              "pending",
+              "accepted",
+              "accepted_edits",
+              "kept",
+              "rejected",
+              "discarded",
+              "refused",
+              "error",
+              "nothing_drafted",
+              "cancelled"
+            ],
+            "type": "string"
+          },
+          "outputTokens": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "targetId": {
+            "type": "string"
+          },
+          "targetKind": {
+            "type": "string"
+          },
+          "tokens": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "userId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "at",
+          "member",
+          "feature",
+          "on",
+          "provider",
+          "model",
+          "tokens",
+          "inputTokens",
+          "outputTokens",
+          "costMicros",
+          "outcome"
+        ],
+        "type": "object"
+      },
+      "AIAltText": {
+        "additionalProperties": false,
+        "properties": {
+          "characters": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "noImageOf": {
+            "type": "boolean"
+          },
+          "refusal": {
+            "type": "string"
+          },
+          "requestId": {
+            "type": "string"
+          },
+          "saysWhat": {
+            "type": "boolean"
+          },
+          "sent": {
+            "$ref": "#/components/schemas/AISent"
+          },
+          "short": {
+            "type": "boolean"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "characters",
+          "fileName",
+          "short",
+          "noImageOf",
+          "saysWhat",
+          "sent"
+        ],
+        "type": "object"
+      },
+      "AIAltTextInput": {
+        "additionalProperties": false,
+        "properties": {
+          "campaignId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "context": {
+            "maxLength": 4000,
+            "type": "string"
+          },
+          "language": {
+            "maxLength": 12,
+            "type": "string"
+          },
+          "src": {
+            "maxLength": 2000,
+            "type": "string"
+          }
+        },
+        "required": [
+          "campaignId",
+          "src"
+        ],
+        "type": "object"
+      },
+      "AICapInput": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "enum": [
+              "usd",
+              "tokens",
+              "none"
+            ],
+            "type": "string"
+          },
+          "tokens": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "usd": {
+            "format": "double",
+            "minimum": 0,
+            "type": "number"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "type": "object"
+      },
+      "AICapView": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "enum": [
+              "usd",
+              "tokens",
+              "none"
+            ],
+            "type": "string"
+          },
+          "setAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "setBy": {
+            "type": "string"
+          },
+          "tokens": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "usd": {
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "kind",
+          "usd",
+          "tokens"
+        ],
+        "type": "object"
+      },
+      "AIConnectInput": {
+        "additionalProperties": false,
+        "properties": {
+          "apiKey": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "apiVersion": {
+            "maxLength": 40,
+            "type": "string"
+          },
+          "baseUrl": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "capKind": {
+            "enum": [
+              "usd",
+              "tokens",
+              "none"
+            ],
+            "type": "string"
+          },
+          "capTokens": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "capUsd": {
+            "format": "double",
+            "minimum": 0,
+            "type": "number"
+          },
+          "deployment": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "features": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 7,
+            "type": "array"
+          },
+          "inputPrice": {
+            "format": "double",
+            "minimum": 0,
+            "type": "number"
+          },
+          "label": {
+            "maxLength": 80,
+            "type": "string"
+          },
+          "model": {
+            "maxLength": 120,
+            "minLength": 1,
+            "type": "string"
+          },
+          "modelName": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "outputPrice": {
+            "format": "double",
+            "minimum": 0,
+            "type": "number"
+          },
+          "provider": {
+            "enum": [
+              "anthropic",
+              "openai",
+              "google",
+              "azure",
+              "compatible"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider",
+          "model",
+          "capKind"
+        ],
+        "type": "object"
+      },
+      "AIConnectionView": {
+        "additionalProperties": false,
+        "properties": {
+          "apiVersion": {
+            "type": "string"
+          },
+          "baseUrl": {
+            "type": "string"
+          },
+          "cap": {
+            "$ref": "#/components/schemas/AICapView"
+          },
+          "connectedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "connectedBy": {
+            "type": "string"
+          },
+          "demo": {
+            "type": "boolean"
+          },
+          "deployment": {
+            "type": "string"
+          },
+          "imageInput": {
+            "type": "boolean"
+          },
+          "key": {
+            "$ref": "#/components/schemas/AIKeyView"
+          },
+          "label": {
+            "type": "string"
+          },
+          "lastTest": {
+            "$ref": "#/components/schemas/AITestView"
+          },
+          "model": {
+            "type": "string"
+          },
+          "modelName": {
+            "type": "string"
+          },
+          "prices": {
+            "$ref": "#/components/schemas/AIPricesView"
+          },
+          "privateNetwork": {
+            "type": "boolean"
+          },
+          "provider": {
+            "enum": [
+              "anthropic",
+              "openai",
+              "google",
+              "azure",
+              "compatible"
+            ],
+            "type": "string"
+          },
+          "providerName": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "connected",
+              "key_rejected"
+            ],
+            "type": "string"
+          },
+          "statusAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "statusDetail": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider",
+          "providerName",
+          "model",
+          "modelName",
+          "imageInput",
+          "key",
+          "connectedAt",
+          "status",
+          "cap",
+          "prices",
+          "privateNetwork",
+          "demo"
+        ],
+        "type": "object"
+      },
+      "AIFeatureInput": {
+        "additionalProperties": false,
+        "properties": {
+          "on": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "on"
+        ],
+        "type": "object"
+      },
+      "AIFeatureState": {
+        "additionalProperties": false,
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "key": {
+            "enum": [
+              "subject_ideas",
+              "rewrite",
+              "translate",
+              "alt_text",
+              "accessibility_fix",
+              "segment_draft",
+              "report_summary"
+            ],
+            "type": "string"
+          },
+          "on": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "key",
+          "on",
+          "available"
+        ],
+        "type": "object"
+      },
+      "AIKeepSummaryInput": {
+        "additionalProperties": false,
+        "properties": {
+          "edited": {
+            "type": "boolean"
+          },
+          "requestId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "summary": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "requestId",
+          "summary"
+        ],
+        "type": "object"
+      },
+      "AIKeptSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "hostRepute": {
+            "type": "boolean"
+          },
+          "kept": {
+            "$ref": "#/components/schemas/AIKeptSummaryView"
+          }
+        },
+        "required": [
+          "hostRepute"
+        ],
+        "type": "object"
+      },
+      "AIKeptSummaryView": {
+        "additionalProperties": false,
+        "properties": {
+          "keptAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "keptBy": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "modelName": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "summary",
+          "model",
+          "modelName",
+          "keptBy",
+          "keptAt"
+        ],
+        "type": "object"
+      },
+      "AIKeyInput": {
+        "additionalProperties": false,
+        "properties": {
+          "apiKey": {
+            "maxLength": 500,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "apiKey"
+        ],
+        "type": "object"
+      },
+      "AIKeyReplaced": {
+        "additionalProperties": false,
+        "properties": {
+          "settings": {
+            "$ref": "#/components/schemas/AISettings"
+          },
+          "test": {
+            "$ref": "#/components/schemas/AITestResult"
+          }
+        },
+        "required": [
+          "settings",
+          "test"
+        ],
+        "type": "object"
+      },
+      "AIKeyView": {
+        "additionalProperties": false,
+        "properties": {
+          "addedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "addedBy": {
+            "type": "string"
+          },
+          "set": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "set"
+        ],
+        "type": "object"
+      },
+      "AILinkText": {
+        "additionalProperties": false,
+        "properties": {
+          "href": {
+            "type": "string"
+          },
+          "refusal": {
+            "type": "string"
+          },
+          "requestId": {
+            "type": "string"
+          },
+          "saysWhere": {
+            "type": "boolean"
+          },
+          "sent": {
+            "$ref": "#/components/schemas/AISent"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "saysWhere",
+          "href",
+          "sent"
+        ],
+        "type": "object"
+      },
+      "AILinkTextInput": {
+        "additionalProperties": false,
+        "properties": {
+          "campaignId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "context": {
+            "maxLength": 4000,
+            "type": "string"
+          },
+          "href": {
+            "maxLength": 2000,
+            "type": "string"
+          },
+          "language": {
+            "maxLength": 12,
+            "type": "string"
+          },
+          "text": {
+            "maxLength": 500,
+            "type": "string"
+          }
+        },
+        "required": [
+          "campaignId",
+          "text",
+          "href"
+        ],
+        "type": "object"
+      },
+      "AIMemberRole": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "role"
+        ],
+        "type": "object"
+      },
+      "AIModelInput": {
+        "additionalProperties": false,
+        "properties": {
+          "inputPrice": {
+            "format": "double",
+            "minimum": 0,
+            "type": "number"
+          },
+          "model": {
+            "maxLength": 120,
+            "minLength": 1,
+            "type": "string"
+          },
+          "modelName": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "outputPrice": {
+            "format": "double",
+            "minimum": 0,
+            "type": "number"
+          }
+        },
+        "required": [
+          "model"
+        ],
+        "type": "object"
+      },
+      "AIModelList": {
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "fromProvider": {
+            "type": "boolean"
+          },
+          "models": {
+            "items": {
+              "$ref": "#/components/schemas/AIModelOption"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "models",
+          "fromProvider"
+        ],
+        "type": "object"
+      },
+      "AIModelOption": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "imageInput": {
+            "type": "boolean"
+          },
+          "input": {
+            "description": "Dollars per million input tokens",
+            "format": "double",
+            "type": "number"
+          },
+          "known": {
+            "description": "On ReputeCast's price list",
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "output": {
+            "description": "Dollars per million output tokens",
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "known",
+          "input",
+          "output",
+          "imageInput"
+        ],
+        "type": "object"
+      },
+      "AIModelsInput": {
+        "additionalProperties": false,
+        "properties": {
+          "apiKey": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "apiVersion": {
+            "maxLength": 40,
+            "type": "string"
+          },
+          "baseUrl": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "deployment": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "provider": {
+            "enum": [
+              "anthropic",
+              "openai",
+              "google",
+              "azure",
+              "compatible"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider"
+        ],
+        "type": "object"
+      },
+      "AIOutcomeInput": {
+        "additionalProperties": false,
+        "properties": {
+          "detail": {
+            "maxLength": 40,
+            "type": "string"
+          },
+          "outcome": {
+            "enum": [
+              "accepted",
+              "accepted_edits",
+              "kept",
+              "rejected",
+              "discarded"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "outcome"
+        ],
+        "type": "object"
+      },
+      "AIPricesInput": {
+        "additionalProperties": false,
+        "properties": {
+          "input": {
+            "description": "Dollars per million input tokens",
+            "format": "double",
+            "minimum": 0,
+            "type": "number"
+          },
+          "output": {
+            "description": "Dollars per million output tokens",
+            "format": "double",
+            "minimum": 0,
+            "type": "number"
+          }
+        },
+        "required": [
+          "input",
+          "output"
+        ],
+        "type": "object"
+      },
+      "AIPricesView": {
+        "additionalProperties": false,
+        "properties": {
+          "from": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "input": {
+            "description": "Dollars per million input tokens",
+            "format": "double",
+            "type": "number"
+          },
+          "output": {
+            "description": "Dollars per million output tokens",
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "input",
+          "output"
+        ],
+        "type": "object"
+      },
+      "AIProviderEntry": {
+        "additionalProperties": false,
+        "properties": {
+          "capabilities": {
+            "items": {
+              "enum": [
+                "text",
+                "image_input",
+                "structured_output",
+                "own_network",
+                "data_region"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "defaultModel": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "anthropic",
+              "openai",
+              "google",
+              "azure",
+              "compatible"
+            ],
+            "type": "string"
+          },
+          "models": {
+            "items": {
+              "$ref": "#/components/schemas/AIModelOption"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          },
+          "needsBaseUrl": {
+            "type": "boolean"
+          },
+          "needsKey": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "kind",
+          "name",
+          "needsKey",
+          "needsBaseUrl",
+          "capabilities",
+          "models"
+        ],
+        "type": "object"
+      },
+      "AIReportSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "noCauses": {
+            "type": "boolean"
+          },
+          "numbersMatch": {
+            "type": "boolean"
+          },
+          "refusal": {
+            "type": "string"
+          },
+          "requestId": {
+            "type": "string"
+          },
+          "sent": {
+            "$ref": "#/components/schemas/AISent"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "unmatched": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "summary",
+          "numbersMatch",
+          "unmatched",
+          "noCauses",
+          "sent"
+        ],
+        "type": "object"
+      },
+      "AIReportSummaryInput": {
+        "additionalProperties": false,
+        "properties": {
+          "campaignId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "campaignId"
+        ],
+        "type": "object"
+      },
+      "AIReputation": {
+        "additionalProperties": false,
+        "properties": {
+          "hostRepute": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "hostRepute"
+        ],
+        "type": "object"
+      },
+      "AIRewrite": {
+        "additionalProperties": false,
+        "properties": {
+          "html": {
+            "type": "string"
+          },
+          "links": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "linksRestored": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "refusal": {
+            "type": "string"
+          },
+          "reputation": {
+            "$ref": "#/components/schemas/AIReputation"
+          },
+          "requestId": {
+            "type": "string"
+          },
+          "sent": {
+            "$ref": "#/components/schemas/AISent"
+          },
+          "tokens": {
+            "description": "The variables of the tokens kept: first_name",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "tokensRestored": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "wordsAfter": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "wordsBefore": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "html",
+          "wordsBefore",
+          "wordsAfter",
+          "tokens",
+          "tokensRestored",
+          "links",
+          "linksRestored",
+          "sent"
+        ],
+        "type": "object"
+      },
+      "AIRewriteInput": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "enum": [
+              "shorten",
+              "friendlier",
+              "formal",
+              "direct",
+              "instruction"
+            ],
+            "type": "string"
+          },
+          "campaignId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "field": {
+            "enum": [
+              "subject",
+              "preheader"
+            ],
+            "type": "string"
+          },
+          "html": {
+            "maxLength": 60000,
+            "type": "string"
+          },
+          "instruction": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "language": {
+            "maxLength": 12,
+            "type": "string"
+          }
+        },
+        "required": [
+          "campaignId",
+          "action",
+          "html"
+        ],
+        "type": "object"
+      },
+      "AISegmentDraft": {
+        "additionalProperties": false,
+        "properties": {
+          "added": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "count": {
+            "$ref": "#/components/schemas/SegmentCountResult"
+          },
+          "definition": {
+            "$ref": "#/components/schemas/SegmentDefinition"
+          },
+          "groups": {
+            "items": {
+              "$ref": "#/components/schemas/AISegmentDraftGroup"
+            },
+            "type": "array"
+          },
+          "note": {
+            "type": "string"
+          },
+          "nothing": {
+            "type": "string"
+          },
+          "refusal": {
+            "type": "string"
+          },
+          "removed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "requestId": {
+            "type": "string"
+          },
+          "sent": {
+            "$ref": "#/components/schemas/AISent"
+          }
+        },
+        "required": [
+          "groups",
+          "definition",
+          "added",
+          "removed",
+          "sent"
+        ],
+        "type": "object"
+      },
+      "AISegmentDraftCondition": {
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "format": "int64",
+            "maximum": 3650,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "field": {
+            "maxLength": 80,
+            "type": "string"
+          },
+          "mark": {
+            "enum": [
+              "added",
+              "removed",
+              "kept"
+            ],
+            "type": "string"
+          },
+          "op": {
+            "maxLength": 20,
+            "type": "string"
+          },
+          "to": {
+            "maxLength": 20,
+            "type": "string"
+          },
+          "unit": {
+            "enum": [
+              "days",
+              "weeks"
+            ],
+            "type": "string"
+          },
+          "value": {
+            "maxLength": 500,
+            "type": "string"
+          }
+        },
+        "required": [
+          "mark",
+          "field",
+          "op"
+        ],
+        "type": "object"
+      },
+      "AISegmentDraftGroup": {
+        "additionalProperties": false,
+        "properties": {
+          "conditions": {
+            "items": {
+              "$ref": "#/components/schemas/AISegmentDraftCondition"
+            },
+            "type": "array"
+          },
+          "match": {
+            "enum": [
+              "all",
+              "any"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "match",
+          "conditions"
+        ],
+        "type": "object"
+      },
+      "AISegmentDraftInput": {
+        "additionalProperties": false,
+        "properties": {
+          "current": {
+            "$ref": "#/components/schemas/SegmentDefinition"
+          },
+          "description": {
+            "maxLength": 500,
+            "minLength": 1,
+            "type": "string"
+          },
+          "segmentId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "description",
+          "current"
+        ],
+        "type": "object"
+      },
+      "AISent": {
+        "additionalProperties": false,
+        "properties": {
+          "characters": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "costMicros": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "inputTokens": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "model": {
+            "type": "string"
+          },
+          "modelName": {
+            "type": "string"
+          },
+          "outputTokens": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "provider": {
+            "enum": [
+              "anthropic",
+              "openai",
+              "google",
+              "azure",
+              "compatible"
+            ],
+            "type": "string"
+          },
+          "providerName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider",
+          "providerName",
+          "model",
+          "modelName",
+          "characters",
+          "costMicros",
+          "inputTokens",
+          "outputTokens"
+        ],
+        "type": "object"
+      },
+      "AISettings": {
+        "additionalProperties": false,
+        "properties": {
+          "aiUseRoles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "allowPrivate": {
+            "type": "boolean"
+          },
+          "byFeature": {
+            "items": {
+              "$ref": "#/components/schemas/AIUsageFeature"
+            },
+            "type": "array"
+          },
+          "byMember": {
+            "items": {
+              "$ref": "#/components/schemas/AIUsageMember"
+            },
+            "type": "array"
+          },
+          "canManage": {
+            "type": "boolean"
+          },
+          "catalog": {
+            "items": {
+              "$ref": "#/components/schemas/AIProviderEntry"
+            },
+            "type": "array"
+          },
+          "connected": {
+            "type": "boolean"
+          },
+          "connection": {
+            "$ref": "#/components/schemas/AIConnectionView"
+          },
+          "disconnected": {
+            "type": "boolean"
+          },
+          "features": {
+            "items": {
+              "$ref": "#/components/schemas/AIFeatureState"
+            },
+            "type": "array"
+          },
+          "helpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "instanceAdmins": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "priceListDate": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/AIUsageView"
+          },
+          "withoutAiUse": {
+            "items": {
+              "$ref": "#/components/schemas/AIMemberRole"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "connected",
+          "disconnected",
+          "catalog",
+          "usage",
+          "byFeature",
+          "byMember",
+          "features",
+          "canManage",
+          "helpers",
+          "aiUseRoles",
+          "withoutAiUse",
+          "priceListDate",
+          "allowPrivate",
+          "instanceAdmins"
+        ],
+        "type": "object"
+      },
+      "AIStatus": {
+        "additionalProperties": false,
+        "properties": {
+          "canManage": {
+            "type": "boolean"
+          },
+          "cap": {
+            "$ref": "#/components/schemas/AICapView"
+          },
+          "features": {
+            "items": {
+              "$ref": "#/components/schemas/AIFeatureState"
+            },
+            "type": "array"
+          },
+          "helpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "hostRepute": {
+            "type": "boolean"
+          },
+          "imageInput": {
+            "type": "boolean"
+          },
+          "model": {
+            "type": "string"
+          },
+          "modelName": {
+            "type": "string"
+          },
+          "prices": {
+            "$ref": "#/components/schemas/AIPricesView"
+          },
+          "provider": {
+            "enum": [
+              "anthropic",
+              "openai",
+              "google",
+              "azure",
+              "compatible",
+              ""
+            ],
+            "type": "string"
+          },
+          "providerName": {
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "ready",
+              "not_configured",
+              "key_rejected",
+              "cap_reached"
+            ],
+            "type": "string"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/AIUsageView"
+          }
+        },
+        "required": [
+          "state",
+          "imageInput",
+          "features",
+          "usage",
+          "cap",
+          "prices",
+          "canManage",
+          "helpers",
+          "hostRepute"
+        ],
+        "type": "object"
+      },
+      "AISubjectIdea": {
+        "additionalProperties": false,
+        "properties": {
+          "characters": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "heuristics": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "phrase": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "verdict": {
+            "enum": [
+              "pass",
+              "warn"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "subject",
+          "characters",
+          "verdict",
+          "heuristics"
+        ],
+        "type": "object"
+      },
+      "AISubjectIdeas": {
+        "additionalProperties": false,
+        "properties": {
+          "ideas": {
+            "items": {
+              "$ref": "#/components/schemas/AISubjectIdea"
+            },
+            "type": "array"
+          },
+          "language": {
+            "type": "string"
+          },
+          "refusal": {
+            "type": "string"
+          },
+          "requestId": {
+            "type": "string"
+          },
+          "sent": {
+            "$ref": "#/components/schemas/AISent"
+          }
+        },
+        "required": [
+          "ideas",
+          "sent",
+          "language"
+        ],
+        "type": "object"
+      },
+      "AISubjectIdeasInput": {
+        "additionalProperties": false,
+        "properties": {
+          "campaignId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "language": {
+            "maxLength": 12,
+            "type": "string"
+          },
+          "mjml": {
+            "maxLength": 2000000,
+            "type": "string"
+          },
+          "preheader": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "subject": {
+            "maxLength": 500,
+            "type": "string"
+          }
+        },
+        "required": [
+          "campaignId",
+          "subject",
+          "mjml"
+        ],
+        "type": "object"
+      },
+      "AITestInput": {
+        "additionalProperties": false,
+        "properties": {
+          "apiKey": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "apiVersion": {
+            "maxLength": 40,
+            "type": "string"
+          },
+          "baseUrl": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "deployment": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "model": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "provider": {
+            "enum": [
+              "anthropic",
+              "openai",
+              "google",
+              "azure",
+              "compatible"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AITestResult": {
+        "additionalProperties": false,
+        "properties": {
+          "answer": {
+            "type": "string"
+          },
+          "answeredAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "errorDetail": {
+            "description": "401 authentication_error: invalid x-api-key",
+            "type": "string"
+          },
+          "errorKind": {
+            "enum": [
+              "auth",
+              "rate_limit",
+              "overloaded",
+              "unavailable",
+              "bad_request",
+              "timeout",
+              "network",
+              "too_large",
+              "invalid",
+              "private"
+            ],
+            "type": "string"
+          },
+          "errorMessage": {
+            "description": "What it means, as a sentence",
+            "type": "string"
+          },
+          "errorStatus": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "inputTokens": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "model": {
+            "type": "string"
+          },
+          "ms": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "outputTokens": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "privateHost": {
+            "type": "string"
+          },
+          "privateIp": {
+            "type": "string"
+          },
+          "prompt": {
+            "type": "string"
+          },
+          "sentAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ok",
+          "prompt",
+          "sentAt",
+          "answeredAt",
+          "ms",
+          "inputTokens",
+          "outputTokens"
+        ],
+        "type": "object"
+      },
+      "AITestView": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "ms": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "ok": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "at",
+          "ok",
+          "ms"
+        ],
+        "type": "object"
+      },
+      "AITranslateInput": {
+        "additionalProperties": false,
+        "properties": {
+          "campaignId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "language": {
+            "pattern": "^[a-z]{2,3}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "campaignId",
+          "language"
+        ],
+        "type": "object"
+      },
+      "AITranslation": {
+        "additionalProperties": false,
+        "properties": {
+          "blocks": {
+            "items": {
+              "$ref": "#/components/schemas/AITranslationBlock"
+            },
+            "type": "array"
+          },
+          "language": {
+            "type": "string"
+          },
+          "languageName": {
+            "type": "string"
+          },
+          "links": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "linksRestored": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "preheader": {
+            "type": "string"
+          },
+          "preheaderSuggestion": {
+            "type": "string"
+          },
+          "readers": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "refusal": {
+            "type": "string"
+          },
+          "requestId": {
+            "type": "string"
+          },
+          "sent": {
+            "$ref": "#/components/schemas/AISent"
+          },
+          "source": {
+            "type": "string"
+          },
+          "sourceName": {
+            "type": "string"
+          },
+          "sourceVersion": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "status": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "subjectHeuristics": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "subjectSuggestion": {
+            "type": "string"
+          },
+          "tokens": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "tokensRestored": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "language",
+          "languageName",
+          "source",
+          "sourceName",
+          "sourceVersion",
+          "status",
+          "subject",
+          "subjectSuggestion",
+          "subjectHeuristics",
+          "preheader",
+          "preheaderSuggestion",
+          "blocks",
+          "tokens",
+          "tokensRestored",
+          "links",
+          "linksRestored",
+          "sent"
+        ],
+        "type": "object"
+      },
+      "AITranslationAcceptInput": {
+        "additionalProperties": false,
+        "properties": {
+          "blocks": {
+            "items": {
+              "$ref": "#/components/schemas/AIAcceptedBlock"
+            },
+            "maxItems": 200,
+            "type": "array"
+          },
+          "edited": {
+            "type": "boolean"
+          },
+          "items": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "preheader": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "requestId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "sourceVersion": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "subject": {
+            "maxLength": 998,
+            "type": "string"
+          }
+        },
+        "required": [
+          "requestId",
+          "sourceVersion",
+          "blocks",
+          "items"
+        ],
+        "type": "object"
+      },
+      "AITranslationAccepted": {
+        "additionalProperties": false,
+        "properties": {
+          "accepted": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "items": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "language": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "up_to_date",
+              "draft"
+            ],
+            "type": "string"
+          },
+          "version": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "language",
+          "status",
+          "version",
+          "accepted",
+          "items",
+          "model"
+        ],
+        "type": "object"
+      },
+      "AITranslationBlock": {
+        "additionalProperties": false,
+        "properties": {
+          "buttons": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "index": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "links": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "linksRestored": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "segments": {
+            "items": {
+              "$ref": "#/components/schemas/AITranslationSegment"
+            },
+            "type": "array"
+          },
+          "sourceText": {
+            "type": "string"
+          },
+          "suggestionText": {
+            "type": "string"
+          },
+          "tokens": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "tokensRestored": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "index",
+          "name",
+          "segments",
+          "sourceText",
+          "suggestionText",
+          "tokens",
+          "tokensRestored",
+          "links",
+          "linksRestored",
+          "buttons"
+        ],
+        "type": "object"
+      },
+      "AITranslationMark": {
+        "additionalProperties": false,
+        "properties": {
+          "language": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "reviewed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "language",
+          "model",
+          "reviewed"
+        ],
+        "type": "object"
+      },
+      "AITranslationMarks": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AITranslationMark"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "AITranslationSegment": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "enum": [
+              "text",
+              "button",
+              "nav",
+              "image",
+              "social",
+              "table"
+            ],
+            "type": "string"
+          },
+          "path": {
+            "items": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "source": {
+            "type": "string"
+          },
+          "suggestion": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "kind",
+          "source",
+          "suggestion"
+        ],
+        "type": "object"
+      },
+      "AIUsageFeature": {
+        "additionalProperties": false,
+        "properties": {
+          "costMicros": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "feature": {
+            "enum": [
+              "subject_ideas",
+              "rewrite",
+              "translate",
+              "alt_text",
+              "accessibility_fix",
+              "segment_draft",
+              "report_summary"
+            ],
+            "type": "string"
+          },
+          "requests": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "tokens": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "feature",
+          "costMicros",
+          "tokens",
+          "requests"
+        ],
+        "type": "object"
+      },
+      "AIUsageMember": {
+        "additionalProperties": false,
+        "properties": {
+          "costMicros": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "requests": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "tokens": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "userId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "costMicros",
+          "tokens",
+          "requests"
+        ],
+        "type": "object"
+      },
+      "AIUsageView": {
+        "additionalProperties": false,
+        "properties": {
+          "costMicros": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "inputTokens": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "monthStart": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "outputTokens": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "requests": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "resetsAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "share": {
+            "description": "Share of the cap used, 0 to 1 (0 without a cap)",
+            "format": "double",
+            "type": "number"
+          },
+          "state": {
+            "enum": [
+              "ok",
+              "notice",
+              "reached"
+            ],
+            "type": "string"
+          },
+          "tokens": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "costMicros",
+          "inputTokens",
+          "outputTokens",
+          "tokens",
+          "requests",
+          "share",
+          "state",
+          "monthStart",
+          "resetsAt"
+        ],
+        "type": "object"
+      },
       "APIKeyCategoryRef": {
         "additionalProperties": false,
         "properties": {
@@ -25465,6 +27670,59 @@
         ],
         "type": "object"
       },
+      "IntegrationAIFacts": {
+        "additionalProperties": false,
+        "properties": {
+          "capKind": {
+            "enum": [
+              "usd",
+              "tokens",
+              "none",
+              ""
+            ],
+            "type": "string"
+          },
+          "capTokens": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "capUsd": {
+            "format": "double",
+            "type": "number"
+          },
+          "connected": {
+            "type": "string"
+          },
+          "costMicros": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "keyRejected": {
+            "type": "boolean"
+          },
+          "modelName": {
+            "type": "string"
+          },
+          "share": {
+            "description": "Share of the cap used, 0 to 1",
+            "format": "double",
+            "type": "number"
+          },
+          "tokens": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "costMicros",
+          "tokens",
+          "capUsd",
+          "capTokens",
+          "share",
+          "keyRejected"
+        ],
+        "type": "object"
+      },
       "IntegrationAddressCheck": {
         "additionalProperties": false,
         "properties": {
@@ -26127,6 +28385,11 @@
               "api",
               "webhooks",
               "mcp",
+              "anthropic",
+              "openai",
+              "google",
+              "azure",
+              "compatible",
               "zerobounce",
               "neverbounce",
               "kickbox",
@@ -26174,6 +28437,9 @@
           "agents": {
             "format": "int64",
             "type": "integer"
+          },
+          "ai": {
+            "$ref": "#/components/schemas/IntegrationAIFacts"
           },
           "balance": {
             "format": "int64",
@@ -67143,6 +69409,1344 @@
         "x-permission": "providers:manage"
       }
     },
+    "/api/v1/workspaces/{workspace}/ai": {
+      "get": {
+        "description": "The key is write-only: only whether one is set, and when. Settings › Integrations › AI assistant.",
+        "operationId": "get-ai-settings",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AISettings"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The AI assistant's settings: the model, the cap, this month's usage and the features",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/activity": {
+      "get": {
+        "operationId": "list-ai-activity",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "A member's id",
+            "explode": false,
+            "in": "query",
+            "name": "member",
+            "schema": {
+              "description": "A member's id",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "feature",
+            "schema": {
+              "enum": [
+                "subject_ideas",
+                "rewrite",
+                "translate",
+                "alt_text",
+                "accessibility_fix",
+                "segment_draft",
+                "report_summary"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "outcome",
+            "schema": {
+              "enum": [
+                "accepted",
+                "kept",
+                "rejected",
+                "refused",
+                "error",
+                "nothing_drafted",
+                "pending"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "cursor",
+            "schema": {
+              "maxLength": 200,
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 50,
+              "format": "int64",
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIActivityList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The AI activity log: each request of the last 90 days, never its content",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/alt-text": {
+      "post": {
+        "operationId": "suggest-alt-text",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIAltTextInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIAltText"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Alt text for an image: the image at 1,024 px and the text around it",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "ai:use"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/cap": {
+      "put": {
+        "operationId": "set-ai-cap",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AICapInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AISettings"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Set the monthly cap: dollars, tokens or none",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/connection": {
+      "delete": {
+        "description": "The model, the cap and the prices are kept for the next connection; the activity log, kept summaries and accepted text stay. Audited as ai.connection_removed.",
+        "operationId": "disconnect-ai-model",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AISettings"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Disconnect the model: the key is deleted",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      },
+      "put": {
+        "description": "The key is sealed and never returned. Audited as ai.connection_created or ai.connection_updated.",
+        "operationId": "connect-ai-model",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIConnectInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AISettings"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Connect the workspace's model (one per workspace), after the test passes",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/features/{feature}": {
+      "put": {
+        "operationId": "set-ai-feature",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "feature",
+            "required": true,
+            "schema": {
+              "enum": [
+                "subject_ideas",
+                "rewrite",
+                "translate",
+                "alt_text",
+                "accessibility_fix",
+                "segment_draft",
+                "report_summary"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIFeatureInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AISettings"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Turn a feature on or off",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/key": {
+      "put": {
+        "operationId": "replace-ai-key",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIKeyInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIKeyReplaced"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Replace the key, after it passes the test",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/link-text": {
+      "post": {
+        "operationId": "suggest-link-text",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AILinkTextInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AILinkText"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Link text that says where a link goes (an accessibility fix)",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "ai:use"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/model": {
+      "put": {
+        "operationId": "change-ai-model",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIModelInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AISettings"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Change model: another model of the same provider",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/models": {
+      "post": {
+        "description": "Without a key it lists the price list's models. Nothing about the workspace is sent.",
+        "operationId": "list-ai-models",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIModelsInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIModelList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "The models a provider offers the key, with ReputeCast's prices",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/prices": {
+      "put": {
+        "operationId": "set-ai-prices",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIPricesInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AISettings"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Set the prices per million tokens the cap is estimated with",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/report-summary": {
+      "post": {
+        "description": "Sends the report's aggregate numbers only (no addresses). Needs reports:view.",
+        "operationId": "summarize-report",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIReportSummaryInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIReportSummary"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Summarize results: a plain-language summary of a report's numbers",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "ai:use"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/requests/{request}/outcome": {
+      "post": {
+        "operationId": "record-ai-outcome",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "request",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIOutcomeInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Record what was done with a suggestion: accepted, rejected…",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "ai:use"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/rewrite": {
+      "post": {
+        "description": "Sends the selected text and the instruction. An instruction about sender reputation isn't sent: the answer points at HostRepute's assistant.",
+        "operationId": "suggest-rewrite",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIRewriteInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIRewrite"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Shorten, friendlier, more formal, more direct, or with an instruction",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "ai:use"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/segment-draft": {
+      "post": {
+        "description": "Sends the description and the condition schema: field names and types, list, segment and tag names, tiers. Never values from any contact. Needs segments:edit.",
+        "operationId": "draft-segment",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AISegmentDraftInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AISegmentDraft"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Describe the segment: draft conditions with the builder's own conditions",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "ai:use"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/status": {
+      "get": {
+        "operationId": "get-ai-status",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIStatus"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Whether the assistant is ready: the model, the features on, this month's use",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "ai:use"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/subject-ideas": {
+      "post": {
+        "description": "Sends the subject, the preheader, the email's text without images, its language and the subject rules. Never contact data: tokens go as written.",
+        "operationId": "suggest-subject-ideas",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AISubjectIdeasInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AISubjectIdeas"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Five subject lines, each with the subject checks",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "ai:use"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/test": {
+      "post": {
+        "description": "Tests the model being set up, or the saved one when the body is empty. Shows the answer and the time it took.",
+        "operationId": "test-ai-connection",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AITestInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AITestResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Test connection: a fixed prompt with no workspace content",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/translate": {
+      "post": {
+        "description": "Sends the source's text block by block, its subject and preheader, and the target language. Tokens and links the model changed are restored.",
+        "operationId": "suggest-translation",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AITranslateInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AITranslation"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Translate a campaign's source into one of the workspace's languages",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "ai:use"
+      }
+    },
     "/api/v1/workspaces/{workspace}/api-keys": {
       "get": {
         "operationId": "list-api-keys",
@@ -68522,6 +72126,7 @@
                 "scoring",
                 "digests",
                 "polls",
+                "ai",
                 "earn",
                 "verification",
                 "placement",
@@ -68787,6 +72392,7 @@
                 "scoring",
                 "digests",
                 "polls",
+                "ai",
                 "earn",
                 "verification",
                 "placement",
@@ -72058,6 +75664,263 @@
         "x-permission": "campaigns:view"
       }
     },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/ai-summary": {
+      "delete": {
+        "operationId": "remove-ai-report-summary",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Take the kept summary off the report",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "ai:use"
+      },
+      "get": {
+        "operationId": "get-ai-report-summary",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIKeptSummary"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The summary kept on a campaign's report (never on read-only links)",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "reports:view"
+      },
+      "put": {
+        "operationId": "keep-ai-report-summary",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIKeepSummaryInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIKeptSummary"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Keep a summary at the top of the report",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "ai:use"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/ai-translations": {
+      "get": {
+        "operationId": "list-ai-translations",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AITranslationMarks"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A campaign's language versions translated by AI, and whether they were reviewed",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:view"
+      }
+    },
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/approval": {
       "post": {
         "operationId": "request-approval",
@@ -72946,6 +76809,154 @@
         ],
         "x-access": "workspace",
         "x-permission": "campaigns:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/languages/{language}/ai-reviewed": {
+      "post": {
+        "operationId": "mark-ai-translation-reviewed",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "language",
+            "required": true,
+            "schema": {
+              "pattern": "^[a-z]{2,3}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Mark an AI translation reviewed",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/languages/{language}/ai-translation": {
+      "post": {
+        "description": "Adds the version when it is missing. Accepting every block marks it translated, \"Translated by AI · not reviewed\"; otherwise it stays a Draft. A content edit, in the version's history.",
+        "operationId": "accept-ai-translation",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "language",
+            "required": true,
+            "schema": {
+              "pattern": "^[a-z]{2,3}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AITranslationAcceptInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AITranslationAccepted"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Accept a translation, or some of its blocks, into the language version",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "ai:use"
       }
     },
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/languages/{language}/compare": {

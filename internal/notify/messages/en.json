@@ -20,6 +20,8 @@
   "short.digest_paused": "paused digests",
   "short.digest_feed_failing": "failing digest feeds",
   "short.digest_draft_ready": "digest drafts",
+  "short.ai_usage": "AI usage notices",
+  "short.ai_key_rejected": "rejected AI keys",
   "short.payments_attention": "payment problems",
   "short.payments_unmapped_price": "unmapped prices",
   "short.paid_import_finished": "paid-members imports",

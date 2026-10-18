@@ -1699,6 +1699,360 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/ai": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The AI assistant's settings: the model, the cap, this month's usage and the features
+         * @description The key is write-only: only whether one is set, and when. Settings › Integrations › AI assistant.
+         */
+        get: operations["get-ai-settings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The AI activity log: each request of the last 90 days, never its content */
+        get: operations["list-ai-activity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/alt-text": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Alt text for an image: the image at 1,024 px and the text around it */
+        post: operations["suggest-alt-text"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/cap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set the monthly cap: dollars, tokens or none */
+        put: operations["set-ai-cap"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/connection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Connect the workspace's model (one per workspace), after the test passes
+         * @description The key is sealed and never returned. Audited as ai.connection_created or ai.connection_updated.
+         */
+        put: operations["connect-ai-model"];
+        post?: never;
+        /**
+         * Disconnect the model: the key is deleted
+         * @description The model, the cap and the prices are kept for the next connection; the activity log, kept summaries and accepted text stay. Audited as ai.connection_removed.
+         */
+        delete: operations["disconnect-ai-model"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/features/{feature}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Turn a feature on or off */
+        put: operations["set-ai-feature"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Replace the key, after it passes the test */
+        put: operations["replace-ai-key"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/link-text": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Link text that says where a link goes (an accessibility fix) */
+        post: operations["suggest-link-text"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/model": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change model: another model of the same provider */
+        put: operations["change-ai-model"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/models": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * The models a provider offers the key, with ReputeCast's prices
+         * @description Without a key it lists the price list's models. Nothing about the workspace is sent.
+         */
+        post: operations["list-ai-models"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/prices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set the prices per million tokens the cap is estimated with */
+        put: operations["set-ai-prices"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/report-summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Summarize results: a plain-language summary of a report's numbers
+         * @description Sends the report's aggregate numbers only (no addresses). Needs reports:view.
+         */
+        post: operations["summarize-report"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/requests/{request}/outcome": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record what was done with a suggestion: accepted, rejected… */
+        post: operations["record-ai-outcome"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/rewrite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Shorten, friendlier, more formal, more direct, or with an instruction
+         * @description Sends the selected text and the instruction. An instruction about sender reputation isn't sent: the answer points at HostRepute's assistant.
+         */
+        post: operations["suggest-rewrite"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/segment-draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Describe the segment: draft conditions with the builder's own conditions
+         * @description Sends the description and the condition schema: field names and types, list, segment and tag names, tiers. Never values from any contact. Needs segments:edit.
+         */
+        post: operations["draft-segment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Whether the assistant is ready: the model, the features on, this month's use */
+        get: operations["get-ai-status"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/subject-ideas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Five subject lines, each with the subject checks
+         * @description Sends the subject, the preheader, the email's text without images, its language and the subject rules. Never contact data: tokens go as written.
+         */
+        post: operations["suggest-subject-ideas"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Test connection: a fixed prompt with no workspace content
+         * @description Tests the model being set up, or the saved one when the body is empty. Shows the answer and the time it took.
+         */
+        post: operations["test-ai-connection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/translate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Translate a campaign's source into one of the workspace's languages
+         * @description Sends the source's text block by block, its subject and preheader, and the target language. Tokens and links the model changed are restored.
+         */
+        post: operations["suggest-translation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/api-keys": {
         parameters: {
             query?: never;
@@ -2621,6 +2975,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/ai-summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The summary kept on a campaign's report (never on read-only links) */
+        get: operations["get-ai-report-summary"];
+        /** Keep a summary at the top of the report */
+        put: operations["keep-ai-report-summary"];
+        post?: never;
+        /** Take the kept summary off the report */
+        delete: operations["remove-ai-report-summary"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/ai-translations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A campaign's language versions translated by AI, and whether they were reviewed */
+        get: operations["list-ai-translations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/approval": {
         parameters: {
             query?: never;
@@ -2822,6 +3212,43 @@ export interface paths {
         post?: never;
         /** Remove a campaign's language version */
         delete: operations["remove-campaign-language"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/languages/{language}/ai-reviewed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark an AI translation reviewed */
+        post: operations["mark-ai-translation-reviewed"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/languages/{language}/ai-translation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Accept a translation, or some of its blocks, into the language version
+         * @description Adds the version when it is missing. Accepting every block marks it translated, "Translated by AI · not reviewed"; otherwise it stays a Draft. A content edit, in the version's history.
+         */
+        post: operations["accept-ai-translation"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -10816,6 +11243,617 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AIAcceptedBlock: {
+            edited?: boolean;
+            /** Format: int64 */
+            index: number;
+            segments: components["schemas"]["AIAcceptedSegment"][];
+        };
+        AIAcceptedSegment: {
+            /** @enum {string} */
+            kind: "text" | "button" | "nav" | "image" | "social" | "table";
+            path: number[];
+            text: string;
+        };
+        AIActivityList: {
+            items: components["schemas"]["AIActivityRow"][];
+            members: components["schemas"]["AIActivityMember"][];
+            /** Format: int64 */
+            monthRequests: number;
+            next?: string;
+            /** Format: int64 */
+            retentionDays: number;
+        };
+        AIActivityMember: {
+            id: string;
+            name: string;
+        };
+        AIActivityRow: {
+            /** @description The rewrite's action, or the language translated to */
+            action?: string;
+            /** Format: date-time */
+            at: string;
+            /** Format: int64 */
+            costMicros: number;
+            /** @description 1 of 5, 529 overloaded */
+            detail?: string;
+            /** @enum {string} */
+            feature: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary";
+            id: string;
+            /** Format: int64 */
+            inputTokens: number;
+            member: string;
+            memberColor?: string;
+            model: string;
+            /** @description What it was about: Weekly Digest #143 */
+            on: string;
+            /** @enum {string} */
+            outcome: "pending" | "accepted" | "accepted_edits" | "kept" | "rejected" | "discarded" | "refused" | "error" | "nothing_drafted" | "cancelled";
+            /** Format: int64 */
+            outputTokens: number;
+            provider: string;
+            targetId?: string;
+            targetKind?: string;
+            /** Format: int64 */
+            tokens: number;
+            userId?: string;
+        };
+        AIAltText: {
+            /** Format: int64 */
+            characters: number;
+            fileName: string;
+            noImageOf: boolean;
+            refusal?: string;
+            requestId?: string;
+            saysWhat: boolean;
+            sent: components["schemas"]["AISent"];
+            short: boolean;
+            text: string;
+        };
+        AIAltTextInput: {
+            /** Format: uuid */
+            campaignId: string;
+            context?: string;
+            language?: string;
+            src: string;
+        };
+        AICapInput: {
+            /** @enum {string} */
+            kind: "usd" | "tokens" | "none";
+            /** Format: int64 */
+            tokens?: number;
+            /** Format: double */
+            usd?: number;
+        };
+        AICapView: {
+            /** @enum {string} */
+            kind: "usd" | "tokens" | "none";
+            /** Format: date-time */
+            setAt?: string;
+            setBy?: string;
+            /** Format: int64 */
+            tokens: number;
+            /** Format: double */
+            usd: number;
+        };
+        AIConnectInput: {
+            apiKey?: string;
+            apiVersion?: string;
+            baseUrl?: string;
+            /** @enum {string} */
+            capKind: "usd" | "tokens" | "none";
+            /** Format: int64 */
+            capTokens?: number;
+            /** Format: double */
+            capUsd?: number;
+            deployment?: string;
+            features?: string[];
+            /** Format: double */
+            inputPrice?: number;
+            label?: string;
+            model: string;
+            modelName?: string;
+            /** Format: double */
+            outputPrice?: number;
+            /** @enum {string} */
+            provider: "anthropic" | "openai" | "google" | "azure" | "compatible";
+        };
+        AIConnectionView: {
+            apiVersion?: string;
+            baseUrl?: string;
+            cap: components["schemas"]["AICapView"];
+            /** Format: date-time */
+            connectedAt: string;
+            connectedBy?: string;
+            demo: boolean;
+            deployment?: string;
+            imageInput: boolean;
+            key: components["schemas"]["AIKeyView"];
+            label?: string;
+            lastTest?: components["schemas"]["AITestView"];
+            model: string;
+            modelName: string;
+            prices: components["schemas"]["AIPricesView"];
+            privateNetwork: boolean;
+            /** @enum {string} */
+            provider: "anthropic" | "openai" | "google" | "azure" | "compatible";
+            providerName: string;
+            /** @enum {string} */
+            status: "connected" | "key_rejected";
+            /** Format: date-time */
+            statusAt?: string;
+            statusDetail?: string;
+        };
+        AIFeatureInput: {
+            on: boolean;
+        };
+        AIFeatureState: {
+            available: boolean;
+            /** @enum {string} */
+            key: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary";
+            on: boolean;
+        };
+        AIKeepSummaryInput: {
+            edited?: boolean;
+            /** Format: uuid */
+            requestId: string;
+            summary: string;
+        };
+        AIKeptSummary: {
+            hostRepute: boolean;
+            kept?: components["schemas"]["AIKeptSummaryView"];
+        };
+        AIKeptSummaryView: {
+            /** Format: date-time */
+            keptAt: string;
+            keptBy: string;
+            model: string;
+            modelName: string;
+            summary: string;
+        };
+        AIKeyInput: {
+            apiKey: string;
+        };
+        AIKeyReplaced: {
+            settings: components["schemas"]["AISettings"];
+            test: components["schemas"]["AITestResult"];
+        };
+        AIKeyView: {
+            /** Format: date-time */
+            addedAt?: string;
+            addedBy?: string;
+            set: boolean;
+        };
+        AILinkText: {
+            href: string;
+            refusal?: string;
+            requestId?: string;
+            saysWhere: boolean;
+            sent: components["schemas"]["AISent"];
+            text: string;
+        };
+        AILinkTextInput: {
+            /** Format: uuid */
+            campaignId: string;
+            context?: string;
+            href: string;
+            language?: string;
+            text: string;
+        };
+        AIMemberRole: {
+            name: string;
+            role: string;
+        };
+        AIModelInput: {
+            /** Format: double */
+            inputPrice?: number;
+            model: string;
+            modelName?: string;
+            /** Format: double */
+            outputPrice?: number;
+        };
+        AIModelList: {
+            error?: string;
+            fromProvider: boolean;
+            models: components["schemas"]["AIModelOption"][];
+        };
+        AIModelOption: {
+            id: string;
+            imageInput: boolean;
+            /**
+             * Format: double
+             * @description Dollars per million input tokens
+             */
+            input: number;
+            /** @description On ReputeCast's price list */
+            known: boolean;
+            name: string;
+            /**
+             * Format: double
+             * @description Dollars per million output tokens
+             */
+            output: number;
+        };
+        AIModelsInput: {
+            apiKey?: string;
+            apiVersion?: string;
+            baseUrl?: string;
+            deployment?: string;
+            /** @enum {string} */
+            provider: "anthropic" | "openai" | "google" | "azure" | "compatible";
+        };
+        AIOutcomeInput: {
+            detail?: string;
+            /** @enum {string} */
+            outcome: "accepted" | "accepted_edits" | "kept" | "rejected" | "discarded";
+        };
+        AIPricesInput: {
+            /**
+             * Format: double
+             * @description Dollars per million input tokens
+             */
+            input: number;
+            /**
+             * Format: double
+             * @description Dollars per million output tokens
+             */
+            output: number;
+        };
+        AIPricesView: {
+            /** Format: date-time */
+            from?: string;
+            /**
+             * Format: double
+             * @description Dollars per million input tokens
+             */
+            input: number;
+            /**
+             * Format: double
+             * @description Dollars per million output tokens
+             */
+            output: number;
+        };
+        AIProviderEntry: {
+            capabilities: ("text" | "image_input" | "structured_output" | "own_network" | "data_region")[];
+            defaultModel?: string;
+            /** @enum {string} */
+            kind: "anthropic" | "openai" | "google" | "azure" | "compatible";
+            models: components["schemas"]["AIModelOption"][];
+            name: string;
+            needsBaseUrl: boolean;
+            needsKey: boolean;
+        };
+        AIReportSummary: {
+            noCauses: boolean;
+            numbersMatch: boolean;
+            refusal?: string;
+            requestId?: string;
+            sent: components["schemas"]["AISent"];
+            summary: string;
+            unmatched: string[];
+        };
+        AIReportSummaryInput: {
+            /** Format: uuid */
+            campaignId: string;
+        };
+        AIReputation: {
+            hostRepute: boolean;
+        };
+        AIRewrite: {
+            html: string;
+            /** Format: int64 */
+            links: number;
+            /** Format: int64 */
+            linksRestored: number;
+            refusal?: string;
+            reputation?: components["schemas"]["AIReputation"];
+            requestId?: string;
+            sent: components["schemas"]["AISent"];
+            /** @description The variables of the tokens kept: first_name */
+            tokens: string[];
+            /** Format: int64 */
+            tokensRestored: number;
+            /** Format: int64 */
+            wordsAfter: number;
+            /** Format: int64 */
+            wordsBefore: number;
+        };
+        AIRewriteInput: {
+            /** @enum {string} */
+            action: "shorten" | "friendlier" | "formal" | "direct" | "instruction";
+            /** Format: uuid */
+            campaignId: string;
+            /** @enum {string} */
+            field?: "subject" | "preheader";
+            html: string;
+            instruction?: string;
+            language?: string;
+        };
+        AISegmentDraft: {
+            /** Format: int64 */
+            added: number;
+            count?: components["schemas"]["SegmentCountResult"];
+            definition: components["schemas"]["SegmentDefinition"];
+            groups: components["schemas"]["AISegmentDraftGroup"][];
+            note?: string;
+            nothing?: string;
+            refusal?: string;
+            /** Format: int64 */
+            removed: number;
+            requestId?: string;
+            sent: components["schemas"]["AISent"];
+        };
+        AISegmentDraftCondition: {
+            /** Format: int64 */
+            amount?: number;
+            field: string;
+            /** @enum {string} */
+            mark: "added" | "removed" | "kept";
+            op: string;
+            to?: string;
+            /** @enum {string} */
+            unit?: "days" | "weeks";
+            value?: string;
+        };
+        AISegmentDraftGroup: {
+            conditions: components["schemas"]["AISegmentDraftCondition"][];
+            /** @enum {string} */
+            match: "all" | "any";
+        };
+        AISegmentDraftInput: {
+            current: components["schemas"]["SegmentDefinition"];
+            description: string;
+            segmentId?: string;
+        };
+        AISent: {
+            /** Format: int64 */
+            characters: number;
+            /** Format: int64 */
+            costMicros: number;
+            /** Format: int64 */
+            inputTokens: number;
+            model: string;
+            modelName: string;
+            /** Format: int64 */
+            outputTokens: number;
+            /** @enum {string} */
+            provider: "anthropic" | "openai" | "google" | "azure" | "compatible";
+            providerName: string;
+        };
+        AISettings: {
+            aiUseRoles: string[];
+            allowPrivate: boolean;
+            byFeature: components["schemas"]["AIUsageFeature"][];
+            byMember: components["schemas"]["AIUsageMember"][];
+            canManage: boolean;
+            catalog: components["schemas"]["AIProviderEntry"][];
+            connected: boolean;
+            connection?: components["schemas"]["AIConnectionView"];
+            disconnected: boolean;
+            features: components["schemas"]["AIFeatureState"][];
+            helpers: string[];
+            instanceAdmins: string[];
+            /** Format: date-time */
+            priceListDate: string;
+            usage: components["schemas"]["AIUsageView"];
+            withoutAiUse: components["schemas"]["AIMemberRole"][];
+        };
+        AIStatus: {
+            canManage: boolean;
+            cap: components["schemas"]["AICapView"];
+            features: components["schemas"]["AIFeatureState"][];
+            helpers: string[];
+            hostRepute: boolean;
+            imageInput: boolean;
+            model?: string;
+            modelName?: string;
+            prices: components["schemas"]["AIPricesView"];
+            /** @enum {string} */
+            provider?: "anthropic" | "openai" | "google" | "azure" | "compatible" | "";
+            providerName?: string;
+            /** @enum {string} */
+            state: "ready" | "not_configured" | "key_rejected" | "cap_reached";
+            usage: components["schemas"]["AIUsageView"];
+        };
+        AISubjectIdea: {
+            /** Format: int64 */
+            characters: number;
+            heuristics: string[];
+            phrase?: string;
+            subject: string;
+            /** @enum {string} */
+            verdict: "pass" | "warn";
+        };
+        AISubjectIdeas: {
+            ideas: components["schemas"]["AISubjectIdea"][];
+            language: string;
+            refusal?: string;
+            requestId?: string;
+            sent: components["schemas"]["AISent"];
+        };
+        AISubjectIdeasInput: {
+            /** Format: uuid */
+            campaignId: string;
+            language?: string;
+            mjml: string;
+            preheader?: string;
+            subject: string;
+        };
+        AITestInput: {
+            apiKey?: string;
+            apiVersion?: string;
+            baseUrl?: string;
+            deployment?: string;
+            model?: string;
+            /** @enum {string} */
+            provider?: "anthropic" | "openai" | "google" | "azure" | "compatible";
+        };
+        AITestResult: {
+            answer?: string;
+            /** Format: date-time */
+            answeredAt: string;
+            /** @description 401 authentication_error: invalid x-api-key */
+            errorDetail?: string;
+            /** @enum {string} */
+            errorKind?: "auth" | "rate_limit" | "overloaded" | "unavailable" | "bad_request" | "timeout" | "network" | "too_large" | "invalid" | "private";
+            /** @description What it means, as a sentence */
+            errorMessage?: string;
+            /** Format: int64 */
+            errorStatus?: number;
+            /** Format: int64 */
+            inputTokens: number;
+            model?: string;
+            /** Format: int64 */
+            ms: number;
+            ok: boolean;
+            /** Format: int64 */
+            outputTokens: number;
+            privateHost?: string;
+            privateIp?: string;
+            prompt: string;
+            /** Format: date-time */
+            sentAt: string;
+        };
+        AITestView: {
+            /** Format: date-time */
+            at: string;
+            /** Format: int64 */
+            ms: number;
+            ok: boolean;
+        };
+        AITranslateInput: {
+            /** Format: uuid */
+            campaignId: string;
+            language: string;
+        };
+        AITranslation: {
+            blocks: components["schemas"]["AITranslationBlock"][];
+            language: string;
+            languageName: string;
+            /** Format: int64 */
+            links: number;
+            /** Format: int64 */
+            linksRestored: number;
+            preheader: string;
+            preheaderSuggestion: string;
+            /** Format: int64 */
+            readers?: number;
+            refusal?: string;
+            requestId?: string;
+            sent: components["schemas"]["AISent"];
+            source: string;
+            sourceName: string;
+            /** Format: int64 */
+            sourceVersion: number;
+            status: string;
+            subject: string;
+            subjectHeuristics: string[];
+            subjectSuggestion: string;
+            /** Format: int64 */
+            tokens: number;
+            /** Format: int64 */
+            tokensRestored: number;
+        };
+        AITranslationAcceptInput: {
+            blocks: components["schemas"]["AIAcceptedBlock"][];
+            edited?: boolean;
+            /** Format: int64 */
+            items: number;
+            preheader?: string;
+            /** Format: uuid */
+            requestId: string;
+            /** Format: int64 */
+            sourceVersion: number;
+            subject?: string;
+        };
+        AITranslationAccepted: {
+            /** Format: int64 */
+            accepted: number;
+            /** Format: int64 */
+            items: number;
+            language: string;
+            model: string;
+            /** @enum {string} */
+            status: "up_to_date" | "draft";
+            /** Format: int64 */
+            version: number;
+        };
+        AITranslationBlock: {
+            /** Format: int64 */
+            buttons: number;
+            /** Format: int64 */
+            index: number;
+            /** Format: int64 */
+            links: number;
+            /** Format: int64 */
+            linksRestored: number;
+            name: string;
+            segments: components["schemas"]["AITranslationSegment"][];
+            sourceText: string;
+            suggestionText: string;
+            /** Format: int64 */
+            tokens: number;
+            /** Format: int64 */
+            tokensRestored: number;
+        };
+        AITranslationMark: {
+            language: string;
+            model: string;
+            reviewed: boolean;
+        };
+        AITranslationMarks: {
+            items: components["schemas"]["AITranslationMark"][];
+        };
+        AITranslationSegment: {
+            /** @enum {string} */
+            kind: "text" | "button" | "nav" | "image" | "social" | "table";
+            path: number[];
+            source: string;
+            suggestion: string;
+        };
+        AIUsageFeature: {
+            /** Format: int64 */
+            costMicros: number;
+            /** @enum {string} */
+            feature: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary";
+            /** Format: int64 */
+            requests: number;
+            /** Format: int64 */
+            tokens: number;
+        };
+        AIUsageMember: {
+            /** Format: int64 */
+            costMicros: number;
+            name: string;
+            /** Format: int64 */
+            requests: number;
+            /** Format: int64 */
+            tokens: number;
+            userId?: string;
+        };
+        AIUsageView: {
+            /** Format: int64 */
+            costMicros: number;
+            /** Format: int64 */
+            inputTokens: number;
+            /** Format: date-time */
+            monthStart: string;
+            /** Format: int64 */
+            outputTokens: number;
+            /** Format: int64 */
+            requests: number;
+            /** Format: date-time */
+            resetsAt: string;
+            /**
+             * Format: double
+             * @description Share of the cap used, 0 to 1 (0 without a cap)
+             */
+            share: number;
+            /** @enum {string} */
+            state: "ok" | "notice" | "reached";
+            /** Format: int64 */
+            tokens: number;
+        };
         APIKeyCategoryRef: {
             id: string;
             name: string;
@@ -18013,6 +19051,26 @@ export interface components {
             name: string;
             slug: string;
         };
+        IntegrationAIFacts: {
+            /** @enum {string} */
+            capKind?: "usd" | "tokens" | "none" | "";
+            /** Format: int64 */
+            capTokens: number;
+            /** Format: double */
+            capUsd: number;
+            connected?: string;
+            /** Format: int64 */
+            costMicros: number;
+            keyRejected: boolean;
+            modelName?: string;
+            /**
+             * Format: double
+             * @description Share of the cap used, 0 to 1
+             */
+            share: number;
+            /** Format: int64 */
+            tokens: number;
+        };
         IntegrationAddressCheck: {
             address: string;
             admins: string[];
@@ -18202,7 +19260,7 @@ export interface components {
             connectionId?: string;
             facts: components["schemas"]["IntegrationFacts"];
             /** @enum {string} */
-            key: "zapier" | "make" | "n8n" | "wordpress" | "hostrepute" | "api" | "webhooks" | "mcp" | "zerobounce" | "neverbounce" | "kickbox" | "bouncer" | "emailable";
+            key: "zapier" | "make" | "n8n" | "wordpress" | "hostrepute" | "api" | "webhooks" | "mcp" | "anthropic" | "openai" | "google" | "azure" | "compatible" | "zerobounce" | "neverbounce" | "kickbox" | "bouncer" | "emailable";
             reasons: components["schemas"]["IntegrationReason"][];
             /** @enum {string} */
             status: "not_connected" | "waiting" | "connected" | "attention" | "none";
@@ -18213,6 +19271,7 @@ export interface components {
             actions: number;
             /** Format: int64 */
             agents: number;
+            ai?: components["schemas"]["IntegrationAIFacts"];
             /** Format: int64 */
             balance?: number;
             /** Format: int64 */
@@ -31895,6 +32954,717 @@ export interface operations {
             };
         };
     };
+    "get-ai-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AISettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-ai-activity": {
+        parameters: {
+            query?: {
+                /** @description A member's id */
+                member?: string;
+                feature?: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary";
+                outcome?: "accepted" | "kept" | "rejected" | "refused" | "error" | "nothing_drafted" | "pending";
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIActivityList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "suggest-alt-text": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIAltTextInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIAltText"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-ai-cap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AICapInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AISettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "connect-ai-model": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIConnectInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AISettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "disconnect-ai-model": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AISettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-ai-feature": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                feature: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIFeatureInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AISettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "replace-ai-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIKeyInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIKeyReplaced"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "suggest-link-text": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AILinkTextInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AILinkText"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "change-ai-model": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIModelInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AISettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-ai-models": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIModelsInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIModelList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-ai-prices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIPricesInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AISettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "summarize-report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIReportSummaryInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIReportSummary"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "record-ai-outcome": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                request: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIOutcomeInput"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "suggest-rewrite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIRewriteInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIRewrite"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "draft-segment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AISegmentDraftInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AISegmentDraft"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-ai-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIStatus"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "suggest-subject-ideas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AISubjectIdeasInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AISubjectIdeas"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "test-ai-connection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AITestInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AITestResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "suggest-translation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AITranslateInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AITranslation"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "list-api-keys": {
         parameters: {
             query?: never;
@@ -32581,7 +34351,7 @@ export interface operations {
                 /** @description Action group (routing) or action (routing.updated) */
                 action?: string;
                 /** @description A group of actions, as in the action filter */
-                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "earn" | "verification" | "placement" | "website";
+                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "ai" | "earn" | "verification" | "placement" | "website";
                 result?: "allowed" | "denied" | "error";
                 range?: "24h" | "7d" | "30d" | "90d" | "all";
                 /** @description Overrides range */
@@ -32663,7 +34433,7 @@ export interface operations {
                 /** @description Action group (routing) or action (routing.updated) */
                 action?: string;
                 /** @description A group of actions, as in the action filter */
-                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "earn" | "verification" | "placement" | "website";
+                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "ai" | "earn" | "verification" | "placement" | "website";
                 result?: "allowed" | "denied" | "error";
                 range?: "24h" | "7d" | "30d" | "90d" | "all";
                 /** @description Overrides range */
@@ -34230,6 +36000,140 @@ export interface operations {
             };
         };
     };
+    "get-ai-report-summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIKeptSummary"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "keep-ai-report-summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIKeepSummaryInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIKeptSummary"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-ai-report-summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-ai-translations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AITranslationMarks"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "request-approval": {
         parameters: {
             query?: never;
@@ -34649,6 +36553,76 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EmailLanguages"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "mark-ai-translation-reviewed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+                language: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "accept-ai-translation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+                language: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AITranslationAcceptInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AITranslationAccepted"];
                 };
             };
             /** @description Error */

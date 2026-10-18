@@ -26,6 +26,8 @@ import {
 } from './composer'
 import { CompareFooter, CompareView, compareLanguage, diffWords, excerpt } from './compare'
 import { mz } from './messages'
+import { AIReviewNote, CompareTranslateButton, TranslateMenuItems, useAddLanguageAI, useAIMarks } from '@/features/ai/composer/translate'
+import { ms } from '@/features/ai/messages'
 
 /**
  * The language version the composer has open: its code when it isn't the
@@ -101,6 +103,10 @@ export function ComposerLanguageSwitcher() {
   const q = useEmailLanguages(owner)
   const go = useLanguageNav()
   const [adding, setAdding] = useState<string | false>(false)
+  // Translate with AI (features/ai): the menu's items, the Add language option, the "AI · not reviewed" chip.
+  const ai = useAddLanguageAI()
+  const t = useT()
+  const marks = useAIMarks(owner.kind === 'campaign' ? owner.id : '')
   const data = q.data
   if (!data || data.versions.length < 2) return null
   const current = c.missingLanguage || c.campaign.language || data.source
@@ -118,6 +124,8 @@ export function ComposerLanguageSwitcher() {
         }}
         onCompare={campaign ? () => void go(current === data.source ? undefined : current, 'compare') : undefined}
         onAdd={() => setAdding('')}
+        aiItems={campaign ? (close) => <TranslateMenuItems data={data} current={current} close={close} /> : undefined}
+        aiMarked={campaign ? { languages: marks.filter((x) => !x.reviewed).map((x) => x.language), label: t(ms.aiNotReviewed) } : undefined}
       />
       {adding !== false ? (
         <AddVersionDialog
@@ -128,6 +136,7 @@ export function ComposerLanguageSwitcher() {
           preselect={adding || undefined}
           onOpenChange={(open) => setAdding(open ? '' : false)}
           onAdded={(l) => void go(l)}
+          ai={campaign ? ai : undefined}
         />
       ) : null}
     </>
@@ -150,6 +159,7 @@ export function ComposerLanguageBanner({ width }: { width: number }) {
         language={lang ?? q.data.source}
         onCompare={owner.kind === 'campaign' ? () => void go(lang, 'compare') : undefined}
       />
+      {owner.kind === 'campaign' ? <AIReviewNote /> : null}
     </div>
   )
 }
@@ -194,6 +204,7 @@ export function ComposerCompare() {
       onLanguage={(l) => void go(l, 'compare')}
       onBack={() => void go(lang)}
       onShow={(index) => void go(lang, undefined, String(index))}
+      aiAction={(language, name) => <CompareTranslateButton language={language} name={name} />}
     />
   )
 }
@@ -426,7 +437,7 @@ export function LanguageTags({ host, tick }: { host: HTMLElement | null; tick: n
     return out
   }, [ed, v, tick]) // eslint-disable-line react-hooks/exhaustive-deps
   useLayoutEffect(() => {
-    const doc = ed?.Canvas.getDocument()
+    const doc = ed?.Canvas?.getDocument()
     if (!doc?.head) return
     if (!doc.getElementById(TAG_ROOM)) {
       const style = doc.createElement('style')
@@ -442,7 +453,7 @@ export function LanguageTags({ host, tick }: { host: HTMLElement | null; tick: n
   }, [ed, targets])
   useEffect(
     () => () => {
-      ed?.Canvas.getDocument()
+      ed?.Canvas?.getDocument()
         ?.querySelectorAll(`[data-${TAG_ROOM}]`)
         .forEach((el) => el.removeAttribute(`data-${TAG_ROOM}`))
     },
