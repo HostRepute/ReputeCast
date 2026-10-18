@@ -106,7 +106,9 @@ func Run(t *testing.T, s Suite) {
 	t.Run("products", func(t *testing.T) {
 		env := s.Env(t)
 		c := open(t, env)
-		all := pages(t, func(cursor string) (stores.Page[stores.Product], error) { return c.Products(ctx, cursor, stores.Range{}) })
+		all := pages(t, func(cursor string) (stores.Page[stores.Product], error) {
+			return c.Products(ctx, cursor, stores.Range{})
+		})
 		if len(all) != SampleProducts {
 			t.Fatalf("products across pages: %d, want %d", len(all), SampleProducts)
 		}
@@ -196,7 +198,9 @@ func Run(t *testing.T, s Suite) {
 			})
 			return
 		}
-		all := pages(t, func(cursor string) (stores.Page[stores.Customer], error) { return c.Customers(ctx, cursor, stores.Range{}) })
+		all := pages(t, func(cursor string) (stores.Page[stores.Customer], error) {
+			return c.Customers(ctx, cursor, stores.Range{})
+		})
 		checkConsent(t, func(email string) *stores.Consent {
 			for _, cu := range all {
 				if cu.Email == email {

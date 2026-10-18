@@ -57,6 +57,10 @@ type Service struct {
 	// Languages are the emails' language versions (internal/languages);
 	// nil leaves them out.
 	Languages EmailLanguages
+
+	// StoreRevenue is the store orders credited to flows since a time
+	// (internal/commerce; the list's revenue column). Nil without stores.
+	StoreRevenue func(ctx context.Context, wsID uuid.UUID, ids []uuid.UUID, since time.Time) map[uuid.UUID]AutomationRevenue
 }
 
 func (s *Service) now() time.Time {
@@ -132,6 +136,7 @@ func (s *Service) loadRefs(ctx context.Context, q *store.Queries, wsID uuid.UUID
 	if err := loadPollRefs(ctx, q, wsID, r); err != nil {
 		return nil, err
 	}
+	loadStoreRefs(ctx, q, wsID, r)
 	lists, err := q.AutomationLists(ctx, wsID)
 	if err != nil {
 		return nil, err

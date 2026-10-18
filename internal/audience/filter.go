@@ -35,6 +35,8 @@ type ContactFilter struct {
 	ScoreGrowthFilter
 	// Check is the latest address check's result, or never checked.
 	Check string `json:"check,omitempty" enum:"valid,invalid,risky,unknown,never"`
+	// Store customers and what they spent (storefilter.go).
+	StoreFilter
 }
 
 // Empty reports whether the filter matches everyone.
@@ -115,6 +117,9 @@ func (s *Service) applyFilter(ctx context.Context, wsID uuid.UUID, out *filterSQ
 		return err
 	}
 	if err := s.languageFilter(ctx, wsID, out, f.Language); err != nil {
+		return err
+	}
+	if err := s.storeFilter(out, f.StoreFilter); err != nil {
 		return err
 	}
 	if f.Segment != "" {

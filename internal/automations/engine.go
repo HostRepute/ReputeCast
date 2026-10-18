@@ -39,6 +39,9 @@ type runState struct {
 	Messages map[string]string `json:"messages,omitempty"`
 	// Event is the trigger event that enrolled the contact.
 	Event int64 `json:"event,omitempty"`
+	// Ctx is what the trigger event passes to the flow's emails (a store's
+	// checkout or order, for the Checkout items block).
+	Ctx map[string]string `json:"ctx,omitempty"`
 }
 
 func parseState(raw []byte) runState {
@@ -214,6 +217,8 @@ func triggerMatches(t AutomationTrigger, ev store.ClaimAutomationEventsRow) bool
 		return scoreTriggerMatches(t, ev.Payload)
 	case TriggerPollAnswered:
 		return pollTriggerMatches(t, ev)
+	case TriggerOrderPlaced, TriggerFirstOrder, TriggerAbandonedCheckout:
+		return storeTriggerMatches(t, ev)
 	}
 	return false
 }
@@ -236,6 +241,16 @@ func (s *Service) enroll(ctx context.Context, q *store.Queries, stats statsBuf, 
 		if ok, err := scoreTriggerAllows(ctx, q, t, f.ID, ev.ContactID, now); err != nil || !ok {
 			return false, err
 		}
+	} else if isStoreTrigger(t.Kind) {
+		if !storeTriggerAllows(t, f.ID, ev) {
+			return false, nil
+		}
+		if t.Kind != TriggerAbandonedCheckout && t.Reentry != "always" {
+			exists, err := q.AutomationRunExists(ctx, store.AutomationRunExistsParams{AutomationID: f.ID, ContactID: ev.ContactID})
+			if err != nil || exists {
+				return false, err
+			}
+		}
 	} else if t.Reentry != "always" && !pollReentry(t, ev) {
 		exists, err := q.AutomationRunExists(ctx, store.AutomationRunExistsParams{AutomationID: f.ID, ContactID: ev.ContactID})
 		if err != nil || exists {
@@ -249,7 +264,7 @@ func (s *Service) enroll(ctx context.Context, q *store.Queries, stats statsBuf, 
 	}
 	n, err := q.InsertAutomationRun(ctx, store.InsertAutomationRunParams{
 		ID: uuid.Must(uuid.NewV7()), AutomationID: f.ID, Version: *f.LiveVersion, ContactID: ev.ContactID,
-		NodeID: trig.ID, State: runState{Event: ev.ID}.json(), EnteredAt: now,
+		NodeID: trig.ID, State: runState{Event: ev.ID, Ctx: eventContext(ev.Payload)}.json(), EnteredAt: now,
 	})
 	if err != nil || n == 0 {
 		return false, err
@@ -414,6 +429,11 @@ func (e *executor) step(ctx context.Context, n AutomationNode) (next, path strin
 			e.stat(n.ID).GoalReached++
 			return "", "", true, e.finish(ctx, "goal", "")
 		}
+		if next := e.g.Next(n.ID); next != "" {
+			// Not met yet: the contact carries on (the goal still ends the
+			// flow whenever it's met later).
+			return next, "", false, nil
+		}
 		e.stat(n.ID).Exited++
 		return "", "", true, e.finish(ctx, "completed", "")
 	case NodeExit:
@@ -434,7 +454,7 @@ func (e *executor) moveOn(ctx context.Context, from AutomationNode, next, path s
 	e.run.NodeID = next
 	e.run.NodeEnteredAt = e.now
 	e.run.Status = "active"
-	e.st = runState{Messages: e.st.Messages, Event: e.st.Event}
+	e.st = runState{Messages: e.st.Messages, Event: e.st.Event, Ctx: e.st.Ctx}
 	e.stat(next).Entered++
 	return nil
 }
@@ -524,7 +544,7 @@ func (e *executor) email(ctx context.Context, n AutomationNode) (string, string,
 	queued, err := e.s.mailer().QueueAutomationEmail(ctx, e.tx, OutgoingEmail{
 		WorkspaceID: e.run.WorkspaceID, AutomationID: e.run.AutomationID, Version: int(e.run.Version), NodeID: n.ID,
 		RunID: e.run.ID, ContactID: e.run.ContactID, To: c.Email, EmailID: emailID, EmailVersion: cfg.EmailVersion,
-		Subject: cfg.Subject, Route: cfg.Route,
+		Subject: cfg.Subject, Route: cfg.Route, Context: e.st.Ctx,
 	})
 	if err != nil {
 		return "", "", true, err
@@ -643,6 +663,8 @@ func (e *executor) eval(ctx context.Context, c *AutomationCondition) (bool, erro
 		return e.q.AutomationContactInList(ctx, store.AutomationContactInListParams{ListID: lid, ContactID: e.run.ContactID})
 	case "event":
 		return e.q.AutomationContactSentEvent(ctx, store.AutomationContactSentEventParams{WorkspaceID: e.run.WorkspaceID, ContactID: e.run.ContactID, Event: c.Event, Since: e.run.EnteredAt})
+	case ConditionPlacedOrder:
+		return placedOrder(ctx, e.q, e.run.WorkspaceID, e.run.ContactID, c, e.run.EnteredAt)
 	case "field":
 		ct, err := e.contact(ctx)
 		if err != nil {
@@ -908,6 +930,12 @@ func (s *Service) detectGoals(ctx context.Context, now time.Time) error {
 					for _, r := range rows {
 						ids = append(ids, r.ID)
 					}
+				case ConditionPlacedOrder:
+					more, err := goalRunsOrdered(ctx, q, v.AutomationID, v.Version, c)
+					if err != nil {
+						return err
+					}
+					ids = append(ids, more...)
 				}
 				if len(ids) == 0 {
 					return nil

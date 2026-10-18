@@ -76,6 +76,8 @@ CREATE TABLE stores (
     import_started_at        timestamptz,
     import_started_by        uuid        REFERENCES users(id) ON DELETE SET NULL,
     import_finished_at       timestamptz,
+    -- Unsubscribes here passed back to the store up to this time.
+    writeback_through        timestamptz,
     -- The nightly reconciliation (03:00 in the workspace's timezone).
     reconciled_at            timestamptz,
     reconcile_missed         integer     NOT NULL DEFAULT 0,
@@ -179,7 +181,9 @@ CREATE TABLE store_orders (
     currency             text        NOT NULL,
     subtotal_cents       bigint      NOT NULL DEFAULT 0,
     total_cents          bigint      NOT NULL DEFAULT 0,
+    -- Refunds, each counted once whichever event brings it first.
     refunded_cents       bigint      NOT NULL DEFAULT 0,
+    refund_ids           text[]      NOT NULL DEFAULT '{}',
     discount_codes       text[]      NOT NULL DEFAULT '{}',
     -- [{"productId","title","variant","quantity","price"}]
     items                jsonb       NOT NULL DEFAULT '[]',

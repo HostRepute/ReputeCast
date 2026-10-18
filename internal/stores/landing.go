@@ -6,12 +6,13 @@ import (
 )
 
 // ClickTokenParam is the query parameter that carries ReputeCast's click
-// token on links to a store (phase 6's click token, `rc_click`; the phase
-// 7 brief's `rc` is read too).
-const ClickTokenParam = "rc_click"
+// token on links to a store (phase 7: `rc`).
+const ClickTokenParam = "rc"
 
-// legacyClickTokenParam is the shorter name the phase 7 brief uses.
-const legacyClickTokenParam = "rc"
+// conversionClickTokenParam is phase 6's name for the same token on the
+// conversion API's domains (`rc_click`): a store on one of those domains
+// may carry it instead.
+const conversionClickTokenParam = "rc_click"
 
 // ParseLanding reads a landing page (a path with its query, or a full URL)
 // into its UTM parameters and click token.
@@ -39,7 +40,7 @@ func ParseLanding(landing string) (UTM, string) {
 	}
 	token := v.Get(ClickTokenParam)
 	if token == "" {
-		token = v.Get(legacyClickTokenParam)
+		token = v.Get(conversionClickTokenParam)
 	}
 	return utm, token
 }
@@ -53,7 +54,7 @@ func StripLanding(landing string) string {
 	}
 	q := u.Query()
 	q.Del(ClickTokenParam)
-	q.Del(legacyClickTokenParam)
+	q.Del(conversionClickTokenParam)
 	u.RawQuery = q.Encode()
 	u.Fragment = ""
 	if u.Host != "" {

@@ -573,6 +573,7 @@ func (o wcOrder) order() stores.Order {
 			amt = -amt
 		}
 		out.Refunded += amt
+		out.Refunds = append(out.Refunds, stores.Refund{ID: strconv.FormatInt(r.ID, 10), OrderID: out.ID, Amount: amt})
 	}
 	// Consent, the click token and the checkout, from the plugin.
 	consent := stores.Consent{State: stores.ConsentNotSubscribed, Level: "unknown"}

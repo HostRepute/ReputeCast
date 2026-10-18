@@ -152,6 +152,9 @@ type Fake struct {
 	// PageCap caps every page at this many items whatever the request asks
 	// (tests use it to exercise paging with a few objects).
 	PageCap int
+	// Permissive accepts any client credentials, approval code and access
+	// token (the demo's store, whose sealed token the fake never issued).
+	Permissive bool
 	// Failures.
 	outage     bool
 	revoked    bool
@@ -313,7 +316,7 @@ func (f *Fake) accessToken(w http.ResponseWriter, r *http.Request) {
 	f.record(r, "access_token", "")
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	if in.ClientID != f.ClientID || in.ClientSecret != f.ClientSecret {
+	if !f.Permissive && (in.ClientID != f.ClientID || in.ClientSecret != f.ClientSecret) {
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid_client", "error_description": "Client credentials are invalid"})
 		return
 	}
@@ -323,7 +326,7 @@ func (f *Fake) accessToken(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else {
-		if !f.codes[in.Code] {
+		if !f.codes[in.Code] && !f.Permissive {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid_request", "error_description": "The authorization code was not found or was already used"})
 			return
 		}
@@ -357,7 +360,7 @@ func (f *Fake) graphql(w http.ResponseWriter, r *http.Request) {
 	f.record(r, op, token)
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	if f.revoked || !f.tokens[token] {
+	if f.revoked || (!f.tokens[token] && !(f.Permissive && token != "")) {
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"errors": "[API] Invalid API key or access token (unrecognized login or wrong password)"})
 		return
 	}
@@ -593,15 +596,18 @@ func (f *Fake) answer(op string, vars map[string]any) (map[string]any, []any) {
 				journey = map[string]any{"firstVisit": v, "lastVisit": v}
 			}
 			refunded := o.Refunded
+			refunds := []any{}
 			if refunded == "" {
 				refunded = "0.0"
+			} else {
+				refunds = append(refunds, map[string]any{"id": gid("Refund", "r"+o.ID), "createdAt": o.UpdatedAt.UTC().Format(time.RFC3339), "totalRefundedSet": f.money(o.Refunded)})
 			}
 			nodes = append(nodes, map[string]any{
 				"id": gid("Order", o.ID), "name": "#" + strconv.Itoa(o.Number),
 				"createdAt": o.CreatedAt.UTC().Format(time.RFC3339), "updatedAt": o.UpdatedAt.UTC().Format(time.RFC3339),
 				"cancelledAt": cancelled, "test": o.Test, "email": o.Email, "currencyCode": f.Currency,
 				"customerAcceptsMarketing": o.AcceptsMarketing, "discountCodes": nonNil(o.Discounts),
-				"subtotalPriceSet": f.money(o.Subtotal), "totalPriceSet": f.money(o.Total), "totalRefundedSet": f.money(refunded),
+				"subtotalPriceSet": f.money(o.Subtotal), "totalPriceSet": f.money(o.Total), "totalRefundedSet": f.money(refunded), "refunds": refunds,
 				"customer": f.customerNode(f.customer(o.CustomerID)), "customerJourneySummary": journey, "lineItems": f.items(o.Items),
 			})
 		}
@@ -778,11 +784,29 @@ func (f *Fake) OrderPayload(o *Order) map[string]any {
 		"created_at": o.CreatedAt.UTC().Format(time.RFC3339), "updated_at": o.UpdatedAt.UTC().Format(time.RFC3339), "cancelled_at": cancelled,
 		"currency": f.Currency, "subtotal_price": o.Subtotal, "total_price": o.Total, "discount_codes": codes,
 		"landing_site": o.Landing, "checkout_token": o.CheckoutToken, "buyer_accepts_marketing": o.AcceptsMarketing, "test": o.Test,
-		"customer": cust, "line_items": itemsPayload(o.Items), "refunds": []any{},
+		"customer": cust, "line_items": itemsPayload(o.Items), "refunds": f.refundsPayload(o),
 		"billing_address":  map[string]any{"address1": "1 Example Street", "city": "Springfield", "phone": "+1 555 0100"},
 		"shipping_address": map[string]any{"address1": "1 Example Street", "city": "Springfield", "phone": "+1 555 0100"},
 		"payment_details":  map[string]any{"credit_card_number": "•••• •••• •••• 4242"}, "note": "Leave at the door", "phone": "+1 555 0100",
 	}
+}
+
+func (f *Fake) refundsPayload(o *Order) []any {
+	if o.Refunded == "" {
+		return []any{}
+	}
+	id, _ := strconv.ParseInt(o.ID, 10, 64)
+	return []any{map[string]any{"id": id + 1, "order_id": id, "created_at": o.UpdatedAt.UTC().Format(time.RFC3339),
+		"transactions": []any{map[string]any{"amount": o.Refunded, "kind": "refund", "status": "success", "currency": f.Currency}}}}
+}
+
+// RefundPayload is a refund in Shopify's webhook shape (refunds/create).
+func (f *Fake) RefundPayload(o *Order) map[string]any {
+	r := f.refundsPayload(o)
+	if len(r) == 0 {
+		return nil
+	}
+	return r[0].(map[string]any)
 }
 
 // CheckoutPayload is a checkout in Shopify's webhook shape.

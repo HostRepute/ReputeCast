@@ -137,6 +137,8 @@ var Categories = []AuditCategory{
 	{Key: "earn", Label: "Earn", Groups: []string{"payments", "earn", "paid_member"}},
 	{Key: "verification", Label: "Verification", Groups: []string{"verification"}},
 	{Key: "placement", Label: "Placement tests", Groups: []string{"placement"}},
+	// Shopify and WooCommerce (design expansion, phase 7).
+	{Key: "commerce", Label: "Commerce", Groups: []string{"store"}},
 }
 
 // Filter narrows the log.
@@ -558,6 +560,10 @@ func link(ws, targetType, targetID, override string) (string, string) {
 		return base + "/transactional/messages", "Open messages"
 	case "transactional_category", "transactional_settings":
 		return base + "/transactional/settings", "Open settings"
+	case "store":
+		if targetID != "" {
+			return base + "/settings/integrations/stores/" + targetID, "Open store"
+		}
 	}
 	return "", ""
 }
@@ -581,6 +587,11 @@ var verbs = map[string]string{
 	"template_rolled_back": "Rolled back", "template_archived": "Archived", "template_restored": "Restored", "template_deleted": "Deleted",
 	"category_created": "Created", "category_updated": "Changed", "category_deleted": "Deleted", "content_viewed": "Viewed the content of",
 	"message_resent": "Resent", "log_exported": "Exported", "enabled": "Turned on", "disabled": "Turned off",
+	// Stores (phase 7).
+	"connect_started": "Started connecting", "keys_saved": "Saved the app keys of", "installed": "Installed the app on", "connected": "Connected",
+	"reconnected": "Reconnected", "disconnected": "Disconnected", "data_deleted": "Deleted the store data of", "list_updated": "Changed the list of",
+	"writeback_updated": "Changed the consent write-back of", "attribution_updated": "Changed the attribution window of",
+	"sync_updated": "Changed what syncs from", "sync_started": "Started a sync of", "webhooks_registered": "Registered the webhooks of",
 }
 
 // Describe writes "Changed the Broadcasts routing rule" style sentences from an action.

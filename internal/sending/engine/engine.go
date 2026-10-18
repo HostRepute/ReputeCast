@@ -71,6 +71,10 @@ type Engine struct {
 	// Engineering blog roundup, turned on by Sofia Rossi"). Nil, or a nil
 	// result, is plain "System".
 	SystemActor func(ctx context.Context, campaignID uuid.UUID) *audit.Actor
+	// Store refreshes store blocks with the products' prices and
+	// availability at send time, and fills automation emails' Checkout
+	// items (internal/commerce); nil sends them as written.
+	Store StoreContent
 
 	mu       sync.Mutex
 	calls    map[routeKey]*callLog

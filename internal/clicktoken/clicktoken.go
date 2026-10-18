@@ -1,8 +1,8 @@
-// Package clicktoken is the click token of phase 6 (`rc_click`): an opaque,
-// signed token the click redirect adds to links to a publisher's own sites
-// (stores, and the domains the conversion API lists), so an order or a
-// conversion arriving later can be credited to the email that brought the
-// click. It names the message (so the contact and the campaign or the
+// Package clicktoken is the click token: an opaque, signed token the click
+// redirect adds to links to a publisher's own sites (stores, as `rc`; and
+// the domains phase 6's conversion API lists, as `rc_click`), so an order
+// or a conversion arriving later can be credited to the email that brought
+// the click. It names the message (so the contact and the campaign or the
 // automation step) and when the click happened; it carries nothing in
 // clear and can't be forged (internal/linktoken's HMAC).
 package clicktoken
@@ -18,8 +18,13 @@ import (
 	"github.com/hostrepute/reputecast/internal/linktoken"
 )
 
-// Param is the query parameter that carries the token.
-const Param = "rc_click"
+// Param is the query parameter that carries the token on links to a store
+// (phase 7).
+const Param = "rc"
+
+// ConversionParam carries it on links to the conversion API's domains
+// (phase 6).
+const ConversionParam = "rc_click"
 
 // Kind is the token's linktoken kind (X20's range, 200–209).
 const Kind linktoken.Kind = 200

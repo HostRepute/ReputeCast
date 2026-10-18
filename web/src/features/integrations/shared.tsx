@@ -6,6 +6,7 @@ import { Badge, SensitiveFlag } from '@/components/ui/Badge'
 import { T, useT, formatList, type MessageDescriptor } from '@/i18n'
 import { clock, dayMonthDate, dayMonthYear } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
+import { cm } from '@/features/commerce/messages'
 import { m } from './messages'
 import './integrations.css'
 
@@ -78,6 +79,8 @@ export const entryName: Record<EntryKey, MessageDescriptor> = {
   kickbox: m.kickbox,
   bouncer: m.bouncer,
   emailable: m.emailable,
+  shopify: cm.shopify,
+  woocommerce: cm.woocommerce,
 }
 
 export const maintainer: Record<EntryKey, MessageDescriptor> = {
@@ -94,6 +97,8 @@ export const maintainer: Record<EntryKey, MessageDescriptor> = {
   kickbox: m.byOwnAccount,
   bouncer: m.byOwnAccount,
   emailable: m.byOwnAccount,
+  shopify: cm.byShopify,
+  woocommerce: cm.byWoo,
 }
 
 export const entryLine: Record<EntryKey, MessageDescriptor> = {
@@ -110,6 +115,8 @@ export const entryLine: Record<EntryKey, MessageDescriptor> = {
   kickbox: m.kickboxLine,
   bouncer: m.bouncerLine,
   emailable: m.emailableLine,
+  shopify: cm.shopifyLine,
+  woocommerce: cm.wooLine,
 }
 
 export const capabilities: Record<EntryKey, MessageDescriptor[]> = {
@@ -126,7 +133,12 @@ export const capabilities: Record<EntryKey, MessageDescriptor[]> = {
   kickbox: [m.capBulkLists, m.capRealtime, m.capCreditBalance],
   bouncer: [m.capBulkLists, m.capRealtime, m.capCreditBalance],
   emailable: [m.capBulkLists, m.capRealtime, m.capCreditBalance],
+  shopify: [cm.capOrders, cm.capProducts, cm.capCustomers, cm.capCheckouts, cm.capWriteBack, cm.capAttribution],
+  woocommerce: [cm.capOrders, cm.capProducts, cm.capCustomers, cm.capCheckouts, cm.capAttribution],
 }
+
+/** The store platforms (the Commerce group, X20). */
+export const isStore = (k: string): k is 'shopify' | 'woocommerce' => k === 'shopify' || k === 'woocommerce'
 
 /** The address verification services' keys (X14). */
 export const verificationKeys = ['zerobounce', 'neverbounce', 'kickbox', 'bouncer', 'emailable'] as const
@@ -143,7 +155,19 @@ export function platformUrl(kind: PlatformKind, address?: string): string | unde
 /** The board's logo tiles: letters for the apps, icons for the built-in ones. */
 export function Tile({ k, size }: { k: EntryKey; size?: 'sm' | 'lg' }) {
   const px = size === 'lg' ? 22 : size === 'sm' ? 14 : 18
-  const letters: Partial<Record<EntryKey, string>> = { zapier: 'Z', make: 'M', n8n: 'n8n', wordpress: 'W', zerobounce: 'ZB', neverbounce: 'NB', kickbox: 'K', bouncer: 'B', emailable: 'E' }
+  const letters: Partial<Record<EntryKey, string>> = {
+    zapier: 'Z',
+    make: 'M',
+    n8n: 'n8n',
+    wordpress: 'W',
+    zerobounce: 'ZB',
+    neverbounce: 'NB',
+    kickbox: 'K',
+    bouncer: 'B',
+    emailable: 'E',
+    shopify: 'Sh',
+    woocommerce: 'Woo',
+  }
   let inner: ReactNode = letters[k]
   if (k === 'hostrepute') inner = <ShieldTick size={px} />
   if (k === 'api') inner = <Icon name="code" size={px} strokeWidth={1.7} />

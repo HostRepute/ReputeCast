@@ -158,6 +158,9 @@ type Querier interface {
 	AutomationContactEmailedSince(ctx context.Context, arg AutomationContactEmailedSinceParams) (bool, error)
 	AutomationContactInList(ctx context.Context, arg AutomationContactInListParams) (bool, error)
 	AutomationContactInWorkspace(ctx context.Context, arg AutomationContactInWorkspaceParams) (AutomationContactInWorkspaceRow, error)
+	// ── Automations: the "Placed an order" goal ─────────────────────────────
+	// The contact placed an order since a time (in one store, or any).
+	AutomationContactOrdered(ctx context.Context, arg AutomationContactOrderedParams) (bool, error)
 	AutomationContactSentEvent(ctx context.Context, arg AutomationContactSentEventParams) (bool, error)
 	AutomationContactSuppressed(ctx context.Context, arg AutomationContactSuppressedParams) (bool, error)
 	// Contacts whose date field (plus the offset) is today in the workspace's
@@ -173,6 +176,8 @@ type Querier interface {
 	AutomationGoalRunsEngaged(ctx context.Context, arg AutomationGoalRunsEngagedParams) ([]AutomationGoalRunsEngagedRow, error)
 	AutomationGoalRunsEvent(ctx context.Context, arg AutomationGoalRunsEventParams) ([]AutomationGoalRunsEventRow, error)
 	AutomationGoalRunsInList(ctx context.Context, arg AutomationGoalRunsInListParams) ([]AutomationGoalRunsInListRow, error)
+	// Runs whose contact placed an order since entering the flow.
+	AutomationGoalRunsOrdered(ctx context.Context, arg AutomationGoalRunsOrderedParams) ([]AutomationGoalRunsOrderedRow, error)
 	AutomationGoalRunsTagged(ctx context.Context, arg AutomationGoalRunsTaggedParams) ([]AutomationGoalRunsTaggedRow, error)
 	AutomationLists(ctx context.Context, workspaceID uuid.UUID) ([]AutomationListsRow, error)
 	// Runs waiting on a webhook call whose job never ran (lost or not enqueued).
@@ -203,6 +208,8 @@ type Querier interface {
 	AutomationStepSecretNodes(ctx context.Context, automationID uuid.UUID) ([]string, error)
 	// Per-step totals since a day, across versions (steps keep their ids).
 	AutomationStepStatsSince(ctx context.Context, arg AutomationStepStatsSinceParams) ([]AutomationStepStatsSinceRow, error)
+	// The workspace's stores, for the store triggers' and goal's references.
+	AutomationStoreRefs(ctx context.Context, workspaceID uuid.UUID) ([]AutomationStoreRefsRow, error)
 	AutomationTopTags(ctx context.Context, workspaceID uuid.UUID) ([]AutomationTopTagsRow, error)
 	AutomationUnsubscribeAll(ctx context.Context, contactID uuid.UUID) error
 	// Totals per automation since a day, for the KPI row.
@@ -232,10 +239,15 @@ type Querier interface {
 	CommerceActivityPurge(ctx context.Context, before time.Time) (int64, error)
 	// One automation's credited orders since a time (the goal node's numbers).
 	CommerceAutomationGoalRevenue(ctx context.Context, arg CommerceAutomationGoalRevenueParams) (CommerceAutomationGoalRevenueRow, error)
+	CommerceAutomationGraph(ctx context.Context, id uuid.UUID) (CommerceAutomationGraphRow, error)
+	CommerceAutomationName(ctx context.Context, id uuid.UUID) (CommerceAutomationNameRow, error)
 	// Credited store orders per automation since a time (the automations list).
 	CommerceAutomationRevenue(ctx context.Context, arg CommerceAutomationRevenueParams) ([]CommerceAutomationRevenueRow, error)
+	CommerceCampaignName(ctx context.Context, id uuid.UUID) (string, error)
 	// A campaign's credited store orders, per store (the report's rows).
 	CommerceCampaignRevenue(ctx context.Context, arg CommerceCampaignRevenueParams) ([]CommerceCampaignRevenueRow, error)
+	// Campaigns whose content has one of a store's blocks.
+	CommerceCampaignsUsing(ctx context.Context, arg CommerceCampaignsUsingParams) ([]CommerceCampaignsUsingRow, error)
 	CommerceCheckoutByID(ctx context.Context, id uuid.UUID) (StoreCheckout, error)
 	// An order completed its checkout: by its token, or (WooCommerce, Shopify
 	// without the token) the contact's open checkouts from before it.
@@ -263,13 +275,21 @@ type Querier interface {
 	CommerceConsentInsert(ctx context.Context, arg CommerceConsentInsertParams) error
 	// ── Contacts the sync needs ─────────────────────────────────────────────
 	CommerceContactByEmail(ctx context.Context, arg CommerceContactByEmailParams) (CommerceContactByEmailRow, error)
+	CommerceContactByID(ctx context.Context, id uuid.UUID) (CommerceContactByIDRow, error)
 	// Whether the contact ordered in the store before this order.
 	CommerceContactHasOrder(ctx context.Context, arg CommerceContactHasOrderParams) (bool, error)
 	CommerceContactInsert(ctx context.Context, arg CommerceContactInsertParams) (uuid.UUID, error)
+	// A contact's orders and spending per store.
+	CommerceContactOrderTotals(ctx context.Context, arg CommerceContactOrderTotalsParams) ([]CommerceContactOrderTotalsRow, error)
 	// A contact's store orders, newest first, with the email they were
 	// credited to.
 	CommerceContactOrders(ctx context.Context, arg CommerceContactOrdersParams) ([]CommerceContactOrdersRow, error)
 	CommerceContactStoreCustomers(ctx context.Context, arg CommerceContactStoreCustomersParams) ([]CommerceContactStoreCustomersRow, error)
+	// ── The contact profile ──────────────────────────────────────────────────
+	// A contact's store orders and abandoned checkouts, newest first, before
+	// a cursor (the profile's timeline).
+	CommerceContactTimeline(ctx context.Context, arg CommerceContactTimelineParams) ([]CommerceContactTimelineRow, error)
+	CommerceContactTimelineCount(ctx context.Context, arg CommerceContactTimelineCountParams) (int64, error)
 	// ── Customers ───────────────────────────────────────────────────────────
 	CommerceCustomer(ctx context.Context, arg CommerceCustomerParams) (StoreCustomer, error)
 	CommerceCustomerByContact(ctx context.Context, contactID *uuid.UUID) ([]StoreCustomer, error)
@@ -302,6 +322,8 @@ type Querier interface {
 	// The contact's last human click on a campaign or automation email within
 	// the window before the order.
 	CommerceLastClick(ctx context.Context, arg CommerceLastClickParams) (CommerceLastClickRow, error)
+	// The latest sent campaign (a tagged link's example).
+	CommerceLatestCampaign(ctx context.Context, workspaceID uuid.UUID) (string, error)
 	CommerceLeaveList(ctx context.Context, arg CommerceLeaveListParams) (int64, error)
 	CommerceListByName(ctx context.Context, arg CommerceListByNameParams) (uuid.UUID, error)
 	CommerceListCreate(ctx context.Context, arg CommerceListCreateParams) error
@@ -317,13 +339,16 @@ type Querier interface {
 	CommerceOrderByID(ctx context.Context, id uuid.UUID) (StoreOrder, error)
 	CommerceOrderCount(ctx context.Context, storeID uuid.UUID) (int64, error)
 	CommerceOrderDelete(ctx context.Context, arg CommerceOrderDeleteParams) error
-	CommerceOrderRefund(ctx context.Context, arg CommerceOrderRefundParams) error
-	// Inserts an order, or updates it when the version is newer. inserted
-	// says which (the first time an order is seen starts its triggers).
-	CommerceOrderUpsert(ctx context.Context, arg CommerceOrderUpsertParams) (CommerceOrderUpsertRow, error)
+	CommerceOrderForUpdate(ctx context.Context, arg CommerceOrderForUpdateParams) (StoreOrder, error)
+	CommerceOrderInsert(ctx context.Context, arg CommerceOrderInsertParams) (StoreOrder, error)
+	CommerceOrderRefunds(ctx context.Context, arg CommerceOrderRefundsParams) error
+	CommerceOrderUpdate(ctx context.Context, arg CommerceOrderUpdateParams) error
 	// Imported orders not matched yet (the first import's last phase).
 	CommerceOrdersToMatch(ctx context.Context, arg CommerceOrdersToMatchParams) ([]CommerceOrdersToMatchRow, error)
 	CommercePauseFlow(ctx context.Context, arg CommercePauseFlowParams) (int64, error)
+	// The connected WordPress site at a host, with what its plugin reported.
+	CommercePluginSite(ctx context.Context, arg CommercePluginSiteParams) (CommercePluginSiteRow, error)
+	CommerceProductCollections(ctx context.Context, arg CommerceProductCollectionsParams) ([]CommerceProductCollectionsRow, error)
 	CommerceProductCount(ctx context.Context, storeID uuid.UUID) (int64, error)
 	CommerceProductRemoved(ctx context.Context, arg CommerceProductRemovedParams) (int64, error)
 	// An older version of a product than the one stored is ignored (events
@@ -339,6 +364,8 @@ type Querier interface {
 	CommerceProductsNewest(ctx context.Context, arg CommerceProductsNewestParams) ([]StoreProduct, error)
 	// After a full product read: products the store no longer has.
 	CommerceProductsRemoveMissing(ctx context.Context, arg CommerceProductsRemoveMissingParams) ([]CommerceProductsRemoveMissingRow, error)
+	// Resumes an automation the store paused (not one a person paused).
+	CommerceResumeFlow(ctx context.Context, arg CommerceResumeFlowParams) (int64, error)
 	// A store's credited orders in a period by campaign or automation.
 	CommerceRevenueByEmail(ctx context.Context, arg CommerceRevenueByEmailParams) ([]CommerceRevenueByEmailRow, error)
 	CommerceStore(ctx context.Context, arg CommerceStoreParams) (Store, error)
@@ -350,6 +377,8 @@ type Querier interface {
 	CommerceStoreDisconnected(ctx context.Context, arg CommerceStoreDisconnectedParams) error
 	// Live and paused automations started by a store's triggers.
 	CommerceStoreFlows(ctx context.Context, arg CommerceStoreFlowsParams) ([]CommerceStoreFlowsRow, error)
+	// The WooCommerce store at a WordPress site's address.
+	CommerceStoreForSite(ctx context.Context, arg CommerceStoreForSiteParams) (CommerceStoreForSiteRow, error)
 	CommerceStoreForUpdate(ctx context.Context, arg CommerceStoreForUpdateParams) (Store, error)
 	CommerceStoreHealthChecked(ctx context.Context, arg CommerceStoreHealthCheckedParams) error
 	CommerceStoreImportDone(ctx context.Context, arg CommerceStoreImportDoneParams) error
@@ -381,6 +410,7 @@ type Querier interface {
 	// A store's orders and revenue in a period, and the part credited to email.
 	CommerceStoreTotals(ctx context.Context, arg CommerceStoreTotalsParams) (CommerceStoreTotalsRow, error)
 	CommerceStoreTouchEvent(ctx context.Context, arg CommerceStoreTouchEventParams) error
+	CommerceStoreWritebackThrough(ctx context.Context, arg CommerceStoreWritebackThroughParams) error
 	// Shopify and WooCommerce stores (internal/commerce): connections, what
 	// they sync, webhooks and raw events, the activity log, attribution and
 	// the abandoned checkouts the automations watch.
@@ -392,6 +422,8 @@ type Querier interface {
 	CommerceStoresByDomain(ctx context.Context, domain string) ([]Store, error)
 	// Connected stores of a workspace (links to tag, triggers, blocks).
 	CommerceStoresConnected(ctx context.Context, workspaceID uuid.UUID) ([]Store, error)
+	// Why an address is on the suppression list ('' when it isn't).
+	CommerceSuppressed(ctx context.Context, arg CommerceSuppressedParams) (string, error)
 	// Contacts who left the store's list, or every list, since a time: the
 	// unsubscribes to tell the store about (write-back). Leaving that the
 	// store itself caused (source store:…) is left out.
@@ -404,6 +436,9 @@ type Querier interface {
 	// ── Webhooks ────────────────────────────────────────────────────────────
 	CommerceWebhooks(ctx context.Context, storeID uuid.UUID) ([]StoreWebhook, error)
 	CommerceWebhooksClear(ctx context.Context, storeID uuid.UUID) error
+	// ── WordPress sites running WooCommerce (the plugin) ────────────────────
+	// What the plugin reports of WooCommerce on its site.
+	CommerceWordPressWoo(ctx context.Context, arg CommerceWordPressWooParams) error
 	// Every connected store's orders and credited revenue in a period (the
 	// Earn overview's card).
 	CommerceWorkspaceRevenue(ctx context.Context, arg CommerceWorkspaceRevenueParams) (CommerceWorkspaceRevenueRow, error)

@@ -59,6 +59,12 @@ func TriggerKindLabel(kind string) string {
 		return "Score crosses…"
 	case TriggerPollAnswered:
 		return "Answered a poll or survey"
+	case TriggerOrderPlaced:
+		return "Order placed"
+	case TriggerFirstOrder:
+		return "First order"
+	case TriggerAbandonedCheckout:
+		return "Abandoned checkout"
 	}
 	return "Trigger"
 }
@@ -98,6 +104,13 @@ func TriggerRef(t *AutomationTrigger, refs *Refs) string {
 			}
 		}
 		return "a poll"
+	case TriggerOrderPlaced, TriggerFirstOrder, TriggerAbandonedCheckout:
+		if refs != nil {
+			if n, ok := refs.Stores[t.Store]; ok {
+				return n
+			}
+		}
+		return "a store"
 	}
 	return ""
 }
@@ -254,6 +267,8 @@ func conditionPhrase(g AutomationGraph, c *AutomationCondition, refs *Refs) stri
 		return "in " + name
 	case "event":
 		return "sent " + c.Event
+	case ConditionPlacedOrder:
+		return "placed an order"
 	case "field":
 		switch c.Op {
 		case "is_set":
@@ -381,6 +396,8 @@ func goalTitle(c *AutomationCondition, refs *Refs) string {
 		return "Joined a list"
 	case "event":
 		return "Sent " + c.Event
+	case ConditionPlacedOrder:
+		return "Placed an order"
 	case "field":
 		return capFirst(conditionPhrase(AutomationGraph{}, c, refs))
 	}

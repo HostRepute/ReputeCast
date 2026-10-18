@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"math"
+	"slices"
 	"strings"
 	"time"
 
@@ -292,8 +293,13 @@ func (s *Service) audienceLabeler(ctx context.Context, wsID uuid.UUID) (func(jso
 		return nil, err
 	}
 	names := make(map[uuid.UUID]string, len(lists))
+	// "All subscribers" is every list but the ones a store fills (X20).
+	every := []uuid.UUID{}
 	for _, l := range lists {
 		names[l.ID] = l.Name
+		if l.Origin != "store" {
+			every = append(every, l.ID)
+		}
 	}
 	l := i18n.LangFrom(ctx)
 	return func(raw json.RawMessage) string {
@@ -304,7 +310,7 @@ func (s *Service) audienceLabeler(ctx context.Context, wsID uuid.UUID) (func(jso
 		if json.Unmarshal(raw, &a) != nil || (len(a.Lists) == 0 && len(a.Segments) == 0) {
 			return ""
 		}
-		if len(a.Segments) == 0 && len(a.Lists) == len(names) && len(names) > 1 {
+		if len(a.Segments) == 0 && len(every) > 1 && !slices.ContainsFunc(every, func(id uuid.UUID) bool { return !slices.Contains(a.Lists, id) }) {
 			return mAudienceAll.Text(l, nil)
 		}
 		parts := make([]string, 0, len(a.Lists))

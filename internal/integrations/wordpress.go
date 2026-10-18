@@ -93,6 +93,16 @@ type WordPressReportInput struct {
 	LanguagePlugin   string              `json:"languagePlugin,omitempty" enum:"wpml,polylang,"`
 	Categories       []WordPressCategory `json:"categories,omitempty" maxItems:"500"`
 	Forms            []WordPressFormUse  `json:"forms,omitempty" maxItems:"100"`
+	// WooCommerce is WooCommerce on the site, when it's active (plugin 1.4).
+	WooCommerce *WordPressWooCommerce `json:"woocommerce,omitempty"`
+}
+
+// WordPressWooCommerce is WooCommerce on a site: its version, and whether
+// the plugin's checkout consent and abandoned-checkout reporting are on.
+type WordPressWooCommerce struct {
+	Version   string `json:"version" maxLength:"20" example:"10.2.1"`
+	Consent   bool   `json:"consent" doc:"The consent checkbox is at the checkout"`
+	Checkouts bool   `json:"checkouts" doc:"Abandoned checkouts are reported"`
 }
 
 // WordPressReportResult tells the plugin where it reported to.
@@ -194,6 +204,14 @@ func (s *Service) Report(ctx context.Context, ws *store.Workspace, in WordPressR
 		if err := q.WordPressSiteReport(ctx, store.WordPressSiteReportParams{IntegrationID: ik.ID, SiteUrl: siteURL, Name: clip(in.Name, 200),
 			PluginVersion: clip(in.PluginVersion, 20), WpVersion: clip(in.WordPressVersion, 20), PhpVersion: clip(in.PHPVersion, 20),
 			FeedUrl: clip(in.FeedURL, 500), LanguagePlugin: in.LanguagePlugin, Categories: jsonOf(cats), Forms: jsonOf(formsUsed), At: s.now()}); err != nil {
+			return err
+		}
+		woo := WordPressWooCommerce{}
+		if in.WooCommerce != nil {
+			woo = *in.WooCommerce
+		}
+		if err := q.CommerceWordPressWoo(ctx, store.CommerceWordPressWooParams{IntegrationID: ik.ID, Version: clip(woo.Version, 20), Consent: woo.Consent,
+			Checkouts: woo.Checkouts}); err != nil {
 			return err
 		}
 		if !first {

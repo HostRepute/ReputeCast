@@ -31,7 +31,7 @@ WHERE c.workspace_id = @workspace_id AND c.status = 'active' AND c.erased_at IS 
   AND NOT (c.id = ANY(@exclude_contacts::uuid[]));
 
 -- name: ReadinessListNames :many
-SELECT id, name, requires_approval FROM lists WHERE workspace_id = @workspace_id AND deleted_at IS NULL ORDER BY created_at;
+SELECT id, name, requires_approval, origin FROM lists WHERE workspace_id = @workspace_id AND deleted_at IS NULL ORDER BY created_at;
 
 -- name: ReadinessSegmentNames :many
 SELECT id, name FROM segments WHERE workspace_id = @workspace_id ORDER BY name;

@@ -49,6 +49,7 @@ var Events = []EventType{
 	{Key: KindVerificationCreditsLow, Label: "Verification credits low", Audience: "Everyone with integrations:manage", Short: "low verification credits", DefaultEmail: true, Kinds: []string{KindVerificationCreditsLow}},
 	{Key: KindPlacementFinished, Label: "Placement test finished", Audience: "The person who started it", Short: "placement tests", DefaultEmail: false, Kinds: []string{KindPlacementFinished}},
 	{Key: KindSeedSignInFailed, Label: "Seed mailbox sign-in failed", Audience: "Everyone with placement:manage", Short: "seed sign-in failures", DefaultEmail: true, Kinds: []string{KindSeedSignInFailed}},
+	{Key: KindStoreProblem, Label: "Store disconnected or its webhooks missing", Audience: "Everyone with integrations:manage", Short: "store problems", DefaultEmail: true, Kinds: []string{KindStoreProblem}},
 }
 
 // otherEvent covers kinds without a preference row (send finished, jobs):
@@ -90,7 +91,7 @@ var categoryKinds = map[string][]string{
 	CategoryProviders:     {KindProviderDown, KindProviderDegraded, KindWebhooksSilent},
 	CategoryTeam:          {KindInviteAccepted, KindInviteRequested},
 	CategoryHostRepute:    {KindHostReputeAlert},
-	CategoryIntegrations:  {KindIntegrationAttention, KindPostDraftCreated},
+	CategoryIntegrations:  {KindIntegrationAttention, KindPostDraftCreated, KindStoreProblem},
 	CategoryTransactional: {KindTransactionalAlert, KindSMTPRelayUnreachable},
 	CategoryEarn:          {KindPaymentsAttention, KindUnmappedPrice, KindPaidImportDone, KindFailedPayments},
 }

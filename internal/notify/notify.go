@@ -56,6 +56,8 @@ const (
 	KindVerificationCreditsLow = "verification_credits_low" // a service's balance runs low
 	KindPlacementFinished      = "placement_finished"       // a placement test finished
 	KindSeedSignInFailed       = "seed_signin_failed"       // a seed mailbox's sign-in failed or expired
+	// Shopify and WooCommerce (design expansion, phase 7).
+	KindStoreProblem = "store_problem" // a store disconnected, or its webhooks missing
 )
 
 // Notification is what appears in the notification center.

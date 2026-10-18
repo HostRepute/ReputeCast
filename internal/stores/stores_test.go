@@ -21,13 +21,13 @@ func TestAmounts(t *testing.T) {
 }
 
 func TestLanding(t *testing.T) {
-	utm, token := ParseLanding("/products/hoodie?utm_source=acme-newsletter&utm_medium=email&utm_campaign=october-product-update&rc_click=abc123#reviews")
+	utm, token := ParseLanding("/products/hoodie?utm_source=acme-newsletter&utm_medium=email&utm_campaign=october-product-update&rc=abc123#reviews")
 	if utm.Source != "acme-newsletter" || utm.Medium != "email" || utm.Campaign != "october-product-update" || token != "abc123" {
 		t.Fatalf("%+v %q", utm, token)
 	}
-	// The phase 7 brief's shorter name is read too.
-	if _, token := ParseLanding("https://shop.acme.io/?rc=xyz"); token != "xyz" {
-		t.Fatalf("rc: %q", token)
+	// Phase 6's name, on the conversion API's domains, is read too.
+	if _, token := ParseLanding("https://shop.acme.io/?rc_click=xyz"); token != "xyz" {
+		t.Fatalf("rc_click: %q", token)
 	}
 	if got := StripLanding("/products/hoodie?utm_source=a&rc_click=abc123"); got != "/products/hoodie?utm_source=a" {
 		t.Fatalf("StripLanding: %q", got)

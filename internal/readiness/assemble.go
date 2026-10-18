@@ -86,6 +86,7 @@ func Assemble(f Facts) ReadinessResult {
 	b.verification()
 	b.routing()
 	b.everyVersion()
+	b.stores()
 	for i := range b.checks {
 		if b.checks[i].Fixes == nil {
 			b.checks[i].Fixes = []ReadinessFix{}

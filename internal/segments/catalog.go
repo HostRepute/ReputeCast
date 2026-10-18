@@ -133,6 +133,13 @@ func SourceLabel(src string) string {
 		return "API"
 	case "manual":
 		return "Added by the team"
+	case "store":
+		// "store:shopify:<store id>": a store's customer who accepted
+		// marketing (X20).
+		if platform, _, _ := strings.Cut(detail, ":"); platform == "woocommerce" {
+			return "WooCommerce"
+		}
+		return "Shopify"
 	case "":
 		return "Unknown"
 	}

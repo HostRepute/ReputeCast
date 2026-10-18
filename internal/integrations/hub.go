@@ -114,7 +114,7 @@ type IntegrationGroup struct {
 // IntegrationEntry is a catalog card: its status, the reason it needs
 // attention, and the facts of its fact line.
 type IntegrationEntry struct {
-	Key string `json:"key" enum:"zapier,make,n8n,wordpress,hostrepute,api,webhooks,mcp,zerobounce,neverbounce,kickbox,bouncer,emailable"`
+	Key string `json:"key" enum:"zapier,make,n8n,wordpress,hostrepute,api,webhooks,mcp,zerobounce,neverbounce,kickbox,bouncer,emailable,shopify,woocommerce"`
 	// Status: not_connected, waiting, connected, attention; none for the
 	// developer cards.
 	Status          string              `json:"status" enum:"not_connected,waiting,connected,attention,none"`
@@ -144,6 +144,18 @@ type IntegrationFacts struct {
 	// costs on the workspace's plan, when connected.
 	Balance *int64  `json:"balance,omitempty"`
 	Price   float64 `json:"price,omitempty"`
+	// Store is a store platform's card (the Commerce group, X20).
+	Store *IntegrationStoreFacts `json:"store,omitempty"`
+}
+
+// IntegrationStoreFacts are a store platform's fact line: its stores, the
+// one the card names, how its sync stands and its orders in 30 days.
+type IntegrationStoreFacts struct {
+	Stores      int        `json:"stores"`
+	Name        string     `json:"name"`
+	State       string     `json:"state" enum:"connecting,importing,connected,webhook_missing,rate_limited,no_plugin,revoked"`
+	Orders      int64      `json:"orders"`
+	LastEventAt *time.Time `json:"lastEventAt,omitempty"`
 }
 
 // IntegrationAlert is a banner: an entry and its reason.

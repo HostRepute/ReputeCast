@@ -63,7 +63,10 @@ type Service struct {
 	// connected store get UTM parameters and the click token
 	// (internal/commerce).
 	Decorators []LinkDecorator
-	Now        func() time.Time
+	// MessageVars are an automation email's own link variables, from what
+	// its trigger passed ("checkout_url": the store's recovery link).
+	MessageVars func(ctx context.Context, msgCtx map[string]string) map[string]string
+	Now         func() time.Time
 
 	once  sync.Once
 	in    chan *pending
@@ -302,10 +305,14 @@ func (s *Service) resolve(ctx context.Context, c linktoken.Claims, m store.Track
 		return "", errors.New("unknown link")
 	}
 	if strings.Contains(raw, "{{") && m.ContactID != nil {
+		var links map[string]string
+		if ref := refOf(m.ContentRef); m.CampaignID == nil && len(ref.Ctx) > 0 && s.MessageVars != nil {
+			links = s.MessageVars(ctx, ref.Ctx)
+		}
 		if ct, err := s.Q.TrackingContactVars(ctx, *m.ContactID); err == nil {
 			var attrs map[string]any
 			_ = json.Unmarshal(ct.Attributes, &attrs)
-			if out, err := liquid.Render(raw, liquid.Vars(ct.Email, ct.FirstName, ct.LastName, attrs, nil)); err == nil {
+			if out, err := liquid.Render(raw, liquid.Vars(ct.Email, ct.FirstName, ct.LastName, attrs, links)); err == nil {
 				raw = strings.TrimSpace(out)
 			}
 		}
@@ -634,6 +641,9 @@ type contentRef struct {
 	Version int       `json:"version"`
 	// Language is the language version sent ("" is the source).
 	Language string `json:"language,omitempty"`
+	// Ctx is what the flow's trigger passed to the email (a store's
+	// checkout or order): its link variables come from MessageVars.
+	Ctx map[string]string `json:"ctx,omitempty"`
 }
 
 // linkKey identifies the link set of an automation email version and language.

@@ -32,6 +32,9 @@ type OutgoingEmail struct {
 	// Route is empty for the Automations route, or a provider id that
 	// overrides it for this step.
 	Route string
+	// Context is what the trigger passed to the flow's emails (a store's
+	// checkout or order): the sending engine keeps it with the message.
+	Context map[string]string
 }
 
 // QueuedEmail is what the mailer did with an email.

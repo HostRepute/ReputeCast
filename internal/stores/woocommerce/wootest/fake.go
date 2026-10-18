@@ -103,6 +103,9 @@ type Fake struct {
 	ReadOnly bool
 	// Plugin: the ReputeCast plugin is active.
 	Plugin bool
+	// Permissive accepts any key and secret shaped like WooCommerce's (the
+	// demo's sample store).
+	Permissive bool
 
 	Products   []*Product
 	Categories []*Category
@@ -219,7 +222,11 @@ func (f *Fake) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	key, secret, _ := r.BasicAuth()
-	if f.revoked || key != f.Key || secret != f.Secret {
+	valid := key == f.Key && secret == f.Secret
+	if f.Permissive {
+		valid = strings.HasPrefix(key, "ck_") && strings.HasPrefix(secret, "cs_")
+	}
+	if f.revoked || !valid {
 		errJSON(w, http.StatusUnauthorized, "woocommerce_rest_authentication_error", "Consumer key is invalid.")
 		return
 	}

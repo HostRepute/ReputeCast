@@ -220,6 +220,7 @@ func (e *Engine) prepare(ctx context.Context, campaignID uuid.UUID, now time.Tim
 		if err := e.sendLanguages(ctx, cc.WorkspaceID, campaignID, &content); err != nil {
 			return err
 		}
+		e.resolveStore(ctx, cc.WorkspaceID, &content)
 	} else if len(snd.Content) > 0 {
 		// A build that continues keeps the versions captured when it began.
 		var prev sendContent

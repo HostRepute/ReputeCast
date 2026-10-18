@@ -13,6 +13,109 @@ import (
 	"github.com/google/uuid"
 )
 
+const automationContactOrdered = `-- name: AutomationContactOrdered :one
+
+SELECT EXISTS (
+    SELECT 1 FROM store_orders o
+    WHERE o.workspace_id = $1 AND o.contact_id = $2 AND o.placed_at >= $3 AND NOT o.test AND NOT o.cancelled
+      AND ($4::uuid IS NULL OR o.store_id = $4::uuid))
+`
+
+type AutomationContactOrderedParams struct {
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	ContactID   *uuid.UUID `json:"contactId"`
+	Since       time.Time  `json:"since"`
+	StoreID     *uuid.UUID `json:"storeId"`
+}
+
+// ── Automations: the "Placed an order" goal ─────────────────────────────
+// The contact placed an order since a time (in one store, or any).
+func (q *Queries) AutomationContactOrdered(ctx context.Context, arg AutomationContactOrderedParams) (bool, error) {
+	row := q.db.QueryRow(ctx, automationContactOrdered,
+		arg.WorkspaceID,
+		arg.ContactID,
+		arg.Since,
+		arg.StoreID,
+	)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
+const automationGoalRunsOrdered = `-- name: AutomationGoalRunsOrdered :many
+SELECT r.id, r.node_id FROM automation_runs r
+JOIN automations a ON a.id = r.automation_id
+WHERE r.automation_id = $1 AND r.version = $2 AND r.status IN ('active', 'waiting')
+  AND EXISTS (SELECT 1 FROM store_orders o
+              WHERE o.workspace_id = a.workspace_id AND o.contact_id = r.contact_id AND o.placed_at >= r.entered_at AND NOT o.test AND NOT o.cancelled
+                AND ($3::uuid IS NULL OR o.store_id = $3::uuid))
+LIMIT 1000
+FOR UPDATE OF r SKIP LOCKED
+`
+
+type AutomationGoalRunsOrderedParams struct {
+	AutomationID uuid.UUID  `json:"automationId"`
+	Version      int32      `json:"version"`
+	StoreID      *uuid.UUID `json:"storeId"`
+}
+
+type AutomationGoalRunsOrderedRow struct {
+	ID     uuid.UUID `json:"id"`
+	NodeID string    `json:"nodeId"`
+}
+
+// Runs whose contact placed an order since entering the flow.
+func (q *Queries) AutomationGoalRunsOrdered(ctx context.Context, arg AutomationGoalRunsOrderedParams) ([]AutomationGoalRunsOrderedRow, error) {
+	rows, err := q.db.Query(ctx, automationGoalRunsOrdered, arg.AutomationID, arg.Version, arg.StoreID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AutomationGoalRunsOrderedRow{}
+	for rows.Next() {
+		var i AutomationGoalRunsOrderedRow
+		if err := rows.Scan(&i.ID, &i.NodeID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const automationStoreRefs = `-- name: AutomationStoreRefs :many
+SELECT id, name, status FROM stores WHERE workspace_id = $1
+`
+
+type AutomationStoreRefsRow struct {
+	ID     uuid.UUID `json:"id"`
+	Name   string    `json:"name"`
+	Status string    `json:"status"`
+}
+
+// The workspace's stores, for the store triggers' and goal's references.
+func (q *Queries) AutomationStoreRefs(ctx context.Context, workspaceID uuid.UUID) ([]AutomationStoreRefsRow, error) {
+	rows, err := q.db.Query(ctx, automationStoreRefs, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AutomationStoreRefsRow{}
+	for rows.Next() {
+		var i AutomationStoreRefsRow
+		if err := rows.Scan(&i.ID, &i.Name, &i.Status); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const commerceAbandonedCartEmailedSince = `-- name: CommerceAbandonedCartEmailedSince :one
 SELECT EXISTS (
     SELECT 1 FROM messages m JOIN automations a ON a.id = m.automation_id
@@ -132,7 +235,7 @@ func (q *Queries) CommerceActivity(ctx context.Context, arg CommerceActivityPara
 const commerceActivityInsert = `-- name: CommerceActivityInsert :exec
 
 INSERT INTO store_activity (id, store_id, workspace_id, at, kind, tone, data, order_id, checkout_id, contact_id)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+VALUES ($1, $2, $3, $4::timestamptz, $5, $6, $7, $8, $9, $10)
 `
 
 type CommerceActivityInsertParams struct {
@@ -200,6 +303,40 @@ func (q *Queries) CommerceAutomationGoalRevenue(ctx context.Context, arg Commerc
 	return i, err
 }
 
+const commerceAutomationGraph = `-- name: CommerceAutomationGraph :one
+SELECT a.name, coalesce(v.graph, '{}'::jsonb)::jsonb AS graph
+FROM automations a LEFT JOIN automation_versions v ON v.automation_id = a.id AND v.version = coalesce(a.live_version, a.draft_version)
+WHERE a.id = $1
+`
+
+type CommerceAutomationGraphRow struct {
+	Name  string          `json:"name"`
+	Graph json.RawMessage `json:"graph"`
+}
+
+func (q *Queries) CommerceAutomationGraph(ctx context.Context, id uuid.UUID) (CommerceAutomationGraphRow, error) {
+	row := q.db.QueryRow(ctx, commerceAutomationGraph, id)
+	var i CommerceAutomationGraphRow
+	err := row.Scan(&i.Name, &i.Graph)
+	return i, err
+}
+
+const commerceAutomationName = `-- name: CommerceAutomationName :one
+SELECT name, live_version FROM automations WHERE id = $1
+`
+
+type CommerceAutomationNameRow struct {
+	Name        string `json:"name"`
+	LiveVersion *int32 `json:"liveVersion"`
+}
+
+func (q *Queries) CommerceAutomationName(ctx context.Context, id uuid.UUID) (CommerceAutomationNameRow, error) {
+	row := q.db.QueryRow(ctx, commerceAutomationName, id)
+	var i CommerceAutomationNameRow
+	err := row.Scan(&i.Name, &i.LiveVersion)
+	return i, err
+}
+
 const commerceAutomationRevenue = `-- name: CommerceAutomationRevenue :many
 SELECT automation_id, count(*)::bigint AS orders, coalesce(sum(total_cents - refunded_cents), 0)::bigint AS revenue, max(currency)::text AS currency
 FROM store_orders
@@ -244,6 +381,17 @@ func (q *Queries) CommerceAutomationRevenue(ctx context.Context, arg CommerceAut
 		return nil, err
 	}
 	return items, nil
+}
+
+const commerceCampaignName = `-- name: CommerceCampaignName :one
+SELECT name FROM campaigns WHERE id = $1
+`
+
+func (q *Queries) CommerceCampaignName(ctx context.Context, id uuid.UUID) (string, error) {
+	row := q.db.QueryRow(ctx, commerceCampaignName, id)
+	var name string
+	err := row.Scan(&name)
+	return name, err
 }
 
 const commerceCampaignRevenue = `-- name: CommerceCampaignRevenue :many
@@ -304,6 +452,45 @@ func (q *Queries) CommerceCampaignRevenue(ctx context.Context, arg CommerceCampa
 	return items, nil
 }
 
+const commerceCampaignsUsing = `-- name: CommerceCampaignsUsing :many
+SELECT id, name, status FROM campaigns
+WHERE workspace_id = $1 AND deleted_at IS NULL AND mjml LIKE '%rc-store%' AND strpos(mjml, $2::text) > 0
+ORDER BY created_at DESC
+LIMIT 20
+`
+
+type CommerceCampaignsUsingParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	StoreID     string    `json:"storeId"`
+}
+
+type CommerceCampaignsUsingRow struct {
+	ID     uuid.UUID `json:"id"`
+	Name   string    `json:"name"`
+	Status string    `json:"status"`
+}
+
+// Campaigns whose content has one of a store's blocks.
+func (q *Queries) CommerceCampaignsUsing(ctx context.Context, arg CommerceCampaignsUsingParams) ([]CommerceCampaignsUsingRow, error) {
+	rows, err := q.db.Query(ctx, commerceCampaignsUsing, arg.WorkspaceID, arg.StoreID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []CommerceCampaignsUsingRow{}
+	for rows.Next() {
+		var i CommerceCampaignsUsingRow
+		if err := rows.Scan(&i.ID, &i.Name, &i.Status); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const commerceCheckoutByID = `-- name: CommerceCheckoutByID :one
 SELECT id, store_id, workspace_id, external_id, contact_id, customer_external_id, has_email, accepted_marketing, items, subtotal_cents, total_cents, currency, recovery_url, created_at_store, updated_at_store, completed_at, order_id, source, created_at, updated_at FROM store_checkouts WHERE id = $1
 `
@@ -337,7 +524,7 @@ func (q *Queries) CommerceCheckoutByID(ctx context.Context, id uuid.UUID) (Store
 }
 
 const commerceCheckoutComplete = `-- name: CommerceCheckoutComplete :many
-UPDATE store_checkouts SET completed_at = coalesce(completed_at, $1), order_id = $2, updated_at = $1
+UPDATE store_checkouts SET completed_at = coalesce(completed_at, $1::timestamptz), order_id = $2, updated_at = $1::timestamptz
 WHERE store_id = $3 AND completed_at IS NULL
   AND (external_id = $4 OR ($5::uuid IS NOT NULL AND contact_id = $5::uuid AND created_at_store <= $6))
 RETURNING id
@@ -412,7 +599,7 @@ func (q *Queries) CommerceCheckoutEntries(ctx context.Context, automationID uuid
 }
 
 const commerceCheckoutEntry = `-- name: CommerceCheckoutEntry :exec
-INSERT INTO store_checkout_entries (automation_id, checkout_id, outcome, at) VALUES ($1, $2, $3, $4)
+INSERT INTO store_checkout_entries (automation_id, checkout_id, outcome, at) VALUES ($1, $2, $3, $4::timestamptz)
 ON CONFLICT DO NOTHING
 `
 
@@ -462,7 +649,7 @@ const commerceCheckoutUpsert = `-- name: CommerceCheckoutUpsert :one
 INSERT INTO store_checkouts (id, store_id, workspace_id, external_id, contact_id, customer_external_id, has_email, accepted_marketing, items,
     subtotal_cents, total_cents, currency, recovery_url, created_at_store, updated_at_store, completed_at, source, created_at, updated_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9,
-    $10, $11, $12, $13, $14, $15, $16, $17, $18, $18)
+    $10, $11, $12, $13, $14, $15, $16, $17, $18::timestamptz, $18::timestamptz)
 ON CONFLICT (store_id, external_id) DO UPDATE SET contact_id = coalesce(EXCLUDED.contact_id, store_checkouts.contact_id),
     customer_external_id = CASE WHEN EXCLUDED.customer_external_id <> '' THEN EXCLUDED.customer_external_id ELSE store_checkouts.customer_external_id END,
     has_email = EXCLUDED.has_email OR store_checkouts.has_email, accepted_marketing = EXCLUDED.accepted_marketing,
@@ -639,7 +826,7 @@ func (q *Queries) CommerceClickMessage(ctx context.Context, id uuid.UUID) (Comme
 }
 
 const commerceClickTime = `-- name: CommerceClickTime :one
-SELECT max(occurred_at)::timestamptz FROM delivery_events WHERE message_id = $1 AND type = 'click' AND NOT machine AND occurred_at <= $2
+SELECT max(occurred_at)::timestamptz FROM delivery_events WHERE message_id = $1 AND type = 'click' AND NOT machine AND occurred_at <= $2::timestamptz
 `
 
 type CommerceClickTimeParams struct {
@@ -732,7 +919,7 @@ func (q *Queries) CommerceCollections(ctx context.Context, storeID uuid.UUID) ([
 
 const commerceConsentInsert = `-- name: CommerceConsentInsert :exec
 INSERT INTO consent_events (id, contact_id, list_id, action, source, detail, note, consent_text, occurred_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::timestamptz)
 `
 
 type CommerceConsentInsertParams struct {
@@ -796,6 +983,33 @@ func (q *Queries) CommerceContactByEmail(ctx context.Context, arg CommerceContac
 	return i, err
 }
 
+const commerceContactByID = `-- name: CommerceContactByID :one
+SELECT id, status, email, first_name, last_name, erased_at FROM contacts WHERE id = $1
+`
+
+type CommerceContactByIDRow struct {
+	ID        uuid.UUID  `json:"id"`
+	Status    string     `json:"status"`
+	Email     string     `json:"email"`
+	FirstName string     `json:"firstName"`
+	LastName  string     `json:"lastName"`
+	ErasedAt  *time.Time `json:"erasedAt"`
+}
+
+func (q *Queries) CommerceContactByID(ctx context.Context, id uuid.UUID) (CommerceContactByIDRow, error) {
+	row := q.db.QueryRow(ctx, commerceContactByID, id)
+	var i CommerceContactByIDRow
+	err := row.Scan(
+		&i.ID,
+		&i.Status,
+		&i.Email,
+		&i.FirstName,
+		&i.LastName,
+		&i.ErasedAt,
+	)
+	return i, err
+}
+
 const commerceContactHasOrder = `-- name: CommerceContactHasOrder :one
 SELECT EXISTS (SELECT 1 FROM store_orders WHERE store_id = $1 AND contact_id = $2 AND placed_at < $3 AND NOT test AND NOT cancelled)
 `
@@ -816,7 +1030,7 @@ func (q *Queries) CommerceContactHasOrder(ctx context.Context, arg CommerceConta
 
 const commerceContactInsert = `-- name: CommerceContactInsert :one
 INSERT INTO contacts (id, workspace_id, email, first_name, last_name, status, consent, source, country, mailbox_provider, consent_evidence, created_at, updated_at)
-VALUES ($1, $2, $3, $4, $5, 'active', $6, $7, $8, $9, $10, $11, $11)
+VALUES ($1, $2, $3, $4, $5, 'active', $6, $7, $8, $9, $10, $11::timestamptz, $11::timestamptz)
 ON CONFLICT (workspace_id, email) DO NOTHING
 RETURNING id
 `
@@ -854,8 +1068,46 @@ func (q *Queries) CommerceContactInsert(ctx context.Context, arg CommerceContact
 	return id, err
 }
 
+const commerceContactOrderTotals = `-- name: CommerceContactOrderTotals :many
+SELECT store_id, count(*)::bigint AS orders, coalesce(sum(total_cents - refunded_cents), 0)::bigint AS spent
+FROM store_orders WHERE contact_id = $1 AND workspace_id = $2 AND NOT test AND NOT cancelled
+GROUP BY store_id
+`
+
+type CommerceContactOrderTotalsParams struct {
+	ContactID   *uuid.UUID `json:"contactId"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+}
+
+type CommerceContactOrderTotalsRow struct {
+	StoreID uuid.UUID `json:"storeId"`
+	Orders  int64     `json:"orders"`
+	Spent   int64     `json:"spent"`
+}
+
+// A contact's orders and spending per store.
+func (q *Queries) CommerceContactOrderTotals(ctx context.Context, arg CommerceContactOrderTotalsParams) ([]CommerceContactOrderTotalsRow, error) {
+	rows, err := q.db.Query(ctx, commerceContactOrderTotals, arg.ContactID, arg.WorkspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []CommerceContactOrderTotalsRow{}
+	for rows.Next() {
+		var i CommerceContactOrderTotalsRow
+		if err := rows.Scan(&i.StoreID, &i.Orders, &i.Spent); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const commerceContactOrders = `-- name: CommerceContactOrders :many
-SELECT o.id, o.store_id, o.workspace_id, o.external_id, o.name, o.contact_id, o.customer_external_id, o.accepted_marketing, o.placed_at, o.currency, o.subtotal_cents, o.total_cents, o.refunded_cents, o.discount_codes, o.items, o.landing_page, o.utm_source, o.utm_medium, o.utm_campaign, o.utm_content, o.utm_term, o.checkout_external_id, o.cancelled, o.test, o.first_order, o.matched, o.message_id, o.campaign_id, o.automation_id, o.automation_node, o.clicked_at, o.source, o.updated_at_store, o.created_at, o.updated_at, s.name AS store_name, s.platform, s.list_id AS store_list_id,
+SELECT o.id, o.store_id, o.workspace_id, o.external_id, o.name, o.contact_id, o.customer_external_id, o.accepted_marketing, o.placed_at, o.currency, o.subtotal_cents, o.total_cents, o.refunded_cents, o.refund_ids, o.discount_codes, o.items, o.landing_page, o.utm_source, o.utm_medium, o.utm_campaign, o.utm_content, o.utm_term, o.checkout_external_id, o.cancelled, o.test, o.first_order, o.matched, o.message_id, o.campaign_id, o.automation_id, o.automation_node, o.clicked_at, o.source, o.updated_at_store, o.created_at, o.updated_at, s.name AS store_name, s.platform, s.list_id AS store_list_id,
     coalesce(c.name, '')::text AS campaign_name, coalesce(a.name, '')::text AS automation_name
 FROM store_orders o
 JOIN stores s ON s.id = o.store_id
@@ -886,6 +1138,7 @@ type CommerceContactOrdersRow struct {
 	SubtotalCents      int64           `json:"subtotalCents"`
 	TotalCents         int64           `json:"totalCents"`
 	RefundedCents      int64           `json:"refundedCents"`
+	RefundIds          []string        `json:"refundIds"`
 	DiscountCodes      []string        `json:"discountCodes"`
 	Items              json.RawMessage `json:"items"`
 	LandingPage        string          `json:"landingPage"`
@@ -940,6 +1193,7 @@ func (q *Queries) CommerceContactOrders(ctx context.Context, arg CommerceContact
 			&i.SubtotalCents,
 			&i.TotalCents,
 			&i.RefundedCents,
+			&i.RefundIds,
 			&i.DiscountCodes,
 			&i.Items,
 			&i.LandingPage,
@@ -1053,6 +1307,117 @@ func (q *Queries) CommerceContactStoreCustomers(ctx context.Context, arg Commerc
 	return items, nil
 }
 
+const commerceContactTimeline = `-- name: CommerceContactTimeline :many
+
+SELECT t.id, t.kind, t.at, t.store_name, t.platform, t.order_name, t.total_cents, t.currency, t.items, t.accepted_marketing, t.credited, t.flow
+FROM (
+    SELECT o.id, 'store_order'::text AS kind, o.placed_at AS at, s.name AS store_name, s.platform, o.name AS order_name, o.total_cents, o.currency,
+        o.items, o.accepted_marketing, coalesce(c.name, a.name, '')::text AS credited,
+        coalesce((SELECT fa.name FROM store_checkouts ch JOIN store_checkout_entries e ON e.checkout_id = ch.id AND e.outcome = 'entered'
+            JOIN automations fa ON fa.id = e.automation_id WHERE ch.order_id = o.id LIMIT 1), '')::text AS flow
+    FROM store_orders o
+    JOIN stores s ON s.id = o.store_id
+    LEFT JOIN campaigns c ON c.id = o.campaign_id
+    LEFT JOIN automations a ON a.id = o.automation_id
+    WHERE o.contact_id = $1 AND o.workspace_id = $2 AND NOT o.test
+    UNION ALL
+    SELECT ch.id, 'checkout_abandoned'::text, ch.updated_at_store, s.name, s.platform, ''::text, ch.total_cents, ch.currency, ch.items,
+        ch.accepted_marketing, ''::text,
+        coalesce((SELECT fa.name FROM store_checkout_entries e JOIN automations fa ON fa.id = e.automation_id
+            WHERE e.checkout_id = ch.id AND e.outcome = 'entered' LIMIT 1), '')::text
+    FROM store_checkouts ch
+    JOIN stores s ON s.id = ch.store_id
+    WHERE ch.contact_id = $1 AND ch.workspace_id = $2
+      AND EXISTS (SELECT 1 FROM store_checkout_entries e WHERE e.checkout_id = ch.id)
+) t
+WHERE $3::timestamptz IS NULL OR (t.at, t.id) < ($3::timestamptz, $4::uuid)
+ORDER BY t.at DESC, t.id DESC
+LIMIT $5
+`
+
+type CommerceContactTimelineParams struct {
+	ContactID   *uuid.UUID `json:"contactId"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	BeforeAt    *time.Time `json:"beforeAt"`
+	BeforeID    *uuid.UUID `json:"beforeId"`
+	Lim         int32      `json:"lim"`
+}
+
+type CommerceContactTimelineRow struct {
+	ID                uuid.UUID       `json:"id"`
+	Kind              string          `json:"kind"`
+	At                time.Time       `json:"at"`
+	StoreName         string          `json:"storeName"`
+	Platform          string          `json:"platform"`
+	OrderName         string          `json:"orderName"`
+	TotalCents        int64           `json:"totalCents"`
+	Currency          string          `json:"currency"`
+	Items             json.RawMessage `json:"items"`
+	AcceptedMarketing bool            `json:"acceptedMarketing"`
+	Credited          string          `json:"credited"`
+	Flow              string          `json:"flow"`
+}
+
+// ── The contact profile ──────────────────────────────────────────────────
+// A contact's store orders and abandoned checkouts, newest first, before
+// a cursor (the profile's timeline).
+func (q *Queries) CommerceContactTimeline(ctx context.Context, arg CommerceContactTimelineParams) ([]CommerceContactTimelineRow, error) {
+	rows, err := q.db.Query(ctx, commerceContactTimeline,
+		arg.ContactID,
+		arg.WorkspaceID,
+		arg.BeforeAt,
+		arg.BeforeID,
+		arg.Lim,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []CommerceContactTimelineRow{}
+	for rows.Next() {
+		var i CommerceContactTimelineRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Kind,
+			&i.At,
+			&i.StoreName,
+			&i.Platform,
+			&i.OrderName,
+			&i.TotalCents,
+			&i.Currency,
+			&i.Items,
+			&i.AcceptedMarketing,
+			&i.Credited,
+			&i.Flow,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const commerceContactTimelineCount = `-- name: CommerceContactTimelineCount :one
+SELECT ((SELECT count(*) FROM store_orders o WHERE o.contact_id = $1 AND o.workspace_id = $2 AND NOT o.test)
+    + (SELECT count(*) FROM store_checkouts ch WHERE ch.contact_id = $1 AND ch.workspace_id = $2
+        AND EXISTS (SELECT 1 FROM store_checkout_entries e WHERE e.checkout_id = ch.id)))::bigint
+`
+
+type CommerceContactTimelineCountParams struct {
+	ContactID   *uuid.UUID `json:"contactId"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+}
+
+func (q *Queries) CommerceContactTimelineCount(ctx context.Context, arg CommerceContactTimelineCountParams) (int64, error) {
+	row := q.db.QueryRow(ctx, commerceContactTimelineCount, arg.ContactID, arg.WorkspaceID)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const commerceCustomer = `-- name: CommerceCustomer :one
 
 SELECT id, store_id, workspace_id, external_id, contact_id, email, first_name, last_name, country, marketing, opt_in_level, consent_at, joined_list_at, told_store_at, updated_at_store, created_at FROM store_customers WHERE store_id = $1 AND external_id = $2
@@ -1149,12 +1514,12 @@ func (q *Queries) CommerceCustomerStats(ctx context.Context, storeID uuid.UUID) 
 }
 
 const commerceCustomerToldStore = `-- name: CommerceCustomerToldStore :exec
-UPDATE store_customers SET told_store_at = $1, marketing = 'unsubscribed' WHERE id = $2
+UPDATE store_customers SET told_store_at = $1::timestamptz, marketing = 'unsubscribed' WHERE id = $2
 `
 
 type CommerceCustomerToldStoreParams struct {
-	At *time.Time `json:"at"`
-	ID uuid.UUID  `json:"id"`
+	At time.Time `json:"at"`
+	ID uuid.UUID `json:"id"`
 }
 
 func (q *Queries) CommerceCustomerToldStore(ctx context.Context, arg CommerceCustomerToldStoreParams) error {
@@ -1166,7 +1531,7 @@ const commerceCustomerUpsert = `-- name: CommerceCustomerUpsert :one
 INSERT INTO store_customers (id, store_id, workspace_id, external_id, contact_id, email, first_name, last_name, country, marketing,
     opt_in_level, consent_at, joined_list_at, updated_at_store, created_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-    $11, $12, $13, $14, $15)
+    $11, $12, $13, $14, $15::timestamptz)
 ON CONFLICT (store_id, external_id) DO UPDATE SET contact_id = coalesce(EXCLUDED.contact_id, store_customers.contact_id),
     email = EXCLUDED.email, first_name = EXCLUDED.first_name, last_name = EXCLUDED.last_name, country = EXCLUDED.country,
     marketing = EXCLUDED.marketing, opt_in_level = EXCLUDED.opt_in_level, consent_at = EXCLUDED.consent_at,
@@ -1334,14 +1699,14 @@ func (q *Queries) CommerceEvent(ctx context.Context, id uuid.UUID) (StoreEvent, 
 }
 
 const commerceEventDone = `-- name: CommerceEventDone :exec
-UPDATE store_events SET status = $1, outcome = $2, applied_at = $3 WHERE id = $4
+UPDATE store_events SET status = $1, outcome = $2, applied_at = $3::timestamptz WHERE id = $4
 `
 
 type CommerceEventDoneParams struct {
-	Status  string     `json:"status"`
-	Outcome string     `json:"outcome"`
-	At      *time.Time `json:"at"`
-	ID      uuid.UUID  `json:"id"`
+	Status  string    `json:"status"`
+	Outcome string    `json:"outcome"`
+	At      time.Time `json:"at"`
+	ID      uuid.UUID `json:"id"`
 }
 
 func (q *Queries) CommerceEventDone(ctx context.Context, arg CommerceEventDoneParams) error {
@@ -1468,7 +1833,7 @@ func (q *Queries) CommerceFlowLiveSince(ctx context.Context, arg CommerceFlowLiv
 
 const commerceJoinList = `-- name: CommerceJoinList :execrows
 INSERT INTO list_memberships (list_id, contact_id, status, source, subscribed_at, created_at)
-VALUES ($1, $2, 'subscribed', $3, $4, $5)
+VALUES ($1, $2, 'subscribed', $3, $4, $5::timestamptz)
 ON CONFLICT (list_id, contact_id) DO UPDATE SET status = 'subscribed', source = EXCLUDED.source, subscribed_at = EXCLUDED.subscribed_at,
     unsubscribed_at = NULL
 WHERE list_memberships.status = 'unsubscribed' AND list_memberships.unsubscribed_at < $6::timestamptz
@@ -1539,15 +1904,27 @@ func (q *Queries) CommerceLastClick(ctx context.Context, arg CommerceLastClickPa
 	return i, err
 }
 
+const commerceLatestCampaign = `-- name: CommerceLatestCampaign :one
+SELECT name FROM campaigns WHERE workspace_id = $1 AND status = 'sent' AND deleted_at IS NULL ORDER BY started_at DESC NULLS LAST LIMIT 1
+`
+
+// The latest sent campaign (a tagged link's example).
+func (q *Queries) CommerceLatestCampaign(ctx context.Context, workspaceID uuid.UUID) (string, error) {
+	row := q.db.QueryRow(ctx, commerceLatestCampaign, workspaceID)
+	var name string
+	err := row.Scan(&name)
+	return name, err
+}
+
 const commerceLeaveList = `-- name: CommerceLeaveList :execrows
-UPDATE list_memberships SET status = 'unsubscribed', unsubscribed_at = $1
+UPDATE list_memberships SET status = 'unsubscribed', unsubscribed_at = $1::timestamptz
 WHERE list_id = $2 AND contact_id = $3 AND status <> 'unsubscribed'
 `
 
 type CommerceLeaveListParams struct {
-	At        *time.Time `json:"at"`
-	ListID    uuid.UUID  `json:"listId"`
-	ContactID uuid.UUID  `json:"contactId"`
+	At        time.Time `json:"at"`
+	ListID    uuid.UUID `json:"listId"`
+	ContactID uuid.UUID `json:"contactId"`
 }
 
 func (q *Queries) CommerceLeaveList(ctx context.Context, arg CommerceLeaveListParams) (int64, error) {
@@ -1576,7 +1953,7 @@ func (q *Queries) CommerceListByName(ctx context.Context, arg CommerceListByName
 
 const commerceListCreate = `-- name: CommerceListCreate :exec
 INSERT INTO lists (id, workspace_id, name, description, double_opt_in, requires_approval, origin, created_at)
-VALUES ($1, $2, $3, $4, false, false, 'store', $5)
+VALUES ($1, $2, $3, $4, false, false, 'store', $5::timestamptz)
 `
 
 type CommerceListCreateParams struct {
@@ -1651,7 +2028,7 @@ func (q *Queries) CommerceLists(ctx context.Context, workspaceID uuid.UUID) ([]C
 }
 
 const commerceMembers = `-- name: CommerceMembers :many
-SELECT u.id AS user_id, u.name, r.key AS role_key, r.permissions
+SELECT u.id AS user_id, u.name, r.key AS role_key, r.builtin, r.permissions
 FROM workspace_members m
 JOIN roles r ON r.id = m.role_id
 JOIN users u ON u.id = m.user_id AND u.status = 'active'
@@ -1663,6 +2040,7 @@ type CommerceMembersRow struct {
 	UserID      uuid.UUID `json:"userId"`
 	Name        string    `json:"name"`
 	RoleKey     string    `json:"roleKey"`
+	Builtin     bool      `json:"builtin"`
 	Permissions []string  `json:"permissions"`
 }
 
@@ -1680,6 +2058,7 @@ func (q *Queries) CommerceMembers(ctx context.Context, workspaceID uuid.UUID) ([
 			&i.UserID,
 			&i.Name,
 			&i.RoleKey,
+			&i.Builtin,
 			&i.Permissions,
 		); err != nil {
 			return nil, err
@@ -1715,7 +2094,7 @@ func (q *Queries) CommerceMembership(ctx context.Context, arg CommerceMembership
 
 const commerceOrder = `-- name: CommerceOrder :one
 
-SELECT id, store_id, workspace_id, external_id, name, contact_id, customer_external_id, accepted_marketing, placed_at, currency, subtotal_cents, total_cents, refunded_cents, discount_codes, items, landing_page, utm_source, utm_medium, utm_campaign, utm_content, utm_term, checkout_external_id, cancelled, test, first_order, matched, message_id, campaign_id, automation_id, automation_node, clicked_at, source, updated_at_store, created_at, updated_at FROM store_orders WHERE store_id = $1 AND external_id = $2
+SELECT id, store_id, workspace_id, external_id, name, contact_id, customer_external_id, accepted_marketing, placed_at, currency, subtotal_cents, total_cents, refunded_cents, refund_ids, discount_codes, items, landing_page, utm_source, utm_medium, utm_campaign, utm_content, utm_term, checkout_external_id, cancelled, test, first_order, matched, message_id, campaign_id, automation_id, automation_node, clicked_at, source, updated_at_store, created_at, updated_at FROM store_orders WHERE store_id = $1 AND external_id = $2
 `
 
 type CommerceOrderParams struct {
@@ -1741,6 +2120,7 @@ func (q *Queries) CommerceOrder(ctx context.Context, arg CommerceOrderParams) (S
 		&i.SubtotalCents,
 		&i.TotalCents,
 		&i.RefundedCents,
+		&i.RefundIds,
 		&i.DiscountCodes,
 		&i.Items,
 		&i.LandingPage,
@@ -1797,7 +2177,7 @@ func (q *Queries) CommerceOrderAttribute(ctx context.Context, arg CommerceOrderA
 }
 
 const commerceOrderByID = `-- name: CommerceOrderByID :one
-SELECT id, store_id, workspace_id, external_id, name, contact_id, customer_external_id, accepted_marketing, placed_at, currency, subtotal_cents, total_cents, refunded_cents, discount_codes, items, landing_page, utm_source, utm_medium, utm_campaign, utm_content, utm_term, checkout_external_id, cancelled, test, first_order, matched, message_id, campaign_id, automation_id, automation_node, clicked_at, source, updated_at_store, created_at, updated_at FROM store_orders WHERE id = $1
+SELECT id, store_id, workspace_id, external_id, name, contact_id, customer_external_id, accepted_marketing, placed_at, currency, subtotal_cents, total_cents, refunded_cents, refund_ids, discount_codes, items, landing_page, utm_source, utm_medium, utm_campaign, utm_content, utm_term, checkout_external_id, cancelled, test, first_order, matched, message_id, campaign_id, automation_id, automation_node, clicked_at, source, updated_at_store, created_at, updated_at FROM store_orders WHERE id = $1
 `
 
 func (q *Queries) CommerceOrderByID(ctx context.Context, id uuid.UUID) (StoreOrder, error) {
@@ -1817,6 +2197,7 @@ func (q *Queries) CommerceOrderByID(ctx context.Context, id uuid.UUID) (StoreOrd
 		&i.SubtotalCents,
 		&i.TotalCents,
 		&i.RefundedCents,
+		&i.RefundIds,
 		&i.DiscountCodes,
 		&i.Items,
 		&i.LandingPage,
@@ -1868,52 +2249,70 @@ func (q *Queries) CommerceOrderDelete(ctx context.Context, arg CommerceOrderDele
 	return err
 }
 
-const commerceOrderRefund = `-- name: CommerceOrderRefund :exec
-UPDATE store_orders SET refunded_cents = refunded_cents + $1, updated_at = $2 WHERE store_id = $3 AND external_id = $4
+const commerceOrderForUpdate = `-- name: CommerceOrderForUpdate :one
+SELECT id, store_id, workspace_id, external_id, name, contact_id, customer_external_id, accepted_marketing, placed_at, currency, subtotal_cents, total_cents, refunded_cents, refund_ids, discount_codes, items, landing_page, utm_source, utm_medium, utm_campaign, utm_content, utm_term, checkout_external_id, cancelled, test, first_order, matched, message_id, campaign_id, automation_id, automation_node, clicked_at, source, updated_at_store, created_at, updated_at FROM store_orders WHERE store_id = $1 AND external_id = $2 FOR UPDATE
 `
 
-type CommerceOrderRefundParams struct {
-	Amount     int64     `json:"amount"`
-	At         time.Time `json:"at"`
+type CommerceOrderForUpdateParams struct {
 	StoreID    uuid.UUID `json:"storeId"`
 	ExternalID string    `json:"externalId"`
 }
 
-func (q *Queries) CommerceOrderRefund(ctx context.Context, arg CommerceOrderRefundParams) error {
-	_, err := q.db.Exec(ctx, commerceOrderRefund,
-		arg.Amount,
-		arg.At,
-		arg.StoreID,
-		arg.ExternalID,
+func (q *Queries) CommerceOrderForUpdate(ctx context.Context, arg CommerceOrderForUpdateParams) (StoreOrder, error) {
+	row := q.db.QueryRow(ctx, commerceOrderForUpdate, arg.StoreID, arg.ExternalID)
+	var i StoreOrder
+	err := row.Scan(
+		&i.ID,
+		&i.StoreID,
+		&i.WorkspaceID,
+		&i.ExternalID,
+		&i.Name,
+		&i.ContactID,
+		&i.CustomerExternalID,
+		&i.AcceptedMarketing,
+		&i.PlacedAt,
+		&i.Currency,
+		&i.SubtotalCents,
+		&i.TotalCents,
+		&i.RefundedCents,
+		&i.RefundIds,
+		&i.DiscountCodes,
+		&i.Items,
+		&i.LandingPage,
+		&i.UtmSource,
+		&i.UtmMedium,
+		&i.UtmCampaign,
+		&i.UtmContent,
+		&i.UtmTerm,
+		&i.CheckoutExternalID,
+		&i.Cancelled,
+		&i.Test,
+		&i.FirstOrder,
+		&i.Matched,
+		&i.MessageID,
+		&i.CampaignID,
+		&i.AutomationID,
+		&i.AutomationNode,
+		&i.ClickedAt,
+		&i.Source,
+		&i.UpdatedAtStore,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
-	return err
+	return i, err
 }
 
-const commerceOrderUpsert = `-- name: CommerceOrderUpsert :one
+const commerceOrderInsert = `-- name: CommerceOrderInsert :one
 INSERT INTO store_orders (id, store_id, workspace_id, external_id, name, contact_id, customer_external_id, accepted_marketing, placed_at, currency,
-    subtotal_cents, total_cents, refunded_cents, discount_codes, items, landing_page, utm_source, utm_medium, utm_campaign, utm_content, utm_term,
+    subtotal_cents, total_cents, refunded_cents, refund_ids, discount_codes, items, landing_page, utm_source, utm_medium, utm_campaign, utm_content, utm_term,
     checkout_external_id, cancelled, test, first_order, source, updated_at_store, created_at, updated_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-    $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21,
-    $22, $23, $24, $25, $26, $27, $28, $28)
-ON CONFLICT (store_id, external_id) DO UPDATE SET contact_id = coalesce(EXCLUDED.contact_id, store_orders.contact_id),
-    accepted_marketing = EXCLUDED.accepted_marketing OR store_orders.accepted_marketing, currency = EXCLUDED.currency,
-    subtotal_cents = EXCLUDED.subtotal_cents, total_cents = EXCLUDED.total_cents, refunded_cents = greatest(EXCLUDED.refunded_cents, store_orders.refunded_cents),
-    discount_codes = EXCLUDED.discount_codes, items = EXCLUDED.items,
-    landing_page = CASE WHEN EXCLUDED.landing_page <> '' THEN EXCLUDED.landing_page ELSE store_orders.landing_page END,
-    utm_source = CASE WHEN EXCLUDED.landing_page <> '' THEN EXCLUDED.utm_source ELSE store_orders.utm_source END,
-    utm_medium = CASE WHEN EXCLUDED.landing_page <> '' THEN EXCLUDED.utm_medium ELSE store_orders.utm_medium END,
-    utm_campaign = CASE WHEN EXCLUDED.landing_page <> '' THEN EXCLUDED.utm_campaign ELSE store_orders.utm_campaign END,
-    utm_content = CASE WHEN EXCLUDED.landing_page <> '' THEN EXCLUDED.utm_content ELSE store_orders.utm_content END,
-    utm_term = CASE WHEN EXCLUDED.landing_page <> '' THEN EXCLUDED.utm_term ELSE store_orders.utm_term END,
-    checkout_external_id = CASE WHEN EXCLUDED.checkout_external_id <> '' THEN EXCLUDED.checkout_external_id ELSE store_orders.checkout_external_id END,
-    cancelled = EXCLUDED.cancelled, test = EXCLUDED.test,
-    updated_at_store = EXCLUDED.updated_at_store, updated_at = EXCLUDED.updated_at
-WHERE store_orders.updated_at_store IS NULL OR EXCLUDED.updated_at_store IS NULL OR EXCLUDED.updated_at_store >= store_orders.updated_at_store
-RETURNING id, (xmax = 0)::boolean AS inserted, contact_id, matched, placed_at
+    $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22,
+    $23, $24, $25, $26, $27, $28, $29::timestamptz, $29::timestamptz)
+RETURNING id, store_id, workspace_id, external_id, name, contact_id, customer_external_id, accepted_marketing, placed_at, currency, subtotal_cents, total_cents, refunded_cents, refund_ids, discount_codes, items, landing_page, utm_source, utm_medium, utm_campaign, utm_content, utm_term, checkout_external_id, cancelled, test, first_order, matched, message_id, campaign_id, automation_id, automation_node, clicked_at, source, updated_at_store, created_at, updated_at
 `
 
-type CommerceOrderUpsertParams struct {
+type CommerceOrderInsertParams struct {
 	ID                 uuid.UUID       `json:"id"`
 	StoreID            uuid.UUID       `json:"storeId"`
 	WorkspaceID        uuid.UUID       `json:"workspaceId"`
@@ -1927,6 +2326,7 @@ type CommerceOrderUpsertParams struct {
 	SubtotalCents      int64           `json:"subtotalCents"`
 	TotalCents         int64           `json:"totalCents"`
 	RefundedCents      int64           `json:"refundedCents"`
+	RefundIds          []string        `json:"refundIds"`
 	DiscountCodes      []string        `json:"discountCodes"`
 	Items              json.RawMessage `json:"items"`
 	LandingPage        string          `json:"landingPage"`
@@ -1944,18 +2344,8 @@ type CommerceOrderUpsertParams struct {
 	At                 time.Time       `json:"at"`
 }
 
-type CommerceOrderUpsertRow struct {
-	ID        uuid.UUID  `json:"id"`
-	Inserted  bool       `json:"inserted"`
-	ContactID *uuid.UUID `json:"contactId"`
-	Matched   string     `json:"matched"`
-	PlacedAt  time.Time  `json:"placedAt"`
-}
-
-// Inserts an order, or updates it when the version is newer. inserted
-// says which (the first time an order is seen starts its triggers).
-func (q *Queries) CommerceOrderUpsert(ctx context.Context, arg CommerceOrderUpsertParams) (CommerceOrderUpsertRow, error) {
-	row := q.db.QueryRow(ctx, commerceOrderUpsert,
+func (q *Queries) CommerceOrderInsert(ctx context.Context, arg CommerceOrderInsertParams) (StoreOrder, error) {
+	row := q.db.QueryRow(ctx, commerceOrderInsert,
 		arg.ID,
 		arg.StoreID,
 		arg.WorkspaceID,
@@ -1969,6 +2359,7 @@ func (q *Queries) CommerceOrderUpsert(ctx context.Context, arg CommerceOrderUpse
 		arg.SubtotalCents,
 		arg.TotalCents,
 		arg.RefundedCents,
+		arg.RefundIds,
 		arg.DiscountCodes,
 		arg.Items,
 		arg.LandingPage,
@@ -1985,15 +2376,127 @@ func (q *Queries) CommerceOrderUpsert(ctx context.Context, arg CommerceOrderUpse
 		arg.UpdatedAtStore,
 		arg.At,
 	)
-	var i CommerceOrderUpsertRow
+	var i StoreOrder
 	err := row.Scan(
 		&i.ID,
-		&i.Inserted,
+		&i.StoreID,
+		&i.WorkspaceID,
+		&i.ExternalID,
+		&i.Name,
 		&i.ContactID,
-		&i.Matched,
+		&i.CustomerExternalID,
+		&i.AcceptedMarketing,
 		&i.PlacedAt,
+		&i.Currency,
+		&i.SubtotalCents,
+		&i.TotalCents,
+		&i.RefundedCents,
+		&i.RefundIds,
+		&i.DiscountCodes,
+		&i.Items,
+		&i.LandingPage,
+		&i.UtmSource,
+		&i.UtmMedium,
+		&i.UtmCampaign,
+		&i.UtmContent,
+		&i.UtmTerm,
+		&i.CheckoutExternalID,
+		&i.Cancelled,
+		&i.Test,
+		&i.FirstOrder,
+		&i.Matched,
+		&i.MessageID,
+		&i.CampaignID,
+		&i.AutomationID,
+		&i.AutomationNode,
+		&i.ClickedAt,
+		&i.Source,
+		&i.UpdatedAtStore,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const commerceOrderRefunds = `-- name: CommerceOrderRefunds :exec
+UPDATE store_orders SET refunded_cents = $1, refund_ids = $2, updated_at = $3::timestamptz WHERE id = $4
+`
+
+type CommerceOrderRefundsParams struct {
+	RefundedCents int64     `json:"refundedCents"`
+	RefundIds     []string  `json:"refundIds"`
+	At            time.Time `json:"at"`
+	ID            uuid.UUID `json:"id"`
+}
+
+func (q *Queries) CommerceOrderRefunds(ctx context.Context, arg CommerceOrderRefundsParams) error {
+	_, err := q.db.Exec(ctx, commerceOrderRefunds,
+		arg.RefundedCents,
+		arg.RefundIds,
+		arg.At,
+		arg.ID,
+	)
+	return err
+}
+
+const commerceOrderUpdate = `-- name: CommerceOrderUpdate :exec
+UPDATE store_orders SET contact_id = coalesce($1, contact_id), accepted_marketing = $2, currency = $3,
+    subtotal_cents = $4, total_cents = $5, refunded_cents = $6, refund_ids = $7,
+    discount_codes = $8, items = $9, landing_page = $10, utm_source = $11, utm_medium = $12,
+    utm_campaign = $13, utm_content = $14, utm_term = $15, checkout_external_id = $16,
+    cancelled = $17, test = $18, updated_at_store = $19, updated_at = $20::timestamptz
+WHERE id = $21
+`
+
+type CommerceOrderUpdateParams struct {
+	ContactID          *uuid.UUID      `json:"contactId"`
+	AcceptedMarketing  bool            `json:"acceptedMarketing"`
+	Currency           string          `json:"currency"`
+	SubtotalCents      int64           `json:"subtotalCents"`
+	TotalCents         int64           `json:"totalCents"`
+	RefundedCents      int64           `json:"refundedCents"`
+	RefundIds          []string        `json:"refundIds"`
+	DiscountCodes      []string        `json:"discountCodes"`
+	Items              json.RawMessage `json:"items"`
+	LandingPage        string          `json:"landingPage"`
+	UtmSource          string          `json:"utmSource"`
+	UtmMedium          string          `json:"utmMedium"`
+	UtmCampaign        string          `json:"utmCampaign"`
+	UtmContent         string          `json:"utmContent"`
+	UtmTerm            string          `json:"utmTerm"`
+	CheckoutExternalID string          `json:"checkoutExternalId"`
+	Cancelled          bool            `json:"cancelled"`
+	Test               bool            `json:"test"`
+	UpdatedAtStore     *time.Time      `json:"updatedAtStore"`
+	At                 time.Time       `json:"at"`
+	ID                 uuid.UUID       `json:"id"`
+}
+
+func (q *Queries) CommerceOrderUpdate(ctx context.Context, arg CommerceOrderUpdateParams) error {
+	_, err := q.db.Exec(ctx, commerceOrderUpdate,
+		arg.ContactID,
+		arg.AcceptedMarketing,
+		arg.Currency,
+		arg.SubtotalCents,
+		arg.TotalCents,
+		arg.RefundedCents,
+		arg.RefundIds,
+		arg.DiscountCodes,
+		arg.Items,
+		arg.LandingPage,
+		arg.UtmSource,
+		arg.UtmMedium,
+		arg.UtmCampaign,
+		arg.UtmContent,
+		arg.UtmTerm,
+		arg.CheckoutExternalID,
+		arg.Cancelled,
+		arg.Test,
+		arg.UpdatedAtStore,
+		arg.At,
+		arg.ID,
+	)
+	return err
 }
 
 const commerceOrdersToMatch = `-- name: CommerceOrdersToMatch :many
@@ -2036,13 +2539,13 @@ func (q *Queries) CommerceOrdersToMatch(ctx context.Context, arg CommerceOrdersT
 }
 
 const commercePauseFlow = `-- name: CommercePauseFlow :execrows
-UPDATE automations SET status = 'paused', paused_at = $1, paused_by = NULL, pause_reason = $2 WHERE id = $3 AND status = 'live'
+UPDATE automations SET status = 'paused', paused_at = $1::timestamptz, paused_by = NULL, pause_reason = $2 WHERE id = $3 AND status = 'live'
 `
 
 type CommercePauseFlowParams struct {
-	At     *time.Time `json:"at"`
-	Reason string     `json:"reason"`
-	ID     uuid.UUID  `json:"id"`
+	At     time.Time `json:"at"`
+	Reason string    `json:"reason"`
+	ID     uuid.UUID `json:"id"`
 }
 
 func (q *Queries) CommercePauseFlow(ctx context.Context, arg CommercePauseFlowParams) (int64, error) {
@@ -2051,6 +2554,81 @@ func (q *Queries) CommercePauseFlow(ctx context.Context, arg CommercePauseFlowPa
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const commercePluginSite = `-- name: CommercePluginSite :one
+SELECT ws.integration_id, ws.site_url, ws.plugin_version, ws.woocommerce_version, ws.woocommerce_consent, ws.woocommerce_checkouts, ws.last_report_at
+FROM wordpress_sites ws
+JOIN integrations i ON i.id = ws.integration_id
+WHERE i.workspace_id = $1 AND i.kind = 'wordpress' AND i.disconnected_at IS NULL
+  AND (lower(i.label) = lower($2::text) OR lower(i.label) = 'www.' || lower($2::text) OR 'www.' || lower(i.label) = lower($2::text))
+ORDER BY ws.last_report_at DESC NULLS LAST
+LIMIT 1
+`
+
+type CommercePluginSiteParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Host        string    `json:"host"`
+}
+
+type CommercePluginSiteRow struct {
+	IntegrationID        uuid.UUID  `json:"integrationId"`
+	SiteUrl              string     `json:"siteUrl"`
+	PluginVersion        string     `json:"pluginVersion"`
+	WoocommerceVersion   string     `json:"woocommerceVersion"`
+	WoocommerceConsent   bool       `json:"woocommerceConsent"`
+	WoocommerceCheckouts bool       `json:"woocommerceCheckouts"`
+	LastReportAt         *time.Time `json:"lastReportAt"`
+}
+
+// The connected WordPress site at a host, with what its plugin reported.
+func (q *Queries) CommercePluginSite(ctx context.Context, arg CommercePluginSiteParams) (CommercePluginSiteRow, error) {
+	row := q.db.QueryRow(ctx, commercePluginSite, arg.WorkspaceID, arg.Host)
+	var i CommercePluginSiteRow
+	err := row.Scan(
+		&i.IntegrationID,
+		&i.SiteUrl,
+		&i.PluginVersion,
+		&i.WoocommerceVersion,
+		&i.WoocommerceConsent,
+		&i.WoocommerceCheckouts,
+		&i.LastReportAt,
+	)
+	return i, err
+}
+
+const commerceProductCollections = `-- name: CommerceProductCollections :many
+SELECT external_id, collections FROM store_products WHERE store_id = $1 AND external_id = ANY($2::text[])
+`
+
+type CommerceProductCollectionsParams struct {
+	StoreID uuid.UUID `json:"storeId"`
+	Ids     []string  `json:"ids"`
+}
+
+type CommerceProductCollectionsRow struct {
+	ExternalID  string   `json:"externalId"`
+	Collections []string `json:"collections"`
+}
+
+func (q *Queries) CommerceProductCollections(ctx context.Context, arg CommerceProductCollectionsParams) ([]CommerceProductCollectionsRow, error) {
+	rows, err := q.db.Query(ctx, commerceProductCollections, arg.StoreID, arg.Ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []CommerceProductCollectionsRow{}
+	for rows.Next() {
+		var i CommerceProductCollectionsRow
+		if err := rows.Scan(&i.ExternalID, &i.Collections); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const commerceProductCount = `-- name: CommerceProductCount :one
@@ -2065,13 +2643,13 @@ func (q *Queries) CommerceProductCount(ctx context.Context, storeID uuid.UUID) (
 }
 
 const commerceProductRemoved = `-- name: CommerceProductRemoved :execrows
-UPDATE store_products SET removed_at = coalesce(removed_at, $1) WHERE store_id = $2 AND external_id = $3
+UPDATE store_products SET removed_at = coalesce(removed_at, $1::timestamptz) WHERE store_id = $2 AND external_id = $3
 `
 
 type CommerceProductRemovedParams struct {
-	At         *time.Time `json:"at"`
-	StoreID    uuid.UUID  `json:"storeId"`
-	ExternalID string     `json:"externalId"`
+	At         time.Time `json:"at"`
+	StoreID    uuid.UUID `json:"storeId"`
+	ExternalID string    `json:"externalId"`
 }
 
 func (q *Queries) CommerceProductRemoved(ctx context.Context, arg CommerceProductRemovedParams) (int64, error) {
@@ -2086,7 +2664,7 @@ const commerceProductUpsert = `-- name: CommerceProductUpsert :one
 INSERT INTO store_products (id, store_id, workspace_id, external_id, title, handle, url, image_url, image_alt, price_cents, compare_at_cents, currency,
     available, inventory, status, collections, created_at_store, updated_at_store, removed_at, synced_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
-    $13, $14, $15, $16, $17, $18, NULL, $19)
+    $13, $14, $15, $16, $17, $18, NULL, $19::timestamptz)
 ON CONFLICT (store_id, external_id) DO UPDATE SET title = EXCLUDED.title, handle = EXCLUDED.handle,
     url = CASE WHEN EXCLUDED.url <> '' THEN EXCLUDED.url ELSE store_products.url END,
     image_url = EXCLUDED.image_url, image_alt = EXCLUDED.image_alt, price_cents = EXCLUDED.price_cents, compare_at_cents = EXCLUDED.compare_at_cents,
@@ -2325,15 +2903,15 @@ func (q *Queries) CommerceProductsNewest(ctx context.Context, arg CommerceProduc
 }
 
 const commerceProductsRemoveMissing = `-- name: CommerceProductsRemoveMissing :many
-UPDATE store_products SET removed_at = $1
+UPDATE store_products SET removed_at = $1::timestamptz
 WHERE store_id = $2 AND removed_at IS NULL AND NOT (external_id = ANY($3::text[]))
 RETURNING external_id, title
 `
 
 type CommerceProductsRemoveMissingParams struct {
-	At      *time.Time `json:"at"`
-	StoreID uuid.UUID  `json:"storeId"`
-	Seen    []string   `json:"seen"`
+	At      time.Time `json:"at"`
+	StoreID uuid.UUID `json:"storeId"`
+	Seen    []string  `json:"seen"`
 }
 
 type CommerceProductsRemoveMissingRow struct {
@@ -2360,6 +2938,25 @@ func (q *Queries) CommerceProductsRemoveMissing(ctx context.Context, arg Commerc
 		return nil, err
 	}
 	return items, nil
+}
+
+const commerceResumeFlow = `-- name: CommerceResumeFlow :execrows
+UPDATE automations SET status = 'live', paused_at = NULL, paused_by = NULL, pause_reason = ''
+WHERE id = $1 AND status = 'paused' AND paused_by IS NULL AND pause_reason = $2
+`
+
+type CommerceResumeFlowParams struct {
+	ID     uuid.UUID `json:"id"`
+	Reason string    `json:"reason"`
+}
+
+// Resumes an automation the store paused (not one a person paused).
+func (q *Queries) CommerceResumeFlow(ctx context.Context, arg CommerceResumeFlowParams) (int64, error) {
+	result, err := q.db.Exec(ctx, commerceResumeFlow, arg.ID, arg.Reason)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const commerceRevenueByEmail = `-- name: CommerceRevenueByEmail :many
@@ -2417,7 +3014,7 @@ func (q *Queries) CommerceRevenueByEmail(ctx context.Context, arg CommerceRevenu
 }
 
 const commerceStore = `-- name: CommerceStore :one
-SELECT id, workspace_id, platform, status, step, name, address, domain, public_domain, currency, api_version, app_name, client_id, credentials_sealed, key_hint, scopes, oauth_state, oauth_state_expires_at, connect_error, installed_at, webhook_token, webhook_secret_sealed, sync_products, sync_customers, sync_orders, sync_checkouts, import_months, list_id, write_back, tag_links, attribution_days, attribution_set_by, attribution_set_at, plugin_found, plugin_checked_at, plugin_skipped, last_event_at, health_checked_at, import_progress, import_started_at, import_started_by, import_finished_at, reconciled_at, reconcile_missed, reconcile_products, rate_limited_until, revoked_at, revoked_reason, disconnected_at, disconnected_by, notified_at, demo, connected_by, connected_at, created_by, created_at, updated_at FROM stores WHERE id = $1 AND workspace_id = $2
+SELECT id, workspace_id, platform, status, step, name, address, domain, public_domain, currency, api_version, app_name, client_id, credentials_sealed, key_hint, scopes, oauth_state, oauth_state_expires_at, connect_error, installed_at, webhook_token, webhook_secret_sealed, sync_products, sync_customers, sync_orders, sync_checkouts, import_months, list_id, write_back, tag_links, attribution_days, attribution_set_by, attribution_set_at, plugin_found, plugin_checked_at, plugin_skipped, last_event_at, health_checked_at, import_progress, import_started_at, import_started_by, import_finished_at, writeback_through, reconciled_at, reconcile_missed, reconcile_products, rate_limited_until, revoked_at, revoked_reason, disconnected_at, disconnected_by, notified_at, demo, connected_by, connected_at, created_by, created_at, updated_at FROM stores WHERE id = $1 AND workspace_id = $2
 `
 
 type CommerceStoreParams struct {
@@ -2471,6 +3068,7 @@ func (q *Queries) CommerceStore(ctx context.Context, arg CommerceStoreParams) (S
 		&i.ImportStartedAt,
 		&i.ImportStartedBy,
 		&i.ImportFinishedAt,
+		&i.WritebackThrough,
 		&i.ReconciledAt,
 		&i.ReconcileMissed,
 		&i.ReconcileProducts,
@@ -2491,7 +3089,7 @@ func (q *Queries) CommerceStore(ctx context.Context, arg CommerceStoreParams) (S
 }
 
 const commerceStoreByAddress = `-- name: CommerceStoreByAddress :one
-SELECT id, workspace_id, platform, status, step, name, address, domain, public_domain, currency, api_version, app_name, client_id, credentials_sealed, key_hint, scopes, oauth_state, oauth_state_expires_at, connect_error, installed_at, webhook_token, webhook_secret_sealed, sync_products, sync_customers, sync_orders, sync_checkouts, import_months, list_id, write_back, tag_links, attribution_days, attribution_set_by, attribution_set_at, plugin_found, plugin_checked_at, plugin_skipped, last_event_at, health_checked_at, import_progress, import_started_at, import_started_by, import_finished_at, reconciled_at, reconcile_missed, reconcile_products, rate_limited_until, revoked_at, revoked_reason, disconnected_at, disconnected_by, notified_at, demo, connected_by, connected_at, created_by, created_at, updated_at FROM stores WHERE workspace_id = $1 AND platform = $2 AND address = $3
+SELECT id, workspace_id, platform, status, step, name, address, domain, public_domain, currency, api_version, app_name, client_id, credentials_sealed, key_hint, scopes, oauth_state, oauth_state_expires_at, connect_error, installed_at, webhook_token, webhook_secret_sealed, sync_products, sync_customers, sync_orders, sync_checkouts, import_months, list_id, write_back, tag_links, attribution_days, attribution_set_by, attribution_set_at, plugin_found, plugin_checked_at, plugin_skipped, last_event_at, health_checked_at, import_progress, import_started_at, import_started_by, import_finished_at, writeback_through, reconciled_at, reconcile_missed, reconcile_products, rate_limited_until, revoked_at, revoked_reason, disconnected_at, disconnected_by, notified_at, demo, connected_by, connected_at, created_by, created_at, updated_at FROM stores WHERE workspace_id = $1 AND platform = $2 AND address = $3
 `
 
 type CommerceStoreByAddressParams struct {
@@ -2546,6 +3144,7 @@ func (q *Queries) CommerceStoreByAddress(ctx context.Context, arg CommerceStoreB
 		&i.ImportStartedAt,
 		&i.ImportStartedBy,
 		&i.ImportFinishedAt,
+		&i.WritebackThrough,
 		&i.ReconciledAt,
 		&i.ReconcileMissed,
 		&i.ReconcileProducts,
@@ -2566,7 +3165,7 @@ func (q *Queries) CommerceStoreByAddress(ctx context.Context, arg CommerceStoreB
 }
 
 const commerceStoreByID = `-- name: CommerceStoreByID :one
-SELECT id, workspace_id, platform, status, step, name, address, domain, public_domain, currency, api_version, app_name, client_id, credentials_sealed, key_hint, scopes, oauth_state, oauth_state_expires_at, connect_error, installed_at, webhook_token, webhook_secret_sealed, sync_products, sync_customers, sync_orders, sync_checkouts, import_months, list_id, write_back, tag_links, attribution_days, attribution_set_by, attribution_set_at, plugin_found, plugin_checked_at, plugin_skipped, last_event_at, health_checked_at, import_progress, import_started_at, import_started_by, import_finished_at, reconciled_at, reconcile_missed, reconcile_products, rate_limited_until, revoked_at, revoked_reason, disconnected_at, disconnected_by, notified_at, demo, connected_by, connected_at, created_by, created_at, updated_at FROM stores WHERE id = $1
+SELECT id, workspace_id, platform, status, step, name, address, domain, public_domain, currency, api_version, app_name, client_id, credentials_sealed, key_hint, scopes, oauth_state, oauth_state_expires_at, connect_error, installed_at, webhook_token, webhook_secret_sealed, sync_products, sync_customers, sync_orders, sync_checkouts, import_months, list_id, write_back, tag_links, attribution_days, attribution_set_by, attribution_set_at, plugin_found, plugin_checked_at, plugin_skipped, last_event_at, health_checked_at, import_progress, import_started_at, import_started_by, import_finished_at, writeback_through, reconciled_at, reconcile_missed, reconcile_products, rate_limited_until, revoked_at, revoked_reason, disconnected_at, disconnected_by, notified_at, demo, connected_by, connected_at, created_by, created_at, updated_at FROM stores WHERE id = $1
 `
 
 func (q *Queries) CommerceStoreByID(ctx context.Context, id uuid.UUID) (Store, error) {
@@ -2615,6 +3214,7 @@ func (q *Queries) CommerceStoreByID(ctx context.Context, id uuid.UUID) (Store, e
 		&i.ImportStartedAt,
 		&i.ImportStartedBy,
 		&i.ImportFinishedAt,
+		&i.WritebackThrough,
 		&i.ReconciledAt,
 		&i.ReconcileMissed,
 		&i.ReconcileProducts,
@@ -2635,7 +3235,7 @@ func (q *Queries) CommerceStoreByID(ctx context.Context, id uuid.UUID) (Store, e
 }
 
 const commerceStoreByState = `-- name: CommerceStoreByState :one
-SELECT id, workspace_id, platform, status, step, name, address, domain, public_domain, currency, api_version, app_name, client_id, credentials_sealed, key_hint, scopes, oauth_state, oauth_state_expires_at, connect_error, installed_at, webhook_token, webhook_secret_sealed, sync_products, sync_customers, sync_orders, sync_checkouts, import_months, list_id, write_back, tag_links, attribution_days, attribution_set_by, attribution_set_at, plugin_found, plugin_checked_at, plugin_skipped, last_event_at, health_checked_at, import_progress, import_started_at, import_started_by, import_finished_at, reconciled_at, reconcile_missed, reconcile_products, rate_limited_until, revoked_at, revoked_reason, disconnected_at, disconnected_by, notified_at, demo, connected_by, connected_at, created_by, created_at, updated_at FROM stores WHERE oauth_state = $1
+SELECT id, workspace_id, platform, status, step, name, address, domain, public_domain, currency, api_version, app_name, client_id, credentials_sealed, key_hint, scopes, oauth_state, oauth_state_expires_at, connect_error, installed_at, webhook_token, webhook_secret_sealed, sync_products, sync_customers, sync_orders, sync_checkouts, import_months, list_id, write_back, tag_links, attribution_days, attribution_set_by, attribution_set_at, plugin_found, plugin_checked_at, plugin_skipped, last_event_at, health_checked_at, import_progress, import_started_at, import_started_by, import_finished_at, writeback_through, reconciled_at, reconcile_missed, reconcile_products, rate_limited_until, revoked_at, revoked_reason, disconnected_at, disconnected_by, notified_at, demo, connected_by, connected_at, created_by, created_at, updated_at FROM stores WHERE oauth_state = $1
 `
 
 func (q *Queries) CommerceStoreByState(ctx context.Context, oauthState *string) (Store, error) {
@@ -2684,6 +3284,7 @@ func (q *Queries) CommerceStoreByState(ctx context.Context, oauthState *string) 
 		&i.ImportStartedAt,
 		&i.ImportStartedBy,
 		&i.ImportFinishedAt,
+		&i.WritebackThrough,
 		&i.ReconciledAt,
 		&i.ReconcileMissed,
 		&i.ReconcileProducts,
@@ -2704,7 +3305,7 @@ func (q *Queries) CommerceStoreByState(ctx context.Context, oauthState *string) 
 }
 
 const commerceStoreByToken = `-- name: CommerceStoreByToken :one
-SELECT id, workspace_id, platform, status, step, name, address, domain, public_domain, currency, api_version, app_name, client_id, credentials_sealed, key_hint, scopes, oauth_state, oauth_state_expires_at, connect_error, installed_at, webhook_token, webhook_secret_sealed, sync_products, sync_customers, sync_orders, sync_checkouts, import_months, list_id, write_back, tag_links, attribution_days, attribution_set_by, attribution_set_at, plugin_found, plugin_checked_at, plugin_skipped, last_event_at, health_checked_at, import_progress, import_started_at, import_started_by, import_finished_at, reconciled_at, reconcile_missed, reconcile_products, rate_limited_until, revoked_at, revoked_reason, disconnected_at, disconnected_by, notified_at, demo, connected_by, connected_at, created_by, created_at, updated_at FROM stores WHERE webhook_token = $1
+SELECT id, workspace_id, platform, status, step, name, address, domain, public_domain, currency, api_version, app_name, client_id, credentials_sealed, key_hint, scopes, oauth_state, oauth_state_expires_at, connect_error, installed_at, webhook_token, webhook_secret_sealed, sync_products, sync_customers, sync_orders, sync_checkouts, import_months, list_id, write_back, tag_links, attribution_days, attribution_set_by, attribution_set_at, plugin_found, plugin_checked_at, plugin_skipped, last_event_at, health_checked_at, import_progress, import_started_at, import_started_by, import_finished_at, writeback_through, reconciled_at, reconcile_missed, reconcile_products, rate_limited_until, revoked_at, revoked_reason, disconnected_at, disconnected_by, notified_at, demo, connected_by, connected_at, created_by, created_at, updated_at FROM stores WHERE webhook_token = $1
 `
 
 func (q *Queries) CommerceStoreByToken(ctx context.Context, webhookToken *string) (Store, error) {
@@ -2753,6 +3354,7 @@ func (q *Queries) CommerceStoreByToken(ctx context.Context, webhookToken *string
 		&i.ImportStartedAt,
 		&i.ImportStartedBy,
 		&i.ImportFinishedAt,
+		&i.WritebackThrough,
 		&i.ReconciledAt,
 		&i.ReconcileMissed,
 		&i.ReconcileProducts,
@@ -2782,13 +3384,13 @@ func (q *Queries) CommerceStoreDelete(ctx context.Context, id uuid.UUID) error {
 }
 
 const commerceStoreDisconnected = `-- name: CommerceStoreDisconnected :exec
-UPDATE stores SET status = 'disconnected', disconnected_at = $1, disconnected_by = $2, credentials_sealed = NULL, oauth_state = NULL,
-    updated_at = $1
+UPDATE stores SET status = 'disconnected', disconnected_at = $1::timestamptz, disconnected_by = $2, credentials_sealed = NULL, oauth_state = NULL,
+    updated_at = $1::timestamptz
 WHERE id = $3
 `
 
 type CommerceStoreDisconnectedParams struct {
-	At *time.Time `json:"at"`
+	At time.Time  `json:"at"`
 	By *uuid.UUID `json:"by"`
 	ID uuid.UUID  `json:"id"`
 }
@@ -2844,8 +3446,34 @@ func (q *Queries) CommerceStoreFlows(ctx context.Context, arg CommerceStoreFlows
 	return items, nil
 }
 
+const commerceStoreForSite = `-- name: CommerceStoreForSite :one
+SELECT id, name, status FROM stores
+WHERE workspace_id = $1 AND platform = 'woocommerce' AND (address = lower($2::text) OR domain = lower($2::text))
+ORDER BY (status <> 'disconnected') DESC, created_at DESC
+LIMIT 1
+`
+
+type CommerceStoreForSiteParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Host        string    `json:"host"`
+}
+
+type CommerceStoreForSiteRow struct {
+	ID     uuid.UUID `json:"id"`
+	Name   string    `json:"name"`
+	Status string    `json:"status"`
+}
+
+// The WooCommerce store at a WordPress site's address.
+func (q *Queries) CommerceStoreForSite(ctx context.Context, arg CommerceStoreForSiteParams) (CommerceStoreForSiteRow, error) {
+	row := q.db.QueryRow(ctx, commerceStoreForSite, arg.WorkspaceID, arg.Host)
+	var i CommerceStoreForSiteRow
+	err := row.Scan(&i.ID, &i.Name, &i.Status)
+	return i, err
+}
+
 const commerceStoreForUpdate = `-- name: CommerceStoreForUpdate :one
-SELECT id, workspace_id, platform, status, step, name, address, domain, public_domain, currency, api_version, app_name, client_id, credentials_sealed, key_hint, scopes, oauth_state, oauth_state_expires_at, connect_error, installed_at, webhook_token, webhook_secret_sealed, sync_products, sync_customers, sync_orders, sync_checkouts, import_months, list_id, write_back, tag_links, attribution_days, attribution_set_by, attribution_set_at, plugin_found, plugin_checked_at, plugin_skipped, last_event_at, health_checked_at, import_progress, import_started_at, import_started_by, import_finished_at, reconciled_at, reconcile_missed, reconcile_products, rate_limited_until, revoked_at, revoked_reason, disconnected_at, disconnected_by, notified_at, demo, connected_by, connected_at, created_by, created_at, updated_at FROM stores WHERE id = $1 AND workspace_id = $2 FOR UPDATE
+SELECT id, workspace_id, platform, status, step, name, address, domain, public_domain, currency, api_version, app_name, client_id, credentials_sealed, key_hint, scopes, oauth_state, oauth_state_expires_at, connect_error, installed_at, webhook_token, webhook_secret_sealed, sync_products, sync_customers, sync_orders, sync_checkouts, import_months, list_id, write_back, tag_links, attribution_days, attribution_set_by, attribution_set_at, plugin_found, plugin_checked_at, plugin_skipped, last_event_at, health_checked_at, import_progress, import_started_at, import_started_by, import_finished_at, writeback_through, reconciled_at, reconcile_missed, reconcile_products, rate_limited_until, revoked_at, revoked_reason, disconnected_at, disconnected_by, notified_at, demo, connected_by, connected_at, created_by, created_at, updated_at FROM stores WHERE id = $1 AND workspace_id = $2 FOR UPDATE
 `
 
 type CommerceStoreForUpdateParams struct {
@@ -2899,6 +3527,7 @@ func (q *Queries) CommerceStoreForUpdate(ctx context.Context, arg CommerceStoreF
 		&i.ImportStartedAt,
 		&i.ImportStartedBy,
 		&i.ImportFinishedAt,
+		&i.WritebackThrough,
 		&i.ReconciledAt,
 		&i.ReconcileMissed,
 		&i.ReconcileProducts,
@@ -2919,12 +3548,12 @@ func (q *Queries) CommerceStoreForUpdate(ctx context.Context, arg CommerceStoreF
 }
 
 const commerceStoreHealthChecked = `-- name: CommerceStoreHealthChecked :exec
-UPDATE stores SET health_checked_at = $1 WHERE id = $2
+UPDATE stores SET health_checked_at = $1::timestamptz WHERE id = $2
 `
 
 type CommerceStoreHealthCheckedParams struct {
-	At *time.Time `json:"at"`
-	ID uuid.UUID  `json:"id"`
+	At time.Time `json:"at"`
+	ID uuid.UUID `json:"id"`
 }
 
 func (q *Queries) CommerceStoreHealthChecked(ctx context.Context, arg CommerceStoreHealthCheckedParams) error {
@@ -2933,13 +3562,13 @@ func (q *Queries) CommerceStoreHealthChecked(ctx context.Context, arg CommerceSt
 }
 
 const commerceStoreImportDone = `-- name: CommerceStoreImportDone :exec
-UPDATE stores SET status = 'connected', import_finished_at = $1, import_progress = $2, reconciled_at = coalesce(reconciled_at, $1),
-    updated_at = $1
+UPDATE stores SET status = 'connected', import_finished_at = $1::timestamptz, import_progress = $2, reconciled_at = coalesce(reconciled_at, $1::timestamptz),
+    updated_at = $1::timestamptz
 WHERE id = $3 AND status = 'importing'
 `
 
 type CommerceStoreImportDoneParams struct {
-	At             *time.Time      `json:"at"`
+	At             time.Time       `json:"at"`
 	ImportProgress json.RawMessage `json:"importProgress"`
 	ID             uuid.UUID       `json:"id"`
 }
@@ -2953,8 +3582,8 @@ const commerceStoreInsert = `-- name: CommerceStoreInsert :one
 INSERT INTO stores (id, workspace_id, platform, status, step, name, address, domain, public_domain, currency, api_version, app_name,
     webhook_token, demo, created_by, created_at, updated_at)
 VALUES ($1, $2, $3, 'connecting', $4, $5, $6, $7, $8, $9, $10, $11,
-    $12, $13, $14, $15, $15)
-RETURNING id, workspace_id, platform, status, step, name, address, domain, public_domain, currency, api_version, app_name, client_id, credentials_sealed, key_hint, scopes, oauth_state, oauth_state_expires_at, connect_error, installed_at, webhook_token, webhook_secret_sealed, sync_products, sync_customers, sync_orders, sync_checkouts, import_months, list_id, write_back, tag_links, attribution_days, attribution_set_by, attribution_set_at, plugin_found, plugin_checked_at, plugin_skipped, last_event_at, health_checked_at, import_progress, import_started_at, import_started_by, import_finished_at, reconciled_at, reconcile_missed, reconcile_products, rate_limited_until, revoked_at, revoked_reason, disconnected_at, disconnected_by, notified_at, demo, connected_by, connected_at, created_by, created_at, updated_at
+    $12, $13, $14, $15::timestamptz, $15::timestamptz)
+RETURNING id, workspace_id, platform, status, step, name, address, domain, public_domain, currency, api_version, app_name, client_id, credentials_sealed, key_hint, scopes, oauth_state, oauth_state_expires_at, connect_error, installed_at, webhook_token, webhook_secret_sealed, sync_products, sync_customers, sync_orders, sync_checkouts, import_months, list_id, write_back, tag_links, attribution_days, attribution_set_by, attribution_set_at, plugin_found, plugin_checked_at, plugin_skipped, last_event_at, health_checked_at, import_progress, import_started_at, import_started_by, import_finished_at, writeback_through, reconciled_at, reconcile_missed, reconcile_products, rate_limited_until, revoked_at, revoked_reason, disconnected_at, disconnected_by, notified_at, demo, connected_by, connected_at, created_by, created_at, updated_at
 `
 
 type CommerceStoreInsertParams struct {
@@ -3037,6 +3666,7 @@ func (q *Queries) CommerceStoreInsert(ctx context.Context, arg CommerceStoreInse
 		&i.ImportStartedAt,
 		&i.ImportStartedBy,
 		&i.ImportFinishedAt,
+		&i.WritebackThrough,
 		&i.ReconciledAt,
 		&i.ReconcileMissed,
 		&i.ReconcileProducts,
@@ -3057,23 +3687,23 @@ func (q *Queries) CommerceStoreInsert(ctx context.Context, arg CommerceStoreInse
 }
 
 const commerceStoreInstalled = `-- name: CommerceStoreInstalled :exec
-UPDATE stores SET credentials_sealed = $1, scopes = $2, installed_at = $3, oauth_state = NULL, oauth_state_expires_at = NULL,
+UPDATE stores SET credentials_sealed = $1, scopes = $2, installed_at = $3::timestamptz, oauth_state = NULL, oauth_state_expires_at = NULL,
     step = $4, connect_error = '', name = CASE WHEN $5::text <> '' THEN $5 ELSE name END,
     currency = CASE WHEN $6::text <> '' THEN $6 ELSE currency END,
     public_domain = CASE WHEN $7::text <> '' THEN $7 ELSE public_domain END,
-    revoked_at = NULL, revoked_reason = '', updated_at = $3
+    revoked_at = NULL, revoked_reason = '', updated_at = $3::timestamptz
 WHERE id = $8
 `
 
 type CommerceStoreInstalledParams struct {
-	CredentialsSealed []byte     `json:"credentialsSealed"`
-	Scopes            []string   `json:"scopes"`
-	At                *time.Time `json:"at"`
-	Step              string     `json:"step"`
-	Name              string     `json:"name"`
-	Currency          string     `json:"currency"`
-	PublicDomain      string     `json:"publicDomain"`
-	ID                uuid.UUID  `json:"id"`
+	CredentialsSealed []byte    `json:"credentialsSealed"`
+	Scopes            []string  `json:"scopes"`
+	At                time.Time `json:"at"`
+	Step              string    `json:"step"`
+	Name              string    `json:"name"`
+	Currency          string    `json:"currency"`
+	PublicDomain      string    `json:"publicDomain"`
+	ID                uuid.UUID `json:"id"`
 }
 
 func (q *Queries) CommerceStoreInstalled(ctx context.Context, arg CommerceStoreInstalledParams) error {
@@ -3109,12 +3739,12 @@ func (q *Queries) CommerceStoreMatchedAll(ctx context.Context, storeID uuid.UUID
 }
 
 const commerceStoreNotified = `-- name: CommerceStoreNotified :exec
-UPDATE stores SET notified_at = $1 WHERE id = $2
+UPDATE stores SET notified_at = $1::timestamptz WHERE id = $2
 `
 
 type CommerceStoreNotifiedParams struct {
-	At *time.Time `json:"at"`
-	ID uuid.UUID  `json:"id"`
+	At time.Time `json:"at"`
+	ID uuid.UUID `json:"id"`
 }
 
 func (q *Queries) CommerceStoreNotified(ctx context.Context, arg CommerceStoreNotifiedParams) error {
@@ -3123,7 +3753,7 @@ func (q *Queries) CommerceStoreNotified(ctx context.Context, arg CommerceStoreNo
 }
 
 const commerceStoreProgress = `-- name: CommerceStoreProgress :exec
-UPDATE stores SET import_progress = $1, updated_at = $2 WHERE id = $3
+UPDATE stores SET import_progress = $1, updated_at = $2::timestamptz WHERE id = $3
 `
 
 type CommerceStoreProgressParams struct {
@@ -3138,7 +3768,7 @@ func (q *Queries) CommerceStoreProgress(ctx context.Context, arg CommerceStorePr
 }
 
 const commerceStoreRateLimited = `-- name: CommerceStoreRateLimited :exec
-UPDATE stores SET rate_limited_until = $1, updated_at = $2 WHERE id = $3
+UPDATE stores SET rate_limited_until = $1, updated_at = $2::timestamptz WHERE id = $3
 `
 
 type CommerceStoreRateLimitedParams struct {
@@ -3153,14 +3783,14 @@ func (q *Queries) CommerceStoreRateLimited(ctx context.Context, arg CommerceStor
 }
 
 const commerceStoreReconciled = `-- name: CommerceStoreReconciled :exec
-UPDATE stores SET reconciled_at = $1, reconcile_missed = $2, reconcile_products = $3, updated_at = $1 WHERE id = $4
+UPDATE stores SET reconciled_at = $1::timestamptz, reconcile_missed = $2, reconcile_products = $3, updated_at = $1::timestamptz WHERE id = $4
 `
 
 type CommerceStoreReconciledParams struct {
-	At       *time.Time `json:"at"`
-	Missed   int32      `json:"missed"`
-	Products int32      `json:"products"`
-	ID       uuid.UUID  `json:"id"`
+	At       time.Time `json:"at"`
+	Missed   int32     `json:"missed"`
+	Products int32     `json:"products"`
+	ID       uuid.UUID `json:"id"`
 }
 
 func (q *Queries) CommerceStoreReconciled(ctx context.Context, arg CommerceStoreReconciledParams) error {
@@ -3175,9 +3805,9 @@ func (q *Queries) CommerceStoreReconciled(ctx context.Context, arg CommerceStore
 
 const commerceStoreReconnected = `-- name: CommerceStoreReconnected :one
 UPDATE stores SET status = 'connected', step = 'done', disconnected_at = NULL, disconnected_by = NULL, revoked_at = NULL, revoked_reason = '',
-    notified_at = NULL, updated_at = $1
+    notified_at = NULL, updated_at = $1::timestamptz
 WHERE id = $2
-RETURNING id, workspace_id, platform, status, step, name, address, domain, public_domain, currency, api_version, app_name, client_id, credentials_sealed, key_hint, scopes, oauth_state, oauth_state_expires_at, connect_error, installed_at, webhook_token, webhook_secret_sealed, sync_products, sync_customers, sync_orders, sync_checkouts, import_months, list_id, write_back, tag_links, attribution_days, attribution_set_by, attribution_set_at, plugin_found, plugin_checked_at, plugin_skipped, last_event_at, health_checked_at, import_progress, import_started_at, import_started_by, import_finished_at, reconciled_at, reconcile_missed, reconcile_products, rate_limited_until, revoked_at, revoked_reason, disconnected_at, disconnected_by, notified_at, demo, connected_by, connected_at, created_by, created_at, updated_at
+RETURNING id, workspace_id, platform, status, step, name, address, domain, public_domain, currency, api_version, app_name, client_id, credentials_sealed, key_hint, scopes, oauth_state, oauth_state_expires_at, connect_error, installed_at, webhook_token, webhook_secret_sealed, sync_products, sync_customers, sync_orders, sync_checkouts, import_months, list_id, write_back, tag_links, attribution_days, attribution_set_by, attribution_set_at, plugin_found, plugin_checked_at, plugin_skipped, last_event_at, health_checked_at, import_progress, import_started_at, import_started_by, import_finished_at, writeback_through, reconciled_at, reconcile_missed, reconcile_products, rate_limited_until, revoked_at, revoked_reason, disconnected_at, disconnected_by, notified_at, demo, connected_by, connected_at, created_by, created_at, updated_at
 `
 
 type CommerceStoreReconnectedParams struct {
@@ -3233,6 +3863,7 @@ func (q *Queries) CommerceStoreReconnected(ctx context.Context, arg CommerceStor
 		&i.ImportStartedAt,
 		&i.ImportStartedBy,
 		&i.ImportFinishedAt,
+		&i.WritebackThrough,
 		&i.ReconciledAt,
 		&i.ReconcileMissed,
 		&i.ReconcileProducts,
@@ -3255,9 +3886,9 @@ func (q *Queries) CommerceStoreReconnected(ctx context.Context, arg CommerceStor
 const commerceStoreRestart = `-- name: CommerceStoreRestart :one
 UPDATE stores SET step = $1, name = CASE WHEN $2::text <> '' THEN $2 ELSE name END, domain = $3, public_domain = $4,
     currency = CASE WHEN $5::text <> '' THEN $5 ELSE currency END, connect_error = '', oauth_state = NULL, oauth_state_expires_at = NULL,
-    status = CASE WHEN status = 'disconnected' THEN 'disconnected' ELSE 'connecting' END, updated_at = $6
+    status = CASE WHEN status = 'disconnected' THEN 'disconnected' ELSE 'connecting' END, updated_at = $6::timestamptz
 WHERE id = $7
-RETURNING id, workspace_id, platform, status, step, name, address, domain, public_domain, currency, api_version, app_name, client_id, credentials_sealed, key_hint, scopes, oauth_state, oauth_state_expires_at, connect_error, installed_at, webhook_token, webhook_secret_sealed, sync_products, sync_customers, sync_orders, sync_checkouts, import_months, list_id, write_back, tag_links, attribution_days, attribution_set_by, attribution_set_at, plugin_found, plugin_checked_at, plugin_skipped, last_event_at, health_checked_at, import_progress, import_started_at, import_started_by, import_finished_at, reconciled_at, reconcile_missed, reconcile_products, rate_limited_until, revoked_at, revoked_reason, disconnected_at, disconnected_by, notified_at, demo, connected_by, connected_at, created_by, created_at, updated_at
+RETURNING id, workspace_id, platform, status, step, name, address, domain, public_domain, currency, api_version, app_name, client_id, credentials_sealed, key_hint, scopes, oauth_state, oauth_state_expires_at, connect_error, installed_at, webhook_token, webhook_secret_sealed, sync_products, sync_customers, sync_orders, sync_checkouts, import_months, list_id, write_back, tag_links, attribution_days, attribution_set_by, attribution_set_at, plugin_found, plugin_checked_at, plugin_skipped, last_event_at, health_checked_at, import_progress, import_started_at, import_started_by, import_finished_at, writeback_through, reconciled_at, reconcile_missed, reconcile_products, rate_limited_until, revoked_at, revoked_reason, disconnected_at, disconnected_by, notified_at, demo, connected_by, connected_at, created_by, created_at, updated_at
 `
 
 type CommerceStoreRestartParams struct {
@@ -3325,6 +3956,7 @@ func (q *Queries) CommerceStoreRestart(ctx context.Context, arg CommerceStoreRes
 		&i.ImportStartedAt,
 		&i.ImportStartedBy,
 		&i.ImportFinishedAt,
+		&i.WritebackThrough,
 		&i.ReconciledAt,
 		&i.ReconcileMissed,
 		&i.ReconcileProducts,
@@ -3345,10 +3977,10 @@ func (q *Queries) CommerceStoreRestart(ctx context.Context, arg CommerceStoreRes
 }
 
 const commerceStoreRevoked = `-- name: CommerceStoreRevoked :one
-UPDATE stores SET status = 'disconnected', revoked_at = coalesce(revoked_at, $1), revoked_reason = $2, disconnected_at = coalesce(disconnected_at, $1),
-    updated_at = $1
+UPDATE stores SET status = 'disconnected', revoked_at = coalesce(revoked_at, $1::timestamptz), revoked_reason = $2, disconnected_at = coalesce(disconnected_at, $1::timestamptz),
+    updated_at = $1::timestamptz
 WHERE id = $3 AND status <> 'disconnected'
-RETURNING id, workspace_id, platform, status, step, name, address, domain, public_domain, currency, api_version, app_name, client_id, credentials_sealed, key_hint, scopes, oauth_state, oauth_state_expires_at, connect_error, installed_at, webhook_token, webhook_secret_sealed, sync_products, sync_customers, sync_orders, sync_checkouts, import_months, list_id, write_back, tag_links, attribution_days, attribution_set_by, attribution_set_at, plugin_found, plugin_checked_at, plugin_skipped, last_event_at, health_checked_at, import_progress, import_started_at, import_started_by, import_finished_at, reconciled_at, reconcile_missed, reconcile_products, rate_limited_until, revoked_at, revoked_reason, disconnected_at, disconnected_by, notified_at, demo, connected_by, connected_at, created_by, created_at, updated_at
+RETURNING id, workspace_id, platform, status, step, name, address, domain, public_domain, currency, api_version, app_name, client_id, credentials_sealed, key_hint, scopes, oauth_state, oauth_state_expires_at, connect_error, installed_at, webhook_token, webhook_secret_sealed, sync_products, sync_customers, sync_orders, sync_checkouts, import_months, list_id, write_back, tag_links, attribution_days, attribution_set_by, attribution_set_at, plugin_found, plugin_checked_at, plugin_skipped, last_event_at, health_checked_at, import_progress, import_started_at, import_started_by, import_finished_at, writeback_through, reconciled_at, reconcile_missed, reconcile_products, rate_limited_until, revoked_at, revoked_reason, disconnected_at, disconnected_by, notified_at, demo, connected_by, connected_at, created_by, created_at, updated_at
 `
 
 type CommerceStoreRevokedParams struct {
@@ -3404,6 +4036,7 @@ func (q *Queries) CommerceStoreRevoked(ctx context.Context, arg CommerceStoreRev
 		&i.ImportStartedAt,
 		&i.ImportStartedBy,
 		&i.ImportFinishedAt,
+		&i.WritebackThrough,
 		&i.ReconciledAt,
 		&i.ReconcileMissed,
 		&i.ReconcileProducts,
@@ -3424,7 +4057,7 @@ func (q *Queries) CommerceStoreRevoked(ctx context.Context, arg CommerceStoreRev
 }
 
 const commerceStoreSetCredentials = `-- name: CommerceStoreSetCredentials :exec
-UPDATE stores SET credentials_sealed = $1, updated_at = $2 WHERE id = $3
+UPDATE stores SET credentials_sealed = $1, updated_at = $2::timestamptz WHERE id = $3
 `
 
 type CommerceStoreSetCredentialsParams struct {
@@ -3440,7 +4073,7 @@ func (q *Queries) CommerceStoreSetCredentials(ctx context.Context, arg CommerceS
 
 const commerceStoreSetKeys = `-- name: CommerceStoreSetKeys :exec
 UPDATE stores SET client_id = $1, credentials_sealed = $2, key_hint = $3, step = $4,
-    connect_error = '', updated_at = $5
+    connect_error = '', updated_at = $5::timestamptz
 WHERE id = $6
 `
 
@@ -3466,13 +4099,13 @@ func (q *Queries) CommerceStoreSetKeys(ctx context.Context, arg CommerceStoreSet
 }
 
 const commerceStoreSetPlugin = `-- name: CommerceStoreSetPlugin :exec
-UPDATE stores SET plugin_found = $1, plugin_checked_at = $2, updated_at = $2 WHERE id = $3
+UPDATE stores SET plugin_found = $1, plugin_checked_at = $2::timestamptz, updated_at = $2::timestamptz WHERE id = $3
 `
 
 type CommerceStoreSetPluginParams struct {
-	PluginFound bool       `json:"pluginFound"`
-	At          *time.Time `json:"at"`
-	ID          uuid.UUID  `json:"id"`
+	PluginFound bool      `json:"pluginFound"`
+	At          time.Time `json:"at"`
+	ID          uuid.UUID `json:"id"`
 }
 
 func (q *Queries) CommerceStoreSetPlugin(ctx context.Context, arg CommerceStoreSetPluginParams) error {
@@ -3483,11 +4116,11 @@ func (q *Queries) CommerceStoreSetPlugin(ctx context.Context, arg CommerceStoreS
 const commerceStoreSetSettings = `-- name: CommerceStoreSetSettings :one
 UPDATE stores SET list_id = $1, write_back = $2, tag_links = $3, attribution_days = $4,
     attribution_set_by = CASE WHEN attribution_days <> $4 THEN $5 ELSE attribution_set_by END,
-    attribution_set_at = CASE WHEN attribution_days <> $4 THEN $6 ELSE attribution_set_at END,
+    attribution_set_at = CASE WHEN attribution_days <> $4 THEN $6::timestamptz ELSE attribution_set_at END,
     sync_products = $7, sync_customers = $8, sync_orders = $9, sync_checkouts = $10,
-    updated_at = $6
+    updated_at = $6::timestamptz
 WHERE id = $11
-RETURNING id, workspace_id, platform, status, step, name, address, domain, public_domain, currency, api_version, app_name, client_id, credentials_sealed, key_hint, scopes, oauth_state, oauth_state_expires_at, connect_error, installed_at, webhook_token, webhook_secret_sealed, sync_products, sync_customers, sync_orders, sync_checkouts, import_months, list_id, write_back, tag_links, attribution_days, attribution_set_by, attribution_set_at, plugin_found, plugin_checked_at, plugin_skipped, last_event_at, health_checked_at, import_progress, import_started_at, import_started_by, import_finished_at, reconciled_at, reconcile_missed, reconcile_products, rate_limited_until, revoked_at, revoked_reason, disconnected_at, disconnected_by, notified_at, demo, connected_by, connected_at, created_by, created_at, updated_at
+RETURNING id, workspace_id, platform, status, step, name, address, domain, public_domain, currency, api_version, app_name, client_id, credentials_sealed, key_hint, scopes, oauth_state, oauth_state_expires_at, connect_error, installed_at, webhook_token, webhook_secret_sealed, sync_products, sync_customers, sync_orders, sync_checkouts, import_months, list_id, write_back, tag_links, attribution_days, attribution_set_by, attribution_set_at, plugin_found, plugin_checked_at, plugin_skipped, last_event_at, health_checked_at, import_progress, import_started_at, import_started_by, import_finished_at, writeback_through, reconciled_at, reconcile_missed, reconcile_products, rate_limited_until, revoked_at, revoked_reason, disconnected_at, disconnected_by, notified_at, demo, connected_by, connected_at, created_by, created_at, updated_at
 `
 
 type CommerceStoreSetSettingsParams struct {
@@ -3562,6 +4195,7 @@ func (q *Queries) CommerceStoreSetSettings(ctx context.Context, arg CommerceStor
 		&i.ImportStartedAt,
 		&i.ImportStartedBy,
 		&i.ImportFinishedAt,
+		&i.WritebackThrough,
 		&i.ReconciledAt,
 		&i.ReconcileMissed,
 		&i.ReconcileProducts,
@@ -3582,7 +4216,7 @@ func (q *Queries) CommerceStoreSetSettings(ctx context.Context, arg CommerceStor
 }
 
 const commerceStoreSetState = `-- name: CommerceStoreSetState :exec
-UPDATE stores SET oauth_state = $1, oauth_state_expires_at = $2, updated_at = $3 WHERE id = $4
+UPDATE stores SET oauth_state = $1, oauth_state_expires_at = $2, updated_at = $3::timestamptz WHERE id = $4
 `
 
 type CommerceStoreSetStateParams struct {
@@ -3603,7 +4237,7 @@ func (q *Queries) CommerceStoreSetState(ctx context.Context, arg CommerceStoreSe
 }
 
 const commerceStoreSetStep = `-- name: CommerceStoreSetStep :exec
-UPDATE stores SET step = $1, connect_error = $2, updated_at = $3 WHERE id = $4
+UPDATE stores SET step = $1, connect_error = $2, updated_at = $3::timestamptz WHERE id = $4
 `
 
 type CommerceStoreSetStepParams struct {
@@ -3624,7 +4258,7 @@ func (q *Queries) CommerceStoreSetStep(ctx context.Context, arg CommerceStoreSet
 }
 
 const commerceStoreSetWebhookSecret = `-- name: CommerceStoreSetWebhookSecret :exec
-UPDATE stores SET webhook_secret_sealed = $1, updated_at = $2 WHERE id = $3
+UPDATE stores SET webhook_secret_sealed = $1, updated_at = $2::timestamptz WHERE id = $3
 `
 
 type CommerceStoreSetWebhookSecretParams struct {
@@ -3641,11 +4275,11 @@ func (q *Queries) CommerceStoreSetWebhookSecret(ctx context.Context, arg Commerc
 const commerceStoreStartSync = `-- name: CommerceStoreStartSync :one
 UPDATE stores SET sync_products = $1, sync_customers = $2, sync_orders = $3, sync_checkouts = $4,
     import_months = $5, list_id = $6, write_back = $7, plugin_skipped = $8,
-    status = 'importing', step = 'done', import_progress = $9, import_started_at = $10, import_started_by = $11,
-    import_finished_at = NULL, connected_by = coalesce(connected_by, $11), connected_at = coalesce(connected_at, $10),
-    disconnected_at = NULL, disconnected_by = NULL, revoked_at = NULL, revoked_reason = '', notified_at = NULL, updated_at = $10
+    status = 'importing', step = 'done', import_progress = $9, import_started_at = $10::timestamptz, import_started_by = $11,
+    import_finished_at = NULL, connected_by = coalesce(connected_by, $11), connected_at = coalesce(connected_at, $10::timestamptz),
+    disconnected_at = NULL, disconnected_by = NULL, revoked_at = NULL, revoked_reason = '', notified_at = NULL, updated_at = $10::timestamptz
 WHERE id = $12
-RETURNING id, workspace_id, platform, status, step, name, address, domain, public_domain, currency, api_version, app_name, client_id, credentials_sealed, key_hint, scopes, oauth_state, oauth_state_expires_at, connect_error, installed_at, webhook_token, webhook_secret_sealed, sync_products, sync_customers, sync_orders, sync_checkouts, import_months, list_id, write_back, tag_links, attribution_days, attribution_set_by, attribution_set_at, plugin_found, plugin_checked_at, plugin_skipped, last_event_at, health_checked_at, import_progress, import_started_at, import_started_by, import_finished_at, reconciled_at, reconcile_missed, reconcile_products, rate_limited_until, revoked_at, revoked_reason, disconnected_at, disconnected_by, notified_at, demo, connected_by, connected_at, created_by, created_at, updated_at
+RETURNING id, workspace_id, platform, status, step, name, address, domain, public_domain, currency, api_version, app_name, client_id, credentials_sealed, key_hint, scopes, oauth_state, oauth_state_expires_at, connect_error, installed_at, webhook_token, webhook_secret_sealed, sync_products, sync_customers, sync_orders, sync_checkouts, import_months, list_id, write_back, tag_links, attribution_days, attribution_set_by, attribution_set_at, plugin_found, plugin_checked_at, plugin_skipped, last_event_at, health_checked_at, import_progress, import_started_at, import_started_by, import_finished_at, writeback_through, reconciled_at, reconcile_missed, reconcile_products, rate_limited_until, revoked_at, revoked_reason, disconnected_at, disconnected_by, notified_at, demo, connected_by, connected_at, created_by, created_at, updated_at
 `
 
 type CommerceStoreStartSyncParams struct {
@@ -3658,7 +4292,7 @@ type CommerceStoreStartSyncParams struct {
 	WriteBack      bool            `json:"writeBack"`
 	PluginSkipped  bool            `json:"pluginSkipped"`
 	ImportProgress json.RawMessage `json:"importProgress"`
-	At             *time.Time      `json:"at"`
+	At             time.Time       `json:"at"`
 	By             *uuid.UUID      `json:"by"`
 	ID             uuid.UUID       `json:"id"`
 }
@@ -3723,6 +4357,7 @@ func (q *Queries) CommerceStoreStartSync(ctx context.Context, arg CommerceStoreS
 		&i.ImportStartedAt,
 		&i.ImportStartedBy,
 		&i.ImportFinishedAt,
+		&i.WritebackThrough,
 		&i.ReconciledAt,
 		&i.ReconcileMissed,
 		&i.ReconcileProducts,
@@ -3783,12 +4418,12 @@ func (q *Queries) CommerceStoreTotals(ctx context.Context, arg CommerceStoreTota
 }
 
 const commerceStoreTouchEvent = `-- name: CommerceStoreTouchEvent :exec
-UPDATE stores SET last_event_at = greatest(coalesce(last_event_at, $1), $1) WHERE id = $2
+UPDATE stores SET last_event_at = greatest(coalesce(last_event_at, $1::timestamptz), $1::timestamptz) WHERE id = $2
 `
 
 type CommerceStoreTouchEventParams struct {
-	At *time.Time `json:"at"`
-	ID uuid.UUID  `json:"id"`
+	At time.Time `json:"at"`
+	ID uuid.UUID `json:"id"`
 }
 
 func (q *Queries) CommerceStoreTouchEvent(ctx context.Context, arg CommerceStoreTouchEventParams) error {
@@ -3796,10 +4431,24 @@ func (q *Queries) CommerceStoreTouchEvent(ctx context.Context, arg CommerceStore
 	return err
 }
 
+const commerceStoreWritebackThrough = `-- name: CommerceStoreWritebackThrough :exec
+UPDATE stores SET writeback_through = $1::timestamptz WHERE id = $2
+`
+
+type CommerceStoreWritebackThroughParams struct {
+	At time.Time `json:"at"`
+	ID uuid.UUID `json:"id"`
+}
+
+func (q *Queries) CommerceStoreWritebackThrough(ctx context.Context, arg CommerceStoreWritebackThroughParams) error {
+	_, err := q.db.Exec(ctx, commerceStoreWritebackThrough, arg.At, arg.ID)
+	return err
+}
+
 const commerceStores = `-- name: CommerceStores :many
 
 
-SELECT id, workspace_id, platform, status, step, name, address, domain, public_domain, currency, api_version, app_name, client_id, credentials_sealed, key_hint, scopes, oauth_state, oauth_state_expires_at, connect_error, installed_at, webhook_token, webhook_secret_sealed, sync_products, sync_customers, sync_orders, sync_checkouts, import_months, list_id, write_back, tag_links, attribution_days, attribution_set_by, attribution_set_at, plugin_found, plugin_checked_at, plugin_skipped, last_event_at, health_checked_at, import_progress, import_started_at, import_started_by, import_finished_at, reconciled_at, reconcile_missed, reconcile_products, rate_limited_until, revoked_at, revoked_reason, disconnected_at, disconnected_by, notified_at, demo, connected_by, connected_at, created_by, created_at, updated_at FROM stores WHERE workspace_id = $1 ORDER BY created_at
+SELECT id, workspace_id, platform, status, step, name, address, domain, public_domain, currency, api_version, app_name, client_id, credentials_sealed, key_hint, scopes, oauth_state, oauth_state_expires_at, connect_error, installed_at, webhook_token, webhook_secret_sealed, sync_products, sync_customers, sync_orders, sync_checkouts, import_months, list_id, write_back, tag_links, attribution_days, attribution_set_by, attribution_set_at, plugin_found, plugin_checked_at, plugin_skipped, last_event_at, health_checked_at, import_progress, import_started_at, import_started_by, import_finished_at, writeback_through, reconciled_at, reconcile_missed, reconcile_products, rate_limited_until, revoked_at, revoked_reason, disconnected_at, disconnected_by, notified_at, demo, connected_by, connected_at, created_by, created_at, updated_at FROM stores WHERE workspace_id = $1 ORDER BY created_at
 `
 
 // Shopify and WooCommerce stores (internal/commerce): connections, what
@@ -3858,6 +4507,7 @@ func (q *Queries) CommerceStores(ctx context.Context, workspaceID uuid.UUID) ([]
 			&i.ImportStartedAt,
 			&i.ImportStartedBy,
 			&i.ImportFinishedAt,
+			&i.WritebackThrough,
 			&i.ReconciledAt,
 			&i.ReconcileMissed,
 			&i.ReconcileProducts,
@@ -3885,7 +4535,7 @@ func (q *Queries) CommerceStores(ctx context.Context, workspaceID uuid.UUID) ([]
 }
 
 const commerceStoresActive = `-- name: CommerceStoresActive :many
-SELECT id, workspace_id, platform, status, step, name, address, domain, public_domain, currency, api_version, app_name, client_id, credentials_sealed, key_hint, scopes, oauth_state, oauth_state_expires_at, connect_error, installed_at, webhook_token, webhook_secret_sealed, sync_products, sync_customers, sync_orders, sync_checkouts, import_months, list_id, write_back, tag_links, attribution_days, attribution_set_by, attribution_set_at, plugin_found, plugin_checked_at, plugin_skipped, last_event_at, health_checked_at, import_progress, import_started_at, import_started_by, import_finished_at, reconciled_at, reconcile_missed, reconcile_products, rate_limited_until, revoked_at, revoked_reason, disconnected_at, disconnected_by, notified_at, demo, connected_by, connected_at, created_by, created_at, updated_at FROM stores WHERE status IN ('connected', 'importing') AND NOT demo ORDER BY id
+SELECT id, workspace_id, platform, status, step, name, address, domain, public_domain, currency, api_version, app_name, client_id, credentials_sealed, key_hint, scopes, oauth_state, oauth_state_expires_at, connect_error, installed_at, webhook_token, webhook_secret_sealed, sync_products, sync_customers, sync_orders, sync_checkouts, import_months, list_id, write_back, tag_links, attribution_days, attribution_set_by, attribution_set_at, plugin_found, plugin_checked_at, plugin_skipped, last_event_at, health_checked_at, import_progress, import_started_at, import_started_by, import_finished_at, writeback_through, reconciled_at, reconcile_missed, reconcile_products, rate_limited_until, revoked_at, revoked_reason, disconnected_at, disconnected_by, notified_at, demo, connected_by, connected_at, created_by, created_at, updated_at FROM stores WHERE status IN ('connected', 'importing') AND NOT demo ORDER BY id
 `
 
 // Stores to watch: connected (or importing), not the demo's.
@@ -3941,6 +4591,7 @@ func (q *Queries) CommerceStoresActive(ctx context.Context) ([]Store, error) {
 			&i.ImportStartedAt,
 			&i.ImportStartedBy,
 			&i.ImportFinishedAt,
+			&i.WritebackThrough,
 			&i.ReconciledAt,
 			&i.ReconcileMissed,
 			&i.ReconcileProducts,
@@ -3968,7 +4619,7 @@ func (q *Queries) CommerceStoresActive(ctx context.Context) ([]Store, error) {
 }
 
 const commerceStoresByDomain = `-- name: CommerceStoresByDomain :many
-SELECT id, workspace_id, platform, status, step, name, address, domain, public_domain, currency, api_version, app_name, client_id, credentials_sealed, key_hint, scopes, oauth_state, oauth_state_expires_at, connect_error, installed_at, webhook_token, webhook_secret_sealed, sync_products, sync_customers, sync_orders, sync_checkouts, import_months, list_id, write_back, tag_links, attribution_days, attribution_set_by, attribution_set_at, plugin_found, plugin_checked_at, plugin_skipped, last_event_at, health_checked_at, import_progress, import_started_at, import_started_by, import_finished_at, reconciled_at, reconcile_missed, reconcile_products, rate_limited_until, revoked_at, revoked_reason, disconnected_at, disconnected_by, notified_at, demo, connected_by, connected_at, created_by, created_at, updated_at FROM stores WHERE platform = 'shopify' AND domain = $1 AND client_id <> '' ORDER BY updated_at DESC
+SELECT id, workspace_id, platform, status, step, name, address, domain, public_domain, currency, api_version, app_name, client_id, credentials_sealed, key_hint, scopes, oauth_state, oauth_state_expires_at, connect_error, installed_at, webhook_token, webhook_secret_sealed, sync_products, sync_customers, sync_orders, sync_checkouts, import_months, list_id, write_back, tag_links, attribution_days, attribution_set_by, attribution_set_at, plugin_found, plugin_checked_at, plugin_skipped, last_event_at, health_checked_at, import_progress, import_started_at, import_started_by, import_finished_at, writeback_through, reconciled_at, reconcile_missed, reconcile_products, rate_limited_until, revoked_at, revoked_reason, disconnected_at, disconnected_by, notified_at, demo, connected_by, connected_at, created_by, created_at, updated_at FROM stores WHERE platform = 'shopify' AND domain = $1 AND client_id <> '' ORDER BY updated_at DESC
 `
 
 // Stores installing or installed on a Shopify domain (the app URL).
@@ -4024,6 +4675,7 @@ func (q *Queries) CommerceStoresByDomain(ctx context.Context, domain string) ([]
 			&i.ImportStartedAt,
 			&i.ImportStartedBy,
 			&i.ImportFinishedAt,
+			&i.WritebackThrough,
 			&i.ReconciledAt,
 			&i.ReconcileMissed,
 			&i.ReconcileProducts,
@@ -4051,7 +4703,7 @@ func (q *Queries) CommerceStoresByDomain(ctx context.Context, domain string) ([]
 }
 
 const commerceStoresConnected = `-- name: CommerceStoresConnected :many
-SELECT id, workspace_id, platform, status, step, name, address, domain, public_domain, currency, api_version, app_name, client_id, credentials_sealed, key_hint, scopes, oauth_state, oauth_state_expires_at, connect_error, installed_at, webhook_token, webhook_secret_sealed, sync_products, sync_customers, sync_orders, sync_checkouts, import_months, list_id, write_back, tag_links, attribution_days, attribution_set_by, attribution_set_at, plugin_found, plugin_checked_at, plugin_skipped, last_event_at, health_checked_at, import_progress, import_started_at, import_started_by, import_finished_at, reconciled_at, reconcile_missed, reconcile_products, rate_limited_until, revoked_at, revoked_reason, disconnected_at, disconnected_by, notified_at, demo, connected_by, connected_at, created_by, created_at, updated_at FROM stores WHERE workspace_id = $1 AND status IN ('connected', 'importing') ORDER BY created_at
+SELECT id, workspace_id, platform, status, step, name, address, domain, public_domain, currency, api_version, app_name, client_id, credentials_sealed, key_hint, scopes, oauth_state, oauth_state_expires_at, connect_error, installed_at, webhook_token, webhook_secret_sealed, sync_products, sync_customers, sync_orders, sync_checkouts, import_months, list_id, write_back, tag_links, attribution_days, attribution_set_by, attribution_set_at, plugin_found, plugin_checked_at, plugin_skipped, last_event_at, health_checked_at, import_progress, import_started_at, import_started_by, import_finished_at, writeback_through, reconciled_at, reconcile_missed, reconcile_products, rate_limited_until, revoked_at, revoked_reason, disconnected_at, disconnected_by, notified_at, demo, connected_by, connected_at, created_by, created_at, updated_at FROM stores WHERE workspace_id = $1 AND status IN ('connected', 'importing') ORDER BY created_at
 `
 
 // Connected stores of a workspace (links to tag, triggers, blocks).
@@ -4107,6 +4759,7 @@ func (q *Queries) CommerceStoresConnected(ctx context.Context, workspaceID uuid.
 			&i.ImportStartedAt,
 			&i.ImportStartedBy,
 			&i.ImportFinishedAt,
+			&i.WritebackThrough,
 			&i.ReconciledAt,
 			&i.ReconcileMissed,
 			&i.ReconcileProducts,
@@ -4131,6 +4784,23 @@ func (q *Queries) CommerceStoresConnected(ctx context.Context, workspaceID uuid.
 		return nil, err
 	}
 	return items, nil
+}
+
+const commerceSuppressed = `-- name: CommerceSuppressed :one
+SELECT coalesce((SELECT reason FROM suppressions WHERE workspace_id = $1 AND email = lower($2::text) LIMIT 1), '')::text
+`
+
+type CommerceSuppressedParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Email       string    `json:"email"`
+}
+
+// Why an address is on the suppression list (” when it isn't).
+func (q *Queries) CommerceSuppressed(ctx context.Context, arg CommerceSuppressedParams) (string, error) {
+	row := q.db.QueryRow(ctx, commerceSuppressed, arg.WorkspaceID, arg.Email)
+	var column_1 string
+	err := row.Scan(&column_1)
+	return column_1, err
 }
 
 const commerceUnsubscribesSince = `-- name: CommerceUnsubscribesSince :many
@@ -4203,13 +4873,13 @@ func (q *Queries) CommerceUserName(ctx context.Context, id uuid.UUID) (string, e
 }
 
 const commerceWebhookEvent = `-- name: CommerceWebhookEvent :exec
-UPDATE store_webhooks SET last_event_at = greatest(coalesce(last_event_at, $1), $1) WHERE store_id = $2 AND topic = $3
+UPDATE store_webhooks SET last_event_at = greatest(coalesce(last_event_at, $1::timestamptz), $1::timestamptz) WHERE store_id = $2 AND topic = $3
 `
 
 type CommerceWebhookEventParams struct {
-	At      *time.Time `json:"at"`
-	StoreID uuid.UUID  `json:"storeId"`
-	Topic   string     `json:"topic"`
+	At      time.Time `json:"at"`
+	StoreID uuid.UUID `json:"storeId"`
+	Topic   string    `json:"topic"`
 }
 
 func (q *Queries) CommerceWebhookEvent(ctx context.Context, arg CommerceWebhookEventParams) error {
@@ -4218,14 +4888,14 @@ func (q *Queries) CommerceWebhookEvent(ctx context.Context, arg CommerceWebhookE
 }
 
 const commerceWebhookMissing = `-- name: CommerceWebhookMissing :exec
-UPDATE store_webhooks SET status = 'missing', missing_since = coalesce(missing_since, $1), external_id = ''
+UPDATE store_webhooks SET status = 'missing', missing_since = coalesce(missing_since, $1::timestamptz), external_id = ''
 WHERE store_id = $2 AND topic = $3
 `
 
 type CommerceWebhookMissingParams struct {
-	At      *time.Time `json:"at"`
-	StoreID uuid.UUID  `json:"storeId"`
-	Topic   string     `json:"topic"`
+	At      time.Time `json:"at"`
+	StoreID uuid.UUID `json:"storeId"`
+	Topic   string    `json:"topic"`
 }
 
 func (q *Queries) CommerceWebhookMissing(ctx context.Context, arg CommerceWebhookMissingParams) error {
@@ -4234,13 +4904,13 @@ func (q *Queries) CommerceWebhookMissing(ctx context.Context, arg CommerceWebhoo
 }
 
 const commerceWebhookPolled = `-- name: CommerceWebhookPolled :exec
-UPDATE store_webhooks SET last_polled_at = $1 WHERE store_id = $2 AND topic = $3
+UPDATE store_webhooks SET last_polled_at = $1::timestamptz WHERE store_id = $2 AND topic = $3
 `
 
 type CommerceWebhookPolledParams struct {
-	At      *time.Time `json:"at"`
-	StoreID uuid.UUID  `json:"storeId"`
-	Topic   string     `json:"topic"`
+	At      time.Time `json:"at"`
+	StoreID uuid.UUID `json:"storeId"`
+	Topic   string    `json:"topic"`
 }
 
 func (q *Queries) CommerceWebhookPolled(ctx context.Context, arg CommerceWebhookPolledParams) error {
@@ -4326,6 +4996,31 @@ UPDATE store_webhooks SET status = 'pending', external_id = '', missing_since = 
 
 func (q *Queries) CommerceWebhooksClear(ctx context.Context, storeID uuid.UUID) error {
 	_, err := q.db.Exec(ctx, commerceWebhooksClear, storeID)
+	return err
+}
+
+const commerceWordPressWoo = `-- name: CommerceWordPressWoo :exec
+
+UPDATE wordpress_sites SET woocommerce_version = $1, woocommerce_consent = $2, woocommerce_checkouts = $3
+WHERE integration_id = $4
+`
+
+type CommerceWordPressWooParams struct {
+	Version       string    `json:"version"`
+	Consent       bool      `json:"consent"`
+	Checkouts     bool      `json:"checkouts"`
+	IntegrationID uuid.UUID `json:"integrationId"`
+}
+
+// ── WordPress sites running WooCommerce (the plugin) ────────────────────
+// What the plugin reports of WooCommerce on its site.
+func (q *Queries) CommerceWordPressWoo(ctx context.Context, arg CommerceWordPressWooParams) error {
+	_, err := q.db.Exec(ctx, commerceWordPressWoo,
+		arg.Version,
+		arg.Consent,
+		arg.Checkouts,
+		arg.IntegrationID,
+	)
 	return err
 }
 

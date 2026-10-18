@@ -24,7 +24,7 @@
   "estimated_taxes": false,
   "financial_status": "paid",
   "fulfillment_status": null,
-  "landing_site": "/collections/new-arrivals?utm_source=acme-newsletter&utm_medium=email&utm_campaign=abandoned-cart&rc_click=rcTOKEN123",
+  "landing_site": "/collections/new-arrivals?utm_source=acme-newsletter&utm_medium=email&utm_campaign=abandoned-cart&rc=rcTOKEN123",
   "landing_site_ref": null,
   "name": "#4417",
   "note": "Please ship before Friday",

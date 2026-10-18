@@ -71,6 +71,7 @@ const (
       subtotalPriceSet { shopMoney { amount currencyCode } }
       totalPriceSet { shopMoney { amount currencyCode } }
       totalRefundedSet { shopMoney { amount currencyCode } }
+      refunds(first: 20) { id createdAt totalRefundedSet { shopMoney { amount currencyCode } } }
       customer { ` + customerFields + ` }
       customerJourneySummary {
         firstVisit { landingPage utmParameters { source medium campaign content term } }
@@ -468,21 +469,26 @@ type visit struct {
 }
 
 type gqlOrder struct {
-	ID                       string       `json:"id"`
-	Name                     string       `json:"name"`
-	CreatedAt                time.Time    `json:"createdAt"`
-	UpdatedAt                time.Time    `json:"updatedAt"`
-	CancelledAt              *time.Time   `json:"cancelledAt"`
-	Test                     bool         `json:"test"`
-	Email                    string       `json:"email"`
-	CurrencyCode             string       `json:"currencyCode"`
-	CustomerAcceptsMarketing bool         `json:"customerAcceptsMarketing"`
-	DiscountCodes            []string     `json:"discountCodes"`
-	SubtotalPriceSet         moneySet     `json:"subtotalPriceSet"`
-	TotalPriceSet            moneySet     `json:"totalPriceSet"`
-	TotalRefundedSet         moneySet     `json:"totalRefundedSet"`
-	Customer                 *gqlCustomer `json:"customer"`
-	CustomerJourneySummary   *struct {
+	ID                       string     `json:"id"`
+	Name                     string     `json:"name"`
+	CreatedAt                time.Time  `json:"createdAt"`
+	UpdatedAt                time.Time  `json:"updatedAt"`
+	CancelledAt              *time.Time `json:"cancelledAt"`
+	Test                     bool       `json:"test"`
+	Email                    string     `json:"email"`
+	CurrencyCode             string     `json:"currencyCode"`
+	CustomerAcceptsMarketing bool       `json:"customerAcceptsMarketing"`
+	DiscountCodes            []string   `json:"discountCodes"`
+	SubtotalPriceSet         moneySet   `json:"subtotalPriceSet"`
+	TotalPriceSet            moneySet   `json:"totalPriceSet"`
+	TotalRefundedSet         moneySet   `json:"totalRefundedSet"`
+	Refunds                  []struct {
+		ID               string    `json:"id"`
+		CreatedAt        time.Time `json:"createdAt"`
+		TotalRefundedSet moneySet  `json:"totalRefundedSet"`
+	} `json:"refunds"`
+	Customer               *gqlCustomer `json:"customer"`
+	CustomerJourneySummary *struct {
 		FirstVisit *visit `json:"firstVisit"`
 		LastVisit  *visit `json:"lastVisit"`
 	} `json:"customerJourneySummary"`
@@ -506,6 +512,9 @@ func (o gqlOrder) order() stores.Order {
 	}
 	if out.Discounts == nil {
 		out.Discounts = []string{}
+	}
+	for _, r := range o.Refunds {
+		out.Refunds = append(out.Refunds, stores.Refund{ID: numericID(r.ID), OrderID: out.ID, Amount: stores.ParseAmount(r.TotalRefundedSet.ShopMoney.Amount, cur), At: r.CreatedAt})
 	}
 	if out.Email == "" && out.Customer != nil {
 		out.Email = out.Customer.Email

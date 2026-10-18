@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -251,7 +252,14 @@ func (s *Service) audienceLabel(ctx context.Context, wsID uuid.UUID, raw json.Ra
 	if err != nil {
 		return "", err
 	}
-	if len(a.Segments) == 0 && len(a.Lists) == len(lists) && len(lists) > 1 {
+	// "All subscribers" is every list but the ones a store fills (X20).
+	every := []uuid.UUID{}
+	for _, l := range lists {
+		if l.Origin != "store" {
+			every = append(every, l.ID)
+		}
+	}
+	if len(a.Segments) == 0 && len(every) > 1 && !slices.ContainsFunc(every, func(id uuid.UUID) bool { return !slices.Contains(a.Lists, id) }) {
 		return "All subscribers", nil
 	}
 	names := make(map[uuid.UUID]string, len(lists))

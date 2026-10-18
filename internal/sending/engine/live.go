@@ -6,6 +6,7 @@ import (
 	"errors"
 	"math"
 	"net/url"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -820,11 +821,16 @@ func (e *Engine) audienceLabel(ctx context.Context, ws uuid.UUID, raw json.RawMe
 	def := parseAudience(raw)
 	lists, _ := e.Q.SendingListNames(ctx, ws)
 	names := map[uuid.UUID]string{}
+	// "All subscribers" is every list but the ones a store fills (X20).
+	every := []uuid.UUID{}
 	for _, l := range lists {
 		names[l.ID] = l.Name
+		if l.Origin != "store" {
+			every = append(every, l.ID)
+		}
 	}
 	var parts []string
-	if len(def.Segments) == 0 && len(def.Lists) == len(names) && len(names) > 1 {
+	if len(def.Segments) == 0 && len(every) > 1 && !slices.ContainsFunc(every, func(id uuid.UUID) bool { return !slices.Contains(def.Lists, id) }) {
 		parts = append(parts, "All subscribers")
 	} else {
 		for _, id := range def.Lists {

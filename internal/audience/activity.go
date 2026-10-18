@@ -75,6 +75,25 @@ type ContactActivityItem struct {
 	Answered      int        `json:"answered,omitempty"`
 	Questions     int        `json:"questions,omitempty"`
 	EditableUntil *time.Time `json:"editableUntil,omitempty"`
+	// Store orders and abandoned checkouts (types store_order and
+	// checkout_abandoned; design expansion, X20).
+	Store *ContactActivityStore `json:"store,omitempty"`
+}
+
+// ContactActivityStore is a store order or an abandoned checkout on the
+// timeline: the store, the order's name, its total and items, whether the
+// buyer accepted marketing, the email it was credited to and the flow the
+// checkout entered.
+type ContactActivityStore struct {
+	Name     string   `json:"name"`
+	Platform string   `json:"platform" enum:"shopify,woocommerce"`
+	Order    string   `json:"order,omitempty"`
+	Total    int64    `json:"total"`
+	Currency string   `json:"currency"`
+	Items    []string `json:"items"`
+	Accepted bool     `json:"accepted"`
+	Credited string   `json:"credited,omitempty"`
+	Flow     string   `json:"flow,omitempty"`
 }
 
 // ActivitySource adds events another domain keeps to the timeline (poll
@@ -209,7 +228,7 @@ func (s *Service) Activity(ctx context.Context, ws *store.Workspace, contactID u
 		}
 		if src == "consent" {
 			it.Category = "consent"
-			it.SourceLabel = consentSourceLabel(it.Source)
+			it.SourceLabel = consentSourceLabel(it.Source, it.Type)
 			if strings.HasPrefix(it.Source, "import:") {
 				it.SourceLabel = importerLabel(strings.TrimPrefix(it.Source, "import:"))
 			}

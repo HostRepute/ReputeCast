@@ -174,7 +174,9 @@ func (o restOrder) order() stores.Order {
 		out.Discounts = append(out.Discounts, d.Code)
 	}
 	for _, r := range o.Refunds {
-		out.Refunded += r.amount(o.Currency)
+		amt := r.amount(o.Currency)
+		out.Refunded += amt
+		out.Refunds = append(out.Refunds, stores.Refund{ID: r.ID.String(), OrderID: out.ID, Amount: amt, At: r.CreatedAt})
 	}
 	out.UTM, out.ClickToken = stores.ParseLanding(o.LandingSite)
 	if out.Email == "" && out.Customer != nil {

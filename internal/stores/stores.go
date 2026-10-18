@@ -190,10 +190,13 @@ type Order struct {
 	PlacedAt         time.Time
 	UpdatedAt        time.Time
 	Currency         string
-	// Subtotal, Total and Refunded are in minor units.
+	// Subtotal, Total and Refunded are in minor units; Refunds lists each
+	// refund (an order's refunds are counted once each, whichever event
+	// brings them).
 	Subtotal  int64
 	Total     int64
 	Refunded  int64
+	Refunds   []Refund
 	Discounts []string
 	Items     []LineItem
 	// LandingPage is the page the buyer arrived on (path and query, or a

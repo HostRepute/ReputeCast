@@ -2382,6 +2382,7 @@ type Store struct {
 	ImportStartedAt     *time.Time      `json:"importStartedAt"`
 	ImportStartedBy     *uuid.UUID      `json:"importStartedBy"`
 	ImportFinishedAt    *time.Time      `json:"importFinishedAt"`
+	WritebackThrough    *time.Time      `json:"writebackThrough"`
 	ReconciledAt        *time.Time      `json:"reconciledAt"`
 	ReconcileMissed     int32           `json:"reconcileMissed"`
 	ReconcileProducts   int32           `json:"reconcileProducts"`
@@ -2500,6 +2501,7 @@ type StoreOrder struct {
 	SubtotalCents      int64           `json:"subtotalCents"`
 	TotalCents         int64           `json:"totalCents"`
 	RefundedCents      int64           `json:"refundedCents"`
+	RefundIds          []string        `json:"refundIds"`
 	DiscountCodes      []string        `json:"discountCodes"`
 	Items              json.RawMessage `json:"items"`
 	LandingPage        string          `json:"landingPage"`

@@ -27,6 +27,8 @@ export interface Refs {
   fields: Map<string, { label: string; type: string }>
   /** Polls and surveys the trigger "Answered a poll or survey" names ("poll:<id>" → name). */
   polls?: Map<string, string>
+  /** Stores the store triggers watch (id → name; X20). */
+  stores?: Map<string, string>
 }
 
 export const emptyRefs: Refs = { lists: new Map(), forms: new Map(), emails: new Map(), providers: new Map(), fields: new Map() }
@@ -66,6 +68,9 @@ export const triggerKindLabels: Record<TriggerConfig['kind'], string> = {
     return scoreTriggerName()
   },
   poll_answered: 'Answered a poll or survey',
+  order_placed: 'Order placed',
+  first_order: 'First order',
+  abandoned_checkout: 'Abandoned checkout',
 }
 
 /** Colour of a step type: the palette swatch and the node header. */
@@ -203,6 +208,10 @@ export function triggerRef(t: TriggerConfig | undefined, refs: Refs): string {
       return scoreTriggerRef(t)
     case 'poll_answered':
       return refs.polls?.get(t.poll ?? '') ?? 'a poll or survey'
+    case 'order_placed':
+    case 'first_order':
+    case 'abandoned_checkout':
+      return refs.stores?.get(t.store ?? '') ?? 'a store'
   }
 }
 
@@ -221,6 +230,8 @@ export function conditionPhrase(g: FlowGraph, c: FlowCondition | undefined, refs
       return `in ${refs.lists.get(c.listId ?? '') ?? 'a list'}`
     case 'event':
       return `sent ${c.event ?? ''}`
+    case 'placed_order':
+      return 'placed an order'
     case 'field':
       switch (c.op) {
         case 'is_set':

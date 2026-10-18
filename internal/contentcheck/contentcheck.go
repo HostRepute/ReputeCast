@@ -18,6 +18,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
 	"golang.org/x/net/publicsuffix"
@@ -140,7 +141,14 @@ type Input struct {
 	// Language is the language version's code ("de"); the subject's
 	// English phrase heuristics only apply to English (or no language).
 	Language string
+	// WorkspaceID is whose content it is (Extra checks read its data).
+	WorkspaceID uuid.UUID
 }
+
+// Extra is a check another domain adds (X20: a store block naming a
+// product the store removed). It returns its issues; Section and Path say
+// where they are.
+type Extra func(ctx context.Context, in Input) []ContentCheckIssue
 
 // Blocklist answers which URI blocklists list a domain.
 type Blocklist interface {
@@ -169,6 +177,8 @@ type Checker struct {
 	Blocklist Blocklist
 	Prober    Prober
 	Now       func() time.Time
+	// Extra checks run after the built-in ones.
+	Extra []Extra
 }
 
 type image struct {
@@ -338,6 +348,12 @@ func (c *Checker) Check(ctx context.Context, in Input) (ContentCheckReport, erro
 
 	if strings.TrimSpace(r.PlainText) == "" && r.Images > 0 {
 		add(ContentCheckIssue{ID: "content.plain_text", Severity: Warn, Group: "Content", Title: "The plain-text version is empty", Detail: "The email has no text, so the text/plain part is blank. Add a sentence that says what the images show.", Section: -1})
+	}
+
+	for _, x := range c.Extra {
+		for _, is := range x(ctx, in) {
+			add(is)
+		}
 	}
 
 	for _, sec := range s.sections {
