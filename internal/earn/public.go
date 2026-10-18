@@ -845,7 +845,7 @@ func (s *Service) completeFromReturn(ctx context.Context, ws *store.Workspace, c
 func (s *Service) Portal(ctx context.Context, ws *store.Workspace, token string, kind linktoken.Kind) (string, error) {
 	c, err := s.Links.Verify(token, kind)
 	if err != nil || c.WorkspaceID != ws.ID || c.ContactID == uuid.Nil {
-		return "", ErrUnavailable
+		return "", ErrBadLink
 	}
 	acc, err := s.accessOf(ctx, ws, c.ContactID, "")
 	if err != nil {
@@ -879,6 +879,9 @@ func (s *Service) Portal(ctx context.Context, ws *store.Workspace, token string,
 
 // ErrNoSubscription means the link's reader has no paid subscription to manage.
 var ErrNoSubscription = errors.New("earn: no paid subscription")
+
+// ErrBadLink means a personal link isn't valid: altered, or for another workspace.
+var ErrBadLink = errors.New("earn: the link isn't valid")
 
 // CancelURL is a paid member's link to cancel (the cancel page, X17;
 // until then the portal's cancel step).

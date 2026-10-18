@@ -144,6 +144,11 @@ func (f *Fake) HTTPClient() *http.Client {
 type roundTrip struct{ f *Fake }
 
 func (r roundTrip) RoundTrip(req *http.Request) (*http.Response, error) {
+	// A client's GET has no body, where a server's request always has one.
+	if req.Body == nil {
+		req = req.Clone(req.Context())
+		req.Body = http.NoBody
+	}
 	rec := httptest.NewRecorder()
 	r.f.ServeHTTP(rec, req)
 	return rec.Result(), nil

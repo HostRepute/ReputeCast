@@ -203,6 +203,9 @@ func (h *Handler) portal(w http.ResponseWriter, r *http.Request, kind linktoken.
 	}
 	to, err := h.Earn.Portal(r.Context(), s.ws, chi.URLParam(r, "token"), kind)
 	switch {
+	case errors.Is(err, earn.ErrBadLink):
+		h.notFound(w, r, s)
+		return
 	case errors.Is(err, earn.ErrNoSubscription):
 		h.earnMessage(w, r, s, http.StatusOK, earn.Text("portal.noSubTitle", nil), earn.Text("portal.noSubText", nil))
 		return
