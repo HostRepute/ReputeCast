@@ -105,6 +105,10 @@ func init() {
 	readinessWebsite = func(a *App) readiness.WebsiteChecker { return websiteReadiness{a} }
 	approvalsWebsite = func(a *App, s *approvals.Service) {
 		s.Website = func() approvals.WebsitePosts { return websiteService(a) }
+		// The approval review's web preview, drawn by the public pages.
+		s.WebsitePreview = func(ctx context.Context, ws *store.Workspace, postID uuid.UUID) (string, error) {
+			return a.publicPages().ApprovalPreview(ctx, ws, postID)
+		}
 	}
 	apiRegistrars = append(apiRegistrars, func(a *App, h huma.API) {
 		website.Register(h, websiteService(a))

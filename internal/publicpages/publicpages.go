@@ -350,7 +350,10 @@ type view struct {
 	Dir        string
 	Menu       []langLink
 	Alternates []alternate
-	labels     pagelabels.Set
+	// SiteBar is the website's header over the page while the website is
+	// on (site.go).
+	SiteBar *siteBarView
+	labels  pagelabels.Set
 }
 
 // alternate is the same page in another language, for <link rel="alternate">.
@@ -465,6 +468,9 @@ func (h *Handler) html(page string, v *view) ([]byte, error) {
 // render writes a page with status.
 func (h *Handler) render(w http.ResponseWriter, r *http.Request, s *site, page string, status int, v *view, policy csp, private bool) {
 	policy.fonts = append(policy.fonts, h.fontOrigins(s)...)
+	if v.SiteBar == nil && !v.Preview {
+		v.SiteBar = h.siteBar(r, s, v)
+	}
 	out, err := h.html(page, v)
 	if err != nil {
 		h.log().ErrorContext(r.Context(), "render public page", "page", page, "err", err)

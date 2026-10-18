@@ -352,6 +352,22 @@ mark.st-hl { background: var(--pub-tint); color: var(--pub-hover); border-radius
 .st-fail .ref { font-family: var(--st-mono); font-size: 13px; color: #5b6472; }
 .st-fail svg { color: var(--pub-accent); }
 
+/* lists, the archive, unavailable pages */
+.st-more { margin-top: 48px; }
+.st-tagband { padding-bottom: 36px; }
+.st-listw { padding-top: 20px; padding-bottom: 40px; }
+.st-archead { padding-bottom: 20px; }
+.st-arch { display: flex; flex-direction: column; gap: 14px; }
+.st-searchf { margin: 0; }
+.st h1.st-hx, .st-taghead h1 { font-size: 32px; }
+.st-taghead .ds { font-size: 17px; color: #5b6472; }
+.st-feedl { font-weight: 600; }
+.st-gonel { margin-top: 24px; }
+.st-empty { padding: 24px 0; }
+.st-codef { gap: 18px; }
+.st-namef { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.st-pw .st-free .lead { font-size: 15.5px; }
+
 /* narrow (tablet, small windows): the navigation moves to its own scrolling row */
 @container (max-width: 1079px) {
   .st-w { padding-left: 32px; padding-right: 32px; }
@@ -424,7 +440,8 @@ mark.st-hl { background: var(--pub-tint); color: var(--pub-hover); border-radius
   .st-code input { width: 44px; height: 52px; font-size: 22px; }
   .st-about { flex-direction: column; gap: 14px; }
   .st-side { display: none; }
-  .st-taghead h1, .st-gone h1 { font-size: 31px; }
+  .st-taghead h1, .st-gone h1, .st h1.st-hx { font-size: 28px; }
+  .st-namef { grid-template-columns: 1fr; }
 }
 @media (max-width: 767px) {
   .st { overflow-wrap: anywhere; }

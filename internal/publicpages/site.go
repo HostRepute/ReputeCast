@@ -130,8 +130,12 @@ type siteView struct {
 	words  website.Words
 	labels pagelabels.Set
 	// private: the page is for a signed-in reader or holds a personal
-	// token; it is never cached.
-	private bool
+	// token; it is never cached. secret: its address holds a token (a
+	// sign-in link): never indexed, never sent as a referrer.
+	private, secret bool
+	// cspScripts and cspFrames are the page's extra script and frame
+	// origins (Turnstile).
+	cspScripts, cspFrames []string
 	// current is the key of the header link of this page ("tag:engineering").
 	current string
 }
@@ -288,6 +292,7 @@ func (h *Handler) siteViewFor(w http.ResponseWriter, r *http.Request, s *site) (
 		name := sess.Name()
 		v.Member = &siteMember{Name: name, First: sess.FirstOrName(), Initials: initials(name), Color: avatarColor(name), Email: sess.Email}
 	}
+	h.takeFlash(w, r, s, v)
 	return v, true
 }
 
@@ -310,6 +315,9 @@ func (h *Handler) siteViewIn(ctx context.Context, s *site, pl pageLang) (*siteVi
 	if b.Logo != nil {
 		v.Brand.Logo = s.links.Logo(b.Logo.Hash)
 		v.Icon = v.Brand.Logo
+	}
+	if !s.preview {
+		v.Scripts = []string{s.links.Static("site.js?v=" + h.siteJSVersion())}
 	}
 	if !frame.Index {
 		v.Robots = "noindex, follow"
@@ -353,6 +361,18 @@ var siteCSSVersion = sync.OnceValue(func() string {
 
 func (h *Handler) siteVersion() string { return siteCSSVersion() }
 
+var siteJSVersion = sync.OnceValue(func() string {
+	data, err := staticFS.ReadFile("static/site.js")
+	if err != nil {
+		return "0"
+	}
+	f := fnv.New64a()
+	_, _ = f.Write(data)
+	return strconv.FormatUint(f.Sum64(), 36)
+})
+
+func (h *Handler) siteJSVersion() string { return siteJSVersion() }
+
 // renderSite writes a page of the site with status.
 func (h *Handler) renderSite(w http.ResponseWriter, r *http.Request, s *site, page string, status int, v *siteView) {
 	out, err := h.siteHTML(page, v)
@@ -361,8 +381,8 @@ func (h *Handler) renderSite(w http.ResponseWriter, r *http.Request, s *site, pa
 		http.Error(w, "This page couldn't be shown. Try again in a minute.", http.StatusInternalServerError)
 		return
 	}
-	policy := csp{fonts: h.fontOrigins(s)}
-	pageHeaders(w, policy, false)
+	policy := csp{fonts: h.fontOrigins(s), scripts: v.cspScripts, frames: v.cspFrames}
+	pageHeaders(w, policy, v.secret)
 	hd := w.Header()
 	hd.Add("Vary", "Accept-Language")
 	hd.Add("Vary", "Cookie")
@@ -428,4 +448,41 @@ func (h *Handler) siteOn(ctx context.Context, s *site) bool {
 		h.log().WarnContext(ctx, "website status", "err", err)
 	}
 	return on
+}
+
+// siteBarView is the website's header over the subscribe, confirmation,
+// preferences and unsubscribe pages while the website is on.
+type siteBarView struct {
+	Home, Title, Initial, Logo string
+	Nav                        []siteNavLink
+	Signin, Subscribe, Account string
+	Member                     *siteMember
+	NavLabel, HomeLabel        string
+	SigninText, SubscribeText  string
+	AccountLabel               string
+}
+
+// siteBar is the website's header for a page of the public pages ("" when
+// the website is off).
+func (h *Handler) siteBar(r *http.Request, s *site, v *view) *siteBarView {
+	if h.Website == nil || s.preview || !h.siteOn(r.Context(), s) {
+		return nil
+	}
+	sv, err := h.siteViewIn(r.Context(), s, pageLang{Code: v.Lang, Labels: v.labels})
+	if err != nil {
+		h.log().WarnContext(r.Context(), "website header", "err", err)
+		return nil
+	}
+	b := &siteBarView{Home: sv.Href.Home, Title: sv.Frame.Title, Initial: sv.Brand.Initial, Logo: sv.Brand.Logo, Nav: sv.Nav,
+		Subscribe: sv.Href.Subscribe, Account: sv.Href.Account, NavLabel: sv.T("site.nav"), HomeLabel: sv.T("site.homeLabel", "title", sv.Frame.Title),
+		SigninText: sv.T("site.signIn"), SubscribeText: sv.T("site.subscribe")}
+	if sv.Frame.SigninOn {
+		b.Signin = sv.Href.Signin
+	}
+	if sess := h.session(r, s); sess != nil {
+		name := sess.Name()
+		b.Member = &siteMember{Name: name, First: sess.FirstOrName(), Initials: initials(name), Color: avatarColor(name), Email: sess.Email}
+		b.AccountLabel = sv.T("site.accountLabel", "name", name)
+	}
+	return b
 }

@@ -129,6 +129,15 @@ type WebsiteOverview struct {
 	Title      string              `json:"title"`
 	UpdatedAt  time.Time           `json:"updatedAt"`
 	UpdatedBy  string              `json:"updatedBy,omitempty"`
+	// Helpers are whom to ask for what the caller's role lacks ("Ask Sofia
+	// Rossi, Marcus Chen or Linh Nguyen"); empty for what it holds.
+	Helpers WebsiteHelpers `json:"helpers"`
+}
+
+// WebsiteHelpers are the members holding website:manage and website:publish.
+type WebsiteHelpers struct {
+	Manage  []string `json:"manage"`
+	Publish []string `json:"publish"`
 }
 
 // Overview returns the Website tab's header and states.
@@ -180,6 +189,13 @@ func (s *Service) Overview(ctx context.Context, ws *store.Workspace, p *authz.Pr
 		return out, err
 	}
 	out.Off = WebsiteOffFacts{WebOnly: out.Posts.WebOnly, PaidMembers: out.Members.Paid}
+	out.Helpers = WebsiteHelpers{Manage: []string{}, Publish: []string{}}
+	if p == nil || !p.Can(authz.WebsiteManage) {
+		out.Helpers.Manage = s.helpers(ctx, ws, authz.WebsiteManage)
+	}
+	if p == nil || !p.Can(authz.WebsitePublish) || !p.Can(authz.WebsiteEdit) {
+		out.Helpers.Publish = s.helpers(ctx, ws, authz.WebsitePublish)
+	}
 	return out, nil
 }
 

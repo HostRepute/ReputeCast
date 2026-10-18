@@ -316,3 +316,23 @@ fieldset.qb > legend { display: contents; }
   .ea-free .btn-out { width: 100%; min-width: 0; }
   .ea-head .h30 { font-size: 26px; }
 }
+
+/* The website's header over these pages while the website is on
+   (design expansion phase 7): the brand, the navigation, Sign in or the
+   member. */
+.sitebar { background: #fff; border-bottom: 1px solid #e3e6eb; }
+.sitebar-in { max-width: 1200px; margin: 0 auto; padding: 0 32px; min-height: 64px; display: flex; align-items: center; gap: 20px; box-sizing: border-box; }
+.sitebar-brand { display: inline-flex; align-items: center; gap: 10px; color: var(--ink); font-weight: 700; font-size: 16px; text-decoration: none; flex: none; }
+.sitebar-brand .mark { width: 34px; height: 34px; font-size: 14px; border-radius: 9px; }
+.sitebar-nav { display: flex; gap: 2px; flex: 1; min-width: 0; overflow-x: auto; }
+.sitebar-nav a { height: 36px; padding: 0 11px; border-radius: 8px; display: inline-flex; align-items: center; color: var(--ink-nav); font-weight: 500; font-size: 14px; white-space: nowrap; text-decoration: none; }
+.sitebar-nav a:hover { background: var(--pub-ground); color: var(--pub-hover); }
+.sitebar-act { margin-left: auto; display: flex; align-items: center; gap: 8px; flex: none; }
+.sitebar-btn { height: 36px; padding: 0 14px; border-radius: 9px; border: 1px solid #c9ced6; display: inline-flex; align-items: center; color: #1f2937; font-weight: 700; font-size: 13.5px; text-decoration: none; background: #fff; }
+.sitebar-me { display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 10px 0 4px; border-radius: 999px; border: 1px solid #c9ced6; color: #1f2937; font-weight: 600; font-size: 14px; text-decoration: none; }
+.sitebar-av { width: 30px; height: 30px; border-radius: 50%; background: #dbeafe; color: #1e40af; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; }
+@media (max-width: 640px) {
+  .sitebar-in { padding: 0 16px; gap: 10px; min-height: 58px; }
+  .sitebar-nav { display: none; }
+  .sitebar-me span:last-child { display: none; }
+}

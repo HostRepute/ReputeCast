@@ -95,16 +95,44 @@ func TestRolesExpansionCatalogue(t *testing.T) {
 	}
 	var withSend, same impact
 	c.Do("POST", ws+"/roles/impact", map[string]any{"roleId": cwID, "permissions": append(slices.Clone(cw), "campaigns:send")}).MustStatus(t, 200).JSON(t, &withSend)
-	if withSend.PendingApprovals != 1 || len(withSend.PendingRequests) != 1 {
+	// Daniel's two requests: November, and his post "Q4 roadmap deep dive"
+	// (WebsiteStates), which campaigns:send doesn't settle: posts ask for
+	// website:publish.
+	if withSend.PendingApprovals != 2 || len(withSend.PendingRequests) != 2 {
 		t.Fatalf("impact with campaigns:send: %+v", withSend)
 	}
-	pr := withSend.PendingRequests[0]
+	var pr, post struct {
+		Requester, Subject string
+		StillMatches       []string
+	}
+	for _, r := range withSend.PendingRequests {
+		if r.Subject == "November Product Update" {
+			pr = r
+		} else {
+			post = r
+		}
+	}
 	if pr.Requester != "Daniel Park" || pr.Subject != "November Product Update" || slices.Contains(pr.StillMatches, "author lacks send") || !slices.Contains(pr.StillMatches, "audience ≥ 10,000") {
 		t.Fatalf("pending request: %+v", pr)
 	}
+	if post.Requester != "Daniel Park" || post.Subject != "Q4 roadmap deep dive" || !slices.Contains(post.StillMatches, "author lacks publish") {
+		t.Fatalf("pending post request: %+v", post)
+	}
 	c.Do("POST", ws+"/roles/impact", map[string]any{"roleId": cwID, "permissions": cw}).MustStatus(t, 200).JSON(t, &same)
-	if len(same.PendingRequests) != 1 || !slices.Contains(same.PendingRequests[0].StillMatches, "author lacks send") {
+	if len(same.PendingRequests) != 2 || !slices.ContainsFunc(same.PendingRequests, func(r struct {
+		Requester, Subject string
+		StillMatches       []string
+	}) bool {
+		return slices.Contains(r.StillMatches, "author lacks send")
+	}) {
 		t.Fatalf("impact unchanged: %+v", same)
+	}
+	var withPublish impact
+	c.Do("POST", ws+"/roles/impact", map[string]any{"roleId": cwID, "permissions": append(slices.Clone(cw), "website:publish")}).MustStatus(t, 200).JSON(t, &withPublish)
+	for _, r := range withPublish.PendingRequests {
+		if r.Subject == "Q4 roadmap deep dive" && len(r.StillMatches) != 0 {
+			t.Fatalf("website:publish settles the post's request: %+v", r)
+		}
 	}
 
 	// Daniel Park, the Content Writer, gets them through his role.

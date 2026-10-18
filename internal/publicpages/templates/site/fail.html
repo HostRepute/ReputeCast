@@ -1,1 +1,2 @@
-{{define "site-main"}}<main id="main"><div class="st-w st-sec"><h1 class="st-h2">{{.Title}}</h1></div></main>{{end}}
+{{/* The site's error page: nothing about the reader or the post shows. */}}
+{{define "site-main"}}{{with .Body}}<main id="main" class="st-fail"><div class="in">{{template "site-alert"}}<h1>{{.Heading}}</h1><p class="lead">{{.Text}}</p><div class="st-row2">{{range .Actions}}<a href="{{.Href}}" class="{{if .Primary}}st-btn lg{{else}}st-btn2 lg{{end}}">{{.Label}}</a>{{end}}</div></div></main>{{end}}{{end}}
