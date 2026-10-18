@@ -221,6 +221,192 @@ type Querier interface {
 	ClearSegmentMembers(ctx context.Context, segmentID uuid.UUID) error
 	ClearSignInThrottle(ctx context.Context, email string) error
 	ClearUserLockout(ctx context.Context, id uuid.UUID) error
+	// The skip rule: the contact got an email from an abandoned-cart flow
+	// (one started by abandoned checkouts) since a time.
+	CommerceAbandonedCartEmailedSince(ctx context.Context, arg CommerceAbandonedCartEmailedSinceParams) (bool, error)
+	// Live automations started by abandoned checkouts.
+	CommerceAbandonedFlows(ctx context.Context) ([]CommerceAbandonedFlowsRow, error)
+	CommerceActivity(ctx context.Context, arg CommerceActivityParams) ([]StoreActivity, error)
+	// ── Activity ────────────────────────────────────────────────────────────
+	CommerceActivityInsert(ctx context.Context, arg CommerceActivityInsertParams) error
+	CommerceActivityPurge(ctx context.Context, before time.Time) (int64, error)
+	// One automation's credited orders since a time (the goal node's numbers).
+	CommerceAutomationGoalRevenue(ctx context.Context, arg CommerceAutomationGoalRevenueParams) (CommerceAutomationGoalRevenueRow, error)
+	// Credited store orders per automation since a time (the automations list).
+	CommerceAutomationRevenue(ctx context.Context, arg CommerceAutomationRevenueParams) ([]CommerceAutomationRevenueRow, error)
+	// A campaign's credited store orders, per store (the report's rows).
+	CommerceCampaignRevenue(ctx context.Context, arg CommerceCampaignRevenueParams) ([]CommerceCampaignRevenueRow, error)
+	CommerceCheckoutByID(ctx context.Context, id uuid.UUID) (StoreCheckout, error)
+	// An order completed its checkout: by its token, or (WooCommerce, Shopify
+	// without the token) the contact's open checkouts from before it.
+	CommerceCheckoutComplete(ctx context.Context, arg CommerceCheckoutCompleteParams) ([]uuid.UUID, error)
+	// An automation's abandoned-checkout numbers since it went live.
+	CommerceCheckoutEntries(ctx context.Context, automationID uuid.UUID) ([]CommerceCheckoutEntriesRow, error)
+	CommerceCheckoutEntry(ctx context.Context, arg CommerceCheckoutEntryParams) error
+	// The store's abandoned checkouts since a time: all, with an email.
+	CommerceCheckoutStats(ctx context.Context, arg CommerceCheckoutStatsParams) (CommerceCheckoutStatsRow, error)
+	// ── Checkouts ───────────────────────────────────────────────────────────
+	CommerceCheckoutUpsert(ctx context.Context, arg CommerceCheckoutUpsertParams) (StoreCheckout, error)
+	// Checkouts of a store with no order after the delay, created since a
+	// time, that an automation hasn't looked at yet.
+	CommerceCheckoutsAbandoned(ctx context.Context, arg CommerceCheckoutsAbandonedParams) ([]StoreCheckout, error)
+	// ── Attribution ─────────────────────────────────────────────────────────
+	// The email a click token names: its contact and campaign or automation step.
+	CommerceClickMessage(ctx context.Context, id uuid.UUID) (CommerceClickMessageRow, error)
+	// When a message's link was clicked last before a time (a click token's
+	// click, when the token carries no time).
+	CommerceClickTime(ctx context.Context, arg CommerceClickTimeParams) (time.Time, error)
+	// ── Collections and products ────────────────────────────────────────────
+	CommerceCollectionUpsert(ctx context.Context, arg CommerceCollectionUpsertParams) error
+	// Collections with their live product counts (products not removed).
+	CommerceCollections(ctx context.Context, storeID uuid.UUID) ([]CommerceCollectionsRow, error)
+	CommerceConsentInsert(ctx context.Context, arg CommerceConsentInsertParams) error
+	// ── Contacts the sync needs ─────────────────────────────────────────────
+	CommerceContactByEmail(ctx context.Context, arg CommerceContactByEmailParams) (CommerceContactByEmailRow, error)
+	// Whether the contact ordered in the store before this order.
+	CommerceContactHasOrder(ctx context.Context, arg CommerceContactHasOrderParams) (bool, error)
+	CommerceContactInsert(ctx context.Context, arg CommerceContactInsertParams) (uuid.UUID, error)
+	// A contact's store orders, newest first, with the email they were
+	// credited to.
+	CommerceContactOrders(ctx context.Context, arg CommerceContactOrdersParams) ([]CommerceContactOrdersRow, error)
+	CommerceContactStoreCustomers(ctx context.Context, arg CommerceContactStoreCustomersParams) ([]CommerceContactStoreCustomersRow, error)
+	// ── Customers ───────────────────────────────────────────────────────────
+	CommerceCustomer(ctx context.Context, arg CommerceCustomerParams) (StoreCustomer, error)
+	CommerceCustomerByContact(ctx context.Context, contactID *uuid.UUID) ([]StoreCustomer, error)
+	// The store page's consent numbers.
+	CommerceCustomerStats(ctx context.Context, storeID uuid.UUID) (CommerceCustomerStatsRow, error)
+	CommerceCustomerToldStore(ctx context.Context, arg CommerceCustomerToldStoreParams) error
+	CommerceCustomerUpsert(ctx context.Context, arg CommerceCustomerUpsertParams) (StoreCustomer, error)
+	CommerceDeleteStoreCheckouts(ctx context.Context, storeID uuid.UUID) error
+	CommerceDeleteStoreCollections(ctx context.Context, storeID uuid.UUID) error
+	CommerceDeleteStoreCustomers(ctx context.Context, storeID uuid.UUID) error
+	// ── Purges and data deletion ────────────────────────────────────────────
+	// "Delete store data": products, orders, checkouts and customers go; the
+	// contacts the store added stay, with their consent.
+	CommerceDeleteStoreData(ctx context.Context, storeID uuid.UUID) error
+	CommerceDeleteStoreOrders(ctx context.Context, storeID uuid.UUID) error
+	CommerceEmitEvent(ctx context.Context, arg CommerceEmitEventParams) error
+	CommerceEvent(ctx context.Context, id uuid.UUID) (StoreEvent, error)
+	CommerceEventDone(ctx context.Context, arg CommerceEventDoneParams) error
+	// ── Raw events ──────────────────────────────────────────────────────────
+	CommerceEventInsert(ctx context.Context, arg CommerceEventInsertParams) (uuid.UUID, error)
+	// Events not applied two minutes after they arrived (the recovery sweep).
+	CommerceEventsPending(ctx context.Context, before time.Time) ([]uuid.UUID, error)
+	CommerceEventsPurge(ctx context.Context, before time.Time) (int64, error)
+	CommerceEventsRejected(ctx context.Context, arg CommerceEventsRejectedParams) (int64, error)
+	// When an automation's live version was published.
+	CommerceFlowLiveSince(ctx context.Context, arg CommerceFlowLiveSinceParams) (*time.Time, error)
+	// Joins the store's list. A contact who left the list stays out, unless
+	// the store's consent is newer than their leaving (a new opt-in).
+	CommerceJoinList(ctx context.Context, arg CommerceJoinListParams) (int64, error)
+	// The contact's last human click on a campaign or automation email within
+	// the window before the order.
+	CommerceLastClick(ctx context.Context, arg CommerceLastClickParams) (CommerceLastClickRow, error)
+	CommerceLeaveList(ctx context.Context, arg CommerceLeaveListParams) (int64, error)
+	CommerceListByName(ctx context.Context, arg CommerceListByNameParams) (uuid.UUID, error)
+	CommerceListCreate(ctx context.Context, arg CommerceListCreateParams) error
+	CommerceListName(ctx context.Context, id uuid.UUID) (string, error)
+	// The lists the customers can join, with their subscribed count.
+	CommerceLists(ctx context.Context, workspaceID uuid.UUID) ([]CommerceListsRow, error)
+	// Active members with their role's permissions (who can help, who to tell).
+	CommerceMembers(ctx context.Context, workspaceID uuid.UUID) ([]CommerceMembersRow, error)
+	CommerceMembership(ctx context.Context, arg CommerceMembershipParams) (CommerceMembershipRow, error)
+	// ── Orders ──────────────────────────────────────────────────────────────
+	CommerceOrder(ctx context.Context, arg CommerceOrderParams) (StoreOrder, error)
+	CommerceOrderAttribute(ctx context.Context, arg CommerceOrderAttributeParams) error
+	CommerceOrderByID(ctx context.Context, id uuid.UUID) (StoreOrder, error)
+	CommerceOrderCount(ctx context.Context, storeID uuid.UUID) (int64, error)
+	CommerceOrderDelete(ctx context.Context, arg CommerceOrderDeleteParams) error
+	CommerceOrderRefund(ctx context.Context, arg CommerceOrderRefundParams) error
+	// Inserts an order, or updates it when the version is newer. inserted
+	// says which (the first time an order is seen starts its triggers).
+	CommerceOrderUpsert(ctx context.Context, arg CommerceOrderUpsertParams) (CommerceOrderUpsertRow, error)
+	// Imported orders not matched yet (the first import's last phase).
+	CommerceOrdersToMatch(ctx context.Context, arg CommerceOrdersToMatchParams) ([]CommerceOrdersToMatchRow, error)
+	CommercePauseFlow(ctx context.Context, arg CommercePauseFlowParams) (int64, error)
+	CommerceProductCount(ctx context.Context, storeID uuid.UUID) (int64, error)
+	CommerceProductRemoved(ctx context.Context, arg CommerceProductRemovedParams) (int64, error)
+	// An older version of a product than the one stored is ignored (events
+	// that arrive out of order).
+	CommerceProductUpsert(ctx context.Context, arg CommerceProductUpsertParams) (uuid.UUID, error)
+	// The catalog for the picker: products not removed, newest first,
+	// optionally one collection's, optionally matching a search.
+	CommerceProducts(ctx context.Context, arg CommerceProductsParams) ([]StoreProduct, error)
+	// Products by id, removed ones included (blocks flag those).
+	CommerceProductsByExternal(ctx context.Context, arg CommerceProductsByExternalParams) ([]StoreProduct, error)
+	// The newest products of a collection (the product grid's "Newest from a
+	// collection").
+	CommerceProductsNewest(ctx context.Context, arg CommerceProductsNewestParams) ([]StoreProduct, error)
+	// After a full product read: products the store no longer has.
+	CommerceProductsRemoveMissing(ctx context.Context, arg CommerceProductsRemoveMissingParams) ([]CommerceProductsRemoveMissingRow, error)
+	// A store's credited orders in a period by campaign or automation.
+	CommerceRevenueByEmail(ctx context.Context, arg CommerceRevenueByEmailParams) ([]CommerceRevenueByEmailRow, error)
+	CommerceStore(ctx context.Context, arg CommerceStoreParams) (Store, error)
+	CommerceStoreByAddress(ctx context.Context, arg CommerceStoreByAddressParams) (Store, error)
+	CommerceStoreByID(ctx context.Context, id uuid.UUID) (Store, error)
+	CommerceStoreByState(ctx context.Context, oauthState *string) (Store, error)
+	CommerceStoreByToken(ctx context.Context, webhookToken *string) (Store, error)
+	CommerceStoreDelete(ctx context.Context, id uuid.UUID) error
+	CommerceStoreDisconnected(ctx context.Context, arg CommerceStoreDisconnectedParams) error
+	// Live and paused automations started by a store's triggers.
+	CommerceStoreFlows(ctx context.Context, arg CommerceStoreFlowsParams) ([]CommerceStoreFlowsRow, error)
+	CommerceStoreForUpdate(ctx context.Context, arg CommerceStoreForUpdateParams) (Store, error)
+	CommerceStoreHealthChecked(ctx context.Context, arg CommerceStoreHealthCheckedParams) error
+	CommerceStoreImportDone(ctx context.Context, arg CommerceStoreImportDoneParams) error
+	CommerceStoreInsert(ctx context.Context, arg CommerceStoreInsertParams) (Store, error)
+	CommerceStoreInstalled(ctx context.Context, arg CommerceStoreInstalledParams) error
+	// How the orders were matched, every order.
+	CommerceStoreMatchedAll(ctx context.Context, storeID uuid.UUID) (CommerceStoreMatchedAllRow, error)
+	CommerceStoreNotified(ctx context.Context, arg CommerceStoreNotifiedParams) error
+	CommerceStoreProgress(ctx context.Context, arg CommerceStoreProgressParams) error
+	CommerceStoreRateLimited(ctx context.Context, arg CommerceStoreRateLimitedParams) error
+	CommerceStoreReconciled(ctx context.Context, arg CommerceStoreReconciledParams) error
+	// Reconnecting a store whose import was done before: no new first import;
+	// orders placed in the meantime are fetched by the reconciliation.
+	CommerceStoreReconnected(ctx context.Context, arg CommerceStoreReconnectedParams) (Store, error)
+	// Connecting a store again (after a disconnect): its data is kept.
+	CommerceStoreRestart(ctx context.Context, arg CommerceStoreRestartParams) (Store, error)
+	// The store refused the credentials: Disconnected, with Reconnect.
+	CommerceStoreRevoked(ctx context.Context, arg CommerceStoreRevokedParams) (Store, error)
+	CommerceStoreSetCredentials(ctx context.Context, arg CommerceStoreSetCredentialsParams) error
+	CommerceStoreSetKeys(ctx context.Context, arg CommerceStoreSetKeysParams) error
+	CommerceStoreSetPlugin(ctx context.Context, arg CommerceStoreSetPluginParams) error
+	CommerceStoreSetSettings(ctx context.Context, arg CommerceStoreSetSettingsParams) (Store, error)
+	CommerceStoreSetState(ctx context.Context, arg CommerceStoreSetStateParams) error
+	CommerceStoreSetStep(ctx context.Context, arg CommerceStoreSetStepParams) error
+	CommerceStoreSetWebhookSecret(ctx context.Context, arg CommerceStoreSetWebhookSecretParams) error
+	// Step 5 / finishing: what syncs, then the first import starts.
+	CommerceStoreStartSync(ctx context.Context, arg CommerceStoreStartSyncParams) (Store, error)
+	// ── Numbers ─────────────────────────────────────────────────────────────
+	// A store's orders and revenue in a period, and the part credited to email.
+	CommerceStoreTotals(ctx context.Context, arg CommerceStoreTotalsParams) (CommerceStoreTotalsRow, error)
+	CommerceStoreTouchEvent(ctx context.Context, arg CommerceStoreTouchEventParams) error
+	// Shopify and WooCommerce stores (internal/commerce): connections, what
+	// they sync, webhooks and raw events, the activity log, attribution and
+	// the abandoned checkouts the automations watch.
+	// ── Stores ──────────────────────────────────────────────────────────────
+	CommerceStores(ctx context.Context, workspaceID uuid.UUID) ([]Store, error)
+	// Stores to watch: connected (or importing), not the demo's.
+	CommerceStoresActive(ctx context.Context) ([]Store, error)
+	// Stores installing or installed on a Shopify domain (the app URL).
+	CommerceStoresByDomain(ctx context.Context, domain string) ([]Store, error)
+	// Connected stores of a workspace (links to tag, triggers, blocks).
+	CommerceStoresConnected(ctx context.Context, workspaceID uuid.UUID) ([]Store, error)
+	// Contacts who left the store's list, or every list, since a time: the
+	// unsubscribes to tell the store about (write-back). Leaving that the
+	// store itself caused (source store:…) is left out.
+	CommerceUnsubscribesSince(ctx context.Context, arg CommerceUnsubscribesSinceParams) ([]CommerceUnsubscribesSinceRow, error)
+	CommerceUserName(ctx context.Context, id uuid.UUID) (string, error)
+	CommerceWebhookEvent(ctx context.Context, arg CommerceWebhookEventParams) error
+	CommerceWebhookMissing(ctx context.Context, arg CommerceWebhookMissingParams) error
+	CommerceWebhookPolled(ctx context.Context, arg CommerceWebhookPolledParams) error
+	CommerceWebhookUpsert(ctx context.Context, arg CommerceWebhookUpsertParams) error
+	// ── Webhooks ────────────────────────────────────────────────────────────
+	CommerceWebhooks(ctx context.Context, storeID uuid.UUID) ([]StoreWebhook, error)
+	CommerceWebhooksClear(ctx context.Context, storeID uuid.UUID) error
+	// Every connected store's orders and credited revenue in a period (the
+	// Earn overview's card).
+	CommerceWorkspaceRevenue(ctx context.Context, arg CommerceWorkspaceRevenueParams) (CommerceWorkspaceRevenueRow, error)
 	// Every installed community adapter, any kind: the runtime registers the
 	// kinds it runs, and registry keys must not collide across kinds.
 	CommunityAdapterList(ctx context.Context) ([]CommunityAdapterListRow, error)

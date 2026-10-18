@@ -59,7 +59,11 @@ type Service struct {
 	// Placement resolves the links of placement test copies, whose opens
 	// and clicks are never counted (internal/placement).
 	Placement PlacementLinks
-	Now       func() time.Time
+	// Decorators may add parameters to a click's destination: links to a
+	// connected store get UTM parameters and the click token
+	// (internal/commerce).
+	Decorators []LinkDecorator
+	Now        func() time.Time
 
 	once  sync.Once
 	in    chan *pending
@@ -105,6 +109,24 @@ func (s *Service) log() *slog.Logger {
 type TransactionalTracking interface {
 	TrackedLink(ctx context.Context, q *store.Queries, messageID uuid.UUID, position int) (string, bool)
 	Engagement(ctx context.Context, tx pgx.Tx, messageID uuid.UUID, click bool, at time.Time) error
+}
+
+// LinkDecorator may rewrite a click's destination before the redirect.
+// It runs on every click, so it must answer fast (cache what it reads).
+type LinkDecorator interface {
+	Decorate(ctx context.Context, c ClickedLink) string
+}
+
+// ClickedLink is a click about to be redirected: the message's email and
+// the destination.
+type ClickedLink struct {
+	WorkspaceID  uuid.UUID
+	MessageID    uuid.UUID
+	ContactID    *uuid.UUID
+	CampaignID   *uuid.UUID
+	AutomationID *uuid.UUID
+	Target       string
+	At           time.Time
 }
 
 // PlacementLinks resolves a placement test copy's tracked links.
@@ -162,12 +184,19 @@ func (s *Service) click(w http.ResponseWriter, r *http.Request) {
 		gone(w)
 		return
 	}
-	target, err := s.target(r.Context(), c)
+	target, m, err := s.targetOf(r.Context(), c)
 	if err != nil || target == "" {
 		gone(w)
 		return
 	}
-	ev := sending.Engagement{MessageID: c.MessageID, Click: true, Link: int(c.Link), UserAgent: r.UserAgent(), IP: clientIP(r), Method: r.Method, At: s.now()}
+	at := s.now()
+	if m != nil && m.Kind != placementKind {
+		for _, d := range s.Decorators {
+			target = d.Decorate(r.Context(), ClickedLink{WorkspaceID: m.WorkspaceID, MessageID: m.ID, ContactID: m.ContactID,
+				CampaignID: m.CampaignID, AutomationID: m.AutomationID, Target: target, At: at})
+		}
+	}
+	ev := sending.Engagement{MessageID: c.MessageID, Click: true, Link: int(c.Link), UserAgent: r.UserAgent(), IP: clientIP(r), Method: r.Method, At: at}
 	ctx, cancel := context.WithTimeout(r.Context(), 150*time.Millisecond)
 	if err := s.enqueue(ctx, ev); err != nil && !errors.Is(err, context.DeadlineExceeded) {
 		s.log().WarnContext(r.Context(), "record click", "err", err)
@@ -185,14 +214,20 @@ func gone(w http.ResponseWriter) {
 	_, _ = w.Write([]byte("This link is no longer valid. If you copied it, check that the whole address came along.\n"))
 }
 
-// target resolves a click token to the original link: only the links of
-// that message's email, personalized for its contact when they contain
-// Liquid, and only http(s) URLs.
-func (s *Service) target(ctx context.Context, c linktoken.Claims) (string, error) {
+// targetOf resolves a click token to the original link and the message.
+func (s *Service) targetOf(ctx context.Context, c linktoken.Claims) (string, *store.TrackingMessageRow, error) {
 	m, err := s.Q.TrackingMessage(ctx, c.MessageID)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
+	t, err := s.resolve(ctx, c, m)
+	return t, &m, err
+}
+
+// resolve finds the original link of a click: only the links of that
+// message's email, personalized for its contact when they contain Liquid,
+// and only http(s) URLs.
+func (s *Service) resolve(ctx context.Context, c linktoken.Claims, m store.TrackingMessageRow) (string, error) {
 	if m.WorkspaceID != c.WorkspaceID {
 		return "", errors.New("token workspace mismatch")
 	}
