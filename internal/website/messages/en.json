@@ -1,0 +1,21 @@
+{
+  "post.notFound": "That post doesn't exist any more. It may have been deleted.",
+  "tag.notFound": "That tag doesn't exist any more.",
+
+  "site.skip": { "message": "Skip to content", "note": "the first link of every page of the website, for keyboard users" },
+  "site.homeLabel": { "message": "{title}, home", "note": "names the logo link in the site's header; title: the site's title" },
+  "site.nav": { "message": "Site", "note": "names the header navigation for screen readers" },
+  "site.footerNav": { "message": "Footer", "note": "names the footer's links for screen readers" },
+  "site.menu": { "message": "Menu", "note": "the button that opens the navigation on phones" },
+  "site.signIn": "Sign in",
+  "site.subscribe": "Subscribe",
+  "site.accountLabel": { "message": "Your account, signed in as {name}", "note": "names the member's pill in the header" },
+  "site.archive": "Archive",
+  "site.rss": "RSS",
+  "site.privacy": { "message": "Privacy", "note": "the footer link to the publisher's privacy policy" },
+  "site.preferences": "Email preferences",
+  "site.poweredBy": "Sent with ReputeCast",
+  "site.copyright": { "message": "© {year} {owner}.", "note": "the footer's copyright after the tagline; owner: the publisher's legal name" },
+  "site.dismiss": "Dismiss",
+  "site.title": { "message": "{page} · {site}", "note": "the browser tab's title: Engineering · The Acme newsletter" }
+}

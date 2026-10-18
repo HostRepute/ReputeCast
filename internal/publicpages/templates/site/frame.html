@@ -1,0 +1,88 @@
+{{/*
+  The publication website's frame (design expansion phase 7): the document,
+  the header with the navigation, the footer and the toasts. A page of the
+  site defines "site-main" (its <main id="main">) and is rendered with
+  Handler.renderSite; pages of later phases (landing and sales pages, the
+  shop) do the same. The reading column is .st-col (680 px) inside .st-w.
+*/}}
+{{define "site"}}<!doctype html>
+<html lang="{{.Lang}}" dir="{{.Dir}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.Title}}</title>
+{{with .Description}}<meta name="description" content="{{.}}">
+{{end}}<meta name="robots" content="{{.Robots}}">
+{{with .Canonical}}<link rel="canonical" href="{{.}}">
+{{end}}{{range .Alternates}}<link rel="alternate" hreflang="{{.Lang}}" href="{{.Href}}">
+{{end}}{{with .OG}}<meta property="og:type" content="{{.Type}}">
+<meta property="og:site_name" content="{{.SiteName}}">
+<meta property="og:title" content="{{.Title}}">
+{{with .Description}}<meta property="og:description" content="{{.}}">
+{{end}}<meta property="og:url" content="{{.URL}}">
+{{with .Image}}<meta property="og:image" content="{{.}}">
+{{end}}{{with .Published}}<meta property="article:published_time" content="{{.}}">
+{{end}}<meta name="twitter:card" content="{{if .Image}}summary_large_image{{else}}summary{{end}}">
+<meta name="twitter:title" content="{{.Title}}">
+{{with .Description}}<meta name="twitter:description" content="{{.}}">
+{{end}}{{end}}{{range .Feeds}}<link rel="alternate" type="application/rss+xml" title="{{.Title}}" href="{{.Href}}">
+{{end}}<link rel="stylesheet" href="{{.CSS}}">
+<link rel="stylesheet" href="{{.Theme}}">
+{{with .Icon}}<link rel="icon" href="{{.}}">
+{{end}}{{range .JSONLD}}<script type="application/ld+json">{{.}}</script>
+{{end}}{{range .Scripts}}<script src="{{.}}" defer></script>
+{{end}}</head>
+<body{{if .Preview}} class="preview" inert{{end}}>
+<a href="#main" class="skip">{{.T "site.skip"}}</a>
+<div class="st">
+{{template "site-header" .}}
+{{template "site-main" .}}
+{{template "site-footer" .}}
+{{template "site-toasts" .}}
+</div>
+</body>
+</html>
+{{end}}
+
+{{define "site-mark"}}{{if .Brand.Logo}}<span class="st-mark logo"><img src="{{.Brand.Logo}}" alt="" width="36" height="36"></span>{{else}}<span class="st-mark" aria-hidden="true">{{.Brand.Initial}}</span>{{end}}{{end}}
+
+{{define "site-header"}}<header class="st-hd"><div class="st-w st-hdi">
+<a href="{{.Href.Home}}" class="st-brand" aria-label="{{.T "site.homeLabel" "title" .Frame.Title}}">{{template "site-mark" .}}<span class="full">{{.Frame.Title}}</span><span class="short">{{.Frame.Short}}</span></a>
+{{- if .Frame.On}}
+<nav class="st-nav" aria-label="{{.T "site.nav"}}">{{range .Nav}}<a href="{{.Href}}"{{if .Current}} aria-current="page"{{end}}>{{.Label}}</a>{{end}}</nav>
+<div class="st-act">
+{{- if .Member}}<a href="{{.Href.Subscribe}}" class="st-btn">{{.T "site.subscribe"}}</a><a href="{{.Href.Account}}" class="st-me" aria-label="{{.T "site.accountLabel" "name" .Member.Name}}"><span class="st-av s30 {{.Member.Color}}" aria-hidden="true">{{.Member.Initials}}</span><span class="nm">{{.Member.First}}</span></a>
+{{- else}}{{if .Frame.SigninOn}}<a href="{{.Href.Signin}}" class="st-btn2 st-signin">{{.T "site.signIn"}}</a>{{end}}<a href="{{.Href.Subscribe}}" class="st-btn">{{.T "site.subscribe"}}</a>{{end}}
+{{- if .Nav}}<details class="st-menu"><summary aria-label="{{.T "site.menu"}}"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"></path></svg></summary><nav class="st-drop" aria-label="{{.T "site.nav"}}">{{range .Nav}}<a href="{{.Href}}"{{if .Current}} aria-current="page"{{end}}>{{.Label}}</a>{{end}}</nav></details>{{end}}
+</div>
+{{- end}}
+</div></header>{{end}}
+
+{{define "site-footer"}}<footer class="st-ft"><div class="st-w st-fti"><div class="st-ftb"><span class="st-brand">{{if .Brand.Logo}}<span class="st-mark logo"><img src="{{.Brand.Logo}}" alt="" width="30" height="30"></span>{{else}}<span class="st-mark" aria-hidden="true">{{.Brand.Initial}}</span>{{end}}{{.Frame.Title}}</span><span class="st-k">{{with .Frame.Tagline}}{{.}} {{end}}{{.T "site.copyright" "year" .Year "owner" .Owner}}</span></div>
+<nav class="st-ftl" aria-label="{{.T "site.footerNav"}}">
+{{- if .Frame.On}}{{if .Frame.Footer.Archive}}<a href="{{.Href.Archive}}">{{.T "site.archive"}}</a>{{end}}{{if .Frame.Footer.RSS}}<a href="{{.Href.Feed}}" class="st-rc"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11a2 2 0 1 1 0 .01M3 7a6 6 0 0 1 6 6M3 3a10 10 0 0 1 10 10"></path></svg>{{.T "site.rss"}}</a>{{end}}{{end}}
+{{- with .Href.Privacy}}<a href="{{.}}">{{$.T "site.privacy"}}</a>{{end}}
+{{- if or (not .Frame.On) .Frame.Footer.Preferences}}<a href="{{.Href.Preferences}}">{{.T "site.preferences"}}</a>{{end}}
+{{- if .PoweredBy}}<a href="{{.Landing}}" class="st-rc"><svg width="14" height="14" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>{{.T "site.poweredBy"}}</a>{{end}}
+{{- with .Menu}}<span class="langs">{{range $i, $l := .}}{{if $i}}<span aria-hidden="true">·</span>{{end}}<a href="{{$l.Href}}" lang="{{$l.Code}}" hreflang="{{$l.Code}}"{{if $l.Current}} aria-current="true"{{end}}>{{$l.Name}}</a>{{end}}</span>{{end}}
+</nav></div></footer>{{end}}
+
+{{define "site-toasts"}}<div class="st-toasts" role="status" aria-live="polite">{{with .Toast}}<div class="st-toast"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg><span class="t">{{.}}</span><a class="x" href="{{$.Href.Self}}" aria-label="{{$.T "site.dismiss"}}">×</a></div>{{end}}</div>{{end}}
+
+{{/* A post's visibility label: "Insider" with a star, "Members" with a person. Never a lock. */}}
+{{define "site-label"}}{{if eq .Kind "paid"}}<span class="st-lb ins"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 1.8 1.9 3.9 4.3.6-3.1 3 .7 4.3L8 11.6l-3.8 2 .7-4.3-3.1-3 4.3-.6z"></path></svg>{{.Text}}</span>{{else if eq .Kind "members"}}<span class="st-lb mem"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="5.5" r="2.8"></circle><path d="M2.5 14a5.5 5.5 0 0 1 11 0"></path></svg>{{.Text}}</span>{{end}}{{end}}
+
+{{define "site-star"}}<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 1.8 1.9 3.9 4.3.6-3.1 3 .7 4.3L8 11.6l-3.8 2 .7-4.3-3.1-3 4.3-.6z"></path></svg>{{end}}
+{{define "site-person"}}<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="5.5" r="2.8"></circle><path d="M2.5 14a5.5 5.5 0 0 1 11 0"></path></svg>{{end}}
+{{define "site-check"}}<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg>{{end}}
+{{define "site-alert"}}<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M8 4.8v3.6M8 11.2v.01"></path></svg>{{end}}
+{{define "site-search"}}<svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7" cy="7" r="4.6"></circle><path d="m10.5 10.5 3.2 3.2"></path></svg>{{end}}
+
+{{/* A post's meta line: date, tag and label (date first in lists, tag first on cards). */}}
+{{define "site-meta"}}<div class="st-meta">{{if .DateFirst}}<span class="dl"><time datetime="{{.ISO}}">{{.Date}}</time></span><span class="ds">{{.Short}}</span>{{with .Tag}}<span class="sep" aria-hidden="true">·</span><span class="st-tag">{{.}}</span>{{end}}{{template "site-label" .Label}}{{else}}{{with .Tag}}<span class="st-tag">{{.}}</span>{{end}}{{template "site-label" .Label}}{{if .Tag}}<span class="sep" aria-hidden="true">·</span>{{end}}<span><time datetime="{{.ISO}}">{{.Date}}</time></span>{{end}}</div>{{end}}
+
+{{/* A cover: the post's image in the box of its place (feature, row, card). */}}
+{{define "site-cover"}}{{if .Src}}<img class="st-img {{.Class}}" src="{{.Src}}" alt="{{.Alt}}" loading="lazy" decoding="async"{{with .Width}} width="{{.}}"{{end}}{{with .Height}} height="{{.}}"{{end}}>{{else}}<span class="st-img blank {{.Class}}" aria-hidden="true"></span>{{end}}{{end}}
+
+{{/* The subscribe form of the site: one email field, the button, posting to the subscribe page. */}}
+{{define "site-subform"}}<form class="{{.Class}}" method="post" action="{{.Action}}" novalidate><input type="hidden" name="step" value="prefill">{{with .Page}}<input type="hidden" name="_page" value="{{.}}">{{end}}<label class="vh" for="{{.ID}}">{{.EmailLabel}}</label><input id="{{.ID}}" class="st-in lg" type="email" name="email" placeholder="{{.Placeholder}}" autocomplete="email" required><button class="st-btn lg" type="submit"{{if .Disabled}} disabled{{end}}>{{.Button}}</button></form>{{end}}
