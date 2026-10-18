@@ -141,6 +141,7 @@ func FillBatch(ctx context.Context, providers []RecipientData, workspaceID uuid.
 	if len(recipients) == 0 {
 		return out
 	}
+	ctx = context.WithValue(ctx, sourceKey{}, src)
 	for _, d := range providers {
 		roots := UsedRoots(d, src)
 		if len(roots) == 0 {
@@ -166,4 +167,14 @@ func Fill(ctx context.Context, providers []RecipientData, workspaceID uuid.UUID,
 		return vars
 	}
 	return Merge(vars, FillBatch(ctx, providers, workspaceID, []Recipient{r}, src)[r.ContactID])
+}
+
+type sourceKey struct{}
+
+// SourceFrom is the template a RecipientData provider is filling in
+// (FillBatch passes it along), for providers whose variables depend on
+// how blocks were set up (the Recommendations block's picks).
+func SourceFrom(ctx context.Context) string {
+	s, _ := ctx.Value(sourceKey{}).(string)
+	return s
 }

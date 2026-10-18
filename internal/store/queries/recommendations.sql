@@ -148,7 +148,7 @@ UPDATE partner_links SET remote_name = @remote_name, remote_description = @remot
 WHERE id = @id;
 
 -- name: PartnerLinkRotate :exec
-UPDATE partner_links SET prev_secret = secret, prev_secret_until = @until::timestamptz, secret = @secret, secret_rotated_at = @now::timestamptz,
+UPDATE partner_links SET prev_secret = @prev_secret, prev_secret_until = @until::timestamptz, secret = @secret, secret_rotated_at = @now::timestamptz,
        last_rotation = @rotation, updated_at = @now::timestamptz
 WHERE id = @id;
 

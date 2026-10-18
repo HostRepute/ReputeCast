@@ -7118,6 +7118,34 @@
         ],
         "type": "object"
       },
+      "BlockHiddenRec": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "initials": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "pausedBy": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "initials",
+          "state",
+          "pausedBy"
+        ],
+        "type": "object"
+      },
       "BlockInput": {
         "additionalProperties": false,
         "properties": {
@@ -7130,6 +7158,37 @@
             "maxLength": 32,
             "type": "string"
           }
+        },
+        "type": "object"
+      },
+      "BlockRender": {
+        "additionalProperties": false,
+        "properties": {
+          "hidden": {
+            "items": {
+              "$ref": "#/components/schemas/BlockHiddenRec"
+            },
+            "type": "array"
+          },
+          "html": {
+            "type": "string"
+          },
+          "shows": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "html",
+          "shows",
+          "hidden"
+        ],
+        "type": "object"
+      },
+      "BlockRenderInput": {
+        "additionalProperties": false,
+        "properties": {
+          "settings": {}
         },
         "type": "object"
       },
@@ -28274,6 +28333,294 @@
         ],
         "type": "object"
       },
+      "PartnerCodeCreated": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "dailyLimit": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "listName": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "url",
+          "label",
+          "listName",
+          "dailyLimit",
+          "createdAt",
+          "expiresAt"
+        ],
+        "type": "object"
+      },
+      "PartnerCodeInput": {
+        "additionalProperties": false,
+        "properties": {
+          "dailyLimit": {
+            "format": "int64",
+            "maximum": 100000,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "label": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "listId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "listId",
+          "dailyLimit"
+        ],
+        "type": "object"
+      },
+      "PartnerCodeItem": {
+        "additionalProperties": false,
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "dailyLimit": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "listName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "listName",
+          "dailyLimit",
+          "createdAt",
+          "createdBy",
+          "expiresAt"
+        ],
+        "type": "object"
+      },
+      "PartnerCodeText": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "maxLength": 500,
+            "type": "string"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "type": "object"
+      },
+      "PartnerConnectInput": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "showBlock": {
+            "type": "boolean"
+          },
+          "showConfirm": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "code",
+          "showConfirm",
+          "showBlock"
+        ],
+        "type": "object"
+      },
+      "PartnerLimitInput": {
+        "additionalProperties": false,
+        "properties": {
+          "dailyLimit": {
+            "format": "int64",
+            "maximum": 100000,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "dailyLimit"
+        ],
+        "type": "object"
+      },
+      "PartnerPreview": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "dailyLimit": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "description": {
+            "type": "string"
+          },
+          "doubleOptIn": {
+            "type": "boolean"
+          },
+          "initials": {
+            "type": "string"
+          },
+          "instance": {
+            "type": "string"
+          },
+          "list": {
+            "type": "string"
+          },
+          "logoUrl": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "description",
+          "initials",
+          "logoUrl",
+          "list",
+          "dailyLimit",
+          "doubleOptIn",
+          "instance"
+        ],
+        "type": "object"
+      },
+      "PartnerRequestItem": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "attempts": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "confirmedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "lastError": {
+            "type": "string"
+          },
+          "origin": {
+            "enum": [
+              "confirm",
+              "page",
+              "partner"
+            ],
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "queued",
+              "accepted",
+              "limit",
+              "failed",
+              "rejected",
+              "paused"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "at",
+          "status",
+          "origin",
+          "attempts",
+          "lastError"
+        ],
+        "type": "object"
+      },
+      "PartnerRequestLog": {
+        "additionalProperties": false,
+        "properties": {
+          "direction": {
+            "enum": [
+              "out",
+              "in"
+            ],
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PartnerRequestItem"
+            },
+            "type": "array"
+          },
+          "linkId": {
+            "type": "string"
+          },
+          "partner": {
+            "type": "string"
+          },
+          "total": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "linkId",
+          "partner",
+          "direction",
+          "items",
+          "total"
+        ],
+        "type": "object"
+      },
       "Passkey-registerRequest": {
         "additionalProperties": false,
         "properties": {
@@ -32159,6 +32506,540 @@
           "name",
           "recipients",
           "rate"
+        ],
+        "type": "object"
+      },
+      "RecBlockUse": {
+        "additionalProperties": false,
+        "properties": {
+          "automation": {
+            "type": "string"
+          },
+          "automationId": {
+            "type": "string"
+          },
+          "emailId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "emailId",
+          "automation",
+          "automationId",
+          "name"
+        ],
+        "type": "object"
+      },
+      "RecImage": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "url",
+          "name"
+        ],
+        "type": "object"
+      },
+      "RecLinkInput": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "logoId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "showBlock": {
+            "type": "boolean"
+          },
+          "showConfirm": {
+            "type": "boolean"
+          },
+          "url": {
+            "maxLength": 2000,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "description",
+          "url",
+          "showConfirm",
+          "showBlock"
+        ],
+        "type": "object"
+      },
+      "RecListOption": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "subscribers": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "subscribers"
+        ],
+        "type": "object"
+      },
+      "RecOrderInput": {
+        "additionalProperties": false,
+        "properties": {
+          "ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "type": "array"
+          }
+        },
+        "required": [
+          "ids"
+        ],
+        "type": "object"
+      },
+      "RecPrefill": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "found": {
+            "type": "boolean"
+          },
+          "logo": {
+            "$ref": "#/components/schemas/RecImage"
+          },
+          "name": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "name",
+          "description",
+          "found"
+        ],
+        "type": "object"
+      },
+      "RecPrefillInput": {
+        "additionalProperties": false,
+        "properties": {
+          "url": {
+            "maxLength": 2000,
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "type": "object"
+      },
+      "RecProfile": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "initials": {
+            "type": "string"
+          },
+          "instance": {
+            "type": "string"
+          },
+          "listId": {
+            "type": "string"
+          },
+          "listName": {
+            "type": "string"
+          },
+          "listSubscribers": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "logo": {
+            "$ref": "#/components/schemas/RecImage"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "description",
+          "initials",
+          "listId",
+          "listName",
+          "listSubscribers",
+          "instance"
+        ],
+        "type": "object"
+      },
+      "RecProfileInput": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "listId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "logoId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 120,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "description",
+          "listId"
+        ],
+        "type": "object"
+      },
+      "RecSettingsInput": {
+        "additionalProperties": false,
+        "properties": {
+          "confirmPage": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "confirmPage"
+        ],
+        "type": "object"
+      },
+      "RecommendationItem": {
+        "additionalProperties": false,
+        "properties": {
+          "clicks": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "confirmed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "connectedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "connectedBy": {
+            "type": "string"
+          },
+          "dailyLimit": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "description": {
+            "type": "string"
+          },
+          "hidden": {
+            "type": "boolean"
+          },
+          "host": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "initials": {
+            "type": "string"
+          },
+          "invalidReason": {
+            "enum": [
+              "signature_rejected",
+              "ended",
+              "unknown_link",
+              ""
+            ],
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "link",
+              "partner"
+            ],
+            "type": "string"
+          },
+          "limitUntil": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "linkId": {
+            "type": "string"
+          },
+          "logo": {
+            "$ref": "#/components/schemas/RecImage"
+          },
+          "name": {
+            "type": "string"
+          },
+          "pausedBy": {
+            "type": "string"
+          },
+          "position": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "requests": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "showBlock": {
+            "type": "boolean"
+          },
+          "showConfirm": {
+            "type": "boolean"
+          },
+          "shown": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "shownConfirm": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "shownEmail": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "since": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "showing",
+              "paused",
+              "connected",
+              "partner_paused",
+              "invalid",
+              "limit",
+              "unreachable",
+              "ended"
+            ],
+            "type": "string"
+          },
+          "today": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "url": {
+            "type": "string"
+          },
+          "waiting": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "name",
+          "description",
+          "initials",
+          "url",
+          "host",
+          "showConfirm",
+          "showBlock",
+          "position",
+          "state",
+          "hidden",
+          "pausedBy",
+          "invalidReason",
+          "today",
+          "dailyLimit",
+          "waiting",
+          "linkId",
+          "connectedBy",
+          "shown",
+          "shownConfirm",
+          "shownEmail",
+          "clicks",
+          "requests",
+          "confirmed"
+        ],
+        "type": "object"
+      },
+      "RecommendationsView": {
+        "additionalProperties": false,
+        "properties": {
+          "blockShows": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "blocks": {
+            "items": {
+              "$ref": "#/components/schemas/RecBlockUse"
+            },
+            "type": "array"
+          },
+          "codes": {
+            "items": {
+              "$ref": "#/components/schemas/PartnerCodeItem"
+            },
+            "type": "array"
+          },
+          "confirmPage": {
+            "type": "boolean"
+          },
+          "confirmShows": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "helpers": {
+            "$ref": "#/components/schemas/GrowHelperSets"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/RecommendationItem"
+            },
+            "type": "array"
+          },
+          "lists": {
+            "items": {
+              "$ref": "#/components/schemas/RecListOption"
+            },
+            "type": "array"
+          },
+          "pageUrl": {
+            "type": "string"
+          },
+          "profile": {
+            "$ref": "#/components/schemas/RecProfile"
+          },
+          "recommendingYou": {
+            "items": {
+              "$ref": "#/components/schemas/RecommendingYouItem"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items",
+          "recommendingYou",
+          "codes",
+          "confirmPage",
+          "confirmShows",
+          "blocks",
+          "blockShows",
+          "pageUrl",
+          "profile",
+          "lists",
+          "helpers"
+        ],
+        "type": "object"
+      },
+      "RecommendingYouItem": {
+        "additionalProperties": false,
+        "properties": {
+          "confirmed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "connectedBy": {
+            "type": "string"
+          },
+          "dailyLimit": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "instance": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "linkId": {
+            "type": "string"
+          },
+          "listName": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "pausedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "pausedBy": {
+            "type": "string"
+          },
+          "requests": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "since": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "connected",
+              "paused",
+              "partner_paused",
+              "invalid"
+            ],
+            "type": "string"
+          },
+          "today": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "linkId",
+          "name",
+          "instance",
+          "label",
+          "listName",
+          "since",
+          "connectedBy",
+          "requests",
+          "confirmed",
+          "today",
+          "dailyLimit",
+          "state",
+          "pausedBy"
         ],
         "type": "object"
       },
@@ -73953,6 +74834,73 @@
         "x-permission": "campaigns:view"
       }
     },
+    "/api/v1/workspaces/{workspace}/grow/blocks/recommendations": {
+      "post": {
+        "operationId": "render-recommendations-block",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BlockRenderInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlockRender"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Render the Recommendations block for the composer's canvas",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:view"
+      }
+    },
     "/api/v1/workspaces/{workspace}/grow/blocks/render": {
       "post": {
         "operationId": "render-grow-block",
@@ -74651,6 +75599,1226 @@
           }
         ],
         "summary": "Send a test referral.milestone_reached to a webhook reward's endpoint",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/partner-codes": {
+      "post": {
+        "operationId": "create-partner-code",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerCodeInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerCodeCreated"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Create a partner code for one newsletter (shown once, valid 7 days, works once)",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:connect"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/partner-codes/{code}": {
+      "delete": {
+        "operationId": "revoke-partner-code",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "code",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Revoke a partner code nobody has used",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:connect"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/partner-links/{link}/check": {
+      "post": {
+        "operationId": "check-partner-link",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "link",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecommendationItem"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Retry a partner's waiting requests now",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:connect"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/partner-links/{link}/end": {
+      "post": {
+        "operationId": "end-partner-link",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "link",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "End a partnership for good; reconnecting needs a new partner code",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:connect"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/partner-links/{link}/limit": {
+      "put": {
+        "operationId": "set-partner-limit",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerLimitInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Change the daily limit of a partner that recommends you",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:connect"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/partner-links/{link}/pause": {
+      "post": {
+        "operationId": "pause-partner-link",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "link",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Pause a partner link: requests stop until it resumes",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:connect"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/partner-links/{link}/requests": {
+      "get": {
+        "operationId": "get-partner-requests",
+        "parameters": [
+          {
+            "explode": false,
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "default": 1,
+              "format": "int64",
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerRequestLog"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A partner link's request log (90 days; never the addresses)",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/partner-links/{link}/resume": {
+      "post": {
+        "operationId": "resume-partner-link",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "link",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Resume a partner link this side paused",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:connect"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/partner-links/{link}/rotate": {
+      "post": {
+        "operationId": "rotate-partner-secret",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "link",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Agree a new signing secret with the partner; both work for 24 hours",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:connect"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/partners/connect": {
+      "post": {
+        "operationId": "connect-partner",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerConnectInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecommendationItem"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Connect a partner with its code: the instances agree a signing secret over HTTPS",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:connect"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/partners/preview": {
+      "post": {
+        "operationId": "preview-partner",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerCodeText"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerPreview"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Ask a partner's instance what a pasted partner code connects to",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:connect"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/recommendations": {
+      "get": {
+        "operationId": "get-recommendations",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecommendationsView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What you recommend, who recommends you, where recommendations show and your partner profile",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:view"
+      },
+      "post": {
+        "operationId": "add-link-recommendation",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecLinkInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecommendationItem"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Recommend a newsletter by its subscribe page (readers subscribe there)",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/recommendations/order": {
+      "put": {
+        "operationId": "reorder-recommendations",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecOrderInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Put the recommendations in the order readers see them",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/recommendations/prefill": {
+      "post": {
+        "operationId": "prefill-recommendation",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecPrefillInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecPrefill"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Read a subscribe page's name, description and logo (through the SSRF guard)",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/recommendations/profile": {
+      "put": {
+        "description": "Partners that recommend you get the new profile over the signed channel.",
+        "operationId": "update-partner-profile",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecProfileInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecProfile"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Change the partner profile: what partners see and show",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/recommendations/settings": {
+      "put": {
+        "operationId": "update-recommendation-settings",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecSettingsInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Show recommendations on the opt-in confirmation page, or not",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/recommendations/{recommendation}": {
+      "delete": {
+        "operationId": "remove-recommendation",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "recommendation",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Remove a recommendation (a partner's also ends its link, which needs grow:connect)",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:edit"
+      },
+      "put": {
+        "operationId": "update-recommendation",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecLinkInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecommendationItem"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Change a recommendation (a partner's: only where it shows)",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/recommendations/{recommendation}/pause": {
+      "post": {
+        "operationId": "pause-recommendation",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "recommendation",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecommendationItem"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Pause a link recommendation: hidden until resumed, numbers kept",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/recommendations/{recommendation}/resume": {
+      "post": {
+        "operationId": "resume-recommendation",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "recommendation",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecommendationItem"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Resume a paused link recommendation",
         "tags": [
           "Grow"
         ],

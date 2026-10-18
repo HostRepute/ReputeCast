@@ -1,5 +1,12 @@
 package forms
 
+import (
+	"strings"
+
+	"github.com/hostrepute/reputecast/internal/mailer"
+	"github.com/hostrepute/reputecast/internal/pagelabels"
+)
+
 // Grow's public pages (internal/referrals, internal/recommendations): the
 // invite page of a referral link, the referrer's hub, its downloads, the
 // leaderboard and the recommendations page. Like the other pages they live
@@ -31,3 +38,16 @@ func (l PageLinks) Recommends(token string) string {
 // RecommendsVisit counts a click on a recommended newsletter's link and
 // sends the reader there.
 func (l PageLinks) RecommendsVisit(id string) string { return l.page("recommends", "visit", id) }
+
+// PartnerConfirmationEmail is the double opt-in email of a partner signup
+// (grow brief §3.9): the usual email with the line "You asked for this on
+// the Acme Weekly Digest's page." It goes out in English.
+func PartnerConfirmationEmail(b Branding, firstName string, lists []string, link, recommender string) mailer.Message {
+	note := "You asked for this on the " + recommender + "'s page."
+	if strings.HasPrefix(strings.ToLower(recommender), "the ") {
+		note = "You asked for this on " + recommender + "'s page."
+	}
+	m := confirmationEmail(pagelabels.English(), b, firstName, lists, link, false, note)
+	m.Kind = "partner_double_opt_in"
+	return m
+}

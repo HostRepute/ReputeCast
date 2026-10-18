@@ -575,21 +575,23 @@ func (q *Queries) PartnerLinkNotified(ctx context.Context, arg PartnerLinkNotifi
 }
 
 const partnerLinkRotate = `-- name: PartnerLinkRotate :exec
-UPDATE partner_links SET prev_secret = secret, prev_secret_until = $1::timestamptz, secret = $2, secret_rotated_at = $3::timestamptz,
-       last_rotation = $4, updated_at = $3::timestamptz
-WHERE id = $5
+UPDATE partner_links SET prev_secret = $1, prev_secret_until = $2::timestamptz, secret = $3, secret_rotated_at = $4::timestamptz,
+       last_rotation = $5, updated_at = $4::timestamptz
+WHERE id = $6
 `
 
 type PartnerLinkRotateParams struct {
-	Until    time.Time `json:"until"`
-	Secret   []byte    `json:"secret"`
-	Now      time.Time `json:"now"`
-	Rotation string    `json:"rotation"`
-	ID       uuid.UUID `json:"id"`
+	PrevSecret []byte    `json:"prevSecret"`
+	Until      time.Time `json:"until"`
+	Secret     []byte    `json:"secret"`
+	Now        time.Time `json:"now"`
+	Rotation   string    `json:"rotation"`
+	ID         uuid.UUID `json:"id"`
 }
 
 func (q *Queries) PartnerLinkRotate(ctx context.Context, arg PartnerLinkRotateParams) error {
 	_, err := q.db.Exec(ctx, partnerLinkRotate,
+		arg.PrevSecret,
 		arg.Until,
 		arg.Secret,
 		arg.Now,

@@ -4919,6 +4919,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/grow/blocks/recommendations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Render the Recommendations block for the composer's canvas */
+        post: operations["render-recommendations-block"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/grow/blocks/render": {
         parameters: {
             query?: never;
@@ -5070,6 +5087,334 @@ export interface paths {
         put?: never;
         /** Send a test referral.milestone_reached to a webhook reward's endpoint */
         post: operations["test-referral-webhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/partner-codes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a partner code for one newsletter (shown once, valid 7 days, works once) */
+        post: operations["create-partner-code"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/partner-codes/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke a partner code nobody has used */
+        delete: operations["revoke-partner-code"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/partner-links/{link}/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retry a partner's waiting requests now */
+        post: operations["check-partner-link"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/partner-links/{link}/end": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** End a partnership for good; reconnecting needs a new partner code */
+        post: operations["end-partner-link"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/partner-links/{link}/limit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change the daily limit of a partner that recommends you */
+        put: operations["set-partner-limit"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/partner-links/{link}/pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pause a partner link: requests stop until it resumes */
+        post: operations["pause-partner-link"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/partner-links/{link}/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A partner link's request log (90 days; never the addresses) */
+        get: operations["get-partner-requests"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/partner-links/{link}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resume a partner link this side paused */
+        post: operations["resume-partner-link"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/partner-links/{link}/rotate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Agree a new signing secret with the partner; both work for 24 hours */
+        post: operations["rotate-partner-secret"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/partners/connect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Connect a partner with its code: the instances agree a signing secret over HTTPS */
+        post: operations["connect-partner"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/partners/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ask a partner's instance what a pasted partner code connects to */
+        post: operations["preview-partner"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/recommendations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What you recommend, who recommends you, where recommendations show and your partner profile */
+        get: operations["get-recommendations"];
+        put?: never;
+        /** Recommend a newsletter by its subscribe page (readers subscribe there) */
+        post: operations["add-link-recommendation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/recommendations/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Put the recommendations in the order readers see them */
+        put: operations["reorder-recommendations"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/recommendations/prefill": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Read a subscribe page's name, description and logo (through the SSRF guard) */
+        post: operations["prefill-recommendation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/recommendations/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Change the partner profile: what partners see and show
+         * @description Partners that recommend you get the new profile over the signed channel.
+         */
+        put: operations["update-partner-profile"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/recommendations/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Show recommendations on the opt-in confirmation page, or not */
+        put: operations["update-recommendation-settings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/recommendations/{recommendation}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change a recommendation (a partner's: only where it shows) */
+        put: operations["update-recommendation"];
+        post?: never;
+        /** Remove a recommendation (a partner's also ends its link, which needs grow:connect) */
+        delete: operations["remove-recommendation"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/recommendations/{recommendation}/pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pause a link recommendation: hidden until resumed, numbers kept */
+        post: operations["pause-recommendation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/recommendations/{recommendation}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resume a paused link recommendation */
+        post: operations["resume-recommendation"];
         delete?: never;
         options?: never;
         head?: never;
@@ -11351,10 +11696,26 @@ export interface components {
             /** Format: int64 */
             version: number;
         };
+        BlockHiddenRec: {
+            id: string;
+            initials: string;
+            name: string;
+            pausedBy: string;
+            state: string;
+        };
         BlockInput: {
             /** Format: int64 */
             index?: number;
             key?: string;
+        };
+        BlockRender: {
+            hidden: components["schemas"]["BlockHiddenRec"][];
+            html: string;
+            /** Format: int64 */
+            shows: number;
+        };
+        BlockRenderInput: {
+            settings?: unknown;
         };
         BlockSegment: {
             alt?: string;
@@ -17349,6 +17710,85 @@ export interface components {
             subscribe: components["schemas"]["SubscribePage"];
             unsubscribe: components["schemas"]["UnsubscribePage"];
         };
+        PartnerCodeCreated: {
+            code: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: int64 */
+            dailyLimit: number;
+            /** Format: date-time */
+            expiresAt: string;
+            id: string;
+            label: string;
+            listName: string;
+            url: string;
+        };
+        PartnerCodeInput: {
+            /** Format: int64 */
+            dailyLimit: number;
+            label: string;
+            /** Format: uuid */
+            listId: string;
+        };
+        PartnerCodeItem: {
+            /** Format: date-time */
+            createdAt: string;
+            createdBy: string;
+            /** Format: int64 */
+            dailyLimit: number;
+            /** Format: date-time */
+            expiresAt: string;
+            id: string;
+            label: string;
+            listName: string;
+        };
+        PartnerCodeText: {
+            code: string;
+        };
+        PartnerConnectInput: {
+            code: string;
+            showBlock: boolean;
+            showConfirm: boolean;
+        };
+        PartnerLimitInput: {
+            /** Format: int64 */
+            dailyLimit: number;
+        };
+        PartnerPreview: {
+            code: string;
+            /** Format: int64 */
+            dailyLimit: number;
+            description: string;
+            doubleOptIn: boolean;
+            initials: string;
+            instance: string;
+            list: string;
+            logoUrl: string;
+            name: string;
+        };
+        PartnerRequestItem: {
+            /** Format: date-time */
+            at: string;
+            /** Format: int64 */
+            attempts: number;
+            /** Format: date-time */
+            confirmedAt?: string;
+            id: string;
+            lastError: string;
+            /** @enum {string} */
+            origin: "confirm" | "page" | "partner";
+            /** @enum {string} */
+            status: "queued" | "accepted" | "limit" | "failed" | "rejected" | "paused";
+        };
+        PartnerRequestLog: {
+            /** @enum {string} */
+            direction: "out" | "in";
+            items: components["schemas"]["PartnerRequestItem"][];
+            linkId: string;
+            partner: string;
+            /** Format: int64 */
+            total: number;
+        };
         "Passkey-registerRequest": {
             challenge: string;
             /** @description The browser's RegistrationResponseJSON */
@@ -18459,6 +18899,151 @@ export interface components {
             rate: number;
             /** Format: int64 */
             recipients: number;
+        };
+        RecBlockUse: {
+            automation: string;
+            automationId: string;
+            emailId: string;
+            name: string;
+        };
+        RecImage: {
+            id: string;
+            name: string;
+            url: string;
+        };
+        RecLinkInput: {
+            description: string;
+            /** Format: uuid */
+            logoId?: string;
+            name: string;
+            showBlock: boolean;
+            showConfirm: boolean;
+            url: string;
+        };
+        RecListOption: {
+            id: string;
+            name: string;
+            /** Format: int64 */
+            subscribers: number;
+        };
+        RecOrderInput: {
+            ids: string[];
+        };
+        RecPrefill: {
+            description: string;
+            found: boolean;
+            logo?: components["schemas"]["RecImage"];
+            name: string;
+            url: string;
+        };
+        RecPrefillInput: {
+            url: string;
+        };
+        RecProfile: {
+            description: string;
+            initials: string;
+            instance: string;
+            listId: string;
+            listName: string;
+            /** Format: int64 */
+            listSubscribers: number;
+            logo?: components["schemas"]["RecImage"];
+            name: string;
+        };
+        RecProfileInput: {
+            description: string;
+            /** Format: uuid */
+            listId: string;
+            /** Format: uuid */
+            logoId?: string;
+            name: string;
+        };
+        RecSettingsInput: {
+            confirmPage: boolean;
+        };
+        RecommendationItem: {
+            /** Format: int64 */
+            clicks: number;
+            /** Format: int64 */
+            confirmed: number;
+            /** Format: date-time */
+            connectedAt?: string;
+            connectedBy: string;
+            /** Format: int64 */
+            dailyLimit: number;
+            description: string;
+            hidden: boolean;
+            host: string;
+            id: string;
+            initials: string;
+            /** @enum {string} */
+            invalidReason: "signature_rejected" | "ended" | "unknown_link" | "";
+            /** @enum {string} */
+            kind: "link" | "partner";
+            /** Format: date-time */
+            limitUntil?: string;
+            linkId: string;
+            logo?: components["schemas"]["RecImage"];
+            name: string;
+            pausedBy: string;
+            /** Format: int64 */
+            position: number;
+            /** Format: int64 */
+            requests: number;
+            showBlock: boolean;
+            showConfirm: boolean;
+            /** Format: int64 */
+            shown: number;
+            /** Format: int64 */
+            shownConfirm: number;
+            /** Format: int64 */
+            shownEmail: number;
+            /** Format: date-time */
+            since?: string;
+            /** @enum {string} */
+            state: "showing" | "paused" | "connected" | "partner_paused" | "invalid" | "limit" | "unreachable" | "ended";
+            /** Format: int64 */
+            today: number;
+            url: string;
+            /** Format: int64 */
+            waiting: number;
+        };
+        RecommendationsView: {
+            /** Format: int64 */
+            blockShows: number;
+            blocks: components["schemas"]["RecBlockUse"][];
+            codes: components["schemas"]["PartnerCodeItem"][];
+            confirmPage: boolean;
+            confirmShows: string[];
+            helpers: components["schemas"]["GrowHelperSets"];
+            items: components["schemas"]["RecommendationItem"][];
+            lists: components["schemas"]["RecListOption"][];
+            pageUrl: string;
+            profile: components["schemas"]["RecProfile"];
+            recommendingYou: components["schemas"]["RecommendingYouItem"][];
+        };
+        RecommendingYouItem: {
+            /** Format: int64 */
+            confirmed: number;
+            connectedBy: string;
+            /** Format: int64 */
+            dailyLimit: number;
+            instance: string;
+            label: string;
+            linkId: string;
+            listName: string;
+            name: string;
+            /** Format: date-time */
+            pausedAt?: string;
+            pausedBy: string;
+            /** Format: int64 */
+            requests: number;
+            /** Format: date-time */
+            since: string;
+            /** @enum {string} */
+            state: "connected" | "paused" | "partner_paused" | "invalid";
+            /** Format: int64 */
+            today: number;
         };
         RecoveryCodes: {
             codes: string[];
@@ -35497,6 +36082,42 @@ export interface operations {
             };
         };
     };
+    "render-recommendations-block": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BlockRenderInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BlockRender"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "render-grow-block": {
         parameters: {
             query?: never;
@@ -35912,6 +36533,702 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReferralWebhookTestResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-partner-code": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PartnerCodeInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerCodeCreated"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "revoke-partner-code": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "check-partner-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                link: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecommendationItem"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "end-partner-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                link: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-partner-limit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PartnerLimitInput"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "pause-partner-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                link: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-partner-requests": {
+        parameters: {
+            query?: {
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerRequestLog"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "resume-partner-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                link: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "rotate-partner-secret": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                link: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "connect-partner": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PartnerConnectInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecommendationItem"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "preview-partner": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PartnerCodeText"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerPreview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-recommendations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecommendationsView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "add-link-recommendation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecLinkInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecommendationItem"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "reorder-recommendations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecOrderInput"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "prefill-recommendation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecPrefillInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecPrefill"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-partner-profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecProfileInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecProfile"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-recommendation-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecSettingsInput"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-recommendation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecLinkInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecommendationItem"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-recommendation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                recommendation: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "pause-recommendation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                recommendation: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecommendationItem"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "resume-recommendation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                recommendation: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecommendationItem"];
                 };
             };
             /** @description Error */
