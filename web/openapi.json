@@ -60533,6 +60533,28 @@
         ],
         "type": "object"
       },
+      "WebsiteHelpers": {
+        "additionalProperties": false,
+        "properties": {
+          "manage": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "publish": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "manage",
+          "publish"
+        ],
+        "type": "object"
+      },
       "WebsiteHiddenBlock": {
         "additionalProperties": false,
         "properties": {
@@ -61105,6 +61127,9 @@
           "archive": {
             "$ref": "#/components/schemas/WebsiteArchiveFacts"
           },
+          "helpers": {
+            "$ref": "#/components/schemas/WebsiteHelpers"
+          },
           "homeLayout": {
             "enum": [
               "featured",
@@ -61164,7 +61189,8 @@
           "off",
           "homeLayout",
           "title",
-          "updatedAt"
+          "updatedAt",
+          "helpers"
         ],
         "type": "object"
       },
@@ -61320,6 +61346,12 @@
           },
           "byline": {
             "$ref": "#/components/schemas/WebsiteByline"
+          },
+          "bylines": {
+            "items": {
+              "$ref": "#/components/schemas/WebsiteByline"
+            },
+            "type": "array"
           },
           "campaign": {
             "$ref": "#/components/schemas/WebsitePostCampaign"
@@ -61505,6 +61537,7 @@
           "readingMinutes",
           "checks",
           "publish",
+          "bylines",
           "id",
           "kind",
           "title",
@@ -61854,6 +61887,31 @@
           "pageSize",
           "from",
           "until"
+        ],
+        "type": "object"
+      },
+      "WebsitePostPreviewInput": {
+        "additionalProperties": false,
+        "properties": {
+          "as": {
+            "description": "A visitor (first metered read, or the meter used up), a free member (or the meter used up), a paid member",
+            "enum": [
+              "visitor",
+              "visitor_used",
+              "free",
+              "free_used",
+              "paid"
+            ],
+            "type": "string"
+          },
+          "tier": {
+            "description": "A paid member's tier (the highest by default)",
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "as"
         ],
         "type": "object"
       },
@@ -113486,9 +113544,6 @@
         "security": [
           {
             "session": []
-          },
-          {
-            "bearer": []
           }
         ],
         "summary": "Save the home page, the navigation and the site's identity",
@@ -113496,7 +113551,74 @@
           "Website"
         ],
         "x-access": "workspace",
-        "x-permission": "website:edit"
+        "x-permission": "website:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/website/home-nav/preview": {
+      "post": {
+        "operationId": "preview-website-home",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebsiteHomeNavInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicPagePreview"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Preview the home page with unsaved Home \u0026 navigation settings, as a visitor sees it",
+        "tags": [
+          "Website"
+        ],
+        "x-access": "workspace",
+        "x-permission": "website:view"
       }
     },
     "/api/v1/workspaces/{workspace}/website/past-campaigns": {
@@ -114196,6 +114318,84 @@
         "x-permission": "website:edit"
       }
     },
+    "/api/v1/workspaces/{workspace}/website/posts/{post}/preview": {
+      "post": {
+        "operationId": "preview-website-post",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The post's id",
+            "in": "path",
+            "name": "post",
+            "required": true,
+            "schema": {
+              "description": "The post's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebsitePostPreviewInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicPagePreview"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Preview a post on the web as a visitor, a free member or a paid member",
+        "tags": [
+          "Website"
+        ],
+        "x-access": "workspace",
+        "x-permission": "website:view"
+      }
+    },
     "/api/v1/workspaces/{workspace}/website/posts/{post}/publish": {
       "post": {
         "description": "When publishing needs approval the answer is 409 approval_required with the rule and the approvers: ask for approval instead.",
@@ -114681,9 +114881,6 @@
         "security": [
           {
             "session": []
-          },
-          {
-            "bearer": []
           }
         ],
         "summary": "Add a tag",
@@ -114691,7 +114888,7 @@
           "Website"
         ],
         "x-access": "workspace",
-        "x-permission": "website:edit"
+        "x-permission": "website:manage"
       }
     },
     "/api/v1/workspaces/{workspace}/website/tags/{tag}": {
@@ -114742,9 +114939,6 @@
         "security": [
           {
             "session": []
-          },
-          {
-            "bearer": []
           }
         ],
         "summary": "Delete a tag (its posts stay)",
@@ -114752,7 +114946,7 @@
           "Website"
         ],
         "x-access": "workspace",
-        "x-permission": "website:edit"
+        "x-permission": "website:manage"
       },
       "put": {
         "operationId": "update-website-tag",
@@ -114818,9 +115012,6 @@
         "security": [
           {
             "session": []
-          },
-          {
-            "bearer": []
           }
         ],
         "summary": "Rename a tag, change its address or description",
@@ -114828,7 +115019,7 @@
           "Website"
         ],
         "x-access": "workspace",
-        "x-permission": "website:edit"
+        "x-permission": "website:manage"
       }
     },
     "/api/v1/workspaces/{workspace}/website/turn-off": {

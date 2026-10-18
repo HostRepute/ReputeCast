@@ -52,3 +52,21 @@ func (s *Service) SetFooter(ctx context.Context, q *store.Queries, ws *store.Wor
 	}
 	return s.touchSettings(ctx, q, ws)
 }
+
+// TurnstileVerifier checks Turnstile answers with the workspace's secret,
+// for the website's sign-in and sign-up when requests look automated (nil
+// when Turnstile isn't set up).
+func (s *Service) TurnstileVerifier(ctx context.Context, set *Settings, remoteIP string) func(answer string) bool {
+	secret, ok := s.turnstileSecret(set)
+	if !ok || s.Turnstile == nil {
+		return nil
+	}
+	return func(answer string) bool {
+		res, err := s.Turnstile.Verify(ctx, secret, answer, remoteIP, "")
+		if err != nil {
+			s.log().WarnContext(ctx, "turnstile verify", "err", err)
+			return false
+		}
+		return res.Success
+	}
+}

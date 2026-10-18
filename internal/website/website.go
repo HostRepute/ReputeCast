@@ -97,6 +97,7 @@ type Service struct {
 
 	certs certCache
 	salts saltCache
+	ips   ipLimiter
 }
 
 func (s *Service) now() time.Time {

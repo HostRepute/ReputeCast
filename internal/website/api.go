@@ -107,8 +107,8 @@ func parseID(s, what string) (uuid.UUID, error) {
 // posts, home and navigation, access), the composer's Web tab, the
 // Campaigns list's Web column, the report's Web section and the contact
 // profile's Website card. Publishing and unpublishing need website:publish
-// (or an approval); turning the site on or off and its access rules need
-// website:manage.
+// (or an approval); turning the site on or off, home, navigation, tags and
+// who can read what need website:manage.
 func Register(h huma.API, s *Service) {
 	tags := []string{"Website"}
 	base := "/workspaces/{workspace}/website"
@@ -264,12 +264,12 @@ func Register(h huma.API, s *Service) {
 			out, err := s.Tags(ctx, api.WorkspaceFrom(ctx))
 			return api.OK(out), err
 		})
-	api.Post(h, api.Op{ID: "create-website-tag", Path: base + "/tags", Summary: "Add a tag", Tags: tags, Access: edit, Status: http.StatusCreated},
+	api.Post(h, api.Op{ID: "create-website-tag", Path: base + "/tags", Summary: "Add a tag", Tags: tags, Access: manage, Status: http.StatusCreated},
 		func(ctx context.Context, in *body[WebsiteTagInput]) (*api.Body[WebsiteTag], error) {
 			out, err := s.CreateTag(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Body)
 			return api.OK(out), err
 		})
-	api.Put(h, api.Op{ID: "update-website-tag", Path: base + "/tags/{tag}", Summary: "Rename a tag, change its address or description", Tags: tags, Access: edit},
+	api.Put(h, api.Op{ID: "update-website-tag", Path: base + "/tags/{tag}", Summary: "Rename a tag, change its address or description", Tags: tags, Access: manage},
 		func(ctx context.Context, in *tagBody) (*api.Body[WebsiteTag], error) {
 			id, err := parseID(in.Tag, "Tag")
 			if err != nil {
@@ -278,7 +278,7 @@ func Register(h huma.API, s *Service) {
 			out, err := s.UpdateTag(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id, in.Body)
 			return api.OK(out), err
 		})
-	api.Delete(h, api.Op{ID: "delete-website-tag", Path: base + "/tags/{tag}", Summary: "Delete a tag (its posts stay)", Tags: tags, Access: edit},
+	api.Delete(h, api.Op{ID: "delete-website-tag", Path: base + "/tags/{tag}", Summary: "Delete a tag (its posts stay)", Tags: tags, Access: manage},
 		func(ctx context.Context, in *WebsiteTagPath) (*api.Empty, error) {
 			id, err := parseID(in.Tag, "Tag")
 			if err != nil {
@@ -293,7 +293,7 @@ func Register(h huma.API, s *Service) {
 			out, err := s.HomeNav(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx))
 			return api.OK(out), err
 		})
-	api.Put(h, api.Op{ID: "save-website-home-nav", Path: base + "/home-nav", Summary: "Save the home page, the navigation and the site's identity", Tags: tags, Access: edit},
+	api.Put(h, api.Op{ID: "save-website-home-nav", Path: base + "/home-nav", Summary: "Save the home page, the navigation and the site's identity", Tags: tags, Access: manage},
 		func(ctx context.Context, in *body[WebsiteHomeNavInput]) (*api.Body[WebsiteHomeNav], error) {
 			out, err := s.SaveHomeNav(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Body)
 			return api.OK(out), err

@@ -1,1 +1,35 @@
-{{define "site-main"}}<main id="main"><div class="st-w st-sec"><h1 class="st-h2">{{.Title}}</h1></div></main>{{end}}
+{{/* Signing in and signing up (PublicSiteStates): the email form, "Check
+     your email" with the code, the pages a link opens, too many links,
+     the Turnstile step. One card in the middle of the publisher's tint. */}}
+{{define "site-main"}}{{with .Body}}<main id="main" class="st-band st-center"><section class="st-auth" aria-labelledby="si-h"><h1 id="si-h">{{.Heading}}</h1>
+{{- if eq .Mode "form"}}
+<p class="st-mut">{{.Lead}}</p>
+<form method="post" action="{{.Action}}" novalidate><input type="hidden" name="return" value="{{.ReturnTo}}">
+{{- with .Error}}<p class="st-err" role="alert" id="si-err">{{template "site-alert"}}<span>{{.}}</span></p>{{end}}
+<label class="st-lbl">{{.EmailLabel}}<input class="st-in" type="email" name="email" value="{{.Email}}" autocomplete="email" required{{if .Error}} aria-invalid="true" aria-describedby="si-err"{{end}}></label>
+<button class="st-btn lg full" type="submit">{{.Continue}}</button></form>
+<p class="st-sm st-mut">{{.NotMember}} <a href="{{.SubscribeHref}}" class="st-lnk">{{.SubscribeText}}</a></p>
+{{- else if eq .Mode "check"}}
+<p class="st-mut">{{.Lead}}</p>
+<form method="post" action="{{.CodeAction}}" class="st-codef" novalidate><input type="hidden" name="return" value="{{.ReturnTo}}"><input type="hidden" name="email" value="{{.Email}}">
+<fieldset class="st-fs"><legend>{{.CodeLegend}}</legend><div class="st-code" data-code>{{range $i, $d := .Digits}}{{if eq $i 3}}<span class="gap" aria-hidden="true"></span>{{end}}<input type="text" name="{{$d.Name}}" inputmode="numeric" pattern="[0-9]" maxlength="1" autocomplete="{{if eq $i 0}}one-time-code{{else}}off{{end}}" aria-label="{{$d.Label}}"{{if $.Body.CodeError}} aria-invalid="true" aria-describedby="code-err"{{end}}>{{end}}</div>
+{{- with .CodeError}}<p class="st-err" role="alert" id="code-err">{{template "site-alert"}}<span>{{.}}</span></p>{{end}}</fieldset>
+<button class="st-btn lg full" type="submit">{{.Submit}}</button></form>
+<div class="st-split st-sm"><form method="post" action="{{.ResendAction}}" class="st-inline"><input type="hidden" name="email" value="{{.Email}}"><input type="hidden" name="return" value="{{.ReturnTo}}"><button type="submit" class="st-lnk muted" data-resend="{{.ResendIn}}" data-label="{{.ResendLabel}}" data-wait="{{.ResendInLabel}}">{{.ResendLabel}}</button></form><a href="{{.OtherHref}}" class="st-lnk">{{.OtherText}}</a></div>
+{{- else if eq .Mode "finish"}}
+<p class="st-mut">{{.Lead}}</p>
+<form method="post" action="{{.FinishAction}}"{{if .Auto}} data-auto-submit{{end}}><button class="st-btn lg full" type="submit">{{.Continue}}</button></form>
+<p class="st-sm st-mut">{{$.T "signin.finishNote"}}</p>
+{{- else if or (eq .Mode "challenge") (eq .Mode "challenge_join")}}
+<p class="st-mut">{{.Lead}}</p>
+<form method="post" action="{{.Action}}"><input type="hidden" name="email" value="{{.Email}}"><input type="hidden" name="return" value="{{.ReturnTo}}">{{if eq .Mode "challenge_join"}}<input type="hidden" name="list_mode" value="join">{{range .Lists}}<input type="hidden" name="list" value="{{.}}">{{end}}{{end}}
+<div class="cf-turnstile" data-sitekey="{{.SiteKey}}" data-response-field-name="cf-turnstile-response"></div>
+<button class="st-btn lg full" type="submit">{{.Continue}}</button></form>
+{{- else}}
+{{- with .Error}}<p class="st-err" role="alert">{{template "site-alert"}}<span>{{.}}</span></p>{{end}}
+{{- with .Lead}}<p class="st-mut">{{.}}</p>{{end}}
+{{- with .Resend}}<form method="post" action="{{.Action}}"><input type="hidden" name="email" value="{{.Email}}"><input type="hidden" name="return" value="{{.ReturnTo}}"><button class="{{if .Primary}}st-btn{{else}}st-btn2{{end}} lg full" type="submit">{{.Label}}</button></form>{{end}}
+{{- range .Actions}}<a href="{{.Href}}" class="{{if .Primary}}st-btn lg full{{else if $.Body.Resend}}st-lnk st-sm{{else}}st-btn2 lg full{{end}}">{{.Label}}</a>{{end}}
+{{- with .Note}}<p class="st-mut">{{.}}</p>{{end}}
+{{- end}}
+</section></main>{{end}}{{end}}

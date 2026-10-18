@@ -65,6 +65,16 @@ func demo(t *testing.T) (*apptest.Env, demoIDs) {
 	return env, ids
 }
 
+// websiteOff turns the demo's website off: the archive-only pages
+// (/archive and its issues, the root sending readers to the subscribe
+// page), as before the publication website (site_test.go has the site).
+func websiteOff(t *testing.T, env *apptest.Env, ws uuid.UUID) {
+	t.Helper()
+	if _, err := env.App.Pool.Exec(context.Background(), `UPDATE website_settings SET status = 'off' WHERE workspace_id = $1`, ws); err != nil {
+		t.Fatal(err)
+	}
+}
+
 // one runs a query that returns one value.
 func one[T any](t *testing.T, env *apptest.Env, sql string, args ...any) T {
 	t.Helper()
@@ -987,7 +997,8 @@ func TestUnsubscribe(t *testing.T) {
 }
 
 func TestArchive(t *testing.T) {
-	env, _ := demo(t)
+	env, ids := demo(t)
+	websiteOff(t, env, ids.ws)
 	t.Run("list", func(t *testing.T) {
 		r := get(t, env, "/p/acme-newsletter/archive")
 		must(t, r, 200, "Newsletter archive", "Every issue of the Weekly Digest and Product Updates since ", " 46 issues.",
@@ -1168,6 +1179,7 @@ func TestArchive(t *testing.T) {
 
 func TestCustomDomain(t *testing.T) {
 	env, ids := demo(t)
+	websiteOff(t, env, ids.ws)
 	news := func(method, path string, form url.Values, h hdr) resp {
 		if h == nil {
 			h = hdr{}
