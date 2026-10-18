@@ -78,8 +78,10 @@ type EarnMemberSource struct {
 	// GrantedBy and Reason name complimentary access.
 	GrantedBy string `json:"grantedBy,omitempty"`
 	Reason    string `json:"reason,omitempty"`
-	// Platform is the old platform of an import (substack).
+	// Platform is the old platform of an import (substack), ImportID the
+	// import that brought the paid member in.
 	Platform string `json:"platform,omitempty"`
+	ImportID string `json:"importId,omitempty"`
 }
 
 // EarnMemberRow is one paid member in the list.
@@ -116,6 +118,10 @@ type EarnMemberRow struct {
 	// GiftFrom names a gift's giver; GiftPeriod its length (a year).
 	GiftFrom   string `json:"giftFrom,omitempty"`
 	GiftMonths int    `json:"giftMonths,omitempty"`
+	// PeriodShown: the tier sells monthly and yearly, so the period goes
+	// with its name ("Insider yearly", but "Founding member").
+	PeriodShown bool   `json:"periodShown"`
+	TierID      string `json:"tierId,omitempty"`
 }
 
 // EarnMemberCounts are the status chips' numbers (live only).
@@ -295,17 +301,21 @@ func scanMember(rows pgx.Rows, listNames func(*uuid.UUID) []string) (EarnMemberR
 	r.Legacy = priceStatus == "legacy"
 	r.LTVCents, r.Refunded = paid-refunded, refunded
 	r.Tier = shortTier(r.TierName, listNames(tier))
+	if tier != nil {
+		r.TierID = tier.String()
+	}
 	if campaign != nil {
 		r.Source.CampaignID = campaign.String()
 	}
 	r.Source.GrantedBy = grantedBy
 	var d struct {
 		Platform string `json:"platform"`
+		ImportID string `json:"import_id"`
 		From     string `json:"from"`
 		Months   int    `json:"months"`
 	}
 	_ = json.Unmarshal(detail, &d)
-	r.Source.Platform = d.Platform
+	r.Source.Platform, r.Source.ImportID = d.Platform, d.ImportID
 	if r.Kind == "gift" {
 		r.GiftFrom, r.GiftMonths = d.From, d.Months
 	}
@@ -343,6 +353,31 @@ func scanMember(rows pgx.Rows, listNames func(*uuid.UUID) []string) (EarnMemberR
 		r.Next, r.NextAt = "renews", periodEnd
 	}
 	return r, nil
+}
+
+// tierPeriods tells which tiers sell both periods, by tier id: their
+// period goes with their name.
+func (s *Service) tierPeriods(ctx context.Context, wsID uuid.UUID) map[string]bool {
+	out := map[string]bool{}
+	prices, err := s.Q.EarnPrices(ctx, wsID)
+	if err != nil {
+		return out
+	}
+	seen := map[string]map[string]bool{}
+	for _, p := range prices {
+		if p.Status != "current" {
+			continue
+		}
+		k := p.TierID.String()
+		if seen[k] == nil {
+			seen[k] = map[string]bool{}
+		}
+		seen[k][p.Period] = true
+	}
+	for k, v := range seen {
+		out[k] = v["month"] && v["year"]
+	}
+	return out
 }
 
 // listNamer names tiers' lists (for the short tier names), cached.
@@ -400,12 +435,14 @@ func (s *Service) Members(ctx context.Context, ws *store.Workspace, p *authz.Pri
 		return out, err
 	}
 	names := s.listNamer(ctx, ws.ID)
+	periods := s.tierPeriods(ctx, ws.ID)
 	for rows.Next() {
 		r, err := scanMember(rows, names)
 		if err != nil {
 			rows.Close()
 			return out, err
 		}
+		r.PeriodShown = periods[r.TierID]
 		if !out.CanSeeNames {
 			r.Name, r.Email, r.Hidden = "", "", true
 		}
@@ -551,6 +588,7 @@ func (s *Service) Member(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		}
 		found = true
 	}
+	row.PeriodShown = s.tierPeriods(ctx, ws.ID)[row.TierID]
 	rows.Close()
 	if !found {
 		return EarnMember{}, api.NotFound("Paid member")

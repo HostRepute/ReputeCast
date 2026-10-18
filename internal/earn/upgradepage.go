@@ -120,9 +120,10 @@ type EarnUpgradeEditor struct {
 	PublishedBy string         `json:"publishedBy,omitempty"`
 	// TestCheckout: a test key is connected, so "Preview with test
 	// checkout" works.
-	TestCheckout bool     `json:"testCheckout"`
-	CanEdit      bool     `json:"canEdit"`
-	Helpers      []string `json:"helpers"`
+	TestCheckout    bool     `json:"testCheckout"`
+	TestCheckoutURL string   `json:"testCheckoutUrl,omitempty"`
+	CanEdit         bool     `json:"canEdit"`
+	Helpers         []string `json:"helpers"`
 }
 
 // UpgradeEditor is the page editor's data.
@@ -136,7 +137,7 @@ func (s *Service) UpgradeEditor(ctx context.Context, ws *store.Workspace, p *aut
 		return EarnUpgradeEditor{}, err
 	}
 	out := EarnUpgradeEditor{Page: page, Tiers: []EarnPageTier{}, Lists: []EarnListRef{}, URL: s.pageURL(ctx, ws, "upgrade"), Host: s.pageHost(ctx, ws, "upgrade"),
-		CanEdit: p.Can(authz.EarnEdit), Helpers: s.helpers(ctx, ws.ID, authz.EarnEdit, p.UserID)}
+		CanEdit: p.Can(authz.EarnEdit), Helpers: s.helpers(ctx, ws.ID, authz.EarnEdit, p.UserID), TestCheckoutURL: s.TestCheckoutURL(ctx, ws)}
 	for _, t := range orderTiers(tiers, page) {
 		out.Tiers = append(out.Tiers, EarnPageTier{ID: t.ID.String(), Name: t.Name, Visibility: t.Visibility, TrialDays: int(t.TrialDays),
 			Shown: t.Visibility == VisibilityPublic && !slices.Contains(page.Off, t.ID.String())})

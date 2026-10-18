@@ -1171,11 +1171,12 @@ func (e *earnSeed) subOf(r earnRow) *uuid.UUID {
 	return nil
 }
 
-// checkouts: 312 started on the upgrade page in 30 days, 163 completed.
+// checkouts: 312 started on the upgrade page in 30 days, 163 completed:
+// 112 started a trial and 51 paid at once (Sam Rivera's among them).
 func (e *earnSeed) checkouts(ctx context.Context) error {
 	s := e.s
-	rows := make([][]any, 0, 312)
-	for i := 0; i < 312; i++ {
+	rows := make([][]any, 0, 311)
+	for i := 0; i < 311; i++ {
 		at := s.Now.Add(-time.Duration(30*24*60*(i+1)/313) * time.Minute)
 		status := "completed"
 		switch {
@@ -1197,21 +1198,46 @@ func (e *earnSeed) checkouts(ctx context.Context) error {
 		}
 		rows = append(rows, []any{ID(), e.ws.ID, "live", tier, price, period, trial, "cs_live_" + e.code(24), status, mustJSON(map[string]any{}), at, done})
 	}
-	// 163 completed: count the completed above and top up.
+	// 162 completed with Sam's to come: count the completed above and top up.
 	n := 0
 	for _, r := range rows {
 		if r[8] == "completed" {
 			n++
 		}
 	}
-	for i := 0; i < len(rows) && n < 163; i++ {
+	for i := 0; i < len(rows) && n < 162; i++ {
 		if rows[i][8] == "canceled" {
 			rows[i][8], rows[i][11] = "completed", tp(rows[i][10].(time.Time).Add(4*time.Minute))
 			n++
 		}
 	}
-	_, err := s.Tx.CopyFrom(ctx, pgx.Identifier{"earn_checkouts"}, []string{"id", "workspace_id", "mode", "tier_id", "price_id", "period", "trial_days",
-		"stripe_session_id", "status", "attribution", "created_at", "completed_at"}, pgx.CopyFromRows(rows))
+	// 50 of them paid at once: Founding member has no trial, and readers
+	// who'd had one before got none.
+	once := 0
+	for _, r := range rows {
+		if r[8] == "completed" && r[6] == 0 {
+			once++
+		}
+	}
+	for _, step := range []int{3, 1} {
+		for i := 0; i < len(rows) && once < 50; i += step {
+			if rows[i][8] == "completed" && rows[i][6] != 0 {
+				rows[i][6] = 0
+				once++
+			}
+		}
+	}
+	if _, err := s.Tx.CopyFrom(ctx, pgx.Identifier{"earn_checkouts"}, []string{"id", "workspace_id", "mode", "tier_id", "price_id", "period", "trial_days",
+		"stripe_session_id", "status", "attribution", "created_at", "completed_at"}, pgx.CopyFromRows(rows)); err != nil {
+		return err
+	}
+	// Sam Rivera's checkout from Weekly Digest #141, for the welcome page:
+	// /upgrade/welcome?session=cs_live_demoSamRiveraFALL26.
+	sam, sub := e.contacts["sam"].id, e.byKey["sam"]
+	_, err := s.Tx.Exec(ctx, `INSERT INTO earn_checkouts (id, workspace_id, mode, tier_id, price_id, period, trial_days, contact_id, email, stripe_session_id, status,
+		attribution, offer, created_at, completed_at, subscription_id) VALUES ($1, $2, 'live', $3, $4, 'year', 0, $5, 'sam.rivera@outlook.com', 'cs_live_demoSamRiveraFALL26',
+		'completed', $6, 'FALL26', $7, $8, $9)`, ID(), e.ws.ID, e.insider, e.pYear, sam, mustJSON(map[string]any{"kind": "campaign", "label": "Weekly Digest #141"}),
+		s.earnDay(2026, 10, 7, 9, 45), s.earnDay(2026, 10, 7, 9, 52), sub)
 	return err
 }
 

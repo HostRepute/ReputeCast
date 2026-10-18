@@ -4704,6 +4704,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/earn/checklist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The launch checklist: connect, a tier, member emails, the upgrade page, a test checkout, the live key */
+        get: operations["get-earn-checklist"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/earn/checkout": {
         parameters: {
             query?: never;
@@ -5393,6 +5410,26 @@ export interface paths {
         /** Save and publish the upgrade page */
         put: operations["save-upgrade-page"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/upgrade-page/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Render the upgrade page with unsaved settings
+         * @description Nothing is saved; the page's links and buttons don't work in the preview.
+         */
+        post: operations["preview-upgrade-page"];
         delete?: never;
         options?: never;
         head?: never;
@@ -14608,6 +14645,35 @@ export interface components {
             /** @enum {string} */
             when: "period_end" | "now";
         };
+        EarnChecklist: {
+            canEdit: boolean;
+            canManage: boolean;
+            /** Format: int64 */
+            done: number;
+            launched: boolean;
+            steps: components["schemas"]["EarnChecklistStep"][];
+            testCheckoutUrl?: string;
+            testCheckouts: components["schemas"]["EarnMemberRow"][];
+            upgradeHost: string;
+        };
+        EarnChecklistStep: {
+            account?: string;
+            /** Format: date-time */
+            at?: string;
+            /** @enum {string} */
+            blocked?: "no_route" | "";
+            /** Format: int64 */
+            count?: number;
+            detail?: string;
+            done: boolean;
+            /** @enum {string} */
+            key: "connect" | "tier" | "emails" | "page" | "test" | "live";
+            mode?: string;
+            name?: string;
+            priceLine?: string;
+            /** Format: int64 */
+            total?: number;
+        };
         EarnCheckoutInput: {
             portal: components["schemas"]["EarnPortal"];
             pricesIncludeTax: boolean;
@@ -14976,6 +15042,7 @@ export interface components {
             paidCents: number;
             /** @enum {string} */
             period: "month" | "year" | "";
+            periodShown: boolean;
             /** Format: int64 */
             refundedCents: number;
             /** Format: date-time */
@@ -14989,6 +15056,7 @@ export interface components {
             subscriptionUrl?: string;
             test: boolean;
             tier: string;
+            tierId?: string;
             tierName: string;
             timeline: components["schemas"]["EarnTimelineItem"][];
             warning?: components["schemas"]["EarnSyncWarning"];
@@ -15109,6 +15177,7 @@ export interface components {
             nextAt?: string;
             /** @enum {string} */
             period: "month" | "year" | "";
+            periodShown: boolean;
             /** Format: int64 */
             refundedCents: number;
             /** Format: date-time */
@@ -15118,11 +15187,13 @@ export interface components {
             status: "trialing" | "active" | "past_due" | "canceled" | "complimentary" | "gift";
             test: boolean;
             tier: string;
+            tierId?: string;
             tierName: string;
         };
         EarnMemberSource: {
             campaignId?: string;
             grantedBy?: string;
+            importId?: string;
             /** @enum {string} */
             kind: "campaign" | "automation" | "page" | "offer" | "website" | "import" | "gift" | "grant" | "direct" | "";
             label: string;
@@ -15195,6 +15266,17 @@ export interface components {
             invoices: boolean;
             switchPeriod: boolean;
             updateCard: boolean;
+        };
+        EarnPreview: {
+            html: string;
+        };
+        EarnPreviewInput: {
+            /**
+             * @default visitor
+             * @enum {string}
+             */
+            as: "visitor" | "free" | "paid" | "offer";
+            page: components["schemas"]["UpgradePage"];
         };
         EarnPrice: {
             /** Format: int64 */
@@ -15402,6 +15484,7 @@ export interface components {
             live: boolean;
             /** Format: int64 */
             paidAtOnce: number;
+            testCheckoutUrl?: string;
             testMode: boolean;
             /** Format: int64 */
             trials: number;
@@ -15419,6 +15502,7 @@ export interface components {
             publishedAt?: string;
             publishedBy?: string;
             testCheckout: boolean;
+            testCheckoutUrl?: string;
             tiers: components["schemas"]["EarnPageTier"][];
             url: string;
         };
@@ -35943,6 +36027,38 @@ export interface operations {
             };
         };
     };
+    "get-earn-checklist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnChecklist"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "save-earn-checkout": {
         parameters: {
             query?: never;
@@ -36087,7 +36203,12 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -36118,7 +36239,12 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -36151,7 +36277,12 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -36184,7 +36315,12 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -36251,7 +36387,12 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -36459,7 +36600,12 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -36492,7 +36638,12 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -36768,7 +36919,12 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -36801,7 +36957,12 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -36866,7 +37027,12 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -37308,7 +37474,12 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -37407,7 +37578,12 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -37489,6 +37665,42 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EarnUpgradeEditor"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "preview-upgrade-page": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EarnPreviewInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnPreview"];
                 };
             };
             /** @description Error */
