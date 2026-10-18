@@ -1,1 +1,28 @@
-{{define "site-main"}}<main id="main"><div class="st-w st-sec"><h1 class="st-h2">{{.Title}}</h1></div></main>{{end}}
+{{/* A post (PublicPost, PublicSiteStates). The body is the renderer's
+     sanitized HTML of what this reader may read; the paywall card follows
+     a gated post's preview. */}}
+{{define "site-main"}}{{with .Body}}<main id="main">
+<article class="st-art" aria-labelledby="post-h"><div class="st-w"><header class="st-col">
+<div class="st-kick">{{range .Tags}}<a href="{{.Href}}" class="st-tag">{{.Name}}</a>{{end}}{{template "site-label" .Label}}{{with .Included}}<span class="st-k">{{.}}</span>{{end}}</div>
+<h1 class="st-title" id="post-h">{{.Title}}</h1>
+{{- with .Dek}}<p class="st-dek">{{.}}</p>{{end}}
+<div class="st-by"><span class="st-av s40 {{.Byline.Color}}" aria-hidden="true">{{.Byline.Initials}}</span><span><b>{{.Byline.Name}}</b><br><span><time datetime="{{.ISO}}">{{.Date}}</time> · {{.Minutes}}</span></span></div>
+</header>
+{{- range .Notes}}<div class="st-col"><div class="st-note top" role="note">{{if eq .Icon "star"}}{{template "site-star"}}{{else}}{{template "site-person"}}{{end}}<div class="tx"><span>{{.HTML}}</span>{{if or .Actions .Small}}<div class="acts">{{range .Actions}}{{if .Primary}}<a href="{{.Href}}" class="st-btn sm">{{.Label}}</a>{{else}}<a href="{{.Href}}" class="st-lnk st-sm">{{.Label}}</a>{{end}}{{end}}{{with .Small}}<span class="st-k">{{.}}</span>{{end}}</div>{{end}}</div></div></div>{{end}}
+</div>
+{{- with .Cover}}<div class="st-hero-img"><img class="st-img" src="{{.Src}}" alt="{{.Alt}}" width="{{.Width}}" height="{{.Height}}" decoding="async"></div>{{end}}
+<div class="st-w"><div class="st-col">
+{{- with .HTML}}<div class="st-body">{{.}}</div>{{end}}
+{{- with .Paywall}}<section class="st-pw" aria-labelledby="pw-h"><div class="hd"><h2 id="pw-h">{{.Heading}}</h2>{{with .Lead}}<p class="lead">{{.}}</p>{{end}}</div>
+{{- if .Tiers}}<div class="st-tiers" role="list">{{range .Tiers}}<div class="st-tier{{if .Primary}} hi{{end}}" role="listitem"><div class="tn"><span class="nm">{{.Name}}</span><span class="pr">{{.Price}}</span></div><a href="{{.Href}}" class="{{if .Primary}}st-btn{{else}}st-btn2{{end}}">{{.Button}}</a></div>{{end}}</div>{{end}}
+{{- with .Free}}<form class="st-free{{if .Strong}} first{{end}}" method="post" action="{{.Action}}" novalidate><input type="hidden" name="return" value="{{.ReturnTo}}">{{with .Heading}}<span class="hd2">{{.}}</span>{{end}}{{with .Text}}<p class="lead">{{.}}</p>{{end}}
+{{- with .Error}}<p class="st-err" role="alert" id="pw-err">{{template "site-alert"}}<span>{{.}}</span></p>{{end}}
+<div class="frm"><label class="vh" for="pw-email">{{.EmailLabel}}</label><input id="pw-email" class="st-in" type="email" name="email" value="{{.Email}}" placeholder="{{.Placeholder}}" autocomplete="email" required{{if .Error}} aria-invalid="true" aria-describedby="pw-err"{{end}}><button class="{{if .Strong}}st-btn{{else}}st-btn2{{end}}" type="submit"{{if $.Preview}} disabled{{end}}>{{.Button}}</button></div>
+{{- if .Offers}}<div class="st-chks">{{range .Offers}}<label class="st-chk"><input type="checkbox" name="list" value="{{.ID}}"{{if .Checked}} checked{{end}}><span>{{.Text}}</span></label>{{end}}</div>{{end}}
+<span class="st-k">{{.Note}}</span></form>{{end}}
+{{- if or .SigninHref .Trust .SignedIn}}<div class="st-pwf">{{if .SignedIn}}<span class="st-k">{{.SignedIn}}</span><a href="{{.AccountHref}}" class="st-lnk">{{.AccountText}}</a>{{else}}{{with .SigninHref}}<span>{{$.T "gate.alreadyMember"}} <a href="{{.}}" class="st-lnk">{{$.T "site.signIn"}}</a></span>{{end}}{{with .Trust}}<span class="st-k">{{.}}</span>{{end}}{{end}}</div>{{end}}
+</section>{{end}}
+</div></div></article>
+{{- with .More}}<section class="st-rule st-more" aria-labelledby="more-h"><div class="st-w st-sec"><div class="st-head"><h2 class="st-h2" id="more-h">{{.Title}}</h2><a href="{{.AllHref}}" class="st-lnk">{{.AllText}}</a></div><div class="st-cards">{{range .Cards}}<a href="{{.Href}}" class="st-sc"><div class="cv">{{template "site-cover" .Cover}}</div><div class="tx">{{template "site-meta" .Meta}}<h3>{{.Title}}</h3></div></a>{{end}}</div></div></section>{{end}}
+{{- with .Band}}<section class="st-band" aria-labelledby="band-h"><div class="st-w st-sec"><div class="st-subband"><div class="tx"><h2 class="st-h2" id="band-h">{{.Heading}}</h2>{{with .Text}}<p class="st-mut st-lead">{{.}}</p>{{end}}</div><form method="post" action="{{.Form.Action}}" novalidate><input type="hidden" name="step" value="prefill"><input type="hidden" name="_page" value="{{.Form.Page}}"><div class="frm"><label class="vh" for="band-email">{{.Form.EmailLabel}}</label><input id="band-email" class="st-in lg" type="email" name="email" placeholder="{{.Form.Placeholder}}" autocomplete="email" required><button class="st-btn lg" type="submit">{{.Form.Button}}</button></div>{{with .Note}}<span class="st-k">{{.}}</span>{{end}}</form></div></div></section>{{end}}
+</main>{{end}}{{end}}

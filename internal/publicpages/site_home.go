@@ -36,8 +36,9 @@ type postCardView struct {
 	Excerpt string
 	Cover   coverView
 	Meta    metaView
-	// Title with the search's matches marked (the archive).
-	TitleHTML template.HTML
+	// Title and excerpt with the search's matches marked (the archive).
+	TitleHTML   template.HTML
+	ExcerptHTML template.HTML
 }
 
 // subFormView is the subscribe form of the site.
@@ -308,13 +309,16 @@ func siteDate(v *siteView, t time.Time) string {
 func (h *Handler) card(s *site, v *siteView, p website.PublicPost, tiers []gate.Tier, place string) postCardView {
 	loc := location(s.ws)
 	at := p.PublishedAt.In(loc)
+	label := p.Label
+	if tiers != nil || label.Kind == "" {
+		label = h.Website.Label(p.Visibility, tiers, v.labels.Lang())
+	}
 	c := postCardView{Href: s.path("posts", p.Slug), Title: p.Title, Excerpt: p.Excerpt,
-		Meta: metaView{Date: v.labels.FullDate(at), Short: v.labels.DayMonth(at), ISO: p.PublishedAt.UTC().Format(time.RFC3339),
-			Label: h.Website.Label(p.Visibility, tiers, v.labels.Lang())}}
+		Meta: metaView{Date: v.labels.FullDate(at), Short: v.labels.DayMonth(at), ISO: p.PublishedAt.UTC().Format(time.RFC3339), Label: label}}
 	if len(p.Tags) > 0 {
 		c.Meta.Tag = p.Tags[0].Name
 	}
-	c.Cover = coverView{Src: p.CoverURL, Alt: p.CoverAlt}
+	c.Cover = coverView{Src: h.mediaURL(p.CoverURL), Alt: p.CoverAlt}
 	switch place {
 	case "feature":
 		c.Cover.Class = "r14"
@@ -362,4 +366,20 @@ func (h *Handler) tiersBand(s *site, v *siteView, up *earn.UpgradeView, period s
 		t.Columns = "n2"
 	}
 	return t
+}
+
+// mediaURL is an image of the image library at the instance's address:
+// the site's own domain doesn't serve /media/.
+func (h *Handler) mediaURL(src string) string {
+	if strings.HasPrefix(src, "/media/") {
+		return strings.TrimRight(h.URLs.Base(), "/") + src
+	}
+	return src
+}
+
+// mediaHTML points a body's library images at the instance.
+func (h *Handler) mediaHTML(body string) string {
+	base := strings.TrimRight(h.URLs.Base(), "/")
+	body = strings.ReplaceAll(body, `src="/media/`, `src="`+base+`/media/`)
+	return strings.ReplaceAll(body, `href="/media/`, `href="`+base+`/media/`)
 }

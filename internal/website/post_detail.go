@@ -235,6 +235,10 @@ func slugTail(title, slug string) string {
 	return "2"
 }
 
+// PostHash is what an approval of a post covers, for a post and its
+// content (the demo's request for Daniel's post).
+func PostHash(p store.WebsitePost, src string) string { return contentHash(p, src) }
+
 // contentHash covers what an approval of a post covers: its content and
 // title, its address, its visibility and when it goes live.
 func contentHash(p store.WebsitePost, src string) string {

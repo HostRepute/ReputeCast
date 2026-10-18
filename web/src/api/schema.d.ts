@@ -10972,6 +10972,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/website/posts/{post}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview a post on the web as a visitor, a free member or a paid member */
+        post: operations["preview-website-post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/website/posts/{post}/publish": {
         parameters: {
             query?: never;
@@ -28733,6 +28750,15 @@ export interface components {
             total: number;
             /** Format: date-time */
             until: string;
+        };
+        WebsitePostPreviewInput: {
+            /**
+             * @description A visitor (first metered read, or the meter used up), a free member (or the meter used up), a paid member
+             * @enum {string}
+             */
+            as: "visitor" | "visitor_used" | "free" | "free_used" | "paid";
+            /** @description A paid member's tier (the highest by default) */
+            tier?: string;
         };
         WebsitePostRow: {
             approval?: components["schemas"]["WebsitePostApproval"];
@@ -54788,6 +54814,44 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WebsitePostSaved"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "preview-website-post": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The post's id */
+                post: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebsitePostPreviewInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPagePreview"];
                 };
             };
             /** @description Error */

@@ -80,3 +80,27 @@ func TestReferrerLabels(t *testing.T) {
 		t.Fatalf("order: %v", order)
 	}
 }
+
+// A sign-in's return address stays on the site: no other host, however
+// it's spelled.
+func TestSafeReturn(t *testing.T) {
+	for in, want := range map[string]string{
+		"":                             "",
+		"/":                            "/",
+		"/p/acme/posts/x?ref=1":        "/p/acme/posts/x?ref=1",
+		"  /posts/x  ":                 "/posts/x",
+		"//evil.example":               "",
+		"/\\evil.example":              "",
+		"\\\\evil.example":             "",
+		"/\t/evil.example":             "",
+		"/\n/evil.example":             "",
+		"https://evil.example/":        "",
+		"javascript:alert(1)":          "",
+		"posts/x":                      "",
+		"/" + strings.Repeat("a", 600): "",
+	} {
+		if got := SafeReturn(in); got != want {
+			t.Errorf("SafeReturn(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
