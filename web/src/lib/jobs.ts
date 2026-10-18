@@ -2,7 +2,8 @@ import { useQuery } from '@tanstack/react-query'
 import { useSyncExternalStore } from 'react'
 
 /**
- * Background jobs (imports and exports) for the jobs tray (Feedback board).
+ * Background jobs (imports, exports and address verification) for the jobs
+ * tray (Feedback board).
  * Jobs keep running on the server when the tab closes; the tray shows them
  * while they run and a toast says when one finishes or fails.
  *
@@ -10,7 +11,7 @@ import { useSyncExternalStore } from 'react'
  * imports feature installs it). Screens can also track a job they started
  * with trackJob() so it shows right away.
  */
-export type JobKind = 'import' | 'export' | 'scoring'
+export type JobKind = 'import' | 'export' | 'scoring' | 'verification'
 export type JobStatus = 'queued' | 'running' | 'done' | 'failed' | 'canceled'
 
 export interface BackgroundJob {

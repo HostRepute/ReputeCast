@@ -1,0 +1,15 @@
+{
+  "result": "deliverable",
+  "reason": "accepted_email",
+  "role": true,
+  "free": false,
+  "disposable": false,
+  "accept_all": false,
+  "did_you_mean": null,
+  "sendex": 0.84,
+  "email": "role@contract.test",
+  "user": "role",
+  "domain": "contract.test",
+  "success": true,
+  "message": null
+}

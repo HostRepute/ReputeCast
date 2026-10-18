@@ -135,6 +135,8 @@ var Categories = []AuditCategory{
 	{Key: "polls", Label: "Polls & surveys", Groups: []string{"poll", "survey"}},
 	// Earn (design expansion, phase 6).
 	{Key: "earn", Label: "Earn", Groups: []string{"payments", "earn", "paid_member"}},
+	{Key: "verification", Label: "Verification", Groups: []string{"verification"}},
+	{Key: "placement", Label: "Placement tests", Groups: []string{"placement"}},
 }
 
 // Filter narrows the log.

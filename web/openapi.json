@@ -11387,6 +11387,96 @@
         ],
         "type": "object"
       },
+      "ContactAddressCheck": {
+        "additionalProperties": false,
+        "properties": {
+          "balance": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "canVerify": {
+            "type": "boolean"
+          },
+          "checked": {
+            "type": "boolean"
+          },
+          "checkedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "connected": {
+            "type": "boolean"
+          },
+          "email": {
+            "type": "string"
+          },
+          "helpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "price": {
+            "format": "double",
+            "type": "number"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "recheckFrom": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "regionLabel": {
+            "type": "string"
+          },
+          "result": {
+            "enum": [
+              "valid",
+              "invalid",
+              "risky",
+              "unknown",
+              ""
+            ],
+            "type": "string"
+          },
+          "service": {
+            "type": "string"
+          },
+          "serviceName": {
+            "type": "string"
+          },
+          "suppressed": {
+            "type": "boolean"
+          },
+          "suppressedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "tag": {
+            "type": "string"
+          },
+          "verifyService": {
+            "type": "string"
+          },
+          "verifyServiceName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "checked",
+          "suppressed",
+          "email",
+          "price",
+          "connected",
+          "canVerify",
+          "helpers"
+        ],
+        "type": "object"
+      },
       "ContactBulkFailure": {
         "additionalProperties": false,
         "properties": {
@@ -11589,6 +11679,16 @@
               "warm",
               "hot",
               "none"
+            ],
+            "type": "string"
+          },
+          "check": {
+            "enum": [
+              "valid",
+              "invalid",
+              "risky",
+              "unknown",
+              "never"
             ],
             "type": "string"
           },
@@ -22684,6 +22784,9 @@
           "rows": {
             "format": "int64",
             "type": "integer"
+          },
+          "service": {
+            "type": "string"
           }
         },
         "required": [
@@ -22713,7 +22816,8 @@
           },
           "kind": {
             "enum": [
-              "import"
+              "import",
+              "verification"
             ],
             "type": "string"
           },
@@ -23047,6 +23151,9 @@
             "format": "int64",
             "type": "integer"
           },
+          "verification": {
+            "$ref": "#/components/schemas/ImportVerification"
+          },
           "willImport": {
             "description": "New contacts, subscribed",
             "format": "int64",
@@ -23153,6 +23260,22 @@
       "ImportRiskyActions": {
         "additionalProperties": false,
         "properties": {
+          "abuse": {
+            "enum": [
+              "import",
+              "skip",
+              ""
+            ],
+            "type": "string"
+          },
+          "catch_all": {
+            "enum": [
+              "import",
+              "skip",
+              ""
+            ],
+            "type": "string"
+          },
           "disposable": {
             "enum": [
               "skip",
@@ -23190,6 +23313,14 @@
               "import"
             ],
             "type": "string"
+          },
+          "unknown": {
+            "enum": [
+              "import",
+              "skip",
+              ""
+            ],
+            "type": "string"
           }
         },
         "required": [
@@ -23213,6 +23344,10 @@
             },
             "type": "array"
           },
+          "agree": {
+            "format": "int64",
+            "type": "integer"
+          },
           "examples": {
             "type": "string"
           },
@@ -23222,12 +23357,23 @@
               "disposable",
               "typo",
               "stale",
-              "trap"
+              "trap",
+              "catch_all",
+              "abuse",
+              "unknown"
             ],
             "type": "string"
           },
           "label": {
             "type": "string"
+          },
+          "more": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "own": {
+            "format": "int64",
+            "type": "integer"
           },
           "rows": {
             "format": "int64",
@@ -23244,7 +23390,10 @@
           "why",
           "examples",
           "action",
-          "actions"
+          "actions",
+          "own",
+          "more",
+          "agree"
         ],
         "type": "object"
       },
@@ -23582,6 +23731,59 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "ImportVerification": {
+        "additionalProperties": false,
+        "properties": {
+          "checked": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "checkedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "cost": {
+            "format": "double",
+            "type": "number"
+          },
+          "fewer": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "invalid": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "jobId": {
+            "type": "string"
+          },
+          "risky": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "service": {
+            "type": "string"
+          },
+          "serviceName": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "jobId",
+          "service",
+          "serviceName",
+          "status",
+          "checked",
+          "cost",
+          "invalid",
+          "risky",
+          "fewer"
+        ],
         "type": "object"
       },
       "IncidentCause": {
@@ -25838,7 +26040,12 @@
               "hostrepute",
               "api",
               "webhooks",
-              "mcp"
+              "mcp",
+              "zerobounce",
+              "neverbounce",
+              "kickbox",
+              "bouncer",
+              "emailable"
             ],
             "type": "string"
           },
@@ -25882,6 +26089,10 @@
             "format": "int64",
             "type": "integer"
           },
+          "balance": {
+            "format": "int64",
+            "type": "integer"
+          },
           "endpoints": {
             "format": "int64",
             "type": "integer"
@@ -25904,6 +26115,10 @@
           },
           "mcpEnabled": {
             "type": "boolean"
+          },
+          "price": {
+            "format": "double",
+            "type": "number"
           },
           "silentSites": {
             "format": "int64",
@@ -31678,6 +31893,2314 @@
         ],
         "type": "object"
       },
+      "PlacementAuthCheck": {
+        "additionalProperties": false,
+        "properties": {
+          "aligned": {
+            "type": "boolean"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "domain": {
+            "type": "string"
+          },
+          "ip": {
+            "type": "string"
+          },
+          "result": {
+            "type": "string"
+          },
+          "selector": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "type": "object"
+      },
+      "PlacementAuthCount": {
+        "additionalProperties": false,
+        "properties": {
+          "fail": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "pass": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "pass",
+          "fail"
+        ],
+        "type": "object"
+      },
+      "PlacementAuthReadiness": {
+        "additionalProperties": false,
+        "properties": {
+          "blocking": {
+            "description": "The blocking checks, in the reader's language",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "blocks": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "evidence": {
+            "description": "One sentence per blocking check",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "passed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "warnings": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "passed",
+          "warnings",
+          "blocks",
+          "blocking",
+          "evidence"
+        ],
+        "type": "object"
+      },
+      "PlacementAuthSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "checked": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "dkim": {
+            "$ref": "#/components/schemas/PlacementAuthCount"
+          },
+          "dkimDomain": {
+            "type": "string"
+          },
+          "dkimSelector": {
+            "type": "string"
+          },
+          "dmarc": {
+            "$ref": "#/components/schemas/PlacementAuthCount"
+          },
+          "spf": {
+            "$ref": "#/components/schemas/PlacementAuthCount"
+          },
+          "spfDomain": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "checked",
+          "spf",
+          "dkim",
+          "dmarc"
+        ],
+        "type": "object"
+      },
+      "PlacementConditionalVersion": {
+        "additionalProperties": false,
+        "properties": {
+          "number": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "recipients": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "shows": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "number",
+          "shows",
+          "recipients"
+        ],
+        "type": "object"
+      },
+      "PlacementContentList": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PlacementContentOption"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "PlacementContentOption": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "campaign",
+              "template",
+              "digest",
+              "transactional"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "note": {
+            "description": "A campaign's status, template, a transactional template's key, or a digest's state (on, paused, off)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "id",
+          "name",
+          "note",
+          "at"
+        ],
+        "type": "object"
+      },
+      "PlacementContentRef": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "description": "A campaign, template, recurring digest (its next issue) or transactional template id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "campaign",
+              "template",
+              "digest",
+              "transactional"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "id"
+        ],
+        "type": "object"
+      },
+      "PlacementContentView": {
+        "additionalProperties": false,
+        "properties": {
+          "audience": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "conditional": {
+            "items": {
+              "$ref": "#/components/schemas/PlacementConditionalVersion"
+            },
+            "type": "array"
+          },
+          "conditionalVersion": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "fallbackGreeting": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "campaign",
+              "template",
+              "digest",
+              "transactional"
+            ],
+            "type": "string"
+          },
+          "languages": {
+            "items": {
+              "$ref": "#/components/schemas/PlacementLanguage"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          },
+          "recipients": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "scheduledAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "sensitive": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "sentAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "testData": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "testValues": {
+            "items": {
+              "$ref": "#/components/schemas/PlacementTestValue"
+            },
+            "type": "array"
+          },
+          "variants": {
+            "items": {
+              "$ref": "#/components/schemas/PlacementVariant"
+            },
+            "type": "array"
+          },
+          "version": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "kind",
+          "id",
+          "name",
+          "variants",
+          "languages",
+          "testData",
+          "sensitive",
+          "testValues",
+          "conditional"
+        ],
+        "type": "object"
+      },
+      "PlacementCopyCost": {
+        "additionalProperties": false,
+        "properties": {
+          "copies": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "cost": {
+            "format": "double",
+            "type": "number"
+          },
+          "planMonthly": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "pricing": {
+            "enum": [
+              "metered",
+              "plan",
+              "self_hosted"
+            ],
+            "type": "string"
+          },
+          "providerId": {
+            "type": "string"
+          },
+          "sentToday": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "short": {
+            "type": "string"
+          },
+          "todayCap": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "warmDay": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "providerId",
+          "short",
+          "copies",
+          "cost",
+          "pricing"
+        ],
+        "type": "object"
+      },
+      "PlacementCopyDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "copy": {
+            "$ref": "#/components/schemas/PlacementCopyView"
+          },
+          "dkim": {
+            "$ref": "#/components/schemas/PlacementAuthCheck"
+          },
+          "dmarc": {
+            "$ref": "#/components/schemas/PlacementAuthCheck"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/PlacementEvent"
+            },
+            "type": "array"
+          },
+          "headers": {
+            "type": "string"
+          },
+          "keyHeaders": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "providerMessageId": {
+            "type": "string"
+          },
+          "readVia": {
+            "enum": [
+              "imap",
+              "graph",
+              "gmail"
+            ],
+            "type": "string"
+          },
+          "spf": {
+            "$ref": "#/components/schemas/PlacementAuthCheck"
+          },
+          "testStatus": {
+            "type": "string"
+          },
+          "waitUntil": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "copy",
+          "readVia",
+          "keyHeaders",
+          "headers",
+          "events",
+          "testStatus"
+        ],
+        "type": "object"
+      },
+      "PlacementCopyView": {
+        "additionalProperties": false,
+        "properties": {
+          "arriveMs": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "deferrals": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "dkim": {
+            "type": "string"
+          },
+          "dmarc": {
+            "type": "string"
+          },
+          "error": {
+            "description": "Why the provider refused the copy",
+            "type": "string"
+          },
+          "first": {
+            "type": "boolean"
+          },
+          "folder": {
+            "enum": [
+              "inbox",
+              "tab",
+              "spam",
+              ""
+            ],
+            "type": "string"
+          },
+          "folderName": {
+            "description": "The mailbox's own name: Junk Email, Bulk, Spamverdacht",
+            "type": "string"
+          },
+          "handedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "lastEvent": {
+            "$ref": "#/components/schemas/PlacementEvent"
+          },
+          "late": {
+            "type": "boolean"
+          },
+          "lateUntil": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "providerId": {
+            "type": "string"
+          },
+          "providerName": {
+            "type": "string"
+          },
+          "reason": {
+            "enum": [
+              "signin_failed",
+              "signin_expired",
+              "seed_removed",
+              "stopped",
+              "unsent",
+              ""
+            ],
+            "type": "string"
+          },
+          "reasonAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "receivedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "round": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "seedEmail": {
+            "type": "string"
+          },
+          "seedId": {
+            "type": "string"
+          },
+          "seedProvider": {
+            "type": "string"
+          },
+          "seedProviderName": {
+            "type": "string"
+          },
+          "sendAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "spf": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "queued",
+              "sent",
+              "failed",
+              "found",
+              "not_arrived",
+              "not_checked"
+            ],
+            "type": "string"
+          },
+          "tab": {
+            "description": "Primary, Promotions, Focused, Other",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "seedEmail",
+          "seedProvider",
+          "seedProviderName",
+          "providerName",
+          "round",
+          "first",
+          "status",
+          "late",
+          "sendAt",
+          "deferrals"
+        ],
+        "type": "object"
+      },
+      "PlacementCounts": {
+        "additionalProperties": false,
+        "properties": {
+          "copies": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "failed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "found": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "inbox": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "notArrived": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "notChecked": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "notCheckedSeeds": {
+            "items": {
+              "$ref": "#/components/schemas/PlacementNotChecked"
+            },
+            "type": "array"
+          },
+          "spam": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "tab": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "tabs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "unsent": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "waiting": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "copies",
+          "found",
+          "inbox",
+          "tab",
+          "spam",
+          "notArrived",
+          "notChecked",
+          "waiting",
+          "failed",
+          "unsent",
+          "tabs",
+          "notCheckedSeeds"
+        ],
+        "type": "object"
+      },
+      "PlacementEarlier": {
+        "additionalProperties": false,
+        "properties": {
+          "contentName": {
+            "type": "string"
+          },
+          "copies": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "inbox": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "startedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "testId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "testId",
+          "contentName",
+          "inbox",
+          "copies",
+          "startedAt"
+        ],
+        "type": "object"
+      },
+      "PlacementEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "diagnostic": {
+            "type": "string"
+          },
+          "host": {
+            "type": "string"
+          },
+          "type": {
+            "description": "delivered, deferred, soft_bounce, hard_bounce, complaint, rejected…",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "at"
+        ],
+        "type": "object"
+      },
+      "PlacementFacet": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
+      "PlacementFolder": {
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "inbox",
+              "tab",
+              "spam"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "role",
+          "name",
+          "label"
+        ],
+        "type": "object"
+      },
+      "PlacementGuidance": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "auth": {
+            "$ref": "#/components/schemas/PlacementAuthSummary"
+          },
+          "authProviders": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "cause": {
+            "enum": [
+              "readiness",
+              "auth",
+              "warmup",
+              "reputation"
+            ],
+            "type": "string"
+          },
+          "copies": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "earlier": {
+            "$ref": "#/components/schemas/PlacementEarlier"
+          },
+          "hostRepute": {
+            "type": "boolean"
+          },
+          "ip": {
+            "type": "string"
+          },
+          "other": {
+            "$ref": "#/components/schemas/PlacementOther"
+          },
+          "providerId": {
+            "type": "string"
+          },
+          "providerName": {
+            "type": "string"
+          },
+          "readiness": {
+            "$ref": "#/components/schemas/PlacementAuthReadiness"
+          },
+          "spam": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "status": {
+            "type": "string"
+          },
+          "warmDay": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "warmDays": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "providerId",
+          "providerName",
+          "spam",
+          "copies",
+          "at",
+          "cause",
+          "auth",
+          "authProviders",
+          "status",
+          "hostRepute"
+        ],
+        "type": "object"
+      },
+      "PlacementLanguage": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "source": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "code",
+          "source"
+        ],
+        "type": "object"
+      },
+      "PlacementNotChecked": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "name": {
+            "description": "The seed's mailbox provider (iCloud)",
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "reason": {
+            "enum": [
+              "signin_failed",
+              "signin_expired",
+              "seed_removed",
+              "stopped",
+              "unsent"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider",
+          "name",
+          "email",
+          "reason"
+        ],
+        "type": "object"
+      },
+      "PlacementOAuthInput": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "maxLength": 254,
+            "type": "string"
+          },
+          "provider": {
+            "enum": [
+              "gmail",
+              "google_workspace",
+              "outlook",
+              "microsoft_365"
+            ],
+            "type": "string"
+          },
+          "seedId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider"
+        ],
+        "type": "object"
+      },
+      "PlacementOAuthStart": {
+        "additionalProperties": false,
+        "properties": {
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "type": "object"
+      },
+      "PlacementOther": {
+        "additionalProperties": false,
+        "properties": {
+          "copies": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "inbox": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "providerId": {
+            "type": "string"
+          },
+          "spam": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "providerId",
+          "name",
+          "inbox",
+          "spam",
+          "copies"
+        ],
+        "type": "object"
+      },
+      "PlacementPlan": {
+        "additionalProperties": false,
+        "properties": {
+          "alone": {
+            "type": "string"
+          },
+          "canRun": {
+            "type": "boolean"
+          },
+          "canStart": {
+            "type": "boolean"
+          },
+          "chosen": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "compareProblem": {
+            "type": "string"
+          },
+          "content": {
+            "$ref": "#/components/schemas/PlacementContentView"
+          },
+          "copies": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "costs": {
+            "items": {
+              "$ref": "#/components/schemas/PlacementCopyCost"
+            },
+            "type": "array"
+          },
+          "problems": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "providers": {
+            "items": {
+              "$ref": "#/components/schemas/PlacementProviderOption"
+            },
+            "type": "array"
+          },
+          "route": {
+            "items": {
+              "$ref": "#/components/schemas/PlacementRouteShare"
+            },
+            "type": "array"
+          },
+          "runHelpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "seeds": {
+            "items": {
+              "$ref": "#/components/schemas/PlacementSeedChoice"
+            },
+            "type": "array"
+          },
+          "sender": {
+            "type": "string"
+          },
+          "senderAlternatives": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "senderDomain": {
+            "type": "string"
+          },
+          "senderMissing": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "senderProblem": {
+            "type": "string"
+          },
+          "senders": {
+            "items": {
+              "$ref": "#/components/schemas/PlacementSenderOption"
+            },
+            "type": "array"
+          },
+          "stream": {
+            "enum": [
+              "broadcast",
+              "automation",
+              "system",
+              "transactional"
+            ],
+            "type": "string"
+          },
+          "warmupDays": {
+            "items": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "content",
+          "stream",
+          "providers",
+          "chosen",
+          "route",
+          "senders",
+          "seeds",
+          "copies",
+          "costs",
+          "problems",
+          "canStart",
+          "canRun",
+          "runHelpers",
+          "warmupDays"
+        ],
+        "type": "object"
+      },
+      "PlacementProviderOption": {
+        "additionalProperties": false,
+        "properties": {
+          "adapter": {
+            "type": "string"
+          },
+          "available": {
+            "type": "boolean"
+          },
+          "color": {
+            "type": "string"
+          },
+          "costPerCopy": {
+            "format": "double",
+            "type": "number"
+          },
+          "detail": {
+            "description": "us-east-1, mta.acme.io, the Transactional stream",
+            "type": "string"
+          },
+          "downReason": {
+            "type": "string"
+          },
+          "downSince": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "planMonthly": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "pricing": {
+            "enum": [
+              "metered",
+              "plan",
+              "self_hosted"
+            ],
+            "type": "string"
+          },
+          "sentToday": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "short": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "healthy",
+              "degraded",
+              "down",
+              "sandbox",
+              "warming_up",
+              "paused"
+            ],
+            "type": "string"
+          },
+          "streamOnly": {
+            "type": "string"
+          },
+          "todayCap": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "warmDay": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "warmDays": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "short",
+          "adapter",
+          "color",
+          "detail",
+          "status",
+          "available",
+          "costPerCopy",
+          "pricing"
+        ],
+        "type": "object"
+      },
+      "PlacementProviderResult": {
+        "additionalProperties": false,
+        "properties": {
+          "adapter": {
+            "type": "string"
+          },
+          "auth": {
+            "$ref": "#/components/schemas/PlacementAuthSummary"
+          },
+          "color": {
+            "type": "string"
+          },
+          "cost": {
+            "format": "double",
+            "type": "number"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/PlacementCounts"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "fastest": {
+            "$ref": "#/components/schemas/PlacementTiming"
+          },
+          "id": {
+            "type": "string"
+          },
+          "ip": {
+            "type": "string"
+          },
+          "medianMs": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "short": {
+            "type": "string"
+          },
+          "slowest": {
+            "$ref": "#/components/schemas/PlacementTiming"
+          },
+          "status": {
+            "type": "string"
+          },
+          "warmDay": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "warmDays": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "short",
+          "adapter",
+          "color",
+          "detail",
+          "status",
+          "counts",
+          "auth",
+          "cost"
+        ],
+        "type": "object"
+      },
+      "PlacementReconnectInput": {
+        "additionalProperties": false,
+        "properties": {
+          "host": {
+            "maxLength": 253,
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 500,
+            "minLength": 1,
+            "type": "string"
+          },
+          "port": {
+            "format": "int64",
+            "maximum": 65535,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "username": {
+            "maxLength": 254,
+            "type": "string"
+          }
+        },
+        "required": [
+          "password"
+        ],
+        "type": "object"
+      },
+      "PlacementResultSeed": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "position": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "providerName": {
+            "type": "string"
+          },
+          "status": {
+            "description": "The seed's status now (removed when it's gone)",
+            "type": "string"
+          },
+          "statusAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "provider",
+          "providerName",
+          "position",
+          "status"
+        ],
+        "type": "object"
+      },
+      "PlacementRouteShare": {
+        "additionalProperties": false,
+        "properties": {
+          "fallback": {
+            "type": "string"
+          },
+          "matched": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "providerId": {
+            "type": "string"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "seeds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "providerId",
+          "seeds",
+          "reasons",
+          "matched"
+        ],
+        "type": "object"
+      },
+      "PlacementRunInput": {
+        "additionalProperties": false,
+        "properties": {
+          "content": {
+            "$ref": "#/components/schemas/PlacementContentRef"
+          },
+          "language": {
+            "maxLength": 16,
+            "type": "string"
+          },
+          "origin": {
+            "enum": [
+              "placement",
+              "review",
+              "composer",
+              "warmup",
+              "template",
+              ""
+            ],
+            "type": "string"
+          },
+          "personalization": {
+            "description": "data: a transactional template's test data set, the first one unless testData names one",
+            "enum": [
+              "fallbacks",
+              "data",
+              ""
+            ],
+            "type": "string"
+          },
+          "providers": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 6,
+            "type": "array"
+          },
+          "seeds": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "type": "array"
+          },
+          "senderId": {
+            "type": "string"
+          },
+          "testData": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "through": {
+            "enum": [
+              "route",
+              "provider",
+              "compare"
+            ],
+            "type": "string"
+          },
+          "variant": {
+            "maxLength": 8,
+            "type": "string"
+          },
+          "version": {
+            "description": "A conditional-content version's number; 0 picks the one with the most recipients",
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "content",
+          "through"
+        ],
+        "type": "object"
+      },
+      "PlacementSeedCheck": {
+        "additionalProperties": false,
+        "properties": {
+          "folders": {
+            "items": {
+              "$ref": "#/components/schemas/PlacementFolder"
+            },
+            "type": "array"
+          },
+          "seed": {
+            "$ref": "#/components/schemas/PlacementSeedView"
+          }
+        },
+        "required": [
+          "seed",
+          "folders"
+        ],
+        "type": "object"
+      },
+      "PlacementSeedChoice": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "providerName": {
+            "type": "string"
+          },
+          "selected": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string"
+          },
+          "statusAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "provider",
+          "providerName",
+          "status",
+          "selected"
+        ],
+        "type": "object"
+      },
+      "PlacementSeedInput": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "format": "email",
+            "maxLength": 254,
+            "type": "string"
+          },
+          "host": {
+            "maxLength": 253,
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 500,
+            "minLength": 1,
+            "type": "string"
+          },
+          "port": {
+            "format": "int64",
+            "maximum": 65535,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "provider": {
+            "enum": [
+              "gmail",
+              "google_workspace",
+              "outlook",
+              "microsoft_365",
+              "yahoo",
+              "aol",
+              "icloud",
+              "gmx",
+              "webde"
+            ],
+            "type": "string"
+          },
+          "username": {
+            "maxLength": 254,
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider",
+          "email",
+          "password"
+        ],
+        "type": "object"
+      },
+      "PlacementSeedList": {
+        "additionalProperties": false,
+        "properties": {
+          "attention": {
+            "description": "Seeds whose sign-in failed or expired",
+            "format": "int64",
+            "type": "integer"
+          },
+          "canManage": {
+            "type": "boolean"
+          },
+          "canRun": {
+            "type": "boolean"
+          },
+          "connected": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "deleteAfter": {
+            "enum": [
+              "24h",
+              "finished",
+              "never"
+            ],
+            "type": "string"
+          },
+          "manageHelpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "oauthGoogle": {
+            "type": "boolean"
+          },
+          "oauthMicrosoft": {
+            "type": "boolean"
+          },
+          "providers": {
+            "items": {
+              "$ref": "#/components/schemas/PlacementSeedProvider"
+            },
+            "type": "array"
+          },
+          "redirectUri": {
+            "type": "string"
+          },
+          "runHelpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "seeds": {
+            "items": {
+              "$ref": "#/components/schemas/PlacementSeedView"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "seeds",
+          "attention",
+          "connected",
+          "deleteAfter",
+          "providers",
+          "oauthGoogle",
+          "oauthMicrosoft",
+          "redirectUri",
+          "canManage",
+          "manageHelpers",
+          "canRun",
+          "runHelpers"
+        ],
+        "type": "object"
+      },
+      "PlacementSeedProvider": {
+        "additionalProperties": false,
+        "properties": {
+          "company": {
+            "description": "Who runs the mailboxes (Apple for iCloud)",
+            "type": "string"
+          },
+          "host": {
+            "type": "string"
+          },
+          "imapHelp": {
+            "type": "string"
+          },
+          "inboxName": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "oauth": {
+            "enum": [
+              "google",
+              "microsoft",
+              ""
+            ],
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "passwordHelp": {
+            "type": "string"
+          },
+          "port": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "spamName": {
+            "type": "string"
+          },
+          "tabs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "usernameLabel": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "name",
+          "company",
+          "host",
+          "port",
+          "password",
+          "usernameLabel",
+          "inboxName",
+          "spamName",
+          "tabs"
+        ],
+        "type": "object"
+      },
+      "PlacementSeedView": {
+        "additionalProperties": false,
+        "properties": {
+          "addedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "addedBy": {
+            "type": "string"
+          },
+          "auth": {
+            "enum": [
+              "password",
+              "oauth"
+            ],
+            "type": "string"
+          },
+          "checkedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "company": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "folders": {
+            "items": {
+              "$ref": "#/components/schemas/PlacementFolder"
+            },
+            "type": "array"
+          },
+          "host": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "lastTest": {
+            "type": "string"
+          },
+          "lastTestId": {
+            "type": "string"
+          },
+          "lastUsedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "passwordLabel": {
+            "type": "string"
+          },
+          "port": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "provider": {
+            "enum": [
+              "gmail",
+              "google_workspace",
+              "outlook",
+              "microsoft_365",
+              "yahoo",
+              "aol",
+              "icloud",
+              "gmx",
+              "webde"
+            ],
+            "type": "string"
+          },
+          "providerName": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "connected",
+              "expired",
+              "failed",
+              "unchecked"
+            ],
+            "type": "string"
+          },
+          "statusAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "provider",
+          "providerName",
+          "company",
+          "passwordLabel",
+          "auth",
+          "status",
+          "folders",
+          "addedBy",
+          "addedAt"
+        ],
+        "type": "object"
+      },
+      "PlacementSenderOption": {
+        "additionalProperties": false,
+        "properties": {
+          "default": {
+            "type": "boolean"
+          },
+          "domain": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "verified": {
+            "description": "Verified on every provider the test uses",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email",
+          "domain",
+          "verified",
+          "default"
+        ],
+        "type": "object"
+      },
+      "PlacementSettingsInput": {
+        "additionalProperties": false,
+        "properties": {
+          "deleteAfter": {
+            "enum": [
+              "24h",
+              "finished",
+              "never"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "deleteAfter"
+        ],
+        "type": "object"
+      },
+      "PlacementTestDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "canRun": {
+            "type": "boolean"
+          },
+          "conditionalShows": {
+            "type": "string"
+          },
+          "conditionalVersion": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "contentAt": {
+            "description": "When the campaign is scheduled or was sent",
+            "format": "date-time",
+            "type": "string"
+          },
+          "contentId": {
+            "type": "string"
+          },
+          "contentKey": {
+            "type": "string"
+          },
+          "contentKind": {
+            "enum": [
+              "campaign",
+              "template",
+              "digest",
+              "transactional"
+            ],
+            "type": "string"
+          },
+          "contentName": {
+            "type": "string"
+          },
+          "contentNote": {
+            "description": "draft, scheduled, sent, template or the transactional template's key",
+            "type": "string"
+          },
+          "contentVersion": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "copies": {
+            "items": {
+              "$ref": "#/components/schemas/PlacementCopyView"
+            },
+            "type": "array"
+          },
+          "copiesDeletedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "copiesDeletedBy": {
+            "type": "string"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/PlacementCounts"
+          },
+          "deleteAfter": {
+            "enum": [
+              "24h",
+              "finished",
+              "never"
+            ],
+            "type": "string"
+          },
+          "deleteAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "fallbackGreeting": {
+            "type": "string"
+          },
+          "finishReason": {
+            "enum": [
+              "all_found",
+              "timeout",
+              "stopped",
+              ""
+            ],
+            "type": "string"
+          },
+          "finishedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "fromEmail": {
+            "type": "string"
+          },
+          "fromName": {
+            "type": "string"
+          },
+          "gapMinutes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "guidance": {
+            "items": {
+              "$ref": "#/components/schemas/PlacementGuidance"
+            },
+            "type": "array"
+          },
+          "hostRepute": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string"
+          },
+          "lastSentAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "lateUntil": {
+            "description": "Late copies found until then update the result",
+            "format": "date-time",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "origin": {
+            "enum": [
+              "placement",
+              "review",
+              "composer",
+              "warmup",
+              "template"
+            ],
+            "type": "string"
+          },
+          "personalization": {
+            "type": "string"
+          },
+          "providers": {
+            "items": {
+              "$ref": "#/components/schemas/PlacementProviderResult"
+            },
+            "type": "array"
+          },
+          "rounds": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "runHelpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "seeds": {
+            "items": {
+              "$ref": "#/components/schemas/PlacementResultSeed"
+            },
+            "type": "array"
+          },
+          "startedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "startedBy": {
+            "type": "string"
+          },
+          "startedByColor": {
+            "type": "string"
+          },
+          "startedById": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "sending",
+              "waiting",
+              "finished",
+              "stopped"
+            ],
+            "type": "string"
+          },
+          "stoppedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "stoppedBy": {
+            "type": "string"
+          },
+          "stream": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "through": {
+            "enum": [
+              "route",
+              "provider",
+              "compare"
+            ],
+            "type": "string"
+          },
+          "variant": {
+            "type": "string"
+          },
+          "waitUntil": {
+            "description": "Copies missing then are Not arrived",
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "subject",
+          "fromName",
+          "fromEmail",
+          "stream",
+          "rounds",
+          "gapMinutes",
+          "deleteAfter",
+          "seeds",
+          "copies",
+          "guidance",
+          "hostRepute",
+          "canRun",
+          "runHelpers",
+          "id",
+          "name",
+          "contentKind",
+          "contentName",
+          "contentNote",
+          "personalization",
+          "origin",
+          "through",
+          "status",
+          "startedAt",
+          "startedBy",
+          "providers",
+          "counts"
+        ],
+        "type": "object"
+      },
+      "PlacementTestList": {
+        "additionalProperties": false,
+        "properties": {
+          "attention": {
+            "items": {
+              "$ref": "#/components/schemas/PlacementSeedView"
+            },
+            "type": "array"
+          },
+          "canManage": {
+            "type": "boolean"
+          },
+          "canRun": {
+            "type": "boolean"
+          },
+          "deleteAfter": {
+            "enum": [
+              "24h",
+              "finished",
+              "never"
+            ],
+            "type": "string"
+          },
+          "manageHelpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "providers": {
+            "items": {
+              "$ref": "#/components/schemas/PlacementFacet"
+            },
+            "type": "array"
+          },
+          "runHelpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "seedsConnected": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "seedsTotal": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "starters": {
+            "items": {
+              "$ref": "#/components/schemas/PlacementFacet"
+            },
+            "type": "array"
+          },
+          "tests": {
+            "items": {
+              "$ref": "#/components/schemas/PlacementTestRow"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "tests",
+          "seedsConnected",
+          "seedsTotal",
+          "attention",
+          "deleteAfter",
+          "providers",
+          "starters",
+          "canRun",
+          "runHelpers",
+          "canManage",
+          "manageHelpers"
+        ],
+        "type": "object"
+      },
+      "PlacementTestRow": {
+        "additionalProperties": false,
+        "properties": {
+          "contentAt": {
+            "description": "When the campaign is scheduled or was sent",
+            "format": "date-time",
+            "type": "string"
+          },
+          "contentId": {
+            "type": "string"
+          },
+          "contentKey": {
+            "type": "string"
+          },
+          "contentKind": {
+            "enum": [
+              "campaign",
+              "template",
+              "digest",
+              "transactional"
+            ],
+            "type": "string"
+          },
+          "contentName": {
+            "type": "string"
+          },
+          "contentNote": {
+            "description": "draft, scheduled, sent, template or the transactional template's key",
+            "type": "string"
+          },
+          "contentVersion": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/PlacementCounts"
+          },
+          "finishedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "lastSentAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "lateUntil": {
+            "description": "Late copies found until then update the result",
+            "format": "date-time",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "origin": {
+            "enum": [
+              "placement",
+              "review",
+              "composer",
+              "warmup",
+              "template"
+            ],
+            "type": "string"
+          },
+          "personalization": {
+            "type": "string"
+          },
+          "providers": {
+            "items": {
+              "$ref": "#/components/schemas/PlacementProviderResult"
+            },
+            "type": "array"
+          },
+          "startedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "startedBy": {
+            "type": "string"
+          },
+          "startedByColor": {
+            "type": "string"
+          },
+          "startedById": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "sending",
+              "waiting",
+              "finished",
+              "stopped"
+            ],
+            "type": "string"
+          },
+          "through": {
+            "enum": [
+              "route",
+              "provider",
+              "compare"
+            ],
+            "type": "string"
+          },
+          "waitUntil": {
+            "description": "Copies missing then are Not arrived",
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "contentKind",
+          "contentName",
+          "contentNote",
+          "personalization",
+          "origin",
+          "through",
+          "status",
+          "startedAt",
+          "startedBy",
+          "providers",
+          "counts"
+        ],
+        "type": "object"
+      },
+      "PlacementTestValue": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "value"
+        ],
+        "type": "object"
+      },
+      "PlacementTiming": {
+        "additionalProperties": false,
+        "properties": {
+          "folder": {
+            "enum": [
+              "inbox",
+              "tab",
+              "spam"
+            ],
+            "type": "string"
+          },
+          "folderName": {
+            "type": "string"
+          },
+          "ms": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "seedProvider": {
+            "type": "string"
+          },
+          "seedProviderName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ms",
+          "seedProvider",
+          "seedProviderName",
+          "folder",
+          "folderName"
+        ],
+        "type": "object"
+      },
+      "PlacementVariant": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "subject"
+        ],
+        "type": "object"
+      },
       "PollAnswerCount": {
         "additionalProperties": false,
         "properties": {
@@ -35354,7 +37877,9 @@
               "visibility_show_everyone",
               "visibility_hide_block",
               "visibility_remove_condition",
-              "poll_close_days"
+              "poll_close_days",
+              "exclude_risky",
+              "verify_addresses"
             ],
             "type": "string"
           },
@@ -35435,7 +37960,9 @@
               "visibility_show_everyone",
               "visibility_hide_block",
               "visibility_remove_condition",
-              "poll_close_days"
+              "poll_close_days",
+              "exclude_risky",
+              "verify_addresses"
             ],
             "type": "string"
           },
@@ -51843,6 +54370,1266 @@
         ],
         "type": "object"
       },
+      "VerificationCapabilities": {
+        "additionalProperties": false,
+        "properties": {
+          "bulkLists": {
+            "type": "boolean"
+          },
+          "catchAll": {
+            "type": "boolean"
+          },
+          "creditBalance": {
+            "type": "boolean"
+          },
+          "dataRegion": {
+            "type": "boolean"
+          },
+          "realTime": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "bulkLists",
+          "realTime",
+          "catchAll",
+          "creditBalance",
+          "dataRegion"
+        ],
+        "type": "object"
+      },
+      "VerificationConnectInput": {
+        "additionalProperties": false,
+        "properties": {
+          "apiKey": {
+            "maxLength": 500,
+            "minLength": 8,
+            "type": "string"
+          },
+          "defaultBulk": {
+            "type": "boolean"
+          },
+          "defaultForms": {
+            "type": "boolean"
+          },
+          "price": {
+            "description": "Price per check in dollars",
+            "format": "double",
+            "maximum": 10,
+            "minimum": 0,
+            "type": "number"
+          },
+          "region": {
+            "enum": [
+              "us",
+              "eu",
+              ""
+            ],
+            "type": "string"
+          },
+          "service": {
+            "enum": [
+              "zerobounce",
+              "kickbox",
+              "neverbounce",
+              "bouncer",
+              "emailable"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "price",
+          "defaultBulk",
+          "defaultForms",
+          "service",
+          "apiKey"
+        ],
+        "type": "object"
+      },
+      "VerificationDisconnectResult": {
+        "additionalProperties": false,
+        "properties": {
+          "bulk": {
+            "type": "boolean"
+          },
+          "forms": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "service": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "service",
+          "forms",
+          "bulk"
+        ],
+        "type": "object"
+      },
+      "VerificationEstimate": {
+        "additionalProperties": false,
+        "properties": {
+          "after": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "balance": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "balanceAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "canManage": {
+            "type": "boolean"
+          },
+          "canVerify": {
+            "type": "boolean"
+          },
+          "connected": {
+            "type": "boolean"
+          },
+          "contacts": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "cost": {
+            "format": "double",
+            "type": "number"
+          },
+          "enough": {
+            "type": "boolean"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "manageHelpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "price": {
+            "format": "double",
+            "type": "number"
+          },
+          "regionLabel": {
+            "type": "string"
+          },
+          "service": {
+            "type": "string"
+          },
+          "serviceName": {
+            "type": "string"
+          },
+          "services": {
+            "items": {
+              "$ref": "#/components/schemas/VerificationServiceChoice"
+            },
+            "type": "array"
+          },
+          "skipRecent": {
+            "type": "boolean"
+          },
+          "skipped": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "skippedOn": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "skippedService": {
+            "type": "string"
+          },
+          "toCheck": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "verifyHelpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "kind",
+          "label",
+          "contacts",
+          "skipped",
+          "toCheck",
+          "skipRecent",
+          "price",
+          "cost",
+          "enough",
+          "services",
+          "connected",
+          "canVerify",
+          "verifyHelpers",
+          "canManage",
+          "manageHelpers"
+        ],
+        "type": "object"
+      },
+      "VerificationEstimateInput": {
+        "additionalProperties": false,
+        "properties": {
+          "service": {
+            "enum": [
+              "zerobounce",
+              "kickbox",
+              "neverbounce",
+              "bouncer",
+              "emailable",
+              ""
+            ],
+            "type": "string"
+          },
+          "skipRecent": {
+            "description": "Skip addresses checked in the last 90 days (default true)",
+            "type": "boolean"
+          },
+          "target": {
+            "$ref": "#/components/schemas/VerificationTarget"
+          }
+        },
+        "required": [
+          "target"
+        ],
+        "type": "object"
+      },
+      "VerificationFormCount": {
+        "additionalProperties": false,
+        "properties": {
+          "checks": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "formKey": {
+            "type": "string"
+          },
+          "invalid": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "noAnswer": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "risky": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "unknown": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "valid": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "formKey",
+          "name",
+          "checks",
+          "valid",
+          "invalid",
+          "risky",
+          "unknown",
+          "noAnswer"
+        ],
+        "type": "object"
+      },
+      "VerificationFormInput": {
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled"
+        ],
+        "type": "object"
+      },
+      "VerificationFormSetting": {
+        "additionalProperties": false,
+        "properties": {
+          "askedToFix": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "canChange": {
+            "type": "boolean"
+          },
+          "down": {
+            "type": "boolean"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "formKey": {
+            "type": "string"
+          },
+          "helpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "price": {
+            "format": "double",
+            "type": "number"
+          },
+          "service": {
+            "description": "The forms default service; empty when there is none",
+            "type": "string"
+          },
+          "serviceName": {
+            "type": "string"
+          },
+          "waiting": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "formKey",
+          "enabled",
+          "price",
+          "askedToFix",
+          "down",
+          "waiting",
+          "canChange",
+          "helpers"
+        ],
+        "type": "object"
+      },
+      "VerificationJobView": {
+        "additionalProperties": false,
+        "properties": {
+          "balanceAfter": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "balanceBefore": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "campaignId": {
+            "type": "string"
+          },
+          "canExport": {
+            "type": "boolean"
+          },
+          "canVerify": {
+            "type": "boolean"
+          },
+          "checked": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "cost": {
+            "format": "double",
+            "type": "number"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "errorSince": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "estimated": {
+            "format": "double",
+            "type": "number"
+          },
+          "etaSeconds": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "finishedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "importId": {
+            "type": "string"
+          },
+          "invalid": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "kind": {
+            "enum": [
+              "import",
+              "list",
+              "segment",
+              "tier",
+              "selection",
+              "contact"
+            ],
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "lastError": {
+            "type": "string"
+          },
+          "listId": {
+            "type": "string"
+          },
+          "nextTryAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "origin": {
+            "type": "string"
+          },
+          "price": {
+            "format": "double",
+            "type": "number"
+          },
+          "reasons": {
+            "additionalProperties": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "object"
+          },
+          "recheckFrom": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "regionLabel": {
+            "type": "string"
+          },
+          "retryUntil": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "risky": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "service": {
+            "type": "string"
+          },
+          "serviceName": {
+            "type": "string"
+          },
+          "skipped": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "startedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "startedBy": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "queued",
+              "running",
+              "paused",
+              "stopped",
+              "cancelled",
+              "finished"
+            ],
+            "type": "string"
+          },
+          "stopReason": {
+            "enum": [
+              "",
+              "no_credits",
+              "service_down",
+              "key_rejected",
+              "cancelled"
+            ],
+            "type": "string"
+          },
+          "stoppedBy": {
+            "type": "string"
+          },
+          "suppressed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "tiers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "total": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "unknown": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "valid": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "label",
+          "origin",
+          "service",
+          "serviceName",
+          "regionLabel",
+          "status",
+          "stopReason",
+          "total",
+          "skipped",
+          "checked",
+          "valid",
+          "invalid",
+          "risky",
+          "unknown",
+          "suppressed",
+          "reasons",
+          "price",
+          "cost",
+          "estimated",
+          "startedBy",
+          "createdAt",
+          "tiers",
+          "canVerify",
+          "canExport"
+        ],
+        "type": "object"
+      },
+      "VerificationKeyInput": {
+        "additionalProperties": false,
+        "properties": {
+          "apiKey": {
+            "maxLength": 500,
+            "minLength": 8,
+            "type": "string"
+          },
+          "region": {
+            "enum": [
+              "us",
+              "eu",
+              ""
+            ],
+            "type": "string"
+          },
+          "service": {
+            "enum": [
+              "zerobounce",
+              "kickbox",
+              "neverbounce",
+              "bouncer",
+              "emailable"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "service",
+          "apiKey"
+        ],
+        "type": "object"
+      },
+      "VerificationKeyTest": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "balance": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "error": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "key_rejected",
+              "no_credits",
+              "unreachable",
+              ""
+            ],
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "problem": {
+            "type": "string"
+          },
+          "status": {
+            "description": "The service's HTTP status when it refused",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ok",
+          "at"
+        ],
+        "type": "object"
+      },
+      "VerificationMapping": {
+        "additionalProperties": false,
+        "properties": {
+          "codes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "result": {
+            "enum": [
+              "valid",
+              "invalid",
+              "risky",
+              "unknown"
+            ],
+            "type": "string"
+          },
+          "tag": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "codes",
+          "result"
+        ],
+        "type": "object"
+      },
+      "VerificationOverview": {
+        "additionalProperties": false,
+        "properties": {
+          "canManage": {
+            "type": "boolean"
+          },
+          "canVerify": {
+            "type": "boolean"
+          },
+          "defaultBulk": {
+            "type": "string"
+          },
+          "defaultForms": {
+            "type": "string"
+          },
+          "manageHelpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "services": {
+            "items": {
+              "$ref": "#/components/schemas/VerificationServiceView"
+            },
+            "type": "array"
+          },
+          "uses": {
+            "items": {
+              "$ref": "#/components/schemas/VerificationUse"
+            },
+            "type": "array"
+          },
+          "verifyHelpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "services",
+          "uses",
+          "canManage",
+          "manageHelpers",
+          "canVerify",
+          "verifyHelpers"
+        ],
+        "type": "object"
+      },
+      "VerificationRealtime": {
+        "additionalProperties": false,
+        "properties": {
+          "askedToFix": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "checks": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "days": {
+            "items": {
+              "$ref": "#/components/schemas/VerificationRealtimeDay"
+            },
+            "type": "array"
+          },
+          "forms": {
+            "items": {
+              "$ref": "#/components/schemas/VerificationFormCount"
+            },
+            "type": "array"
+          },
+          "service": {
+            "type": "string"
+          },
+          "since": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "spent": {
+            "format": "double",
+            "type": "number"
+          },
+          "total": {
+            "$ref": "#/components/schemas/VerificationFormCount"
+          },
+          "waiting": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "service",
+          "checks",
+          "spent",
+          "askedToFix",
+          "forms",
+          "total",
+          "days",
+          "waiting"
+        ],
+        "type": "object"
+      },
+      "VerificationRealtimeDay": {
+        "additionalProperties": false,
+        "properties": {
+          "checks": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "day": {
+            "description": "YYYY-MM-DD",
+            "type": "string"
+          }
+        },
+        "required": [
+          "day",
+          "checks"
+        ],
+        "type": "object"
+      },
+      "VerificationRegion": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "label"
+        ],
+        "type": "object"
+      },
+      "VerificationReplaceKeyInput": {
+        "additionalProperties": false,
+        "properties": {
+          "apiKey": {
+            "maxLength": 500,
+            "minLength": 8,
+            "type": "string"
+          }
+        },
+        "required": [
+          "apiKey"
+        ],
+        "type": "object"
+      },
+      "VerificationServiceChoice": {
+        "additionalProperties": false,
+        "properties": {
+          "balance": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "default": {
+            "type": "boolean"
+          },
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "price": {
+            "format": "double",
+            "type": "number"
+          },
+          "regionLabel": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "name",
+          "price",
+          "default",
+          "regionLabel"
+        ],
+        "type": "object"
+      },
+      "VerificationServiceView": {
+        "additionalProperties": false,
+        "properties": {
+          "balance": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "balanceAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "bulkUses30d": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/VerificationCapabilities"
+          },
+          "checks30d": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "connected": {
+            "type": "boolean"
+          },
+          "connectedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "connectedBy": {
+            "type": "string"
+          },
+          "defaultBulk": {
+            "type": "boolean"
+          },
+          "defaultForms": {
+            "type": "boolean"
+          },
+          "down": {
+            "type": "boolean"
+          },
+          "initials": {
+            "type": "string"
+          },
+          "key": {
+            "enum": [
+              "zerobounce",
+              "kickbox",
+              "neverbounce",
+              "bouncer",
+              "emailable"
+            ],
+            "type": "string"
+          },
+          "keyHelp": {
+            "type": "string"
+          },
+          "lastError": {
+            "type": "string"
+          },
+          "lastErrorAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "lastErrorSince": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "lastSuccessAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "lastSuccessWhat": {
+            "type": "string"
+          },
+          "lastUsedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "lastUsedBy": {
+            "type": "string"
+          },
+          "lastUsedWhat": {
+            "type": "string"
+          },
+          "mappings": {
+            "items": {
+              "$ref": "#/components/schemas/VerificationMapping"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          },
+          "needed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "neededLabel": {
+            "type": "string"
+          },
+          "pausedJob": {
+            "type": "string"
+          },
+          "price": {
+            "description": "Price per check in dollars, from the workspace's plan",
+            "format": "double",
+            "type": "number"
+          },
+          "priceBy": {
+            "description": "Who entered the price",
+            "type": "string"
+          },
+          "region": {
+            "type": "string"
+          },
+          "regionLabel": {
+            "type": "string"
+          },
+          "regions": {
+            "items": {
+              "$ref": "#/components/schemas/VerificationRegion"
+            },
+            "type": "array"
+          },
+          "spent30d": {
+            "format": "double",
+            "type": "number"
+          },
+          "status": {
+            "enum": [
+              "not_connected",
+              "connected",
+              "low_credits",
+              "error"
+            ],
+            "type": "string"
+          },
+          "testOk": {
+            "type": "boolean"
+          },
+          "testedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "website": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "name",
+          "initials",
+          "capabilities",
+          "regions",
+          "website",
+          "keyHelp",
+          "mappings",
+          "connected",
+          "status",
+          "region",
+          "regionLabel",
+          "price",
+          "defaultBulk",
+          "defaultForms",
+          "down",
+          "checks30d",
+          "bulkUses30d",
+          "spent30d"
+        ],
+        "type": "object"
+      },
+      "VerificationSettingsInput": {
+        "additionalProperties": false,
+        "properties": {
+          "defaultBulk": {
+            "type": "boolean"
+          },
+          "defaultForms": {
+            "type": "boolean"
+          },
+          "price": {
+            "format": "double",
+            "maximum": 10,
+            "minimum": 0,
+            "type": "number"
+          },
+          "region": {
+            "enum": [
+              "us",
+              "eu",
+              ""
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "price",
+          "defaultBulk",
+          "defaultForms"
+        ],
+        "type": "object"
+      },
+      "VerificationStartInput": {
+        "additionalProperties": false,
+        "properties": {
+          "campaignId": {
+            "type": "string"
+          },
+          "origin": {
+            "enum": [
+              "list_health",
+              "readiness",
+              "contacts",
+              "profile",
+              "import",
+              "segments",
+              "growth",
+              ""
+            ],
+            "type": "string"
+          },
+          "service": {
+            "enum": [
+              "zerobounce",
+              "kickbox",
+              "neverbounce",
+              "bouncer",
+              "emailable",
+              ""
+            ],
+            "type": "string"
+          },
+          "skipRecent": {
+            "type": "boolean"
+          },
+          "target": {
+            "$ref": "#/components/schemas/VerificationTarget"
+          }
+        },
+        "required": [
+          "target"
+        ],
+        "type": "object"
+      },
+      "VerificationTarget": {
+        "additionalProperties": false,
+        "properties": {
+          "contactId": {
+            "type": "string"
+          },
+          "contactIds": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 10000,
+            "type": "array"
+          },
+          "filter": {
+            "$ref": "#/components/schemas/ContactFilter"
+          },
+          "importId": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "list",
+              "segment",
+              "tier",
+              "selection",
+              "contact",
+              "import"
+            ],
+            "type": "string"
+          },
+          "label": {
+            "maxLength": 200,
+            "type": "string"
+          },
+          "listId": {
+            "type": "string"
+          },
+          "segmentId": {
+            "type": "string"
+          },
+          "tiers": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 4,
+            "type": "array"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "type": "object"
+      },
+      "VerificationUse": {
+        "additionalProperties": false,
+        "properties": {
+          "addresses": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "by": {
+            "type": "string"
+          },
+          "cost": {
+            "format": "double",
+            "type": "number"
+          },
+          "finishedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "forms": {
+            "items": {
+              "$ref": "#/components/schemas/VerificationFormCount"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "string"
+          },
+          "invalid": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "kind": {
+            "enum": [
+              "import",
+              "list",
+              "segment",
+              "tier",
+              "selection",
+              "contact",
+              "realtime"
+            ],
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "noAnswer": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "risky": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "service": {
+            "type": "string"
+          },
+          "serviceName": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "suppressed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "unknown": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "valid": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "service",
+          "serviceName",
+          "at",
+          "by",
+          "label",
+          "status",
+          "addresses",
+          "cost",
+          "valid",
+          "invalid",
+          "risky",
+          "unknown",
+          "suppressed",
+          "noAnswer",
+          "forms"
+        ],
+        "type": "object"
+      },
+      "VerifyContactInput": {
+        "additionalProperties": false,
+        "properties": {
+          "service": {
+            "enum": [
+              "zerobounce",
+              "kickbox",
+              "neverbounce",
+              "bouncer",
+              "emailable",
+              ""
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "VisibilityBlockInfo": {
         "additionalProperties": false,
         "properties": {
@@ -58895,6 +62682,83 @@
         "x-access": "public"
       }
     },
+    "/api/v1/placement/oauth/callback": {
+      "get": {
+        "description": "Exchanges the code, checks the mailbox, seals the tokens and redirects to Seed mailboxes. Requires the signed-in person who started it, holding placement:manage in its workspace.",
+        "operationId": "seed-oauth-callback",
+        "parameters": [
+          {
+            "explode": false,
+            "in": "query",
+            "name": "code",
+            "schema": {
+              "maxLength": 4096,
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "state",
+            "schema": {
+              "maxLength": 512,
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "error",
+            "schema": {
+              "maxLength": 200,
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "error_description",
+            "schema": {
+              "maxLength": 1000,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Location": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "OAuth return from Google or Microsoft for a seed (browser redirect)",
+        "tags": [
+          "Placement tests"
+        ],
+        "x-access": "public",
+        "x-permission": "placement:manage"
+      }
+    },
     "/api/v1/setup": {
       "get": {
         "operationId": "get-setup",
@@ -61648,7 +65512,9 @@
                 "scoring",
                 "digests",
                 "polls",
-                "earn"
+                "earn",
+                "verification",
+                "placement"
               ],
               "type": "string"
             }
@@ -61910,7 +65776,9 @@
                 "scoring",
                 "digests",
                 "polls",
-                "earn"
+                "earn",
+                "verification",
+                "placement"
               ],
               "type": "string"
             }
@@ -70875,6 +74743,24 @@
             "name": "joinedAfter",
             "schema": {
               "maxLength": 10,
+              "type": "string"
+            }
+          },
+          {
+            "description": "The latest address check's result",
+            "explode": false,
+            "in": "query",
+            "name": "check",
+            "schema": {
+              "description": "The latest address check's result",
+              "enum": [
+                "valid",
+                "invalid",
+                "risky",
+                "unknown",
+                "never",
+                ""
+              ],
               "type": "string"
             }
           },
@@ -87345,6 +91231,972 @@
         "x-permission": "deliverability:view"
       }
     },
+    "/api/v1/workspaces/{workspace}/placement/content": {
+      "get": {
+        "operationId": "search-placement-content",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Words of the name",
+            "explode": false,
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "description": "Words of the name",
+              "maxLength": 100,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlacementContentList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Campaigns, templates and transactional templates a test can send",
+        "tags": [
+          "Placement tests"
+        ],
+        "x-access": "workspace",
+        "x-permission": "placement:run"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/placement/plan": {
+      "post": {
+        "operationId": "plan-placement-test",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlacementRunInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlacementPlan"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What a test would send: providers, senders, seeds, copies and cost (nothing is sent)",
+        "tags": [
+          "Placement tests"
+        ],
+        "x-access": "workspace",
+        "x-permission": "placement:run"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/placement/seeds": {
+      "get": {
+        "operationId": "list-seed-mailboxes",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlacementSeedList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Seed mailboxes (passwords and tokens are never returned)",
+        "tags": [
+          "Placement tests"
+        ],
+        "x-access": "workspace",
+        "x-permission": "deliverability:view"
+      },
+      "post": {
+        "description": "The password is sealed at once and never returned. Answers 422 with meta.kind refused or unreachable when the sign-in fails.",
+        "operationId": "add-seed-mailbox",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlacementSeedInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlacementSeedCheck"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Add a seed mailbox with an IMAP password, after checking the sign-in (audited)",
+        "tags": [
+          "Placement tests"
+        ],
+        "x-access": "workspace",
+        "x-permission": "placement:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/placement/seeds/oauth": {
+      "post": {
+        "description": "Returns the consent URL. The browser comes back to /api/v1/placement/oauth/callback, which adds or reconnects the seed.",
+        "operationId": "start-seed-oauth",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlacementOAuthInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlacementOAuthStart"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Start Google's or Microsoft's consent for a seed (OAuth with PKCE)",
+        "tags": [
+          "Placement tests"
+        ],
+        "x-access": "workspace",
+        "x-permission": "placement:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/placement/seeds/{seed}": {
+      "delete": {
+        "operationId": "remove-seed-mailbox",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "seed",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Remove a seed and its password or tokens (audited)",
+        "tags": [
+          "Placement tests"
+        ],
+        "x-access": "workspace",
+        "x-permission": "placement:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/placement/seeds/{seed}/reconnect": {
+      "post": {
+        "operationId": "reconnect-seed-mailbox",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "seed",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlacementReconnectInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlacementSeedCheck"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Reconnect a seed with a new IMAP password (audited)",
+        "tags": [
+          "Placement tests"
+        ],
+        "x-access": "workspace",
+        "x-permission": "placement:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/placement/settings": {
+      "put": {
+        "operationId": "set-placement-settings",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlacementSettingsInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlacementSettingsInput"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "When copies are deleted from the seeds (audited)",
+        "tags": [
+          "Placement tests"
+        ],
+        "x-access": "workspace",
+        "x-permission": "placement:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/placement/tests": {
+      "get": {
+        "operationId": "list-placement-tests",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlacementTestList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Placement tests, newest first, with results per provider",
+        "tags": [
+          "Placement tests"
+        ],
+        "x-access": "workspace",
+        "x-permission": "deliverability:view"
+      },
+      "post": {
+        "description": "Answers 409 placement_not_ready with the problems (meta.problems) when the plan can't start. People only: agents can't hold placement:run.",
+        "operationId": "start-placement-test",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlacementRunInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlacementTestDetail"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Start a placement test: one copy to each seed (audited)",
+        "tags": [
+          "Placement tests"
+        ],
+        "x-access": "workspace",
+        "x-permission": "placement:run"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/placement/tests/{test}": {
+      "get": {
+        "operationId": "get-placement-test",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "test",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlacementTestDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One placement test: its copies, the matrix and the guidance",
+        "tags": [
+          "Placement tests"
+        ],
+        "x-access": "workspace",
+        "x-permission": "deliverability:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/placement/tests/{test}/copies/{copy}": {
+      "get": {
+        "operationId": "get-placement-copy",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "test",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "copy",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlacementCopyDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One copy: where it landed, its headers and the provider's events",
+        "tags": [
+          "Placement tests"
+        ],
+        "x-access": "workspace",
+        "x-permission": "deliverability:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/placement/tests/{test}/delete-copies": {
+      "post": {
+        "operationId": "delete-placement-copies",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "test",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlacementTestDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Delete a test's copies from the seeds now, by test token (audited)",
+        "tags": [
+          "Placement tests"
+        ],
+        "x-access": "workspace",
+        "x-permission": "placement:run"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/placement/tests/{test}/run-again": {
+      "post": {
+        "operationId": "rerun-placement-test",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "test",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlacementTestDetail"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Run a test again with the same content and choices (audited)",
+        "tags": [
+          "Placement tests"
+        ],
+        "x-access": "workspace",
+        "x-permission": "placement:run"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/placement/tests/{test}/stop": {
+      "post": {
+        "operationId": "stop-placement-test",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "test",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlacementTestDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Stop waiting: copies not found yet are Not arrived (audited)",
+        "tags": [
+          "Placement tests"
+        ],
+        "x-access": "workspace",
+        "x-permission": "placement:run"
+      }
+    },
     "/api/v1/workspaces/{workspace}/poll-sources": {
       "get": {
         "operationId": "list-poll-sources",
@@ -92432,6 +97284,8 @@
                 "complaint",
                 "unsubscribe",
                 "manual",
+                "invalid",
+                "spam_trap",
                 ""
               ],
               "type": "string"
@@ -97946,6 +102800,1365 @@
         ],
         "x-access": "workspace",
         "x-permission": "workspace:transfer"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/verification/contacts/{contact}": {
+      "get": {
+        "operationId": "get-contact-address-check",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "contact",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactAddressCheck"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A contact's latest address check and what Verify now would use",
+        "tags": [
+          "Verification"
+        ],
+        "x-access": "workspace",
+        "x-permission": "subscribers:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/verification/contacts/{contact}/verify": {
+      "post": {
+        "operationId": "verify-contact",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "contact",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyContactInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactAddressCheck"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Check one contact's address now (audited)",
+        "tags": [
+          "Verification"
+        ],
+        "x-access": "workspace",
+        "x-permission": "subscribers:verify"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/verification/estimate": {
+      "post": {
+        "operationId": "estimate-verification",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerificationEstimateInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerificationEstimate"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What a use would check and cost, for its dialog and notice",
+        "tags": [
+          "Verification"
+        ],
+        "x-access": "workspace",
+        "x-permission": "subscribers:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/verification/forms/{form}": {
+      "get": {
+        "operationId": "get-form-address-check",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "A form's id, or subscribe_page",
+            "in": "path",
+            "name": "form",
+            "required": true,
+            "schema": {
+              "description": "A form's id, or subscribe_page",
+              "pattern": "^[a-z0-9_-]{1,64}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerificationFormSetting"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A form's real-time address check and its 30-day numbers",
+        "tags": [
+          "Verification"
+        ],
+        "x-access": "workspace",
+        "x-permission": "subscribers:view"
+      },
+      "put": {
+        "operationId": "set-form-address-check",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "A form's id, or subscribe_page",
+            "in": "path",
+            "name": "form",
+            "required": true,
+            "schema": {
+              "description": "A form's id, or subscribe_page",
+              "pattern": "^[a-z0-9_-]{1,64}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The form's name, for the audit log",
+            "explode": false,
+            "in": "query",
+            "name": "name",
+            "schema": {
+              "description": "The form's name, for the audit log",
+              "maxLength": 200,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerificationFormInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerificationFormSetting"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Turn a form's real-time address check on or off (also needs forms:edit; audited)",
+        "tags": [
+          "Verification"
+        ],
+        "x-access": "workspace",
+        "x-permission": "subscribers:verify"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/verification/jobs": {
+      "post": {
+        "operationId": "start-verification",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerificationStartInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerificationJobView"
+                }
+              }
+            },
+            "description": "Accepted"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Send addresses to the verification service and start a job (audited)",
+        "tags": [
+          "Verification"
+        ],
+        "x-access": "workspace",
+        "x-permission": "subscribers:verify"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/verification/jobs/{job}": {
+      "get": {
+        "operationId": "get-verification-job",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "job",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerificationJobView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A verification job's progress and results",
+        "tags": [
+          "Verification"
+        ],
+        "x-access": "workspace",
+        "x-permission": "subscribers:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/verification/jobs/{job}/cancel": {
+      "post": {
+        "operationId": "cancel-verification-job",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "job",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerificationJobView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Stop a job; the results so far are kept",
+        "tags": [
+          "Verification"
+        ],
+        "x-access": "workspace",
+        "x-permission": "subscribers:verify"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/verification/jobs/{job}/results.csv": {
+      "get": {
+        "operationId": "download-verification-results",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "job",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "contentEncoding": "base64",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Content-Type": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A job's results as CSV: addresses, so it's an export (audited)",
+        "tags": [
+          "Verification"
+        ],
+        "x-access": "workspace",
+        "x-permission": "subscribers:export"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/verification/jobs/{job}/resume": {
+      "post": {
+        "operationId": "resume-verification-job",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "job",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerificationJobView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Continue a job that stopped for credits or an outage",
+        "tags": [
+          "Verification"
+        ],
+        "x-access": "workspace",
+        "x-permission": "subscribers:verify"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/verification/services": {
+      "get": {
+        "operationId": "list-verification-services",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerificationOverview"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Verification services, their connections and uses",
+        "tags": [
+          "Verification"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:view"
+      },
+      "post": {
+        "operationId": "connect-verification-service",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerificationConnectInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerificationServiceView"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Connect a verification service with the workspace's own API key",
+        "tags": [
+          "Verification"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/verification/services/test": {
+      "post": {
+        "operationId": "test-verification-key",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerificationKeyInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerificationKeyTest"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Test a service's API key by reading its balance (no address is sent)",
+        "tags": [
+          "Verification"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/verification/services/{service}": {
+      "delete": {
+        "operationId": "disconnect-verification-service",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "service",
+            "required": true,
+            "schema": {
+              "enum": [
+                "zerobounce",
+                "kickbox",
+                "neverbounce",
+                "bouncer",
+                "emailable"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "The forms that stop checking, as the dialog listed them",
+            "explode": false,
+            "in": "query",
+            "name": "forms",
+            "schema": {
+              "description": "The forms that stop checking, as the dialog listed them",
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 50,
+              "type": "array"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerificationDisconnectResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Disconnect a service; results already on contacts stay",
+        "tags": [
+          "Verification"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      },
+      "get": {
+        "operationId": "get-verification-service",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "service",
+            "required": true,
+            "schema": {
+              "enum": [
+                "zerobounce",
+                "kickbox",
+                "neverbounce",
+                "bouncer",
+                "emailable"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerificationServiceView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One verification service",
+        "tags": [
+          "Verification"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:view"
+      },
+      "patch": {
+        "operationId": "update-verification-service",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "service",
+            "required": true,
+            "schema": {
+              "enum": [
+                "zerobounce",
+                "kickbox",
+                "neverbounce",
+                "bouncer",
+                "emailable"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerificationSettingsInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerificationServiceView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change a service's price per check, region and default uses",
+        "tags": [
+          "Verification"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/verification/services/{service}/key": {
+      "put": {
+        "operationId": "replace-verification-key",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "service",
+            "required": true,
+            "schema": {
+              "enum": [
+                "zerobounce",
+                "kickbox",
+                "neverbounce",
+                "bouncer",
+                "emailable"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerificationReplaceKeyInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerificationServiceView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Replace a service's API key (write-only)",
+        "tags": [
+          "Verification"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/verification/services/{service}/realtime": {
+      "get": {
+        "operationId": "get-verification-realtime",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "service",
+            "required": true,
+            "schema": {
+              "enum": [
+                "zerobounce",
+                "kickbox",
+                "neverbounce",
+                "bouncer",
+                "emailable"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerificationRealtime"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A service's real-time checks by form and by day",
+        "tags": [
+          "Verification"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/verification/services/{service}/test": {
+      "post": {
+        "operationId": "test-verification-service",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "service",
+            "required": true,
+            "schema": {
+              "enum": [
+                "zerobounce",
+                "kickbox",
+                "neverbounce",
+                "bouncer",
+                "emailable"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerificationKeyTest"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Read a connected service's balance again (no address is sent)",
+        "tags": [
+          "Verification"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:view"
       }
     },
     "/api/v1/workspaces/{workspace}/visibility/catalog": {

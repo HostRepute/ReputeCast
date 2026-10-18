@@ -68,7 +68,8 @@ func sendingTracker(a *App) *tracking.Service {
 	}
 	t := &tracking.Service{Pool: a.Pool, Q: a.Q, Links: a.Links, Log: a.Log,
 		Automations:   &automations.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Log: a.Log},
-		Transactional: transactionalService(a)}
+		Transactional: transactionalService(a),
+		Placement:     a.placement()}
 	v, _ := trackers.LoadOrStore(a, t)
 	return v.(*tracking.Service)
 }

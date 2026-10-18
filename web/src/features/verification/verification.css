@@ -1,0 +1,248 @@
+/*
+ * Address verification: the Verification* boards' own classes, copied
+ * value for value and prefixed `vf-`. Cards, tiles and stats reuse the
+ * integrations hub's `ih-` classes, as the boards reuse its vocabulary.
+ */
+@layer components {
+  .ih-card.vf-sel {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent);
+  }
+  .vf-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 28px;
+    padding: 0 10px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: #f9fafb;
+    font-size: 12.5px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .vf-section {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 6px;
+  }
+  .vf-section > .nm {
+    font-weight: 700;
+    font-size: 16px;
+  }
+  .vf-section > .ln {
+    flex: 1;
+    height: 1px;
+    background: var(--line);
+  }
+
+  /* A settings row: what it is on the left, the control on the right. */
+  .vf-srow {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 14px 18px;
+    border-top: 1px solid var(--line-2);
+    flex-wrap: wrap;
+  }
+  .vf-srow > .what {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    flex: 1 1 260px;
+    min-width: 0;
+  }
+  .vf-srow > .ctl {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    max-width: 100%;
+  }
+  .vf-mask {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-family-mono);
+    font-size: 12.5px;
+    color: var(--ink-2);
+    white-space: nowrap;
+  }
+
+  /* Results: valid, invalid, risky, unknown. */
+  .vf-bar {
+    display: flex;
+    height: 12px;
+    gap: 2px;
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .vf-bar i {
+    display: block;
+    height: 100%;
+  }
+  .vf-bar i.w {
+    background: var(--line-2);
+  }
+  .vf-bar.thin {
+    height: 8px;
+    border-radius: 4px;
+  }
+  .vf-legend {
+    display: flex;
+    gap: 8px 18px;
+    flex-wrap: wrap;
+    font-size: 13px;
+  }
+  .vf-legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .vf-legend i {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    display: inline-block;
+  }
+  .vf-legend b {
+    font-variant-numeric: tabular-nums;
+  }
+  .vf-tag {
+    display: inline-flex;
+    align-items: center;
+    height: 22px;
+    padding: 0 7px;
+    border-radius: 6px;
+    background: var(--line-2);
+    color: var(--ink-nav);
+    font-family: var(--font-family-mono);
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  /* What a service receives. */
+  .vf-sent {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 4px 14px;
+    font-size: 13px;
+    margin: 0;
+  }
+  .vf-sent dt {
+    font-weight: 700;
+    margin: 0;
+  }
+  .vf-sent dd {
+    margin: 0;
+  }
+
+  /* The cost of a use. */
+  .vf-cost {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 12px 14px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fbfbfc;
+  }
+  .vf-cost .big {
+    font-size: 15px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* What happens to each result. */
+  .vf-map {
+    display: flex;
+    flex-direction: column;
+  }
+  .vf-map .rr {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 9px 0;
+    border-top: 1px solid var(--line-2);
+    font-size: 13px;
+  }
+  .vf-map .rr:first-child {
+    border-top: 0;
+    padding-top: 2px;
+  }
+  .vf-map .rr > .badge {
+    min-width: 70px;
+    justify-content: center;
+    margin-top: 1px;
+  }
+
+  /* Disconnect. */
+  .vf-dz {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    padding: 16px 18px;
+    border-color: var(--bad-line);
+  }
+
+  /* A job's result cards. */
+  .vf-rgrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(380px, 100%), 1fr));
+    gap: 12px;
+  }
+  .vf-rcard {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 14px 16px;
+    min-width: 0;
+  }
+  .vf-rcard .hd {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .vf-rcard .hd b {
+    font-size: 15px;
+    font-variant-numeric: tabular-nums;
+  }
+  .vf-rrow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    justify-content: space-between;
+    font-size: 13px;
+  }
+  .vf-rrow .n {
+    margin-left: auto;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .vf-spin {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 2px solid var(--line);
+    border-top-color: var(--accent);
+    animation: vf-spin 0.9s linear infinite;
+    flex: none;
+  }
+}
+
+@keyframes vf-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vf-spin {
+    animation: none;
+  }
+}

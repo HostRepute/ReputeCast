@@ -14,6 +14,7 @@ import { WelcomePromptCard } from '@/features/welcome-prompt/WelcomePromptCard'
 import { ago, andList, count, trimPct } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { Icon } from '@/components/icons/Icon'
+import { FormAddressCheck, FormAskedToFix, FormChecksPaused } from '@/features/verification/FormCheck'
 import {
   builtinFieldLabels,
   copyText,
@@ -351,6 +352,7 @@ function Editor({ form, overview }: { form: SignupForm; overview: Overview }) {
               <input type="checkbox" checked={draft.spam.blockDisposable} disabled={readOnly} onChange={(e) => setSpam({ blockDisposable: e.target.checked })} />
               Reject disposable domains and role addresses
             </label>
+            <FormAddressCheck formKey={form.id} formName={form.name} />
           </div>
           <div className="fb-sec last">
             <span className="k">After submit</span>
@@ -398,6 +400,7 @@ function Editor({ form, overview }: { form: SignupForm; overview: Overview }) {
               <BlockedOriginAlert key={b.origin} form={form} blocked={b} />
             ))}
             {turnstileBroken ? <TurnstileAlert turnstile={overview.turnstile} /> : null}
+            <FormChecksPaused formKey={form.id} />
             <FormPreview
               form={draft}
               overview={overview}
@@ -698,6 +701,7 @@ function NumbersSection({ form, systemMail }: { form: SignupForm; systemMail: bo
           <div className="k">Blocked as spam</div>
           <div className="n text-[18px]">{count(s.blocked)}</div>
         </div>
+        <FormAskedToFix formKey={form.id} />
       </div>
       {form.doubleOptIn && s.pending > 0 ? (
         <span className="k">

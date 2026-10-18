@@ -235,6 +235,12 @@ func (h *Handler) preferencesPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	token := chi.URLParam(r, "token")
+	// A placement test copy's links carry its message alone, as
+	// transactional mail's do; they never change anything.
+	if h.placementCopy(r, s, token, linktoken.Preferences) {
+		h.placementNotice(w, r, s)
+		return
+	}
 	c, ok := h.claims(s, token, linktoken.Preferences)
 	if !ok {
 		h.notFound(w, r, s)
@@ -574,6 +580,10 @@ func (h *Handler) unsubscribePage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	token := chi.URLParam(r, "token")
+	if h.placementCopy(r, s, token, linktoken.Unsubscribe) {
+		h.placementNotice(w, r, s)
+		return
+	}
 	c, ok := h.claims(s, token, linktoken.Unsubscribe)
 	if !ok {
 		h.notFound(w, r, s)
@@ -675,6 +685,14 @@ func (h *Handler) unsubscribePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	token := chi.URLParam(r, "token")
+	if h.placementCopy(r, s, token, linktoken.Unsubscribe) {
+		if h.parseForm(w, r, 16<<10) && r.PostForm.Get("List-Unsubscribe") == "One-Click" {
+			placementOneClick(w)
+			return
+		}
+		h.placementNotice(w, r, s)
+		return
+	}
 	c, ok := h.claims(s, token, linktoken.Unsubscribe)
 	if !ok {
 		http.NotFound(w, r)
@@ -852,6 +870,10 @@ func (h *Handler) viewOnline(w http.ResponseWriter, r *http.Request) {
 	token := chi.URLParam(r, "token")
 	c, ok := h.claims(s, token, linktoken.ViewOnline)
 	if !ok || c.MessageID == uuid.Nil {
+		if h.placementCopy(r, s, token, linktoken.ViewOnline) {
+			h.placementNotice(w, r, s)
+			return
+		}
 		h.notFound(w, r, s)
 		return
 	}

@@ -40,11 +40,12 @@ func TestSegmentsDemo(t *testing.T) {
 		want := map[string]int64{
 			"Engaged Outlook users on paid plans": 2118,
 			"Active in last 30 days":              29412,
-			"Unengaged 180 days, for sunset":      3615,
-			"Mailchimp import, consent pending":   2118,
-			"Beta Program, opened a beta email":   1402,
-			"Gmail only, clickers":                4916,
-			"Customers with mrr over $50":         1087,
+			// The boards' 3,615 less the 287 the Sunset tier's check suppressed (X14).
+			"Unengaged 180 days, for sunset":    3328,
+			"Mailchimp import, consent pending": 2118,
+			"Beta Program, opened a beta email": 1402,
+			"Gmail only, clickers":              4916,
+			"Customers with mrr over $50":       1087,
 			// Contact scoring (X13): Sofia's segment of Hot contacts on paid plans.
 			"Hot on paid plans": 1532,
 		}
@@ -83,7 +84,7 @@ func TestSegmentsDemo(t *testing.T) {
 			GeneratedSQL string
 		}
 		c.Do(http.MethodPost, ws+"/segments/preview", map[string]any{"mode": "builder", "definition": def}).MustStatus(t, 200).JSON(t, &p)
-		if p.Count != 3615 || !strings.Contains(p.GeneratedSQL, "sunset") {
+		if p.Count != 3328 || !strings.Contains(p.GeneratedSQL, "sunset") { // 3,615 less the 287 suppressed by the Sunset check
 			t.Fatalf("preview: %d %q", p.Count, p.GeneratedSQL)
 		}
 		bad := map[string]any{"groups": []map[string]any{{"match": "all", "conditions": []map[string]any{{"field": "no_such_field", "op": "is", "value": "x"}}}}}
@@ -119,7 +120,7 @@ func TestSegmentsDemo(t *testing.T) {
 		var s segment
 		created := audits(t, env, "segment.create")
 		c.Do(http.MethodPost, ws+"/segments", in).MustStatus(t, 201).JSON(t, &s)
-		if s.Count != 3615 || audits(t, env, "segment.create") != created+1 {
+		if s.Count != 3328 || audits(t, env, "segment.create") != created+1 {
 			t.Fatalf("create: %+v, audit %d", s, audits(t, env, "segment.create"))
 		}
 		in["name"] = "Sunset, renamed"

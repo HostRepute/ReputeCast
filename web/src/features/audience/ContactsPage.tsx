@@ -14,6 +14,7 @@ import { TableScroll } from '@/components/ui/Table'
 import { andList, count, dayMonthDate, shortDate } from '@/lib/format'
 import { trackJob, updateJob } from '@/lib/jobs'
 import { useCan, usePermissionReason, useWorkspace } from '@/lib/session'
+import { AddressCheckFilter } from '@/features/verification/AddressCheck'
 import { AudienceTabs, useAudienceSummary } from './AudienceTabs'
 import { AddContactDialog, BulkDialog, BulkResultPanel, EraseDialog, SaveViewDialog, type BulkKind } from './ContactDialogs'
 import { BandSelect, ScoreCell, ScoreGrowthChips, ScoreGrowthFields, scoreGrowthMoreKeys, ScoreHeader, useTotalLine, type ScoreGrowthDraft } from '@/features/scoring/ContactsScore'
@@ -43,6 +44,8 @@ export interface ContactsSearch {
   utmCampaign?: string
   referringDomain?: string
   sort?: 'activity' | 'score'
+  /** The latest address check (X14). */
+  check?: 'valid' | 'invalid' | 'risky' | 'unknown' | 'never'
   page?: number
   size?: number
 }
@@ -71,6 +74,8 @@ const filterKeys = [
   'utmCampaign',
   'referringDomain',
   'sort',
+  // The latest address check (X14).
+  'check',
 ] as const
 
 /** The filter part of the search params, without empty values. */
@@ -358,6 +363,7 @@ function Filters({
         ))}
       </select>
       <LanguageFilter className={sel} value={search.language} onChange={(language) => onChange({ language })} />
+      <AddressCheckFilter className={sel} value={search.check} onChange={(check) => onChange({ check })} />
       <MoreFilters search={search} n={more} onChange={onChange} />
       <span className="k ml-auto">{total === undefined ? '' : totalLine(total, search.sort === 'score')}</span>
       <ScoreGrowthChips search={search} onChange={onChange} />
