@@ -25,8 +25,11 @@ type body[T any] struct {
 	Body T
 }
 
+// idBody declares its fields itself: Huma skips an unexported embedded
+// struct, which would leave {id} unparsed.
 type idBody[T any] struct {
-	idPath
+	api.WorkspaceInput
+	ID   string `path:"id" format:"uuid" doc:"Id"`
 	Body T
 }
 
@@ -151,6 +154,12 @@ func Register(h huma.API, s *Service) {
 			return api.OK(out), err
 		})
 
+	api.Get(h, api.Op{ID: "get-earn-checklist", Path: base + "/checklist", Summary: "The launch checklist: connect, a tier, member emails, the upgrade page, a test checkout, the live key", Tags: tags, Access: view},
+		func(ctx context.Context, in *api.WorkspaceInput) (*api.Body[EarnChecklist], error) {
+			out, err := s.Checklist(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx))
+			return api.OK(out), err
+		})
+
 	// Plans: tiers, their prices and the upgrade page.
 	api.Get(h, api.Op{ID: "get-earn-plans", Path: base + "/plans", Summary: "Plans & offers: the tiers with their prices, members and MRR, and the upgrade page", Tags: tags, Access: view},
 		func(ctx context.Context, in *api.WorkspaceInput) (*api.Body[EarnPlans], error) {
@@ -189,6 +198,12 @@ func Register(h huma.API, s *Service) {
 	api.Get(h, api.Op{ID: "get-upgrade-page", Path: base + "/upgrade-page", Summary: "The upgrade page editor: headline, tiers and their order, FAQ, the welcome page", Tags: tags, Access: view},
 		func(ctx context.Context, in *api.WorkspaceInput) (*api.Body[EarnUpgradeEditor], error) {
 			out, err := s.UpgradeEditor(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx))
+			return api.OK(out), err
+		})
+	api.Post(h, api.Op{ID: "preview-upgrade-page", Path: base + "/upgrade-page/preview", Summary: "Render the upgrade page with unsaved settings",
+		Description: "Nothing is saved; the page's links and buttons don't work in the preview.", Tags: tags, Access: view},
+		func(ctx context.Context, in *body[EarnPreviewInput]) (*api.Body[EarnPreview], error) {
+			out, err := s.PreviewUpgrade(ctx, api.WorkspaceFrom(ctx), in.Body)
 			return api.OK(out), err
 		})
 	api.Put(h, api.Op{ID: "save-upgrade-page", Path: base + "/upgrade-page", Summary: "Save and publish the upgrade page", Tags: tags, Access: edit},

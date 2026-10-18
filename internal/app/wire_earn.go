@@ -49,6 +49,10 @@ func earnService(a *App) *earn.Service {
 		PageBase:      func(ctx context.Context, ws *store.Workspace) string { return earnPageBase(ctx, a, ws) },
 		// The demo's sample connections talk to an in-process Stripe.
 		Demo: func() *http.Client { return demoStripe().HTTPClient() },
+		// The upgrade page editor previews the public page.
+		Render: func(ctx context.Context, ws *store.Workspace, page string, view any) (string, error) {
+			return a.publicPages().EarnRender(ctx, ws, page, view)
+		},
 	}
 	if a.Cfg != nil {
 		s.AllowPrivate = a.Cfg.Providers.AllowPrivateNetworks

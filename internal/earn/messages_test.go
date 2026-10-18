@@ -16,7 +16,7 @@ func TestMessageKeysExist(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	re := regexp.MustCompile(`"((?:cancel|connect|grant|import|notify|page|pages|tier|welcome)\.[A-Za-z_.]+)"`)
+	re := regexp.MustCompile(`"((?:cancel|connect|grant|import|notify|page|pages|portal|prefs|tier|unsub|welcome)\.[A-Za-z_.]+)"`)
 	keys := msgs.Keys()
 	seen := 0
 	for _, f := range files {

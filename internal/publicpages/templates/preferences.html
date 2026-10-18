@@ -2,6 +2,14 @@
   {{template "brand" $}}
   <div class="col4"><h1 class="h26">{{$.T "prefs.heading"}}</h1><span class="sub">{{if .NotYouHref}}{{$.H "prefs.for" "email" .Email "href" .NotYouHref}}{{else}}{{$.T "prefs.forOnly" "email" .Email}}{{end}}</span></div>
   {{with .Saved}}<div class="notice ok" role="status">{{.}}</div>{{end}}
+  {{with .Paid}}<section class="ea-mine{{if eq .Kind "free"}} free{{end}}" aria-labelledby="ea-mine-h">
+    <h2 class="ea-mine-t" id="ea-mine-h">{{.Title}}</h2>
+    <p class="nm">{{.Heading}}</p>
+    {{with .Price}}<p>{{.}}</p>{{end}}
+    {{with .Line}}<p class="t13">{{.}}</p>{{end}}
+    {{if or .Manage .Cancel .Upgrade}}<div class="btns">{{with .Manage}}<a class="btn-ghost" href="{{.}}">{{$.Body.Paid.ManageLabel}}</a>{{end}}{{with .Upgrade}}<a class="btn-ghost" href="{{.}}">{{$.Body.Paid.UpgradeLabel}}</a>{{end}}{{with .Cancel}}<a class="u ea-cancel" href="{{.}}">{{$.Body.Paid.CancelLabel}}</a>{{end}}</div>{{end}}
+  </section>
+  {{end}}
   {{with .Alert}}<div class="alert" role="alert">{{.}}</div>{{end}}
   <form class="col18" method="post" action="{{.Action}}">
     {{if .Lists}}<fieldset class="group">

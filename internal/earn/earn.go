@@ -187,6 +187,9 @@ type Service struct {
 	AllowPrivate bool
 	// Reach overrides the public URL's reachability check (tests).
 	Reach func(ctx context.Context, url, token string) Reach
+	// Render renders a public Earn page with the workspace's branding
+	// (internal/publicpages): the upgrade page editor's preview.
+	Render func(ctx context.Context, ws *store.Workspace, page string, view any) (string, error)
 }
 
 func (s *Service) now() time.Time {

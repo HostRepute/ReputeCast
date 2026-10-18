@@ -1,0 +1,61 @@
+{{define "content"}}{{with .Body}}{{$v := .View}}{{if $v.TestMode}}<div class="ea-ribbon" role="note">{{index $v.Words "testRibbon"}}</div>
+{{end}}<main class="ea-up" id="main">
+  <div class="ea-top">{{template "brand" $}}{{if not $v.Paid}}{{with .ArchiveHref}}<a href="{{.}}">{{index $v.Words "back"}}</a>{{end}}{{end}}</div>
+  {{with $v.Notice}}<div class="ea-notice {{.Tone}}" role="{{if eq .Tone "bad"}}alert{{else}}status{{end}}"><strong>{{.Title}}</strong><span>{{.Text}}</span>{{if .Retry}}<a class="btn-ghost" href="{{$.Body.Retry}}">{{index $v.Words "tryAgain"}}</a>{{end}}</div>
+  {{end}}{{with $v.Paid}}<section class="ea-paid card" aria-labelledby="ea-paid-h">
+    <h1 class="h26" id="ea-paid-h">{{.Heading}}</h1>
+    <span class="sub">{{.Email}} · <a href="{{.NotYou}}">{{index $v.Words "notYou"}}</a></span>
+    {{with .Tier}}<p class="nm">{{.}}</p>{{end}}
+    {{with .Price}}<p>{{.}}</p>{{end}}
+    {{with .Renews}}<p class="t13">{{.}}</p>{{end}}
+    {{with .Manage}}<a class="btn-sm start" href="{{.}}">{{$v.Paid.Button}}</a>{{end}}
+    {{with .Note}}<p class="t13">{{.}}</p>{{end}}
+  </section>
+  {{else}}<header class="ea-head">
+    <h1 class="h30">{{$v.Headline}}</h1>
+    {{with $v.Intro}}<p class="lead">{{.}}</p>{{end}}
+  </header>
+  {{with $v.Known}}<p class="ea-known">{{$.Body.Upgrading}} <strong>{{.Email}}</strong> · <a href="{{.NotYou}}">{{index $v.Words "notYou"}}</a></p>
+  {{end}}{{if $v.TestMode}}<p class="ea-testnote">{{index $v.Words "testNote"}}</p>
+  {{end}}{{if $v.Toggle}}<nav class="ea-toggle" aria-label="{{index $v.Words "billingPeriod"}}">
+    <a href="{{.MonthHref}}"{{if eq $v.Period "month"}} aria-current="true"{{end}}>{{$v.Monthly}}</a>
+    <a href="{{.YearHref}}"{{if eq $v.Period "year"}} aria-current="true"{{end}}>{{$v.Yearly}}{{with $v.Saving}} · <span class="sv">{{.}}</span>{{end}}</a>
+  </nav>
+  {{end}}{{with $v.Free}}<section class="ea-free" aria-label="{{.Name}}">
+    <div class="col4"><p><strong>{{.Name}}</strong> <span class="sub">{{.Price}}{{with .Line}} · {{.}}{{end}}</span></p>{{with .Text}}<p class="ds">{{.}}</p>{{end}}</div>
+    {{if .Reading}}<span class="btn-out ea-reading">{{.ReadingIt}}</span>{{else}}<a class="btn-out" href="{{.Subscribe}}">{{.Button}}</a>{{end}}
+  </section>
+  {{end}}{{if $v.Cards}}<div class="ea-cards">
+    {{range $v.Cards}}<section class="ea-card{{if .Primary}} hl{{end}}" aria-label="{{.Name}}">
+      {{with .Highlight}}<span class="ea-hl">{{.}}</span>{{end}}
+      <h2>{{.Name}}</h2>
+      <p class="ea-price"><span class="amt">{{.Amount}}</span> <span>{{.Unit}}</span></p>
+      <p class="ds">{{.Sub}}</p>
+      {{with .Trial}}<span class="ea-trial">{{.}}</span>{{end}}
+      {{if .Benefits}}<ul class="ea-ben">{{range .Benefits}}<li>{{.}}</li>{{end}}</ul>{{end}}
+      <form class="ea-buy" method="post" action="{{$.Body.Action}}">
+        <input type="hidden" name="tier" value="{{.ID}}">
+        <input type="hidden" name="period" value="{{.Period}}">
+        {{with $.Body.Token}}<input type="hidden" name="r" value="{{.}}">{{end}}
+        {{with $.Body.Test}}<input type="hidden" name="test" value="{{.}}">{{end}}
+        <button class="{{if .Primary}}btn-pri{{else}}btn-out{{end}}" type="submit"{{if $.Preview}} disabled{{end}}>{{.Button}}</button>
+      </form>
+      {{with .Note}}<p class="t13">{{.}}</p>{{end}}
+    </section>
+    {{end}}
+  </div>
+  {{end}}{{with $v.TaxNote}}<p class="foot-note">{{.}}</p>
+  {{end}}{{with $v.Trust}}<div class="ea-trust"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v5c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6z"></path><path d="m9 12 2 2 4-4"></path></svg><p>{{.}}</p></div>
+  {{end}}{{if $v.FAQ}}<section class="ea-faq" aria-labelledby="ea-faq-h">
+    <h2 id="ea-faq-h">{{$v.FAQTitle}}</h2>
+    {{range $v.FAQ}}<div class="ea-q"><h3>{{.Q}}</h3><p>{{.A}}</p></div>
+    {{end}}
+  </section>
+  {{end}}{{end}}
+</main>{{end}}{{end}}
+{{define "foot"}}<footer class="foot">
+  {{- with .Body.TermsURL}}<a href="{{.}}">{{index $.Body.View.Words "terms"}}</a>{{end}}
+  {{- if and .Body.TermsURL .Privacy}}{{template "sep"}}{{end}}
+  {{- with .Privacy}}<a href="{{.}}">{{index $.Body.View.Words "privacy"}}</a>{{end}}
+  {{- if and (or .Body.TermsURL .Privacy) .PoweredBy}}{{template "sep"}}{{end}}
+  {{- template "rcplain" .}}</footer>{{end}}

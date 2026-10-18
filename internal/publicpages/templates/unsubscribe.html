@@ -2,6 +2,8 @@
   {{template "brand" $}}
   <div class="col4"><h1 class="h26">{{$.T "unsub.heading" "email" .Email}}</h1><span class="sub">{{.OnLists}}</span></div>
   {{with .Alert}}<div class="alert" role="alert">{{.}}</div>{{end}}
+  {{with .Paid}}<div class="ea-mine" role="note"><p>{{.Text}}</p>{{with .Cancel}}<a class="u" href="{{.}}">{{$.Body.Paid.CancelLabel}}</a>{{end}}</div>
+  {{end}}
   {{if .Fewer}}<form class="fewer" method="post" action="{{.Action}}">
     <input type="hidden" name="action" value="fewer">
     <span class="nm">{{.FewerTitle}}</span>

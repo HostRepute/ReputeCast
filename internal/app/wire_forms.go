@@ -78,6 +78,8 @@ func (a *App) publicPages() *publicpages.Handler {
 		// their version of conditional content and their poll links.
 		Polls:   pl,
 		Browser: browserContent{a},
+		// The upgrade page, its welcome page and the billing links (X16).
+		Earn: earnService(a),
 	}
 	formsPages[a] = h
 	return h

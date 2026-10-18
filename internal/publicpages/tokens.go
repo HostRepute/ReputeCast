@@ -16,6 +16,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/audience"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/earn"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/linktoken"
@@ -224,6 +225,8 @@ type preferencesBody struct {
 	// stands in for it when there are none.
 	Notifications *notificationsView
 	Note          string
+	// Paid is "Your paid subscription" (Earn), nil when there's nothing to show.
+	Paid *earn.PreferencesPaid
 }
 
 func (h *Handler) preferencesPage(w http.ResponseWriter, r *http.Request) {
@@ -301,6 +304,11 @@ func (h *Handler) preferencesBody(ctx context.Context, s *site, pc audience.Publ
 	b.Shown = strings.Join(shown, ",")
 	if b.Notifications, err = h.notificationsSection(ctx, s, pc.Email, l); err != nil {
 		return b, err
+	}
+	if h.Earn != nil {
+		if b.Paid, err = h.Earn.PreferencesPaid(ctx, s.ws, pc.ID, earn.PageLang); err != nil {
+			return b, err
+		}
 	}
 	if p.Frequency {
 		for _, f := range []struct{ v, key string }{{"all", "prefs.all"}, {"weekly", "prefs.weekly"}, {"monthly", "prefs.monthly"}} {
@@ -538,6 +546,8 @@ type unsubscribeBody struct {
 	Fewer                                                           bool
 	FewerTitle, FewerText, FewerButton                              string
 	Reasons                                                         []reasonView
+	// Paid tells a paid member that unsubscribing doesn't cancel (Earn).
+	Paid *earn.UnsubscribePaid
 }
 
 type doneBody struct {
@@ -630,6 +640,12 @@ func (h *Handler) unsubscribeBody(ctx context.Context, s *site, pc audience.Publ
 		b.OnLists = l.Text("unsub.onNone", nil)
 	} else {
 		b.OnLists = l.Text("unsub.on", i18n.Args{"lists": l.Join(on)})
+	}
+	if h.Earn != nil {
+		var err error
+		if b.Paid, err = h.Earn.UnsubscribePaid(ctx, s.ws, pc.ID, earn.PageLang); err != nil {
+			return b, err
+		}
 	}
 	return b, nil
 }
