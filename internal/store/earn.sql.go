@@ -558,7 +558,7 @@ func (q *Queries) EarnPrices(ctx context.Context, workspaceID uuid.UUID) ([]Earn
 }
 
 const earnSettings = `-- name: EarnSettings :one
-SELECT workspace_id, currency, tax_at_checkout, prices_include_tax, portal, on_payment_failure, terms_url, support_email, upgrade_page, upgrade_published_at, upgrade_published_by, attribution_days, updated_at, updated_by FROM earn_settings WHERE workspace_id = $1
+SELECT workspace_id, currency, tax_at_checkout, prices_include_tax, portal, on_payment_failure, terms_url, support_email, upgrade_page, upgrade_published_at, upgrade_published_by, attribution_days, updated_at, updated_by, gift_page_on, gift_page_at, gift_page_by, gift_link_months, gift_page, click_token_on, click_token_domains FROM earn_settings WHERE workspace_id = $1
 `
 
 func (q *Queries) EarnSettings(ctx context.Context, workspaceID uuid.UUID) (EarnSetting, error) {
@@ -579,6 +579,13 @@ func (q *Queries) EarnSettings(ctx context.Context, workspaceID uuid.UUID) (Earn
 		&i.AttributionDays,
 		&i.UpdatedAt,
 		&i.UpdatedBy,
+		&i.GiftPageOn,
+		&i.GiftPageAt,
+		&i.GiftPageBy,
+		&i.GiftLinkMonths,
+		&i.GiftPage,
+		&i.ClickTokenOn,
+		&i.ClickTokenDomains,
 	)
 	return i, err
 }

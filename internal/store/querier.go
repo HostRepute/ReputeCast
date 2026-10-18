@@ -1671,6 +1671,33 @@ type Querier interface {
 	RestoreList(ctx context.Context, id uuid.UUID) (List, error)
 	ResumeAutomation(ctx context.Context, arg ResumeAutomationParams) error
 	RetireAutomationVersion(ctx context.Context, arg RetireAutomationVersionParams) error
+	RevenueAttributionSettings(ctx context.Context, workspaceID uuid.UUID) (RevenueAttributionSettingsRow, error)
+	// Paying subscriptions by tier, period and discount, today.
+	RevenueByTier(ctx context.Context, workspaceID uuid.UUID) ([]RevenueByTierRow, error)
+	RevenueCampaignClickBump(ctx context.Context, arg RevenueCampaignClickBumpParams) error
+	RevenueCampaignClicks(ctx context.Context, campaignID uuid.UUID) (int64, error)
+	RevenueContactByEmail(ctx context.Context, arg RevenueContactByEmailParams) (uuid.UUID, error)
+	RevenueConversionByKey(ctx context.Context, arg RevenueConversionByKeyParams) (Conversion, error)
+	RevenueConversionInsert(ctx context.Context, arg RevenueConversionInsertParams) error
+	// The keys that can record conversions, with who made them and their last use.
+	RevenueConversionKeys(ctx context.Context, workspaceID uuid.UUID) ([]RevenueConversionKeysRow, error)
+	// The conversions log, newest first, with what each was credited to.
+	RevenueConversions(ctx context.Context, arg RevenueConversionsParams) ([]RevenueConversionsRow, error)
+	// The ledger's change after each of several moments (the MRR line).
+	RevenueDeltaSince(ctx context.Context, arg RevenueDeltaSinceParams) ([]RevenueDeltaSinceRow, error)
+	// A contact's last human click on a campaign or automation email within a
+	// window before a moment.
+	RevenueLastEmailClick(ctx context.Context, arg RevenueLastEmailClickParams) (RevenueLastEmailClickRow, error)
+	// Revenue and attribution (internal/revenue): the MRR ledger, the Earn
+	// overview's numbers, the click token's settings and the conversions log.
+	// The MRR definition: Active and Past due subscriptions, live only, after
+	// discounts, a yearly price as a twelfth (twelve times MRR, in minor units).
+	RevenueMRRNow(ctx context.Context, workspaceID uuid.UUID) (RevenueMRRNowRow, error)
+	RevenueMessageOf(ctx context.Context, id uuid.UUID) (RevenueMessageOfRow, error)
+	// The ledger's changes after a moment: each kind's subscriptions and the
+	// change of their yearly value.
+	RevenueMovement(ctx context.Context, arg RevenueMovementParams) ([]RevenueMovementRow, error)
+	RevenueSetAttribution(ctx context.Context, arg RevenueSetAttributionParams) error
 	RevokeAPIKey(ctx context.Context, arg RevokeAPIKeyParams) (int64, error)
 	RevokeAPIKeysCreatedBy(ctx context.Context, arg RevokeAPIKeysCreatedByParams) (int64, error)
 	RevokeAllUserSessions(ctx context.Context, userID uuid.UUID) (int64, error)
@@ -2110,6 +2137,61 @@ type Querier interface {
 	// paused, for a restore.
 	SoftDeleteList(ctx context.Context, arg SoftDeleteListParams) (int64, error)
 	SoftDeleteWorkspace(ctx context.Context, id uuid.UUID) error
+	SponsorBookingCancel(ctx context.Context, arg SponsorBookingCancelParams) error
+	SponsorBookingEventInsert(ctx context.Context, arg SponsorBookingEventInsertParams) error
+	SponsorBookingEvents(ctx context.Context, bookingID uuid.UUID) ([]SponsorBookingEvent, error)
+	SponsorBookingGet(ctx context.Context, arg SponsorBookingGetParams) (SponsorBookingGetRow, error)
+	SponsorBookingInsert(ctx context.Context, arg SponsorBookingInsertParams) error
+	SponsorBookingNotified(ctx context.Context, arg SponsorBookingNotifiedParams) error
+	SponsorBookingOfCampaign(ctx context.Context, campaignID *uuid.UUID) (SponsorBookingOfCampaignRow, error)
+	SponsorBookingOfIssue(ctx context.Context, arg SponsorBookingOfIssueParams) (SponsorBooking, error)
+	SponsorBookingProposals(ctx context.Context, arg SponsorBookingProposalsParams) ([]SponsorBooking, error)
+	SponsorBookingSent(ctx context.Context, arg SponsorBookingSentParams) error
+	SponsorBookingSetCampaign(ctx context.Context, arg SponsorBookingSetCampaignParams) error
+	SponsorBookingSetCreative(ctx context.Context, arg SponsorBookingSetCreativeParams) error
+	SponsorBookingSetNotes(ctx context.Context, arg SponsorBookingSetNotesParams) error
+	SponsorBookingSetPayment(ctx context.Context, arg SponsorBookingSetPaymentParams) error
+	// The booking's sponsor, price, status, hold and dates.
+	SponsorBookingSetTerms(ctx context.Context, arg SponsorBookingSetTermsParams) error
+	// Booked issues and unpaid sent issues, for the creative and payment
+	// reminders.
+	SponsorBookingsDue(ctx context.Context) ([]SponsorBookingsDueRow, error)
+	// A slot's bookings of a range of issues, with their sponsor and campaign.
+	SponsorBookingsOfSlot(ctx context.Context, arg SponsorBookingsOfSlotParams) ([]SponsorBookingsOfSlotRow, error)
+	SponsorBookingsOfWorkspace(ctx context.Context, workspaceID uuid.UUID) ([]SponsorBookingsOfWorkspaceRow, error)
+	// Booked issues whose campaign has been sent.
+	SponsorBookingsToSend(ctx context.Context) ([]SponsorBookingsToSendRow, error)
+	SponsorCampaignBrief(ctx context.Context, arg SponsorCampaignBriefParams) (SponsorCampaignBriefRow, error)
+	// A list's campaigns scheduled or sent in a time range, to link issues by
+	// list and date.
+	SponsorCampaignsOfList(ctx context.Context, arg SponsorCampaignsOfListParams) ([]SponsorCampaignsOfListRow, error)
+	SponsorDelete(ctx context.Context, arg SponsorDeleteParams) error
+	SponsorGet(ctx context.Context, arg SponsorGetParams) (Sponsor, error)
+	SponsorHoldsLapsed(ctx context.Context, today time.Time) ([]SponsorBooking, error)
+	SponsorInsert(ctx context.Context, arg SponsorInsertParams) error
+	// Sponsorships (internal/sponsors): the sponsor library, slots, bookings
+	// with their creative and payment, booking events, report stats and the
+	// read-only report links.
+	SponsorList(ctx context.Context, workspaceID uuid.UUID) ([]Sponsor, error)
+	SponsorNameTaken(ctx context.Context, arg SponsorNameTakenParams) (bool, error)
+	SponsorReportStats(ctx context.Context, bookingID uuid.UUID) (SponsorReportStat, error)
+	SponsorReportStatsOf(ctx context.Context, ids []uuid.UUID) ([]SponsorReportStat, error)
+	SponsorReportStatsUpsert(ctx context.Context, arg SponsorReportStatsUpsertParams) error
+	// Sent bookings whose report isn't final yet.
+	SponsorReportsToRefresh(ctx context.Context) ([]SponsorReportsToRefreshRow, error)
+	SponsorShareByToken(ctx context.Context, tokenHash []byte) (SponsorReportShare, error)
+	SponsorShareGet(ctx context.Context, arg SponsorShareGetParams) (SponsorReportShare, error)
+	SponsorShareInsert(ctx context.Context, arg SponsorShareInsertParams) error
+	SponsorShareRevoke(ctx context.Context, arg SponsorShareRevokeParams) error
+	SponsorShareTouch(ctx context.Context, arg SponsorShareTouchParams) error
+	// A booking's or a sponsor's active links, newest first.
+	SponsorSharesOf(ctx context.Context, arg SponsorSharesOfParams) ([]SponsorSharesOfRow, error)
+	SponsorSlotDelete(ctx context.Context, arg SponsorSlotDeleteParams) error
+	SponsorSlotGet(ctx context.Context, arg SponsorSlotGetParams) (SponsorSlotGetRow, error)
+	SponsorSlotInsert(ctx context.Context, arg SponsorSlotInsertParams) error
+	SponsorSlotUpdate(ctx context.Context, arg SponsorSlotUpdateParams) error
+	SponsorSlots(ctx context.Context, workspaceID uuid.UUID) ([]SponsorSlotsRow, error)
+	SponsorUpdate(ctx context.Context, arg SponsorUpdateParams) error
 	StartImport(ctx context.Context, arg StartImportParams) error
 	// Addresses each provider's bounce and complaint events added to the shared
 	// list (the "pulled in" count of providers without a suppression API).
