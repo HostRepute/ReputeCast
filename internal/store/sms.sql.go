@@ -2267,8 +2267,9 @@ func (q *Queries) SmsRawInsert(ctx context.Context, arg SmsRawInsertParams) erro
 }
 
 const smsRawNormalized = `-- name: SmsRawNormalized :exec
-UPDATE sms_raw_events SET normalized_at = $1, normalize_error = $2, events = $3, summary = CASE WHEN $4::text = '' THEN summary ELSE $4 END
-WHERE id = $5
+UPDATE sms_raw_events SET normalized_at = $1, normalize_error = $2, events = $3,
+    summary = CASE WHEN $4::text = '' THEN summary ELSE $4 END, kind = CASE WHEN $5::text = '' THEN kind ELSE $5 END
+WHERE id = $6
 `
 
 type SmsRawNormalizedParams struct {
@@ -2276,6 +2277,7 @@ type SmsRawNormalizedParams struct {
 	NormalizeError string     `json:"normalizeError"`
 	Events         int32      `json:"events"`
 	Summary        string     `json:"summary"`
+	Kind           string     `json:"kind"`
 	ID             uuid.UUID  `json:"id"`
 }
 
@@ -2285,6 +2287,7 @@ func (q *Queries) SmsRawNormalized(ctx context.Context, arg SmsRawNormalizedPara
 		arg.NormalizeError,
 		arg.Events,
 		arg.Summary,
+		arg.Kind,
 		arg.ID,
 	)
 	return err

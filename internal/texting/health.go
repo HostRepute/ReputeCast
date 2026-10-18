@@ -146,6 +146,7 @@ func (s *Service) providerStatusChanged(ctx context.Context, p store.SmsProvider
 	case "healthy":
 		title, sev = p.Name+" is back", "ok"
 		summary = fmt.Sprintf("%s answers again. Held texts go out inside each recipient's window.", p.Name)
+		s.releaseHeld(ctx, p.WorkspaceID, &p.ID, "provider_down")
 	default:
 		return
 	}

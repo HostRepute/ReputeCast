@@ -242,3 +242,6 @@ func displayPhone(e164 string) string { return phone.Display(e164) }
 
 // maskPhone hides its middle: +1 773 ••• 0148.
 func maskPhone(e164 string) string { return phone.Mask(e164) }
+
+// countOf counts a text's segments.
+func countOf(text string) sms.Count { return sms.CountText(text) }

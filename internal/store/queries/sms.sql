@@ -436,7 +436,8 @@ VALUES (@id, @workspace_id, @provider_id, @kind, @received_at, @content_type, @h
 SELECT * FROM sms_raw_events WHERE id = @id;
 
 -- name: SmsRawNormalized :exec
-UPDATE sms_raw_events SET normalized_at = @at, normalize_error = @normalize_error, events = @events, summary = CASE WHEN @summary::text = '' THEN summary ELSE @summary END
+UPDATE sms_raw_events SET normalized_at = @at, normalize_error = @normalize_error, events = @events,
+    summary = CASE WHEN @summary::text = '' THEN summary ELSE @summary END, kind = CASE WHEN @kind::text = '' THEN kind ELSE @kind END
 WHERE id = @id;
 
 -- name: SmsRawPending :many

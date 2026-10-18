@@ -188,8 +188,10 @@ func monthStart(t time.Time, loc *time.Location) time.Time {
 func (s *Service) spentThisMonth(ctx context.Context, ws *store.Workspace) (float64, error) {
 	var spent float64
 	loc := location(ws.Timezone)
+	// Texts handed to a provider: queued, held and skipped ones cost nothing yet.
 	err := s.Pool.QueryRow(ctx, `SELECT coalesce(round(sum(cost), 4), 0)::float8 FROM channel_messages
-		WHERE workspace_id = $1 AND channel = 'sms' AND created_at >= $2`, ws.ID, monthStart(s.now(), loc)).Scan(&spent)
+		WHERE workspace_id = $1 AND channel = 'sms' AND status IN ('sending','sent','delivered','undelivered','failed')
+		AND coalesce(sent_at, created_at) >= $2`, ws.ID, monthStart(s.now(), loc)).Scan(&spent)
 	return spent, err
 }
 

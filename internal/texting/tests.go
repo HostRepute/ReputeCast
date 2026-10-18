@@ -220,44 +220,12 @@ func (s *Service) sendOne(ctx context.Context, ws *store.Workspace, g *graph, t 
 	if !ok {
 		return store.ChannelMessage{}, errors.New("texting: the sender's provider is gone")
 	}
-	s.deliver(ctx, ws, prov, msg, full, cnt.Encoding)
+	row, err := s.Q.ChanMessage(ctx, id)
+	if err != nil {
+		return row, err
+	}
+	s.deliver(ctx, ws, prov, row)
 	return s.Q.ChanMessage(ctx, id)
-}
-
-// deliver hands a claimed message to its provider and records the answer.
-func (s *Service) deliver(ctx context.Context, ws *store.Workspace, prov store.SmsProvider, msg store.ChanMessageInsertParams, full string, enc sms.Encoding) {
-	now := s.now()
-	ad, err := s.open(prov)
-	if err == nil {
-		var res sms.SendResult
-		cctx, cancel := context.WithTimeout(ctx, 20*time.Second)
-		res, err = ad.Send(cctx, sms.Message{ID: msg.ID, To: msg.Recipient, From: msg.Sender, Body: full, Encoding: enc, StatusURL: s.hookURL(prov)})
-		cancel()
-		if err == nil {
-			_ = s.Q.ChanMessageSent(ctx, store.ChanMessageSentParams{ProviderMessageID: res.ProviderMessageID, At: &now, Units: int32(res.Segments), ID: msg.ID})
-			s.event(ctx, ws.ID, msg.ID, "sent", "", nil, false, now)
-			s.recordCall(ctx, prov, nil)
-			if prov.Demo && s.DemoDelivered != nil {
-				s.DemoDelivered(ctx, prov, msg.ID, res.ProviderMessageID, msg.Recipient, msg.Sender)
-			}
-			return
-		}
-	}
-	s.recordCall(ctx, prov, err)
-	var se *sms.SendError
-	status, reason, code := "failed", string(sms.ReasonOther), ""
-	if errors.As(err, &se) {
-		reason, code = string(se.Reason), se.Code
-		if se.Reason.Suppresses() {
-			s.suppressFromFailure(ctx, ws, prov, msg.Recipient, se.Reason, prov.Name+" "+code, msg.CampaignID, msg.AutomationID, contextOf(msg.Kind))
-		}
-	} else if errors.Is(err, sms.ErrUnavailable) {
-		reason = "provider_down"
-	} else if errors.Is(err, sms.ErrCredentialsRejected) {
-		reason = "credentials_rejected"
-	}
-	_ = s.Q.ChanMessageFail(ctx, store.ChanMessageFailParams{Status: status, Reason: reason, ProviderCode: code, At: &now, Cost: 0, ID: msg.ID})
-	s.event(ctx, ws.ID, msg.ID, "failed", code, map[string]any{"reason": reason}, false, now)
 }
 
 // contextOf names what a number was sent when something happened to it.

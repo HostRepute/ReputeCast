@@ -27,6 +27,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/hostrepute/reputecast/internal/audit"
+	"github.com/hostrepute/reputecast/internal/dnscheck"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/publicurl"
 	"github.com/hostrepute/reputecast/internal/secrets"
@@ -48,6 +49,8 @@ type Service struct {
 	Now  func() time.Time
 	// HTTP is the SSRF-guarded client providers are called through.
 	HTTP *http.Client
+	// DNS checks the short-link domain's CNAME.
+	DNS dnscheck.Resolver
 	// Demo answers a demo provider's calls in process: its client and base
 	// URL. The demo's sample providers never reach the real provider.
 	Demo func(adapter string) (*http.Client, string)
