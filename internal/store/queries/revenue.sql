@@ -342,7 +342,7 @@ ORDER BY b.issue_on, b.issue_number LIMIT 1;
 
 -- name: RevenueConnections :many
 -- The workspace's payment connections (any mode), newest first.
-SELECT id, mode, status, account_name, last_event_at, connected_at FROM payment_connections
+SELECT id, provider, mode, status, account_name, last_event_at, connected_at FROM payment_connections
 WHERE workspace_id = @workspace_id AND status <> 'disconnected' ORDER BY created_at DESC;
 
 -- name: RevenueActiveSubscriptions :one

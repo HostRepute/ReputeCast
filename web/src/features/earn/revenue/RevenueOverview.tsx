@@ -82,7 +82,7 @@ function Failed({ card, title, onRetry, reference }: { card: string; title: Reac
         <Button size="sm" variant="primary" onClick={onRetry}>
           {t(mr.retry)}
         </Button>
-        {reference ? <span className="k mono">{reference}</span> : null}
+        {reference ? <span className="k mono">{t(mr.failedRef, { ref: reference })}</span> : null}
       </div>
     </Card>
   )
@@ -164,31 +164,31 @@ export function RevenueOverview() {
       <div className="er-row">
         {failed('chart') ? (
           <div style={{ flex: '2 1 520px', minWidth: 0 }}>
-            <Failed card="chart" title={t(mr.chartTitle)} onRetry={retry} />
+            <Failed card="chart" title={t(mr.chartTitle)} onRetry={retry} reference={o.reference} />
           </div>
         ) : (
           <MrrCard o={o} provider={provider} />
         )}
         <div className="flex flex-[1_1_320px] flex-col gap-4" style={{ minWidth: 0 }}>
-          {failed('needs') ? <Failed card="needs" title={t(mr.needsTitle, { count: 0 })} onRetry={retry} /> : <Needs o={o} provider={provider} />}
+          {failed('needs') ? <Failed card="needs" title={t(mr.needsTitle, { count: 0 })} onRetry={retry} reference={o.reference} /> : <Needs o={o} provider={provider} />}
           {o.readOnly ? <CanDo provider={provider} /> : null}
         </div>
       </div>
       <div className="er-grid">
-        {failed('movement') ? <Failed card="movement" title={t(mr.moveTitle, { period: o.period })} onRetry={retry} /> : <MovementCard o={o} />}
-        {failed('tiers') ? <Failed card="tiers" title={t(mr.tierTitle)} onRetry={retry} /> : <Tiers o={o} />}
+        {failed('movement') ? <Failed card="movement" title={t(mr.moveTitle, { period: o.period })} onRetry={retry} reference={o.reference} /> : <MovementCard o={o} />}
+        {failed('tiers') ? <Failed card="tiers" title={t(mr.tierTitle)} onRetry={retry} reference={o.reference} /> : <Tiers o={o} />}
       </div>
       <div className="er-grid">
         <div className="er-col">
-          {failed('trials') ? <Failed card="trials" title={t(mr.trialsTitle, { period: o.period })} onRetry={retry} /> : <Trials o={o} />}
-          {failed('conversions') ? <Failed card="conversions" title={t(mr.convTitle)} onRetry={retry} /> : <Conversions c={o.conversions} period={o.period} />}
+          {failed('trials') ? <Failed card="trials" title={t(mr.trialsTitle, { period: o.period })} onRetry={retry} reference={o.reference} /> : <Trials o={o} />}
+          {failed('conversions') ? <Failed card="conversions" title={t(mr.convTitle)} onRetry={retry} reference={o.reference} /> : <Conversions c={o.conversions} period={o.period} />}
         </div>
-        {failed('cancellations') ? <Failed card="cancellations" title={t(mr.cancelTitle, { period: o.period })} onRetry={retry} /> : <Cancellations o={o} />}
+        {failed('cancellations') ? <Failed card="cancellations" title={t(mr.cancelTitle, { period: o.period })} onRetry={retry} reference={o.reference} /> : <Cancellations o={o} />}
       </div>
-      {failed('freeToPaid') ? <Failed card="freeToPaid" title={t(mr.ftpTitle, { period: o.period })} onRetry={retry} /> : <FreeToPaid o={o} />}
+      {failed('freeToPaid') ? <Failed card="freeToPaid" title={t(mr.ftpTitle, { period: o.period })} onRetry={retry} reference={o.reference} /> : <FreeToPaid o={o} />}
       <div className="er-grid">
-        {failed('upgrades') ? <Failed card="upgrades" title={t(mr.upTitle, { period: o.period })} onRetry={retry} /> : <Upgrades o={o} />}
-        {failed('activity') ? <Failed card="activity" title={t(mr.actTitle)} onRetry={retry} /> : <Activity o={o} provider={provider} />}
+        {failed('upgrades') ? <Failed card="upgrades" title={t(mr.upTitle, { period: o.period })} onRetry={retry} reference={o.reference} /> : <Upgrades o={o} />}
+        {failed('activity') ? <Failed card="activity" title={t(mr.actTitle)} onRetry={retry} reference={o.reference} /> : <Activity o={o} provider={provider} />}
       </div>
     </div>
   )
@@ -363,7 +363,8 @@ function MrrCard({ o, provider }: { o: Overview; provider: string }) {
           </div>
           <div className="er-early">
             <svg width="120" height="44" viewBox="0 0 120 44" aria-hidden="true">
-              <polyline points="4,38 30,30 56,32 82,18 116,10" fill="none" stroke="#C9CED6" strokeWidth="2" strokeDasharray="5 4" strokeLinecap="round" />
+              <path d="M2 40 L30 34 L58 30" fill="none" stroke="var(--accent)" strokeWidth="2.4" strokeLinecap="round" />
+              <path d="M58 30 L86 22 L118 12" fill="none" stroke="var(--line-hover)" strokeWidth="2" strokeDasharray="4 4" strokeLinecap="round" />
             </svg>
             <span className="font-bold">{t(mr.tooEarlyTitle)}</span>
             <span className="k max-w-[440px]">
@@ -453,7 +454,6 @@ function Needs({ o, provider }: { o: Overview; provider: string }) {
       <Icon name={kind} size={14} />
     </span>
   )
-  const action = (label: string, viewLabel: string, link: ReactNode) => link ?? <span className="k">{ro ? viewLabel : label}</span>
   const b = { b: (c: ReactNode) => <b>{c}</b>, mono: (c: ReactNode) => <span className="mono font-semibold">{c}</span> }
   return (
     <Card title={t(mr.needsTitle, { count: o.needs.length })}>
@@ -463,7 +463,8 @@ function Needs({ o, provider }: { o: Overview; provider: string }) {
           let ic: ReactNode = icon('clock', 'var(--warn-bg)', 'var(--warn-fg)')
           let text: ReactNode = null
           let act: ReactNode = null
-          const linkClass = ro ? 'whitespace-nowrap' : 'btn sm'
+          // Read-only people get a link after the sentence, the others a button.
+          const linkClass = ro ? 'whitespace-nowrap underline' : 'btn sm'
           switch (n.kind) {
             case 'past_due':
               text = <T msg={mr.needPastDue} values={{ count: n.count ?? 0, provider, ...b }} />
@@ -520,8 +521,17 @@ function Needs({ o, provider }: { o: Overview; provider: string }) {
             <div key={i} className="er-need">
               {ic}
               <div className="tx">
-                <span>{text}</span>
-                {act ? <div>{action('', '', act)}</div> : null}
+                {ro ? (
+                  <span>
+                    {text}
+                    {act ? <> {act}</> : null}
+                  </span>
+                ) : (
+                  <>
+                    <span>{text}</span>
+                    {act ? <div>{act}</div> : null}
+                  </>
+                )}
               </div>
             </div>
           )
@@ -1259,4 +1269,4 @@ function activityLine(t: TT, a: Schemas['RevenueActivity'], cur: string, provide
   }
 }
 
-export { Card as RevenueCard, Stat as RevenueStat }
+export { Card as RevenueCard, Stat as RevenueStat, Delta as RevenueDelta, CountDelta as RevenueCountDelta }

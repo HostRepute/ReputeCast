@@ -242,6 +242,7 @@ export const mr = defineMessages('earn.revenue', {
   loading: 'Loading Earn’s numbers',
   failedTitle: 'Couldn’t load {card, select, chart {the MRR line} movement {the MRR movement} tiers {the tiers} trials {the trials} conversions {the conversions} cancellations {the cancellations} freeToPaid {free-to-paid by source} upgrades {upgrades by email} needs {what needs you} activity {the recent activity} other {this card}}',
   failedText: 'The other numbers on this page are up to date.',
+  failedRef: 'request {ref}',
   retry: 'Retry',
   roTitle: 'Read-only · {name}, {role}',
   roText: 'You can see all of Earn: revenue, plans, paid members, gifts and sponsors. Changing anything needs {perms}. Ask {helpers}.',

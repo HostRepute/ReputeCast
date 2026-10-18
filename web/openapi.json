@@ -17809,6 +17809,9 @@
           "nextSponsor": {
             "$ref": "#/components/schemas/CardIssue"
           },
+          "providerName": {
+            "type": "string"
+          },
           "silentHours": {
             "format": "int64",
             "type": "integer"
@@ -39022,6 +39025,9 @@
           },
           "readOnly": {
             "type": "boolean"
+          },
+          "reference": {
+            "type": "string"
           },
           "shownFrom": {
             "format": "date-time",

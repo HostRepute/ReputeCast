@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/authz"
@@ -98,8 +100,12 @@ func (s *Service) Overview(ctx context.Context, ws *store.Workspace, p *authz.Pr
 			out.From = since
 		}
 	}
+	// A failed card shows a reference that finds its log line.
 	fail := func(card string, err error) {
-		s.log().ErrorContext(ctx, "revenue overview", "card", card, "workspace", ws.ID, "err", err)
+		if out.Reference == "" {
+			out.Reference = strings.ReplaceAll(uuid.New().String(), "-", "")[:8]
+		}
+		s.log().ErrorContext(ctx, "revenue overview", "card", card, "workspace", ws.ID, "ref", out.Reference, "request_id", middleware.GetReqID(ctx), "err", err)
 		out.Failed = append(out.Failed, card)
 	}
 	if err := s.movement(ctx, ws, from, to, &out); err != nil {

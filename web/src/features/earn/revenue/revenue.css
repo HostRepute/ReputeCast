@@ -337,6 +337,15 @@
     border-color: var(--accent-line);
     background: var(--accent-tint);
   }
+  /* The workspace Overview's invitation: a plain card. */
+  .er-invite.plain {
+    border-color: var(--line);
+    background: var(--surface);
+  }
+  .er-invite.plain .ico {
+    border: 0;
+    background: var(--accent-soft);
+  }
   .er-invite .ico {
     width: 40px;
     height: 40px;

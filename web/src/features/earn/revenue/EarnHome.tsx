@@ -4,6 +4,7 @@ import { $api, type Schemas } from '@/api/client'
 import { Icon } from '@/components/icons/Icon'
 import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonAnchor, ButtonLink } from '@/components/ui/Button'
+import { Skeleton } from '@/components/ui/Feedback'
 import { useT } from '@/i18n'
 import { shortDate } from '@/lib/format'
 import { useCan, useWorkspace } from '@/lib/session'
@@ -33,28 +34,42 @@ function dismissed(slug: string): boolean {
  * overview once Earn is live.
  */
 export function EarnHome({ checklist }: { checklist: ReactNode }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const canView = useCan('earn:view')
   const status = useEarnStatus()
   const noProvider = Boolean(status.data && !status.data.mode && !status.data.setup)
   const live = status.data?.mode === 'live'
   const revenue = $api.useQuery('get', `${EARN}/revenue`, { params: { path: { workspace: slug }, query: { period: '30d' } } }, { enabled: canView && (noProvider || live) })
-  const sponsors = $api.useQuery('get', `${WS}/sponsors/overview`, { params: { path: { workspace: slug }, query: { range: 'upcoming' } } }, { enabled: canView && noProvider })
+  const sponsors = $api.useQuery('get', `${WS}/sponsors/overview`, { params: { path: { workspace: slug }, query: { range: 'around' } } }, { enabled: canView && noProvider })
   const launch = useEarnChecklist()
   // Earn is live once the live key has paying members, whatever the launch
   // checklist still lists (the sample's gift-ending email is a draft).
-  if (live && revenue.data && (revenue.data.tiles.members + revenue.data.tiles.trialing > 0 || launch.data?.launched)) {
+  // While the numbers load, or if they fail, the overview says so itself.
+  const members = revenue.data ? revenue.data.tiles.members + revenue.data.tiles.trialing : 0
+  if (live && (revenue.isPending || revenue.isError || members > 0 || launch.data?.launched)) {
     return (
       <EarnPage tab="overview" actions={<UpgradePageButton />}>
         <RevenueOverview />
       </EarnPage>
     )
   }
-  const used = noProvider && ((revenue.data?.conversions.total ?? 0) > 0 || (sponsors.data?.slots.length ?? 0) > 0)
-  if (!used) return <>{checklist}</>
+  if (noProvider && (revenue.isPending || sponsors.isPending)) {
+    return (
+      <EarnPage tab="overview">
+        <div className="card er-pad" aria-busy="true" aria-label={t(mr.loading)}>
+          <Skeleton w="40%" h={18} />
+          <Skeleton w="100%" h={160} className="mt-4" />
+        </div>
+      </EarnPage>
+    )
+  }
+  const conversions = revenue.data && revenue.data.conversions.total > 0 ? revenue.data : undefined
+  const slots = sponsors.data && sponsors.data.slots.length > 0 ? sponsors.data : undefined
+  if (!noProvider || (!conversions && !slots)) return <>{checklist}</>
   return (
     <EarnPage tab="overview">
-      <ConversionsOnly revenue={revenue.data!} sponsors={sponsors.data} />
+      <ConversionsOnly revenue={conversions} sponsors={slots} />
     </EarnPage>
   )
 }
@@ -72,7 +87,7 @@ function UpgradePageButton() {
   )
 }
 
-function ConversionsOnly({ revenue, sponsors }: { revenue: Schemas['RevenueOverview']; sponsors?: Schemas['SponsorOverview'] }) {
+function ConversionsOnly({ revenue, sponsors }: { revenue?: Schemas['RevenueOverview']; sponsors?: Schemas['SponsorOverview'] }) {
   const t = useT()
   const { slug } = useWorkspace()
   const canConnect = useCan('payments:manage')
@@ -109,8 +124,8 @@ function ConversionsOnly({ revenue, sponsors }: { revenue: Schemas['RevenueOverv
         </section>
       )}
       <div className="er-grid">
-        <Conversions c={revenue.conversions} period={revenue.period} latest />
-        {sponsors && sponsors.slots.length ? <SponsorsCard s={sponsors} /> : null}
+        {revenue ? <Conversions c={revenue.conversions} period={revenue.period} latest /> : null}
+        {sponsors ? <SponsorsCard s={sponsors} /> : null}
       </div>
     </div>
   )

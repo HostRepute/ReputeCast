@@ -15392,6 +15392,7 @@ export interface components {
             /** Format: int64 */
             mrrDeltaCents: number;
             nextSponsor?: components["schemas"]["CardIssue"];
+            providerName?: string;
             /** Format: int64 */
             silentHours?: number;
             /** @enum {string} */
@@ -21568,6 +21569,7 @@ export interface components {
             /** @enum {string} */
             period: "30d" | "90d" | "12m";
             readOnly: boolean;
+            reference?: string;
             /** Format: date-time */
             shownFrom?: string;
             tiers: components["schemas"]["RevenueTierRow"][];

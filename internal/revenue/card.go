@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/payments"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -32,6 +33,9 @@ func (s *Service) Card(ctx context.Context, ws *store.Workspace, p *authz.Princi
 		return out, nil
 	}
 	out.State, out.Account, out.Mode = "live", conn.AccountName, conn.Mode
+	if d, ok := payments.Lookup(conn.Provider); ok {
+		out.ProviderName = d.Name
+	}
 	if st, err := s.Q.RevenueAttributionSettings(ctx, ws.ID); err == nil && st.Currency != "" {
 		out.Currency = st.Currency
 	}

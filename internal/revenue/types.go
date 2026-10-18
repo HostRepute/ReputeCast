@@ -37,6 +37,8 @@ type RevenueOverview struct {
 	// page still works (chart, movement, tiers, trials, conversions,
 	// cancellations, freeToPaid, upgrades, needs, activity).
 	Failed []string `json:"failed"`
+	// Reference finds the failed cards' errors in the server's log.
+	Reference string `json:"reference,omitempty"`
 	// ReadOnly: the person can see Earn but change none of it; Helpers can.
 	ReadOnly bool     `json:"readOnly"`
 	Helpers  []string `json:"helpers"`
@@ -333,7 +335,10 @@ type RevenueActivity struct {
 type EarnCard struct {
 	// State: live (the numbers), invite (no payment provider yet) or none
 	// (nothing to show).
-	State         string     `json:"state" enum:"live,invite,none"`
+	State string `json:"state" enum:"live,invite,none"`
+	// ProviderName, Account and Mode name the connection: "Stripe · Acme
+	// Media · Live".
+	ProviderName  string     `json:"providerName,omitempty"`
 	Account       string     `json:"account,omitempty"`
 	Mode          string     `json:"mode,omitempty"`
 	MRRCents      int64      `json:"mrrCents"`

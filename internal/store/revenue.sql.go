@@ -499,12 +499,13 @@ func (q *Queries) RevenueCancelSummary(ctx context.Context, arg RevenueCancelSum
 }
 
 const revenueConnections = `-- name: RevenueConnections :many
-SELECT id, mode, status, account_name, last_event_at, connected_at FROM payment_connections
+SELECT id, provider, mode, status, account_name, last_event_at, connected_at FROM payment_connections
 WHERE workspace_id = $1 AND status <> 'disconnected' ORDER BY created_at DESC
 `
 
 type RevenueConnectionsRow struct {
 	ID          uuid.UUID  `json:"id"`
+	Provider    string     `json:"provider"`
 	Mode        string     `json:"mode"`
 	Status      string     `json:"status"`
 	AccountName string     `json:"accountName"`
@@ -524,6 +525,7 @@ func (q *Queries) RevenueConnections(ctx context.Context, workspaceID uuid.UUID)
 		var i RevenueConnectionsRow
 		if err := rows.Scan(
 			&i.ID,
+			&i.Provider,
 			&i.Mode,
 			&i.Status,
 			&i.AccountName,
