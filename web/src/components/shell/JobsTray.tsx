@@ -37,7 +37,7 @@ export function JobsTray() {
       if (j.status === 'done') {
         toast({
           kind: 'success',
-          title: j.doneTitle ?? t(j.kind === 'import' ? m.jobImportFinished : m.jobExportFinished),
+          title: j.doneTitle ?? t(j.kind === 'import' ? m.jobImportFinished : j.kind === 'verification' ? m.jobVerificationFinished : m.jobExportFinished),
           detail: j.detail,
           action: j.href ? { label: j.openLabel ?? t(m.jobOpen), onClick: () => router.history.push(j.href!) } : undefined,
         })

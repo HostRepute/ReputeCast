@@ -326,6 +326,10 @@ func (s *Service) check(c Config, sub *Submission) ([]uuid.UUID, map[string]stri
 
 // accept subscribes the contact and records the submission.
 func (s *Service) accept(ctx context.Context, ws *store.Workspace, set *Settings, c Config, sub Submission, lists []uuid.UUID) Outcome {
+	addr, refused := s.checkAddress(ctx, ws, c, sub)
+	if refused != nil {
+		return *refused
+	}
 	now := s.now()
 	lang := c.ShownLanguage()
 	ev := audience.PublicEvidence{Source: c.Source(), IP: sub.IP, UserAgent: sub.UserAgent, ConsentText: c.ConsentText, ConsentVersion: c.ConsentVersionLabel(), Language: lang, At: now}
@@ -419,6 +423,9 @@ func (s *Service) accept(ctx context.Context, ws *store.Workspace, set *Settings
 		}
 		s.log().ErrorContext(ctx, "form submission", "form", c.ID, "err", err)
 		return Outcome{Status: OutcomeError, Message: c.Labels.Text("error.saveFailed", nil)}
+	}
+	if s.Addresses != nil && res.ContactID != uuid.Nil {
+		s.Addresses.SignedUp(ctx, ws, res.ContactID, addr)
 	}
 	out := Outcome{Status: OutcomeSubscribed, Email: sub.Email, FirstName: res.FirstName, Lists: lists}
 	if doubleOptIn || res.NeedsConfirmation() || res.Blocked {

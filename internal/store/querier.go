@@ -184,6 +184,9 @@ type Querier interface {
 	AutomationMilestoneRunExists(ctx context.Context, arg AutomationMilestoneRunExistsParams) (bool, error)
 	// The milestones a "Reached a milestone" trigger can start on.
 	AutomationMilestones(ctx context.Context, workspaceID uuid.UUID) ([]AutomationMilestonesRow, error)
+	// What the trigger "Answered a poll or survey" can point at, by the ref
+	// its events carry ("poll:<id>", "survey:<id>").
+	AutomationPollRefs(ctx context.Context, workspaceID uuid.UUID) ([]AutomationPollRefsRow, error)
 	// Automation emails per sending provider since a day, and the last day each sent.
 	AutomationProviderSendsSince(ctx context.Context, arg AutomationProviderSendsSinceParams) ([]AutomationProviderSendsSinceRow, error)
 	AutomationProviders(ctx context.Context, workspaceID uuid.UUID) ([]AutomationProvidersRow, error)
@@ -543,6 +546,142 @@ type Querier interface {
 	DomUpdateNote(ctx context.Context, arg DomUpdateNoteParams) error
 	DomUpdateRecords(ctx context.Context, arg DomUpdateRecordsParams) error
 	DomUpdateTracking(ctx context.Context, arg DomUpdateTrackingParams) error
+	EarnCampaignName(ctx context.Context, id uuid.UUID) (string, error)
+	EarnCheckout(ctx context.Context, id uuid.UUID) (EarnCheckout, error)
+	EarnCheckoutBySession(ctx context.Context, stripeSessionID string) (EarnCheckout, error)
+	EarnCheckoutCanceled(ctx context.Context, id uuid.UUID) error
+	EarnCheckoutComplete(ctx context.Context, arg EarnCheckoutCompleteParams) error
+	// Live checkouts started and completed since a moment.
+	EarnCheckoutCounts(ctx context.Context, arg EarnCheckoutCountsParams) (EarnCheckoutCountsRow, error)
+	EarnCheckoutInsert(ctx context.Context, arg EarnCheckoutInsertParams) error
+	EarnCheckoutSetSession(ctx context.Context, arg EarnCheckoutSetSessionParams) error
+	EarnClearTestCheckouts(ctx context.Context, workspaceID uuid.UUID) error
+	// Test paid members and their timelines go; the contacts stay.
+	EarnClearTestData(ctx context.Context, workspaceID uuid.UUID) (int64, error)
+	EarnClearTestEvents(ctx context.Context, workspaceID uuid.UUID) error
+	EarnContactBrief(ctx context.Context, arg EarnContactBriefParams) (EarnContactBriefRow, error)
+	EarnContactByEmail(ctx context.Context, arg EarnContactByEmailParams) (EarnContactByEmailRow, error)
+	// Trials are for people who haven't had one before.
+	EarnContactHasHadTrial(ctx context.Context, contactID uuid.UUID) (bool, error)
+	// A contact a paid flow creates without joining a list (a tier with no
+	// lists, or an address suppressed for marketing).
+	EarnContactInsert(ctx context.Context, arg EarnContactInsertParams) (uuid.UUID, error)
+	// A paid member from an import: a new contact, or an existing one merged
+	// (its fields kept, its empty name filled).
+	EarnContactUpsertImport(ctx context.Context, arg EarnContactUpsertImportParams) (EarnContactUpsertImportRow, error)
+	// Erasing a contact removes its paid status and timeline from ReputeCast.
+	EarnErasePaid(ctx context.Context, contactID uuid.UUID) error
+	EarnEraseTimeline(ctx context.Context, contactID uuid.UUID) error
+	EarnEventInsert(ctx context.Context, arg EarnEventInsertParams) error
+	// Complimentary access whose date has passed, and paid access a
+	// disconnected account can no longer renew, past its period.
+	EarnGrantsToEnd(ctx context.Context, arg EarnGrantsToEndParams) ([]PaidSubscription, error)
+	EarnImportByID(ctx context.Context, id uuid.UUID) (EarnImport, error)
+	EarnImportCancel(ctx context.Context, arg EarnImportCancelParams) (int64, error)
+	EarnImportConflicts(ctx context.Context, importID uuid.UUID) ([]EarnImportRow, error)
+	EarnImportConsent(ctx context.Context, arg EarnImportConsentParams) error
+	// A few rows of a group, for the match step's cards.
+	EarnImportExamples(ctx context.Context, arg EarnImportExamplesParams) ([]EarnImportRow, error)
+	EarnImportFile(ctx context.Context, importID uuid.UUID) ([]byte, error)
+	EarnImportFileDelete(ctx context.Context, importID uuid.UUID) error
+	EarnImportFileInsert(ctx context.Context, arg EarnImportFileInsertParams) error
+	EarnImportFinish(ctx context.Context, arg EarnImportFinishParams) error
+	EarnImportGet(ctx context.Context, arg EarnImportGetParams) (EarnImportGetRow, error)
+	EarnImportGroupCounts(ctx context.Context, importID uuid.UUID) ([]EarnImportGroupCountsRow, error)
+	// Importing paid members (internal/earn): an export matched with the
+	// connected account's customers and subscriptions.
+	EarnImportInsert(ctx context.Context, arg EarnImportInsertParams) error
+	EarnImportLatest(ctx context.Context, workspaceID uuid.UUID) (EarnImportLatestRow, error)
+	EarnImportMatched(ctx context.Context, arg EarnImportMatchedParams) error
+	// Joins a list (a list the contact unsubscribed from stays unsubscribed).
+	EarnImportMembership(ctx context.Context, arg EarnImportMembershipParams) error
+	EarnImportPriceCounts(ctx context.Context, importID uuid.UUID) ([]EarnImportPriceCountsRow, error)
+	EarnImportProgress(ctx context.Context, arg EarnImportProgressParams) error
+	EarnImportRowInsert(ctx context.Context, arg []EarnImportRowInsertParams) (int64, error)
+	EarnImportRowMatch(ctx context.Context, arg EarnImportRowMatchParams) error
+	EarnImportRowResult(ctx context.Context, arg EarnImportRowResultParams) error
+	EarnImportRows(ctx context.Context, arg EarnImportRowsParams) ([]EarnImportRow, error)
+	EarnImportRowsClear(ctx context.Context, importID uuid.UUID) error
+	EarnImportSetColumns(ctx context.Context, arg EarnImportSetColumnsParams) error
+	EarnImportSetDecisions(ctx context.Context, arg EarnImportSetDecisionsParams) error
+	EarnImportStart(ctx context.Context, arg EarnImportStartParams) (int64, error)
+	EarnImportsRunning(ctx context.Context, workspaceID uuid.UUID) ([]EarnImport, error)
+	// The names of lists, in the order given.
+	EarnListNames(ctx context.Context, ids []uuid.UUID) ([]string, error)
+	// The workspace's lists, for the tier editor's "Paid members join".
+	EarnLists(ctx context.Context, workspaceID uuid.UUID) ([]EarnListsRow, error)
+	EarnMemberEmailSet(ctx context.Context, arg EarnMemberEmailSetParams) error
+	EarnMemberEmails(ctx context.Context, workspaceID uuid.UUID) ([]EarnMemberEmail, error)
+	EarnPageVisit(ctx context.Context, arg EarnPageVisitParams) error
+	EarnPageVisits(ctx context.Context, arg EarnPageVisitsParams) (int64, error)
+	EarnPrice(ctx context.Context, id uuid.UUID) (EarnPrice, error)
+	// The price a Stripe price id stands for, in a mode.
+	EarnPriceByStripeID(ctx context.Context, arg EarnPriceByStripeIDParams) (EarnPrice, error)
+	// Subscriptions per price and period that have access, for tier cards and legacy prices.
+	EarnPriceCounts(ctx context.Context, arg EarnPriceCountsParams) ([]EarnPriceCountsRow, error)
+	EarnPriceDelete(ctx context.Context, id uuid.UUID) error
+	EarnPriceInsert(ctx context.Context, arg EarnPriceInsertParams) error
+	EarnPriceRetire(ctx context.Context, arg EarnPriceRetireParams) error
+	EarnPriceSetStripe(ctx context.Context, arg EarnPriceSetStripeParams) error
+	// Every price of the workspace's tiers, current first.
+	EarnPrices(ctx context.Context, workspaceID uuid.UUID) ([]EarnPrice, error)
+	EarnSettings(ctx context.Context, workspaceID uuid.UUID) (EarnSetting, error)
+	EarnSettingsEnsure(ctx context.Context, workspaceID uuid.UUID) error
+	EarnSettingsSetAccess(ctx context.Context, arg EarnSettingsSetAccessParams) error
+	EarnSettingsSetCheckout(ctx context.Context, arg EarnSettingsSetCheckoutParams) error
+	EarnSettingsSetCurrency(ctx context.Context, arg EarnSettingsSetCurrencyParams) error
+	EarnSettingsSetPages(ctx context.Context, arg EarnSettingsSetPagesParams) error
+	EarnSettingsSetUpgradePage(ctx context.Context, arg EarnSettingsSetUpgradePageParams) error
+	// The highlighted tier, saved with the tier editor.
+	EarnSettingsSetUpgradePageOnly(ctx context.Context, arg EarnSettingsSetUpgradePageOnlyParams) (int64, error)
+	// Paid members (internal/earn): paid subscriptions, complimentary access
+	// and gifts, and each paid member's timeline.
+	EarnSubscription(ctx context.Context, arg EarnSubscriptionParams) (PaidSubscription, error)
+	EarnSubscriptionByStripeID(ctx context.Context, arg EarnSubscriptionByStripeIDParams) (PaidSubscription, error)
+	EarnSubscriptionCancelRequested(ctx context.Context, arg EarnSubscriptionCancelRequestedParams) error
+	EarnSubscriptionEmailed(ctx context.Context, arg EarnSubscriptionEmailedParams) error
+	EarnSubscriptionEnd(ctx context.Context, arg EarnSubscriptionEndParams) error
+	EarnSubscriptionFailed(ctx context.Context, arg EarnSubscriptionFailedParams) error
+	EarnSubscriptionForUpdate(ctx context.Context, id uuid.UUID) (PaidSubscription, error)
+	EarnSubscriptionInsert(ctx context.Context, arg EarnSubscriptionInsertParams) error
+	// A payment: lifetime value grows, any failure is cleared.
+	EarnSubscriptionPaid(ctx context.Context, arg EarnSubscriptionPaidParams) error
+	EarnSubscriptionRefunded(ctx context.Context, arg EarnSubscriptionRefundedParams) error
+	EarnSubscriptionSetAccessPaused(ctx context.Context, arg EarnSubscriptionSetAccessPausedParams) error
+	EarnSubscriptionSetBillingEmail(ctx context.Context, arg EarnSubscriptionSetBillingEmailParams) error
+	EarnSubscriptionSetGrant(ctx context.Context, arg EarnSubscriptionSetGrantParams) error
+	EarnSubscriptionSetSource(ctx context.Context, arg EarnSubscriptionSetSourceParams) error
+	// A subscription's state as the provider last reported it.
+	EarnSubscriptionSetState(ctx context.Context, arg EarnSubscriptionSetStateParams) error
+	// Every paid subscription of a contact, the ones with access first.
+	EarnSubscriptionsOfContact(ctx context.Context, arg EarnSubscriptionsOfContactParams) ([]EarnSubscriptionsOfContactRow, error)
+	EarnSubscriptionsOfCustomer(ctx context.Context, arg EarnSubscriptionsOfCustomerParams) ([]PaidSubscription, error)
+	EarnSubscriptionsOnStripePrice(ctx context.Context, arg EarnSubscriptionsOnStripePriceParams) ([]PaidSubscription, error)
+	EarnSubscriptionsSetPrice(ctx context.Context, arg EarnSubscriptionsSetPriceParams) error
+	// Earn (internal/earn): settings, tiers and prices, paid status and its
+	// timeline, checkouts, the upgrade page's visits and the member emails.
+	// Active members, Admins first then Owners, with their role (who can help).
+	EarnTeam(ctx context.Context, workspaceID uuid.UUID) ([]EarnTeamRow, error)
+	EarnTier(ctx context.Context, arg EarnTierParams) (EarnTier, error)
+	EarnTierBySlug(ctx context.Context, arg EarnTierBySlugParams) (EarnTier, error)
+	EarnTierDelete(ctx context.Context, arg EarnTierDeleteParams) error
+	EarnTierInsert(ctx context.Context, arg EarnTierInsertParams) error
+	EarnTierPrices(ctx context.Context, tierID uuid.UUID) ([]EarnPrice, error)
+	EarnTierSetProduct(ctx context.Context, arg EarnTierSetProductParams) error
+	EarnTierSlugTaken(ctx context.Context, arg EarnTierSlugTakenParams) (bool, error)
+	// Whether a tier has ever had paid members (it can't be deleted then).
+	EarnTierSubscriptions(ctx context.Context, tierID *uuid.UUID) (int64, error)
+	EarnTierSync(ctx context.Context, arg EarnTierSyncParams) error
+	EarnTierUpdate(ctx context.Context, arg EarnTierUpdateParams) error
+	EarnTiers(ctx context.Context, workspaceID uuid.UUID) ([]EarnTier, error)
+	// A paid member's timeline, newest first, with the person who acted.
+	EarnTimeline(ctx context.Context, arg EarnTimelineParams) ([]EarnTimelineRow, error)
+	EarnUnmappedPrice(ctx context.Context, arg EarnUnmappedPriceParams) (EarnUnmappedPrice, error)
+	EarnUnmappedPriceMapped(ctx context.Context, arg EarnUnmappedPriceMappedParams) error
+	EarnUnmappedPriceNotified(ctx context.Context, arg EarnUnmappedPriceNotifiedParams) error
+	EarnUnmappedPriceUpsert(ctx context.Context, arg EarnUnmappedPriceUpsertParams) (EarnUnmappedPriceUpsertRow, error)
+	EarnUnmappedPrices(ctx context.Context, workspaceID uuid.UUID) ([]EarnUnmappedPricesRow, error)
+	EarnUserName(ctx context.Context, id uuid.UUID) (string, error)
 	EmailTaken(ctx context.Context, arg EmailTakenParams) (bool, error)
 	EmailTemplateNameTaken(ctx context.Context, arg EmailTemplateNameTakenParams) (bool, error)
 	// Must run inside the same transaction as PurgeAuditEvents (retention job only).
@@ -1256,6 +1395,171 @@ type Querier interface {
 	// The partner request logs keep 90 days.
 	PartnerRequestsPrune(ctx context.Context, before time.Time) error
 	PauseAutomation(ctx context.Context, arg PauseAutomationParams) error
+	PayConnection(ctx context.Context, arg PayConnectionParams) (PayConnectionRow, error)
+	// The connection a webhook request is for.
+	PayConnectionByToken(ctx context.Context, webhookToken *string) (PaymentConnection, error)
+	// A key checked again (Check again, or a replaced key).
+	PayConnectionChecked(ctx context.Context, arg PayConnectionCheckedParams) error
+	// Disconnecting deletes the key and the signing secret from ReputeCast.
+	PayConnectionDisconnect(ctx context.Context, arg PayConnectionDisconnectParams) (int64, error)
+	PayConnectionFinish(ctx context.Context, arg PayConnectionFinishParams) error
+	PayConnectionGapChecked(ctx context.Context, arg PayConnectionGapCheckedParams) error
+	PayConnectionInsert(ctx context.Context, arg PayConnectionInsertParams) error
+	PayConnectionKeyRejected(ctx context.Context, arg PayConnectionKeyRejectedParams) error
+	PayConnectionSetPortal(ctx context.Context, arg PayConnectionSetPortalParams) error
+	PayConnectionSetReach(ctx context.Context, arg PayConnectionSetReachParams) error
+	PayConnectionSetStep(ctx context.Context, arg PayConnectionSetStepParams) error
+	// The endpoint registered in the provider (or added by hand), and its sealed secret.
+	PayConnectionSetWebhook(ctx context.Context, arg PayConnectionSetWebhookParams) error
+	// A verified event arrived: freshness for the webhook card.
+	PayConnectionTouchEvent(ctx context.Context, arg PayConnectionTouchEventParams) error
+	PayConnectionWebhookMissing(ctx context.Context, arg PayConnectionWebhookMissingParams) error
+	// Payments (internal/earn): payment provider connections and the payments
+	// event log.
+	// The workspace's connections that aren't disconnected, live first.
+	PayConnections(ctx context.Context, workspaceID uuid.UUID) ([]PayConnectionsRow, error)
+	// Every connection of the instance with a key, for the hourly check.
+	PayConnectionsActive(ctx context.Context) ([]PaymentConnection, error)
+	PayEventByProviderID(ctx context.Context, arg PayEventByProviderIDParams) (PaymentEvent, error)
+	PayEventFailed(ctx context.Context, arg PayEventFailedParams) error
+	PayEventGet(ctx context.Context, id uuid.UUID) (PaymentEvent, error)
+	// Stores an event once per provider event id: a replay or a duplicate
+	// delivery inserts nothing (no row comes back).
+	PayEventInsert(ctx context.Context, arg PayEventInsertParams) (uuid.UUID, error)
+	// One page of the payments event log, newest first.
+	PayEventLog(ctx context.Context, arg PayEventLogParams) ([]PayEventLogRow, error)
+	PayEventLogCount(ctx context.Context, arg PayEventLogCountParams) (int64, error)
+	PayEventResult(ctx context.Context, arg PayEventResultParams) error
+	// Events per type over the last day, for the webhook card.
+	PayEventTypes24h(ctx context.Context, arg PayEventTypes24hParams) ([]PayEventTypes24hRow, error)
+	// The event types in the log, for its filter.
+	PayEventTypesSeen(ctx context.Context, workspaceID uuid.UUID) ([]string, error)
+	// Events stored but not applied yet (a job that never ran), oldest first.
+	PayEventsPending(ctx context.Context, arg PayEventsPendingParams) ([]uuid.UUID, error)
+	// Raw events are kept 90 days.
+	PayEventsPurge(ctx context.Context, before time.Time) (int64, error)
+	PayRejectedSince(ctx context.Context, arg PayRejectedSinceParams) (int64, error)
+	// A campaign's translated language versions.
+	PlacementCampaignLanguages(ctx context.Context, ownerID uuid.UUID) ([]string, error)
+	PlacementCampaignTranslation(ctx context.Context, arg PlacementCampaignTranslationParams) (PlacementCampaignTranslationRow, error)
+	// What a test can send, for the dialog's search: campaigns with content
+	// (not a digest's template or next issue: the digest stands for them),
+	// campaign templates, published transactional templates and digests.
+	PlacementContentSearch(ctx context.Context, arg PlacementContentSearchParams) ([]PlacementContentSearchRow, error)
+	PlacementCopies(ctx context.Context, testID uuid.UUID) ([]PlacementCopy, error)
+	// The demo seeds' simulated mailboxes look copies up by token.
+	PlacementCopiesByTokens(ctx context.Context, tokens []string) ([]PlacementCopy, error)
+	PlacementCopiesDeleted(ctx context.Context, arg PlacementCopiesDeletedParams) error
+	// Copies whose hand-off time has come.
+	PlacementCopiesDue(ctx context.Context, arg PlacementCopiesDueParams) ([]PlacementCopy, error)
+	// Copies still missing when the test finishes or is stopped (reason stopped).
+	PlacementCopiesNotArrived(ctx context.Context, arg PlacementCopiesNotArrivedParams) error
+	// Copies of a seed that couldn't be read (its sign-in failed during the test).
+	PlacementCopiesNotChecked(ctx context.Context, arg PlacementCopiesNotCheckedParams) error
+	PlacementCopiesOfTests(ctx context.Context, testIds []uuid.UUID) ([]PlacementCopy, error)
+	// Copies of a stopped comparison's later round that never went out.
+	PlacementCopiesUnsent(ctx context.Context, testID uuid.UUID) error
+	PlacementCopy(ctx context.Context, arg PlacementCopyParams) (PlacementCopy, error)
+	PlacementCopyByID(ctx context.Context, id uuid.UUID) (PlacementCopy, error)
+	// The provider's events for a copy.
+	PlacementCopyEvents(ctx context.Context, messageID *uuid.UUID) ([]DeliveryEvent, error)
+	PlacementCopyFound(ctx context.Context, arg PlacementCopyFoundParams) error
+	PlacementCopyInsert(ctx context.Context, arg PlacementCopyInsertParams) error
+	PlacementCopySent(ctx context.Context, arg PlacementCopySentParams) error
+	PlacementLatestForCampaign(ctx context.Context, arg PlacementLatestForCampaignParams) (PlacementTest, error)
+	PlacementListNames(ctx context.Context, arg PlacementListNamesParams) ([]string, error)
+	PlacementMessageKind(ctx context.Context, id uuid.UUID) (string, error)
+	PlacementOAuthStateInsert(ctx context.Context, arg PlacementOAuthStateInsertParams) error
+	// Single use: the state is removed as it's read.
+	PlacementOAuthStateTake(ctx context.Context, stateHash []byte) (PlacementOauthState, error)
+	PlacementOAuthStatesExpire(ctx context.Context, now time.Time) error
+	PlacementSeed(ctx context.Context, arg PlacementSeedParams) (PlacementSeed, error)
+	PlacementSeedByEmail(ctx context.Context, arg PlacementSeedByEmailParams) (PlacementSeed, error)
+	PlacementSeedDelete(ctx context.Context, arg PlacementSeedDeleteParams) (int64, error)
+	PlacementSeedFolders(ctx context.Context, arg PlacementSeedFoldersParams) error
+	PlacementSeedInsert(ctx context.Context, arg PlacementSeedInsertParams) error
+	PlacementSeedReconnect(ctx context.Context, arg PlacementSeedReconnectParams) error
+	// A refreshed OAuth token.
+	PlacementSeedSetCredentials(ctx context.Context, arg PlacementSeedSetCredentialsParams) error
+	PlacementSeedStatus(ctx context.Context, arg PlacementSeedStatusParams) error
+	PlacementSeedUsed(ctx context.Context, arg PlacementSeedUsedParams) error
+	// Placement tests (internal/placement): seed mailboxes, tests, copies.
+	PlacementSeeds(ctx context.Context, workspaceID uuid.UUID) ([]PlacementSeedsRow, error)
+	PlacementSettings(ctx context.Context, workspaceID uuid.UUID) (string, error)
+	PlacementSettingsSet(ctx context.Context, arg PlacementSettingsSetParams) error
+	// A campaign's source language: its own, or the workspace's default.
+	PlacementSourceLanguage(ctx context.Context, arg PlacementSourceLanguageParams) (string, error)
+	PlacementTemplate(ctx context.Context, arg PlacementTemplateParams) (PlacementTemplateRow, error)
+	PlacementTest(ctx context.Context, arg PlacementTestParams) (PlacementTestRow, error)
+	PlacementTestByID(ctx context.Context, id uuid.UUID) (PlacementTest, error)
+	PlacementTestCopiesDeleted(ctx context.Context, arg PlacementTestCopiesDeletedParams) error
+	// The provider's events for a test's copies.
+	PlacementTestEvents(ctx context.Context, ids []uuid.UUID) ([]DeliveryEvent, error)
+	PlacementTestInsert(ctx context.Context, arg PlacementTestInsertParams) error
+	PlacementTestSetStatus(ctx context.Context, arg PlacementTestSetStatusParams) error
+	PlacementTestStop(ctx context.Context, arg PlacementTestStopParams) (int64, error)
+	PlacementTests(ctx context.Context, arg PlacementTestsParams) ([]PlacementTestsRow, error)
+	// Tests through one provider since a time (the warm-up planner's card).
+	PlacementTestsForProvider(ctx context.Context, arg PlacementTestsForProviderParams) ([]PlacementTest, error)
+	// Tests sending or waiting, and finished ones still within the late window.
+	PlacementTestsOpen(ctx context.Context, now *time.Time) ([]PlacementTest, error)
+	// Tests whose copies are due to be deleted from the seeds.
+	PlacementTestsToDelete(ctx context.Context, now *time.Time) ([]PlacementTest, error)
+	PlacementTransactional(ctx context.Context, arg PlacementTransactionalParams) (PlacementTransactionalRow, error)
+	PollAnswerByID(ctx context.Context, id uuid.UUID) (PollAnswer, error)
+	PollAnswerChange(ctx context.Context, arg PollAnswerChangeParams) error
+	PollAnswerComment(ctx context.Context, arg PollAnswerCommentParams) error
+	PollAnswerCounts(ctx context.Context, pollID uuid.UUID) ([]PollAnswerCountsRow, error)
+	PollAnswerEvent(ctx context.Context, arg PollAnswerEventParams) error
+	PollAnswerInsert(ctx context.Context, arg PollAnswerInsertParams) error
+	PollAnswerOfContact(ctx context.Context, arg PollAnswerOfContactParams) (PollAnswer, error)
+	PollAnswerOfContactRead(ctx context.Context, arg PollAnswerOfContactReadParams) (PollAnswer, error)
+	PollAnswerOfTester(ctx context.Context, arg PollAnswerOfTesterParams) (PollAnswer, error)
+	PollAnswerOfTesterRead(ctx context.Context, arg PollAnswerOfTesterReadParams) (PollAnswer, error)
+	// The answer a changed answer replaced last.
+	PollAnswerPrevious(ctx context.Context, answerID uuid.UUID) (*int32, error)
+	// Answers by the hour after the send started they first came in.
+	PollAnswersByHour(ctx context.Context, arg PollAnswersByHourParams) ([]PollAnswersByHourRow, error)
+	PollAutomated(ctx context.Context, pollID uuid.UUID) ([]PollAutomatedRow, error)
+	PollAutomatedBump(ctx context.Context, arg PollAutomatedBumpParams) error
+	PollBreakdownLanguage(ctx context.Context, pollID uuid.UUID) ([]PollBreakdownLanguageRow, error)
+	PollBreakdownList(ctx context.Context, pollID uuid.UUID) ([]PollBreakdownListRow, error)
+	PollBreakdownTier(ctx context.Context, pollID uuid.UUID) ([]PollBreakdownTierRow, error)
+	PollByID(ctx context.Context, arg PollByIDParams) (PollByIDRow, error)
+	// The poll a signed link names, with what its pages show.
+	PollByNumber(ctx context.Context, number int64) (PollByNumberRow, error)
+	PollCampaignContent(ctx context.Context, arg PollCampaignContentParams) (PollCampaignContentRow, error)
+	// Comments, newest first, with the contact's name (the caller leaves it
+	// out for people without subscribers:view, whose search doesn't match
+	// names either).
+	PollComments(ctx context.Context, arg PollCommentsParams) ([]PollCommentsRow, error)
+	PollCommentsCount(ctx context.Context, pollID uuid.UUID) ([]PollCommentsCountRow, error)
+	PollContact(ctx context.Context, id uuid.UUID) (PollContactRow, error)
+	// A contact's poll answers, newest first (the profile's timeline and where
+	// a field came from).
+	PollContactAnswers(ctx context.Context, arg PollContactAnswersParams) ([]PollContactAnswersRow, error)
+	PollDelivered(ctx context.Context, campaignID uuid.UUID) (PollDeliveredRow, error)
+	PollExportAnswers(ctx context.Context, pollID uuid.UUID) ([]PollExportAnswersRow, error)
+	// The message a signed answer link names: when it was sent and to whom.
+	PollMessage(ctx context.Context, id uuid.UUID) (PollMessageRow, error)
+	PollSetClosed(ctx context.Context, arg PollSetClosedParams) error
+	PollSetClosesAt(ctx context.Context, arg PollSetClosesAtParams) error
+	PollSetContactField(ctx context.Context, arg PollSetContactFieldParams) error
+	PollSetContactTags(ctx context.Context, arg PollSetContactTagsParams) error
+	// A poll's headline numbers: contacts' answers, non-contacts' and tests
+	// apart, how many changed their answer and wrote a comment.
+	PollSummary(ctx context.Context, pollID uuid.UUID) (PollSummaryRow, error)
+	PollTestAnswers(ctx context.Context, arg PollTestAnswersParams) ([]PollTestAnswersRow, error)
+	PollTestAnswersClear(ctx context.Context, arg PollTestAnswersClearParams) (int64, error)
+	PollTestRecipient(ctx context.Context, id uuid.UUID) (PollTestRecipientRow, error)
+	PollTestRecipientInsert(ctx context.Context, arg PollTestRecipientInsertParams) error
+	PollsOfCampaign(ctx context.Context, arg PollsOfCampaignParams) ([]PollsOfCampaignRow, error)
+	// Every poll of the workspace (the automation trigger's picker, MCP).
+	PollsOfWorkspace(ctx context.Context, workspaceID uuid.UUID) ([]PollsOfWorkspaceRow, error)
+	// Polls and surveys (internal/polls, design expansion M21).
+	// A campaign's poll as its content says now (a test send or a send needs
+	// its links). The number in signed links never changes.
+	PollsUpsert(ctx context.Context, arg PollsUpsertParams) (PollsUpsertRow, error)
 	ProvActiveFailovers(ctx context.Context, workspaceID uuid.UUID) ([]StreamFailover, error)
 	ProvAwaitingCampaigns(ctx context.Context, arg ProvAwaitingCampaignsParams) ([]ProvAwaitingCampaignsRow, error)
 	ProvAwaitingCount(ctx context.Context, arg ProvAwaitingCountParams) (ProvAwaitingCountRow, error)
@@ -2103,6 +2407,26 @@ type Querier interface {
 	// the providers domain) and, for providers without a suppression API, the
 	// addresses their bounce and complaint events added to the shared list.
 	SuppressionSyncStates(ctx context.Context, workspaceID uuid.UUID) ([]SuppressionSyncStatesRow, error)
+	// Every response, for the results and the exports.
+	SurveyAllResponses(ctx context.Context, surveyID uuid.UUID) ([]SurveyAllResponsesRow, error)
+	SurveyByNumber(ctx context.Context, number int64) (SurveyByNumberRow, error)
+	SurveyBySlug(ctx context.Context, arg SurveyBySlugParams) (SurveyBySlugRow, error)
+	SurveyContactResponses(ctx context.Context, arg SurveyContactResponsesParams) ([]SurveyContactResponsesRow, error)
+	SurveyDelete(ctx context.Context, arg SurveyDeleteParams) error
+	SurveyGet(ctx context.Context, arg SurveyGetParams) (SurveyGetRow, error)
+	SurveyInsert(ctx context.Context, arg SurveyInsertParams) error
+	// Campaigns whose content links to a survey (its link variable or a poll
+	// that continues to it).
+	// A poll names the survey by its id, however the attribute is escaped.
+	SurveyLinkedCampaigns(ctx context.Context, arg SurveyLinkedCampaignsParams) ([]SurveyLinkedCampaignsRow, error)
+	SurveyResponseInsert(ctx context.Context, arg SurveyResponseInsertParams) error
+	SurveyResponseOfContact(ctx context.Context, arg SurveyResponseOfContactParams) (SurveyResponse, error)
+	SurveyResponseUpdate(ctx context.Context, arg SurveyResponseUpdateParams) error
+	SurveyResponses(ctx context.Context, arg SurveyResponsesParams) ([]SurveyResponsesRow, error)
+	SurveySetStatus(ctx context.Context, arg SurveySetStatusParams) error
+	SurveySlugTaken(ctx context.Context, arg SurveySlugTakenParams) (bool, error)
+	SurveyUpdate(ctx context.Context, arg SurveyUpdateParams) error
+	SurveysList(ctx context.Context, workspaceID uuid.UUID) ([]SurveysListRow, error)
 	// A message the system mailer or a setup's test sends (stream system, or
 	// the stream a test goes on).
 	SysmailInsertMessage(ctx context.Context, arg SysmailInsertMessageParams) error
@@ -2428,6 +2752,111 @@ type Querier interface {
 	UpsertNotificationSettings(ctx context.Context, arg UpsertNotificationSettingsParams) error
 	UseRecoveryCode(ctx context.Context, arg UseRecoveryCodeParams) (uuid.UUID, error)
 	UsersShareWorkspace(ctx context.Context, arg UsersShareWorkspaceParams) (bool, error)
+	// Contacts per latest result, for a set of contacts.
+	VerifCheckCounts(ctx context.Context, arg VerifCheckCountsParams) (VerifCheckCountsRow, error)
+	// Contacts whose address was checked since a time (skipped by "Skip
+	// addresses checked in the last 90 days"), with the latest check's day.
+	VerifCheckedSince(ctx context.Context, arg VerifCheckedSinceParams) ([]VerifCheckedSinceRow, error)
+	// The latest results of the contacts with these addresses (Send Readiness).
+	VerifChecksByEmail(ctx context.Context, arg VerifChecksByEmailParams) ([]VerifChecksByEmailRow, error)
+	VerifConsentEvents(ctx context.Context, arg VerifConsentEventsParams) error
+	VerifContactCheck(ctx context.Context, arg VerifContactCheckParams) (ContactAddressCheck, error)
+	VerifContactChecksUpsert(ctx context.Context, arg VerifContactChecksUpsertParams) error
+	VerifContactsByEmail(ctx context.Context, arg VerifContactsByEmailParams) ([]VerifContactsByEmailRow, error)
+	VerifFormCheckEnabled(ctx context.Context, arg VerifFormCheckEnabledParams) (bool, error)
+	VerifFormCheckSet(ctx context.Context, arg VerifFormCheckSetParams) error
+	VerifFormChecks(ctx context.Context, workspaceID uuid.UUID) ([]VerificationFormCheck, error)
+	VerifJobByID(ctx context.Context, id uuid.UUID) (VerificationJob, error)
+	VerifJobCancel(ctx context.Context, arg VerifJobCancelParams) (int64, error)
+	// One worker at a time: the job is held until claimed_until.
+	VerifJobClaim(ctx context.Context, arg VerifJobClaimParams) (int64, error)
+	VerifJobGet(ctx context.Context, arg VerifJobGetParams) (VerifJobGetRow, error)
+	VerifJobInsert(ctx context.Context, arg VerifJobInsertParams) error
+	// A job's checked addresses, for the results CSV.
+	VerifJobItemsAll(ctx context.Context, jobID uuid.UUID) ([]VerifJobItemsAllRow, error)
+	VerifJobItemsDone(ctx context.Context, arg VerifJobItemsDoneParams) error
+	VerifJobItemsInsert(ctx context.Context, arg VerifJobItemsInsertParams) error
+	// Jobs of the workspace since a time, newest first (uses, the jobs tray).
+	VerifJobList(ctx context.Context, arg VerifJobListParams) ([]VerifJobListRow, error)
+	VerifJobPending(ctx context.Context, arg VerifJobPendingParams) ([]VerifJobPendingRow, error)
+	VerifJobPendingCount(ctx context.Context, jobID uuid.UUID) (int64, error)
+	VerifJobRelease(ctx context.Context, id uuid.UUID) error
+	// The results of an import's check, by address.
+	VerifJobResults(ctx context.Context, jobID uuid.UUID) ([]VerifJobResultsRow, error)
+	// A job stopped for credits or an outage goes on with what's left.
+	VerifJobResume(ctx context.Context, arg VerifJobResumeParams) (int64, error)
+	VerifJobSaveCounts(ctx context.Context, arg VerifJobSaveCountsParams) error
+	VerifJobSetStatus(ctx context.Context, arg VerifJobSetStatusParams) error
+	// Jobs to work on: queued or running, and paused ones whose retry is due.
+	VerifJobsRunnable(ctx context.Context, now *time.Time) ([]VerificationJob, error)
+	VerifLatestImportJob(ctx context.Context, arg VerifLatestImportJobParams) (VerificationJob, error)
+	VerifPendingCount(ctx context.Context, workspaceID uuid.UUID) (int64, error)
+	VerifPendingDelete(ctx context.Context, id uuid.UUID) error
+	VerifPendingDue(ctx context.Context, lim int32) ([]VerificationRealtimePending, error)
+	VerifPendingInsert(ctx context.Context, arg VerifPendingInsertParams) error
+	VerifPendingTried(ctx context.Context, id uuid.UUID) error
+	VerifRealtimeCount(ctx context.Context, arg VerifRealtimeCountParams) error
+	VerifRealtimeDaily(ctx context.Context, arg VerifRealtimeDailyParams) ([]VerificationRealtimeDaily, error)
+	// "Asked to fix their address" per form over a period.
+	VerifRealtimeInvalidByForm(ctx context.Context, arg VerifRealtimeInvalidByFormParams) ([]VerifRealtimeInvalidByFormRow, error)
+	// Every connected service of the instance, for the hourly balance read.
+	VerifServiceAll(ctx context.Context) ([]VerificationService, error)
+	VerifServiceAnswered(ctx context.Context, arg VerifServiceAnsweredParams) error
+	VerifServiceByID(ctx context.Context, id uuid.UUID) (VerificationService, error)
+	VerifServiceByKey(ctx context.Context, arg VerifServiceByKeyParams) (VerificationService, error)
+	// One default per use: setting it on one service takes it off the others.
+	VerifServiceClearDefaults(ctx context.Context, arg VerifServiceClearDefaultsParams) error
+	VerifServiceDelete(ctx context.Context, arg VerifServiceDeleteParams) (int64, error)
+	// An error answer; the streak keeps its first time ("from 15:05 to 15:10").
+	VerifServiceFailed(ctx context.Context, arg VerifServiceFailedParams) error
+	VerifServiceInsert(ctx context.Context, arg VerifServiceInsertParams) error
+	// Address verification services (internal/verification): connections,
+	// jobs and their addresses, each contact's latest result, real-time checks
+	// on signup forms.
+	VerifServiceList(ctx context.Context, workspaceID uuid.UUID) ([]VerifServiceListRow, error)
+	VerifServiceLowNotified(ctx context.Context, arg VerifServiceLowNotifiedParams) error
+	VerifServiceSetBalance(ctx context.Context, arg VerifServiceSetBalanceParams) error
+	VerifServiceSetKey(ctx context.Context, arg VerifServiceSetKeyParams) error
+	VerifServiceSettings(ctx context.Context, arg VerifServiceSettingsParams) error
+	VerifServiceTested(ctx context.Context, arg VerifServiceTestedParams) error
+	VerifServiceUsed(ctx context.Context, arg VerifServiceUsedParams) error
+	// Replace a contact's verify:… tags with the latest result's (none for valid).
+	VerifSetTags(ctx context.Context, arg VerifSetTagsParams) error
+	// Invalid addresses: the contacts are suppressed for all mail.
+	VerifSuppressContacts(ctx context.Context, arg VerifSuppressContactsParams) ([]uuid.UUID, error)
+	VerifSuppressedEmails(ctx context.Context, arg VerifSuppressedEmailsParams) ([]string, error)
+	// Per engagement tier: contacts, and those checked since a time (List
+	// health's "never checked").
+	VerifTierCheckSummary(ctx context.Context, arg VerifTierCheckSummaryParams) ([]VerifTierCheckSummaryRow, error)
+	VisibilityCampaign(ctx context.Context, arg VisibilityCampaignParams) (VisibilityCampaignRow, error)
+	// What conditions read about some contacts (a send's audience page, a
+	// preview).
+	VisibilityContactFacts(ctx context.Context, arg VisibilityContactFactsParams) ([]VisibilityContactFactsRow, error)
+	// Who deleted the segments, lists and fields rules refer to, and when (the
+	// broken condition says "Marcus Chen deleted this segment on Tue 14 Oct").
+	VisibilityDeletions(ctx context.Context, arg VisibilityDeletionsParams) ([]VisibilityDeletionsRow, error)
+	VisibilityFields(ctx context.Context, workspaceID uuid.UUID) ([]VisibilityFieldsRow, error)
+	VisibilityGetCount(ctx context.Context, campaignID uuid.UUID) (VisibilityCount, error)
+	// Conditional content (internal/visibility, design expansion M21).
+	// The workspace's lists with their subscribed members, for the condition
+	// picker and the rules' words.
+	VisibilityLists(ctx context.Context, workspaceID uuid.UUID) ([]VisibilityListsRow, error)
+	// The blocks a message's recipient doesn't get (view online).
+	VisibilityMessageHidden(ctx context.Context, arg VisibilityMessageHiddenParams) (string, error)
+	// An audience as Send Readiness counts it (active contacts on the lists or
+	// in the segments, minus excluded lists and segments), with what Visibility
+	// conditions read. Suppressed, role and duplicate addresses and contacts
+	// the sunset policy stopped are left out by the caller, as in Send
+	// Readiness; the oldest contact of a mailbox is kept.
+	VisibilityRecipients(ctx context.Context, arg VisibilityRecipientsParams) ([]VisibilityRecipientsRow, error)
+	VisibilitySaveCount(ctx context.Context, arg VisibilitySaveCountParams) error
+	VisibilitySegments(ctx context.Context, workspaceID uuid.UUID) ([]VisibilitySegmentsRow, error)
+	// Tags in use, most used first.
+	VisibilityTags(ctx context.Context, workspaceID uuid.UUID) ([]VisibilityTagsRow, error)
+	// Emails that aren't sent yet and have Visibility rules: drafts, campaigns
+	// waiting for approval and scheduled ones ("used by", the warning before a
+	// segment, list or field is deleted, and the blocks Scoring lists).
+	VisibilityUnsent(ctx context.Context, workspaceID uuid.UUID) ([]VisibilityUnsentRow, error)
 	// Runs waiting at a branch for an open or click: wake them as soon as the
 	// email they wait on has one, instead of at the end of the window.
 	WakeAutomationBranchRuns(ctx context.Context, now *time.Time) (int64, error)

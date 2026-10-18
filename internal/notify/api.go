@@ -20,7 +20,7 @@ var member = api.WorkspaceHuman("")
 
 type listNotificationsInput struct {
 	api.WorkspaceInput
-	Filter string `query:"filter" enum:"all,unread,approvals,sending,providers,team,hostrepute,transactional,integrations,grow" default:"all" doc:"Notification center tab"`
+	Filter string `query:"filter" enum:"all,unread,approvals,sending,providers,team,hostrepute,transactional,earn,grow" default:"all" doc:"Notification center tab"`
 	Cursor string `query:"cursor" doc:"Opaque cursor from a previous page"`
 	Limit  int    `query:"limit" default:"50" minimum:"1" maximum:"100"`
 }

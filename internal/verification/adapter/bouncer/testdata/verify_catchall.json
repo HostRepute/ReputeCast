@@ -1,0 +1,24 @@
+{
+  "email": "catchall@contract.test",
+  "status": "risky",
+  "reason": "low_deliverability",
+  "domain": {
+    "name": "contract.test",
+    "acceptAll": "yes",
+    "disposable": "no",
+    "free": "no"
+  },
+  "account": {
+    "role": "no",
+    "disabled": "no",
+    "fullMailbox": "no"
+  },
+  "dns": {
+    "type": "MX",
+    "record": "mx1.contract.test."
+  },
+  "provider": "contract.test",
+  "score": 30,
+  "toxic": "no",
+  "toxicity": 0
+}

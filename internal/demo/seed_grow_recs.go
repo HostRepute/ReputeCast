@@ -151,9 +151,9 @@ func (w *growWorld) seedRecommendations() error {
 			at := w.at(toDay + w.rng.IntN(fromDay-toDay+1))
 			var conf *time.Time
 			if i < confirmed {
-				conf = tp(at.Add(time.Duration(5+w.rng.IntN(240)) * time.Minute))
+				conf = gtp(at.Add(time.Duration(5+w.rng.IntN(240)) * time.Minute))
 				if conf.After(w.now) {
-					conf = tp(w.now.Add(-time.Minute))
+					conf = gtp(w.now.Add(-time.Minute))
 				}
 			}
 			origin := "confirm"
@@ -180,15 +180,15 @@ func (w *growWorld) seedRecommendations() error {
 				c := w.partnerPool[i].id
 				contact = &c
 			}
-			conf = tp(at.Add(time.Duration(10+w.rng.IntN(600)) * time.Minute))
+			conf = gtp(at.Add(time.Duration(10+w.rng.IntN(600)) * time.Minute))
 			if conf.After(w.now) {
-				conf = tp(w.now.Add(-2 * time.Minute))
+				conf = gtp(w.now.Add(-2 * time.Minute))
 			}
 		}
 		notice := ""
 		var noticeAt *time.Time
 		if conf != nil {
-			notice, noticeAt = "sent", tp(conf.Add(time.Minute))
+			notice, noticeAt = "sent", gtp(conf.Add(time.Minute))
 		}
 		in = append(in, []any{ID(), w.ws.ID, opsIn, uuid.NewString(), "accepted", contact, true, optin, at.Add(time.Minute), "Ops Weekly", at, conf, notice, noticeAt})
 	}

@@ -10,9 +10,9 @@ export function milestoneTriggerName(): string {
 }
 
 /** "3 referrals · The Acme Field Guide", or "any milestone". */
-export function milestoneTriggerRef(tr: Trigger, milestones: ReadonlyMap<string, string>): string {
+export function milestoneTriggerRef(tr: Trigger, milestones?: ReadonlyMap<string, string>): string {
   if (!tr.milestoneId) return t(m.anyMilestone)
-  return milestones.get(tr.milestoneId) ?? t(m.aMilestone)
+  return milestones?.get(tr.milestoneId) ?? t(m.aMilestone)
 }
 
 /** "once per contact per milestone", under the node's title. */

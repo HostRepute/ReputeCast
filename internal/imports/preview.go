@@ -18,13 +18,19 @@ import (
 
 // ImportRiskyGroup is one group of risky addresses with the chosen action.
 type ImportRiskyGroup struct {
-	Key      string              `json:"key" enum:"role,disposable,typo,stale,trap"`
+	Key      string              `json:"key" enum:"role,disposable,typo,stale,trap,catch_all,abuse,unknown"`
 	Label    string              `json:"label"`
 	Rows     int64               `json:"rows"`
 	Why      string              `json:"why"`
 	Examples string              `json:"examples"`
 	Action   string              `json:"action"`
 	Actions  []ImportFieldOption `json:"actions"`
+	// After a verification service's check (X14): the rows ReputeCast
+	// found (Own), those the service alone found (More) and those where
+	// both found the same (Agree, part of Own).
+	Own   int64 `json:"own"`
+	More  int64 `json:"more"`
+	Agree int64 `json:"agree"`
 }
 
 // ImportDuplicateExample is one address that is already in ReputeCast.
@@ -43,6 +49,8 @@ type ImportInvalidGroup struct {
 	Problem string `json:"problem"`
 	Example string `json:"example,omitempty"`
 	Rows    int64  `json:"rows"`
+	// Service names the verification service that rejected these rows.
+	Service string `json:"service,omitempty"`
 }
 
 // ImportPreview is the dry run: what would happen to every row.
@@ -62,6 +70,9 @@ type ImportPreview struct {
 	InvalidGroups []ImportInvalidGroup     `json:"invalidGroups"`
 	OnConflict    string                   `json:"onConflict" enum:"fill,overwrite,keep"`
 	ComputedAt    time.Time                `json:"computedAt"`
+	// Verification is a verification service's check of the new
+	// addresses, when one ran (X14).
+	Verification *ImportVerification `json:"verification,omitempty"`
 }
 
 var riskyMeta = []struct {
@@ -77,6 +88,13 @@ var riskyMeta = []struct {
 		{"pending", "Import as pending, send re-permission"}, {"skip", "Skip"}, {"import", "Import normally"}}},
 	{classTrap, "Known spam-trap patterns", "domains and local parts HostRepute associates with trap networks", []ImportFieldOption{
 		{"skip", "Skip (recommended)"}, {"import", "Import normally"}}},
+	// A verification service's groups (X14).
+	{classCatchAll, "Catch-all domains", "the domain accepts every address, so the mailbox can't be confirmed", []ImportFieldOption{
+		{"import", "Import, tagged verify:catch-all"}, {"skip", "Skip"}}},
+	{classAbuse, "Known complainers", "the service lists these addresses for abuse reports", []ImportFieldOption{
+		{"import", "Import, tagged verify:abuse"}, {"skip", "Skip"}}},
+	{classUnknown, "Unknown", "the mail server didn't answer the service", []ImportFieldOption{
+		{"import", "Import, tagged verify:unknown"}, {"skip", "Skip"}}},
 }
 
 // mergeChange describes what merging a row into an existing contact does.
@@ -307,6 +325,10 @@ func (s *Service) Preview(ctx context.Context, ws *store.Workspace, id uuid.UUID
 	loc := location(ws)
 	now := s.now()
 	p := ImportPreview{RiskyGroups: []ImportRiskyGroup{}, Duplicates: []ImportDuplicateExample{}, InvalidGroups: []ImportInvalidGroup{}, OnConflict: opts.OnConflict, ComputedAt: now}
+	checks := s.checks(ctx, ws, imp.ID)
+	var importBefore int64
+	riskyMore := map[string]int64{}
+	riskyAgree := map[string]int64{}
 	riskyCount := map[string]int64{}
 	riskyExamples := map[string][]string{}
 	var staleExample string
@@ -326,6 +348,10 @@ func (s *Service) Preview(ctx context.Context, ws *store.Workspace, id uuid.UUID
 			after = r.RowNo
 			p.Rows++
 			v := classify(r, b, cm, now)
+			if v.Class == classImport {
+				importBefore++
+			}
+			v = withCheck(v, checks.answer(r.Email))
 			switch v.Class {
 			case classImport:
 				p.WillImport++
@@ -356,6 +382,12 @@ func (s *Service) Preview(ctx context.Context, ws *store.Workspace, id uuid.UUID
 			default:
 				p.Risky++
 				riskyCount[v.Class]++
+				switch {
+				case v.ByService:
+					riskyMore[v.Class]++
+				case v.Agree:
+					riskyAgree[v.Class]++
+				}
 				ex := riskyExamples[v.Class]
 				switch v.Class {
 				case classRole:
@@ -364,7 +396,7 @@ func (s *Service) Preview(ctx context.Context, ws *store.Workspace, id uuid.UUID
 					} else if len(ex) == 1 {
 						ex = append(ex, emailaddr.Local(r.Email)+"@…")
 					}
-				case classDisposable, classTypo:
+				case classDisposable, classTypo, classCatchAll, classAbuse, classUnknown:
 					d := "…@" + emailaddr.Domain(r.Email)
 					limit := 2
 					if v.Class == classTypo {
@@ -390,7 +422,8 @@ func (s *Service) Preview(ctx context.Context, ws *store.Workspace, id uuid.UUID
 		if n == 0 {
 			continue
 		}
-		g := ImportRiskyGroup{Key: m.key, Label: m.label, Rows: n, Why: m.why, Actions: m.actions, Action: riskyAction(opts.Risky, m.key)}
+		g := ImportRiskyGroup{Key: m.key, Label: m.label, Rows: n, Why: m.why, Actions: m.actions, Action: riskyAction(opts.Risky, m.key),
+			Own: n - riskyMore[m.key], More: riskyMore[m.key], Agree: riskyAgree[m.key]}
 		switch m.key {
 		case classStale:
 			g.Why = fmt.Sprintf("no open or click since %d in %s; most likely to be stale or recycled into spam traps", now.AddDate(-2, 0, 0).Year(), SourceName(imp.Source))
@@ -406,6 +439,18 @@ func (s *Service) Preview(ctx context.Context, ws *store.Workspace, id uuid.UUID
 		if n := invalidCount[prob]; n > 0 {
 			p.InvalidGroups = append(p.InvalidGroups, ImportInvalidGroup{Problem: prob, Example: invalidExample[prob], Rows: n})
 		}
+	}
+	if checks != nil {
+		var more int64
+		for _, n := range riskyMore {
+			more += n
+		}
+		if n := invalidCount[ProblemService]; n > 0 {
+			p.InvalidGroups = append(p.InvalidGroups, ImportInvalidGroup{Problem: ProblemService, Rows: n, Service: checks.ServiceName})
+		}
+		p.Verification = &ImportVerification{JobID: checks.JobID.String(), Service: checks.Service, ServiceName: checks.ServiceName, Status: checks.Status,
+			CheckedAt: checks.CheckedAt, Checked: checks.Checked, Cost: checks.Cost, Invalid: invalidCount[ProblemService], Risky: more,
+			Fewer: importBefore - p.WillImport}
 	}
 	p.ImportCount = p.WillImport + p.Merged
 	p.SuppressCount = p.Suppressed
@@ -450,6 +495,7 @@ func (s *Service) InvalidCSV(ctx context.Context, ws *store.Workspace, id uuid.U
 	}
 	fm := s.effectiveMap(imp, custom)
 	cm := parseConsentMap(imp.ConsentMap, parseOptions(imp.Options))
+	checks := s.checks(ctx, ws, imp.ID)
 	var sb strings.Builder
 	sb.WriteString("row,value,problem\n")
 	var after int32
@@ -463,8 +509,12 @@ func (s *Service) InvalidCSV(ctx context.Context, ws *store.Workspace, id uuid.U
 		}
 		for _, r := range b.rows {
 			after = r.RowNo
-			if v := classify(r, b, cm, s.now()); v.Class == classInvalid {
-				fmt.Fprintf(&sb, "%d,%s,%s\n", r.RowNo, csvField(r.Raw), csvField(v.Problem))
+			if v := withCheck(classify(r, b, cm, s.now()), checks.answer(r.Email)); v.Class == classInvalid {
+				problem := v.Problem
+				if a := checks.answer(r.Email); v.ByService && a != nil {
+					problem = checks.ServiceName + ": " + a.Code
+				}
+				fmt.Fprintf(&sb, "%d,%s,%s\n", r.RowNo, csvField(r.Raw), csvField(problem))
 			}
 		}
 	}

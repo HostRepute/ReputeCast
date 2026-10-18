@@ -212,6 +212,8 @@ func triggerMatches(t AutomationTrigger, ev store.ClaimAutomationEventsRow) bool
 		return t.Field == ev.Ref
 	case TriggerScoreCrosses:
 		return scoreTriggerMatches(t, ev.Payload)
+	case TriggerPollAnswered:
+		return pollTriggerMatches(t, ev)
 	case TriggerMilestoneReached:
 		return milestoneTriggerMatches(t, ev)
 	}
@@ -257,7 +259,7 @@ func (s *Service) enroll(ctx context.Context, q *store.Queries, stats statsBuf, 
 		if err != nil || found {
 			return false, err
 		}
-	} else if t.Reentry != "always" {
+	} else if t.Reentry != "always" && !pollReentry(t, ev) {
 		exists, err := q.AutomationRunExists(ctx, store.AutomationRunExistsParams{AutomationID: f.ID, ContactID: ev.ContactID})
 		if err != nil || exists {
 			return false, err

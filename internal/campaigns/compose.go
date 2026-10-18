@@ -310,6 +310,7 @@ func (s *Service) Preview(ctx context.Context, ws *store.Workspace, p *authz.Pri
 		}
 	}
 	links := map[string]string{"unsubscribe_url": "#unsubscribe", "preferences_url": "#preferences", "view_in_browser_url": "#view-in-browser"}
+	previewPollLinks(html, links)
 	first, last := "", ""
 	if contact != nil {
 		first, last = contactNames(contact.Name)
@@ -339,7 +340,7 @@ func (s *Service) Preview(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	out.HTML = media.Absolutize(render(html), s.URLs.Base())
 	out.Text = contentcheck.PlainText(out.HTML)
 	for _, u := range liquid.Uses(subject + "\n" + preheader + "\n" + html) {
-		tv := ComposerTokenValue{Key: u.Key, Token: tokenText(u), PerRecipient: systemLinks[u.Key]}
+		tv := ComposerTokenValue{Key: u.Key, Token: tokenText(u), PerRecipient: systemLinks[u.Key] || pollVar(u.Key)}
 		if tv.PerRecipient {
 			tv.Value = "per-recipient link"
 		} else {
@@ -542,6 +543,9 @@ func (s *Service) SendTest(ctx context.Context, ws *store.Workspace, p *authz.Pr
 		for k, v := range links {
 			html = strings.ReplaceAll(html, `href="`+k+`"`, `href="`+v+`"`)
 		}
+		if s.Extras != nil {
+			html = s.Extras.TestVersion(ctx, ws, id, in.ContactID, html)
+		}
 		emails = append(emails, testEmail{pv.Subject, html})
 	}
 	sender := s.mailer()
@@ -551,8 +555,18 @@ func (s *Service) SendTest(ctx context.Context, ws *store.Workspace, p *authz.Pr
 	}
 	provider := ""
 	for _, addr := range to {
+		// Each address answers polls as its own test answers.
+		var pollLinks map[string]string
+		if s.Extras != nil {
+			pl, err := s.Extras.TestLinks(ctx, ws, id, addr)
+			if err != nil {
+				return ComposerTestSendResult{}, err
+			}
+			pollLinks = pl
+		}
 		for _, e := range emails {
-			name, err := sender.SendSystem(ctx, mailer.Message{WorkspaceID: &ws.ID, To: addr, Subject: "[Test] " + e.subject, HTML: e.html, Text: contentcheck.PlainText(e.html), Kind: "campaign_test"})
+			body := testPollLinks(e.html, pollLinks)
+			name, err := sender.SendSystem(ctx, mailer.Message{WorkspaceID: &ws.ID, To: addr, Subject: "[Test] " + e.subject, HTML: body, Text: contentcheck.PlainText(body), Kind: "campaign_test"})
 			if err != nil {
 				if errors.Is(err, mailer.ErrNoSystemProvider) {
 					return ComposerTestSendResult{}, api.Err(http.StatusConflict, api.CodeProviderUnavailable,

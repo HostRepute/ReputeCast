@@ -156,7 +156,7 @@ func (w *growWorld) day(daysAgo, hour, minute int) time.Time {
 	return w.s.designDay(daysAgo, hour, minute)
 }
 
-func tp(t time.Time) *time.Time { return &t }
+func gtp(t time.Time) *time.Time { return &t }
 
 // --- The program, its files and milestones -----------------------------------------------
 
@@ -534,23 +534,23 @@ func (w *growWorld) planReferrals(r *growReferrer, take func() *growContact, nam
 	switch r.key {
 	case "sam":
 		// Nina, Leo, Ivy and Owen (brief §4).
-		a := add(referrals.StatusCounted, "", w.day(19, 18, 2), tp(w.day(19, 18, 40)))
-		a.counted = tp(a.confirmed.Add(hold))
-		b := add(referrals.StatusCounted, "", w.day(14, 20, 15), tp(w.day(13, 8, 5)))
-		b.counted = tp(b.confirmed.Add(hold))
-		c := add(referrals.StatusHold, "", w.day(3, 12, 30), tp(w.day(3, 12, 48)))
-		c.holdUntil = tp(c.confirmed.Add(hold))
+		a := add(referrals.StatusCounted, "", w.day(19, 18, 2), gtp(w.day(19, 18, 40)))
+		a.counted = gtp(a.confirmed.Add(hold))
+		b := add(referrals.StatusCounted, "", w.day(14, 20, 15), gtp(w.day(13, 8, 5)))
+		b.counted = gtp(b.confirmed.Add(hold))
+		c := add(referrals.StatusHold, "", w.day(3, 12, 30), gtp(w.day(3, 12, 48)))
+		c.holdUntil = gtp(c.confirmed.Add(hold))
 		d := add(referrals.StatusAwaiting, "", w.day(1, 19, 6), nil)
-		d.reminded = tp(w.day(0, 9, 0))
+		d.reminded = gtp(w.day(0, 9, 0))
 		a.via, b.via, c.via, d.via = "copy", "whatsapp", "copy", "email"
 	case "alex":
-		a := add(referrals.StatusCounted, "", w.day(17, 10, 20), tp(w.day(17, 10, 31)))
-		a.counted = tp(a.confirmed.Add(hold))
+		a := add(referrals.StatusCounted, "", w.day(17, 10, 20), gtp(w.day(17, 10, 31)))
+		a.counted = gtp(a.confirmed.Add(hold))
 		// Six on 14 Oct between 21:10 and 21:24: a burst, four from one
 		// address, numbered addresses.
 		for i := 0; i < 6; i++ {
 			at := w.day(1, 21, 10+i*2+i/3)
-			ref := add(referrals.StatusReview, "", at, tp(at.Add(90*time.Second)))
+			ref := add(referrals.StatusReview, "", at, gtp(at.Add(90*time.Second)))
 			ref.signals = []string{referrals.SignalBurst, referrals.SignalNumbered}
 			ref.held, ref.via = ref.confirmed, "copy"
 			if i < 4 {
@@ -559,12 +559,12 @@ func (w *growWorld) planReferrals(r *growReferrer, take func() *growContact, nam
 			}
 		}
 	case "mateo":
-		a := add(referrals.StatusCounted, "", w.day(20, 9, 12), tp(w.day(20, 9, 40)))
-		a.counted = tp(a.confirmed.Add(hold))
-		b := add(referrals.StatusCounted, "", w.day(16, 14, 2), tp(w.day(16, 14, 30)))
-		b.counted = tp(b.confirmed.Add(hold))
+		a := add(referrals.StatusCounted, "", w.day(20, 9, 12), gtp(w.day(20, 9, 40)))
+		a.counted = gtp(a.confirmed.Add(hold))
+		b := add(referrals.StatusCounted, "", w.day(16, 14, 2), gtp(w.day(16, 14, 30)))
+		b.counted = gtp(b.confirmed.Add(hold))
 		for i, d := range []struct{ day, h, m int }{{2, 10, 4}, {2, 15, 41}, {1, 9, 18}} {
-			ref := add(referrals.StatusReview, "", w.day(d.day, d.h, d.m), tp(w.day(d.day, d.h, d.m+20)))
+			ref := add(referrals.StatusReview, "", w.day(d.day, d.h, d.m), gtp(w.day(d.day, d.h, d.m+20)))
 			ref.signals = []string{referrals.SignalSharedIP}
 			ref.held, ref.via = ref.confirmed, "email"
 			ref.ip, ref.network, ref.asn, ref.kind = "198.51.100.12", "Kestrel Logistics", "AS64511", "office"
@@ -578,23 +578,23 @@ func (w *growWorld) planReferrals(r *growReferrer, take func() *growContact, nam
 				daysAgo = 22 - (i*15)/r.counted
 			}
 			signed := w.at(daysAgo)
-			ref := add(referrals.StatusCounted, "", signed, tp(signed.Add(time.Duration(5+w.rng.IntN(300))*time.Minute)))
+			ref := add(referrals.StatusCounted, "", signed, gtp(signed.Add(time.Duration(5+w.rng.IntN(300))*time.Minute)))
 			if ref.confirmed.Add(hold).After(w.now) {
-				ref.confirmed = tp(w.now.Add(-hold - 3*time.Hour))
+				ref.confirmed = gtp(w.now.Add(-hold - 3*time.Hour))
 			}
-			ref.counted = tp(ref.confirmed.Add(hold))
+			ref.counted = gtp(ref.confirmed.Add(hold))
 		}
 		for i := 0; i < r.hold; i++ {
 			signed := w.at(1 + w.rng.IntN(5))
-			ref := add(referrals.StatusHold, "", signed, tp(signed.Add(time.Duration(10+w.rng.IntN(120))*time.Minute)))
-			ref.holdUntil = tp(ref.confirmed.Add(hold))
+			ref := add(referrals.StatusHold, "", signed, gtp(signed.Add(time.Duration(10+w.rng.IntN(120))*time.Minute)))
+			ref.holdUntil = gtp(ref.confirmed.Add(hold))
 		}
 		for _, reason := range r.notCounted {
 			signed := w.at(10 + w.rng.IntN(10))
-			ref := add(referrals.StatusNotCounted, reason, signed, tp(signed.Add(25*time.Minute)))
+			ref := add(referrals.StatusNotCounted, reason, signed, gtp(signed.Add(25*time.Minute)))
 			switch reason {
 			case referrals.ReasonLeft:
-				ref.notCounted = tp(ref.confirmed.Add(3 * 24 * time.Hour))
+				ref.notCounted = gtp(ref.confirmed.Add(3 * 24 * time.Hour))
 			default:
 				ref.notCounted = ref.confirmed
 			}
@@ -605,7 +605,7 @@ func (w *growWorld) planReferrals(r *growReferrer, take func() *growContact, nam
 		for i := 0; i < r.never; i++ {
 			signed := w.at(9 + w.rng.IntN(13))
 			ref := add(referrals.StatusNotCounted, referrals.ReasonNeverConfirmed, signed, nil)
-			ref.notCounted = tp(signed.Add(hold))
+			ref.notCounted = gtp(signed.Add(hold))
 		}
 	}
 	sort.SliceStable(refs, func(i, j int) bool { return refs[i].signed.Before(refs[j].signed) })
@@ -708,9 +708,9 @@ func (w *growWorld) seedRewards() error {
 			case referrals.RewardDownload:
 				// 54 of 61 sticker packs and 13 of 14 guides downloaded.
 				if (m.count == 1 && w.rng.IntN(61) < 54) || (m.count == 3 && r.key != "r00") || r.key == "sam" {
-					used, downloads = tp(sent.Add(time.Duration(10+w.rng.IntN(600))*time.Minute)), 1+w.rng.IntN(2)
+					used, downloads = gtp(sent.Add(time.Duration(10+w.rng.IntN(600))*time.Minute)), 1+w.rng.IntN(2)
 					if used.After(w.now) {
-						used = tp(w.now.Add(-time.Hour))
+						used = gtp(w.now.Add(-time.Hour))
 					}
 				}
 			case referrals.RewardCoupon:
@@ -720,7 +720,7 @@ func (w *growWorld) seedRewards() error {
 					issued = w.day(2, 9, 47)
 				}
 				reached, sent = issued, issued
-				expires = tp(issued.AddDate(0, 0, 60))
+				expires = gtp(issued.AddDate(0, 0, 60))
 				claim = fmt.Sprintf("https://acme.io/insider/claim?code=INSIDER-%s", strings.ToUpper(r.key))
 			}
 			rows = append(rows, []any{id, w.ws.ID, w.program, m.id, r.contact, r.link, m.count, m.name, m.typ, referrals.RewardSent, reached, sent, used,

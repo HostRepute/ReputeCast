@@ -13,18 +13,20 @@ import (
 func (a *App) mcpserver() *mcpserver.Service {
 	return &mcpserver.Service{
 		Pool: a.Pool, Q: a.Q, Audit: a.Audit, Sending: a.Sending, Mail: a.Mail,
-		Campaigns:     &campaigns.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit},
+		Campaigns:     &campaigns.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Extras: campaignExtras(a)},
 		Languages:     languagesService(a),
 		Accessibility: newAccessibility(a),
 		// Agents list templates, render previews and read the log; they never send.
 		Transactional: transactionalService(a),
 		Growth:        a.growth(),
 		Digests:       digestsService(a),
+		Polls:         a.polls(),
+		Placement:     a.placement(),
+		PublicURL:     func(context.Context) string { return a.URLs.Base() },
 		// Grow: results, referrers, the review queue (masked) and
 		// recommendations; agents only read and propose.
 		Grow:            a.referrals(),
 		Recommendations: a.recommendations(),
-		PublicURL:       func(context.Context) string { return a.URLs.Base() },
 	}
 }
 

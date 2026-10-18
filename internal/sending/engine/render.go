@@ -87,6 +87,17 @@ var ErrRender = errors.New("the email's personalization doesn't render")
 // Prepare parses an email's Liquid once and indexes its links. Library
 // image paths must already be absolute (media.Absolutize).
 func Prepare(c Content, t Tracking) (*Template, error) {
+	return PrepareCut(c, t, nil)
+}
+
+// PrepareCut is Prepare for one version of an email with conditional
+// blocks: cut removes the blocks a recipient doesn't get (and the markers)
+// after the links were numbered on the whole email, so every version keeps
+// the link positions of campaign_links. A nil cut only removes markers.
+func PrepareCut(c Content, t Tracking, cut func(string) string) (*Template, error) {
+	if cut == nil {
+		cut = stripMarkers
+	}
 	// Blocks that render per reader (Grow's) become Liquid first, so their
 	// links are indexed and tracked like the email's own.
 	c.HTML = liquid.ExpandBlocks(c.HTML)
@@ -100,22 +111,24 @@ func Prepare(c Content, t Tracking) (*Template, error) {
 	if out.subject, err = parse(c.Subject); err != nil {
 		return nil, err
 	}
+	plainHTML := cut(c.HTML)
 	text := c.Text
 	if strings.TrimSpace(text) == "" {
 		// Derive the plain-text part once; Liquid inside text nodes survives
 		// and is filled in per recipient.
-		text = contentcheck.PlainText(c.HTML)
+		text = contentcheck.PlainText(plainHTML)
 	}
 	if out.text, err = parse(text); err != nil {
 		return nil, err
 	}
-	if out.plain, err = parse(c.HTML); err != nil {
+	if out.plain, err = parse(plainHTML); err != nil {
 		return nil, err
 	}
 	trackedHTML := c.HTML
 	if t.Clicks {
 		trackedHTML, out.Links = rewriteLinks(trackedHTML)
 	}
+	trackedHTML = cut(trackedHTML)
 	if t.Opens {
 		trackedHTML = addPixel(trackedHTML)
 	}
@@ -124,6 +137,17 @@ func Prepare(c Content, t Tracking) (*Template, error) {
 	}
 	return out, nil
 }
+
+// stripMarkers removes conditional blocks' markers (mjml.PrepareCompile)
+// from an email every recipient gets whole.
+func stripMarkers(html string) string {
+	if !strings.Contains(html, "<!--rc:") {
+		return html
+	}
+	return markerRe.ReplaceAllString(html, "")
+}
+
+var markerRe = regexp.MustCompile(`<!--rc:(?:if|fi) [a-z0-9]{1,24}-->`)
 
 func parse(src string) (*osteele.Template, error) {
 	tpl, err := engine.ParseString(liquid.Prepare(src))
@@ -175,6 +199,11 @@ func trackable(href string) bool {
 		}
 	}
 	if systemLink.MatchString(href) || strings.Contains(href, "unsubscribe_url") || strings.Contains(href, "preferences_url") || strings.Contains(href, "view_in_browser_url") {
+		return false
+	}
+	// Poll answers and survey links aren't clicks: the answer page records
+	// the answer, and the click map shows a poll as one region.
+	if strings.Contains(href, "rc_poll_") || strings.Contains(href, "rc_survey_") {
 		return false
 	}
 	// Only absolute web links (possibly personalized) are redirected.

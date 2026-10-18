@@ -32,7 +32,8 @@ import (
 // from the demo's "today" (designDay) like the other seeders.
 func init() { seedTransactional = seedTransactionalImpl }
 
-// SkipTransactional leaves Acme Cloud's transactional mail out of the demo.
+// SkipTransactional leaves the demo's transactional mail out: Acme Cloud's,
+// and the paid tiers' Memberships emails (seed_earn.go).
 // The transactional and SMTP relay tests set it in TestMain: they start
 // from an empty Transactional tab.
 var SkipTransactional bool

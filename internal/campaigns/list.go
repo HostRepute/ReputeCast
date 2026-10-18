@@ -42,6 +42,9 @@ type Service struct {
 	// Translations handles language versions (?language= on the content
 	// endpoints); nil without content languages.
 	Translations Translations
+	// Extras fill in test emails' poll links and cut them to a contact's
+	// version of conditional content (conditional.go); nil leaves them.
+	Extras Extras
 	// Recipients add the per-reader variables of blocks (Grow's Referral
 	// and Recommendations blocks) to previews and test sends; nil adds none.
 	Recipients func() []liquid.RecipientData

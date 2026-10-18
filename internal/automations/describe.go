@@ -57,6 +57,8 @@ func TriggerKindLabel(kind string) string {
 		return "Date field"
 	case TriggerScoreCrosses:
 		return "Score crosses…"
+	case TriggerPollAnswered:
+		return "Answered a poll or survey"
 	case TriggerMilestoneReached:
 		return "Reached a milestone"
 	}
@@ -91,6 +93,13 @@ func TriggerRef(t *AutomationTrigger, refs *Refs) string {
 		return t.Field
 	case TriggerScoreCrosses:
 		return scoreTriggerRef(t)
+	case TriggerPollAnswered:
+		if refs != nil {
+			if n, ok := refs.Polls[t.Poll]; ok {
+				return n
+			}
+		}
+		return "a poll"
 	case TriggerMilestoneReached:
 		if t.MilestoneID == "" {
 			return "any milestone"

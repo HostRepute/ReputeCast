@@ -38,6 +38,8 @@ type Service struct {
 	Languages *languages.Service
 	// Accessibility reads campaigns' accessibility issues (nil: unavailable).
 	Accessibility AccessibilityReader
+	// PaidMembers counts paid members (internal/earn; nil: unavailable).
+	PaidMembers PaidMembersReader
 	// Transactional lists templates, renders previews and reads the log
 	// for agents (they never send).
 	Transactional *transactional.Service
@@ -45,12 +47,16 @@ type Service struct {
 	Growth GrowthReader
 	// Digests reads recurring digests and their issues (nil: unavailable).
 	Digests DigestReader
+	// Placement reads placement tests (nil: unavailable).
+	Placement PlacementReader
+	PublicURL func(context.Context) string
+	Now       func() time.Time
+	// Polls reads poll and survey results (nil: unavailable).
+	Polls PollReader
 	// Grow and Recommendations read Grow's referrals and recommendations
 	// (nil: unavailable).
 	Grow            GrowReader
 	Recommendations RecommendationsReader
-	PublicURL       func(context.Context) string
-	Now             func() time.Time
 
 	limiters sync.Map // agent id → *limiter
 }
@@ -99,6 +105,9 @@ var Tools = []MCPToolInfo{
 	{"get_growth_sources", "Joins, departures, quality and cohort retention per growth source over a period (totals only, no addresses).", string(authz.SubscribersView), false},
 	{"list_digests", "Recurring digests with their status, schedule, next issue and owner. Agents can't turn a digest on.", string(authz.CampaignsView), false},
 	{"get_digest_issues", "A digest's issues: sent, skipped, held and waiting, each with its posts and results. Agents can't release or skip an issue.", string(authz.CampaignsView), false},
+	{"get_poll_results", "Results of a campaign's polls or of a survey: answers by answer, NPS, by tier and language. Aggregate only.", string(authz.ReportsView), false},
+	{"list_placement_tests", "Placement tests people ran: the email, the providers and where the copies landed.", string(authz.DeliverabilityView), false},
+	{"get_placement_test", "One placement test: each copy's folder, time to arrive and SPF, DKIM and DMARC, with the guidance.", string(authz.DeliverabilityView), false},
 	// Grow (design expansion phase 5).
 	{"get_referral_results", "A referral program's results: visits, signups, confirmations, counted referrals, channels, top referrers and rewards.", string(authz.GrowView), false},
 	{"list_referrers", "Referrers with their counted, in-hold and held referrals and the milestones they reached (no addresses).", string(authz.GrowView), false},

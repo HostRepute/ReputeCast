@@ -1303,6 +1303,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/placement/oauth/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * OAuth return from Google or Microsoft for a seed (browser redirect)
+         * @description Exchanges the code, checks the mailbox, seals the tokens and redirects to Seed mailboxes. Requires the signed-in person who started it, holding placement:manage in its workspace.
+         */
+        get: operations["seed-oauth-callback"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/setup": {
         parameters: {
             query?: never;
@@ -3048,6 +3068,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/poll-test-answers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Test answers to a campaign's polls, from test sends (never counted) */
+        get: operations["list-campaign-poll-test-answers"];
+        put?: never;
+        post?: never;
+        /** Delete the test answers of a campaign's polls (logged) */
+        delete: operations["clear-campaign-poll-test-answers"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/polls": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Results of a campaign's polls: answers by answer, NPS, breakdowns, the first 72 hours
+         * @description Answers are recorded on the answer page, never on the click: automated visits, answers from people who aren't contacts and test answers are counted apart.
+         */
+        get: operations["list-campaign-polls"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/preview": {
         parameters: {
             query?: never;
@@ -3427,6 +3485,60 @@ export interface paths {
         put?: never;
         /** Restore a version (saved as a new version) */
         post: operations["restore-campaign-version"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/visibility": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Count the versions of an email's conditional content
+         * @description Reads the Visibility rules of the content sent (the composer's unsaved MJML and HTML) or saved, and counts the versions the campaign's audience gets with the live audience. The count is kept until the rules or the audience change; recount counts again.
+         */
+        post: operations["campaign-visibility"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/visibility/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The version one contact gets, and why each block is hidden */
+        post: operations["campaign-visibility-preview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/visibility/preview-contacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A contact for each version, to preview as */
+        get: operations["campaign-visibility-preview-contacts"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3877,6 +3989,23 @@ export interface paths {
         post?: never;
         /** Delete a saved view */
         delete: operations["delete-contact-view"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/contacts/{contactId}/field-sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The fields of a contact that a poll or a survey set, and when */
+        get: operations["contact-field-sources"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -4609,6 +4738,738 @@ export interface paths {
         put?: never;
         /** Fetch the records a provider needs for the domain */
         post: operations["attach-sending-domain-provider"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/checklist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The launch checklist: connect, a tier, member emails, the upgrade page, a test checkout, the live key */
+        get: operations["get-earn-checklist"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/checkout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Checkout and tax: currency, tax at checkout and the customer portal */
+        put: operations["save-earn-checkout"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/connections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Check a restricted key and start connecting
+         * @description Restricted keys only: a secret key is refused before anything is sent to the provider. The key is sealed and never returned.
+         */
+        post: operations["connect-payment-provider"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/connections/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A payment connection: the connect wizard's state */
+        get: operations["get-payment-connection"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/connections/{id}/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check the key's account and permissions again */
+        post: operations["check-payment-connection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/connections/{id}/disconnect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Disconnect: delete the key and the webhook secret
+         * @description Subscriptions keep billing in the provider; paid members keep access until the end of what they've paid for.
+         */
+        post: operations["disconnect-payment-provider"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/connections/{id}/finish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Save checkout and tax, set up the customer portal and finish connecting
+         * @description Creates the eight member emails as drafts in Transactional › Templates the first time.
+         */
+        post: operations["finish-payment-connection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/connections/{id}/key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Replace the restricted key with one of the same account and mode
+         * @description Write-only: the new key is sealed and never returned.
+         */
+        put: operations["replace-payment-key"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/connections/{id}/step": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Move the connect wizard to a step */
+        put: operations["set-payment-connection-step"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/connections/{id}/webhook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Register the webhook endpoint with its events
+         * @description Checks that the public URL is reachable, then creates the endpoint; its signing secret is sealed and never returned.
+         */
+        post: operations["register-payment-webhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/connections/{id}/webhook-secret": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Save the signing secret of a webhook added by hand
+         * @description Write-only: sealed and never returned.
+         */
+        put: operations["set-payment-webhook-secret"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/connections/{id}/webhook/again": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Register the webhook again, then read any event it missed */
+        post: operations["register-payment-webhook-again"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/contacts/{contactId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A contact's paid access, for the contact profile
+         * @description Null when the contact has no paid access and never had.
+         */
+        get: operations["get-contact-paid-status"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload an export of paid members and find its columns
+         * @description Needs subscribers:import too. Nothing changes in contacts or the provider until the import is started.
+         */
+        post: operations["upload-paid-member-import"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/imports/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** An import of paid members: its columns, matches, choices and progress */
+        get: operations["get-paid-member-import"];
+        put?: never;
+        post?: never;
+        /** Drop an import that hasn't started, with its file */
+        delete: operations["cancel-paid-member-import"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/imports/{id}/columns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Pick the export's columns by hand */
+        put: operations["set-paid-member-import-columns"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/imports/{id}/decisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Rows without a subscription, conflicts, prices and the welcome email */
+        put: operations["set-paid-member-import-decisions"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/imports/{id}/match": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Match the rows with the provider's customers and subscriptions (read-only) */
+        post: operations["match-paid-member-import"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/imports/{id}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start importing in the background
+         * @description Nothing changes in the provider: subscriptions keep billing as before.
+         */
+        post: operations["start-paid-member-import"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Paid members, with their counts by status
+         * @description Amounts are in minor units, before tax. Test paid members show only with test=true.
+         */
+        get: operations["list-paid-members"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/members/complimentary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Give complimentary access to a contact or a new address
+         * @description A new address joins the tier's lists with double opt-in: access starts once they confirm. Nothing is created in the provider.
+         */
+        post: operations["give-complimentary-access"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/members/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export the paid members of a filter as CSV */
+        get: operations["export-paid-members"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/members/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A paid member: status, price, source and timeline */
+        get: operations["get-paid-member"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/members/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel a subscription in the provider, now or at the end of the period */
+        post: operations["cancel-paid-subscription"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/members/{id}/complimentary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change complimentary access: tier, end date, reason */
+        put: operations["change-complimentary-access"];
+        post?: never;
+        /** End complimentary access now */
+        delete: operations["remove-complimentary-access"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/members/{id}/resend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send a member email to a paid member again */
+        post: operations["resend-member-email"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Settings › Payments: the connections, their webhook, checkout and tax
+         * @description Keys and webhook signing secrets are write-only: only a hint of the key is returned.
+         */
+        get: operations["get-earn-payments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/payments/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The payments event log: each provider event and what ReputeCast did with it
+         * @description Raw events are kept 90 days. Payment events never go to the audit log.
+         */
+        get: operations["list-payment-events"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Plans & offers: the tiers with their prices, members and MRR, and the upgrade page */
+        get: operations["get-earn-plans"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/settings/access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Access: what happens when a payment fails, and who has access */
+        get: operations["get-earn-access-rules"];
+        /** Save the access rules */
+        put: operations["save-earn-access-rules"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/settings/member-emails": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Member emails: the eight templates, their versions and when they're sent */
+        get: operations["get-member-emails"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/settings/pages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Pages: the Earn pages' addresses, terms of sale and support email */
+        get: operations["get-earn-pages"];
+        /** Save the terms of sale and support email */
+        put: operations["save-earn-pages"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The payment connection's chip: provider, account, mode and health */
+        get: operations["get-earn-status"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/test-data/clear": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Delete test paid members, test checkouts and test events */
+        post: operations["clear-earn-test-data"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/tiers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a tier and its prices, in the provider too */
+        post: operations["create-earn-tier"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/tiers/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A tier with its prices and their sync with the provider */
+        get: operations["get-earn-tier"];
+        /**
+         * Change a tier
+         * @description A new price becomes the tier's price for new members; members on the old one keep it as a legacy price.
+         */
+        put: operations["update-earn-tier"];
+        post?: never;
+        /** Delete a tier nobody has */
+        delete: operations["delete-earn-tier"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/tiers/{id}/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create the tier's product and prices in the provider again */
+        post: operations["sync-earn-tier"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/unmapped-prices/{id}/map": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Map a provider price nobody set up here to a tier */
+        post: operations["map-earn-price"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/upgrade-page": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The upgrade page editor: headline, tiers and their order, FAQ, the welcome page */
+        get: operations["get-upgrade-page"];
+        /** Save and publish the upgrade page */
+        put: operations["save-upgrade-page"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/upgrade-page/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Render the upgrade page with unsaved settings
+         * @description Nothing is saved; the page's links and buttons don't work in the preview.
+         */
+        post: operations["preview-upgrade-page"];
         delete?: never;
         options?: never;
         head?: never;
@@ -7566,6 +8427,366 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/placement/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Campaigns, templates and transactional templates a test can send */
+        get: operations["search-placement-content"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/placement/plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** What a test would send: providers, senders, seeds, copies and cost (nothing is sent) */
+        post: operations["plan-placement-test"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/placement/seeds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Seed mailboxes (passwords and tokens are never returned) */
+        get: operations["list-seed-mailboxes"];
+        put?: never;
+        /**
+         * Add a seed mailbox with an IMAP password, after checking the sign-in (audited)
+         * @description The password is sealed at once and never returned. Answers 422 with meta.kind refused or unreachable when the sign-in fails.
+         */
+        post: operations["add-seed-mailbox"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/placement/seeds/oauth": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start Google's or Microsoft's consent for a seed (OAuth with PKCE)
+         * @description Returns the consent URL. The browser comes back to /api/v1/placement/oauth/callback, which adds or reconnects the seed.
+         */
+        post: operations["start-seed-oauth"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/placement/seeds/{seed}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a seed and its password or tokens (audited) */
+        delete: operations["remove-seed-mailbox"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/placement/seeds/{seed}/reconnect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reconnect a seed with a new IMAP password (audited) */
+        post: operations["reconnect-seed-mailbox"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/placement/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** When copies are deleted from the seeds (audited) */
+        put: operations["set-placement-settings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/placement/tests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Placement tests, newest first, with results per provider */
+        get: operations["list-placement-tests"];
+        put?: never;
+        /**
+         * Start a placement test: one copy to each seed (audited)
+         * @description Answers 409 placement_not_ready with the problems (meta.problems) when the plan can't start. People only: agents can't hold placement:run.
+         */
+        post: operations["start-placement-test"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/placement/tests/{test}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One placement test: its copies, the matrix and the guidance */
+        get: operations["get-placement-test"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/placement/tests/{test}/copies/{copy}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One copy: where it landed, its headers and the provider's events */
+        get: operations["get-placement-copy"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/placement/tests/{test}/delete-copies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Delete a test's copies from the seeds now, by test token (audited) */
+        post: operations["delete-placement-copies"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/placement/tests/{test}/run-again": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Run a test again with the same content and choices (audited) */
+        post: operations["rerun-placement-test"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/placement/tests/{test}/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stop waiting: copies not found yet are Not arrived (audited) */
+        post: operations["stop-placement-test"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/poll-sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Polls and surveys an automation can start from */
+        get: operations["list-poll-sources"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/polls/{pollId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One poll's results */
+        get: operations["get-poll-results"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/polls/{pollId}/answers.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download every answer with its contact as CSV (logged) */
+        get: operations["export-poll-answers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/polls/{pollId}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Close a poll now (logged)
+         * @description Its answer page says when it closed and records nothing.
+         */
+        post: operations["close-poll"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/polls/{pollId}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A poll's comments, newest first
+         * @description Contacts' names are included for people with subscribers:view.
+         */
+        get: operations["list-poll-comments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/polls/{pollId}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reopen a closed poll (logged)
+         * @description Answers made after reopening count as usual; it stays open until someone closes it.
+         */
+        post: operations["reopen-poll"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/polls/{pollId}/results.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download a poll's results as CSV, aggregate only (logged) */
+        get: operations["export-poll-results"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/provider-events": {
         parameters: {
             query?: never;
@@ -8002,6 +9223,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/public-pages/poll-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview a poll's answer page as a contact sees it after answering */
+        post: operations["preview-poll-page"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/public-pages/preview/{page}": {
         parameters: {
             query?: never;
@@ -8013,6 +9251,23 @@ export interface paths {
         get: operations["preview-public-page"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/public-pages/survey-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview a survey's page as a contact sees it */
+        post: operations["preview-survey-page"];
         delete?: never;
         options?: never;
         head?: never;
@@ -8535,6 +9790,188 @@ export interface paths {
         put?: never;
         /** Take an address off the suppression list (needs a reason, logged) */
         post: operations["remove-suppression"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/surveys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Surveys, newest first, with their counts */
+        get: operations["list-surveys"];
+        put?: never;
+        /** Start a survey (a draft with no questions; logged) */
+        post: operations["create-survey"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/surveys/{surveyId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A survey: its questions, settings and counts */
+        get: operations["get-survey"];
+        put?: never;
+        post?: never;
+        /** Delete a survey; its page stops answering (logged) */
+        delete: operations["delete-survey"];
+        options?: never;
+        head?: never;
+        /**
+         * Change a survey's name, address, questions or settings (logged)
+         * @description Edits to an open survey apply to new responses; answers already given stay as they were given.
+         */
+        patch: operations["update-survey"];
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/surveys/{surveyId}/answers.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download every response with its contact as CSV (logged) */
+        get: operations["export-survey-answers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/surveys/{surveyId}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Close a survey: its page takes no answers (logged) */
+        post: operations["close-survey"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/surveys/{surveyId}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Publish a survey: its page goes live (logged)
+         * @description Every question must be complete. The page records answers only when someone presses Send.
+         */
+        post: operations["publish-survey"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/surveys/{surveyId}/questions/{key}/answers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A text question's answers, newest first */
+        get: operations["list-survey-text-answers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/surveys/{surveyId}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reopen a closed survey, with a new closing date or none (logged) */
+        post: operations["reopen-survey"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/surveys/{surveyId}/responses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Completed responses, newest first
+         * @description Contacts are named for people with subscribers:view.
+         */
+        get: operations["list-survey-responses"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/surveys/{surveyId}/results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A survey's completion and per-question results */
+        get: operations["get-survey-results"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/surveys/{surveyId}/results.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download a survey's results as CSV, aggregate only (logged) */
+        get: operations["export-survey-results"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -9319,6 +10756,299 @@ export interface paths {
         put?: never;
         /** Make another member the Owner; you become an Admin */
         post: operations["transfer-workspace"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/verification/contacts/{contact}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A contact's latest address check and what Verify now would use */
+        get: operations["get-contact-address-check"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/verification/contacts/{contact}/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check one contact's address now (audited) */
+        post: operations["verify-contact"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/verification/estimate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** What a use would check and cost, for its dialog and notice */
+        post: operations["estimate-verification"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/verification/forms/{form}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A form's real-time address check and its 30-day numbers */
+        get: operations["get-form-address-check"];
+        /** Turn a form's real-time address check on or off (also needs forms:edit; audited) */
+        put: operations["set-form-address-check"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/verification/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send addresses to the verification service and start a job (audited) */
+        post: operations["start-verification"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/verification/jobs/{job}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A verification job's progress and results */
+        get: operations["get-verification-job"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/verification/jobs/{job}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stop a job; the results so far are kept */
+        post: operations["cancel-verification-job"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/verification/jobs/{job}/results.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A job's results as CSV: addresses, so it's an export (audited) */
+        get: operations["download-verification-results"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/verification/jobs/{job}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Continue a job that stopped for credits or an outage */
+        post: operations["resume-verification-job"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/verification/services": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Verification services, their connections and uses */
+        get: operations["list-verification-services"];
+        put?: never;
+        /** Connect a verification service with the workspace's own API key */
+        post: operations["connect-verification-service"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/verification/services/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Test a service's API key by reading its balance (no address is sent) */
+        post: operations["test-verification-key"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/verification/services/{service}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One verification service */
+        get: operations["get-verification-service"];
+        put?: never;
+        post?: never;
+        /** Disconnect a service; results already on contacts stay */
+        delete: operations["disconnect-verification-service"];
+        options?: never;
+        head?: never;
+        /** Change a service's price per check, region and default uses */
+        patch: operations["update-verification-service"];
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/verification/services/{service}/key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Replace a service's API key (write-only) */
+        put: operations["replace-verification-key"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/verification/services/{service}/realtime": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A service's real-time checks by form and by day */
+        get: operations["get-verification-realtime"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/verification/services/{service}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Read a connected service's balance again (no address is sent) */
+        post: operations["test-verification-service"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/visibility/catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Conditions a Visibility rule can use, with their values */
+        get: operations["visibility-catalog"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/visibility/usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Conditional blocks that use a segment, list, field or tag */
+        get: operations["visibility-usage"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -11633,6 +13363,9 @@ export interface components {
             templates: components["schemas"]["AutomationStarterTemplate"][];
         };
         AutomationTrigger: {
+            /** @enum {string} */
+            answerOp?: "any" | "is" | "is_not";
+            answers?: number[];
             at?: string;
             confirmedOnly?: boolean;
             /** @enum {string} */
@@ -11642,13 +13375,15 @@ export interface components {
             formId?: string;
             includeImports?: boolean;
             /** @enum {string} */
-            kind: "joined_list" | "form_submitted" | "tag_added" | "api_event" | "date_field" | "score_crosses" | "milestone_reached";
+            kind: "joined_list" | "form_submitted" | "tag_added" | "api_event" | "date_field" | "score_crosses" | "poll_answered" | "milestone_reached";
             listId?: string;
             milestoneId?: string;
             /** Format: int64 */
             offsetDays?: number;
+            onChange?: boolean;
             /** Format: int64 */
             onceInDays?: number;
+            poll?: string;
             programId?: string;
             reentry?: string;
             tag?: string;
@@ -12817,6 +14552,9 @@ export interface components {
             actor?: string;
             /** Format: int64 */
             afterDeliveryMin?: number;
+            answer?: string;
+            /** Format: int64 */
+            answered?: number;
             /** Format: date-time */
             at: string;
             /** @enum {string} */
@@ -12824,11 +14562,14 @@ export interface components {
             client?: string;
             /** @description Provider code: 250 2.6.0, 452 4.2.2 */
             code?: string;
+            comment?: string;
             consentLanguage?: string;
             consentVersion?: string;
             contactLanguageName?: string;
             detail?: string;
             diagnostic?: string;
+            /** Format: date-time */
+            editableUntil?: string;
             failover: boolean;
             id: string;
             imported?: string;
@@ -12840,7 +14581,11 @@ export interface components {
             list?: string;
             machine: boolean;
             note?: string;
+            previous?: string;
             provider?: components["schemas"]["ContactActivityProvider"];
+            question?: string;
+            /** Format: int64 */
+            questions?: number;
             /** Format: date-time */
             retriedDeliveredAt?: string;
             routeNote?: string;
@@ -12864,6 +14609,34 @@ export interface components {
         ContactActivityProvider: {
             adapter: string;
             name: string;
+        };
+        ContactAddressCheck: {
+            /** Format: int64 */
+            balance?: number;
+            canVerify: boolean;
+            checked: boolean;
+            /** Format: date-time */
+            checkedAt?: string;
+            code?: string;
+            connected: boolean;
+            email: string;
+            helpers: string[];
+            /** Format: double */
+            price: number;
+            reason?: string;
+            /** Format: date-time */
+            recheckFrom?: string;
+            regionLabel?: string;
+            /** @enum {string} */
+            result?: "valid" | "invalid" | "risky" | "unknown" | "";
+            service?: string;
+            serviceName?: string;
+            suppressed: boolean;
+            /** Format: date-time */
+            suppressedAt?: string;
+            tag?: string;
+            verifyService?: string;
+            verifyServiceName?: string;
         };
         ContactBulkFailure: {
             email: string;
@@ -12926,6 +14699,8 @@ export interface components {
         ContactFilter: {
             /** @enum {string} */
             band?: "cold" | "warm" | "hot" | "none";
+            /** @enum {string} */
+            check?: "valid" | "invalid" | "risky" | "unknown" | "never";
             /** @enum {string} */
             consent?: "double" | "single" | "pending";
             growthSource?: string;
@@ -14437,6 +16212,928 @@ export interface components {
             /** @description What it is for, e.g. primary sending domain */
             note?: string;
         };
+        EarnAccessInput: {
+            /** @enum {string} */
+            onPaymentFailure: "keep" | "end";
+        };
+        EarnAccessRules: {
+            canManage: boolean;
+            helpers: string[];
+            /** @enum {string} */
+            onPaymentFailure: "keep" | "end";
+        };
+        EarnAccount: {
+            country: string;
+            currency: string;
+            id: string;
+            name: string;
+            taxEnabled: boolean;
+        };
+        EarnCancelInput: {
+            /** @description Send the Membership canceled email */
+            email: boolean;
+            note?: string;
+            /** @enum {string} */
+            when: "period_end" | "now";
+        };
+        EarnChecklist: {
+            canEdit: boolean;
+            canManage: boolean;
+            /** Format: int64 */
+            done: number;
+            launched: boolean;
+            steps: components["schemas"]["EarnChecklistStep"][];
+            testCheckoutUrl?: string;
+            testCheckouts: components["schemas"]["EarnMemberRow"][];
+            upgradeHost: string;
+        };
+        EarnChecklistStep: {
+            account?: string;
+            /** Format: date-time */
+            at?: string;
+            /** @enum {string} */
+            blocked?: "no_route" | "";
+            /** Format: int64 */
+            count?: number;
+            detail?: string;
+            done: boolean;
+            /** @enum {string} */
+            key: "connect" | "tier" | "emails" | "page" | "test" | "live";
+            mode?: string;
+            name?: string;
+            priceLine?: string;
+            /** Format: int64 */
+            total?: number;
+        };
+        EarnCheckoutInput: {
+            portal: components["schemas"]["EarnPortal"];
+            pricesIncludeTax: boolean;
+            taxAtCheckout: boolean;
+        };
+        EarnCheckoutSettings: {
+            currency: string;
+            currencyFixed: boolean;
+            portal: components["schemas"]["EarnPortal"];
+            pricesIncludeTax: boolean;
+            taxAtCheckout: boolean;
+            taxAvailable: boolean;
+        };
+        EarnComplimentaryInput: {
+            /** @description An existing contact */
+            contactId?: string;
+            /** @description A new address: it joins the tier's lists through the usual double opt-in */
+            email?: string;
+            note?: string;
+            /** @enum {string} */
+            reason: "team" | "contributor" | "press" | "partner" | "giveaway" | "other";
+            sendWelcome: boolean;
+            tierId: string;
+            /** @description YYYY-MM-DD; empty for no end date */
+            until?: string;
+        };
+        EarnConnectInput: {
+            /** @description A restricted key (rk_live_… or rk_test_…). Write-only: it's sealed and never returned. */
+            key: string;
+            /**
+             * @default stripe
+             * @enum {string}
+             */
+            provider: "stripe";
+        };
+        EarnConnection: {
+            account: components["schemas"]["EarnAccount"];
+            /** Format: date-time */
+            checkedAt?: string;
+            /** Format: date-time */
+            connectedAt?: string;
+            connectedBy?: string;
+            createKeyUrl: string;
+            dashboardUrl: string;
+            demo: boolean;
+            emailsUrl: string;
+            /** Format: int64 */
+            granted: number;
+            /** @enum {string} */
+            health: "setup" | "key_rejected" | "webhook_missing" | "missing_permissions" | "webhook_silent" | "connected";
+            id: string;
+            keyHint: string;
+            /** Format: date-time */
+            keyRejectedAt?: string;
+            keysUrl: string;
+            /** @enum {string} */
+            mode: "live" | "test";
+            permissions: components["schemas"]["EarnPermissionCheck"][];
+            portalSet: boolean;
+            /** @enum {string} */
+            provider: "stripe";
+            providerName: string;
+            /** @enum {string} */
+            status: "setup" | "connected";
+            /** @enum {string} */
+            step: "check" | "webhook" | "settings" | "done";
+            webhook: components["schemas"]["EarnWebhook"];
+            webhooksUrl: string;
+        };
+        EarnDisconnectInput: {
+            /** @description The account's name, as the dialog asks (Acme Media) */
+            confirm: string;
+        };
+        EarnEvent: {
+            /** Format: int64 */
+            amountCents?: number;
+            contactId?: string;
+            currency?: string;
+            detail: {
+                [key: string]: unknown;
+            };
+            eventId: string;
+            eventUrl?: string;
+            id: string;
+            memberEmail?: string;
+            memberId?: string;
+            memberName?: string;
+            /** @enum {string} */
+            mode: "live" | "test";
+            /** Format: date-time */
+            occurredAt: string;
+            outcome: string;
+            /** Format: date-time */
+            receivedAt: string;
+            /** @enum {string} */
+            source: "webhook" | "gap_check" | "history" | "manual";
+            /** @enum {string} */
+            status: "pending" | "applied" | "ignored" | "failed" | "rejected";
+            type: string;
+        };
+        EarnEventCount: {
+            /** Format: int64 */
+            count: number;
+            type: string;
+        };
+        EarnEventLog: {
+            items: components["schemas"]["EarnEvent"][];
+            /** Format: int64 */
+            page: number;
+            /** Format: int64 */
+            pageSize: number;
+            range: string;
+            /** Format: int64 */
+            total: number;
+            types: string[];
+        };
+        EarnFinishInput: {
+            portal: components["schemas"]["EarnPortal"];
+            pricesIncludeTax: boolean;
+            taxAtCheckout: boolean;
+        };
+        EarnFinished: {
+            connection: components["schemas"]["EarnConnection"];
+            /** Format: int64 */
+            drafts: number;
+            /** Format: int64 */
+            tiers: number;
+        };
+        EarnFreeCard: {
+            line: string;
+            list?: components["schemas"]["EarnListRef"];
+            /** Format: int64 */
+            readers: number;
+            text: string;
+        };
+        EarnGapRun: {
+            /** Format: int64 */
+            applied: number;
+            /** Format: date-time */
+            at: string;
+            types: {
+                [key: string]: number;
+            };
+        };
+        EarnGrantInput: {
+            note?: string;
+            /** @enum {string} */
+            reason: "team" | "contributor" | "press" | "partner" | "giveaway" | "other";
+            tierId: string;
+            /** @description YYYY-MM-DD; empty for no end date */
+            until?: string;
+        };
+        EarnImport: {
+            account: string;
+            active?: components["schemas"]["EarnImportGroup"];
+            columns: components["schemas"]["EarnImportColumn"][];
+            conflicts: components["schemas"]["EarnImportConflict"][];
+            /** Format: date-time */
+            createdAt: string;
+            createdBy?: string;
+            decisions: components["schemas"]["EarnImportDecisions"];
+            /** Format: int64 */
+            done: number;
+            ended?: components["schemas"]["EarnImportGroup"];
+            error?: string;
+            fileName: string;
+            /** Format: int64 */
+            fileSize: number;
+            /** Format: date-time */
+            finishedAt?: string;
+            id: string;
+            lists: components["schemas"]["EarnListRef"][];
+            /** @enum {string} */
+            mode: "live" | "test";
+            none?: components["schemas"]["EarnImportGroup"];
+            /** Format: date-time */
+            paidFirst?: string;
+            /** Format: date-time */
+            paidLast?: string;
+            platform: string;
+            prices: components["schemas"]["EarnImportPrice"][];
+            /** @enum {string} */
+            problem?: "no_email" | "";
+            /** Format: int64 */
+            rows: number;
+            /** @enum {string} */
+            source: "substack" | "ghost" | "beehiiv" | "kit" | "csv";
+            /** Format: date-time */
+            startedAt?: string;
+            stats?: components["schemas"]["EarnImportStats"];
+            /** @enum {string} */
+            status: "uploaded" | "matched" | "importing" | "done" | "failed" | "canceled";
+            tiers: components["schemas"]["EarnListRef"][];
+            /** Format: int64 */
+            withCustomer: number;
+        };
+        EarnImportCandidate: {
+            /** Format: int64 */
+            amountCents?: number;
+            /** Format: date-time */
+            created: string;
+            currency?: string;
+            customer: string;
+            period?: string;
+            /** Format: date-time */
+            since?: string;
+            status?: string;
+            tier?: string;
+        };
+        EarnImportColumn: {
+            example: string;
+            name: string;
+            /** @enum {string} */
+            usedAs: "email" | "customer" | "plan" | "paid_through" | "name" | "";
+        };
+        EarnImportColumnsInput: {
+            customer?: string;
+            email: string;
+            name?: string;
+            paidThrough?: string;
+            plan?: string;
+        };
+        EarnImportConflict: {
+            candidates: components["schemas"]["EarnImportCandidate"][];
+            chosen?: string;
+            email: string;
+            /** Format: int64 */
+            row: number;
+        };
+        EarnImportDecisions: {
+            conflicts?: {
+                [key: string]: string;
+            };
+            /**
+             * @default complimentary
+             * @enum {string}
+             */
+            noSubscription: "complimentary" | "free" | "skip";
+            prices?: {
+                [key: string]: components["schemas"]["EarnImportPriceChoice"];
+            };
+            sendWelcome: boolean;
+        };
+        EarnImportGroup: {
+            /** Format: int64 */
+            byCustomer: number;
+            /** Format: int64 */
+            byEmail: number;
+            /** Format: int64 */
+            count: number;
+            examples: components["schemas"]["EarnImportMatch"][];
+        };
+        EarnImportMatch: {
+            /** Format: int64 */
+            amountCents?: number;
+            currency?: string;
+            customer?: string;
+            email: string;
+            /** Format: date-time */
+            endedAt?: string;
+            name?: string;
+            /** Format: date-time */
+            paidThrough?: string;
+            period?: string;
+            /** Format: int64 */
+            row: number;
+            tier?: string;
+        };
+        EarnImportPrice: {
+            /** Format: int64 */
+            amountCents: number;
+            currency: string;
+            known: boolean;
+            legacy: boolean;
+            /** @enum {string} */
+            period: "month" | "year" | "";
+            priceId: string;
+            /** Format: int64 */
+            subscriptions: number;
+            tierId?: string;
+        };
+        EarnImportPriceChoice: {
+            legacy: boolean;
+            tierId: string;
+        };
+        EarnImportStats: {
+            /** Format: date-time */
+            compFirst?: string;
+            /** Format: date-time */
+            compLast?: string;
+            /** Format: int64 */
+            complimentary: number;
+            /** Format: int64 */
+            emailsSent: number;
+            /** Format: int64 */
+            free: number;
+            /** Format: int64 */
+            merged: number;
+            /** Format: int64 */
+            new: number;
+            /** Format: int64 */
+            paid: number;
+            /** Format: int64 */
+            pricesMapped: number;
+            /** Format: int64 */
+            skipped: number;
+        };
+        EarnListRef: {
+            id: string;
+            name: string;
+        };
+        EarnMapPriceInput: {
+            legacy: boolean;
+            tierId: string;
+        };
+        EarnMember: {
+            accessPaused: boolean;
+            /** Format: int64 */
+            amountCents: number;
+            billingDiffers: boolean;
+            billingEmail?: string;
+            canManage: boolean;
+            /** Format: date-time */
+            cancelAt?: string;
+            cancelReason?: string;
+            /** Format: date-time */
+            canceledAt?: string;
+            canceledBy?: string;
+            /** Format: date-time */
+            clickedAt?: string;
+            contactId: string;
+            currency: string;
+            customerId?: string;
+            customerUrl?: string;
+            discount?: components["schemas"]["EarnMemberDiscount"];
+            email: string;
+            emails: string[];
+            endReason?: string;
+            /** Format: date-time */
+            failedAt?: string;
+            failureReason?: string;
+            giftFrom?: string;
+            /** Format: int64 */
+            giftMonths?: number;
+            grantNote?: string;
+            /** Format: date-time */
+            grantUntil?: string;
+            helpers: string[];
+            hidden: boolean;
+            id: string;
+            /** Format: date-time */
+            importedAt?: string;
+            /** @enum {string} */
+            kind: "stripe" | "complimentary" | "gift";
+            legacy: boolean;
+            link: string;
+            /** Format: int64 */
+            ltvCents: number;
+            matchedBy?: string;
+            name: string;
+            /** @enum {string} */
+            next: "renews" | "ends" | "retries" | "trial_ends" | "no_end" | "ended";
+            /** Format: date-time */
+            nextAt?: string;
+            /** Format: int64 */
+            paidCents: number;
+            /** @enum {string} */
+            period: "month" | "year" | "";
+            periodShown: boolean;
+            /** Format: int64 */
+            refundedCents: number;
+            /** Format: date-time */
+            renewalReminder?: string;
+            /** Format: date-time */
+            since: string;
+            source: components["schemas"]["EarnMemberSource"];
+            /** @enum {string} */
+            status: "trialing" | "active" | "past_due" | "canceled" | "complimentary" | "gift";
+            subscriptionId?: string;
+            subscriptionUrl?: string;
+            test: boolean;
+            tier: string;
+            tierId?: string;
+            tierName: string;
+            timeline: components["schemas"]["EarnTimelineItem"][];
+            warning?: components["schemas"]["EarnSyncWarning"];
+        };
+        EarnMemberCounts: {
+            /** Format: int64 */
+            cancelsSoon: number;
+            /** Format: int64 */
+            complimentary: number;
+            /** Format: int64 */
+            ended: number;
+            /** Format: int64 */
+            gift: number;
+            /** Format: int64 */
+            pastDue: number;
+            /** Format: int64 */
+            paying: number;
+            /** Format: int64 */
+            trialing: number;
+            /** Format: int64 */
+            withAccess: number;
+        };
+        EarnMemberDiscount: {
+            /** Format: int64 */
+            amountCents: number;
+            duration?: string;
+            /** Format: date-time */
+            endsAt?: string;
+            label: string;
+            /** Format: double */
+            percent?: number;
+        };
+        EarnMemberEmail: {
+            /** Format: int64 */
+            draftVersion: number;
+            /** @enum {string} */
+            email: "welcome" | "trial_ending" | "payment_failed" | "renewal_reminder" | "canceled" | "gift_purchased" | "gift_received" | "gift_ending";
+            /** Format: int64 */
+            liveVersion: number;
+            name: string;
+            /** @enum {string} */
+            status: "live" | "draft" | "missing";
+            template: string;
+            templateId?: string;
+        };
+        EarnMemberEmails: {
+            canPublish: boolean;
+            categoryKind: string;
+            categoryName: string;
+            emails: components["schemas"]["EarnMemberEmail"][];
+            emailsUrl: string;
+            /** Format: date-time */
+            firstGiftEnding?: string;
+            fromEmail: string;
+            fromName: string;
+            helpers: string[];
+            replyTo: string;
+            routeFallback: string;
+            routePrimary: string;
+            tierShort: string;
+        };
+        EarnMemberList: {
+            /** @enum {string} */
+            accessRule: "keep" | "end";
+            campaigns: components["schemas"]["EarnListRef"][];
+            canExport: boolean;
+            canImport: boolean;
+            canManage: boolean;
+            canSeeNames: boolean;
+            connected: boolean;
+            counts: components["schemas"]["EarnMemberCounts"];
+            currency: string;
+            exportHelpers: string[];
+            helpers: string[];
+            items: components["schemas"]["EarnMemberRow"][];
+            /** Format: date-time */
+            movedAt?: string;
+            /** Format: int64 */
+            mrrCents: number;
+            offers: string[];
+            platforms: string[];
+            /** Format: int64 */
+            testMembers: number;
+            /** Format: int64 */
+            testShown: number;
+            tiers: components["schemas"]["EarnListRef"][];
+            /** Format: int64 */
+            total: number;
+            upgradeHost: string;
+            upgradeUrl: string;
+        };
+        EarnMemberRow: {
+            accessPaused: boolean;
+            /** Format: int64 */
+            amountCents: number;
+            /** Format: date-time */
+            cancelAt?: string;
+            cancelReason?: string;
+            contactId: string;
+            currency: string;
+            discount?: components["schemas"]["EarnMemberDiscount"];
+            email: string;
+            endReason?: string;
+            giftFrom?: string;
+            /** Format: int64 */
+            giftMonths?: number;
+            hidden: boolean;
+            id: string;
+            /** @enum {string} */
+            kind: "stripe" | "complimentary" | "gift";
+            legacy: boolean;
+            /** Format: int64 */
+            ltvCents: number;
+            name: string;
+            /** @enum {string} */
+            next: "renews" | "ends" | "retries" | "trial_ends" | "no_end" | "ended";
+            /** Format: date-time */
+            nextAt?: string;
+            /** @enum {string} */
+            period: "month" | "year" | "";
+            periodShown: boolean;
+            /** Format: int64 */
+            refundedCents: number;
+            /** Format: date-time */
+            since: string;
+            source: components["schemas"]["EarnMemberSource"];
+            /** @enum {string} */
+            status: "trialing" | "active" | "past_due" | "canceled" | "complimentary" | "gift";
+            test: boolean;
+            tier: string;
+            tierId?: string;
+            tierName: string;
+        };
+        EarnMemberSource: {
+            campaignId?: string;
+            grantedBy?: string;
+            importId?: string;
+            /** @enum {string} */
+            kind: "campaign" | "automation" | "page" | "offer" | "website" | "import" | "gift" | "grant" | "direct" | "";
+            label: string;
+            platform?: string;
+            reason?: string;
+        };
+        EarnPageTier: {
+            id: string;
+            name: string;
+            shown: boolean;
+            /** Format: int64 */
+            trialDays: number;
+            /** @enum {string} */
+            visibility: "public" | "hidden" | "archived";
+        };
+        EarnPagesInput: {
+            supportEmail: string;
+            termsUrl: string;
+        };
+        EarnPagesSettings: {
+            canEdit: boolean;
+            cancelHost: string;
+            giftHost: string;
+            helpers: string[];
+            supportEmail: string;
+            termsUrl: string;
+            upgradeHost: string;
+            upgradeLive: boolean;
+            upgradeUrl: string;
+            /** Format: int64 */
+            visits: number;
+        };
+        EarnPayments: {
+            /** @enum {string} */
+            active: "live" | "test" | "";
+            /** Format: int64 */
+            activeSubscriptions: number;
+            canEditPrices: boolean;
+            canManage: boolean;
+            checkout: components["schemas"]["EarnCheckoutSettings"];
+            helpers: string[];
+            live?: components["schemas"]["EarnConnection"];
+            permissions: components["schemas"]["EarnPermissionCheck"][];
+            providers: components["schemas"]["EarnProviderCard"][];
+            test?: components["schemas"]["EarnConnection"];
+            /** Format: int64 */
+            testMembers: number;
+            unmapped: components["schemas"]["EarnUnmappedPrice"][];
+            webhookEvents: string[];
+        };
+        EarnPermissionCheck: {
+            /** @enum {string} */
+            access: "read" | "write";
+            ok?: boolean;
+            resource: string;
+        };
+        EarnPlans: {
+            canEdit: boolean;
+            connected: boolean;
+            currency: string;
+            free: components["schemas"]["EarnFreeCard"];
+            helpers: string[];
+            lists: components["schemas"]["EarnListRef"][];
+            tiers: components["schemas"]["EarnTier"][];
+            upgradePage: components["schemas"]["EarnUpgradeCard"];
+        };
+        EarnPortal: {
+            billingEmail: boolean;
+            cancel: boolean;
+            invoices: boolean;
+            switchPeriod: boolean;
+            updateCard: boolean;
+        };
+        EarnPreview: {
+            html: string;
+        };
+        EarnPreviewInput: {
+            /**
+             * @default visitor
+             * @enum {string}
+             */
+            as: "visitor" | "free" | "paid" | "offer";
+            page: components["schemas"]["UpgradePage"];
+        };
+        EarnPrice: {
+            /** Format: int64 */
+            amountCents: number;
+            currency: string;
+            /** Format: int64 */
+            discounted: number;
+            id: string;
+            /** Format: int64 */
+            members: number;
+            /** @enum {string} */
+            origin: "tier" | "mapped";
+            /** Format: int64 */
+            paying: number;
+            /** @enum {string} */
+            period: "month" | "year";
+            /** @enum {string} */
+            status: "current" | "legacy";
+            stripeId?: string;
+            stripeLiveId?: string;
+            stripeTestId?: string;
+            stripeUrl?: string;
+        };
+        EarnProviderCard: {
+            available: boolean;
+            capabilities: string[];
+            /** @enum {string} */
+            key: "stripe" | "paddle" | "lemonsqueezy";
+            merchantOfRecord: boolean;
+            name: string;
+        };
+        EarnReach: {
+            /** Format: date-time */
+            at?: string;
+            checked: boolean;
+            code?: string;
+            host: string;
+            ok: boolean;
+            reason?: string;
+        };
+        EarnReplaceKeyInput: {
+            /** @description A restricted key of the same account and mode. Write-only. */
+            key: string;
+        };
+        EarnResendInput: {
+            /** @enum {string} */
+            email: "welcome" | "trial_ending" | "payment_failed" | "renewal_reminder" | "canceled";
+        };
+        EarnResent: {
+            reason?: string;
+            /** @enum {string} */
+            status: "sent" | "not_sent";
+        };
+        EarnStatus: {
+            account?: string;
+            canManage: boolean;
+            health?: string;
+            /** @enum {string} */
+            mode: "live" | "test" | "";
+            provider?: string;
+            providerName?: string;
+            setup?: string;
+            testOnly: boolean;
+        };
+        EarnStepInput: {
+            /** @enum {string} */
+            step: "webhook" | "settings";
+        };
+        EarnSyncStep: {
+            /** Format: int64 */
+            amountCents?: number;
+            /** Format: date-time */
+            at?: string;
+            error?: string;
+            id?: string;
+            /** @enum {string} */
+            status: "done" | "failed" | "pending";
+            /** @enum {string} */
+            step: "product" | "month" | "year";
+            /** Format: int64 */
+            tries?: number;
+        };
+        EarnSyncWarning: {
+            subscriptions: components["schemas"]["EarnMemberRow"][];
+        };
+        EarnTestDataCleared: {
+            /** Format: int64 */
+            members: number;
+        };
+        EarnTier: {
+            /** Format: int64 */
+            accessRank: number;
+            /** Format: date-time */
+            archivedAt?: string;
+            benefits: string[];
+            canDelete: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            description: string;
+            /** Format: int64 */
+            discountedYearly: number;
+            hiddenLink: string;
+            highlight?: string;
+            id: string;
+            includes: string[];
+            lists: components["schemas"]["EarnListRef"][];
+            monthly?: components["schemas"]["EarnPrice"];
+            /** Format: int64 */
+            mrrCents: number;
+            name: string;
+            origin?: string;
+            /** Format: int64 */
+            paying: number;
+            /** Format: int64 */
+            payingMonthly: number;
+            /** Format: int64 */
+            payingYearly: number;
+            prices: components["schemas"]["EarnPrice"][];
+            productId?: string;
+            productUrl?: string;
+            shortName: string;
+            slug: string;
+            /** @enum {string} */
+            syncStatus: "draft" | "synced" | "failed";
+            syncSteps: components["schemas"]["EarnSyncStep"][];
+            /** Format: date-time */
+            syncedAt?: string;
+            /**
+             * Format: int64
+             * @enum {integer}
+             */
+            trialDays: 0 | 7 | 14 | 30;
+            /** Format: int64 */
+            trialing: number;
+            /** @enum {string} */
+            visibility: "public" | "hidden" | "archived";
+            yearly?: components["schemas"]["EarnPrice"];
+        };
+        EarnTierInput: {
+            /** Format: int64 */
+            accessRank: number;
+            benefits: string[];
+            description?: string;
+            highlight?: string;
+            lists: string[];
+            /** Format: int64 */
+            monthly?: number;
+            name: string;
+            /** @description The hidden tier's link: /upgrade/{slug}. Made from the name when empty. */
+            slug?: string;
+            /**
+             * Format: int64
+             * @enum {integer}
+             */
+            trialDays: 0 | 7 | 14 | 30;
+            /** @enum {string} */
+            visibility: "public" | "hidden" | "archived";
+            /** Format: int64 */
+            yearly?: number;
+        };
+        EarnTierSaved: {
+            syncError?: string;
+            tier: components["schemas"]["EarnTier"];
+        };
+        EarnTimelineItem: {
+            actor?: string;
+            /** Format: int64 */
+            amountCents?: number;
+            /** Format: date-time */
+            at: string;
+            currency?: string;
+            data: {
+                [key: string]: unknown;
+            };
+            id: string;
+            kind: string;
+            messageId?: string;
+            messageStatus?: string;
+            provider?: string;
+            stripeEvent?: string;
+            test: boolean;
+        };
+        EarnUnmappedPrice: {
+            /** Format: int64 */
+            amountCents: number;
+            currency: string;
+            /** Format: date-time */
+            foundAt: string;
+            id: string;
+            members: components["schemas"]["EarnMemberRow"][];
+            /** @enum {string} */
+            mode: "live" | "test";
+            /** @enum {string} */
+            period: "month" | "year" | "";
+            priceId: string;
+            /** Format: int64 */
+            subscriptions: number;
+        };
+        EarnUpgradeCard: {
+            /** Format: int64 */
+            checkoutsStarted: number;
+            /** Format: int64 */
+            completed: number;
+            host: string;
+            live: boolean;
+            /** Format: int64 */
+            paidAtOnce: number;
+            testCheckoutUrl?: string;
+            testMode: boolean;
+            /** Format: int64 */
+            trials: number;
+            url: string;
+            /** Format: int64 */
+            visits: number;
+        };
+        EarnUpgradeEditor: {
+            canEdit: boolean;
+            helpers: string[];
+            host: string;
+            lists: components["schemas"]["EarnListRef"][];
+            live: boolean;
+            page: components["schemas"]["UpgradePage"];
+            publishedAt?: string;
+            publishedBy?: string;
+            testCheckout: boolean;
+            testCheckoutUrl?: string;
+            tiers: components["schemas"]["EarnPageTier"][];
+            url: string;
+        };
+        EarnWebhook: {
+            byType: components["schemas"]["EarnEventCount"][];
+            events: string[];
+            /** Format: int64 */
+            events24h: number;
+            /** Format: date-time */
+            firstEventAt?: string;
+            firstEventType?: string;
+            /** Format: date-time */
+            gapCheckedAt?: string;
+            gapRuns: components["schemas"]["EarnGapRun"][];
+            id?: string;
+            /** Format: date-time */
+            lastEventAt?: string;
+            lastEventType?: string;
+            manual: boolean;
+            /** Format: date-time */
+            missingAt?: string;
+            /** Format: date-time */
+            nextGapAt?: string;
+            reach: components["schemas"]["EarnReach"];
+            registered: boolean;
+            /** Format: date-time */
+            registeredAt?: string;
+            /** Format: int64 */
+            rejected24h: number;
+            secretStored: boolean;
+            /** Format: int64 */
+            silentHours?: number;
+            /** @enum {string} */
+            status: "unregistered" | "waiting" | "receiving" | "silent" | "missing";
+            url: string;
+        };
+        EarnWebhookSecretInput: {
+            /** @description The endpoint's signing secret (whsec_…). Write-only. */
+            secret: string;
+        };
         EmailLanguage: {
             /** Format: int64 */
             attention: number;
@@ -14585,6 +17282,17 @@ export interface components {
             noLanguage: number;
             /** Format: int64 */
             notOffered: number;
+        };
+        FieldSource: {
+            /** Format: date-time */
+            at: string;
+            field: string;
+            /** @enum {string} */
+            kind: "poll" | "survey";
+            name: string;
+        };
+        FieldSources: {
+            items: components["schemas"]["FieldSource"][];
         };
         GrowBlockRender: {
             for: string;
@@ -15179,6 +17887,7 @@ export interface components {
             problem: string;
             /** Format: int64 */
             rows: number;
+            service?: string;
         };
         ImportJob: {
             detail?: string;
@@ -15188,7 +17897,7 @@ export interface components {
             href: string;
             id: string;
             /** @enum {string} */
-            kind: "import";
+            kind: "import" | "verification";
             /** Format: int64 */
             progress?: number;
             /** Format: date-time */
@@ -15286,6 +17995,7 @@ export interface components {
              * @description Unsubscribed, bounced or complained in the source
              */
             suppressed: number;
+            verification?: components["schemas"]["ImportVerification"];
             /**
              * Format: int64
              * @description New contacts, subscribed
@@ -15322,6 +18032,10 @@ export interface components {
         };
         ImportRiskyActions: {
             /** @enum {string} */
+            abuse?: "import" | "skip" | "";
+            /** @enum {string} */
+            catch_all?: "import" | "skip" | "";
+            /** @enum {string} */
             disposable: "skip" | "import";
             /** @enum {string} */
             role: "exclude_broadcasts" | "skip" | "import";
@@ -15331,14 +18045,22 @@ export interface components {
             trap: "skip" | "import";
             /** @enum {string} */
             typo: "fix" | "skip" | "import";
+            /** @enum {string} */
+            unknown?: "import" | "skip" | "";
         };
         ImportRiskyGroup: {
             action: string;
             actions: components["schemas"]["ImportFieldOption"][];
+            /** Format: int64 */
+            agree: number;
             examples: string;
             /** @enum {string} */
-            key: "role" | "disposable" | "typo" | "stale" | "trap";
+            key: "role" | "disposable" | "typo" | "stale" | "trap" | "catch_all" | "abuse" | "unknown";
             label: string;
+            /** Format: int64 */
+            more: number;
+            /** Format: int64 */
+            own: number;
             /** Format: int64 */
             rows: number;
             why: string;
@@ -15459,6 +18181,24 @@ export interface components {
             source?: "brevo" | "mailchimp" | "mailerlite" | "listmonk" | "keila" | "notifuse" | "csv" | "xlsx" | "";
             /** @enum {string} */
             step?: "source" | "fields" | "consent" | "preview" | "";
+        };
+        ImportVerification: {
+            /** Format: int64 */
+            checked: number;
+            /** Format: date-time */
+            checkedAt?: string;
+            /** Format: double */
+            cost: number;
+            /** Format: int64 */
+            fewer: number;
+            /** Format: int64 */
+            invalid: number;
+            jobId: string;
+            /** Format: int64 */
+            risky: number;
+            service: string;
+            serviceName: string;
+            status: string;
         };
         IncidentCause: {
             body: string;
@@ -16101,7 +18841,7 @@ export interface components {
             connectionId?: string;
             facts: components["schemas"]["IntegrationFacts"];
             /** @enum {string} */
-            key: "zapier" | "make" | "n8n" | "wordpress" | "hostrepute" | "api" | "webhooks" | "mcp";
+            key: "zapier" | "make" | "n8n" | "wordpress" | "hostrepute" | "api" | "webhooks" | "mcp" | "zerobounce" | "neverbounce" | "kickbox" | "bouncer" | "emailable";
             reasons: components["schemas"]["IntegrationReason"][];
             /** @enum {string} */
             status: "not_connected" | "waiting" | "connected" | "attention" | "none";
@@ -16113,6 +18853,8 @@ export interface components {
             /** Format: int64 */
             agents: number;
             /** Format: int64 */
+            balance?: number;
+            /** Format: int64 */
             endpoints: number;
             /** Format: int64 */
             failing: number;
@@ -16123,6 +18865,8 @@ export interface components {
             /** Format: date-time */
             lastSyncAt?: string;
             mcpEnabled: boolean;
+            /** Format: double */
+            price?: number;
             /** Format: int64 */
             silentSites: number;
             /** Format: int64 */
@@ -17492,7 +20236,7 @@ export interface components {
             /** @description Full sentence for the notification center */
             body: string;
             /** @enum {string} */
-            category: "approvals" | "sending" | "providers" | "team" | "hostrepute" | "other" | "integrations" | "transactional" | "grow";
+            category: "approvals" | "sending" | "providers" | "team" | "hostrepute" | "other" | "integrations" | "transactional" | "earn" | "grow";
             /** @example Approvals */
             categoryLabel: string;
             /** Format: date-time */
@@ -17551,6 +20295,10 @@ export interface components {
         NotificationsMarked: {
             /** Format: int64 */
             marked: number;
+        };
+        Operator: {
+            key: string;
+            noValue?: boolean;
         };
         OptInResendResult: {
             confirmUrl?: string;
@@ -17865,6 +20613,859 @@ export interface components {
             /** @example First name */
             label: string;
         };
+        PlacementAuthCheck: {
+            aligned?: boolean;
+            detail?: string;
+            domain?: string;
+            ip?: string;
+            result: string;
+            selector?: string;
+        };
+        PlacementAuthCount: {
+            /** Format: int64 */
+            fail: number;
+            /** Format: int64 */
+            pass: number;
+        };
+        PlacementAuthReadiness: {
+            /** @description The blocking checks, in the reader's language */
+            blocking: string[];
+            /** Format: int64 */
+            blocks: number;
+            /** @description One sentence per blocking check */
+            evidence: string[];
+            /** Format: int64 */
+            passed: number;
+            /** Format: int64 */
+            warnings: number;
+        };
+        PlacementAuthSummary: {
+            /** Format: int64 */
+            checked: number;
+            dkim: components["schemas"]["PlacementAuthCount"];
+            dkimDomain?: string;
+            dkimSelector?: string;
+            dmarc: components["schemas"]["PlacementAuthCount"];
+            spf: components["schemas"]["PlacementAuthCount"];
+            spfDomain?: string;
+        };
+        PlacementConditionalVersion: {
+            /** Format: int64 */
+            number: number;
+            /** Format: int64 */
+            recipients: number;
+            shows: string;
+        };
+        PlacementContentList: {
+            items: components["schemas"]["PlacementContentOption"][];
+        };
+        PlacementContentOption: {
+            /** Format: date-time */
+            at: string;
+            id: string;
+            /** @enum {string} */
+            kind: "campaign" | "template" | "digest" | "transactional";
+            name: string;
+            /** @description A campaign's status, template, a transactional template's key, or a digest's state (on, paused, off) */
+            note: string;
+        };
+        PlacementContentRef: {
+            /** @description A campaign, template, recurring digest (its next issue) or transactional template id */
+            id: string;
+            /** @enum {string} */
+            kind: "campaign" | "template" | "digest" | "transactional";
+        };
+        PlacementContentView: {
+            audience?: string;
+            category?: string;
+            conditional: components["schemas"]["PlacementConditionalVersion"][];
+            /** Format: int64 */
+            conditionalVersion?: number;
+            fallbackGreeting?: string;
+            id: string;
+            key?: string;
+            /** @enum {string} */
+            kind: "campaign" | "template" | "digest" | "transactional";
+            languages: components["schemas"]["PlacementLanguage"][];
+            name: string;
+            /** Format: int64 */
+            recipients?: number;
+            /** Format: date-time */
+            scheduledAt?: string;
+            sensitive: string[];
+            /** Format: date-time */
+            sentAt?: string;
+            status?: string;
+            testData: string[];
+            testValues: components["schemas"]["PlacementTestValue"][];
+            variants: components["schemas"]["PlacementVariant"][];
+            /** Format: int64 */
+            version?: number;
+        };
+        PlacementCopyCost: {
+            /** Format: int64 */
+            copies: number;
+            /** Format: double */
+            cost: number;
+            /** Format: int64 */
+            planMonthly?: number;
+            /** @enum {string} */
+            pricing: "metered" | "plan" | "self_hosted";
+            providerId: string;
+            /** Format: int64 */
+            sentToday?: number;
+            short: string;
+            /** Format: int64 */
+            todayCap?: number;
+            /** Format: int64 */
+            warmDay?: number;
+        };
+        PlacementCopyDetail: {
+            copy: components["schemas"]["PlacementCopyView"];
+            dkim?: components["schemas"]["PlacementAuthCheck"];
+            dmarc?: components["schemas"]["PlacementAuthCheck"];
+            events: components["schemas"]["PlacementEvent"][];
+            headers: string;
+            keyHeaders: string;
+            path?: string;
+            providerMessageId?: string;
+            /** @enum {string} */
+            readVia: "imap" | "graph" | "gmail";
+            spf?: components["schemas"]["PlacementAuthCheck"];
+            testStatus: string;
+            /** Format: date-time */
+            waitUntil?: string;
+        };
+        PlacementCopyView: {
+            /** Format: int64 */
+            arriveMs?: number;
+            /** Format: int64 */
+            deferrals: number;
+            dkim?: string;
+            dmarc?: string;
+            /** @description Why the provider refused the copy */
+            error?: string;
+            first: boolean;
+            /** @enum {string} */
+            folder?: "inbox" | "tab" | "spam" | "";
+            /** @description The mailbox's own name: Junk Email, Bulk, Spamverdacht */
+            folderName?: string;
+            /** Format: date-time */
+            handedAt?: string;
+            id: string;
+            lastEvent?: components["schemas"]["PlacementEvent"];
+            late: boolean;
+            /** Format: date-time */
+            lateUntil?: string;
+            providerId?: string;
+            providerName: string;
+            /** @enum {string} */
+            reason?: "signin_failed" | "signin_expired" | "seed_removed" | "stopped" | "unsent" | "";
+            /** Format: date-time */
+            reasonAt?: string;
+            /** Format: date-time */
+            receivedAt?: string;
+            /** Format: int64 */
+            round: number;
+            seedEmail: string;
+            seedId?: string;
+            seedProvider: string;
+            seedProviderName: string;
+            /** Format: date-time */
+            sendAt: string;
+            spf?: string;
+            /** @enum {string} */
+            status: "queued" | "sent" | "failed" | "found" | "not_arrived" | "not_checked";
+            /** @description Primary, Promotions, Focused, Other */
+            tab?: string;
+        };
+        PlacementCounts: {
+            /** Format: int64 */
+            copies: number;
+            /** Format: int64 */
+            failed: number;
+            /** Format: int64 */
+            found: number;
+            /** Format: int64 */
+            inbox: number;
+            /** Format: int64 */
+            notArrived: number;
+            /** Format: int64 */
+            notChecked: number;
+            notCheckedSeeds: components["schemas"]["PlacementNotChecked"][];
+            /** Format: int64 */
+            spam: number;
+            /** Format: int64 */
+            tab: number;
+            tabs: string[];
+            /** Format: int64 */
+            unsent: number;
+            /** Format: int64 */
+            waiting: number;
+        };
+        PlacementEarlier: {
+            contentName: string;
+            /** Format: int64 */
+            copies: number;
+            /** Format: int64 */
+            inbox: number;
+            /** Format: date-time */
+            startedAt: string;
+            testId: string;
+        };
+        PlacementEvent: {
+            /** Format: date-time */
+            at: string;
+            code?: string;
+            diagnostic?: string;
+            host?: string;
+            /** @description delivered, deferred, soft_bounce, hard_bounce, complaint, rejected… */
+            type: string;
+        };
+        PlacementFacet: {
+            id: string;
+            name: string;
+        };
+        PlacementFolder: {
+            label: string;
+            name: string;
+            /** @enum {string} */
+            role: "inbox" | "tab" | "spam";
+        };
+        PlacementGuidance: {
+            at: string[];
+            auth: components["schemas"]["PlacementAuthSummary"];
+            /** Format: int64 */
+            authProviders: number;
+            /** @enum {string} */
+            cause: "readiness" | "auth" | "warmup" | "reputation";
+            /** Format: int64 */
+            copies: number;
+            earlier?: components["schemas"]["PlacementEarlier"];
+            hostRepute: boolean;
+            ip?: string;
+            other?: components["schemas"]["PlacementOther"];
+            providerId: string;
+            providerName: string;
+            readiness?: components["schemas"]["PlacementAuthReadiness"];
+            /** Format: int64 */
+            spam: number;
+            status: string;
+            /** Format: int64 */
+            warmDay?: number;
+            /** Format: int64 */
+            warmDays?: number;
+        };
+        PlacementLanguage: {
+            code: string;
+            source: boolean;
+        };
+        PlacementNotChecked: {
+            email: string;
+            /** @description The seed's mailbox provider (iCloud) */
+            name: string;
+            provider: string;
+            /** @enum {string} */
+            reason: "signin_failed" | "signin_expired" | "seed_removed" | "stopped" | "unsent";
+        };
+        PlacementOAuthInput: {
+            email?: string;
+            /** @enum {string} */
+            provider: "gmail" | "google_workspace" | "outlook" | "microsoft_365";
+            seedId?: string;
+        };
+        PlacementOAuthStart: {
+            url: string;
+        };
+        PlacementOther: {
+            /** Format: int64 */
+            copies: number;
+            /** Format: int64 */
+            inbox: number;
+            name: string;
+            providerId: string;
+            /** Format: int64 */
+            spam: number;
+        };
+        PlacementPlan: {
+            alone?: string;
+            canRun: boolean;
+            canStart: boolean;
+            chosen: string[];
+            compareProblem?: string;
+            content: components["schemas"]["PlacementContentView"];
+            /** Format: int64 */
+            copies: number;
+            costs: components["schemas"]["PlacementCopyCost"][];
+            problems: string[];
+            providers: components["schemas"]["PlacementProviderOption"][];
+            route: components["schemas"]["PlacementRouteShare"][];
+            runHelpers: string[];
+            seeds: components["schemas"]["PlacementSeedChoice"][];
+            sender?: string;
+            senderAlternatives?: string[];
+            senderDomain?: string;
+            senderMissing?: string[];
+            senderProblem?: string;
+            senders: components["schemas"]["PlacementSenderOption"][];
+            /** @enum {string} */
+            stream: "broadcast" | "automation" | "system" | "transactional";
+            warmupDays: number[];
+        };
+        PlacementProviderOption: {
+            adapter: string;
+            available: boolean;
+            color: string;
+            /** Format: double */
+            costPerCopy: number;
+            /** @description us-east-1, mta.acme.io, the Transactional stream */
+            detail: string;
+            downReason?: string;
+            /** Format: date-time */
+            downSince?: string;
+            id: string;
+            name: string;
+            /** Format: int64 */
+            planMonthly?: number;
+            /** @enum {string} */
+            pricing: "metered" | "plan" | "self_hosted";
+            /** Format: int64 */
+            sentToday?: number;
+            short: string;
+            /** @enum {string} */
+            status: "healthy" | "degraded" | "down" | "sandbox" | "warming_up" | "paused";
+            streamOnly?: string;
+            /** Format: int64 */
+            todayCap?: number;
+            /** Format: int64 */
+            warmDay?: number;
+            /** Format: int64 */
+            warmDays?: number;
+        };
+        PlacementProviderResult: {
+            adapter: string;
+            auth: components["schemas"]["PlacementAuthSummary"];
+            color: string;
+            /** Format: double */
+            cost: number;
+            counts: components["schemas"]["PlacementCounts"];
+            detail: string;
+            fastest?: components["schemas"]["PlacementTiming"];
+            id: string;
+            ip?: string;
+            /** Format: int64 */
+            medianMs?: number;
+            name: string;
+            short: string;
+            slowest?: components["schemas"]["PlacementTiming"];
+            status: string;
+            /** Format: int64 */
+            warmDay?: number;
+            /** Format: int64 */
+            warmDays?: number;
+        };
+        PlacementReconnectInput: {
+            host?: string;
+            password: string;
+            /** Format: int64 */
+            port?: number;
+            username?: string;
+        };
+        PlacementResultSeed: {
+            email: string;
+            id?: string;
+            /** Format: int64 */
+            position: number;
+            provider: string;
+            providerName: string;
+            /** @description The seed's status now (removed when it's gone) */
+            status: string;
+            /** Format: date-time */
+            statusAt?: string;
+        };
+        PlacementRouteShare: {
+            fallback?: string;
+            matched: string[];
+            providerId: string;
+            reasons: string[];
+            seeds: string[];
+        };
+        PlacementRunInput: {
+            content: components["schemas"]["PlacementContentRef"];
+            language?: string;
+            /** @enum {string} */
+            origin?: "placement" | "review" | "composer" | "warmup" | "template" | "";
+            /**
+             * @description data: a transactional template's test data set, the first one unless testData names one
+             * @enum {string}
+             */
+            personalization?: "fallbacks" | "data" | "";
+            providers?: string[];
+            seeds?: string[];
+            senderId?: string;
+            testData?: string;
+            /** @enum {string} */
+            through: "route" | "provider" | "compare";
+            variant?: string;
+            /**
+             * Format: int64
+             * @description A conditional-content version's number; 0 picks the one with the most recipients
+             */
+            version?: number;
+        };
+        PlacementSeedCheck: {
+            folders: components["schemas"]["PlacementFolder"][];
+            seed: components["schemas"]["PlacementSeedView"];
+        };
+        PlacementSeedChoice: {
+            email: string;
+            id: string;
+            provider: string;
+            providerName: string;
+            selected: boolean;
+            status: string;
+            /** Format: date-time */
+            statusAt?: string;
+        };
+        PlacementSeedInput: {
+            /** Format: email */
+            email: string;
+            host?: string;
+            password: string;
+            /** Format: int64 */
+            port?: number;
+            /** @enum {string} */
+            provider: "gmail" | "google_workspace" | "outlook" | "microsoft_365" | "yahoo" | "aol" | "icloud" | "gmx" | "webde";
+            username?: string;
+        };
+        PlacementSeedList: {
+            /**
+             * Format: int64
+             * @description Seeds whose sign-in failed or expired
+             */
+            attention: number;
+            canManage: boolean;
+            canRun: boolean;
+            /** Format: int64 */
+            connected: number;
+            /** @enum {string} */
+            deleteAfter: "24h" | "finished" | "never";
+            manageHelpers: string[];
+            oauthGoogle: boolean;
+            oauthMicrosoft: boolean;
+            providers: components["schemas"]["PlacementSeedProvider"][];
+            redirectUri: string;
+            runHelpers: string[];
+            seeds: components["schemas"]["PlacementSeedView"][];
+        };
+        PlacementSeedProvider: {
+            /** @description Who runs the mailboxes (Apple for iCloud) */
+            company: string;
+            host: string;
+            imapHelp?: string;
+            inboxName: string;
+            key: string;
+            name: string;
+            /** @enum {string} */
+            oauth?: "google" | "microsoft" | "";
+            password: string;
+            passwordHelp?: string;
+            /** Format: int64 */
+            port: number;
+            spamName: string;
+            tabs: string[];
+            usernameLabel: string;
+        };
+        PlacementSeedView: {
+            /** Format: date-time */
+            addedAt: string;
+            addedBy: string;
+            /** @enum {string} */
+            auth: "password" | "oauth";
+            /** Format: date-time */
+            checkedAt?: string;
+            company: string;
+            email: string;
+            folders: components["schemas"]["PlacementFolder"][];
+            host?: string;
+            id: string;
+            lastTest?: string;
+            lastTestId?: string;
+            /** Format: date-time */
+            lastUsedAt?: string;
+            passwordLabel: string;
+            /** Format: int64 */
+            port?: number;
+            /** @enum {string} */
+            provider: "gmail" | "google_workspace" | "outlook" | "microsoft_365" | "yahoo" | "aol" | "icloud" | "gmx" | "webde";
+            providerName: string;
+            /** @enum {string} */
+            status: "connected" | "expired" | "failed" | "unchecked";
+            /** Format: date-time */
+            statusAt?: string;
+            username?: string;
+        };
+        PlacementSenderOption: {
+            default: boolean;
+            domain: string;
+            email: string;
+            id: string;
+            name: string;
+            /** @description Verified on every provider the test uses */
+            verified: boolean;
+        };
+        PlacementSettingsInput: {
+            /** @enum {string} */
+            deleteAfter: "24h" | "finished" | "never";
+        };
+        PlacementTestDetail: {
+            canRun: boolean;
+            conditionalShows?: string;
+            /** Format: int64 */
+            conditionalVersion?: number;
+            /**
+             * Format: date-time
+             * @description When the campaign is scheduled or was sent
+             */
+            contentAt?: string;
+            contentId?: string;
+            contentKey?: string;
+            /** @enum {string} */
+            contentKind: "campaign" | "template" | "digest" | "transactional";
+            contentName: string;
+            /** @description draft, scheduled, sent, template or the transactional template's key */
+            contentNote: string;
+            /** Format: int64 */
+            contentVersion?: number;
+            copies: components["schemas"]["PlacementCopyView"][];
+            /** Format: date-time */
+            copiesDeletedAt?: string;
+            copiesDeletedBy?: string;
+            counts: components["schemas"]["PlacementCounts"];
+            /** @enum {string} */
+            deleteAfter: "24h" | "finished" | "never";
+            /** Format: date-time */
+            deleteAt?: string;
+            fallbackGreeting?: string;
+            /** @enum {string} */
+            finishReason?: "all_found" | "timeout" | "stopped" | "";
+            /** Format: date-time */
+            finishedAt?: string;
+            fromEmail: string;
+            fromName: string;
+            /** Format: int64 */
+            gapMinutes: number;
+            guidance: components["schemas"]["PlacementGuidance"][];
+            hostRepute: boolean;
+            id: string;
+            language?: string;
+            /** Format: date-time */
+            lastSentAt?: string;
+            /**
+             * Format: date-time
+             * @description Late copies found until then update the result
+             */
+            lateUntil?: string;
+            name: string;
+            /** @enum {string} */
+            origin: "placement" | "review" | "composer" | "warmup" | "template";
+            personalization: string;
+            providers: components["schemas"]["PlacementProviderResult"][];
+            /** Format: int64 */
+            rounds: number;
+            runHelpers: string[];
+            seeds: components["schemas"]["PlacementResultSeed"][];
+            /** Format: date-time */
+            startedAt: string;
+            startedBy: string;
+            startedByColor?: string;
+            startedById?: string;
+            /** @enum {string} */
+            status: "sending" | "waiting" | "finished" | "stopped";
+            /** Format: date-time */
+            stoppedAt?: string;
+            stoppedBy?: string;
+            stream: string;
+            subject: string;
+            /** @enum {string} */
+            through: "route" | "provider" | "compare";
+            variant?: string;
+            /**
+             * Format: date-time
+             * @description Copies missing then are Not arrived
+             */
+            waitUntil?: string;
+        };
+        PlacementTestList: {
+            attention: components["schemas"]["PlacementSeedView"][];
+            canManage: boolean;
+            canRun: boolean;
+            /** @enum {string} */
+            deleteAfter: "24h" | "finished" | "never";
+            manageHelpers: string[];
+            providers: components["schemas"]["PlacementFacet"][];
+            runHelpers: string[];
+            /** Format: int64 */
+            seedsConnected: number;
+            /** Format: int64 */
+            seedsTotal: number;
+            starters: components["schemas"]["PlacementFacet"][];
+            tests: components["schemas"]["PlacementTestRow"][];
+        };
+        PlacementTestRow: {
+            /**
+             * Format: date-time
+             * @description When the campaign is scheduled or was sent
+             */
+            contentAt?: string;
+            contentId?: string;
+            contentKey?: string;
+            /** @enum {string} */
+            contentKind: "campaign" | "template" | "digest" | "transactional";
+            contentName: string;
+            /** @description draft, scheduled, sent, template or the transactional template's key */
+            contentNote: string;
+            /** Format: int64 */
+            contentVersion?: number;
+            counts: components["schemas"]["PlacementCounts"];
+            /** Format: date-time */
+            finishedAt?: string;
+            id: string;
+            /** Format: date-time */
+            lastSentAt?: string;
+            /**
+             * Format: date-time
+             * @description Late copies found until then update the result
+             */
+            lateUntil?: string;
+            name: string;
+            /** @enum {string} */
+            origin: "placement" | "review" | "composer" | "warmup" | "template";
+            personalization: string;
+            providers: components["schemas"]["PlacementProviderResult"][];
+            /** Format: date-time */
+            startedAt: string;
+            startedBy: string;
+            startedByColor?: string;
+            startedById?: string;
+            /** @enum {string} */
+            status: "sending" | "waiting" | "finished" | "stopped";
+            /** @enum {string} */
+            through: "route" | "provider" | "compare";
+            /**
+             * Format: date-time
+             * @description Copies missing then are Not arrived
+             */
+            waitUntil?: string;
+        };
+        PlacementTestValue: {
+            name: string;
+            value: string;
+        };
+        PlacementTiming: {
+            /** @enum {string} */
+            folder: "inbox" | "tab" | "spam";
+            folderName: string;
+            /** Format: int64 */
+            ms: number;
+            seedProvider: string;
+            seedProviderName: string;
+        };
+        PlacementVariant: {
+            key: string;
+            subject: string;
+        };
+        PollAnswerCount: {
+            /** Format: int64 */
+            count: number;
+            emoji?: string;
+            /** Format: int64 */
+            key: number;
+            label: string;
+            /** Format: double */
+            percent: number;
+            tag?: string;
+        };
+        PollAutomatedVisits: {
+            /** Format: int64 */
+            gateways: number;
+            /** Format: int64 */
+            prefetch: number;
+            /** Format: int64 */
+            total: number;
+        };
+        PollBreakdownRow: {
+            /** Format: int64 */
+            answers: number;
+            counts: components["schemas"]["PollAnswerCount"][];
+            key: string;
+            label: string;
+            /** Format: int64 */
+            nps?: number;
+            /** Format: double */
+            percent: number;
+            tooFew: boolean;
+        };
+        PollBreakdowns: {
+            languages: components["schemas"]["PollBreakdownRow"][];
+            lists: components["schemas"]["PollBreakdownRow"][];
+            tiers: components["schemas"]["PollBreakdownRow"][];
+        };
+        PollComment: {
+            /** Format: int64 */
+            answer: number;
+            /** Format: date-time */
+            at: string;
+            comment: string;
+            contact?: string;
+            contactId?: string;
+            /** @enum {string} */
+            group?: "promoter" | "passive" | "detractor";
+            id: string;
+            label: string;
+            nonContact: boolean;
+        };
+        PollCommentCounts: {
+            /** Format: int64 */
+            all: number;
+            /** Format: int64 */
+            detractors: number;
+            /** Format: int64 */
+            passives: number;
+            /** Format: int64 */
+            promoters: number;
+        };
+        PollCommentList: {
+            counts: components["schemas"]["PollCommentCounts"];
+            items: components["schemas"]["PollComment"][];
+            names: boolean;
+            /** Format: int64 */
+            total: number;
+        };
+        PollNPS: {
+            /** Format: double */
+            detractorPercent: number;
+            /** Format: int64 */
+            detractors: number;
+            /** Format: double */
+            passivePercent: number;
+            /** Format: int64 */
+            passives: number;
+            /** Format: double */
+            promoterPercent: number;
+            /** Format: int64 */
+            promoters: number;
+            /** Format: int64 */
+            score: number;
+        };
+        PollOption: {
+            /** Format: int64 */
+            key: number;
+            label: string;
+        };
+        PollOverTime: {
+            /** Format: int64 */
+            after: number;
+            cumulative: number[];
+            /** Format: double */
+            firstSixPercent: number;
+            /** Format: date-time */
+            since?: string;
+        };
+        PollPagePreviewInput: {
+            campaign?: string;
+            /** @description The Poll block's settings, as its rc-poll attribute holds them */
+            config: string;
+        };
+        PollResults: {
+            answerPage: string;
+            /** Format: int64 */
+            answers: number;
+            automated: components["schemas"]["PollAutomatedVisits"];
+            blockId: string;
+            breakdown: components["schemas"]["PollBreakdowns"];
+            campaign: string;
+            campaignId?: string;
+            canClose: boolean;
+            canExportAnswers: boolean;
+            /** Format: int64 */
+            changed: number;
+            closeHelpers: string[];
+            closedAsScheduled: boolean;
+            /** Format: date-time */
+            closedAt?: string;
+            closedBy?: string;
+            /** Format: date-time */
+            closesAt?: string;
+            /** Format: int64 */
+            comments: number;
+            config: string;
+            counts: components["schemas"]["PollAnswerCount"][];
+            /** Format: int64 */
+            delivered: number;
+            exportHelpers: string[];
+            field?: string;
+            high?: string;
+            id: string;
+            /** @enum {string} */
+            kind: "choice" | "scale" | "emoji";
+            live: boolean;
+            low?: string;
+            names: boolean;
+            /** Format: int64 */
+            nonContacts: number;
+            nps?: components["schemas"]["PollNPS"];
+            npsWording: boolean;
+            overTime: components["schemas"]["PollOverTime"];
+            /** Format: double */
+            percent: number;
+            question: string;
+            /** Format: date-time */
+            reopenedAt?: string;
+            /** @enum {string} */
+            save: "none" | "tag" | "field";
+            /** Format: date-time */
+            startedAt?: string;
+            /** @enum {string} */
+            status: "open" | "closed";
+            /** Format: int64 */
+            tests: number;
+        };
+        PollResultsList: {
+            items: components["schemas"]["PollResults"][];
+        };
+        PollSource: {
+            answers: components["schemas"]["PollOption"][];
+            campaign?: string;
+            /** Format: date-time */
+            closesAt?: string;
+            /** @enum {string} */
+            kind: "poll" | "survey";
+            name: string;
+            /** @enum {string} */
+            pollKind?: "choice" | "scale" | "emoji";
+            ref: string;
+            status: string;
+        };
+        PollSourceList: {
+            items: components["schemas"]["PollSource"][];
+        };
+        PollTestAnswer: {
+            /** Format: int64 */
+            answer: number;
+            /** Format: date-time */
+            at: string;
+            blockId: string;
+            email: string;
+            pollId: string;
+        };
+        PollTestAnswers: {
+            items: components["schemas"]["PollTestAnswer"][];
+        };
+        PollTestAnswersCleared: {
+            /** Format: int64 */
+            deleted: number;
+        };
         PreferenceLinkResult: {
             url: string;
         };
@@ -17888,6 +21489,12 @@ export interface components {
         };
         PreviewContactList: {
             items: components["schemas"]["PreviewContact"][];
+        };
+        PreviewInput: {
+            /** Format: uuid */
+            contactId: string;
+            html?: string;
+            mjml?: string;
         };
         Problem: {
             /** @description Stable error code, e.g. permission_denied */
@@ -18693,7 +22300,7 @@ export interface components {
             fixes: components["schemas"]["ReadinessFix"][];
             flatTitle: string;
             /** @enum {string} */
-            group: "reputation" | "authentication" | "content" | "languages" | "links" | "compliance" | "audience" | "routing" | "accessibility";
+            group: "reputation" | "authentication" | "content" | "languages" | "links" | "compliance" | "audience" | "routing" | "accessibility" | "conditional";
             key: string;
             label?: string;
             mono?: boolean;
@@ -18732,7 +22339,7 @@ export interface components {
         };
         ReadinessFix: {
             /** @enum {string} */
-            action?: "exclude_sunset" | "route_only" | "insert_footer" | "replace_link" | "use_subject" | "minify" | "mark_language_up_to_date" | "mark_language_translated" | "hold_language" | "release_language" | "accessibility_decorative" | "accessibility_color" | "accessibility_one_click";
+            action?: "exclude_sunset" | "route_only" | "insert_footer" | "replace_link" | "use_subject" | "minify" | "mark_language_up_to_date" | "mark_language_translated" | "hold_language" | "release_language" | "accessibility_decorative" | "accessibility_color" | "accessibility_one_click" | "visibility_show_everyone" | "visibility_hide_block" | "visibility_remove_condition" | "poll_close_days" | "exclude_risky" | "verify_addresses";
             href?: string;
             /** @enum {string} */
             kind: "apply" | "link";
@@ -18751,7 +22358,7 @@ export interface components {
         };
         ReadinessFixRequest: {
             /** @enum {string} */
-            action: "exclude_sunset" | "route_only" | "insert_footer" | "replace_link" | "use_subject" | "minify" | "mark_language_up_to_date" | "mark_language_translated" | "hold_language" | "release_language" | "accessibility_decorative" | "accessibility_color" | "accessibility_one_click";
+            action: "exclude_sunset" | "route_only" | "insert_footer" | "replace_link" | "use_subject" | "minify" | "mark_language_up_to_date" | "mark_language_translated" | "hold_language" | "release_language" | "accessibility_decorative" | "accessibility_color" | "accessibility_one_click" | "visibility_show_everyone" | "visibility_hide_block" | "visibility_remove_condition" | "poll_close_days" | "exclude_risky" | "verify_addresses";
             params?: {
                 [key: string]: string;
             };
@@ -18762,7 +22369,7 @@ export interface components {
         ReadinessGroup: {
             caption: string;
             /** @enum {string} */
-            key: "reputation" | "authentication" | "content" | "languages" | "links" | "compliance" | "audience" | "routing" | "accessibility";
+            key: "reputation" | "authentication" | "content" | "languages" | "links" | "compliance" | "audience" | "routing" | "accessibility" | "conditional";
             note?: string;
             /** Format: int64 */
             passed: number;
@@ -18801,7 +22408,7 @@ export interface components {
             /** Format: int64 */
             done: number;
             /** @enum {string} */
-            key: "reputation" | "authentication" | "content" | "languages" | "links" | "compliance" | "audience" | "routing" | "accessibility";
+            key: "reputation" | "authentication" | "content" | "languages" | "links" | "compliance" | "audience" | "routing" | "accessibility" | "conditional";
             /** @enum {string} */
             status: "queued" | "running" | "pass" | "warn" | "block" | "unknown";
             text: string;
@@ -20269,6 +23876,11 @@ export interface components {
             /** Format: date-time */
             since: string;
         };
+        ReportInput: {
+            html?: string;
+            mjml?: string;
+            recount?: boolean;
+        };
         ReportLanguageCount: {
             /** Format: int64 */
             count: number;
@@ -21541,6 +25153,8 @@ export interface components {
             of?: number;
             /** Format: int64 */
             onceInDays?: number;
+            /** @enum {string} */
+            show?: "only" | "except";
             /** Format: date-time */
             since?: string;
             status?: string;
@@ -22572,6 +26186,175 @@ export interface components {
             invalid: string[];
             /** Format: int64 */
             rows: number;
+        };
+        Survey: {
+            canEdit: boolean;
+            /** Format: date-time */
+            closedAt?: string;
+            closedBy?: string;
+            /** Format: date-time */
+            closesAt?: string;
+            /** Format: int64 */
+            completed: number;
+            /** Format: date-time */
+            createdAt: string;
+            createdBy: string;
+            description: string;
+            editHelpers: string[];
+            id: string;
+            linked: components["schemas"]["SurveyLink"][];
+            name: string;
+            /** Format: int64 */
+            number: number;
+            problems: components["schemas"]["SurveyProblem"][];
+            /** Format: date-time */
+            publishedAt?: string;
+            publishedBy?: string;
+            questions: components["schemas"]["SurveyQuestion"][];
+            settings: components["schemas"]["SurveySettings"];
+            slug: string;
+            /** Format: int64 */
+            started: number;
+            /** @enum {string} */
+            status: "draft" | "open" | "closed";
+            /** Format: date-time */
+            updatedAt: string;
+            url: string;
+            variable: string;
+        };
+        SurveyClose: {
+            date?: string;
+            /** @enum {string} */
+            mode: "date" | "manual";
+            time?: string;
+        };
+        SurveyCreate: {
+            name?: string;
+        };
+        SurveyLink: {
+            campaignId: string;
+            name: string;
+            /** Format: int64 */
+            recipients?: number;
+            /** Format: date-time */
+            sentAt?: string;
+            status: string;
+            /** @enum {string} */
+            via: "link" | "poll";
+        };
+        SurveyList: {
+            items: components["schemas"]["Survey"][];
+        };
+        SurveyOption: {
+            /** Format: int64 */
+            key: number;
+            label: string;
+            tag?: string;
+        };
+        SurveyPagePreviewInput: {
+            description?: string;
+            name: string;
+            questions: components["schemas"]["SurveyQuestion"][];
+            settings: components["schemas"]["SurveySettings"];
+            slug?: string;
+        };
+        SurveyProblem: {
+            field: string;
+            message: string;
+            question?: string;
+        };
+        SurveyQuestion: {
+            answers: components["schemas"]["SurveyOption"][];
+            description?: string;
+            /** Format: int64 */
+            faces?: number;
+            high?: string;
+            key: string;
+            low?: string;
+            nps?: boolean;
+            required: boolean;
+            requiredText?: string;
+            save: components["schemas"]["SurveySave"];
+            text: string;
+            /** @enum {string} */
+            type: "single" | "multi" | "scale" | "emoji" | "short" | "long";
+        };
+        SurveyQuestionResult: {
+            /** Format: int64 */
+            answered: number;
+            counts: components["schemas"]["PollAnswerCount"][];
+            key: string;
+            nps?: components["schemas"]["PollNPS"];
+            /** Format: int64 */
+            number: number;
+            required: boolean;
+            savedTo?: string;
+            text: string;
+            type: string;
+        };
+        SurveyReopen: {
+            close?: components["schemas"]["SurveyClose"];
+        };
+        SurveyResponse: {
+            answers: string[];
+            /** Format: date-time */
+            completedAt?: string;
+            contact?: string;
+            contactId?: string;
+            id: string;
+            nonContact: boolean;
+        };
+        SurveyResponseList: {
+            items: components["schemas"]["SurveyResponse"][];
+            names: boolean;
+            /** Format: int64 */
+            total: number;
+        };
+        SurveyResults: {
+            /** Format: int64 */
+            completed: number;
+            /** Format: double */
+            completionPercent: number;
+            /** Format: int64 */
+            nonContacts: number;
+            /** Format: int64 */
+            pollOnly: number;
+            questions: components["schemas"]["SurveyQuestionResult"][];
+            /** Format: int64 */
+            recipients: number;
+            /** Format: int64 */
+            started: number;
+        };
+        SurveySave: {
+            field?: string;
+            /** @enum {string} */
+            to: "none" | "field" | "tags";
+        };
+        SurveySettings: {
+            acceptNonContacts: boolean;
+            close: components["schemas"]["SurveyClose"];
+            oneResponse: boolean;
+            thanks?: string;
+            timezone?: string;
+        };
+        SurveyTextAnswer: {
+            /** Format: date-time */
+            at: string;
+            contact?: string;
+            text: string;
+        };
+        SurveyTextAnswerList: {
+            items: components["schemas"]["SurveyTextAnswer"][];
+            names: boolean;
+            /** Format: int64 */
+            total: number;
+        };
+        SurveyUpdate: {
+            description?: string;
+            name?: string;
+            questions?: components["schemas"]["SurveyQuestion"][];
+            settings?: components["schemas"]["SurveySettings"];
+            slug?: string;
         };
         TOTPSetup: {
             account: string;
@@ -24306,6 +28089,30 @@ export interface components {
             trackingDomain?: string;
             transactional?: boolean;
         };
+        UpgradeFAQ: {
+            a: string;
+            q: string;
+        };
+        UpgradePage: {
+            /** @description A tier's button when it has no trial ("Become a founding member"), by tier id. */
+            buttons?: {
+                [key: string]: string;
+            };
+            /** @enum {string} */
+            defaultPeriod: "month" | "year";
+            faq: components["schemas"]["UpgradeFAQ"][];
+            freeLine: string;
+            freeList: string;
+            freeText: string;
+            headline: string;
+            highlight: string;
+            highlightLabel: string;
+            intro: string;
+            off: string[];
+            order: string[];
+            /** @description The welcome page after checkout; {{ first_name }} and {{ next_issue }} are filled in. */
+            welcome: string;
+        };
         VariableUse: {
             /** Format: int64 */
             column: number;
@@ -24314,6 +28121,540 @@ export interface components {
             name: string;
             /** @enum {string} */
             where: "subject" | "preheader" | "body" | "text";
+        };
+        VerificationCapabilities: {
+            bulkLists: boolean;
+            catchAll: boolean;
+            creditBalance: boolean;
+            dataRegion: boolean;
+            realTime: boolean;
+        };
+        VerificationConnectInput: {
+            apiKey: string;
+            defaultBulk: boolean;
+            defaultForms: boolean;
+            /**
+             * Format: double
+             * @description Price per check in dollars
+             */
+            price: number;
+            /** @enum {string} */
+            region?: "us" | "eu" | "";
+            /** @enum {string} */
+            service: "zerobounce" | "kickbox" | "neverbounce" | "bouncer" | "emailable";
+        };
+        VerificationDisconnectResult: {
+            bulk: boolean;
+            forms: string[];
+            service: string;
+        };
+        VerificationEstimate: {
+            /** Format: int64 */
+            after?: number;
+            /** Format: int64 */
+            balance?: number;
+            /** Format: date-time */
+            balanceAt?: string;
+            canManage: boolean;
+            canVerify: boolean;
+            connected: boolean;
+            /** Format: int64 */
+            contacts: number;
+            /** Format: double */
+            cost: number;
+            enough: boolean;
+            kind: string;
+            label: string;
+            manageHelpers: string[];
+            /** Format: double */
+            price: number;
+            regionLabel?: string;
+            service?: string;
+            serviceName?: string;
+            services: components["schemas"]["VerificationServiceChoice"][];
+            skipRecent: boolean;
+            /** Format: int64 */
+            skipped: number;
+            /** Format: date-time */
+            skippedOn?: string;
+            skippedService?: string;
+            /** Format: int64 */
+            toCheck: number;
+            verifyHelpers: string[];
+        };
+        VerificationEstimateInput: {
+            /** @enum {string} */
+            service?: "zerobounce" | "kickbox" | "neverbounce" | "bouncer" | "emailable" | "";
+            /** @description Skip addresses checked in the last 90 days (default true) */
+            skipRecent?: boolean;
+            target: components["schemas"]["VerificationTarget"];
+        };
+        VerificationFormCount: {
+            /** Format: int64 */
+            checks: number;
+            formKey: string;
+            /** Format: int64 */
+            invalid: number;
+            name: string;
+            /** Format: int64 */
+            noAnswer: number;
+            /** Format: int64 */
+            risky: number;
+            /** Format: int64 */
+            unknown: number;
+            /** Format: int64 */
+            valid: number;
+        };
+        VerificationFormInput: {
+            enabled: boolean;
+        };
+        VerificationFormSetting: {
+            /** Format: int64 */
+            askedToFix: number;
+            canChange: boolean;
+            down: boolean;
+            enabled: boolean;
+            formKey: string;
+            helpers: string[];
+            /** Format: double */
+            price: number;
+            /** @description The forms default service; empty when there is none */
+            service?: string;
+            serviceName?: string;
+            /** Format: int64 */
+            waiting: number;
+        };
+        VerificationJobView: {
+            /** Format: int64 */
+            balanceAfter?: number;
+            /** Format: int64 */
+            balanceBefore?: number;
+            campaignId?: string;
+            canExport: boolean;
+            canVerify: boolean;
+            /** Format: int64 */
+            checked: number;
+            /** Format: double */
+            cost: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            errorSince?: string;
+            /** Format: double */
+            estimated: number;
+            /** Format: int64 */
+            etaSeconds?: number;
+            /** Format: date-time */
+            finishedAt?: string;
+            id: string;
+            importId?: string;
+            /** Format: int64 */
+            invalid: number;
+            /** @enum {string} */
+            kind: "import" | "list" | "segment" | "tier" | "selection" | "contact";
+            label: string;
+            lastError?: string;
+            listId?: string;
+            /** Format: date-time */
+            nextTryAt?: string;
+            origin: string;
+            /** Format: double */
+            price: number;
+            reasons: {
+                [key: string]: number;
+            };
+            /** Format: date-time */
+            recheckFrom?: string;
+            regionLabel: string;
+            /** Format: date-time */
+            retryUntil?: string;
+            /** Format: int64 */
+            risky: number;
+            service: string;
+            serviceName: string;
+            /** Format: int64 */
+            skipped: number;
+            /** Format: date-time */
+            startedAt?: string;
+            startedBy: string;
+            /** @enum {string} */
+            status: "queued" | "running" | "paused" | "stopped" | "cancelled" | "finished";
+            /** @enum {string} */
+            stopReason: "" | "no_credits" | "service_down" | "key_rejected" | "cancelled";
+            stoppedBy?: string;
+            /** Format: int64 */
+            suppressed: number;
+            tiers: string[];
+            /** Format: int64 */
+            total: number;
+            /** Format: int64 */
+            unknown: number;
+            /** Format: int64 */
+            valid: number;
+        };
+        VerificationKeyInput: {
+            apiKey: string;
+            /** @enum {string} */
+            region?: "us" | "eu" | "";
+            /** @enum {string} */
+            service: "zerobounce" | "kickbox" | "neverbounce" | "bouncer" | "emailable";
+        };
+        VerificationKeyTest: {
+            /** Format: date-time */
+            at: string;
+            /** Format: int64 */
+            balance?: number;
+            /** Format: date-time */
+            error?: string;
+            /** @enum {string} */
+            kind?: "key_rejected" | "no_credits" | "unreachable" | "";
+            ok: boolean;
+            problem?: string;
+            /**
+             * Format: int64
+             * @description The service's HTTP status when it refused
+             */
+            status?: number;
+        };
+        VerificationMapping: {
+            codes: string[];
+            reason?: string;
+            /** @enum {string} */
+            result: "valid" | "invalid" | "risky" | "unknown";
+            tag?: string;
+        };
+        VerificationOverview: {
+            canManage: boolean;
+            canVerify: boolean;
+            defaultBulk?: string;
+            defaultForms?: string;
+            manageHelpers: string[];
+            services: components["schemas"]["VerificationServiceView"][];
+            uses: components["schemas"]["VerificationUse"][];
+            verifyHelpers: string[];
+        };
+        VerificationRealtime: {
+            /** Format: int64 */
+            askedToFix: number;
+            /** Format: int64 */
+            checks: number;
+            days: components["schemas"]["VerificationRealtimeDay"][];
+            forms: components["schemas"]["VerificationFormCount"][];
+            service: string;
+            /** Format: date-time */
+            since?: string;
+            /** Format: double */
+            spent: number;
+            total: components["schemas"]["VerificationFormCount"];
+            /** Format: int64 */
+            waiting: number;
+        };
+        VerificationRealtimeDay: {
+            /** Format: int64 */
+            checks: number;
+            /** @description YYYY-MM-DD */
+            day: string;
+        };
+        VerificationRegion: {
+            key: string;
+            label: string;
+        };
+        VerificationReplaceKeyInput: {
+            apiKey: string;
+        };
+        VerificationServiceChoice: {
+            /** Format: int64 */
+            balance?: number;
+            default: boolean;
+            key: string;
+            name: string;
+            /** Format: double */
+            price: number;
+            regionLabel: string;
+        };
+        VerificationServiceView: {
+            /** Format: int64 */
+            balance?: number;
+            /** Format: date-time */
+            balanceAt?: string;
+            /** Format: int64 */
+            bulkUses30d: number;
+            capabilities: components["schemas"]["VerificationCapabilities"];
+            /** Format: int64 */
+            checks30d: number;
+            connected: boolean;
+            /** Format: date-time */
+            connectedAt?: string;
+            connectedBy?: string;
+            defaultBulk: boolean;
+            defaultForms: boolean;
+            down: boolean;
+            initials: string;
+            /** @enum {string} */
+            key: "zerobounce" | "kickbox" | "neverbounce" | "bouncer" | "emailable";
+            keyHelp: string;
+            lastError?: string;
+            /** Format: date-time */
+            lastErrorAt?: string;
+            /** Format: date-time */
+            lastErrorSince?: string;
+            /** Format: date-time */
+            lastSuccessAt?: string;
+            lastSuccessWhat?: string;
+            /** Format: date-time */
+            lastUsedAt?: string;
+            lastUsedBy?: string;
+            lastUsedWhat?: string;
+            mappings: components["schemas"]["VerificationMapping"][];
+            name: string;
+            /** Format: int64 */
+            needed?: number;
+            neededLabel?: string;
+            pausedJob?: string;
+            /**
+             * Format: double
+             * @description Price per check in dollars, from the workspace's plan
+             */
+            price: number;
+            /** @description Who entered the price */
+            priceBy?: string;
+            region: string;
+            regionLabel: string;
+            regions: components["schemas"]["VerificationRegion"][];
+            /** Format: double */
+            spent30d: number;
+            /** @enum {string} */
+            status: "not_connected" | "connected" | "low_credits" | "error";
+            testOk?: boolean;
+            /** Format: date-time */
+            testedAt?: string;
+            website: string;
+        };
+        VerificationSettingsInput: {
+            defaultBulk: boolean;
+            defaultForms: boolean;
+            /** Format: double */
+            price: number;
+            /** @enum {string} */
+            region?: "us" | "eu" | "";
+        };
+        VerificationStartInput: {
+            campaignId?: string;
+            /** @enum {string} */
+            origin?: "list_health" | "readiness" | "contacts" | "profile" | "import" | "segments" | "growth" | "";
+            /** @enum {string} */
+            service?: "zerobounce" | "kickbox" | "neverbounce" | "bouncer" | "emailable" | "";
+            skipRecent?: boolean;
+            target: components["schemas"]["VerificationTarget"];
+        };
+        VerificationTarget: {
+            contactId?: string;
+            contactIds?: string[];
+            filter?: components["schemas"]["ContactFilter"];
+            importId?: string;
+            /** @enum {string} */
+            kind: "list" | "segment" | "tier" | "selection" | "contact" | "import";
+            label?: string;
+            listId?: string;
+            segmentId?: string;
+            tiers?: string[];
+        };
+        VerificationUse: {
+            /** Format: int64 */
+            addresses: number;
+            /** Format: date-time */
+            at: string;
+            by: string;
+            /** Format: double */
+            cost: number;
+            /** Format: date-time */
+            finishedAt?: string;
+            forms: components["schemas"]["VerificationFormCount"][];
+            id: string;
+            /** Format: int64 */
+            invalid: number;
+            /** @enum {string} */
+            kind: "import" | "list" | "segment" | "tier" | "selection" | "contact" | "realtime";
+            label: string;
+            /** Format: int64 */
+            noAnswer: number;
+            /** Format: int64 */
+            risky: number;
+            service: string;
+            serviceName: string;
+            status: string;
+            /** Format: int64 */
+            suppressed: number;
+            /** Format: int64 */
+            unknown: number;
+            /** Format: int64 */
+            valid: number;
+        };
+        VerifyContactInput: {
+            /** @enum {string} */
+            service?: "zerobounce" | "kickbox" | "neverbounce" | "bouncer" | "emailable" | "";
+        };
+        VisibilityBlockInfo: {
+            broken: components["schemas"]["VisibilityBroken"][];
+            id: string;
+            name: string;
+            path: number[];
+            rule: components["schemas"]["VisibilityRule"];
+            section: boolean;
+            /** Format: int64 */
+            shown: number;
+            tag: string;
+            versions: number[];
+            words: string;
+        };
+        VisibilityBroken: {
+            /** Format: int64 */
+            condition: number;
+            /** Format: date-time */
+            deletedAt?: string;
+            deletedBy?: string;
+            /** @enum {string} */
+            kind: "segment" | "list" | "field";
+            name: string;
+        };
+        VisibilityCatalog: {
+            bands: components["schemas"]["VisibilityOption"][];
+            fields: components["schemas"]["VisibilityCatalogField"][];
+            groups: string[];
+            kinds: components["schemas"]["VisibilityCatalogKind"][];
+            languages: components["schemas"]["VisibilityOption"][];
+            lists: components["schemas"]["VisibilityOption"][];
+            score: components["schemas"]["VisibilityCatalogScore"];
+            segments: components["schemas"]["VisibilityOption"][];
+            tags: components["schemas"]["VisibilityOption"][];
+            tiers: components["schemas"]["VisibilityOption"][];
+        };
+        VisibilityCatalogField: {
+            key: string;
+            label: string;
+            ops: components["schemas"]["Operator"][];
+            options: string[];
+            type: string;
+        };
+        VisibilityCatalogKind: {
+            group: string;
+            key: string;
+            ops: components["schemas"]["Operator"][];
+        };
+        VisibilityCatalogScore: {
+            configured: boolean;
+            /** Format: int64 */
+            hotFrom: number;
+            /** Format: int64 */
+            warmFrom: number;
+        };
+        VisibilityCondition: {
+            field?: string;
+            kind: string;
+            label?: string;
+            op: string;
+            to?: string;
+            value?: string;
+        };
+        VisibilityHiddenBlock: {
+            id: string;
+            name: string;
+            why: string;
+        };
+        VisibilityOption: {
+            /** Format: int64 */
+            contacts?: number;
+            label: string;
+            value: string;
+        };
+        VisibilityPreview: {
+            contactId: string;
+            email: string;
+            empty: boolean;
+            hidden: components["schemas"]["VisibilityHiddenBlock"][];
+            inAudience: boolean;
+            name: string;
+            /** Format: int64 */
+            recipients: number;
+            shown: string[];
+            shows: string;
+            traits: string[];
+            /** Format: int64 */
+            version: number;
+            /** Format: int64 */
+            versions: number;
+        };
+        VisibilityPreviewContact: {
+            email: string;
+            id: string;
+            language: string;
+            name: string;
+            trait: string;
+            /** Format: int64 */
+            version: number;
+        };
+        VisibilityPreviewContactList: {
+            items: components["schemas"]["VisibilityPreviewContact"][];
+        };
+        VisibilityReport: {
+            blocks: components["schemas"]["VisibilityBlockInfo"][];
+            /** Format: int64 */
+            checked: number;
+            counted: boolean;
+            /** Format: date-time */
+            countedAt?: string;
+            /** Format: int64 */
+            durationMs: number;
+            invalid: string[];
+            /** Format: int64 */
+            maxSize: number;
+            /** Format: int64 */
+            minSize: number;
+            /** Format: int64 */
+            missing: number;
+            /** Format: int64 */
+            possible: number;
+            /** Format: int64 */
+            total: number;
+            versions: components["schemas"]["VisibilityVersion"][];
+        };
+        VisibilityRule: {
+            conditions: components["schemas"]["VisibilityCondition"][];
+            id: string;
+            /** @enum {string} */
+            match?: "all" | "any";
+            /** @enum {string} */
+            show: "everyone" | "only" | "except" | "nobody";
+        };
+        VisibilityUsage: {
+            /** Format: int64 */
+            blocks: number;
+            emails: components["schemas"]["VisibilityUseEmail"][];
+        };
+        VisibilityUseEmail: {
+            blocks: string[];
+            campaignId: string;
+            name: string;
+            paths: number[][];
+            /** Format: date-time */
+            scheduledAt?: string;
+            status: string;
+        };
+        VisibilityVersion: {
+            checked: boolean;
+            empty: boolean;
+            hidden: string[];
+            largest?: boolean;
+            /** Format: int64 */
+            number: number;
+            overClip: boolean;
+            /** Format: int64 */
+            recipients: number;
+            shown: string[];
+            shows: string;
+            /** Format: int64 */
+            sizeBytes: number;
+            smallest?: boolean;
         };
         WarmupCampaignUse: {
             /** Format: int64 */
@@ -27774,6 +32115,40 @@ export interface operations {
             };
         };
     };
+    "seed-oauth-callback": {
+        parameters: {
+            query?: {
+                code?: string;
+                state?: string;
+                error?: string;
+                error_description?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    "Cache-Control"?: string;
+                    Location?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "get-setup": {
         parameters: {
             query?: never;
@@ -29237,7 +33612,7 @@ export interface operations {
                 /** @description Action group (routing) or action (routing.updated) */
                 action?: string;
                 /** @description A group of actions, as in the action filter */
-                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "digests" | "grow";
+                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "earn" | "verification" | "placement" | "grow";
                 result?: "allowed" | "denied" | "error";
                 range?: "24h" | "7d" | "30d" | "90d" | "all";
                 /** @description Overrides range */
@@ -29319,7 +33694,7 @@ export interface operations {
                 /** @description Action group (routing) or action (routing.updated) */
                 action?: string;
                 /** @description A group of actions, as in the action filter */
-                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "digests" | "grow";
+                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "earn" | "verification" | "placement" | "grow";
                 result?: "allowed" | "denied" | "error";
                 range?: "24h" | "7d" | "30d" | "90d" | "all";
                 /** @description Overrides range */
@@ -31852,6 +36227,108 @@ export interface operations {
             };
         };
     };
+    "list-campaign-poll-test-answers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PollTestAnswers"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "clear-campaign-poll-test-answers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PollTestAnswersCleared"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-campaign-polls": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PollResultsList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "preview-campaign": {
         parameters: {
             query?: never;
@@ -32625,6 +37102,113 @@ export interface operations {
             };
         };
     };
+    "campaign-visibility": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisibilityReport"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "campaign-visibility-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PreviewInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisibilityPreview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "campaign-visibility-preview-contacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisibilityPreviewContactList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "composer-context": {
         parameters: {
             query?: never;
@@ -33376,6 +37960,8 @@ export interface operations {
                 /** @description Segment id */
                 segment?: string;
                 joinedAfter?: string;
+                /** @description The latest address check's result */
+                check?: "valid" | "invalid" | "risky" | "unknown" | "never" | "";
                 /** @description A workspace language's code (es also matches es-MX), none or not_offered */
                 language?: string;
                 band?: "cold" | "warm" | "hot" | "none" | "";
@@ -33725,6 +38311,40 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "contact-field-sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Contact id */
+                contactId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FieldSources"];
+                };
             };
             /** @description Error */
             default: {
@@ -35348,6 +39968,1693 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SendingDomainDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-earn-checklist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnChecklist"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-earn-checkout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EarnCheckoutInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnCheckoutSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "connect-payment-provider": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EarnConnectInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnConnection"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-payment-connection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnConnection"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "check-payment-connection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnConnection"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "disconnect-payment-provider": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EarnDisconnectInput"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "finish-payment-connection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EarnFinishInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnFinished"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "replace-payment-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EarnReplaceKeyInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnConnection"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-payment-connection-step": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EarnStepInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnConnection"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "register-payment-webhook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnConnection"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-payment-webhook-secret": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EarnWebhookSecretInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnConnection"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "register-payment-webhook-again": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnConnection"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-contact-paid-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Contact id */
+                contactId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnMember"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "upload-paid-member-import": {
+        parameters: {
+            query?: {
+                /** @description Where the export comes from */
+                source?: "substack" | "ghost" | "beehiiv" | "kit" | "csv";
+                /** @description The file's name */
+                fileName?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/octet-stream": string;
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnImport"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-paid-member-import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnImport"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "cancel-paid-member-import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-paid-member-import-columns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EarnImportColumnsInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnImport"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-paid-member-import-decisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EarnImportDecisions"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnImport"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "match-paid-member-import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnImport"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "start-paid-member-import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnImport"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-paid-members": {
+        parameters: {
+            query?: {
+                status?: "with_access" | "paying" | "trialing" | "past_due" | "cancels_soon" | "complimentary" | "gift" | "ended";
+                /** @description Name, email, billing email or Stripe customer ID */
+                q?: string;
+                /** @description Tier id */
+                tier?: string;
+                period?: "month" | "year" | "";
+                source?: "campaign" | "automation" | "page" | "offer" | "website" | "import" | "gift" | "grant" | "direct" | "";
+                /** @description An offer's label (FALL26) */
+                offer?: string;
+                since?: "7d" | "30d" | "90d" | "1y" | "";
+                /** @description Campaign id: paid members credited to it */
+                campaign?: string;
+                /** @description Paid members since before this date */
+                before?: string;
+                test?: boolean;
+                all?: boolean;
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnMemberList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "give-complimentary-access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EarnComplimentaryInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnMember"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "export-paid-members": {
+        parameters: {
+            query?: {
+                status?: "with_access" | "paying" | "trialing" | "past_due" | "cancels_soon" | "complimentary" | "gift" | "ended";
+                /** @description Name, email, billing email or Stripe customer ID */
+                q?: string;
+                /** @description Tier id */
+                tier?: string;
+                period?: "month" | "year" | "";
+                source?: "campaign" | "automation" | "page" | "offer" | "website" | "import" | "gift" | "grant" | "direct" | "";
+                /** @description An offer's label (FALL26) */
+                offer?: string;
+                since?: "7d" | "30d" | "90d" | "1y" | "";
+                /** @description Campaign id: paid members credited to it */
+                campaign?: string;
+                /** @description Paid members since before this date */
+                before?: string;
+                test?: boolean;
+                all?: boolean;
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control"?: string;
+                    "Content-Disposition"?: string;
+                    "Content-Type"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-paid-member": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnMember"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "cancel-paid-subscription": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EarnCancelInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnMember"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "change-complimentary-access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EarnGrantInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnMember"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-complimentary-access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "resend-member-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EarnResendInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnResent"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-earn-payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnPayments"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-payment-events": {
+        parameters: {
+            query?: {
+                /** @description A group of event types */
+                group?: "all" | "payments" | "failures" | "refunds" | "changes" | "trials";
+                /** @description How far back (raw events are kept 90 days) */
+                range?: "24h" | "7d" | "30d" | "90d";
+                /** @description Search the event type, the event id, the paid member or the raw event */
+                q?: string;
+                /** @description Include test-mode events */
+                test?: boolean;
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnEventLog"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-earn-plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnPlans"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-earn-access-rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnAccessRules"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-earn-access-rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EarnAccessInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnAccessRules"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-member-emails": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnMemberEmails"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-earn-pages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnPagesSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-earn-pages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EarnPagesInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnPagesSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-earn-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnStatus"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "clear-earn-test-data": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnTestDataCleared"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-earn-tier": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EarnTierInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnTierSaved"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-earn-tier": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnTier"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-earn-tier": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EarnTierInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnTierSaved"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-earn-tier": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "sync-earn-tier": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnTierSaved"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "map-earn-price": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EarnMapPriceInput"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-upgrade-page": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnUpgradeEditor"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-upgrade-page": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpgradePage"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnUpgradeEditor"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "preview-upgrade-page": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EarnPreviewInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnPreview"];
                 };
             };
             /** @description Error */
@@ -41831,7 +48138,7 @@ export interface operations {
         parameters: {
             query?: {
                 /** @description Notification center tab */
-                filter?: "all" | "unread" | "approvals" | "sending" | "providers" | "team" | "hostrepute" | "transactional" | "integrations" | "grow";
+                filter?: "all" | "unread" | "approvals" | "sending" | "providers" | "team" | "hostrepute" | "transactional" | "earn" | "grow";
                 /** @description Opaque cursor from a previous page */
                 cursor?: string;
                 limit?: number;
@@ -42077,6 +48384,768 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OverviewSenderHealth"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "search-placement-content": {
+        parameters: {
+            query?: {
+                /** @description Words of the name */
+                q?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlacementContentList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "plan-placement-test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlacementRunInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlacementPlan"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-seed-mailboxes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlacementSeedList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "add-seed-mailbox": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlacementSeedInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlacementSeedCheck"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "start-seed-oauth": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlacementOAuthInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlacementOAuthStart"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-seed-mailbox": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                seed: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "reconnect-seed-mailbox": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                seed: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlacementReconnectInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlacementSeedCheck"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-placement-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlacementSettingsInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlacementSettingsInput"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-placement-tests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlacementTestList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "start-placement-test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlacementRunInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlacementTestDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-placement-test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                test: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlacementTestDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-placement-copy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                test: string;
+                copy: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlacementCopyDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-placement-copies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                test: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlacementTestDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "rerun-placement-test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                test: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlacementTestDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "stop-placement-test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                test: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlacementTestDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-poll-sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PollSourceList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-poll-results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Poll id */
+                pollId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PollResults"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "export-poll-answers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Poll id */
+                pollId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control"?: string;
+                    "Content-Disposition"?: string;
+                    "Content-Type"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "close-poll": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Poll id */
+                pollId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PollResults"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-poll-comments": {
+        parameters: {
+            query?: {
+                /** @description Comments of 0–10 answers by group */
+                group?: "all" | "promoters" | "passives" | "detractors";
+                /** @description Words in the comment (and the contact's name, with subscribers:view) */
+                search?: string;
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Poll id */
+                pollId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PollCommentList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "reopen-poll": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Poll id */
+                pollId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PollResults"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "export-poll-results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Poll id */
+                pollId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control"?: string;
+                    "Content-Disposition"?: string;
+                    "Content-Type"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
                 };
             };
             /** @description Error */
@@ -43017,6 +50086,42 @@ export interface operations {
             };
         };
     };
+    "preview-poll-page": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PollPagePreviewInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPagePreview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "preview-public-page": {
         parameters: {
             query?: {
@@ -43038,6 +50143,42 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPagePreview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "preview-survey-page": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SurveyPagePreviewInput"];
+            };
+        };
         responses: {
             /** @description OK */
             200: {
@@ -44321,7 +51462,7 @@ export interface operations {
             query?: {
                 /** @description Address or domain */
                 q?: string;
-                reason?: "hard_bounce" | "complaint" | "unsubscribe" | "manual" | "";
+                reason?: "hard_bounce" | "complaint" | "unsubscribe" | "manual" | "invalid" | "spam_trap" | "";
                 source?: string;
                 since?: "7d" | "30d" | "";
                 /** @description Show the rows of one import group */
@@ -44526,6 +51667,469 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-surveys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SurveyList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-survey": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SurveyCreate"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Survey"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-survey": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Survey id */
+                surveyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Survey"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-survey": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Survey id */
+                surveyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-survey": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Survey id */
+                surveyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SurveyUpdate"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Survey"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "export-survey-answers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Survey id */
+                surveyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control"?: string;
+                    "Content-Disposition"?: string;
+                    "Content-Type"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "close-survey": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Survey id */
+                surveyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Survey"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "publish-survey": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Survey id */
+                surveyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Survey"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-survey-text-answers": {
+        parameters: {
+            query?: {
+                search?: string;
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Survey id */
+                surveyId: string;
+                /** @description The question's key */
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SurveyTextAnswerList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "reopen-survey": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Survey id */
+                surveyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SurveyReopen"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Survey"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-survey-responses": {
+        parameters: {
+            query?: {
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Survey id */
+                surveyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SurveyResponseList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-survey-results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Survey id */
+                surveyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SurveyResults"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "export-survey-results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Survey id */
+                surveyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control"?: string;
+                    "Content-Disposition"?: string;
+                    "Content-Type"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
             };
             /** @description Error */
             default: {
@@ -46434,6 +54038,739 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-contact-address-check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                contact: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactAddressCheck"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "verify-contact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                contact: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerifyContactInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactAddressCheck"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "estimate-verification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerificationEstimateInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationEstimate"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-form-address-check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description A form's id, or subscribe_page */
+                form: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationFormSetting"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-form-address-check": {
+        parameters: {
+            query?: {
+                /** @description The form's name, for the audit log */
+                name?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description A form's id, or subscribe_page */
+                form: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerificationFormInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationFormSetting"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "start-verification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerificationStartInput"];
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationJobView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-verification-job": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                job: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationJobView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "cancel-verification-job": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                job: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationJobView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "download-verification-results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                job: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Content-Disposition"?: string;
+                    "Content-Type"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "resume-verification-job": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                job: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationJobView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-verification-services": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationOverview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "connect-verification-service": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerificationConnectInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationServiceView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "test-verification-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerificationKeyInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationKeyTest"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-verification-service": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                service: "zerobounce" | "kickbox" | "neverbounce" | "bouncer" | "emailable";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationServiceView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "disconnect-verification-service": {
+        parameters: {
+            query?: {
+                /** @description The forms that stop checking, as the dialog listed them */
+                forms?: string[];
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                service: "zerobounce" | "kickbox" | "neverbounce" | "bouncer" | "emailable";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationDisconnectResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-verification-service": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                service: "zerobounce" | "kickbox" | "neverbounce" | "bouncer" | "emailable";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerificationSettingsInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationServiceView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "replace-verification-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                service: "zerobounce" | "kickbox" | "neverbounce" | "bouncer" | "emailable";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerificationReplaceKeyInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationServiceView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-verification-realtime": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                service: "zerobounce" | "kickbox" | "neverbounce" | "bouncer" | "emailable";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationRealtime"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "test-verification-service": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                service: "zerobounce" | "kickbox" | "neverbounce" | "bouncer" | "emailable";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationKeyTest"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "visibility-catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisibilityCatalog"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "visibility-usage": {
+        parameters: {
+            query?: {
+                /** @description What the rules refer to */
+                kind?: "segment" | "list" | "field" | "tag";
+                /** @description A segment or list id, a field key or a tag */
+                ref?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisibilityUsage"];
+                };
             };
             /** @description Error */
             default: {

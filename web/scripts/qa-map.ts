@@ -119,7 +119,7 @@ export const entries: Entry[] = [
   // the step into view, which a click on it (as the board shows) doesn't.
   { board: 'AutomationFlow', path: `${ws}/automations/{automation:Welcome series}?step=n3` },
   { board: 'AutomationsStates', manual: true },
-  { board: 'FormBuilder', path: `${ws}/forms` },
+  { board: 'FormBuilder', path: `${ws}/forms?form={form:Newsletter signup}` },
   { board: 'FormsStates', manual: true },
   { board: 'Notifications', path: `${ws}/notifications` },
   { board: 'AccountSecurity', path: `${ws}/account` },
@@ -281,4 +281,37 @@ export const entries: Entry[] = [
   { board: 'DigestSetupTablet', path: `${ws}/campaigns/digests/{digest:Engineering blog roundup}/settings`, widths: [834] },
   { board: 'DigestSetupStates', manual: true },
   { board: 'DigestComposer', path: `${ws}/campaigns/{digestTemplate:Engineering blog roundup}/edit?select=2&panel=settings`, widths: [1440], viewportOnly: true, height: 1000 },
+  // X11 · conditional content, polls and surveys. Weekly Digest #143's Beta corner is section 7 and
+  // its topics poll section 9; the composer's other frames (the picker open, a deleted segment, an
+  // empty version, more than 50 versions, Gmail's clipping size) and the answer pages (signed links,
+  // see internal/publicpages/polls_test.go) need data changes or a signed token.
+  { board: 'ComposerVisibility', path: `${ws}/campaigns/{campaign:Weekly Digest #143}/edit?select=7&panel=settings&left=layers`, widths: [1440] },
+  { board: 'VisibilityStates', manual: true },
+  { board: 'ComposerPoll', path: `${ws}/campaigns/{campaign:Weekly Digest #143}/edit?select=9&panel=settings`, widths: [1440] },
+  { board: 'PublicPoll', manual: true },
+  { board: 'PublicPollPhone', manual: true, widths: [390] },
+  { board: 'PollResults', path: `${ws}/campaigns/{campaign:Weekly Digest #141}/report`, widths: [1440] },
+  { board: 'SurveyBuilder', path: `${ws}/forms/surveys/{survey:Beta feedback · October 2026}?q=q3`, widths: [1440] },
+  // X14 · address verification and placement tests. VerificationRun's job page is the Sunset tier's
+  // check; its dialog opens from List health's tier cards. PlacementRun's first frame opens from
+  // Review & send through the URL an entry point builds; its other frames (composer, warm-up planner,
+  // template editor, a provider that is down, no verified sender) and the …States boards need clicks
+  // or data changes.
+  { board: 'VerificationServices', path: `${ws}/settings/integrations/verification`, widths: [1440] },
+  { board: 'VerificationRun', path: `${ws}/audience/verification/{verification:Sunset}`, widths: [1440] },
+  { board: 'VerificationStates', manual: true },
+  { board: 'PlacementTests', path: `${ws}/deliverability/placement`, widths: [1440] },
+  {
+    board: 'PlacementRun',
+    path: `${ws}/deliverability/placement?run=review&kind=campaign&content={campaign:Weekly Digest #142}&through=compare&from=Weekly%20Digest%20%23142`,
+    widths: [1440],
+    viewportOnly: true,
+    height: 1000,
+  },
+  { board: 'PlacementResult', path: `${ws}/deliverability/placement/{placement:Weekly Digest #142 · SES vs Postal}`, widths: [1440] },
+  { board: 'PlacementResultTablet', path: `${ws}/deliverability/placement/{placement:Weekly Digest #142 · SES vs Postal}`, widths: [834] },
+  { board: 'PlacementResultPhone', path: `${ws}/deliverability/placement/{placement:Weekly Digest #142 · SES vs Postal}`, widths: [390] },
+  { board: 'PlacementSeeds', path: `${ws}/deliverability/placement/seeds`, widths: [1440] },
+  { board: 'PlacementStates', manual: true },
+  { board: 'PlacementSeedStates', manual: true },
 ]

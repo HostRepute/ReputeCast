@@ -8,6 +8,9 @@ import { cn } from '@/lib/cn'
 import { clock, count, money } from '@/lib/format'
 import { providerColor } from '../providers/common'
 import { LanguageClickMap, ResultsPerLanguage, sentByLanguage } from '@/features/languages/report'
+import { HowAnswersCounted, PollsError, PollSections, PollTiles, useMapPolls, type PollResults } from '@/features/polls/report'
+import { m as pm } from '@/features/polls/report.messages'
+import { useT } from '@/i18n'
 import { ClickMap } from './ClickMap'
 import { EngagementChart } from './EngagementChart'
 import {
@@ -27,6 +30,13 @@ import {
 } from './words'
 
 type BounceRow = Schemas['ReportBounceRow']
+
+/** A campaign's polls (design expansion, X11): their results, or why they're missing. */
+export interface ReportPolls {
+  items?: PollResults[]
+  error?: unknown
+  retry(): void
+}
 
 export interface ReportActions {
   /** Why the current member can't add addresses to the suppression list. */
@@ -53,7 +63,7 @@ function Tile({ label, value, sub, muted, behind, asOf }: { label: string; value
 }
 
 /** The eight headline tiles. While provider events lag, the counts they feed say "as of". */
-export function HeadlineTiles({ r }: { r: CampaignReport }) {
+export function HeadlineTiles({ r, polls }: { r: CampaignReport; polls?: PollResults[] }) {
   const h = r.headline
   const final = r.campaign.final
   const lag = r.backlog ? clock(r.backlog.since) : undefined
@@ -62,6 +72,7 @@ export function HeadlineTiles({ r }: { r: CampaignReport }) {
     <Grid min={240} gap={12} className={cn(lag && 'opacity-75')}>
       <Tile label="Sent" value={count(h.sent)} sub={sentByLanguage(r.languages) ?? (sentByLine(h) || '—')} />
       <Tile label="Delivered" value={count(h.delivered)} sub={pct1(h.deliveredRate)} behind={Boolean(lag)} asOf={lag} />
+      {polls?.length ? <PollTiles polls={polls} /> : null}
       <Tile label="Human opens" value={count(h.humanOpens)} sub={current ?? `${pct1(h.humanOpenRate)} of delivered`} />
       <Tile label="Machine opens" value={count(h.machineOpens)} muted sub={current ?? `${pct1(h.machineOpenRate)} · Apple Mail prefetch, scanners`} />
       <Tile label="Clicks" value={count(h.clicks)} sub={current ?? `${pct1(h.clickRate)} · click-to-open ${pct1(h.clickToOpen)}`} />
@@ -372,16 +383,47 @@ function ABTestCard({ t }: { t: Schemas['ReportABTest'] }) {
 }
 
 /** Everything below the header: the report's cards in the board's order. */
-export function ReportBody({ r, actions }: { r: CampaignReport; actions?: ReportActions }) {
+export function ReportBody({ r, actions, polls }: { r: CampaignReport; actions?: ReportActions; polls?: ReportPolls }) {
+  const t = useT()
+  const items = polls?.items?.length ? polls.items : undefined
+  const mapPolls = useMapPolls(items)
+  const clickMap = (
+    <LanguageClickMap r={r} campaignId={r.campaign.id}>
+      {(m, picker, note) => (
+        <ClickMap
+          m={m}
+          clicks={r.headline.clicks}
+          imported={Boolean(r.campaign.origin)}
+          picker={picker}
+          languageNote={note}
+          polls={mapPolls}
+          pollNote={<span className="k">{t(pm.mapNote)}</span>}
+        />
+      )}
+    </LanguageClickMap>
+  )
+  const engagement = <EngagementChart e={r.engagement} startedAt={r.campaign.startedAt} final={r.campaign.final} />
   return (
     <>
-      <HeadlineTiles r={r} />
-      <div className="flex flex-wrap items-stretch gap-5">
-        <EngagementChart e={r.engagement} startedAt={r.campaign.startedAt} final={r.campaign.final} />
-        <LanguageClickMap r={r} campaignId={r.campaign.id}>
-          {(m, picker, note) => <ClickMap m={m} clicks={r.headline.clicks} imported={Boolean(r.campaign.origin)} picker={picker} languageNote={note} />}
-        </LanguageClickMap>
-      </div>
+      <HeadlineTiles r={r} polls={items} />
+      {items ? (
+        // With a poll (PollResults): the click map beside how answers are
+        // counted, then the Poll section.
+        <>
+          <div className="flex flex-wrap items-stretch gap-5">{engagement}</div>
+          <div className="flex flex-wrap items-stretch gap-5">
+            {clickMap}
+            <HowAnswersCounted polls={items} />
+          </div>
+          <PollSections campaignId={r.campaign.id} polls={items} />
+        </>
+      ) : (
+        <div className="flex flex-wrap items-stretch gap-5">
+          {engagement}
+          {clickMap}
+        </div>
+      )}
+      {polls?.error ? <PollsError error={polls.error} onRetry={polls.retry} /> : null}
       <div className="flex flex-wrap items-start gap-5">
         <MailboxTable rows={r.mailboxes} />
         {r.providers.columns.length ? <ProviderTable t={r.providers} /> : null}

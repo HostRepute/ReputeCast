@@ -53,6 +53,7 @@ func (a *App) formsService() *forms.Service {
 		Mail:   func() mailer.Sender { return a.Mail },
 		Tokens: a.Links, URLs: a.URLs, DNS: resolver,
 		Turnstile: &forms.Turnstile{Client: guard.Client(10 * time.Second)},
+		Addresses: formAddressChecks{a: a},
 		Hooks:     func() []forms.SignupHook { return signupHooks(a) },
 	}
 	formsServices[a] = s
@@ -78,6 +79,7 @@ var publicNotifications = func(*App) publicpages.Notifications { return nil }
 
 func (a *App) publicPages() *publicpages.Handler {
 	fs := a.formsService()
+	pl := a.polls()
 	formsMu.Lock()
 	defer formsMu.Unlock()
 	if h, ok := formsPages[a]; ok {
@@ -88,7 +90,13 @@ func (a *App) publicPages() *publicpages.Handler {
 		// Root paths on hosts that aren't a custom domain stay the web app's.
 		SPA:           server.NewSPA(web.Dist()),
 		Notifications: publicNotifications(a),
-		Recipients:    func() []liquid.RecipientData { return recipientData(a) },
+		// The poll answer pages and survey pages; emails in the browser get
+		// their version of conditional content and their poll links.
+		Polls:   pl,
+		Browser: browserContent{a},
+		// The upgrade page, its welcome page and the billing links (X16).
+		Earn:       earnService(a),
+		Recipients: func() []liquid.RecipientData { return recipientData(a) },
 		// Grow's pages: the hub, invite pages, the leaderboard, downloads
 		// and the recommendations page.
 		Referrals:       a.referrals,

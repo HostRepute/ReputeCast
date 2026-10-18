@@ -127,6 +127,8 @@ type runState struct {
 	loc        *time.Location
 	ab         abState
 	started    time.Time
+	// links are the per-recipient links of the email's polls and surveys.
+	links []RecipientLink
 }
 
 // cachedTemplate keeps a send's parsed templates in the process.
@@ -212,6 +214,11 @@ func (e *Engine) load(ctx context.Context, id uuid.UUID, now time.Time) (*runSta
 	rs.holds = parseHolds(snd.Holds)
 	if rs.templates, err = e.templatesFor(id, rs.content); err != nil {
 		return nil, err
+	}
+	if e.Conditional != nil {
+		if rs.links, err = e.Conditional.Links(ctx, cc.WorkspaceID, id); err != nil {
+			return nil, err
+		}
 	}
 	if err := e.loadRoutes(ctx, rs, now); err != nil {
 		return nil, err
@@ -829,12 +836,17 @@ func simRows(ws uuid.UUID, campaign *uuid.UUID, msg, provider uuid.UUID, now tim
 // compose builds one recipient's message: personalization, per-recipient
 // tracking and system links, and the bulk-mail headers.
 func (e *Engine) compose(rs *runState, r *runRoute, m store.SendingClaimRow, extra map[uuid.UUID]map[string]any) (providers.Message, error) {
-	tpl := rs.templates[renderKey(rs.content, m.Language, m.Variant)]
-	if tpl == nil {
-		tpl = rs.templates[renderKey(rs.content, m.Language, "")]
+	key := renderKey(rs.content, m.Language, m.Variant)
+	if rs.templates[key] == nil {
+		key = renderKey(rs.content, m.Language, "")
 	}
-	if tpl == nil {
-		tpl = rs.templates[""]
+	if rs.templates[key] == nil {
+		key = ""
+	}
+	// The recipient's version: their hidden conditional blocks cut out.
+	tpl, err := e.versionTemplate(rs, key, m.HiddenBlocks)
+	if err != nil {
+		return providers.Message{}, err
 	}
 	ws, slug := rs.campaign.WorkspaceID, rs.campaign.WorkspaceSlug
 	var contact uuid.UUID
@@ -849,6 +861,9 @@ func (e *Engine) compose(rs *runState, r *runRoute, m store.SendingClaimRow, ext
 		"unsubscribe_url":     e.URLs.Unsubscribe(slug, unsub),
 		"preferences_url":     e.URLs.Preferences(slug, sign(linktoken.Preferences, 0)),
 		"view_in_browser_url": e.URLs.ViewOnline(slug, sign(linktoken.ViewOnline, 0)),
+	}
+	for _, l := range rs.links {
+		links[l.Var] = l.URL(m.ID, contact)
 	}
 	tracked := r.tracked && (tpl.Opens || tpl.Clicks)
 	if tracked {

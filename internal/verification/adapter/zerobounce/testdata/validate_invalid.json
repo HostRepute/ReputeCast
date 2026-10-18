@@ -1,0 +1,22 @@
+{
+  "address": "invalid@contract.test",
+  "status": "invalid",
+  "sub_status": "mailbox_not_found",
+  "free_email": false,
+  "did_you_mean": null,
+  "account": "invalid",
+  "domain": "contract.test",
+  "domain_age_days": "9692",
+  "active_in_days": null,
+  "smtp_provider": null,
+  "mx_found": "true",
+  "mx_record": "mx1.contract.test",
+  "firstname": null,
+  "lastname": null,
+  "gender": null,
+  "country": null,
+  "region": null,
+  "city": null,
+  "zipcode": null,
+  "processed_at": "2026-10-14 19:02:11.081"
+}

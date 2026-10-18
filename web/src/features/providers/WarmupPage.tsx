@@ -17,6 +17,7 @@ import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { limitPct, ProvidersTabs, throwIfForbidden } from './common'
 import { parseNumber } from './ProviderSettingsDialog'
 import { audienceText, dayStatus, rampHeight, visibleDays, type WarmupPlan } from './warmup-model'
+import { WarmupPlacementCard } from '@/features/placement/EntryPoints'
 
 const warmupKey = ['get', '/api/v1/workspaces/{workspace}/warmup'] as const
 const providersKey = ['get', '/api/v1/workspaces/{workspace}/providers'] as const
@@ -66,6 +67,7 @@ export function WarmupPage() {
             <RampCard plan={plan} />
             <aside className="flex max-w-[440px] flex-[1_1_340px] flex-col gap-4 max-md:min-w-0" aria-label="Plan settings and log">
               <PlanSettings key={plan.id} plan={plan} />
+              <WarmupPlacementCard key={`pl-${plan.id}`} providerId={plan.providerId} provider={plan.short} day={plan.day} days={plan.days} />
               <WarmupLog plan={plan} />
             </aside>
           </div>

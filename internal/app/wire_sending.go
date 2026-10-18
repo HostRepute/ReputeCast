@@ -47,6 +47,10 @@ func (r *readinessRecheck) Recheck(ctx context.Context, campaignID uuid.UUID) (s
 	return sending.Recheck{Verdict: rc.Verdict, Blocking: rc.Blocking, Throttles: rc.Throttles, Audience: rc.Audience, RunID: rc.RunID}, nil
 }
 
+// sendingConditional decides conditional content and fills poll links;
+// set from wire_visibility.go. Nil sends every block.
+var sendingConditional = func(*App) engine.Conditional { return nil }
+
 // sendingSegments resolves segment audiences: the audience domain's
 // segments service (dynamic segments are evaluated when the send starts,
 // static ones use their snapshot).
@@ -66,6 +70,7 @@ func sendingTracker(a *App) *tracking.Service {
 	t := &tracking.Service{Pool: a.Pool, Q: a.Q, Links: a.Links, Log: a.Log,
 		Automations:   &automations.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Log: a.Log},
 		Transactional: transactionalService(a),
+		Placement:     a.placement(),
 		Recipients:    func() []liquid.RecipientData { return recipientData(a) }}
 	v, _ := trackers.LoadOrStore(a, t)
 	return v.(*tracking.Service)
@@ -88,6 +93,9 @@ func sendingEngine(a *App) *engine.Engine {
 		Automations: &automations.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Log: a.Log},
 		// Each reader gets the language version for them.
 		Languages: &languages.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit},
+		// Each reader gets their version of conditional content, and their
+		// own poll and survey links.
+		Conditional: sendingConditional(a),
 		// Grow's blocks read each reader's referral link and progress.
 		Recipients: func() []liquid.RecipientData { return recipientData(a) },
 	}

@@ -10,6 +10,8 @@ import { componentLabel, mjChildren, sectionOf, tagOf } from './editor/labels'
 import { BlockIcon, ToolIcon } from './icons'
 import { Thumb } from './Thumb'
 import { isDigestTemplate } from '@/features/digests/composer/DigestMode'
+import { LayerMark, LayersNote } from '@/features/conditional/Canvas'
+import { PollBlockHint } from '@/features/polls/Block'
 
 type BlocksAPI = { startDrag(b: unknown, ev?: Event): void; endDrag(cancel?: boolean): void; get(id: string): unknown; add(id: string, p: Record<string, unknown>): unknown }
 
@@ -78,6 +80,7 @@ function BlockTile({ def, flagged, onSaved }: { def: BlockDef | { id: string; la
     >
       <BlockIcon name={def.icon} />
       {def.label}
+      {'badge' in def && def.badge ? <span className="blk-new">{def.badge}</span> : null}
     </button>
   )
 }
@@ -122,6 +125,7 @@ function BlocksTab({ onShowSections, blocks, note, reputecastFirst }: { onShowSe
       </div>
       {groups.map((g) => {
         const items = defs.filter((d) => d.group === g.key && match(d))
+        const pollHint = g.key === 'reputecast' && items.some((d) => d.id === 'rc-poll')
         const showSaved = g.key === 'reputecast' && (!needle || 'saved sections'.includes(needle))
         if (!items.length && !showSaved) return null
         return (
@@ -136,6 +140,7 @@ function BlocksTab({ onShowSections, blocks, note, reputecastFirst }: { onShowSe
                   <BlockTile def={{ id: 'rc-saved', label: `Saved sections · ${savedCount}`, icon: 'saved', group: 'reputecast', kind: 'section', content: '' }} onSaved={onShowSections} />
                 ) : null}
               </div>
+              {pollHint ? <PollBlockHint /> : null}
             </div>
             {reputecastFirst && g.key === 'reputecast' ? note : null}
           </Fragment>
@@ -225,7 +230,8 @@ function LayersTab() {
           <span data-twisty className="inline-flex">
             <ToolIcon name={layerIcon(tag, o, kids.length > 0)} size={14} strokeWidth={1.6} />
           </span>
-          {componentLabel(x)}
+          <span className="lay-name">{componentLabel(x)}</span>
+          <LayerMark c={x} />
           {hiddenTag(x) ? <span className="lay-tag">{hiddenTag(x)}</span> : null}
         </button>
       </div>,
@@ -244,9 +250,12 @@ function LayersTab() {
   }
   render(root, 0)
   return (
-    <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 1 }} role="tree" aria-label="Layer tree">
-      {rows}
-    </div>
+    <>
+      <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 1 }} role="tree" aria-label="Layer tree">
+        {rows}
+      </div>
+      <LayersNote />
+    </>
   )
 }
 

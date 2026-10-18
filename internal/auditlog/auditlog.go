@@ -132,6 +132,11 @@ var Categories = []AuditCategory{
 	{Key: "scoring", Label: "Scoring", Groups: []string{"scoring"}},
 	// Recurring digests (design expansion, phase 3).
 	{Key: "digests", Label: "Digests", Groups: []string{"digest"}},
+	{Key: "polls", Label: "Polls & surveys", Groups: []string{"poll", "survey"}},
+	// Earn (design expansion, phase 6).
+	{Key: "earn", Label: "Earn", Groups: []string{"payments", "earn", "paid_member"}},
+	{Key: "verification", Label: "Verification", Groups: []string{"verification"}},
+	{Key: "placement", Label: "Placement tests", Groups: []string{"placement"}},
 	// Grow (design expansion, phase 5): referral programs, recommendations
 	// and partner links.
 	{Key: "grow", Label: "Grow", Groups: []string{"referral", "recommendation", "partner"}},

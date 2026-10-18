@@ -97,7 +97,7 @@ type AutomationNodeData struct {
 
 // AutomationTrigger says which contacts enter the flow.
 type AutomationTrigger struct {
-	Kind string `json:"kind" enum:"joined_list,form_submitted,tag_added,api_event,date_field,score_crosses,milestone_reached"`
+	Kind string `json:"kind" enum:"joined_list,form_submitted,tag_added,api_event,date_field,score_crosses,poll_answered,milestone_reached"`
 	// Joined list: the list, whether to wait for double opt-in, and whether
 	// contacts added by an import count.
 	ListID         string `json:"listId,omitempty" maxLength:"40"`
@@ -120,6 +120,13 @@ type AutomationTrigger struct {
 	Direction  string `json:"direction,omitempty" enum:"rises,falls"`
 	Threshold  int    `json:"threshold,omitempty" minimum:"0" maximum:"100"`
 	OnceInDays int    `json:"onceInDays,omitempty" minimum:"0" maximum:"3650"`
+	// Answered a poll or survey (polls.go): the poll or survey ("poll:<id>",
+	// "survey:<id>"), the answers that start it (keys, with is or is not),
+	// and whether a changed answer starts it again.
+	Poll     string `json:"poll,omitempty" maxLength:"60"`
+	AnswerOp string `json:"answerOp,omitempty" enum:"any,is,is_not"`
+	Answers  []int  `json:"answers,omitempty" maxItems:"11"`
+	OnChange bool   `json:"onChange,omitempty"`
 	// Reached a milestone (Grow): the referral program and its milestone,
 	// or any of its milestones when the milestone is empty (any program's
 	// when both are).
@@ -466,6 +473,7 @@ type Refs struct {
 	EmailNames map[string]string // id → name
 	Fields     map[string]string // key → type
 	Providers  map[string]string // id → name
+	Polls      map[string]string // "poll:<id>" or "survey:<id>" → name
 	// Milestones are Grow's referral milestones: "3 referrals · The Acme
 	// Field Guide".
 	Milestones map[string]string
@@ -625,6 +633,14 @@ func checkConfig(n AutomationNode, refs *Refs) []configProblem {
 		case TriggerAPIEvent:
 			if !reEvent.MatchString(t.Event) {
 				bad("invalid_event", "Name the API event, like workspace.created (letters, numbers and . _ : -).")
+			}
+		case TriggerPollAnswered:
+			if t.Poll == "" {
+				bad("missing_ref", "Pick the poll or survey.")
+			} else if refs != nil && refs.Polls != nil {
+				if _, ok := refs.Polls[t.Poll]; !ok {
+					bad("missing_ref", "The trigger's poll or survey was deleted. Pick another one.")
+				}
 			}
 		case TriggerDateField:
 			if t.Field == "" {

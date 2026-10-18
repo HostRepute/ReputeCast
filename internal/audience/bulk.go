@@ -248,6 +248,12 @@ func eraseContacts(ctx context.Context, tx pgx.Tx, ids []uuid.UUID) error {
 		`DELETE FROM segment_members WHERE contact_id = ANY ($1)`,
 		`UPDATE messages SET email = '' WHERE contact_id = ANY ($1)`,
 		`UPDATE delivery_events SET ip = NULL, user_agent = '', url = '' WHERE contact_id = ANY ($1)`,
+		// Poll answers and survey responses still count, unlinked; what the
+		// person wrote goes (design expansion, X11).
+		`UPDATE poll_answers SET contact_id = NULL, message_id = NULL, comment = '' WHERE contact_id = ANY ($1)`,
+		`UPDATE survey_responses SET contact_id = NULL, message_id = NULL,
+		    answers = (SELECT coalesce(jsonb_object_agg(e.k, e.v), '{}'::jsonb) FROM jsonb_each(survey_responses.answers) AS e(k, v) WHERE jsonb_typeof(e.v) <> 'string')
+		 WHERE contact_id = ANY ($1)`,
 		// Grow: a referrer's link, hub and rewards go; the referrals they
 		// made, and their own referral, stay counted without an address.
 		`DELETE FROM referral_rewards WHERE contact_id = ANY ($1)`,

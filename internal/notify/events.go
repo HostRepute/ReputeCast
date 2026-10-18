@@ -15,7 +15,10 @@ type EventType struct {
 	// Urgent emails ignore quiet hours and digests ("Auto-pauses and
 	// provider outages always send immediately").
 	Urgent bool
-	Kinds  []string
+	// OffByDefault event types are neither in-app nor emailed until the
+	// person turns them on, and summaries leave them out while off.
+	OffByDefault bool
+	Kinds        []string
 }
 
 // Events lists the event types in the order of the preferences table.
@@ -38,6 +41,14 @@ var Events = []EventType{
 	{Key: KindDigestPaused, Label: "Digest paused", Audience: "The owner, or everyone with campaigns:send", Short: "paused digests", DefaultEmail: true, Kinds: []string{KindDigestPaused}},
 	{Key: KindDigestFeedFailing, Label: "Digest feed failing", Audience: "The digest's owner", Short: "failing digest feeds", DefaultEmail: true, Kinds: []string{KindDigestFeedFailing}},
 	{Key: KindDigestDraftReady, Label: "Digest draft ready", Audience: "The owner and everyone with campaigns:send", Short: "digest drafts", DefaultEmail: true, Kinds: []string{KindDigestDraftReady}},
+	{Key: KindPaymentsAttention, Label: "Payments: key rejected, webhook missing or silent", Audience: "Everyone with payments:manage", Short: "payment problems", DefaultEmail: true, Kinds: []string{KindPaymentsAttention}},
+	{Key: KindUnmappedPrice, Label: "Payments: a Stripe price isn't mapped to a tier", Audience: "Everyone with payments:manage", Short: "unmapped prices", DefaultEmail: false, Kinds: []string{KindUnmappedPrice}},
+	{Key: KindPaidImportDone, Label: "Paid members import finished", Audience: "Whoever ran the import", Short: "paid-members imports", DefaultEmail: false, Kinds: []string{KindPaidImportDone}},
+	{Key: KindFailedPayments, Label: "Failed payments · daily summary", Audience: "Everyone with earn:view · off by default", Short: "failed payments", OffByDefault: true, Kinds: []string{KindFailedPayments}},
+	{Key: KindVerificationEnded, Label: "Verification finished or stopped", Audience: "The person who started it", Short: "verification jobs", DefaultEmail: true, Kinds: []string{KindVerificationEnded}},
+	{Key: KindVerificationCreditsLow, Label: "Verification credits low", Audience: "Everyone with integrations:manage", Short: "low verification credits", DefaultEmail: true, Kinds: []string{KindVerificationCreditsLow}},
+	{Key: KindPlacementFinished, Label: "Placement test finished", Audience: "The person who started it", Short: "placement tests", DefaultEmail: false, Kinds: []string{KindPlacementFinished}},
+	{Key: KindSeedSignInFailed, Label: "Seed mailbox sign-in failed", Audience: "Everyone with placement:manage", Short: "seed sign-in failures", DefaultEmail: true, Kinds: []string{KindSeedSignInFailed}},
 	// Grow (design expansion, phase 5).
 	{Key: KindReferralsHeld, Label: "Referrals held for review", Audience: "Everyone with grow:review · then at most once a day while the queue isn't empty", Short: "held referrals", DefaultEmail: true, Kinds: []string{KindReferralsHeld}},
 	{Key: KindRewardCodesLow, Label: "Reward codes running low or out", Audience: "Everyone with grow:edit", Short: "reward codes running low", DefaultEmail: true, Kinds: []string{KindRewardCodesLow}},
@@ -74,6 +85,8 @@ const (
 	// CategoryTransactional holds transactional mail's delivery alerts and
 	// the SMTP relay.
 	CategoryTransactional = "transactional"
+	// CategoryEarn holds payments and paid members.
+	CategoryEarn = "earn"
 	// CategoryGrow holds referrals' and partner links' notifications.
 	CategoryGrow = "grow"
 )
@@ -86,6 +99,7 @@ var categoryKinds = map[string][]string{
 	CategoryHostRepute:    {KindHostReputeAlert},
 	CategoryIntegrations:  {KindIntegrationAttention, KindPostDraftCreated},
 	CategoryTransactional: {KindTransactionalAlert, KindSMTPRelayUnreachable},
+	CategoryEarn:          {KindPaymentsAttention, KindUnmappedPrice, KindPaidImportDone, KindFailedPayments},
 	CategoryGrow:          {KindReferralsHeld, KindRewardCodesLow, KindRewardWebhookFailing, KindPartnerLinkProblem},
 }
 
@@ -98,6 +112,7 @@ var categoryLabels = map[string]string{
 	CategoryOther:         "Other",
 	CategoryIntegrations:  "Integrations",
 	CategoryTransactional: "Transactional",
+	CategoryEarn:          "Earn",
 	CategoryGrow:          "Grow",
 }
 

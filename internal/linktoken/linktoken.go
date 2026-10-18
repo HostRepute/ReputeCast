@@ -28,12 +28,21 @@ const (
 	Preferences Kind = 4
 	ViewOnline  Kind = 5
 	Confirm     Kind = 6
-	// Grow (phase 5): a referrer's hub, the recommendations page and a
-	// reward's download. Their Link holds the day they were issued
-	// (IssueDay), so they expire.
-	ReferralHub     Kind = 7
-	Recommendations Kind = 8
-	RewardDownload  Kind = 9
+	// Polls and surveys (design expansion, X11: 110–119, numbered after
+	// the workstream so parallel kinds never collide). Link is the poll's
+	// or the survey's number. A poll link without a message and a contact
+	// is the web archive's: its answers count apart, as non-contacts'. A
+	// test link's MessageID names the test address (poll_test_recipients).
+	Poll       Kind = 110
+	Survey     Kind = 111
+	PollTest   Kind = 112
+	SurveyTest Kind = 113
+	// Grow (design expansion, X15: 150–159): a referrer's hub, the
+	// recommendations page and a reward's download. Their Link holds the
+	// day they were issued (IssueDay), so they expire.
+	ReferralHub     Kind = 150
+	Recommendations Kind = 151
+	RewardDownload  Kind = 152
 )
 
 const version = 1

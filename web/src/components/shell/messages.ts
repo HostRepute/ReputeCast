@@ -111,6 +111,7 @@ export const m = defineMessages('shell', {
   jobWithEta: '{progress} · {eta}',
   jobImportFinished: 'Import finished',
   jobExportFinished: 'Export finished',
+  jobVerificationFinished: 'Verification finished',
   jobOpen: 'Open',
   jobFailed: '{title} failed',
   jobFailedDetail: 'see the job history for what went wrong',

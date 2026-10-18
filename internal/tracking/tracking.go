@@ -56,7 +56,10 @@ type Service struct {
 	// Transactional resolves the tracked links of transactional messages
 	// and fires their message.opened and message.clicked webhook events.
 	Transactional TransactionalTracking
-	Now           func() time.Time
+	// Placement resolves the links of placement test copies, whose opens
+	// and clicks are never counted (internal/placement).
+	Placement PlacementLinks
+	Now       func() time.Time
 	// Recipients add the per-reader variables of blocks (Grow's
 	// referral.* links) to personalized links; nil adds none.
 	Recipients func() []liquid.RecipientData
@@ -106,6 +109,14 @@ type TransactionalTracking interface {
 	TrackedLink(ctx context.Context, q *store.Queries, messageID uuid.UUID, position int) (string, bool)
 	Engagement(ctx context.Context, tx pgx.Tx, messageID uuid.UUID, click bool, at time.Time) error
 }
+
+// PlacementLinks resolves a placement test copy's tracked links.
+type PlacementLinks interface {
+	TrackedLink(ctx context.Context, copyID uuid.UUID, position int) (string, bool)
+}
+
+// placementKind is messages.kind of a placement test copy.
+const placementKind = "placement"
 
 // Routes mounts the tracking endpoints.
 func (s *Service) Routes(r chi.Router) {
@@ -187,6 +198,20 @@ func (s *Service) target(ctx context.Context, c linktoken.Claims) (string, error
 	}
 	if m.WorkspaceID != c.WorkspaceID {
 		return "", errors.New("token workspace mismatch")
+	}
+	if m.Kind == placementKind {
+		if s.Placement == nil {
+			return "", errors.New("no links")
+		}
+		raw, ok := s.Placement.TrackedLink(ctx, m.ID, int(c.Link))
+		if !ok {
+			return "", errors.New("unknown link")
+		}
+		u, err := url.Parse(raw)
+		if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+			return "", errors.New("not a web link")
+		}
+		return u.String(), nil
 	}
 	if m.Stream == "transactional" {
 		if s.Transactional == nil {
@@ -383,6 +408,9 @@ func (s *Service) apply(ctx context.Context, tx pgx.Tx, q *store.Queries, ev sen
 	}
 	if err != nil {
 		return err
+	}
+	if m.Kind == placementKind {
+		return nil // placement test copies: opens and clicks are never counted
 	}
 	since := time.Duration(-1)
 	if m.SentAt != nil {

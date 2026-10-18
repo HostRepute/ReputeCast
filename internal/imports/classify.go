@@ -73,6 +73,10 @@ type verdict struct {
 	Fixed   string // typo: the corrected address
 	Contact *existingContact
 	Supp    *existingSuppression
+	// ByService: a verification service put the row in its class; Agree:
+	// it found what ReputeCast found (X14).
+	ByService bool
+	Agree     bool
 }
 
 // batch is a page of staged rows with the lookups they need.
@@ -246,7 +250,7 @@ func stale(e Engagement, now time.Time) bool {
 // isRisky reports the risky classes.
 func isRisky(class string) bool {
 	switch class {
-	case classRole, classDisposable, classTypo, classStale, classTrap:
+	case classRole, classDisposable, classTypo, classStale, classTrap, classCatchAll, classAbuse, classUnknown:
 		return true
 	}
 	return false
@@ -265,6 +269,14 @@ func riskyAction(o ImportRiskyActions, class string) string {
 		return o.Stale
 	case classTrap:
 		return o.Trap
+	// A verification service's risky rows are imported, tagged, unless the
+	// person skips them.
+	case classCatchAll:
+		return firstNonEmpty(o.CatchAll, "import")
+	case classAbuse:
+		return firstNonEmpty(o.Abuse, "import")
+	case classUnknown:
+		return firstNonEmpty(o.Unknown, "import")
 	}
 	return ""
 }

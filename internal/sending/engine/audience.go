@@ -260,6 +260,14 @@ func (e *Engine) prepare(ctx context.Context, campaignID uuid.UUID, now time.Tim
 	var sc schedule
 	_ = json.Unmarshal(cc.Schedule, &sc)
 	bestTime := sc.Mode == "best_time"
+	// Conditional blocks: each page's recipients are decided once, here
+	// (their lists, tags, fields and tier as the build reads them).
+	var planner Planner
+	if e.Conditional != nil {
+		if planner, err = e.Conditional.Plan(ctx, cc.WorkspaceID, campaignID); err != nil {
+			return e.fail(ctx, cc, "The email's conditional content can't be decided: "+err.Error(), now)
+		}
+	}
 	for {
 		rows, err := e.Q.SendingAudiencePage(ctx, store.SendingAudiencePageParams{
 			Now: now, ExcludeLists: def.ExcludeLists, CampaignID: campaignID, Lists: def.Lists, WorkspaceID: cc.WorkspaceID, After: cursor, Lim: pageSize,
@@ -275,6 +283,16 @@ func (e *Engine) prepare(ctx context.Context, campaignID uuid.UUID, now time.Tim
 		var hours map[uuid.UUID]int
 		if bestTime {
 			hours = e.usualOpenHours(ctx, rows, now)
+		}
+		var hidden map[uuid.UUID]string
+		if planner != nil {
+			ids := make([]uuid.UUID, 0, len(rows))
+			for _, c := range rows {
+				ids = append(ids, c.ID)
+			}
+			if hidden, err = e.hiddenFor(ctx, planner, ids); err != nil {
+				return err
+			}
 		}
 		for _, c := range rows {
 			if why := eligibility(c, def, dups[c.ID]); why != "" {
@@ -303,7 +321,7 @@ func (e *Engine) prepare(ctx context.Context, campaignID uuid.UUID, now time.Tim
 			order := rand.Int32() //nolint:gosec // an order, not a secret
 			ml := content.pick(chooser, multilingual, c.Language)
 			msgs = append(msgs, []any{newID(), cc.WorkspaceID, "broadcast", &campaignID, &c.ID, c.Email, variant, &pid, mbp, status, now, next, rt.note, rt.failover, order,
-				ml.Language, ml.Contact, ml.Reason})
+				ml.Language, ml.Contact, ml.Reason, hidden[c.ID]})
 			planned[pid]++
 		}
 		last := rows[len(rows)-1].ID
@@ -321,7 +339,7 @@ func (e *Engine) prepare(ctx context.Context, campaignID uuid.UUID, now time.Tim
 			}
 			if len(msgs) > 0 {
 				if _, err := tx.CopyFrom(ctx, pgx.Identifier{"messages"}, []string{"id", "workspace_id", "stream", "campaign_id", "contact_id", "email", "variant", "provider_id",
-					"mailbox_provider", "status", "queued_at", "next_attempt_at", "route_note", "failover", "send_order", "language", "contact_language", "language_reason"},
+					"mailbox_provider", "status", "queued_at", "next_attempt_at", "route_note", "failover", "send_order", "language", "contact_language", "language_reason", "hidden_blocks"},
 					pgx.CopyFromRows(msgs)); err != nil {
 					return err
 				}

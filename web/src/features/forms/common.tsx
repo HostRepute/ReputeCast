@@ -1,9 +1,13 @@
 import { useQueryClient } from '@tanstack/react-query'
+import { useRouterState } from '@tanstack/react-router'
 import { $api, ApiError, type Schemas } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
 import { NavTabs } from '@/components/ui/Tabs'
+import { useT } from '@/i18n'
 import { count } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
+import { useSurveys } from '@/features/surveys/api'
+import { m as sm } from '@/features/surveys/messages'
 import './forms.css'
 
 export type Overview = Schemas['SignupFormsOverview']
@@ -41,16 +45,20 @@ export function useInvalidateForms() {
  * navigate). The first tab counts the forms once they've loaded.
  */
 export function FormsTabs() {
+  const t = useT()
   const { slug } = useWorkspace()
   const overview = useFormsOverview()
-  const n = overview.data?.forms.length ?? 0
+  // Signup forms and surveys (design expansion, X11).
+  const surveys = useSurveys()
+  const n = (overview.data?.forms.length ?? 0) + (surveys.data?.items.length ?? 0)
+  const onSurvey = useRouterState({ select: (s) => s.location.pathname.includes('/forms/surveys/') })
   const params = { workspace: slug }
   return (
     <NavTabs
       label="Sections"
       className="ml-3 max-md:ml-0"
       tabs={[
-        { label: n > 0 ? `Signup forms · ${count(n)}` : 'Signup forms', to: '/w/$workspace/forms', params, exact: true },
+        { label: n > 0 ? t(sm.tab, { count: count(n) }) : t(sm.tabEmpty), to: '/w/$workspace/forms', params, exact: true, current: onSurvey },
         { label: 'Subscribe page', to: '/w/$workspace/forms/subscribe', params },
         { label: 'Preference center', to: '/w/$workspace/forms/preferences', params },
         { label: 'Unsubscribe page', to: '/w/$workspace/forms/unsubscribe', params },

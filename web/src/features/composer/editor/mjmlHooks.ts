@@ -1,5 +1,6 @@
 import type { Component, Editor } from 'grapesjs'
 import type { ComponentPluginOptions } from 'grapesjs-mjml'
+import { prepareCompile, stripRcAttrs } from '@/features/conditional/mjml'
 
 export interface MjmlCompileError {
   line: number
@@ -106,7 +107,8 @@ export function installMjmlHooks(editor: Editor, o: ComponentPluginOptions, head
   opt.mjmlParser = (mjml, options) => {
     const h = head()
     if (h && !mjml.includes('<mj-head')) mjml = mjml.replace(/<mjml(\s[^>]*)?>/, (m) => `${m}<mj-head>${h}</mj-head>`)
-    return parser(mjml, options)
+    // ReputeCast's own attributes (Visibility, poll settings) aren't MJML.
+    return parser(stripRcAttrs(mjml), options)
   }
   for (const t of editor.Components.getTypes()) {
     if (!t.id.startsWith('mj-') && t.id !== 'mjml') continue
@@ -135,5 +137,7 @@ export function installMjmlHooks(editor: Editor, o: ComponentPluginOptions, head
       },
     })
   }
-  return (mjml: string) => parser(mjml, { validationLevel: 'soft', keepComments: true, minify: false, beautify: false })
+  // The saved HTML marks each conditional block, so a send cuts each
+  // recipient's version out of it (features/conditional/mjml.ts).
+  return (mjml: string) => parser(prepareCompile(mjml), { validationLevel: 'soft', keepComments: true, minify: false, beautify: false })
 }

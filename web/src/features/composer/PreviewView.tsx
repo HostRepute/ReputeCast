@@ -7,6 +7,8 @@ import { useComposer, type ABTest } from './context'
 import { inboxTime } from './format'
 import { SendTestButton } from './SendTest'
 import { usePreviewAsLabel, versionLanguage } from '@/features/languages/composerParts'
+import { PreviewVersionLine, ShowWhyToggle, ThisVersionCard, VersionsCard, usePreviewVersion } from '@/features/conditional/Preview'
+import { useConditional } from '@/features/conditional/state'
 
 type Preview = Schemas['ComposerPreview']
 type Client = 'gmail' | 'outlook' | 'apple' | 'yahoo'
@@ -347,9 +349,11 @@ type Sample = { sample: 'contact' | 'no_first_name' | 'random'; contactId?: stri
  */
 export function PreviewView({ onReview }: { onReview: () => void }) {
   const c = useComposer()
+  const cond = useConditional()
   const [client, setClient] = useState<Client>('gmail')
   const [device, setDevice] = useState<'desktop' | 'mobile'>(c.device)
-  const [sample, setSample] = useState<Sample>({ sample: 'contact' })
+  // "Preview this version" in the versions opens the preview as one of its contacts.
+  const [sample, setSample] = useState<Sample>(() => (cond?.pendingPreview ? { sample: 'contact', contactId: cond.pendingPreview } : { sample: 'contact' }))
   const [preview, setPreview] = useState<Preview | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [lightDoc, setLightDoc] = useState<Document | null>(null)
@@ -357,6 +361,11 @@ export function PreviewView({ onReview }: { onReview: () => void }) {
   const contacts = $api.useQuery('get', '/api/v1/workspaces/{workspace}/campaigns/{campaignId}/preview-contacts', { params: { path: { workspace: c.slug, campaignId: c.campaign.id } } }, { staleTime: 60_000 })
   const media = $api.useQuery('get', '/api/v1/workspaces/{workspace}/media', { params: { path: { workspace: c.slug } } }, { staleTime: 60_000 })
   const slot = c.previewSlot
+  const takePreview = cond?.takePreview
+  useEffect(() => {
+    takePreview?.()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once, when the preview opens
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -393,6 +402,9 @@ export function PreviewView({ onReview }: { onReview: () => void }) {
   const missing = preview ? preview.tokens.filter((t) => !t.value && !t.perRecipient && !t.fallbackUsed).length : 0
   // Without a pick, the server previews as the audience's first contact.
   const sampleValue = sample.sample === 'contact' ? `c:${sample.contactId ?? preview?.contact?.id ?? contacts.data?.items[0]?.id ?? ''}` : sample.sample
+  // Conditional content: the version the previewed contact gets, and why.
+  const version = usePreviewVersion(sample.sample === 'contact' ? (sample.contactId ?? preview?.contact?.id ?? undefined) : undefined)
+  const extra = sample.contactId && !contacts.data?.items.some((ct) => ct.id === sample.contactId) ? cond?.contacts.find((ct) => ct.id === sample.contactId) : undefined
   const senderLine = (darkMode: boolean) => (
     <div className="flex flex-col gap-0.5" style={{ padding: '0 0 10px', borderBottom: `1px solid ${darkMode ? '#1F2937' : 'var(--line-2)'}`, marginBottom: 10 }}>
       <span className="text-[15px] font-semibold">{preview?.subject ?? c.subject}</span>
@@ -423,6 +435,7 @@ export function PreviewView({ onReview }: { onReview: () => void }) {
                       {previewAs(ct) ?? `${ct.name || ct.email} · ${ct.email} · ${ct.label}`}
                     </option>
                   ))}
+                  {extra ? <option value={`c:${extra.id}`}>{`${extra.name || extra.email} · ${extra.email}`}</option> : null}
                   {/* No contacts in the audience yet: the server previews as a sample person. */}
                   {!contacts.data?.items.length && preview?.contact ? (
                     <option value="c:">
@@ -433,6 +446,7 @@ export function PreviewView({ onReview }: { onReview: () => void }) {
                   <option value="random">Random Active contact</option>
                 </select>
               </label>
+              <ShowWhyToggle v={version} />
               <SendTestButton toMe />
               <button type="button" className="btn pri" onClick={onReview}>
                 {c.campaign.access.canSend ? 'Review & send' : 'Request approval'}
@@ -459,6 +473,7 @@ export function PreviewView({ onReview }: { onReview: () => void }) {
           </div>
           <span className="k">Approximated in your browser from the compiled HTML; send a test for the real client. Outlook uses Word's engine, so MJML's tables matter there.</span>
         </div>
+        <PreviewVersionLine v={version} />
         <div className="grid flex-1 items-start overflow-auto" style={{ padding: 24, gridTemplateColumns: 'repeat(auto-fit,minmax(min(380px,100%),1fr))', gap: 20 }}>
           {error ? (
             <div role="alert" className="card" style={{ padding: 16, borderColor: '#FCA5A5' }}>
@@ -472,7 +487,7 @@ export function PreviewView({ onReview }: { onReview: () => void }) {
             </div>
             <div style={{ padding: 12, background: '#fff' }}>
               {senderLine(false)}
-              {preview ? <MailFrame key={`l-${width}`} html={preview.html} width={width} onDoc={setLightDoc} /> : <div className="sk" style={{ height: 320, width: '100%' }} />}
+              {preview ? <MailFrame key={`l-${width}`} html={version.html(preview.html)} width={width} onDoc={setLightDoc} /> : <div className="sk" style={{ height: 320, width: '100%' }} />}
             </div>
           </div>
           <div className="card overflow-hidden" style={{ borderColor: '#374151' }}>
@@ -482,7 +497,7 @@ export function PreviewView({ onReview }: { onReview: () => void }) {
             </div>
             <div style={{ padding: 12, background: '#111827', color: '#E5E7EB' }}>
               {senderLine(true)}
-              {preview ? <MailFrame key={`d-${width}`} html={preview.html} width={width} dark /> : <div className="sk" style={{ height: 320, width: '100%', background: '#1F2937' }} />}
+              {preview ? <MailFrame key={`d-${width}`} html={version.html(preview.html)} width={width} dark /> : <div className="sk" style={{ height: 320, width: '100%', background: '#1F2937' }} />}
             </div>
           </div>
           <div className="card flex flex-col gap-2" style={{ padding: 12 }}>
@@ -507,6 +522,8 @@ export function PreviewView({ onReview }: { onReview: () => void }) {
         </div>
       </section>
       <aside className="cpanel preview-side" aria-label="Inbox, personalization and A/B test">
+        <ThisVersionCard v={version} html={preview?.html} />
+        <VersionsCard v={version} />
         <div className="flex flex-col gap-2 border-b border-line-2" style={{ padding: '14px 16px' }}>
           <h2 className="m-0 text-[14px] font-semibold">Inbox preview</h2>
           <div className="flex flex-col gap-1 rounded-lg border border-line" style={{ padding: 10, background: 'var(--ground-3)', fontSize: 12 }}>

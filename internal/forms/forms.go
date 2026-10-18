@@ -57,6 +57,9 @@ type Service struct {
 	DNS dnscheck.Resolver
 	// Turnstile verifies challenge tokens with Cloudflare.
 	Turnstile *Turnstile
+	// Addresses checks signups with the workspace's verification service
+	// (nil: forms keep ReputeCast's own checks only).
+	Addresses AddressChecker
 	Now       func() time.Time
 	// Hooks are told about signups and confirmations (Grow's referrals),
 	// read at call time.

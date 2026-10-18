@@ -57,6 +57,11 @@ type Service struct {
 	// Templates imports a source's email templates (Notifuse); nil skips
 	// the step.
 	Templates TemplateImporter
+	// JobSources add other domains' jobs to the background-jobs tray.
+	JobSources []JobSource
+	// Checks gives a verification service's answers for an import's new
+	// addresses (X14); nil skips them.
+	Checks AddressChecks
 }
 
 func (s *Service) now() time.Time {
@@ -133,6 +138,10 @@ type ImportRiskyActions struct {
 	Typo       string `json:"typo" enum:"fix,skip,import"`
 	Stale      string `json:"stale" enum:"pending,skip,import"`
 	Trap       string `json:"trap" enum:"skip,import"`
+	// A verification service's risky rows (X14); empty imports them, tagged.
+	CatchAll string `json:"catch_all,omitempty" enum:"import,skip,"`
+	Abuse    string `json:"abuse,omitempty" enum:"import,skip,"`
+	Unknown  string `json:"unknown,omitempty" enum:"import,skip,"`
 }
 
 func defaultOptions() ImportOptions {

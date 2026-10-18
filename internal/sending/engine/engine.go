@@ -61,6 +61,9 @@ type Engine struct {
 	// Languages supplies the language versions each reader picks from;
 	// nil sends the source to everyone.
 	Languages LanguageVersions
+	// Conditional decides each reader's conditional blocks and fills in
+	// poll and survey links (conditional.go); nil sends every block.
+	Conditional Conditional
 	// QuietDemo makes the demo transport report no delivery or engagement
 	// events (throughput measurements of the send path alone).
 	QuietDemo bool

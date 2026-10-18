@@ -459,7 +459,19 @@ function lineOf(u: Use, t: TFn): string {
     case 'segment':
       return t(m.segmentLine, { by: u.by ?? '' })
   }
-  return t(m.blockLine, { where: u.where ?? '' })
+  return t(m.blockLine, { where: u.where ?? '', status: u.status ?? '' })
+}
+
+/** "Shown when the score band is Hot": a conditional block's score condition. */
+function blockWhen(u: Use, t: TFn): string {
+  const c = (Array.isArray(u.conditions) ? u.conditions : [])[0] as { field?: string; op?: string; value?: string; to?: string } | undefined
+  if (!c) return ''
+  const show = u.show ?? 'only'
+  if (c.field === 'score_band') {
+    const band = (['cold', 'warm', 'hot'] as Band[]).includes(c.value as Band) ? bandName(c.value as Band) : (c.value ?? '')
+    return t(m.blockWhenBand, { show, op: c.op ?? 'is', band })
+  }
+  return t(m.blockWhenScore, { show, op: c.op ?? 'at_least', a: c.value ?? '', b: c.to ?? '' })
 }
 
 function detailOf(u: Use, t: TFn): string {
@@ -477,5 +489,6 @@ function detailOf(u: Use, t: TFn): string {
       return line ? `${line} · ${n}` : n
     }
   }
-  return u.of ? t(m.blockCount, { count: u.contacts ?? 0, of: u.of }) : ''
+  const n = u.of ? t(m.blockCount, { count: u.contacts ?? 0, of: u.of }) : ''
+  return [blockWhen(u, t), n].filter(Boolean).join(' · ')
 }

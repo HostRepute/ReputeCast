@@ -26,8 +26,10 @@ export interface Refs {
   emails: Map<string, { name: string; latestVersion: number; subject: string }>
   providers: Map<string, { name: string; short: string; status: string }>
   fields: Map<string, { label: string; type: string }>
+  /** Polls and surveys the trigger "Answered a poll or survey" names ("poll:<id>" → name). */
+  polls?: Map<string, string>
   /** Grow's referral milestones: "3 referrals · The Acme Field Guide". */
-  milestones: Map<string, string>
+  milestones?: Map<string, string>
 }
 
 export const emptyRefs: Refs = { lists: new Map(), forms: new Map(), emails: new Map(), providers: new Map(), fields: new Map(), milestones: new Map() }
@@ -67,6 +69,7 @@ export const triggerKindLabels: Record<TriggerConfig['kind'], string> = {
   get score_crosses() {
     return scoreTriggerName()
   },
+  poll_answered: 'Answered a poll or survey',
   // Grow (referral milestones).
   get milestone_reached() {
     return milestoneTriggerName()
@@ -206,6 +209,8 @@ export function triggerRef(t: TriggerConfig | undefined, refs: Refs): string {
       return refs.fields.get(t.field ?? '')?.label ?? t.field ?? ''
     case 'score_crosses':
       return scoreTriggerRef(t)
+    case 'poll_answered':
+      return refs.polls?.get(t.poll ?? '') ?? 'a poll or survey'
     case 'milestone_reached':
       return milestoneTriggerRef(t, refs.milestones)
   }

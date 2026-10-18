@@ -67,6 +67,7 @@ import { Route as WWorkspaceAppTransactionalImportRouteImport } from './routes/w
 import { Route as WWorkspaceAppTransactionalSettingsRouteImport } from './routes/w/$workspace/_app/transactional/settings'
 import { Route as WWorkspaceAppTransactionalSetupRouteImport } from './routes/w/$workspace/_app/transactional/setup'
 import { Route as WWorkspaceCampaignsCampaignIdEditRouteImport } from './routes/w/$workspace/campaigns/$campaignId/edit'
+import { Route as WWorkspaceEarnConnectIndexRouteImport } from './routes/w/$workspace/earn/connect/index'
 import { Route as WWorkspaceImportImportIdIndexRouteImport } from './routes/w/$workspace/import/$importId/index'
 import { Route as WWorkspaceImportImportIdConsentRouteImport } from './routes/w/$workspace/import/$importId/consent'
 import { Route as WWorkspaceImportImportIdFieldsRouteImport } from './routes/w/$workspace/import/$importId/fields'
@@ -83,12 +84,25 @@ import { Route as WWorkspaceAppAdminSsoProviderIdRouteImport } from './routes/w/
 import { Route as WWorkspaceAppAudienceContactsContactIdRouteImport } from './routes/w/$workspace/_app/audience/contacts/$contactId'
 import { Route as WWorkspaceAppAudienceSegmentsIndexRouteImport } from './routes/w/$workspace/_app/audience/segments/index'
 import { Route as WWorkspaceAppAudienceSegmentsSegmentIdRouteImport } from './routes/w/$workspace/_app/audience/segments/$segmentId'
+import { Route as WWorkspaceAppAudienceVerificationJobIdRouteImport } from './routes/w/$workspace/_app/audience/verification/$jobId'
 import { Route as WWorkspaceAppCampaignsCampaignIdLiveRouteImport } from './routes/w/$workspace/_app/campaigns/$campaignId/live'
 import { Route as WWorkspaceAppCampaignsCampaignIdReportRouteImport } from './routes/w/$workspace/_app/campaigns/$campaignId/report'
 import { Route as WWorkspaceAppCampaignsCampaignIdReviewRouteImport } from './routes/w/$workspace/_app/campaigns/$campaignId/review'
+import { Route as WWorkspaceAppDeliverabilityPlacementIndexRouteImport } from './routes/w/$workspace/_app/deliverability/placement/index'
+import { Route as WWorkspaceAppDeliverabilityPlacementTestIdRouteImport } from './routes/w/$workspace/_app/deliverability/placement/$testId'
+import { Route as WWorkspaceAppDeliverabilityPlacementSeedsRouteImport } from './routes/w/$workspace/_app/deliverability/placement/seeds'
+import { Route as WWorkspaceAppEarnGiftsIndexRouteImport } from './routes/w/$workspace/_app/earn/gifts/index'
+import { Route as WWorkspaceAppEarnMembersIndexRouteImport } from './routes/w/$workspace/_app/earn/members/index'
+import { Route as WWorkspaceAppEarnPlansIndexRouteImport } from './routes/w/$workspace/_app/earn/plans/index'
+import { Route as WWorkspaceAppEarnPlansUpgradePageRouteImport } from './routes/w/$workspace/_app/earn/plans/upgrade-page'
+import { Route as WWorkspaceAppEarnProductsIndexRouteImport } from './routes/w/$workspace/_app/earn/products/index'
+import { Route as WWorkspaceAppEarnSettingsIndexRouteImport } from './routes/w/$workspace/_app/earn/settings/index'
+import { Route as WWorkspaceAppEarnSponsorsIndexRouteImport } from './routes/w/$workspace/_app/earn/sponsors/index'
+import { Route as WWorkspaceAppFormsSurveysSurveyIdRouteImport } from './routes/w/$workspace/_app/forms/surveys.$surveyId'
 import { Route as WWorkspaceAppSettingsIntegrationsIndexRouteImport } from './routes/w/$workspace/_app/settings/integrations/index'
 import { Route as WWorkspaceAppSettingsIntegrationsKindRouteImport } from './routes/w/$workspace/_app/settings/integrations/$kind'
 import { Route as WWorkspaceAppSettingsIntegrationsHostreputeRouteImport } from './routes/w/$workspace/_app/settings/integrations/hostrepute'
+import { Route as WWorkspaceAppSettingsIntegrationsVerificationRouteImport } from './routes/w/$workspace/_app/settings/integrations/verification'
 import { Route as WWorkspaceAppSettingsIntegrationsWordpressRouteImport } from './routes/w/$workspace/_app/settings/integrations/wordpress'
 import { Route as WWorkspaceAppSettingsRolesIndexRouteImport } from './routes/w/$workspace/_app/settings/roles/index'
 import { Route as WWorkspaceAppSettingsRolesRoleIdRouteImport } from './routes/w/$workspace/_app/settings/roles/$roleId'
@@ -100,6 +114,8 @@ import { Route as WWorkspaceAppTransactionalMessagesIndexRouteImport } from './r
 import { Route as WWorkspaceAppTransactionalMessagesMessageIdRouteImport } from './routes/w/$workspace/_app/transactional/messages/$messageId'
 import { Route as WWorkspaceAppCampaignsDigestsDigestIdIndexRouteImport } from './routes/w/$workspace/_app/campaigns/digests/$digestId/index'
 import { Route as WWorkspaceAppCampaignsDigestsDigestIdSettingsRouteImport } from './routes/w/$workspace/_app/campaigns/digests/$digestId/settings'
+import { Route as WWorkspaceAppEarnPlansTiersTierIdRouteImport } from './routes/w/$workspace/_app/earn/plans/tiers/$tierId'
+import { Route as WWorkspaceAppEarnPlansTiersNewRouteImport } from './routes/w/$workspace/_app/earn/plans/tiers/new'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -429,6 +445,12 @@ const WWorkspaceCampaignsCampaignIdEditRoute =
     path: '/campaigns/$campaignId/edit',
     getParentRoute: () => WWorkspaceRouteRoute,
   } as any)
+const WWorkspaceEarnConnectIndexRoute =
+  WWorkspaceEarnConnectIndexRouteImport.update({
+    id: '/earn/connect/',
+    path: '/earn/connect/',
+    getParentRoute: () => WWorkspaceRouteRoute,
+  } as any)
 const WWorkspaceImportImportIdIndexRoute =
   WWorkspaceImportImportIdIndexRouteImport.update({
     id: '/import/$importId/',
@@ -525,6 +547,12 @@ const WWorkspaceAppAudienceSegmentsSegmentIdRoute =
     path: '/audience/segments/$segmentId',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
+const WWorkspaceAppAudienceVerificationJobIdRoute =
+  WWorkspaceAppAudienceVerificationJobIdRouteImport.update({
+    id: '/audience/verification/$jobId',
+    path: '/audience/verification/$jobId',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
 const WWorkspaceAppCampaignsCampaignIdLiveRoute =
   WWorkspaceAppCampaignsCampaignIdLiveRouteImport.update({
     id: '/campaigns/$campaignId/live',
@@ -543,6 +571,72 @@ const WWorkspaceAppCampaignsCampaignIdReviewRoute =
     path: '/campaigns/$campaignId/review',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
+const WWorkspaceAppDeliverabilityPlacementIndexRoute =
+  WWorkspaceAppDeliverabilityPlacementIndexRouteImport.update({
+    id: '/deliverability/placement/',
+    path: '/deliverability/placement/',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppDeliverabilityPlacementTestIdRoute =
+  WWorkspaceAppDeliverabilityPlacementTestIdRouteImport.update({
+    id: '/deliverability/placement/$testId',
+    path: '/deliverability/placement/$testId',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppDeliverabilityPlacementSeedsRoute =
+  WWorkspaceAppDeliverabilityPlacementSeedsRouteImport.update({
+    id: '/deliverability/placement/seeds',
+    path: '/deliverability/placement/seeds',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppEarnGiftsIndexRoute =
+  WWorkspaceAppEarnGiftsIndexRouteImport.update({
+    id: '/earn/gifts/',
+    path: '/earn/gifts/',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppEarnMembersIndexRoute =
+  WWorkspaceAppEarnMembersIndexRouteImport.update({
+    id: '/earn/members/',
+    path: '/earn/members/',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppEarnPlansIndexRoute =
+  WWorkspaceAppEarnPlansIndexRouteImport.update({
+    id: '/earn/plans/',
+    path: '/earn/plans/',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppEarnPlansUpgradePageRoute =
+  WWorkspaceAppEarnPlansUpgradePageRouteImport.update({
+    id: '/earn/plans/upgrade-page',
+    path: '/earn/plans/upgrade-page',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppEarnProductsIndexRoute =
+  WWorkspaceAppEarnProductsIndexRouteImport.update({
+    id: '/earn/products/',
+    path: '/earn/products/',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppEarnSettingsIndexRoute =
+  WWorkspaceAppEarnSettingsIndexRouteImport.update({
+    id: '/earn/settings/',
+    path: '/earn/settings/',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppEarnSponsorsIndexRoute =
+  WWorkspaceAppEarnSponsorsIndexRouteImport.update({
+    id: '/earn/sponsors/',
+    path: '/earn/sponsors/',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppFormsSurveysSurveyIdRoute =
+  WWorkspaceAppFormsSurveysSurveyIdRouteImport.update({
+    id: '/forms/surveys/$surveyId',
+    path: '/forms/surveys/$surveyId',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
 const WWorkspaceAppSettingsIntegrationsIndexRoute =
   WWorkspaceAppSettingsIntegrationsIndexRouteImport.update({
     id: '/settings/integrations/',
@@ -559,6 +653,12 @@ const WWorkspaceAppSettingsIntegrationsHostreputeRoute =
   WWorkspaceAppSettingsIntegrationsHostreputeRouteImport.update({
     id: '/settings/integrations/hostrepute',
     path: '/settings/integrations/hostrepute',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppSettingsIntegrationsVerificationRoute =
+  WWorkspaceAppSettingsIntegrationsVerificationRouteImport.update({
+    id: '/settings/integrations/verification',
+    path: '/settings/integrations/verification',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
 const WWorkspaceAppSettingsIntegrationsWordpressRoute =
@@ -625,6 +725,18 @@ const WWorkspaceAppCampaignsDigestsDigestIdSettingsRoute =
   WWorkspaceAppCampaignsDigestsDigestIdSettingsRouteImport.update({
     id: '/campaigns/digests/$digestId/settings',
     path: '/campaigns/digests/$digestId/settings',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppEarnPlansTiersTierIdRoute =
+  WWorkspaceAppEarnPlansTiersTierIdRouteImport.update({
+    id: '/earn/plans/tiers/$tierId',
+    path: '/earn/plans/tiers/$tierId',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppEarnPlansTiersNewRoute =
+  WWorkspaceAppEarnPlansTiersNewRouteImport.update({
+    id: '/earn/plans/tiers/new',
+    path: '/earn/plans/tiers/new',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
 
@@ -695,16 +807,23 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/providers/': typeof WWorkspaceAppProvidersIndexRoute
   '/w/$workspace/settings/': typeof WWorkspaceAppSettingsIndexRoute
   '/w/$workspace/transactional/': typeof WWorkspaceAppTransactionalIndexRoute
+  '/w/$workspace/earn/connect/': typeof WWorkspaceEarnConnectIndexRoute
   '/w/$workspace/import/$importId/': typeof WWorkspaceImportImportIdIndexRoute
   '/w/$workspace/providers/connect/': typeof WWorkspaceProvidersConnectIndexRoute
   '/w/$workspace/admin/sso/$providerId': typeof WWorkspaceAppAdminSsoProviderIdRoute
   '/w/$workspace/audience/contacts/$contactId': typeof WWorkspaceAppAudienceContactsContactIdRoute
   '/w/$workspace/audience/segments/$segmentId': typeof WWorkspaceAppAudienceSegmentsSegmentIdRoute
+  '/w/$workspace/audience/verification/$jobId': typeof WWorkspaceAppAudienceVerificationJobIdRoute
   '/w/$workspace/campaigns/$campaignId/live': typeof WWorkspaceAppCampaignsCampaignIdLiveRoute
   '/w/$workspace/campaigns/$campaignId/report': typeof WWorkspaceAppCampaignsCampaignIdReportRoute
   '/w/$workspace/campaigns/$campaignId/review': typeof WWorkspaceAppCampaignsCampaignIdReviewRoute
+  '/w/$workspace/deliverability/placement/$testId': typeof WWorkspaceAppDeliverabilityPlacementTestIdRoute
+  '/w/$workspace/deliverability/placement/seeds': typeof WWorkspaceAppDeliverabilityPlacementSeedsRoute
+  '/w/$workspace/earn/plans/upgrade-page': typeof WWorkspaceAppEarnPlansUpgradePageRoute
+  '/w/$workspace/forms/surveys/$surveyId': typeof WWorkspaceAppFormsSurveysSurveyIdRoute
   '/w/$workspace/settings/integrations/$kind': typeof WWorkspaceAppSettingsIntegrationsKindRoute
   '/w/$workspace/settings/integrations/hostrepute': typeof WWorkspaceAppSettingsIntegrationsHostreputeRoute
+  '/w/$workspace/settings/integrations/verification': typeof WWorkspaceAppSettingsIntegrationsVerificationRoute
   '/w/$workspace/settings/integrations/wordpress': typeof WWorkspaceAppSettingsIntegrationsWordpressRoute
   '/w/$workspace/settings/roles/$roleId': typeof WWorkspaceAppSettingsRolesRoleIdRoute
   '/w/$workspace/settings/senders/$domainId': typeof WWorkspaceAppSettingsSendersDomainIdRoute
@@ -712,12 +831,21 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/transactional/messages/$messageId': typeof WWorkspaceAppTransactionalMessagesMessageIdRoute
   '/w/$workspace/admin/sso/': typeof WWorkspaceAppAdminSsoIndexRoute
   '/w/$workspace/audience/segments/': typeof WWorkspaceAppAudienceSegmentsIndexRoute
+  '/w/$workspace/deliverability/placement/': typeof WWorkspaceAppDeliverabilityPlacementIndexRoute
+  '/w/$workspace/earn/gifts/': typeof WWorkspaceAppEarnGiftsIndexRoute
+  '/w/$workspace/earn/members/': typeof WWorkspaceAppEarnMembersIndexRoute
+  '/w/$workspace/earn/plans/': typeof WWorkspaceAppEarnPlansIndexRoute
+  '/w/$workspace/earn/products/': typeof WWorkspaceAppEarnProductsIndexRoute
+  '/w/$workspace/earn/settings/': typeof WWorkspaceAppEarnSettingsIndexRoute
+  '/w/$workspace/earn/sponsors/': typeof WWorkspaceAppEarnSponsorsIndexRoute
   '/w/$workspace/settings/integrations/': typeof WWorkspaceAppSettingsIntegrationsIndexRoute
   '/w/$workspace/settings/roles/': typeof WWorkspaceAppSettingsRolesIndexRoute
   '/w/$workspace/settings/senders/': typeof WWorkspaceAppSettingsSendersIndexRoute
   '/w/$workspace/settings/team/': typeof WWorkspaceAppSettingsTeamIndexRoute
   '/w/$workspace/transactional/messages/': typeof WWorkspaceAppTransactionalMessagesIndexRoute
   '/w/$workspace/campaigns/digests/$digestId/settings': typeof WWorkspaceAppCampaignsDigestsDigestIdSettingsRoute
+  '/w/$workspace/earn/plans/tiers/$tierId': typeof WWorkspaceAppEarnPlansTiersTierIdRoute
+  '/w/$workspace/earn/plans/tiers/new': typeof WWorkspaceAppEarnPlansTiersNewRoute
   '/w/$workspace/campaigns/digests/$digestId/': typeof WWorkspaceAppCampaignsDigestsDigestIdIndexRoute
 }
 export interface FileRoutesByTo {
@@ -786,16 +914,23 @@ export interface FileRoutesByTo {
   '/w/$workspace/providers': typeof WWorkspaceAppProvidersIndexRoute
   '/w/$workspace/settings': typeof WWorkspaceAppSettingsIndexRoute
   '/w/$workspace/transactional': typeof WWorkspaceAppTransactionalIndexRoute
+  '/w/$workspace/earn/connect': typeof WWorkspaceEarnConnectIndexRoute
   '/w/$workspace/import/$importId': typeof WWorkspaceImportImportIdIndexRoute
   '/w/$workspace/providers/connect': typeof WWorkspaceProvidersConnectIndexRoute
   '/w/$workspace/admin/sso/$providerId': typeof WWorkspaceAppAdminSsoProviderIdRoute
   '/w/$workspace/audience/contacts/$contactId': typeof WWorkspaceAppAudienceContactsContactIdRoute
   '/w/$workspace/audience/segments/$segmentId': typeof WWorkspaceAppAudienceSegmentsSegmentIdRoute
+  '/w/$workspace/audience/verification/$jobId': typeof WWorkspaceAppAudienceVerificationJobIdRoute
   '/w/$workspace/campaigns/$campaignId/live': typeof WWorkspaceAppCampaignsCampaignIdLiveRoute
   '/w/$workspace/campaigns/$campaignId/report': typeof WWorkspaceAppCampaignsCampaignIdReportRoute
   '/w/$workspace/campaigns/$campaignId/review': typeof WWorkspaceAppCampaignsCampaignIdReviewRoute
+  '/w/$workspace/deliverability/placement/$testId': typeof WWorkspaceAppDeliverabilityPlacementTestIdRoute
+  '/w/$workspace/deliverability/placement/seeds': typeof WWorkspaceAppDeliverabilityPlacementSeedsRoute
+  '/w/$workspace/earn/plans/upgrade-page': typeof WWorkspaceAppEarnPlansUpgradePageRoute
+  '/w/$workspace/forms/surveys/$surveyId': typeof WWorkspaceAppFormsSurveysSurveyIdRoute
   '/w/$workspace/settings/integrations/$kind': typeof WWorkspaceAppSettingsIntegrationsKindRoute
   '/w/$workspace/settings/integrations/hostrepute': typeof WWorkspaceAppSettingsIntegrationsHostreputeRoute
+  '/w/$workspace/settings/integrations/verification': typeof WWorkspaceAppSettingsIntegrationsVerificationRoute
   '/w/$workspace/settings/integrations/wordpress': typeof WWorkspaceAppSettingsIntegrationsWordpressRoute
   '/w/$workspace/settings/roles/$roleId': typeof WWorkspaceAppSettingsRolesRoleIdRoute
   '/w/$workspace/settings/senders/$domainId': typeof WWorkspaceAppSettingsSendersDomainIdRoute
@@ -803,12 +938,21 @@ export interface FileRoutesByTo {
   '/w/$workspace/transactional/messages/$messageId': typeof WWorkspaceAppTransactionalMessagesMessageIdRoute
   '/w/$workspace/admin/sso': typeof WWorkspaceAppAdminSsoIndexRoute
   '/w/$workspace/audience/segments': typeof WWorkspaceAppAudienceSegmentsIndexRoute
+  '/w/$workspace/deliverability/placement': typeof WWorkspaceAppDeliverabilityPlacementIndexRoute
+  '/w/$workspace/earn/gifts': typeof WWorkspaceAppEarnGiftsIndexRoute
+  '/w/$workspace/earn/members': typeof WWorkspaceAppEarnMembersIndexRoute
+  '/w/$workspace/earn/plans': typeof WWorkspaceAppEarnPlansIndexRoute
+  '/w/$workspace/earn/products': typeof WWorkspaceAppEarnProductsIndexRoute
+  '/w/$workspace/earn/settings': typeof WWorkspaceAppEarnSettingsIndexRoute
+  '/w/$workspace/earn/sponsors': typeof WWorkspaceAppEarnSponsorsIndexRoute
   '/w/$workspace/settings/integrations': typeof WWorkspaceAppSettingsIntegrationsIndexRoute
   '/w/$workspace/settings/roles': typeof WWorkspaceAppSettingsRolesIndexRoute
   '/w/$workspace/settings/senders': typeof WWorkspaceAppSettingsSendersIndexRoute
   '/w/$workspace/settings/team': typeof WWorkspaceAppSettingsTeamIndexRoute
   '/w/$workspace/transactional/messages': typeof WWorkspaceAppTransactionalMessagesIndexRoute
   '/w/$workspace/campaigns/digests/$digestId/settings': typeof WWorkspaceAppCampaignsDigestsDigestIdSettingsRoute
+  '/w/$workspace/earn/plans/tiers/$tierId': typeof WWorkspaceAppEarnPlansTiersTierIdRoute
+  '/w/$workspace/earn/plans/tiers/new': typeof WWorkspaceAppEarnPlansTiersNewRoute
   '/w/$workspace/campaigns/digests/$digestId': typeof WWorkspaceAppCampaignsDigestsDigestIdIndexRoute
 }
 export interface FileRoutesById {
@@ -880,16 +1024,23 @@ export interface FileRoutesById {
   '/w/$workspace/_app/providers/': typeof WWorkspaceAppProvidersIndexRoute
   '/w/$workspace/_app/settings/': typeof WWorkspaceAppSettingsIndexRoute
   '/w/$workspace/_app/transactional/': typeof WWorkspaceAppTransactionalIndexRoute
+  '/w/$workspace/earn/connect/': typeof WWorkspaceEarnConnectIndexRoute
   '/w/$workspace/import/$importId/': typeof WWorkspaceImportImportIdIndexRoute
   '/w/$workspace/providers/connect/': typeof WWorkspaceProvidersConnectIndexRoute
   '/w/$workspace/_app/admin/sso/$providerId': typeof WWorkspaceAppAdminSsoProviderIdRoute
   '/w/$workspace/_app/audience/contacts/$contactId': typeof WWorkspaceAppAudienceContactsContactIdRoute
   '/w/$workspace/_app/audience/segments/$segmentId': typeof WWorkspaceAppAudienceSegmentsSegmentIdRoute
+  '/w/$workspace/_app/audience/verification/$jobId': typeof WWorkspaceAppAudienceVerificationJobIdRoute
   '/w/$workspace/_app/campaigns/$campaignId/live': typeof WWorkspaceAppCampaignsCampaignIdLiveRoute
   '/w/$workspace/_app/campaigns/$campaignId/report': typeof WWorkspaceAppCampaignsCampaignIdReportRoute
   '/w/$workspace/_app/campaigns/$campaignId/review': typeof WWorkspaceAppCampaignsCampaignIdReviewRoute
+  '/w/$workspace/_app/deliverability/placement/$testId': typeof WWorkspaceAppDeliverabilityPlacementTestIdRoute
+  '/w/$workspace/_app/deliverability/placement/seeds': typeof WWorkspaceAppDeliverabilityPlacementSeedsRoute
+  '/w/$workspace/_app/earn/plans/upgrade-page': typeof WWorkspaceAppEarnPlansUpgradePageRoute
+  '/w/$workspace/_app/forms/surveys/$surveyId': typeof WWorkspaceAppFormsSurveysSurveyIdRoute
   '/w/$workspace/_app/settings/integrations/$kind': typeof WWorkspaceAppSettingsIntegrationsKindRoute
   '/w/$workspace/_app/settings/integrations/hostrepute': typeof WWorkspaceAppSettingsIntegrationsHostreputeRoute
+  '/w/$workspace/_app/settings/integrations/verification': typeof WWorkspaceAppSettingsIntegrationsVerificationRoute
   '/w/$workspace/_app/settings/integrations/wordpress': typeof WWorkspaceAppSettingsIntegrationsWordpressRoute
   '/w/$workspace/_app/settings/roles/$roleId': typeof WWorkspaceAppSettingsRolesRoleIdRoute
   '/w/$workspace/_app/settings/senders/$domainId': typeof WWorkspaceAppSettingsSendersDomainIdRoute
@@ -897,12 +1048,21 @@ export interface FileRoutesById {
   '/w/$workspace/_app/transactional/messages/$messageId': typeof WWorkspaceAppTransactionalMessagesMessageIdRoute
   '/w/$workspace/_app/admin/sso/': typeof WWorkspaceAppAdminSsoIndexRoute
   '/w/$workspace/_app/audience/segments/': typeof WWorkspaceAppAudienceSegmentsIndexRoute
+  '/w/$workspace/_app/deliverability/placement/': typeof WWorkspaceAppDeliverabilityPlacementIndexRoute
+  '/w/$workspace/_app/earn/gifts/': typeof WWorkspaceAppEarnGiftsIndexRoute
+  '/w/$workspace/_app/earn/members/': typeof WWorkspaceAppEarnMembersIndexRoute
+  '/w/$workspace/_app/earn/plans/': typeof WWorkspaceAppEarnPlansIndexRoute
+  '/w/$workspace/_app/earn/products/': typeof WWorkspaceAppEarnProductsIndexRoute
+  '/w/$workspace/_app/earn/settings/': typeof WWorkspaceAppEarnSettingsIndexRoute
+  '/w/$workspace/_app/earn/sponsors/': typeof WWorkspaceAppEarnSponsorsIndexRoute
   '/w/$workspace/_app/settings/integrations/': typeof WWorkspaceAppSettingsIntegrationsIndexRoute
   '/w/$workspace/_app/settings/roles/': typeof WWorkspaceAppSettingsRolesIndexRoute
   '/w/$workspace/_app/settings/senders/': typeof WWorkspaceAppSettingsSendersIndexRoute
   '/w/$workspace/_app/settings/team/': typeof WWorkspaceAppSettingsTeamIndexRoute
   '/w/$workspace/_app/transactional/messages/': typeof WWorkspaceAppTransactionalMessagesIndexRoute
   '/w/$workspace/_app/campaigns/digests/$digestId/settings': typeof WWorkspaceAppCampaignsDigestsDigestIdSettingsRoute
+  '/w/$workspace/_app/earn/plans/tiers/$tierId': typeof WWorkspaceAppEarnPlansTiersTierIdRoute
+  '/w/$workspace/_app/earn/plans/tiers/new': typeof WWorkspaceAppEarnPlansTiersNewRoute
   '/w/$workspace/_app/campaigns/digests/$digestId/': typeof WWorkspaceAppCampaignsDigestsDigestIdIndexRoute
 }
 export interface FileRouteTypes {
@@ -974,16 +1134,23 @@ export interface FileRouteTypes {
     | '/w/$workspace/providers/'
     | '/w/$workspace/settings/'
     | '/w/$workspace/transactional/'
+    | '/w/$workspace/earn/connect/'
     | '/w/$workspace/import/$importId/'
     | '/w/$workspace/providers/connect/'
     | '/w/$workspace/admin/sso/$providerId'
     | '/w/$workspace/audience/contacts/$contactId'
     | '/w/$workspace/audience/segments/$segmentId'
+    | '/w/$workspace/audience/verification/$jobId'
     | '/w/$workspace/campaigns/$campaignId/live'
     | '/w/$workspace/campaigns/$campaignId/report'
     | '/w/$workspace/campaigns/$campaignId/review'
+    | '/w/$workspace/deliverability/placement/$testId'
+    | '/w/$workspace/deliverability/placement/seeds'
+    | '/w/$workspace/earn/plans/upgrade-page'
+    | '/w/$workspace/forms/surveys/$surveyId'
     | '/w/$workspace/settings/integrations/$kind'
     | '/w/$workspace/settings/integrations/hostrepute'
+    | '/w/$workspace/settings/integrations/verification'
     | '/w/$workspace/settings/integrations/wordpress'
     | '/w/$workspace/settings/roles/$roleId'
     | '/w/$workspace/settings/senders/$domainId'
@@ -991,12 +1158,21 @@ export interface FileRouteTypes {
     | '/w/$workspace/transactional/messages/$messageId'
     | '/w/$workspace/admin/sso/'
     | '/w/$workspace/audience/segments/'
+    | '/w/$workspace/deliverability/placement/'
+    | '/w/$workspace/earn/gifts/'
+    | '/w/$workspace/earn/members/'
+    | '/w/$workspace/earn/plans/'
+    | '/w/$workspace/earn/products/'
+    | '/w/$workspace/earn/settings/'
+    | '/w/$workspace/earn/sponsors/'
     | '/w/$workspace/settings/integrations/'
     | '/w/$workspace/settings/roles/'
     | '/w/$workspace/settings/senders/'
     | '/w/$workspace/settings/team/'
     | '/w/$workspace/transactional/messages/'
     | '/w/$workspace/campaigns/digests/$digestId/settings'
+    | '/w/$workspace/earn/plans/tiers/$tierId'
+    | '/w/$workspace/earn/plans/tiers/new'
     | '/w/$workspace/campaigns/digests/$digestId/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -1065,16 +1241,23 @@ export interface FileRouteTypes {
     | '/w/$workspace/providers'
     | '/w/$workspace/settings'
     | '/w/$workspace/transactional'
+    | '/w/$workspace/earn/connect'
     | '/w/$workspace/import/$importId'
     | '/w/$workspace/providers/connect'
     | '/w/$workspace/admin/sso/$providerId'
     | '/w/$workspace/audience/contacts/$contactId'
     | '/w/$workspace/audience/segments/$segmentId'
+    | '/w/$workspace/audience/verification/$jobId'
     | '/w/$workspace/campaigns/$campaignId/live'
     | '/w/$workspace/campaigns/$campaignId/report'
     | '/w/$workspace/campaigns/$campaignId/review'
+    | '/w/$workspace/deliverability/placement/$testId'
+    | '/w/$workspace/deliverability/placement/seeds'
+    | '/w/$workspace/earn/plans/upgrade-page'
+    | '/w/$workspace/forms/surveys/$surveyId'
     | '/w/$workspace/settings/integrations/$kind'
     | '/w/$workspace/settings/integrations/hostrepute'
+    | '/w/$workspace/settings/integrations/verification'
     | '/w/$workspace/settings/integrations/wordpress'
     | '/w/$workspace/settings/roles/$roleId'
     | '/w/$workspace/settings/senders/$domainId'
@@ -1082,12 +1265,21 @@ export interface FileRouteTypes {
     | '/w/$workspace/transactional/messages/$messageId'
     | '/w/$workspace/admin/sso'
     | '/w/$workspace/audience/segments'
+    | '/w/$workspace/deliverability/placement'
+    | '/w/$workspace/earn/gifts'
+    | '/w/$workspace/earn/members'
+    | '/w/$workspace/earn/plans'
+    | '/w/$workspace/earn/products'
+    | '/w/$workspace/earn/settings'
+    | '/w/$workspace/earn/sponsors'
     | '/w/$workspace/settings/integrations'
     | '/w/$workspace/settings/roles'
     | '/w/$workspace/settings/senders'
     | '/w/$workspace/settings/team'
     | '/w/$workspace/transactional/messages'
     | '/w/$workspace/campaigns/digests/$digestId/settings'
+    | '/w/$workspace/earn/plans/tiers/$tierId'
+    | '/w/$workspace/earn/plans/tiers/new'
     | '/w/$workspace/campaigns/digests/$digestId'
   id:
     | '__root__'
@@ -1158,16 +1350,23 @@ export interface FileRouteTypes {
     | '/w/$workspace/_app/providers/'
     | '/w/$workspace/_app/settings/'
     | '/w/$workspace/_app/transactional/'
+    | '/w/$workspace/earn/connect/'
     | '/w/$workspace/import/$importId/'
     | '/w/$workspace/providers/connect/'
     | '/w/$workspace/_app/admin/sso/$providerId'
     | '/w/$workspace/_app/audience/contacts/$contactId'
     | '/w/$workspace/_app/audience/segments/$segmentId'
+    | '/w/$workspace/_app/audience/verification/$jobId'
     | '/w/$workspace/_app/campaigns/$campaignId/live'
     | '/w/$workspace/_app/campaigns/$campaignId/report'
     | '/w/$workspace/_app/campaigns/$campaignId/review'
+    | '/w/$workspace/_app/deliverability/placement/$testId'
+    | '/w/$workspace/_app/deliverability/placement/seeds'
+    | '/w/$workspace/_app/earn/plans/upgrade-page'
+    | '/w/$workspace/_app/forms/surveys/$surveyId'
     | '/w/$workspace/_app/settings/integrations/$kind'
     | '/w/$workspace/_app/settings/integrations/hostrepute'
+    | '/w/$workspace/_app/settings/integrations/verification'
     | '/w/$workspace/_app/settings/integrations/wordpress'
     | '/w/$workspace/_app/settings/roles/$roleId'
     | '/w/$workspace/_app/settings/senders/$domainId'
@@ -1175,12 +1374,21 @@ export interface FileRouteTypes {
     | '/w/$workspace/_app/transactional/messages/$messageId'
     | '/w/$workspace/_app/admin/sso/'
     | '/w/$workspace/_app/audience/segments/'
+    | '/w/$workspace/_app/deliverability/placement/'
+    | '/w/$workspace/_app/earn/gifts/'
+    | '/w/$workspace/_app/earn/members/'
+    | '/w/$workspace/_app/earn/plans/'
+    | '/w/$workspace/_app/earn/products/'
+    | '/w/$workspace/_app/earn/settings/'
+    | '/w/$workspace/_app/earn/sponsors/'
     | '/w/$workspace/_app/settings/integrations/'
     | '/w/$workspace/_app/settings/roles/'
     | '/w/$workspace/_app/settings/senders/'
     | '/w/$workspace/_app/settings/team/'
     | '/w/$workspace/_app/transactional/messages/'
     | '/w/$workspace/_app/campaigns/digests/$digestId/settings'
+    | '/w/$workspace/_app/earn/plans/tiers/$tierId'
+    | '/w/$workspace/_app/earn/plans/tiers/new'
     | '/w/$workspace/_app/campaigns/digests/$digestId/'
   fileRoutesById: FileRoutesById
 }
@@ -1603,6 +1811,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceCampaignsCampaignIdEditRouteImport
       parentRoute: typeof WWorkspaceRouteRoute
     }
+    '/w/$workspace/earn/connect/': {
+      id: '/w/$workspace/earn/connect/'
+      path: '/earn/connect'
+      fullPath: '/w/$workspace/earn/connect/'
+      preLoaderRoute: typeof WWorkspaceEarnConnectIndexRouteImport
+      parentRoute: typeof WWorkspaceRouteRoute
+    }
     '/w/$workspace/import/$importId/': {
       id: '/w/$workspace/import/$importId/'
       path: '/import/$importId'
@@ -1715,6 +1930,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceAppAudienceSegmentsSegmentIdRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
+    '/w/$workspace/_app/audience/verification/$jobId': {
+      id: '/w/$workspace/_app/audience/verification/$jobId'
+      path: '/audience/verification/$jobId'
+      fullPath: '/w/$workspace/audience/verification/$jobId'
+      preLoaderRoute: typeof WWorkspaceAppAudienceVerificationJobIdRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
     '/w/$workspace/_app/campaigns/$campaignId/live': {
       id: '/w/$workspace/_app/campaigns/$campaignId/live'
       path: '/campaigns/$campaignId/live'
@@ -1736,6 +1958,83 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceAppCampaignsCampaignIdReviewRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
+    '/w/$workspace/_app/deliverability/placement/': {
+      id: '/w/$workspace/_app/deliverability/placement/'
+      path: '/deliverability/placement'
+      fullPath: '/w/$workspace/deliverability/placement/'
+      preLoaderRoute: typeof WWorkspaceAppDeliverabilityPlacementIndexRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/deliverability/placement/$testId': {
+      id: '/w/$workspace/_app/deliverability/placement/$testId'
+      path: '/deliverability/placement/$testId'
+      fullPath: '/w/$workspace/deliverability/placement/$testId'
+      preLoaderRoute: typeof WWorkspaceAppDeliverabilityPlacementTestIdRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/deliverability/placement/seeds': {
+      id: '/w/$workspace/_app/deliverability/placement/seeds'
+      path: '/deliverability/placement/seeds'
+      fullPath: '/w/$workspace/deliverability/placement/seeds'
+      preLoaderRoute: typeof WWorkspaceAppDeliverabilityPlacementSeedsRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/earn/gifts/': {
+      id: '/w/$workspace/_app/earn/gifts/'
+      path: '/earn/gifts'
+      fullPath: '/w/$workspace/earn/gifts/'
+      preLoaderRoute: typeof WWorkspaceAppEarnGiftsIndexRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/earn/members/': {
+      id: '/w/$workspace/_app/earn/members/'
+      path: '/earn/members'
+      fullPath: '/w/$workspace/earn/members/'
+      preLoaderRoute: typeof WWorkspaceAppEarnMembersIndexRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/earn/plans/': {
+      id: '/w/$workspace/_app/earn/plans/'
+      path: '/earn/plans'
+      fullPath: '/w/$workspace/earn/plans/'
+      preLoaderRoute: typeof WWorkspaceAppEarnPlansIndexRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/earn/plans/upgrade-page': {
+      id: '/w/$workspace/_app/earn/plans/upgrade-page'
+      path: '/earn/plans/upgrade-page'
+      fullPath: '/w/$workspace/earn/plans/upgrade-page'
+      preLoaderRoute: typeof WWorkspaceAppEarnPlansUpgradePageRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/earn/products/': {
+      id: '/w/$workspace/_app/earn/products/'
+      path: '/earn/products'
+      fullPath: '/w/$workspace/earn/products/'
+      preLoaderRoute: typeof WWorkspaceAppEarnProductsIndexRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/earn/settings/': {
+      id: '/w/$workspace/_app/earn/settings/'
+      path: '/earn/settings'
+      fullPath: '/w/$workspace/earn/settings/'
+      preLoaderRoute: typeof WWorkspaceAppEarnSettingsIndexRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/earn/sponsors/': {
+      id: '/w/$workspace/_app/earn/sponsors/'
+      path: '/earn/sponsors'
+      fullPath: '/w/$workspace/earn/sponsors/'
+      preLoaderRoute: typeof WWorkspaceAppEarnSponsorsIndexRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/forms/surveys/$surveyId': {
+      id: '/w/$workspace/_app/forms/surveys/$surveyId'
+      path: '/forms/surveys/$surveyId'
+      fullPath: '/w/$workspace/forms/surveys/$surveyId'
+      preLoaderRoute: typeof WWorkspaceAppFormsSurveysSurveyIdRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
     '/w/$workspace/_app/settings/integrations/': {
       id: '/w/$workspace/_app/settings/integrations/'
       path: '/settings/integrations'
@@ -1755,6 +2054,13 @@ declare module '@tanstack/react-router' {
       path: '/settings/integrations/hostrepute'
       fullPath: '/w/$workspace/settings/integrations/hostrepute'
       preLoaderRoute: typeof WWorkspaceAppSettingsIntegrationsHostreputeRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/settings/integrations/verification': {
+      id: '/w/$workspace/_app/settings/integrations/verification'
+      path: '/settings/integrations/verification'
+      fullPath: '/w/$workspace/settings/integrations/verification'
+      preLoaderRoute: typeof WWorkspaceAppSettingsIntegrationsVerificationRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
     '/w/$workspace/_app/settings/integrations/wordpress': {
@@ -1834,6 +2140,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceAppCampaignsDigestsDigestIdSettingsRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
+    '/w/$workspace/_app/earn/plans/tiers/$tierId': {
+      id: '/w/$workspace/_app/earn/plans/tiers/$tierId'
+      path: '/earn/plans/tiers/$tierId'
+      fullPath: '/w/$workspace/earn/plans/tiers/$tierId'
+      preLoaderRoute: typeof WWorkspaceAppEarnPlansTiersTierIdRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/earn/plans/tiers/new': {
+      id: '/w/$workspace/_app/earn/plans/tiers/new'
+      path: '/earn/plans/tiers/new'
+      fullPath: '/w/$workspace/earn/plans/tiers/new'
+      preLoaderRoute: typeof WWorkspaceAppEarnPlansTiersNewRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
   }
 }
 
@@ -1896,11 +2216,17 @@ interface WWorkspaceAppRouteRouteChildren {
   WWorkspaceAppAdminSsoProviderIdRoute: typeof WWorkspaceAppAdminSsoProviderIdRoute
   WWorkspaceAppAudienceContactsContactIdRoute: typeof WWorkspaceAppAudienceContactsContactIdRoute
   WWorkspaceAppAudienceSegmentsSegmentIdRoute: typeof WWorkspaceAppAudienceSegmentsSegmentIdRoute
+  WWorkspaceAppAudienceVerificationJobIdRoute: typeof WWorkspaceAppAudienceVerificationJobIdRoute
   WWorkspaceAppCampaignsCampaignIdLiveRoute: typeof WWorkspaceAppCampaignsCampaignIdLiveRoute
   WWorkspaceAppCampaignsCampaignIdReportRoute: typeof WWorkspaceAppCampaignsCampaignIdReportRoute
   WWorkspaceAppCampaignsCampaignIdReviewRoute: typeof WWorkspaceAppCampaignsCampaignIdReviewRoute
+  WWorkspaceAppDeliverabilityPlacementTestIdRoute: typeof WWorkspaceAppDeliverabilityPlacementTestIdRoute
+  WWorkspaceAppDeliverabilityPlacementSeedsRoute: typeof WWorkspaceAppDeliverabilityPlacementSeedsRoute
+  WWorkspaceAppEarnPlansUpgradePageRoute: typeof WWorkspaceAppEarnPlansUpgradePageRoute
+  WWorkspaceAppFormsSurveysSurveyIdRoute: typeof WWorkspaceAppFormsSurveysSurveyIdRoute
   WWorkspaceAppSettingsIntegrationsKindRoute: typeof WWorkspaceAppSettingsIntegrationsKindRoute
   WWorkspaceAppSettingsIntegrationsHostreputeRoute: typeof WWorkspaceAppSettingsIntegrationsHostreputeRoute
+  WWorkspaceAppSettingsIntegrationsVerificationRoute: typeof WWorkspaceAppSettingsIntegrationsVerificationRoute
   WWorkspaceAppSettingsIntegrationsWordpressRoute: typeof WWorkspaceAppSettingsIntegrationsWordpressRoute
   WWorkspaceAppSettingsRolesRoleIdRoute: typeof WWorkspaceAppSettingsRolesRoleIdRoute
   WWorkspaceAppSettingsSendersDomainIdRoute: typeof WWorkspaceAppSettingsSendersDomainIdRoute
@@ -1908,12 +2234,21 @@ interface WWorkspaceAppRouteRouteChildren {
   WWorkspaceAppTransactionalMessagesMessageIdRoute: typeof WWorkspaceAppTransactionalMessagesMessageIdRoute
   WWorkspaceAppAdminSsoIndexRoute: typeof WWorkspaceAppAdminSsoIndexRoute
   WWorkspaceAppAudienceSegmentsIndexRoute: typeof WWorkspaceAppAudienceSegmentsIndexRoute
+  WWorkspaceAppDeliverabilityPlacementIndexRoute: typeof WWorkspaceAppDeliverabilityPlacementIndexRoute
+  WWorkspaceAppEarnGiftsIndexRoute: typeof WWorkspaceAppEarnGiftsIndexRoute
+  WWorkspaceAppEarnMembersIndexRoute: typeof WWorkspaceAppEarnMembersIndexRoute
+  WWorkspaceAppEarnPlansIndexRoute: typeof WWorkspaceAppEarnPlansIndexRoute
+  WWorkspaceAppEarnProductsIndexRoute: typeof WWorkspaceAppEarnProductsIndexRoute
+  WWorkspaceAppEarnSettingsIndexRoute: typeof WWorkspaceAppEarnSettingsIndexRoute
+  WWorkspaceAppEarnSponsorsIndexRoute: typeof WWorkspaceAppEarnSponsorsIndexRoute
   WWorkspaceAppSettingsIntegrationsIndexRoute: typeof WWorkspaceAppSettingsIntegrationsIndexRoute
   WWorkspaceAppSettingsRolesIndexRoute: typeof WWorkspaceAppSettingsRolesIndexRoute
   WWorkspaceAppSettingsSendersIndexRoute: typeof WWorkspaceAppSettingsSendersIndexRoute
   WWorkspaceAppSettingsTeamIndexRoute: typeof WWorkspaceAppSettingsTeamIndexRoute
   WWorkspaceAppTransactionalMessagesIndexRoute: typeof WWorkspaceAppTransactionalMessagesIndexRoute
   WWorkspaceAppCampaignsDigestsDigestIdSettingsRoute: typeof WWorkspaceAppCampaignsDigestsDigestIdSettingsRoute
+  WWorkspaceAppEarnPlansTiersTierIdRoute: typeof WWorkspaceAppEarnPlansTiersTierIdRoute
+  WWorkspaceAppEarnPlansTiersNewRoute: typeof WWorkspaceAppEarnPlansTiersNewRoute
   WWorkspaceAppCampaignsDigestsDigestIdIndexRoute: typeof WWorkspaceAppCampaignsDigestsDigestIdIndexRoute
 }
 
@@ -1969,16 +2304,28 @@ const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
     WWorkspaceAppAudienceContactsContactIdRoute,
   WWorkspaceAppAudienceSegmentsSegmentIdRoute:
     WWorkspaceAppAudienceSegmentsSegmentIdRoute,
+  WWorkspaceAppAudienceVerificationJobIdRoute:
+    WWorkspaceAppAudienceVerificationJobIdRoute,
   WWorkspaceAppCampaignsCampaignIdLiveRoute:
     WWorkspaceAppCampaignsCampaignIdLiveRoute,
   WWorkspaceAppCampaignsCampaignIdReportRoute:
     WWorkspaceAppCampaignsCampaignIdReportRoute,
   WWorkspaceAppCampaignsCampaignIdReviewRoute:
     WWorkspaceAppCampaignsCampaignIdReviewRoute,
+  WWorkspaceAppDeliverabilityPlacementTestIdRoute:
+    WWorkspaceAppDeliverabilityPlacementTestIdRoute,
+  WWorkspaceAppDeliverabilityPlacementSeedsRoute:
+    WWorkspaceAppDeliverabilityPlacementSeedsRoute,
+  WWorkspaceAppEarnPlansUpgradePageRoute:
+    WWorkspaceAppEarnPlansUpgradePageRoute,
+  WWorkspaceAppFormsSurveysSurveyIdRoute:
+    WWorkspaceAppFormsSurveysSurveyIdRoute,
   WWorkspaceAppSettingsIntegrationsKindRoute:
     WWorkspaceAppSettingsIntegrationsKindRoute,
   WWorkspaceAppSettingsIntegrationsHostreputeRoute:
     WWorkspaceAppSettingsIntegrationsHostreputeRoute,
+  WWorkspaceAppSettingsIntegrationsVerificationRoute:
+    WWorkspaceAppSettingsIntegrationsVerificationRoute,
   WWorkspaceAppSettingsIntegrationsWordpressRoute:
     WWorkspaceAppSettingsIntegrationsWordpressRoute,
   WWorkspaceAppSettingsRolesRoleIdRoute: WWorkspaceAppSettingsRolesRoleIdRoute,
@@ -1991,6 +2338,14 @@ const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
   WWorkspaceAppAdminSsoIndexRoute: WWorkspaceAppAdminSsoIndexRoute,
   WWorkspaceAppAudienceSegmentsIndexRoute:
     WWorkspaceAppAudienceSegmentsIndexRoute,
+  WWorkspaceAppDeliverabilityPlacementIndexRoute:
+    WWorkspaceAppDeliverabilityPlacementIndexRoute,
+  WWorkspaceAppEarnGiftsIndexRoute: WWorkspaceAppEarnGiftsIndexRoute,
+  WWorkspaceAppEarnMembersIndexRoute: WWorkspaceAppEarnMembersIndexRoute,
+  WWorkspaceAppEarnPlansIndexRoute: WWorkspaceAppEarnPlansIndexRoute,
+  WWorkspaceAppEarnProductsIndexRoute: WWorkspaceAppEarnProductsIndexRoute,
+  WWorkspaceAppEarnSettingsIndexRoute: WWorkspaceAppEarnSettingsIndexRoute,
+  WWorkspaceAppEarnSponsorsIndexRoute: WWorkspaceAppEarnSponsorsIndexRoute,
   WWorkspaceAppSettingsIntegrationsIndexRoute:
     WWorkspaceAppSettingsIntegrationsIndexRoute,
   WWorkspaceAppSettingsRolesIndexRoute: WWorkspaceAppSettingsRolesIndexRoute,
@@ -2001,6 +2356,9 @@ const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
     WWorkspaceAppTransactionalMessagesIndexRoute,
   WWorkspaceAppCampaignsDigestsDigestIdSettingsRoute:
     WWorkspaceAppCampaignsDigestsDigestIdSettingsRoute,
+  WWorkspaceAppEarnPlansTiersTierIdRoute:
+    WWorkspaceAppEarnPlansTiersTierIdRoute,
+  WWorkspaceAppEarnPlansTiersNewRoute: WWorkspaceAppEarnPlansTiersNewRoute,
   WWorkspaceAppCampaignsDigestsDigestIdIndexRoute:
     WWorkspaceAppCampaignsDigestsDigestIdIndexRoute,
 }
@@ -2024,6 +2382,7 @@ interface WWorkspaceRouteRouteChildren {
   WWorkspaceProvidersConnectAdapterRoute: typeof WWorkspaceProvidersConnectAdapterRoute
   WWorkspaceTransactionalTemplatesTemplateIdRoute: typeof WWorkspaceTransactionalTemplatesTemplateIdRoute
   WWorkspaceTransactionalTemplatesNewRoute: typeof WWorkspaceTransactionalTemplatesNewRoute
+  WWorkspaceEarnConnectIndexRoute: typeof WWorkspaceEarnConnectIndexRoute
   WWorkspaceImportImportIdIndexRoute: typeof WWorkspaceImportImportIdIndexRoute
   WWorkspaceProvidersConnectIndexRoute: typeof WWorkspaceProvidersConnectIndexRoute
 }
@@ -2049,6 +2408,7 @@ const WWorkspaceRouteRouteChildren: WWorkspaceRouteRouteChildren = {
     WWorkspaceTransactionalTemplatesTemplateIdRoute,
   WWorkspaceTransactionalTemplatesNewRoute:
     WWorkspaceTransactionalTemplatesNewRoute,
+  WWorkspaceEarnConnectIndexRoute: WWorkspaceEarnConnectIndexRoute,
   WWorkspaceImportImportIdIndexRoute: WWorkspaceImportImportIdIndexRoute,
   WWorkspaceProvidersConnectIndexRoute: WWorkspaceProvidersConnectIndexRoute,
 }
