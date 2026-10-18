@@ -3525,6 +3525,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/campaigns/{id}/revenue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A campaign report's Revenue section: upgrades and conversions credited to it
+         * @description Without earn:view the answer is locked and names who can show it.
+         */
+        get: operations["get-campaign-revenue"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/campaigns/{id}/sponsor-block": {
         parameters: {
             query?: never;
@@ -4148,6 +4168,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/conversions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The conversions log, newest first */
+        get: operations["list-conversions"];
+        put?: never;
+        /**
+         * Record a conversion: an upgrade or an order in your product, with its value
+         * @description Credits the conversion to the last campaign or automation email the reader clicked within the attribution window: by click token (rc_click), else by email address. Answers 202 with how it was matched. Errors: missing_identity, invalid_value, invalid_currency, occurred_at_out_of_range (422), idempotency_key_reused (409), rate_limited (429, with Retry-After). Conversions are logged in Earn › Settings › Attribution, not in the audit log.
+         */
+        post: operations["create-conversion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/delete": {
         parameters: {
             query?: never;
@@ -4724,6 +4765,61 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/earn/attribution": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Earn › Settings › Attribution: the window, the click token and the conversion API */
+        get: operations["get-attribution"];
+        /** Change the attribution window and the click token */
+        put: operations["update-attribution"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/attribution/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record a test conversion for your own address
+         * @description Shown in the conversions log, left out of every number.
+         */
+        post: operations["send-test-conversion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/card": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The Earn card of the workspace Overview */
+        get: operations["get-earn-card"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/earn/checklist": {
         parameters: {
             query?: never;
@@ -5250,6 +5346,26 @@ export interface paths {
         };
         /** Plans & offers: the tiers with their prices, members and MRR, and the upgrade page */
         get: operations["get-earn-plans"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/revenue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Earn › Overview: MRR and its movement, paid members, trials, conversions, cancellations and attribution
+         * @description MRR is the monthly value of every Active and Past due subscription, after discounts, before tax, live mode only; a yearly price counts as a twelfth.
+         */
+        get: operations["get-revenue-overview"];
         put?: never;
         post?: never;
         delete?: never;
@@ -11444,6 +11560,32 @@ export interface components {
             lists: string[];
             subscribeBox: boolean;
         };
+        AttributionInput: {
+            clickToken: boolean;
+            /**
+             * Format: int64
+             * @enum {integer}
+             */
+            days: 1 | 3 | 7 | 14 | 30;
+            /** @description Your own domains (app.acme.io): the click token goes on links to them only. */
+            domains: string[];
+        };
+        AttributionSettings: {
+            canCreateKey: boolean;
+            canManage: boolean;
+            clickToken: boolean;
+            currency: string;
+            /**
+             * Format: int64
+             * @enum {integer}
+             */
+            days: 1 | 3 | 7 | 14 | 30;
+            domains: string[];
+            endpoint: string;
+            helpers: string[];
+            keys: components["schemas"]["ConversionKey"][];
+            summary: components["schemas"]["ConversionSummary"];
+        };
         AudienceListInput: {
             description?: string;
             /** @description New signups confirm by email first (default true) */
@@ -12352,6 +12494,22 @@ export interface components {
             title?: string;
             version?: string;
         };
+        CampaignConversions: {
+            /** Format: int64 */
+            byEmail: number;
+            /** Format: int64 */
+            byToken: number;
+            /** Format: int64 */
+            count: number;
+            currency: string;
+            domains: string[];
+            name?: string;
+            sender?: string;
+            /** Format: int64 */
+            typicalCents?: number;
+            /** Format: int64 */
+            valueCents: number;
+        };
         CampaignDigestRef: {
             approvalId?: string;
             id: string;
@@ -12413,6 +12571,12 @@ export interface components {
             updatedAt: string;
             updatedBy: string;
         };
+        CampaignPayment: {
+            /** Format: int64 */
+            amountCents: number;
+            /** Format: int64 */
+            count: number;
+        };
         CampaignReport: {
             abTest?: components["schemas"]["ReportABTest"];
             backlog?: components["schemas"]["ReportIngestBacklog"];
@@ -12426,6 +12590,44 @@ export interface components {
             notSent?: components["schemas"]["ReportNotSent"];
             providers: components["schemas"]["ReportProviderTable"];
             unsubscribes: components["schemas"]["ReportUnsubscribes"];
+        };
+        CampaignRevenue: {
+            /** Format: int64 */
+            checkouts: number;
+            collected: components["schemas"]["CampaignPayment"][];
+            /** Format: int64 */
+            collectedCents: number;
+            conversions: components["schemas"]["CampaignConversions"];
+            currency: string;
+            /** Format: int64 */
+            delivered: number;
+            hasUpgradeLinks: boolean;
+            helpers: string[];
+            locked: boolean;
+            name: string;
+            /** Format: int64 */
+            newMrrCents: number;
+            /** Format: int64 */
+            paidAtOnce: number;
+            paidLines: components["schemas"]["CampaignUpgradeLine"][];
+            pending: boolean;
+            /** Format: int64 */
+            potentialMrrCents: number;
+            /** Format: date-time */
+            sentAt?: string;
+            trialLines: components["schemas"]["CampaignUpgradeLine"][];
+            /** Format: int64 */
+            trials: number;
+            /** Format: date-time */
+            trialsEnd?: string;
+            /** Format: int64 */
+            upgradeClicks: number;
+            /** Format: double */
+            upgradedRate?: number;
+            /** Format: int64 */
+            upgrades: number;
+            /** Format: int64 */
+            window: number;
         };
         CampaignReview: {
             access: components["schemas"]["ReviewAccess"];
@@ -12482,8 +12684,24 @@ export interface components {
             /** Format: int64 */
             sent: number;
         };
+        CampaignUpgradeLine: {
+            /** Format: int64 */
+            count: number;
+            offer?: string;
+            period: string;
+            tier: string;
+        };
         CancelInput: {
             reason?: string;
+        };
+        CardIssue: {
+            bookingId: string;
+            /** Format: date-time */
+            creativeDue?: string;
+            /** Format: int64 */
+            issue: number;
+            ready: boolean;
+            sponsor: string;
         };
         CatalogLanguage: {
             added: boolean;
@@ -13929,6 +14147,94 @@ export interface components {
             /** Format: int64 */
             linksOk: number;
         };
+        ConversionCredit: {
+            id: string;
+            /** @enum {string} */
+            kind: "campaign" | "automation";
+            name: string;
+        };
+        ConversionInput: {
+            /** @description The rc_click token from the link the reader followed, if present */
+            click_token?: string;
+            /** @description ISO 4217: USD, EUR, GBP… */
+            currency: string;
+            /** @description The reader's address; send it, the click token, or both */
+            email?: string;
+            /** @description Your own fields, kept with the conversion */
+            metadata?: {
+                [key: string]: unknown;
+            };
+            /** @description What happened: "Upgraded to Team plan" */
+            name: string;
+            /**
+             * Format: date-time
+             * @description When it happened (now when absent): up to 30 days back
+             */
+            occurred_at?: string;
+            /** @description A decimal string: "29.00", not 29 */
+            value: unknown;
+        };
+        ConversionItem: {
+            credited?: components["schemas"]["ConversionCredit"];
+            currency: string;
+            id: string;
+            keyName: string;
+            /** @enum {string} */
+            matched: "click_token" | "email" | "none";
+            name: string;
+            /** Format: date-time */
+            occurredAt: string;
+            /** Format: date-time */
+            receivedAt: string;
+            test: boolean;
+            value: string;
+            /** Format: int64 */
+            valueCents: number;
+        };
+        ConversionKey: {
+            /** Format: date-time */
+            createdAt: string;
+            createdBy: string;
+            /** Format: date-time */
+            expiresAt?: string;
+            id: string;
+            /** Format: date-time */
+            lastUsedAt?: string;
+            lastUsedIp?: string;
+            name: string;
+            only: boolean;
+            prefix: string;
+        };
+        ConversionList: {
+            items: components["schemas"]["ConversionItem"][];
+            /** Format: date-time */
+            next?: string;
+            /** Format: int64 */
+            window: number;
+        };
+        ConversionResult: {
+            credited?: components["schemas"]["ConversionCredit"];
+            id: string;
+            /** @enum {string} */
+            matched: "click_token" | "email" | "none";
+            test?: boolean;
+        };
+        ConversionSummary: {
+            /** Format: int64 */
+            count: number;
+            /** Format: int64 */
+            credited: number;
+            /** Format: int64 */
+            creditedCents: number;
+            name?: string;
+            sender?: string;
+            /** Format: date-time */
+            since?: string;
+            /** Format: int64 */
+            typicalCents?: number;
+            /** Format: int64 */
+            valueCents: number;
+        };
         "Create-workspaceRequest": {
             name: string;
             timezone?: string;
@@ -15067,6 +15373,31 @@ export interface components {
             note?: string;
             /** @enum {string} */
             when: "period_end" | "now";
+        };
+        EarnCard: {
+            account?: string;
+            /** Format: int64 */
+            active: number;
+            canSetUp: boolean;
+            /** Format: double */
+            churnRate?: number;
+            currency: string;
+            /** Format: int64 */
+            members: number;
+            /** Format: int64 */
+            membersDelta: number;
+            mode?: string;
+            /** Format: int64 */
+            mrrCents: number;
+            /** Format: int64 */
+            mrrDeltaCents: number;
+            nextSponsor?: components["schemas"]["CardIssue"];
+            /** Format: int64 */
+            silentHours?: number;
+            /** @enum {string} */
+            state: "live" | "invite" | "none";
+            /** Format: int64 */
+            trialing: number;
         };
         EarnChecklist: {
             canEdit: boolean;
@@ -21037,6 +21368,321 @@ export interface components {
             /** Format: double */
             rate?: number;
             source?: string;
+        };
+        RevenueActivity: {
+            /** Format: int64 */
+            amountCents?: number;
+            /** Format: date-time */
+            at: string;
+            contactId: string;
+            currency: string;
+            data: {
+                [key: string]: unknown;
+            };
+            kind: string;
+            name: string;
+            period: string;
+            tier: string;
+        };
+        RevenueCancellations: {
+            /** Format: int64 */
+            continued: number;
+            /** Format: int64 */
+            kept: number;
+            keptOffer?: string;
+            keptTier?: string;
+            offerId?: string;
+            reasons: components["schemas"]["RevenueReason"][];
+            /** Format: int64 */
+            undecided: number;
+            /** Format: int64 */
+            visits: number;
+        };
+        RevenueChart: {
+            /** Format: int64 */
+            deltaCents: number;
+            /** Format: double */
+            deltaPct?: number;
+            /** Format: int64 */
+            endCents: number;
+            /** Format: date-time */
+            historyUntil?: string;
+            marks: components["schemas"]["RevenueMark"][];
+            points: components["schemas"]["RevenuePoint"][];
+            /** Format: date-time */
+            since: string;
+            /** Format: int64 */
+            startCents: number;
+        };
+        RevenueConversionLine: {
+            /** Format: date-time */
+            at: string;
+            campaignId?: string;
+            credited: string;
+            currency: string;
+            /** @enum {string} */
+            matched: "click_token" | "email" | "none";
+            /** Format: int64 */
+            valueCents: number;
+        };
+        RevenueConversionRow: {
+            /** Format: int64 */
+            byEmail: number;
+            /** Format: int64 */
+            byToken: number;
+            /** Format: int64 */
+            count: number;
+            id: string;
+            /** @enum {string} */
+            kind: "campaign" | "automation";
+            name: string;
+            /** Format: int64 */
+            valueCents: number;
+        };
+        RevenueConversions: {
+            byEmail: components["schemas"]["RevenueConversionRow"][];
+            /** Format: int64 */
+            count: number;
+            currency: string;
+            latest: components["schemas"]["RevenueConversionLine"][];
+            name?: string;
+            /** Format: int64 */
+            otherCurrency: number;
+            sender?: string;
+            /** Format: date-time */
+            since?: string;
+            /** Format: int64 */
+            total: number;
+            /** Format: int64 */
+            typicalCents?: number;
+            uncredited: components["schemas"]["RevenueMove"];
+            /** Format: int64 */
+            valueCents: number;
+        };
+        RevenueCredit: {
+            /** Format: int64 */
+            count: number;
+            id: string;
+            /** @enum {string} */
+            kind: "campaign" | "automation";
+            name: string;
+        };
+        RevenueFreeToPaid: {
+            /** Format: int64 */
+            all: number;
+            /** Format: int64 */
+            direct: number;
+            rows: components["schemas"]["RevenueSourceRow"][];
+            total: components["schemas"]["RevenueSourceRow"];
+        };
+        RevenueMark: {
+            /** Format: date-time */
+            at: string;
+            /** @enum {string} */
+            kind: "moved" | "offer";
+            /** Format: int64 */
+            n: number;
+            name: string;
+        };
+        RevenueMove: {
+            /** Format: int64 */
+            cents: number;
+            /** Format: int64 */
+            count: number;
+        };
+        RevenueMovement: {
+            churned: components["schemas"]["RevenueMove"];
+            contraction: components["schemas"]["RevenueMove"];
+            expansion: components["schemas"]["RevenueMove"];
+            /** Format: int64 */
+            fromCents: number;
+            /** Format: int64 */
+            fromMembers: number;
+            new: components["schemas"]["RevenueMove"];
+            reactivated: components["schemas"]["RevenueMove"];
+            /** Format: int64 */
+            toCents: number;
+            /** Format: int64 */
+            toMembers: number;
+        };
+        RevenueNeed: {
+            /** Format: int64 */
+            count?: number;
+            /** Format: date-time */
+            due?: string;
+            /** Format: date-time */
+            endsAt?: string;
+            /** Format: int64 */
+            issue?: number;
+            /** @enum {string} */
+            kind: "past_due" | "offer" | "creative" | "sponsor_payment" | "member_email";
+            /** Format: int64 */
+            limit?: number;
+            list?: string;
+            name?: string;
+            overdue?: boolean;
+            sponsor?: string;
+            targetId?: string;
+            template?: string;
+            /** Format: int64 */
+            used?: number;
+        };
+        RevenueOverview: {
+            account: string;
+            activity: components["schemas"]["RevenueActivity"][];
+            canEdit: boolean;
+            canManage: boolean;
+            canPayments: boolean;
+            canSponsors: boolean;
+            cancellations: components["schemas"]["RevenueCancellations"];
+            chart: components["schemas"]["RevenueChart"];
+            /** Format: date-time */
+            connectedAt?: string;
+            conversions: components["schemas"]["RevenueConversions"];
+            currency: string;
+            /** Format: date-time */
+            dataSince?: string;
+            failed: string[];
+            freeToPaid: components["schemas"]["RevenueFreeToPaid"];
+            /** Format: date-time */
+            from: string;
+            hadHistory: boolean;
+            helpers: string[];
+            movement: components["schemas"]["RevenueMovement"];
+            needs: components["schemas"]["RevenueNeed"][];
+            /** @enum {string} */
+            period: "30d" | "90d" | "12m";
+            readOnly: boolean;
+            /** Format: date-time */
+            shownFrom?: string;
+            tiers: components["schemas"]["RevenueTierRow"][];
+            tiles: components["schemas"]["RevenueTiles"];
+            /** Format: date-time */
+            to: string;
+            tooEarly: boolean;
+            trials: components["schemas"]["RevenueTrials"];
+            upgrades: components["schemas"]["RevenueUpgrades"];
+        };
+        RevenuePoint: {
+            /** Format: date-time */
+            at: string;
+            history: boolean;
+            /** Format: int64 */
+            mrrCents: number;
+        };
+        RevenueReason: {
+            /** Format: int64 */
+            count: number;
+            reason: string;
+        };
+        RevenueSourceRow: {
+            /** Format: int64 */
+            atStart: number;
+            /** Format: int64 */
+            base: number;
+            formKind?: string;
+            /** Format: int64 */
+            joined: number;
+            key: string;
+            kind: string;
+            name: string;
+            /** Format: int64 */
+            others?: number;
+            /** Format: int64 */
+            paid: number;
+            /** Format: double */
+            rate?: number;
+            tooFew: boolean;
+        };
+        RevenueTierOffer: {
+            duration: string;
+            /** Format: int64 */
+            members: number;
+            /** Format: int64 */
+            months?: number;
+            name: string;
+            /** Format: int64 */
+            paidCents: number;
+        };
+        RevenueTierRow: {
+            includes: string[];
+            /** Format: int64 */
+            members: number;
+            /** Format: int64 */
+            mrrCents: number;
+            offers: components["schemas"]["RevenueTierOffer"][];
+            period: string;
+            /** Format: int64 */
+            priceCents: number;
+            tier: string;
+            tierId: string;
+        };
+        RevenueTiles: {
+            /** Format: int64 */
+            arrCents: number;
+            /** Format: int64 */
+            churnBase: number;
+            /** Format: double */
+            churnRate?: number;
+            /** Format: int64 */
+            churned: number;
+            /** Format: int64 */
+            freeBase: number;
+            /** Format: int64 */
+            freeToPaid: number;
+            /** Format: double */
+            freeToPaidRate?: number;
+            /** Format: int64 */
+            giftsCents: number;
+            /** Format: int64 */
+            members: number;
+            /** Format: int64 */
+            membersDelta: number;
+            /** Format: int64 */
+            mrrCents: number;
+            /** Format: int64 */
+            mrrDeltaCents: number;
+            /** Format: double */
+            mrrDeltaPct?: number;
+            /** Format: int64 */
+            new: number;
+            /** Format: int64 */
+            sponsorsCents: number;
+            /** Format: int64 */
+            trialing: number;
+        };
+        RevenueTrials: {
+            /** Format: int64 */
+            becamePaid: number;
+            /** Format: int64 */
+            canceled: number;
+            /** Format: int64 */
+            ended: number;
+            endingFrom?: components["schemas"]["RevenueCredit"];
+            /** Format: int64 */
+            endingSoon: number;
+            /** Format: int64 */
+            started: number;
+            /** Format: int64 */
+            trialing: number;
+        };
+        RevenueUpgradeRow: {
+            id?: string;
+            /** @enum {string} */
+            kind: "campaign" | "automation" | "none";
+            /** Format: int64 */
+            members: number;
+            /** Format: int64 */
+            mrrCents: number;
+            name: string;
+            /** Format: date-time */
+            sentAt?: string;
+        };
+        RevenueUpgrades: {
+            rows: components["schemas"]["RevenueUpgradeRow"][];
+            total: components["schemas"]["RevenueMove"];
+            /** Format: int64 */
+            window: number;
         };
         ReviewAB: {
             /** Format: int64 */
@@ -34151,6 +34797,40 @@ export interface operations {
             };
         };
     };
+    "get-campaign-revenue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The campaign's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampaignRevenue"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "get-campaign-sponsor-block": {
         parameters: {
             query?: {
@@ -35646,6 +36326,81 @@ export interface operations {
             };
         };
     };
+    "list-conversions": {
+        parameters: {
+            query?: {
+                /** @description Conversions received before this moment (the previous page's next) */
+                before?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConversionList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-conversion": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Sending the same key again answers with the first conversion instead of recording a second */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConversionInput"];
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConversionResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "delete-workspace": {
         parameters: {
             query?: never;
@@ -36927,6 +37682,138 @@ export interface operations {
             };
         };
     };
+    "get-attribution": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttributionSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-attribution": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AttributionInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttributionSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "send-test-conversion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConversionResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-earn-card": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnCard"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "get-earn-checklist": {
         parameters: {
             query?: never;
@@ -38055,6 +38942,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EarnPlans"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-revenue-overview": {
+        parameters: {
+            query?: {
+                /** @description The last 30 days, 90 days or 12 months */
+                period?: "30d" | "90d" | "12m";
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevenueOverview"];
                 };
             };
             /** @description Error */

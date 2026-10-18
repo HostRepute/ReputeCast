@@ -1671,33 +1671,102 @@ type Querier interface {
 	RestoreList(ctx context.Context, id uuid.UUID) (List, error)
 	ResumeAutomation(ctx context.Context, arg ResumeAutomationParams) error
 	RetireAutomationVersion(ctx context.Context, arg RetireAutomationVersionParams) error
+	RevenueActiveSubscriptions(ctx context.Context, arg RevenueActiveSubscriptionsParams) (int64, error)
+	// The latest paid-member event of each kind the overview lists.
+	RevenueActivity(ctx context.Context, arg RevenueActivityParams) ([]RevenueActivityRow, error)
 	RevenueAttributionSettings(ctx context.Context, workspaceID uuid.UUID) (RevenueAttributionSettingsRow, error)
 	// Paying subscriptions by tier, period and discount, today.
 	RevenueByTier(ctx context.Context, workspaceID uuid.UUID) ([]RevenueByTierRow, error)
+	RevenueCampaignCheckouts(ctx context.Context, arg RevenueCampaignCheckoutsParams) (int64, error)
 	RevenueCampaignClickBump(ctx context.Context, arg RevenueCampaignClickBumpParams) error
 	RevenueCampaignClicks(ctx context.Context, campaignID uuid.UUID) (int64, error)
+	RevenueCampaignConversions(ctx context.Context, arg RevenueCampaignConversionsParams) ([]RevenueCampaignConversionsRow, error)
+	RevenueCampaignInfo(ctx context.Context, arg RevenueCampaignInfoParams) (RevenueCampaignInfoRow, error)
+	RevenueCampaignLinkUrls(ctx context.Context, campaignID uuid.UUID) ([]string, error)
+	// Paid members credited to a campaign: what they pay first and whether
+	// they're still trialing.
+	RevenueCampaignUpgrades(ctx context.Context, arg RevenueCampaignUpgradesParams) ([]RevenueCampaignUpgradesRow, error)
+	RevenueCancelReasons(ctx context.Context, arg RevenueCancelReasonsParams) ([]RevenueCancelReasonsRow, error)
+	// Visits to the cancel page in a window and what readers decided.
+	RevenueCancelSummary(ctx context.Context, arg RevenueCancelSummaryParams) (RevenueCancelSummaryRow, error)
+	// The workspace's payment connections (any mode), newest first.
+	RevenueConnections(ctx context.Context, workspaceID uuid.UUID) ([]RevenueConnectionsRow, error)
 	RevenueContactByEmail(ctx context.Context, arg RevenueContactByEmailParams) (uuid.UUID, error)
 	RevenueConversionByKey(ctx context.Context, arg RevenueConversionByKeyParams) (Conversion, error)
+	// The conversions log's totals: credited or not, in the workspace currency.
+	RevenueConversionCounts(ctx context.Context, arg RevenueConversionCountsParams) (RevenueConversionCountsRow, error)
 	RevenueConversionInsert(ctx context.Context, arg RevenueConversionInsertParams) error
 	// The keys that can record conversions, with who made them and their last use.
 	RevenueConversionKeys(ctx context.Context, workspaceID uuid.UUID) ([]RevenueConversionKeysRow, error)
+	// What the conversions of a window are: their names, values and keys.
+	RevenueConversionKinds(ctx context.Context, arg RevenueConversionKindsParams) ([]RevenueConversionKindsRow, error)
 	// The conversions log, newest first, with what each was credited to.
 	RevenueConversions(ctx context.Context, arg RevenueConversionsParams) ([]RevenueConversionsRow, error)
+	RevenueConversionsFirst(ctx context.Context, workspaceID uuid.UUID) (RevenueConversionsFirstRow, error)
+	// Conversions of a window by currency, the email credited and how each matched.
+	RevenueConversionsSummary(ctx context.Context, arg RevenueConversionsSummaryParams) ([]RevenueConversionsSummaryRow, error)
 	// The ledger's change after each of several moments (the MRR line).
 	RevenueDeltaSince(ctx context.Context, arg RevenueDeltaSinceParams) ([]RevenueDeltaSinceRow, error)
+	// Free subscribers by how they first joined: those at the start of a
+	// window, those who joined during it, and those who became paid members in
+	// it. A contact who paid within an hour of joining paid straight away and
+	// is counted apart.
+	RevenueFreeToPaid(ctx context.Context, arg RevenueFreeToPaidParams) ([]RevenueFreeToPaidRow, error)
+	// Gifts paid in a window (refunded ones left out).
+	RevenueGiftIncome(ctx context.Context, arg RevenueGiftIncomeParams) (RevenueGiftIncomeRow, error)
+	RevenueGiftPageOn(ctx context.Context, workspaceID uuid.UUID) (bool, error)
+	// The offer and tier most readers kept their membership with.
+	RevenueKeptWith(ctx context.Context, arg RevenueKeptWithParams) ([]RevenueKeptWithRow, error)
 	// A contact's last human click on a campaign or automation email within a
 	// window before a moment.
 	RevenueLastEmailClick(ctx context.Context, arg RevenueLastEmailClickParams) (RevenueLastEmailClickRow, error)
+	// How many changes the MRR ledger has, and when it starts.
+	RevenueLedgerSince(ctx context.Context, workspaceID uuid.UUID) (RevenueLedgerSinceRow, error)
+	// The connected live payment account, if there is one.
+	RevenueLiveConnection(ctx context.Context, workspaceID uuid.UUID) (RevenueLiveConnectionRow, error)
 	// Revenue and attribution (internal/revenue): the MRR ledger, the Earn
 	// overview's numbers, the click token's settings and the conversions log.
 	// The MRR definition: Active and Past due subscriptions, live only, after
 	// discounts, a yearly price as a twelfth (twelve times MRR, in minor units).
 	RevenueMRRNow(ctx context.Context, workspaceID uuid.UUID) (RevenueMRRNowRow, error)
 	RevenueMessageOf(ctx context.Context, id uuid.UUID) (RevenueMessageOfRow, error)
+	// The first finished import of paid members: the move from another platform.
+	RevenueMoved(ctx context.Context, workspaceID uuid.UUID) (RevenueMovedRow, error)
 	// The ledger's changes after a moment: each kind's subscriptions and the
 	// change of their yearly value.
 	RevenueMovement(ctx context.Context, arg RevenueMovementParams) ([]RevenueMovementRow, error)
+	// Contacts who became paid members in a window.
+	RevenueNewContacts(ctx context.Context, arg RevenueNewContactsParams) (int64, error)
+	// The next sponsored issue of the workspace.
+	RevenueNextSponsor(ctx context.Context, arg RevenueNextSponsorParams) ([]RevenueNextSponsorRow, error)
+	// Signup offers that started in a window (marks on the MRR line).
+	RevenueOfferStarts(ctx context.Context, arg RevenueOfferStartsParams) ([]RevenueOfferStartsRow, error)
+	// Live signup offers with a limit or an end date, and how often they were used.
+	RevenueOffersToWatch(ctx context.Context, workspaceID uuid.UUID) ([]RevenueOffersToWatchRow, error)
+	RevenuePastDue(ctx context.Context, workspaceID uuid.UUID) (int64, error)
+	// The live retention offer, for the Cancellations card's link.
+	RevenueRetentionOffer(ctx context.Context, workspaceID uuid.UUID) ([]RevenueRetentionOfferRow, error)
 	RevenueSetAttribution(ctx context.Context, arg RevenueSetAttributionParams) error
+	// Sponsored issues of a window, at their price.
+	RevenueSponsorIncome(ctx context.Context, arg RevenueSponsorIncomeParams) (RevenueSponsorIncomeRow, error)
+	// The sponsor links of a campaign's booking: the click token never goes on them.
+	RevenueSponsorLinks(ctx context.Context, campaignID *uuid.UUID) ([]string, error)
+	// Bookings that need a person soon: a creative still waiting, or a
+	// sponsor's payment not recorded for an issue that went out.
+	RevenueSponsorNeeds(ctx context.Context, arg RevenueSponsorNeedsParams) ([]RevenueSponsorNeedsRow, error)
+	RevenueTierPrices(ctx context.Context, workspaceID uuid.UUID) ([]RevenueTierPricesRow, error)
+	// The workspace's tiers by access rank (a higher tier includes the lower).
+	RevenueTiers(ctx context.Context, workspaceID uuid.UUID) ([]RevenueTiersRow, error)
+	// Trials started in a window and what became of them; trialing now and
+	// ending within a week.
+	RevenueTrials(ctx context.Context, arg RevenueTrialsParams) (RevenueTrialsRow, error)
+	// The email most of the trials ending soon came from.
+	RevenueTrialsEndingTop(ctx context.Context, arg RevenueTrialsEndingTopParams) ([]RevenueTrialsEndingTopRow, error)
+	// Member emails whose template isn't published.
+	RevenueUnpublishedMemberEmails(ctx context.Context, workspaceID uuid.UUID) ([]RevenueUnpublishedMemberEmailsRow, error)
+	// New paid members of a window by the email they're credited to, with
+	// their new MRR (twelve times, in minor units).
+	RevenueUpgradesByEmail(ctx context.Context, arg RevenueUpgradesByEmailParams) ([]RevenueUpgradesByEmailRow, error)
 	RevokeAPIKey(ctx context.Context, arg RevokeAPIKeyParams) (int64, error)
 	RevokeAPIKeysCreatedBy(ctx context.Context, arg RevokeAPIKeysCreatedByParams) (int64, error)
 	RevokeAllUserSessions(ctx context.Context, userID uuid.UUID) (int64, error)

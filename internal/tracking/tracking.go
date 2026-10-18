@@ -57,12 +57,41 @@ type Service struct {
 	// and fires their message.opened and message.clicked webhook events.
 	Transactional TransactionalTracking
 	Now           func() time.Time
+	// Clicked, when set, hears of each person's click (bot clicks never
+	// reach it) in the transaction that records it: Earn counts clicks on
+	// upgrade links per campaign.
+	Clicked func(ctx context.Context, q *store.Queries, c HumanClick) error
+	// Decorate, when set, may add to a click's destination before the
+	// redirect (Earn's click token on the publisher's own domains); "" keeps
+	// the destination as it is.
+	Decorate func(ctx context.Context, c ClickTarget) string
 
 	once  sync.Once
 	in    chan *pending
 	mu    sync.Mutex
 	links map[uuid.UUID]linkSet
 	burst map[uuid.UUID][]clickMark
+}
+
+// HumanClick is a person's click, as Clicked hears of it.
+type HumanClick struct {
+	WorkspaceID uuid.UUID
+	MessageID   uuid.UUID
+	CampaignID  *uuid.UUID
+	ContactID   *uuid.UUID
+	Stream      string
+	// URL is the link as the email has it (it may hold Liquid).
+	URL string
+	At  time.Time
+}
+
+// ClickTarget is a click about to be redirected, as Decorate sees it.
+type ClickTarget struct {
+	WorkspaceID uuid.UUID
+	MessageID   uuid.UUID
+	ContactID   uuid.UUID
+	URL         string
+	At          time.Time
 }
 
 type linkSet struct {
@@ -157,6 +186,11 @@ func (s *Service) click(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ev := sending.Engagement{MessageID: c.MessageID, Click: true, Link: int(c.Link), UserAgent: r.UserAgent(), IP: clientIP(r), Method: r.Method, At: s.now()}
+	if s.Decorate != nil {
+		if d := s.Decorate(r.Context(), ClickTarget{WorkspaceID: c.WorkspaceID, MessageID: c.MessageID, ContactID: c.ContactID, URL: target, At: ev.At}); d != "" {
+			target = d
+		}
+	}
 	ctx, cancel := context.WithTimeout(r.Context(), 150*time.Millisecond)
 	if err := s.enqueue(ctx, ev); err != nil && !errors.Is(err, context.DeadlineExceeded) {
 		s.log().WarnContext(r.Context(), "record click", "err", err)
@@ -451,6 +485,12 @@ func (s *Service) apply(ctx context.Context, tx pgx.Tx, q *store.Queries, ev sen
 		}
 		if m.ContactID != nil {
 			if err := q.TrackingTouchContactClick(ctx, store.TrackingTouchContactClickParams{ID: *m.ContactID, At: ev.At}); err != nil {
+				return err
+			}
+		}
+		if s.Clicked != nil {
+			if err := s.Clicked(ctx, q, HumanClick{WorkspaceID: m.WorkspaceID, MessageID: m.ID, CampaignID: m.CampaignID, ContactID: m.ContactID, Stream: m.Stream,
+				URL: link, At: ev.At}); err != nil {
 				return err
 			}
 		}

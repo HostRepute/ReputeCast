@@ -14,6 +14,87 @@ import (
 	"github.com/google/uuid"
 )
 
+const revenueActiveSubscriptions = `-- name: RevenueActiveSubscriptions :one
+SELECT count(*)::bigint FROM paid_subscriptions WHERE workspace_id = $1 AND mode = $2 AND kind = 'stripe' AND status IN ('active','past_due','trialing')
+`
+
+type RevenueActiveSubscriptionsParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Mode        string    `json:"mode"`
+}
+
+func (q *Queries) RevenueActiveSubscriptions(ctx context.Context, arg RevenueActiveSubscriptionsParams) (int64, error) {
+	row := q.db.QueryRow(ctx, revenueActiveSubscriptions, arg.WorkspaceID, arg.Mode)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
+const revenueActivity = `-- name: RevenueActivity :many
+SELECT DISTINCT ON (e.kind) e.id, e.kind, e.occurred_at, e.amount_cents, e.currency, e.data, e.contact_id,
+       c.email, c.first_name, c.last_name, coalesce(t.name, '')::text AS tier, coalesce(s.period, '')::text AS period
+FROM paid_events e
+JOIN contacts c ON c.id = e.contact_id
+LEFT JOIN paid_subscriptions s ON s.id = e.subscription_id
+LEFT JOIN earn_tiers t ON t.id = s.tier_id
+WHERE e.workspace_id = $1 AND e.mode = 'live' AND e.kind = ANY($2::text[]) AND c.erased_at IS NULL
+ORDER BY e.kind, e.occurred_at DESC
+`
+
+type RevenueActivityParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Kinds       []string  `json:"kinds"`
+}
+
+type RevenueActivityRow struct {
+	ID          uuid.UUID       `json:"id"`
+	Kind        string          `json:"kind"`
+	OccurredAt  time.Time       `json:"occurredAt"`
+	AmountCents *int64          `json:"amountCents"`
+	Currency    string          `json:"currency"`
+	Data        json.RawMessage `json:"data"`
+	ContactID   uuid.UUID       `json:"contactId"`
+	Email       string          `json:"email"`
+	FirstName   string          `json:"firstName"`
+	LastName    string          `json:"lastName"`
+	Tier        string          `json:"tier"`
+	Period      string          `json:"period"`
+}
+
+// The latest paid-member event of each kind the overview lists.
+func (q *Queries) RevenueActivity(ctx context.Context, arg RevenueActivityParams) ([]RevenueActivityRow, error) {
+	rows, err := q.db.Query(ctx, revenueActivity, arg.WorkspaceID, arg.Kinds)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []RevenueActivityRow{}
+	for rows.Next() {
+		var i RevenueActivityRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Kind,
+			&i.OccurredAt,
+			&i.AmountCents,
+			&i.Currency,
+			&i.Data,
+			&i.ContactID,
+			&i.Email,
+			&i.FirstName,
+			&i.LastName,
+			&i.Tier,
+			&i.Period,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const revenueAttributionSettings = `-- name: RevenueAttributionSettings :one
 SELECT attribution_days, click_token_on, click_token_domains, currency FROM earn_settings WHERE workspace_id = $1
 `
@@ -40,11 +121,12 @@ func (q *Queries) RevenueAttributionSettings(ctx context.Context, workspaceID uu
 const revenueByTier = `-- name: RevenueByTier :many
 SELECT s.tier_id, coalesce(t.name, '')::text AS tier_name, coalesce(t.access_rank, 0)::integer AS access_rank, s.period, s.amount_cents,
        coalesce(s.discount->>'label', '')::text AS offer, coalesce((s.discount->>'amountCents')::bigint, s.amount_cents)::bigint AS paid_cents,
+       coalesce(s.discount->>'duration', '')::text AS duration, coalesce((s.discount->>'months')::integer, 0)::integer AS months,
        count(*)::bigint AS members, coalesce(sum(earn_arr_cents(s.kind, s.mode, s.status, s.ended_at, s.period, s.amount_cents, s.discount)), 0)::bigint AS arr
 FROM paid_subscriptions s LEFT JOIN earn_tiers t ON t.id = s.tier_id
 WHERE s.workspace_id = $1 AND s.mode = 'live' AND earn_arr_cents(s.kind, s.mode, s.status, s.ended_at, s.period, s.amount_cents, s.discount) > 0
-GROUP BY 1, 2, 3, 4, 5, 6, 7
-ORDER BY 3, 2, 4, 7 DESC
+GROUP BY 1, 2, 3, 4, 5, 6, 7, 8, 9
+ORDER BY 3, 2, 4, 6
 `
 
 type RevenueByTierRow struct {
@@ -55,6 +137,8 @@ type RevenueByTierRow struct {
 	AmountCents int64      `json:"amountCents"`
 	Offer       string     `json:"offer"`
 	PaidCents   int64      `json:"paidCents"`
+	Duration    string     `json:"duration"`
+	Months      int32      `json:"months"`
 	Members     int64      `json:"members"`
 	Arr         int64      `json:"arr"`
 }
@@ -77,6 +161,8 @@ func (q *Queries) RevenueByTier(ctx context.Context, workspaceID uuid.UUID) ([]R
 			&i.AmountCents,
 			&i.Offer,
 			&i.PaidCents,
+			&i.Duration,
+			&i.Months,
 			&i.Members,
 			&i.Arr,
 		); err != nil {
@@ -88,6 +174,22 @@ func (q *Queries) RevenueByTier(ctx context.Context, workspaceID uuid.UUID) ([]R
 		return nil, err
 	}
 	return items, nil
+}
+
+const revenueCampaignCheckouts = `-- name: RevenueCampaignCheckouts :one
+SELECT count(*)::bigint FROM earn_checkouts WHERE workspace_id = $1 AND mode = 'live' AND attribution->>'campaign_id' = $2::text
+`
+
+type RevenueCampaignCheckoutsParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	CampaignID  string    `json:"campaignId"`
+}
+
+func (q *Queries) RevenueCampaignCheckouts(ctx context.Context, arg RevenueCampaignCheckoutsParams) (int64, error) {
+	row := q.db.QueryRow(ctx, revenueCampaignCheckouts, arg.WorkspaceID, arg.CampaignID)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
 }
 
 const revenueCampaignClickBump = `-- name: RevenueCampaignClickBump :exec
@@ -114,6 +216,291 @@ func (q *Queries) RevenueCampaignClicks(ctx context.Context, campaignID uuid.UUI
 	var column_1 int64
 	err := row.Scan(&column_1)
 	return column_1, err
+}
+
+const revenueCampaignConversions = `-- name: RevenueCampaignConversions :many
+SELECT matched, name, value_cents, currency, key_name, count(*)::bigint AS conversions FROM conversions
+WHERE workspace_id = $1 AND campaign_id = $2 AND NOT test
+GROUP BY 1, 2, 3, 4, 5
+`
+
+type RevenueCampaignConversionsParams struct {
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	CampaignID  *uuid.UUID `json:"campaignId"`
+}
+
+type RevenueCampaignConversionsRow struct {
+	Matched     string `json:"matched"`
+	Name        string `json:"name"`
+	ValueCents  int64  `json:"valueCents"`
+	Currency    string `json:"currency"`
+	KeyName     string `json:"keyName"`
+	Conversions int64  `json:"conversions"`
+}
+
+func (q *Queries) RevenueCampaignConversions(ctx context.Context, arg RevenueCampaignConversionsParams) ([]RevenueCampaignConversionsRow, error) {
+	rows, err := q.db.Query(ctx, revenueCampaignConversions, arg.WorkspaceID, arg.CampaignID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []RevenueCampaignConversionsRow{}
+	for rows.Next() {
+		var i RevenueCampaignConversionsRow
+		if err := rows.Scan(
+			&i.Matched,
+			&i.Name,
+			&i.ValueCents,
+			&i.Currency,
+			&i.KeyName,
+			&i.Conversions,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const revenueCampaignInfo = `-- name: RevenueCampaignInfo :one
+SELECT c.id, c.name, c.status, c.started_at, c.scheduled_at, c.completed_at, c.mjml,
+       coalesce((SELECT sum(cc.delivered) FROM campaign_counters cc WHERE cc.campaign_id = c.id), 0)::bigint AS delivered
+FROM campaigns c WHERE c.id = $1 AND c.workspace_id = $2
+`
+
+type RevenueCampaignInfoParams struct {
+	ID          uuid.UUID `json:"id"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+}
+
+type RevenueCampaignInfoRow struct {
+	ID          uuid.UUID  `json:"id"`
+	Name        string     `json:"name"`
+	Status      string     `json:"status"`
+	StartedAt   *time.Time `json:"startedAt"`
+	ScheduledAt *time.Time `json:"scheduledAt"`
+	CompletedAt *time.Time `json:"completedAt"`
+	Mjml        string     `json:"mjml"`
+	Delivered   int64      `json:"delivered"`
+}
+
+func (q *Queries) RevenueCampaignInfo(ctx context.Context, arg RevenueCampaignInfoParams) (RevenueCampaignInfoRow, error) {
+	row := q.db.QueryRow(ctx, revenueCampaignInfo, arg.ID, arg.WorkspaceID)
+	var i RevenueCampaignInfoRow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Status,
+		&i.StartedAt,
+		&i.ScheduledAt,
+		&i.CompletedAt,
+		&i.Mjml,
+		&i.Delivered,
+	)
+	return i, err
+}
+
+const revenueCampaignLinkUrls = `-- name: RevenueCampaignLinkUrls :many
+SELECT url FROM campaign_links WHERE campaign_id = $1
+`
+
+func (q *Queries) RevenueCampaignLinkUrls(ctx context.Context, campaignID uuid.UUID) ([]string, error) {
+	rows, err := q.db.Query(ctx, revenueCampaignLinkUrls, campaignID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var url string
+		if err := rows.Scan(&url); err != nil {
+			return nil, err
+		}
+		items = append(items, url)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const revenueCampaignUpgrades = `-- name: RevenueCampaignUpgrades :many
+SELECT s.id, s.status, s.period, s.amount_cents, s.trial_end, s.started_at, coalesce(t.name, '')::text AS tier, coalesce(s.discount->>'label', '')::text AS offer,
+       coalesce((s.discount->>'amountCents')::bigint, s.amount_cents)::bigint AS first_cents,
+       earn_arr_cents(s.kind, s.mode, s.status, s.ended_at, s.period, s.amount_cents, s.discount)::bigint AS arr,
+       (CASE WHEN s.period = 'year' THEN coalesce((s.discount->>'amountCents')::bigint, s.amount_cents) ELSE coalesce((s.discount->>'amountCents')::bigint, s.amount_cents) * 12 END)::bigint AS arr_if_paid
+FROM paid_subscriptions s LEFT JOIN earn_tiers t ON t.id = s.tier_id
+WHERE s.workspace_id = $1 AND s.mode = 'live' AND s.kind = 'stripe' AND s.source_kind = 'campaign' AND s.source_campaign_id = $2
+  AND s.status <> 'incomplete'
+`
+
+type RevenueCampaignUpgradesParams struct {
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	CampaignID  *uuid.UUID `json:"campaignId"`
+}
+
+type RevenueCampaignUpgradesRow struct {
+	ID          uuid.UUID  `json:"id"`
+	Status      string     `json:"status"`
+	Period      string     `json:"period"`
+	AmountCents int64      `json:"amountCents"`
+	TrialEnd    *time.Time `json:"trialEnd"`
+	StartedAt   time.Time  `json:"startedAt"`
+	Tier        string     `json:"tier"`
+	Offer       string     `json:"offer"`
+	FirstCents  int64      `json:"firstCents"`
+	Arr         int64      `json:"arr"`
+	ArrIfPaid   int64      `json:"arrIfPaid"`
+}
+
+// Paid members credited to a campaign: what they pay first and whether
+// they're still trialing.
+func (q *Queries) RevenueCampaignUpgrades(ctx context.Context, arg RevenueCampaignUpgradesParams) ([]RevenueCampaignUpgradesRow, error) {
+	rows, err := q.db.Query(ctx, revenueCampaignUpgrades, arg.WorkspaceID, arg.CampaignID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []RevenueCampaignUpgradesRow{}
+	for rows.Next() {
+		var i RevenueCampaignUpgradesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Status,
+			&i.Period,
+			&i.AmountCents,
+			&i.TrialEnd,
+			&i.StartedAt,
+			&i.Tier,
+			&i.Offer,
+			&i.FirstCents,
+			&i.Arr,
+			&i.ArrIfPaid,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const revenueCancelReasons = `-- name: RevenueCancelReasons :many
+SELECT reason, count(*)::bigint AS visits FROM earn_cancel_visits
+WHERE workspace_id = $1 AND mode = 'live' AND visited_at >= $2::timestamptz AND visited_at < $3::timestamptz
+GROUP BY reason
+`
+
+type RevenueCancelReasonsParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	FromAt      time.Time `json:"fromAt"`
+	ToAt        time.Time `json:"toAt"`
+}
+
+type RevenueCancelReasonsRow struct {
+	Reason string `json:"reason"`
+	Visits int64  `json:"visits"`
+}
+
+func (q *Queries) RevenueCancelReasons(ctx context.Context, arg RevenueCancelReasonsParams) ([]RevenueCancelReasonsRow, error) {
+	rows, err := q.db.Query(ctx, revenueCancelReasons, arg.WorkspaceID, arg.FromAt, arg.ToAt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []RevenueCancelReasonsRow{}
+	for rows.Next() {
+		var i RevenueCancelReasonsRow
+		if err := rows.Scan(&i.Reason, &i.Visits); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const revenueCancelSummary = `-- name: RevenueCancelSummary :one
+SELECT count(*)::bigint AS visits,
+       count(*) FILTER (WHERE decision = 'kept')::bigint AS kept,
+       count(*) FILTER (WHERE decision = 'continued')::bigint AS continued,
+       count(*) FILTER (WHERE decision = '')::bigint AS undecided
+FROM earn_cancel_visits WHERE workspace_id = $1 AND mode = 'live' AND visited_at >= $2::timestamptz AND visited_at < $3::timestamptz
+`
+
+type RevenueCancelSummaryParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	FromAt      time.Time `json:"fromAt"`
+	ToAt        time.Time `json:"toAt"`
+}
+
+type RevenueCancelSummaryRow struct {
+	Visits    int64 `json:"visits"`
+	Kept      int64 `json:"kept"`
+	Continued int64 `json:"continued"`
+	Undecided int64 `json:"undecided"`
+}
+
+// Visits to the cancel page in a window and what readers decided.
+func (q *Queries) RevenueCancelSummary(ctx context.Context, arg RevenueCancelSummaryParams) (RevenueCancelSummaryRow, error) {
+	row := q.db.QueryRow(ctx, revenueCancelSummary, arg.WorkspaceID, arg.FromAt, arg.ToAt)
+	var i RevenueCancelSummaryRow
+	err := row.Scan(
+		&i.Visits,
+		&i.Kept,
+		&i.Continued,
+		&i.Undecided,
+	)
+	return i, err
+}
+
+const revenueConnections = `-- name: RevenueConnections :many
+SELECT id, mode, status, account_name, last_event_at, connected_at FROM payment_connections
+WHERE workspace_id = $1 AND status <> 'disconnected' ORDER BY created_at DESC
+`
+
+type RevenueConnectionsRow struct {
+	ID          uuid.UUID  `json:"id"`
+	Mode        string     `json:"mode"`
+	Status      string     `json:"status"`
+	AccountName string     `json:"accountName"`
+	LastEventAt *time.Time `json:"lastEventAt"`
+	ConnectedAt *time.Time `json:"connectedAt"`
+}
+
+// The workspace's payment connections (any mode), newest first.
+func (q *Queries) RevenueConnections(ctx context.Context, workspaceID uuid.UUID) ([]RevenueConnectionsRow, error) {
+	rows, err := q.db.Query(ctx, revenueConnections, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []RevenueConnectionsRow{}
+	for rows.Next() {
+		var i RevenueConnectionsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Mode,
+			&i.Status,
+			&i.AccountName,
+			&i.LastEventAt,
+			&i.ConnectedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const revenueContactByEmail = `-- name: RevenueContactByEmail :one
@@ -166,6 +553,41 @@ func (q *Queries) RevenueConversionByKey(ctx context.Context, arg RevenueConvers
 		&i.IdempotencyKey,
 		&i.RequestHash,
 		&i.Test,
+	)
+	return i, err
+}
+
+const revenueConversionCounts = `-- name: RevenueConversionCounts :one
+SELECT count(*)::bigint AS conversions, coalesce(sum(value_cents), 0)::bigint AS value_cents,
+       count(*) FILTER (WHERE campaign_id IS NOT NULL OR automation_id IS NOT NULL)::bigint AS credited,
+       coalesce(sum(value_cents) FILTER (WHERE campaign_id IS NOT NULL OR automation_id IS NOT NULL), 0)::bigint AS credited_cents,
+       coalesce(min(received_at), now())::timestamptz AS first_at
+FROM conversions WHERE workspace_id = $1 AND NOT test AND lower(currency) = lower($2::text)
+`
+
+type RevenueConversionCountsParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Currency    string    `json:"currency"`
+}
+
+type RevenueConversionCountsRow struct {
+	Conversions   int64     `json:"conversions"`
+	ValueCents    int64     `json:"valueCents"`
+	Credited      int64     `json:"credited"`
+	CreditedCents int64     `json:"creditedCents"`
+	FirstAt       time.Time `json:"firstAt"`
+}
+
+// The conversions log's totals: credited or not, in the workspace currency.
+func (q *Queries) RevenueConversionCounts(ctx context.Context, arg RevenueConversionCountsParams) (RevenueConversionCountsRow, error) {
+	row := q.db.QueryRow(ctx, revenueConversionCounts, arg.WorkspaceID, arg.Currency)
+	var i RevenueConversionCountsRow
+	err := row.Scan(
+		&i.Conversions,
+		&i.ValueCents,
+		&i.Credited,
+		&i.CreditedCents,
+		&i.FirstAt,
 	)
 	return i, err
 }
@@ -278,6 +700,53 @@ func (q *Queries) RevenueConversionKeys(ctx context.Context, workspaceID uuid.UU
 	return items, nil
 }
 
+const revenueConversionKinds = `-- name: RevenueConversionKinds :many
+SELECT name, value_cents, currency, key_name, count(*)::bigint AS conversions FROM conversions
+WHERE workspace_id = $1 AND NOT test AND received_at >= $2::timestamptz AND received_at < $3::timestamptz
+GROUP BY 1, 2, 3, 4 ORDER BY 5 DESC LIMIT 5
+`
+
+type RevenueConversionKindsParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	FromAt      time.Time `json:"fromAt"`
+	ToAt        time.Time `json:"toAt"`
+}
+
+type RevenueConversionKindsRow struct {
+	Name        string `json:"name"`
+	ValueCents  int64  `json:"valueCents"`
+	Currency    string `json:"currency"`
+	KeyName     string `json:"keyName"`
+	Conversions int64  `json:"conversions"`
+}
+
+// What the conversions of a window are: their names, values and keys.
+func (q *Queries) RevenueConversionKinds(ctx context.Context, arg RevenueConversionKindsParams) ([]RevenueConversionKindsRow, error) {
+	rows, err := q.db.Query(ctx, revenueConversionKinds, arg.WorkspaceID, arg.FromAt, arg.ToAt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []RevenueConversionKindsRow{}
+	for rows.Next() {
+		var i RevenueConversionKindsRow
+		if err := rows.Scan(
+			&i.Name,
+			&i.ValueCents,
+			&i.Currency,
+			&i.KeyName,
+			&i.Conversions,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const revenueConversions = `-- name: RevenueConversions :many
 SELECT c.id, c.workspace_id, c.api_key_id, c.key_name, c.name, c.value, c.value_cents, c.currency, c.occurred_at, c.received_at, c.contact_id, c.matched, c.message_id, c.campaign_id, c.automation_id, c.clicked_at, c.metadata, c.idempotency_key, c.request_hash, c.test, coalesce(cp.name, a.name, '')::text AS credited_name
 FROM conversions c
@@ -361,6 +830,78 @@ func (q *Queries) RevenueConversions(ctx context.Context, arg RevenueConversions
 	return items, nil
 }
 
+const revenueConversionsFirst = `-- name: RevenueConversionsFirst :one
+SELECT count(*)::bigint AS conversions, coalesce(min(received_at), now())::timestamptz AS first_at FROM conversions
+WHERE workspace_id = $1 AND NOT test
+`
+
+type RevenueConversionsFirstRow struct {
+	Conversions int64     `json:"conversions"`
+	FirstAt     time.Time `json:"firstAt"`
+}
+
+func (q *Queries) RevenueConversionsFirst(ctx context.Context, workspaceID uuid.UUID) (RevenueConversionsFirstRow, error) {
+	row := q.db.QueryRow(ctx, revenueConversionsFirst, workspaceID)
+	var i RevenueConversionsFirstRow
+	err := row.Scan(&i.Conversions, &i.FirstAt)
+	return i, err
+}
+
+const revenueConversionsSummary = `-- name: RevenueConversionsSummary :many
+SELECT c.currency, c.campaign_id, c.automation_id, coalesce(cp.name, a.name, '')::text AS credited_name, c.matched,
+       count(*)::bigint AS conversions, coalesce(sum(c.value_cents), 0)::bigint AS value_cents
+FROM conversions c
+LEFT JOIN campaigns cp ON cp.id = c.campaign_id
+LEFT JOIN automations a ON a.id = c.automation_id
+WHERE c.workspace_id = $1 AND NOT c.test AND c.received_at >= $2::timestamptz AND c.received_at < $3::timestamptz
+GROUP BY 1, 2, 3, 4, 5
+`
+
+type RevenueConversionsSummaryParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	FromAt      time.Time `json:"fromAt"`
+	ToAt        time.Time `json:"toAt"`
+}
+
+type RevenueConversionsSummaryRow struct {
+	Currency     string     `json:"currency"`
+	CampaignID   *uuid.UUID `json:"campaignId"`
+	AutomationID *uuid.UUID `json:"automationId"`
+	CreditedName string     `json:"creditedName"`
+	Matched      string     `json:"matched"`
+	Conversions  int64      `json:"conversions"`
+	ValueCents   int64      `json:"valueCents"`
+}
+
+// Conversions of a window by currency, the email credited and how each matched.
+func (q *Queries) RevenueConversionsSummary(ctx context.Context, arg RevenueConversionsSummaryParams) ([]RevenueConversionsSummaryRow, error) {
+	rows, err := q.db.Query(ctx, revenueConversionsSummary, arg.WorkspaceID, arg.FromAt, arg.ToAt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []RevenueConversionsSummaryRow{}
+	for rows.Next() {
+		var i RevenueConversionsSummaryRow
+		if err := rows.Scan(
+			&i.Currency,
+			&i.CampaignID,
+			&i.AutomationID,
+			&i.CreditedName,
+			&i.Matched,
+			&i.Conversions,
+			&i.ValueCents,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const revenueDeltaSince = `-- name: RevenueDeltaSince :many
 SELECT p.at::timestamptz AS at, coalesce(sum(c.arr_after - c.arr_before), 0)::bigint AS arr,
        (count(*) FILTER (WHERE c.kind IN ('new','reactivation')) - count(*) FILTER (WHERE c.kind = 'churn'))::bigint AS members
@@ -391,6 +932,151 @@ func (q *Queries) RevenueDeltaSince(ctx context.Context, arg RevenueDeltaSincePa
 	for rows.Next() {
 		var i RevenueDeltaSinceRow
 		if err := rows.Scan(&i.At, &i.Arr, &i.Members); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const revenueFreeToPaid = `-- name: RevenueFreeToPaid :many
+WITH paid_at_start AS (
+    SELECT DISTINCT contact_id FROM paid_subscriptions
+    WHERE workspace_id = $3 AND mode = 'live' AND status <> 'incomplete'
+      AND started_at < $1::timestamptz AND (ended_at IS NULL OR ended_at >= $1::timestamptz)
+), first_paid AS (
+    SELECT contact_id, min(at) AS at FROM earn_mrr_changes
+    WHERE workspace_id = $3 AND kind = 'new' AND at >= $1::timestamptz AND at < $2::timestamptz
+    GROUP BY contact_id
+)
+SELECT g.source_kind, g.source_id,
+       count(*) FILTER (WHERE g.joined_at < $1::timestamptz AND (g.left_at IS NULL OR g.left_at >= $1::timestamptz) AND ps.contact_id IS NULL)::bigint AS at_start,
+       count(*) FILTER (WHERE g.joined_at >= $1::timestamptz AND g.joined_at < $2::timestamptz
+           AND (fp.contact_id IS NULL OR fp.at > g.joined_at + interval '1 hour'))::bigint AS joined,
+       count(*) FILTER (WHERE fp.contact_id IS NOT NULL AND fp.at > g.joined_at + interval '1 hour' AND ps.contact_id IS NULL)::bigint AS paid
+FROM contact_growth g
+LEFT JOIN paid_at_start ps ON ps.contact_id = g.contact_id
+LEFT JOIN first_paid fp ON fp.contact_id = g.contact_id
+WHERE g.workspace_id = $3
+GROUP BY 1, 2
+`
+
+type RevenueFreeToPaidParams struct {
+	FromAt      time.Time `json:"fromAt"`
+	ToAt        time.Time `json:"toAt"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+}
+
+type RevenueFreeToPaidRow struct {
+	SourceKind string `json:"sourceKind"`
+	SourceID   string `json:"sourceId"`
+	AtStart    int64  `json:"atStart"`
+	Joined     int64  `json:"joined"`
+	Paid       int64  `json:"paid"`
+}
+
+// Free subscribers by how they first joined: those at the start of a
+// window, those who joined during it, and those who became paid members in
+// it. A contact who paid within an hour of joining paid straight away and
+// is counted apart.
+func (q *Queries) RevenueFreeToPaid(ctx context.Context, arg RevenueFreeToPaidParams) ([]RevenueFreeToPaidRow, error) {
+	rows, err := q.db.Query(ctx, revenueFreeToPaid, arg.FromAt, arg.ToAt, arg.WorkspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []RevenueFreeToPaidRow{}
+	for rows.Next() {
+		var i RevenueFreeToPaidRow
+		if err := rows.Scan(
+			&i.SourceKind,
+			&i.SourceID,
+			&i.AtStart,
+			&i.Joined,
+			&i.Paid,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const revenueGiftIncome = `-- name: RevenueGiftIncome :one
+SELECT coalesce(sum(amount_cents), 0)::bigint AS cents, count(*)::bigint AS gifts FROM earn_gifts
+WHERE workspace_id = $1 AND mode = 'live' AND paid_at >= $2::timestamptz AND paid_at < $3::timestamptz
+  AND status IN ('paid','delivered','redeemed','expired')
+`
+
+type RevenueGiftIncomeParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	FromAt      time.Time `json:"fromAt"`
+	ToAt        time.Time `json:"toAt"`
+}
+
+type RevenueGiftIncomeRow struct {
+	Cents int64 `json:"cents"`
+	Gifts int64 `json:"gifts"`
+}
+
+// Gifts paid in a window (refunded ones left out).
+func (q *Queries) RevenueGiftIncome(ctx context.Context, arg RevenueGiftIncomeParams) (RevenueGiftIncomeRow, error) {
+	row := q.db.QueryRow(ctx, revenueGiftIncome, arg.WorkspaceID, arg.FromAt, arg.ToAt)
+	var i RevenueGiftIncomeRow
+	err := row.Scan(&i.Cents, &i.Gifts)
+	return i, err
+}
+
+const revenueGiftPageOn = `-- name: RevenueGiftPageOn :one
+SELECT coalesce((SELECT gift_page_on FROM earn_settings WHERE workspace_id = $1), false)::boolean
+`
+
+func (q *Queries) RevenueGiftPageOn(ctx context.Context, workspaceID uuid.UUID) (bool, error) {
+	row := q.db.QueryRow(ctx, revenueGiftPageOn, workspaceID)
+	var column_1 bool
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
+const revenueKeptWith = `-- name: RevenueKeptWith :many
+SELECT coalesce(o.name, '')::text AS offer, coalesce(t.name, '')::text AS tier, count(*)::bigint AS kept
+FROM earn_cancel_visits v
+LEFT JOIN earn_offers o ON o.id = v.offer_id
+LEFT JOIN paid_subscriptions s ON s.id = v.subscription_id
+LEFT JOIN earn_tiers t ON t.id = s.tier_id
+WHERE v.workspace_id = $1 AND v.mode = 'live' AND v.decision = 'kept' AND v.visited_at >= $2::timestamptz AND v.visited_at < $3::timestamptz
+GROUP BY 1, 2 ORDER BY 3 DESC LIMIT 1
+`
+
+type RevenueKeptWithParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	FromAt      time.Time `json:"fromAt"`
+	ToAt        time.Time `json:"toAt"`
+}
+
+type RevenueKeptWithRow struct {
+	Offer string `json:"offer"`
+	Tier  string `json:"tier"`
+	Kept  int64  `json:"kept"`
+}
+
+// The offer and tier most readers kept their membership with.
+func (q *Queries) RevenueKeptWith(ctx context.Context, arg RevenueKeptWithParams) ([]RevenueKeptWithRow, error) {
+	rows, err := q.db.Query(ctx, revenueKeptWith, arg.WorkspaceID, arg.FromAt, arg.ToAt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []RevenueKeptWithRow{}
+	for rows.Next() {
+		var i RevenueKeptWithRow
+		if err := rows.Scan(&i.Offer, &i.Tier, &i.Kept); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -432,6 +1118,52 @@ func (q *Queries) RevenueLastEmailClick(ctx context.Context, arg RevenueLastEmai
 		&i.CampaignID,
 		&i.AutomationID,
 		&i.OccurredAt,
+	)
+	return i, err
+}
+
+const revenueLedgerSince = `-- name: RevenueLedgerSince :one
+SELECT count(*)::bigint AS changes, coalesce(min(at), now())::timestamptz AS first_at FROM earn_mrr_changes WHERE workspace_id = $1
+`
+
+type RevenueLedgerSinceRow struct {
+	Changes int64     `json:"changes"`
+	FirstAt time.Time `json:"firstAt"`
+}
+
+// How many changes the MRR ledger has, and when it starts.
+func (q *Queries) RevenueLedgerSince(ctx context.Context, workspaceID uuid.UUID) (RevenueLedgerSinceRow, error) {
+	row := q.db.QueryRow(ctx, revenueLedgerSince, workspaceID)
+	var i RevenueLedgerSinceRow
+	err := row.Scan(&i.Changes, &i.FirstAt)
+	return i, err
+}
+
+const revenueLiveConnection = `-- name: RevenueLiveConnection :one
+SELECT id, account_name, connected_at, last_event_at, demo, created_at FROM payment_connections
+WHERE workspace_id = $1 AND mode = 'live' AND status = 'connected' ORDER BY created_at DESC LIMIT 1
+`
+
+type RevenueLiveConnectionRow struct {
+	ID          uuid.UUID  `json:"id"`
+	AccountName string     `json:"accountName"`
+	ConnectedAt *time.Time `json:"connectedAt"`
+	LastEventAt *time.Time `json:"lastEventAt"`
+	Demo        bool       `json:"demo"`
+	CreatedAt   time.Time  `json:"createdAt"`
+}
+
+// The connected live payment account, if there is one.
+func (q *Queries) RevenueLiveConnection(ctx context.Context, workspaceID uuid.UUID) (RevenueLiveConnectionRow, error) {
+	row := q.db.QueryRow(ctx, revenueLiveConnection, workspaceID)
+	var i RevenueLiveConnectionRow
+	err := row.Scan(
+		&i.ID,
+		&i.AccountName,
+		&i.ConnectedAt,
+		&i.LastEventAt,
+		&i.Demo,
+		&i.CreatedAt,
 	)
 	return i, err
 }
@@ -484,6 +1216,24 @@ func (q *Queries) RevenueMessageOf(ctx context.Context, id uuid.UUID) (RevenueMe
 	return i, err
 }
 
+const revenueMoved = `-- name: RevenueMoved :one
+SELECT source, coalesce(finished_at, created_at)::timestamptz AS at FROM earn_imports
+WHERE workspace_id = $1 AND mode = 'live' AND status = 'done' ORDER BY coalesce(finished_at, created_at) LIMIT 1
+`
+
+type RevenueMovedRow struct {
+	Source string    `json:"source"`
+	At     time.Time `json:"at"`
+}
+
+// The first finished import of paid members: the move from another platform.
+func (q *Queries) RevenueMoved(ctx context.Context, workspaceID uuid.UUID) (RevenueMovedRow, error) {
+	row := q.db.QueryRow(ctx, revenueMoved, workspaceID)
+	var i RevenueMovedRow
+	err := row.Scan(&i.Source, &i.At)
+	return i, err
+}
+
 const revenueMovement = `-- name: RevenueMovement :many
 SELECT kind, count(DISTINCT coalesce(subscription_id::text, id::text))::bigint AS subscriptions, coalesce(sum(arr_after - arr_before), 0)::bigint AS arr
 FROM earn_mrr_changes
@@ -525,6 +1275,199 @@ func (q *Queries) RevenueMovement(ctx context.Context, arg RevenueMovementParams
 	return items, nil
 }
 
+const revenueNewContacts = `-- name: RevenueNewContacts :one
+SELECT count(DISTINCT contact_id)::bigint FROM earn_mrr_changes
+WHERE workspace_id = $1 AND kind = 'new' AND at >= $2::timestamptz AND at < $3::timestamptz
+`
+
+type RevenueNewContactsParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	FromAt      time.Time `json:"fromAt"`
+	ToAt        time.Time `json:"toAt"`
+}
+
+// Contacts who became paid members in a window.
+func (q *Queries) RevenueNewContacts(ctx context.Context, arg RevenueNewContactsParams) (int64, error) {
+	row := q.db.QueryRow(ctx, revenueNewContacts, arg.WorkspaceID, arg.FromAt, arg.ToAt)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
+const revenueNextSponsor = `-- name: RevenueNextSponsor :many
+SELECT b.id, b.issue_number, b.creative_status, b.creative_due, coalesce(sp.name, '')::text AS sponsor
+FROM sponsor_bookings b LEFT JOIN sponsors sp ON sp.id = b.sponsor_id
+WHERE b.workspace_id = $1 AND b.status = 'booked' AND b.issue_on >= $2::date
+ORDER BY b.issue_on, b.issue_number LIMIT 1
+`
+
+type RevenueNextSponsorParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Today       time.Time `json:"today"`
+}
+
+type RevenueNextSponsorRow struct {
+	ID             uuid.UUID  `json:"id"`
+	IssueNumber    int32      `json:"issueNumber"`
+	CreativeStatus string     `json:"creativeStatus"`
+	CreativeDue    *time.Time `json:"creativeDue"`
+	Sponsor        string     `json:"sponsor"`
+}
+
+// The next sponsored issue of the workspace.
+func (q *Queries) RevenueNextSponsor(ctx context.Context, arg RevenueNextSponsorParams) ([]RevenueNextSponsorRow, error) {
+	rows, err := q.db.Query(ctx, revenueNextSponsor, arg.WorkspaceID, arg.Today)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []RevenueNextSponsorRow{}
+	for rows.Next() {
+		var i RevenueNextSponsorRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.IssueNumber,
+			&i.CreativeStatus,
+			&i.CreativeDue,
+			&i.Sponsor,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const revenueOfferStarts = `-- name: RevenueOfferStarts :many
+SELECT id, name, started_at FROM earn_offers
+WHERE workspace_id = $1 AND deleted_at IS NULL AND kind = 'signup' AND started_at >= $2::timestamptz AND started_at <= $3::timestamptz
+ORDER BY started_at
+`
+
+type RevenueOfferStartsParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	FromAt      time.Time `json:"fromAt"`
+	ToAt        time.Time `json:"toAt"`
+}
+
+type RevenueOfferStartsRow struct {
+	ID        uuid.UUID `json:"id"`
+	Name      string    `json:"name"`
+	StartedAt time.Time `json:"startedAt"`
+}
+
+// Signup offers that started in a window (marks on the MRR line).
+func (q *Queries) RevenueOfferStarts(ctx context.Context, arg RevenueOfferStartsParams) ([]RevenueOfferStartsRow, error) {
+	rows, err := q.db.Query(ctx, revenueOfferStarts, arg.WorkspaceID, arg.FromAt, arg.ToAt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []RevenueOfferStartsRow{}
+	for rows.Next() {
+		var i RevenueOfferStartsRow
+		if err := rows.Scan(&i.ID, &i.Name, &i.StartedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const revenueOffersToWatch = `-- name: RevenueOffersToWatch :many
+SELECT o.id, o.name, o.code, o.redeem_limit, o.ends_at,
+       (SELECT count(*) FROM paid_subscriptions s WHERE s.workspace_id = o.workspace_id AND s.mode = 'live' AND s.discount IS NOT NULL
+          AND (s.discount->>'offer' = o.id::text OR (o.code <> '' AND upper(s.discount->>'label') = upper(o.code)) OR s.discount->>'label' = o.name))::bigint AS used
+FROM earn_offers o
+WHERE o.workspace_id = $1 AND o.deleted_at IS NULL AND o.status = 'live' AND o.kind = 'signup' AND (o.redeem_limit IS NOT NULL OR o.ends_at IS NOT NULL)
+ORDER BY o.ends_at NULLS LAST, o.created_at
+`
+
+type RevenueOffersToWatchRow struct {
+	ID          uuid.UUID  `json:"id"`
+	Name        string     `json:"name"`
+	Code        string     `json:"code"`
+	RedeemLimit *int32     `json:"redeemLimit"`
+	EndsAt      *time.Time `json:"endsAt"`
+	Used        int64      `json:"used"`
+}
+
+// Live signup offers with a limit or an end date, and how often they were used.
+func (q *Queries) RevenueOffersToWatch(ctx context.Context, workspaceID uuid.UUID) ([]RevenueOffersToWatchRow, error) {
+	rows, err := q.db.Query(ctx, revenueOffersToWatch, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []RevenueOffersToWatchRow{}
+	for rows.Next() {
+		var i RevenueOffersToWatchRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Code,
+			&i.RedeemLimit,
+			&i.EndsAt,
+			&i.Used,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const revenuePastDue = `-- name: RevenuePastDue :one
+SELECT count(*)::bigint FROM paid_subscriptions WHERE workspace_id = $1 AND mode = 'live' AND status = 'past_due'
+`
+
+func (q *Queries) RevenuePastDue(ctx context.Context, workspaceID uuid.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, revenuePastDue, workspaceID)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
+const revenueRetentionOffer = `-- name: RevenueRetentionOffer :many
+SELECT id, name FROM earn_offers WHERE workspace_id = $1 AND deleted_at IS NULL AND kind = 'retention' AND status = 'live'
+ORDER BY created_at LIMIT 1
+`
+
+type RevenueRetentionOfferRow struct {
+	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
+}
+
+// The live retention offer, for the Cancellations card's link.
+func (q *Queries) RevenueRetentionOffer(ctx context.Context, workspaceID uuid.UUID) ([]RevenueRetentionOfferRow, error) {
+	rows, err := q.db.Query(ctx, revenueRetentionOffer, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []RevenueRetentionOfferRow{}
+	for rows.Next() {
+		var i RevenueRetentionOfferRow
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const revenueSetAttribution = `-- name: RevenueSetAttribution :exec
 UPDATE earn_settings SET attribution_days = $1, click_token_on = $2, click_token_domains = $3,
     updated_at = $4, updated_by = $5
@@ -550,4 +1493,369 @@ func (q *Queries) RevenueSetAttribution(ctx context.Context, arg RevenueSetAttri
 		arg.WorkspaceID,
 	)
 	return err
+}
+
+const revenueSponsorIncome = `-- name: RevenueSponsorIncome :one
+SELECT coalesce(sum(price_cents), 0)::bigint AS cents, count(*)::bigint AS issues FROM sponsor_bookings
+WHERE workspace_id = $1 AND status IN ('booked','sent') AND issue_on >= $2::date AND issue_on <= $3::date
+`
+
+type RevenueSponsorIncomeParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	FromDay     time.Time `json:"fromDay"`
+	ToDay       time.Time `json:"toDay"`
+}
+
+type RevenueSponsorIncomeRow struct {
+	Cents  int64 `json:"cents"`
+	Issues int64 `json:"issues"`
+}
+
+// Sponsored issues of a window, at their price.
+func (q *Queries) RevenueSponsorIncome(ctx context.Context, arg RevenueSponsorIncomeParams) (RevenueSponsorIncomeRow, error) {
+	row := q.db.QueryRow(ctx, revenueSponsorIncome, arg.WorkspaceID, arg.FromDay, arg.ToDay)
+	var i RevenueSponsorIncomeRow
+	err := row.Scan(&i.Cents, &i.Issues)
+	return i, err
+}
+
+const revenueSponsorLinks = `-- name: RevenueSponsorLinks :many
+SELECT coalesce(creative->>'link', '')::text AS link FROM sponsor_bookings WHERE campaign_id = $1 AND status IN ('booked','sent')
+`
+
+// The sponsor links of a campaign's booking: the click token never goes on them.
+func (q *Queries) RevenueSponsorLinks(ctx context.Context, campaignID *uuid.UUID) ([]string, error) {
+	rows, err := q.db.Query(ctx, revenueSponsorLinks, campaignID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var link string
+		if err := rows.Scan(&link); err != nil {
+			return nil, err
+		}
+		items = append(items, link)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const revenueSponsorNeeds = `-- name: RevenueSponsorNeeds :many
+SELECT b.id, b.issue_number, b.issue_on, b.creative_status, b.creative_due, b.payment_status, b.payment_due, b.status,
+       coalesce(sp.name, '')::text AS sponsor, l.name AS list_name
+FROM sponsor_bookings b
+JOIN sponsor_slots sl ON sl.id = b.slot_id
+JOIN lists l ON l.id = sl.list_id
+LEFT JOIN sponsors sp ON sp.id = b.sponsor_id
+WHERE b.workspace_id = $1 AND (
+    (b.status = 'booked' AND b.creative_status = 'waiting' AND b.creative_due <= $2::date)
+    OR (b.status IN ('booked','sent') AND b.payment_status = 'unpaid' AND b.issue_on < $3::date))
+ORDER BY b.issue_on, b.issue_number
+`
+
+type RevenueSponsorNeedsParams struct {
+	WorkspaceID   uuid.UUID `json:"workspaceId"`
+	CreativeUntil time.Time `json:"creativeUntil"`
+	Today         time.Time `json:"today"`
+}
+
+type RevenueSponsorNeedsRow struct {
+	ID             uuid.UUID  `json:"id"`
+	IssueNumber    int32      `json:"issueNumber"`
+	IssueOn        time.Time  `json:"issueOn"`
+	CreativeStatus string     `json:"creativeStatus"`
+	CreativeDue    *time.Time `json:"creativeDue"`
+	PaymentStatus  string     `json:"paymentStatus"`
+	PaymentDue     *time.Time `json:"paymentDue"`
+	Status         string     `json:"status"`
+	Sponsor        string     `json:"sponsor"`
+	ListName       string     `json:"listName"`
+}
+
+// Bookings that need a person soon: a creative still waiting, or a
+// sponsor's payment not recorded for an issue that went out.
+func (q *Queries) RevenueSponsorNeeds(ctx context.Context, arg RevenueSponsorNeedsParams) ([]RevenueSponsorNeedsRow, error) {
+	rows, err := q.db.Query(ctx, revenueSponsorNeeds, arg.WorkspaceID, arg.CreativeUntil, arg.Today)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []RevenueSponsorNeedsRow{}
+	for rows.Next() {
+		var i RevenueSponsorNeedsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.IssueNumber,
+			&i.IssueOn,
+			&i.CreativeStatus,
+			&i.CreativeDue,
+			&i.PaymentStatus,
+			&i.PaymentDue,
+			&i.Status,
+			&i.Sponsor,
+			&i.ListName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const revenueTierPrices = `-- name: RevenueTierPrices :many
+SELECT tier_id, period, amount_cents, currency FROM earn_prices WHERE workspace_id = $1 AND status = 'current'
+`
+
+type RevenueTierPricesRow struct {
+	TierID      uuid.UUID `json:"tierId"`
+	Period      string    `json:"period"`
+	AmountCents int64     `json:"amountCents"`
+	Currency    string    `json:"currency"`
+}
+
+func (q *Queries) RevenueTierPrices(ctx context.Context, workspaceID uuid.UUID) ([]RevenueTierPricesRow, error) {
+	rows, err := q.db.Query(ctx, revenueTierPrices, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []RevenueTierPricesRow{}
+	for rows.Next() {
+		var i RevenueTierPricesRow
+		if err := rows.Scan(
+			&i.TierID,
+			&i.Period,
+			&i.AmountCents,
+			&i.Currency,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const revenueTiers = `-- name: RevenueTiers :many
+SELECT id, name, access_rank, visibility FROM earn_tiers WHERE workspace_id = $1 AND deleted_at IS NULL ORDER BY access_rank, name
+`
+
+type RevenueTiersRow struct {
+	ID         uuid.UUID `json:"id"`
+	Name       string    `json:"name"`
+	AccessRank int32     `json:"accessRank"`
+	Visibility string    `json:"visibility"`
+}
+
+// The workspace's tiers by access rank (a higher tier includes the lower).
+func (q *Queries) RevenueTiers(ctx context.Context, workspaceID uuid.UUID) ([]RevenueTiersRow, error) {
+	rows, err := q.db.Query(ctx, revenueTiers, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []RevenueTiersRow{}
+	for rows.Next() {
+		var i RevenueTiersRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.AccessRank,
+			&i.Visibility,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const revenueTrials = `-- name: RevenueTrials :one
+SELECT
+    count(*) FILTER (WHERE trial_end IS NOT NULL AND started_at >= $1::timestamptz AND started_at < $2::timestamptz)::bigint AS started,
+    count(*) FILTER (WHERE status = 'trialing')::bigint AS trialing,
+    count(*) FILTER (WHERE trial_end IS NOT NULL AND started_at >= $1::timestamptz AND started_at < $2::timestamptz AND trial_end <= $2::timestamptz
+        AND (status IN ('active','past_due') OR (ended_at IS NOT NULL AND end_reason <> 'trial_ended' AND ended_at > trial_end)))::bigint AS became_paid,
+    count(*) FILTER (WHERE trial_end IS NOT NULL AND started_at >= $1::timestamptz AND started_at < $2::timestamptz
+        AND ended_at IS NOT NULL AND (end_reason = 'trial_ended' OR ended_at <= trial_end))::bigint AS canceled,
+    count(*) FILTER (WHERE status = 'trialing' AND trial_end <= $3::timestamptz)::bigint AS ending_soon
+FROM paid_subscriptions WHERE workspace_id = $4 AND mode = 'live' AND kind = 'stripe'
+`
+
+type RevenueTrialsParams struct {
+	FromAt      time.Time `json:"fromAt"`
+	ToAt        time.Time `json:"toAt"`
+	Soon        time.Time `json:"soon"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+}
+
+type RevenueTrialsRow struct {
+	Started    int64 `json:"started"`
+	Trialing   int64 `json:"trialing"`
+	BecamePaid int64 `json:"becamePaid"`
+	Canceled   int64 `json:"canceled"`
+	EndingSoon int64 `json:"endingSoon"`
+}
+
+// Trials started in a window and what became of them; trialing now and
+// ending within a week.
+func (q *Queries) RevenueTrials(ctx context.Context, arg RevenueTrialsParams) (RevenueTrialsRow, error) {
+	row := q.db.QueryRow(ctx, revenueTrials,
+		arg.FromAt,
+		arg.ToAt,
+		arg.Soon,
+		arg.WorkspaceID,
+	)
+	var i RevenueTrialsRow
+	err := row.Scan(
+		&i.Started,
+		&i.Trialing,
+		&i.BecamePaid,
+		&i.Canceled,
+		&i.EndingSoon,
+	)
+	return i, err
+}
+
+const revenueTrialsEndingTop = `-- name: RevenueTrialsEndingTop :many
+SELECT s.source_campaign_id, coalesce(cp.name, '')::text AS name, count(*)::bigint AS trials
+FROM paid_subscriptions s JOIN campaigns cp ON cp.id = s.source_campaign_id
+WHERE s.workspace_id = $1 AND s.mode = 'live' AND s.status = 'trialing' AND s.trial_end <= $2::timestamptz
+GROUP BY 1, 2 ORDER BY 3 DESC LIMIT 1
+`
+
+type RevenueTrialsEndingTopParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Soon        time.Time `json:"soon"`
+}
+
+type RevenueTrialsEndingTopRow struct {
+	SourceCampaignID *uuid.UUID `json:"sourceCampaignId"`
+	Name             string     `json:"name"`
+	Trials           int64      `json:"trials"`
+}
+
+// The email most of the trials ending soon came from.
+func (q *Queries) RevenueTrialsEndingTop(ctx context.Context, arg RevenueTrialsEndingTopParams) ([]RevenueTrialsEndingTopRow, error) {
+	rows, err := q.db.Query(ctx, revenueTrialsEndingTop, arg.WorkspaceID, arg.Soon)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []RevenueTrialsEndingTopRow{}
+	for rows.Next() {
+		var i RevenueTrialsEndingTopRow
+		if err := rows.Scan(&i.SourceCampaignID, &i.Name, &i.Trials); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const revenueUnpublishedMemberEmails = `-- name: RevenueUnpublishedMemberEmails :many
+SELECT e.email, t.id AS template_id, t.key FROM earn_member_emails e JOIN transactional_templates t ON t.id = e.template_id
+WHERE e.workspace_id = $1 AND t.deleted_at IS NULL AND t.live_version IS NULL
+ORDER BY e.email
+`
+
+type RevenueUnpublishedMemberEmailsRow struct {
+	Email      string    `json:"email"`
+	TemplateID uuid.UUID `json:"templateId"`
+	Key        string    `json:"key"`
+}
+
+// Member emails whose template isn't published.
+func (q *Queries) RevenueUnpublishedMemberEmails(ctx context.Context, workspaceID uuid.UUID) ([]RevenueUnpublishedMemberEmailsRow, error) {
+	rows, err := q.db.Query(ctx, revenueUnpublishedMemberEmails, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []RevenueUnpublishedMemberEmailsRow{}
+	for rows.Next() {
+		var i RevenueUnpublishedMemberEmailsRow
+		if err := rows.Scan(&i.Email, &i.TemplateID, &i.Key); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const revenueUpgradesByEmail = `-- name: RevenueUpgradesByEmail :many
+SELECT s.source_kind, s.source_campaign_id, m.automation_id, coalesce(cp.name, a.name, s.source_label, '')::text AS name,
+       coalesce(cp.started_at, cp.scheduled_at) AS sent_at,
+       count(DISTINCT c.subscription_id)::bigint AS members, coalesce(sum(c.arr_after), 0)::bigint AS arr
+FROM earn_mrr_changes c
+JOIN paid_subscriptions s ON s.id = c.subscription_id
+LEFT JOIN campaigns cp ON cp.id = s.source_campaign_id
+LEFT JOIN messages m ON s.source_kind = 'automation' AND s.source_detail->>'message_id' ~ '^[0-9a-f-]{36}$' AND m.id = (s.source_detail->>'message_id')::uuid
+LEFT JOIN automations a ON a.id = m.automation_id
+WHERE c.workspace_id = $1 AND c.kind IN ('new','reactivation') AND c.at >= $2::timestamptz AND c.at < $3::timestamptz
+GROUP BY 1, 2, 3, 4, 5
+`
+
+type RevenueUpgradesByEmailParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	FromAt      time.Time `json:"fromAt"`
+	ToAt        time.Time `json:"toAt"`
+}
+
+type RevenueUpgradesByEmailRow struct {
+	SourceKind       string     `json:"sourceKind"`
+	SourceCampaignID *uuid.UUID `json:"sourceCampaignId"`
+	AutomationID     *uuid.UUID `json:"automationId"`
+	Name             string     `json:"name"`
+	SentAt           *time.Time `json:"sentAt"`
+	Members          int64      `json:"members"`
+	Arr              int64      `json:"arr"`
+}
+
+// New paid members of a window by the email they're credited to, with
+// their new MRR (twelve times, in minor units).
+func (q *Queries) RevenueUpgradesByEmail(ctx context.Context, arg RevenueUpgradesByEmailParams) ([]RevenueUpgradesByEmailRow, error) {
+	rows, err := q.db.Query(ctx, revenueUpgradesByEmail, arg.WorkspaceID, arg.FromAt, arg.ToAt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []RevenueUpgradesByEmailRow{}
+	for rows.Next() {
+		var i RevenueUpgradesByEmailRow
+		if err := rows.Scan(
+			&i.SourceKind,
+			&i.SourceCampaignID,
+			&i.AutomationID,
+			&i.Name,
+			&i.SentAt,
+			&i.Members,
+			&i.Arr,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
