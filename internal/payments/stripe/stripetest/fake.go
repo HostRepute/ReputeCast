@@ -286,7 +286,7 @@ func (f *Fake) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case r.Method == http.MethodPost && path == "/v1/checkout/sessions":
 		id := newID("cs_" + string(spec.Mode))
 		o := obj{"id": id, "object": "checkout.session", "url": "https://checkout.stripe.com/c/pay/" + id, "status": "open", "payment_status": "unpaid",
-			"mode": "subscription", "customer": nilIfEmpty(form.Get("customer")), "customer_email": nilIfEmpty(form.Get("customer_email")), "subscription": nil,
+			"mode": sessionMode(form), "customer": nilIfEmpty(form.Get("customer")), "customer_email": nilIfEmpty(form.Get("customer_email")), "subscription": nil,
 			"client_reference_id": nilIfEmpty(form.Get("client_reference_id")), "metadata": prefixed(form, "metadata"), "livemode": live,
 			"success_url": form.Get("success_url"), "cancel_url": form.Get("cancel_url"),
 			"_price": form.Get("line_items[0][price]"), "_trial_days": form.Get("subscription_data[trial_period_days]"),
@@ -310,6 +310,7 @@ func (f *Fake) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		} else {
 			o["type"] = "one_time"
 		}
+		customAmount(o, form)
 		d.objects[id] = o
 		writeJSON(w, 200, o)
 	case len(seg) >= 3 && seg[0] == "v1":

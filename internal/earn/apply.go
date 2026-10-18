@@ -217,6 +217,10 @@ func (s *Service) applyEvent(ctx context.Context, tx pgx.Tx, ws *store.Workspace
 	if conn.Status == "disconnected" {
 		return ignored("disconnected"), nil
 	}
+	// One-time payments of other domains (digital products) go to them.
+	if out, ok, err := s.consume(ctx, tx, ws, conn, pe); ok || err != nil {
+		return out, err
+	}
 	switch ev.Kind {
 	case payments.EventSubscriptionCreated, payments.EventSubscriptionUpdated, payments.EventSubscriptionDeleted:
 		return s.applySubscription(ctx, tx, ws, conn, pe, ev)
@@ -937,6 +941,11 @@ func (s *Service) applyUpcoming(ctx context.Context, tx pgx.Tx, ws *store.Worksp
 func (s *Service) applyRefund(ctx context.Context, tx pgx.Tx, ws *store.Workspace, conn store.PaymentConnection, pe store.PaymentEvent, ev payments.Event) (outcome, error) {
 	q := store.New(tx)
 	ch := ev.Charge
+	if ch == nil || ch.CustomerID == "" {
+		// A one-time payment without a customer (a guest checkout) belongs
+		// to no subscription.
+		return ignored("unknown_customer"), nil
+	}
 	rows, err := q.EarnSubscriptionsOfCustomer(ctx, store.EarnSubscriptionsOfCustomerParams{WorkspaceID: ws.ID, Mode: conn.Mode, StripeCustomerID: ch.CustomerID})
 	if err != nil {
 		return outcome{}, err
