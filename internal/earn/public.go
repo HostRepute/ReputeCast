@@ -266,7 +266,7 @@ func (s *Service) Upgrade(ctx context.Context, ws *store.Workspace, r UpgradeReq
 		return UpgradeView{}, err
 	}
 	v := UpgradeView{Headline: page.Headline, Intro: page.Intro, TestMode: mode == "test", FAQ: page.FAQ, FAQTitle: s.t(l, "page.questions", nil),
-		Trust: s.t(l, "page.trust", i18n.Args{"publisher": ws.Name}), TermsURL: st.TermsUrl, Support: st.SupportEmail,
+		Trust: s.t(l, "page.trust", i18n.Args{"publisher": s.publisher(ctx, ws)}), TermsURL: st.TermsUrl, Support: st.SupportEmail,
 		Monthly: s.t(l, "page.monthly", nil), Yearly: s.t(l, "page.yearly", nil), Token: r.Token,
 		Words: map[string]string{"testRibbon": s.t(l, "page.testRibbon", nil), "testNote": s.t(l, "page.testNote", nil), "terms": s.t(l, "page.terms", nil),
 			"back": s.t(l, "page.backToArchive", nil), "notYou": s.t(l, "page.notYou", nil), "tryAgain": s.t(l, "page.tryAgain", nil),

@@ -7204,6 +7204,38 @@
         ],
         "type": "object"
       },
+      "Brand": {
+        "additionalProperties": false,
+        "properties": {
+          "accent": {
+            "type": "string"
+          },
+          "ground": {
+            "type": "string"
+          },
+          "onAccent": {
+            "type": "string"
+          },
+          "publisher": {
+            "type": "string"
+          },
+          "soft": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "publisher",
+          "accent",
+          "ground",
+          "soft",
+          "text",
+          "onAccent"
+        ],
+        "type": "object"
+      },
       "CallTarget": {
         "additionalProperties": false,
         "properties": {
@@ -19217,6 +19249,9 @@
       "EarnPlans": {
         "additionalProperties": false,
         "properties": {
+          "brand": {
+            "$ref": "#/components/schemas/Brand"
+          },
           "canEdit": {
             "type": "boolean"
           },
@@ -19259,7 +19294,8 @@
           "connected",
           "canEdit",
           "helpers",
-          "lists"
+          "lists",
+          "brand"
         ],
         "type": "object"
       },
@@ -19347,6 +19383,12 @@
             "format": "int64",
             "type": "integer"
           },
+          "offers": {
+            "items": {
+              "$ref": "#/components/schemas/EarnPriceOffer"
+            },
+            "type": "array"
+          },
           "origin": {
             "enum": [
               "tier",
@@ -19394,7 +19436,25 @@
           "origin",
           "members",
           "paying",
-          "discounted"
+          "discounted",
+          "offers"
+        ],
+        "type": "object"
+      },
+      "EarnPriceOffer": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "label": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "count"
         ],
         "type": "object"
       },
@@ -19683,6 +19743,13 @@
             "type": "string"
           },
           "id": {
+            "type": "string"
+          },
+          "importedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "importedFrom": {
             "type": "string"
           },
           "includes": {

@@ -85,7 +85,7 @@ func (s *Service) PreferencesPaid(ctx context.Context, ws *store.Workspace, cont
 	loc := location(ws)
 	switch acc.Kind {
 	case "complimentary":
-		out.Heading = s.t(l, "prefs.compHeading", i18n.Args{"tier": short, "publisher": ws.Name, "until": dateOrNone(acc.GrantUntil, loc)})
+		out.Heading = s.t(l, "prefs.compHeading", i18n.Args{"tier": short, "publisher": s.publisher(ctx, ws), "until": dateOrNone(acc.GrantUntil, loc)})
 		out.Line = s.t(l, "prefs.compLine", i18n.Args{"tier": short})
 	case "gift":
 		var d struct {

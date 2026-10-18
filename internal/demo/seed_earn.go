@@ -278,7 +278,7 @@ func (e *earnSeed) tiers(ctx context.Context) error {
 			{Q: "Can I switch between monthly and yearly?", A: "Yes, any time, from “Manage your subscription” in your email preferences. Stripe credits what you've already paid."},
 			{Q: "Do I keep the free issues?", A: "Yes. Insider comes on top of the free Weekly Digest. If you cancel, the free issue keeps arriving every Tuesday."},
 		},
-		Welcome: "Welcome to {{ tier }}, {{ first_name }}. Your first members-only deep dive arrives {{ next_issue }}.",
+		Welcome: "Welcome to Insider, {{ first_name }}. Your first deep dive arrives on Tuesday.",
 		Buttons: map[string]string{e.founding.String(): "Become a founding member"},
 	}
 	_, err := s.Tx.Exec(ctx, `UPDATE earn_settings SET upgrade_page = $2, upgrade_published_at = $3, upgrade_published_by = $4 WHERE workspace_id = $1`,

@@ -11925,6 +11925,14 @@ export interface components {
             text: string;
             url?: string;
         };
+        Brand: {
+            accent: string;
+            ground: string;
+            onAccent: string;
+            publisher: string;
+            soft: string;
+            text: string;
+        };
         CallTarget: {
             email?: string;
             endpoint?: string;
@@ -15251,6 +15259,7 @@ export interface components {
             resource: string;
         };
         EarnPlans: {
+            brand: components["schemas"]["Brand"];
             canEdit: boolean;
             connected: boolean;
             currency: string;
@@ -15287,6 +15296,7 @@ export interface components {
             id: string;
             /** Format: int64 */
             members: number;
+            offers: components["schemas"]["EarnPriceOffer"][];
             /** @enum {string} */
             origin: "tier" | "mapped";
             /** Format: int64 */
@@ -15299,6 +15309,11 @@ export interface components {
             stripeLiveId?: string;
             stripeTestId?: string;
             stripeUrl?: string;
+        };
+        EarnPriceOffer: {
+            /** Format: int64 */
+            count: number;
+            label: string;
         };
         EarnProviderCard: {
             available: boolean;
@@ -15381,6 +15396,9 @@ export interface components {
             hiddenLink: string;
             highlight?: string;
             id: string;
+            /** Format: date-time */
+            importedAt?: string;
+            importedFrom?: string;
             includes: string[];
             lists: components["schemas"]["EarnListRef"][];
             monthly?: components["schemas"]["EarnPrice"];
