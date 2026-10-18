@@ -276,7 +276,7 @@ func (s *Service) Rewrite(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	}
 	got, kept := restore(src, got)
 	if in.Field == "" {
-		got = linkAttrs(src, got)
+		got = linkAttrs(src, tagLook(src, got))
 	}
 	out.HTML, out.WordsAfter, out.TokensRestored, out.Links, out.LinksRestored = got, words(got), kept.TokensRestored, kept.Links, kept.LinksRestored
 	return out, nil
@@ -447,8 +447,14 @@ var (
 	hrefAttrRe  = regexp.MustCompile(`(?is)\bhref\s*=\s*("[^"]*"|'[^']*')`)
 )
 
-// allowedTags are what a rewrite may keep: inline formatting and links.
-var allowedTags = map[string]bool{"a": true, "b": true, "strong": true, "i": true, "em": true, "u": true, "br": true, "span": true, "p": true}
+// allowedTags are what a suggestion may keep: inline formatting, links,
+// and the structure of a block (its divs, headings, lists and tables).
+// Their attributes are the source's (tagLook, linkAttrs), never the model's.
+var allowedTags = map[string]bool{
+	"a": true, "b": true, "strong": true, "i": true, "em": true, "u": true, "s": true, "br": true, "span": true, "p": true, "small": true, "sup": true, "sub": true,
+	"div": true, "h1": true, "h2": true, "h3": true, "h4": true, "h5": true, "h6": true, "ul": true, "ol": true, "li": true, "blockquote": true,
+	"table": true, "thead": true, "tbody": true, "tfoot": true, "tr": true, "td": true, "th": true,
+}
 
 // sanitize keeps a suggestion's inline formatting and links, and drops
 // every other tag and attribute.

@@ -150,7 +150,9 @@ const FIRST_ROWS = 2
 
 /** A segment's HTML as the reader sees it. */
 function textOf(html: string): string {
-  const d = new DOMParser().parseFromString(`<div>${html}</div>`, 'text/html')
+  // A block's end is a space for the reader ("Beta corner Flag rules…").
+  const spaced = html.replace(/<\/(?:p|div|li|h[1-6]|td|th|blockquote)>|<br\s*\/?>/gi, (tag) => `${tag} `)
+  const d = new DOMParser().parseFromString(`<div>${spaced}</div>`, 'text/html')
   return (d.body.textContent ?? '').replace(/\s+/g, ' ').trim()
 }
 

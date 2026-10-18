@@ -182,6 +182,44 @@ func linkAttrs(src, got string) string {
 	})
 }
 
+// openTagRe is an opening tag and its attributes.
+var openTagRe = regexp.MustCompile(`(?s)<([a-zA-Z][a-zA-Z0-9]*)\b([^>]*)>`)
+
+// tagLook gives each tag of got the attributes of the source's next tag of
+// the same name, in order: the Beta corner's styled divs, a <b> in the
+// email's heading color. sanitize leaves the tags bare, so a tag the source
+// doesn't have stays bare. Links are linkAttrs', matched by address.
+func tagLook(src, got string) string {
+	type tag struct{ name, text string }
+	var from []tag
+	for _, m := range openTagRe.FindAllStringSubmatch(src, -1) {
+		name := strings.ToLower(m[1])
+		if name == "a" || name == "br" || !allowedTags[name] || strings.TrimSpace(m[2]) == "" {
+			from = append(from, tag{name: name})
+			continue
+		}
+		from = append(from, tag{name, "<" + name + m[2] + ">"})
+	}
+	next := 0
+	return openTagRe.ReplaceAllStringFunc(got, func(m string) string {
+		sub := openTagRe.FindStringSubmatch(m)
+		name := strings.ToLower(sub[1])
+		if name == "a" || name == "br" || strings.TrimSpace(sub[2]) != "" {
+			return m
+		}
+		for i := next; i < len(from); i++ {
+			if from[i].name == name {
+				next = i + 1
+				if from[i].text == "" {
+					return m
+				}
+				return from[i].text
+			}
+		}
+		return m
+	})
+}
+
 func sameMultiset(a, b []string) bool {
 	if len(a) != len(b) {
 		return false
@@ -201,7 +239,8 @@ func sameMultiset(a, b []string) bool {
 
 // plain turns HTML into readable text, tokens kept.
 func plain(s string) string {
-	s = strings.NewReplacer("<br>", " ", "<br/>", " ", "<br />", " ", "</p>", " ", "</div>", " ", "</li>", " ", "</h1>", " ", "</h2>", " ", "</h3>", " ").Replace(s)
+	s = strings.NewReplacer("<br>", " ", "<br/>", " ", "<br />", " ", "</p>", " ", "</div>", " ", "</li>", " ", "</h1>", " ", "</h2>", " ", "</h3>", " ",
+		"</h4>", " ", "</h5>", " ", "</h6>", " ", "</td>", " ", "</th>", " ", "</blockquote>", " ").Replace(s)
 	s = tagRe.ReplaceAllString(s, "")
 	s = html.UnescapeString(s)
 	return strings.TrimSpace(spaceRe.ReplaceAllString(s, " "))
