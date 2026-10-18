@@ -210,5 +210,6 @@ WHERE c.workspace_id = @workspace_id AND c.deleted_at IS NULL AND c.status NOT I
 ORDER BY coalesce(c.started_at, c.scheduled_at);
 
 -- name: SponsorCampaignBrief :one
-SELECT c.id, c.name, c.status, c.audience, c.scheduled_at, c.started_at, c.mjml
-FROM campaigns c WHERE c.id = @id AND c.workspace_id = @workspace_id AND c.deleted_at IS NULL;
+SELECT c.id, c.name, c.status, c.audience, c.scheduled_at, c.started_at, c.mjml, coalesce(u.name, '')::text AS author
+FROM campaigns c LEFT JOIN users u ON u.id = c.created_by
+WHERE c.id = @id AND c.workspace_id = @workspace_id AND c.deleted_at IS NULL;

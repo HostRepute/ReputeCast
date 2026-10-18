@@ -1058,8 +1058,9 @@ func (q *Queries) SponsorBookingsToSend(ctx context.Context) ([]SponsorBookingsT
 }
 
 const sponsorCampaignBrief = `-- name: SponsorCampaignBrief :one
-SELECT c.id, c.name, c.status, c.audience, c.scheduled_at, c.started_at, c.mjml
-FROM campaigns c WHERE c.id = $1 AND c.workspace_id = $2 AND c.deleted_at IS NULL
+SELECT c.id, c.name, c.status, c.audience, c.scheduled_at, c.started_at, c.mjml, coalesce(u.name, '')::text AS author
+FROM campaigns c LEFT JOIN users u ON u.id = c.created_by
+WHERE c.id = $1 AND c.workspace_id = $2 AND c.deleted_at IS NULL
 `
 
 type SponsorCampaignBriefParams struct {
@@ -1075,6 +1076,7 @@ type SponsorCampaignBriefRow struct {
 	ScheduledAt *time.Time      `json:"scheduledAt"`
 	StartedAt   *time.Time      `json:"startedAt"`
 	Mjml        string          `json:"mjml"`
+	Author      string          `json:"author"`
 }
 
 func (q *Queries) SponsorCampaignBrief(ctx context.Context, arg SponsorCampaignBriefParams) (SponsorCampaignBriefRow, error) {
@@ -1088,6 +1090,7 @@ func (q *Queries) SponsorCampaignBrief(ctx context.Context, arg SponsorCampaignB
 		&i.ScheduledAt,
 		&i.StartedAt,
 		&i.Mjml,
+		&i.Author,
 	)
 	return i, err
 }

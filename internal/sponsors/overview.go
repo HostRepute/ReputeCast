@@ -15,8 +15,9 @@ import (
 type OverviewQuery struct {
 	Slot string `query:"slot" doc:"A slot's id; the first slot when absent."`
 	// Range: around (the last 3 and the next 5 issues), upcoming (the next
-	// 10) or past (the last 12).
-	Range string `query:"range" enum:"around,upcoming,past" default:"around"`
+	// 10), recent (the issues of the last 30 days) or all (from the first
+	// booked issue to the last one booked).
+	Range string `query:"range" enum:"around,upcoming,recent,all" default:"around"`
 }
 
 // noticeWindow is how close an issue must be for "no campaign yet".
@@ -55,6 +56,16 @@ func (s *Service) bookingBrief(ws *store.Workspace, b store.SponsorBookingsOfSlo
 		out.SharedAt = &at
 	}
 	return out
+}
+
+// campaignRef names an issue's campaign: its status, who made it and when
+// it goes out.
+func (s *Service) campaignRef(ctx context.Context, ws *store.Workspace, id uuid.UUID, byHand bool) *SponsorCampaignRef {
+	cp, err := s.Q.SponsorCampaignBrief(ctx, store.SponsorCampaignBriefParams{ID: id, WorkspaceID: ws.ID})
+	if err != nil {
+		return nil
+	}
+	return &SponsorCampaignRef{ID: cp.ID.String(), Name: cp.Name, Status: cp.Status, ByHand: byHand, Author: cp.Author, At: firstTime(cp.StartedAt, cp.ScheduledAt)}
 }
 
 func firstTime(ts ...*time.Time) *time.Time {
@@ -139,7 +150,6 @@ func (s *Service) Overview(ctx context.Context, ws *store.Workspace, p *authz.Pr
 	}
 	// The next 5 issues of the slot.
 	next := s.nextNumber(ctx, sel, today)
-	slot := slotRow(sel)
 	nextRows, err := s.issueRowsBetween(ctx, ws, sel, next, next+4, today)
 	if err != nil {
 		return out, err
@@ -156,7 +166,6 @@ func (s *Service) Overview(ctx context.Context, ws *store.Workspace, p *authz.Pr
 			t.NextBooked++
 		}
 	}
-	_ = slot
 	return out, nil
 }
 
@@ -184,8 +193,21 @@ func (s *Service) issueRows(ctx context.Context, ws *store.Workspace, sl store.S
 	switch rng {
 	case "upcoming":
 		from, to = next, next+9
-	case "past":
-		from, to = next-12, next-1
+	case "recent":
+		from, to = NextNumber(slotRow(sl), today.AddDate(0, 0, -30)), next-1
+	case "all":
+		var lo, hi *int32
+		_ = s.Pool.QueryRow(ctx, `SELECT min(issue_number), max(issue_number) FROM sponsor_bookings WHERE slot_id = $1 AND status IN ('hold','booked','sent')`, sl.ID).Scan(&lo, &hi)
+		from, to = next, next+4
+		if lo != nil && int(*lo) < from {
+			from = int(*lo)
+		}
+		if hi != nil && int(*hi) > to {
+			to = int(*hi)
+		}
+		if to-from > 104 {
+			from = to - 104
+		}
 	}
 	if from < 1 {
 		from = 1
@@ -248,14 +270,12 @@ func (s *Service) issueRowsBetween(ctx context.Context, ws *store.Workspace, sl 
 				r.Past = true
 			}
 			if b.CampaignID != nil && b.CampaignName != "" {
-				r.Campaign = &SponsorCampaignRef{ID: b.CampaignID.String(), Name: b.CampaignName, Status: b.CampaignStatus, ByHand: b.CampaignByHand}
+				r.Campaign = s.campaignRef(ctx, ws, *b.CampaignID, b.CampaignByHand)
 			}
 		}
 		if r.Campaign == nil {
 			if cid := s.campaignOn(ctx, ws, sl.ListID, on); cid != nil {
-				if cp, err := s.Q.SponsorCampaignBrief(ctx, store.SponsorCampaignBriefParams{ID: *cid, WorkspaceID: ws.ID}); err == nil {
-					r.Campaign = &SponsorCampaignRef{ID: cp.ID.String(), Name: cp.Name, Status: cp.Status}
-				}
+				r.Campaign = s.campaignRef(ctx, ws, *cid, false)
 			}
 		}
 		if pr, ok := proposals[n]; ok && r.Booking == nil {

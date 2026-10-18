@@ -3525,6 +3525,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/campaigns/{id}/sponsor-block": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The Sponsor block of a campaign: its booking, creative and content
+         * @description The price shows only to people who hold earn:view.
+         */
+        get: operations["get-campaign-sponsor-block"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/composer": {
         parameters: {
             query?: never;
@@ -8411,6 +8431,357 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/sponsor-bookings/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A booking: its terms, creative, payment, activity and report */
+        get: operations["get-sponsor-booking"];
+        /** Change a booking's sponsor, price, status, hold date or notes */
+        put: operations["update-sponsor-booking"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sponsor-bookings/{id}/campaign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Link the issue to its campaign by hand, or by list and date again */
+        put: operations["link-sponsor-booking-campaign"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sponsor-bookings/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel a booking, release a hold or dismiss a proposal
+         * @description The issue opens again and its Sponsor block is hidden.
+         */
+        post: operations["cancel-sponsor-booking"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sponsor-bookings/{id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Book an agent's proposal
+         * @description MCP agents can propose a booking; a person with sponsors:manage confirms it.
+         */
+        post: operations["confirm-sponsor-proposal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sponsor-bookings/{id}/creative": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Save the creative: logo or image, headline, text, button and link
+         * @description ReputeCast adds the UTM parameters to the link; the click token is never added to sponsor links.
+         */
+        put: operations["set-sponsor-creative"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sponsor-bookings/{id}/creative/image": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload the creative's logo or image (PNG, JPEG or GIF, up to 5 MB) */
+        post: operations["upload-sponsor-image"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sponsor-bookings/{id}/creative/ready": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark the creative ready: the Sponsor block shows it */
+        post: operations["mark-sponsor-creative-ready"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sponsor-bookings/{id}/payment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Record a booking's payment by hand, or change it
+         * @description ReputeCast sends no invoices and moves no money: this records what the sponsor paid.
+         */
+        put: operations["record-sponsor-payment"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sponsor-bookings/{id}/report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A sent booking's report: who got the block, human opens and clicks
+         * @description Machine opens and bot clicks are left out. Results are final 72 hours after the send.
+         */
+        get: operations["get-sponsor-report"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sponsor-bookings/{id}/shares": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A booking's active read-only links */
+        get: operations["list-sponsor-shares"];
+        put?: never;
+        /**
+         * Share a booking's report as a read-only link, optionally expiring
+         * @description The page shows only the sponsor's numbers and the creative as sent, never contact data.
+         */
+        post: operations["create-sponsor-booking-share"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sponsor-report-shares/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke a sponsor report's read-only link */
+        delete: operations["revoke-sponsor-share"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sponsor-slots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add a slot: a placement in each issue of a list */
+        post: operations["create-sponsor-slot"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sponsor-slots/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Change a slot
+         * @description Issues already booked keep their dates and prices.
+         */
+        put: operations["update-sponsor-slot"];
+        post?: never;
+        /** Remove a slot without bookings to come */
+        delete: operations["delete-sponsor-slot"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sponsor-slots/{id}/issues/{number}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** An issue of a slot: its dates, price, campaign and any proposal */
+        get: operations["get-sponsor-issue"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sponsor-slots/{id}/issues/{number}/book": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Book an open issue for a sponsor, or hold it until a date */
+        post: operations["book-sponsor-issue"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sponsors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add a sponsor to the library */
+        post: operations["create-sponsor"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sponsors/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Earn › Sponsors: income, a slot's issues with their bookings, the library and what needs a person */
+        get: operations["get-sponsor-overview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sponsors/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change a sponsor */
+        put: operations["update-sponsor"];
+        post?: never;
+        /** Remove a sponsor without bookings to come */
+        delete: operations["delete-sponsor"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sponsors/{id}/shares": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Share every booking of a sponsor in one read-only report
+         * @description The page shows only the sponsor's numbers and the creatives as sent, never contact data.
+         */
+        post: operations["create-sponsor-share"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/suppression-sync": {
         parameters: {
             query?: never;
@@ -11925,6 +12296,31 @@ export interface components {
             text: string;
             url?: string;
         };
+        BookInput: {
+            /** Format: date */
+            holdUntil?: string;
+            notes?: string;
+            /**
+             * Format: int64
+             * @description The slot's default price when absent.
+             */
+            priceCents?: number;
+            /** Format: uuid */
+            sponsorId: string;
+            /** @enum {string} */
+            status: "booked" | "hold";
+        };
+        BookingInput: {
+            /** Format: date */
+            holdUntil?: string;
+            notes?: string;
+            /** Format: int64 */
+            priceCents?: number;
+            /** Format: uuid */
+            sponsorId?: string;
+            /** @enum {string} */
+            status?: "booked" | "hold" | "";
+        };
         CallTarget: {
             email?: string;
             endpoint?: string;
@@ -11948,6 +12344,10 @@ export interface components {
             preparedAt?: string;
             /** Format: date-time */
             sendAt?: string;
+        };
+        CampaignInput: {
+            /** Format: uuid */
+            campaignId?: string;
         };
         CampaignList: {
             counts: components["schemas"]["CampaignStatusCounts"];
@@ -12061,6 +12461,9 @@ export interface components {
             humanOpens?: number;
             /** Format: int64 */
             sent: number;
+        };
+        CancelInput: {
+            reason?: string;
         };
         CatalogLanguage: {
             added: boolean;
@@ -18841,6 +19244,15 @@ export interface components {
             /** @enum {string} */
             status: "sent" | "email_unavailable" | "sso";
         };
+        PaymentInput: {
+            /** Format: int64 */
+            amountCents?: number;
+            /** @description Shown on the booking, never to the sponsor. */
+            note?: string;
+            paid: boolean;
+            /** Format: date */
+            paidOn?: string;
+        };
         PermissionInfo: {
             description: string;
             /** @example Campaigns */
@@ -22468,8 +22880,437 @@ export interface components {
             systemProvider: string;
             turnstile: components["schemas"]["PublicTurnstile"];
         };
+        SlotInput: {
+            /**
+             * Format: int64
+             * @description The creative is due this many days before the issue (4 when absent).
+             */
+            creativeDays?: number;
+            /** @description ISO 4217; the workspace's currency when absent. */
+            currency?: string;
+            /**
+             * Format: int64
+             * @description 7 when absent (weekly).
+             */
+            everyDays?: number;
+            /** Format: int64 */
+            firstNumber: number;
+            /**
+             * Format: date
+             * @description The date of issue FirstNumber, in the workspace's time zone.
+             */
+            firstOn: string;
+            /** Format: uuid */
+            listId: string;
+            name: string;
+            /** @description Where it sits in the issue ("After the first story"). */
+            placement?: string;
+            /**
+             * Format: int64
+             * @description The default price of a booking, in minor units.
+             */
+            priceCents: number;
+            selling?: boolean;
+        };
         SourceInput: {
             language: string;
+        };
+        SponsorBlock: {
+            bookingId?: string;
+            /** @enum {string} */
+            bookingStatus?: "hold" | "booked" | "sent" | "";
+            canSeePrice: boolean;
+            creative: components["schemas"]["SponsorCreative"];
+            /** Format: date-time */
+            creativeDue?: string;
+            currency?: string;
+            hash: string;
+            helpers: string[];
+            initials?: string;
+            /** Format: int64 */
+            issue?: number;
+            /** Format: date-time */
+            issueOn?: string;
+            label: string;
+            /** @enum {string} */
+            labelMode: "plain" | "name";
+            /** @enum {string} */
+            layout: "logo-left" | "image-top" | "text";
+            link: string;
+            listName?: string;
+            mjml: string;
+            /** Format: int64 */
+            priceCents?: number;
+            slotId?: string;
+            slotName?: string;
+            sponsor?: string;
+            /** @enum {string} */
+            state: "ready" | "waiting" | "none";
+        };
+        SponsorBookingBrief: {
+            /** Format: double */
+            clickRate?: number;
+            /** Format: date-time */
+            creativeDue?: string;
+            /** @enum {string} */
+            creativeStatus: "waiting" | "ready";
+            final: boolean;
+            /** Format: date-time */
+            holdUntil?: string;
+            id: string;
+            payment: components["schemas"]["SponsorPayment"];
+            /** Format: int64 */
+            priceCents: number;
+            proposal?: components["schemas"]["SponsorPropose"];
+            /** Format: date-time */
+            resultsFinalAt?: string;
+            /** Format: date-time */
+            sentAt?: string;
+            /** Format: date-time */
+            sharedAt?: string;
+            sponsor?: components["schemas"]["SponsorRef"];
+            /** @enum {string} */
+            status: "hold" | "booked" | "sent";
+        };
+        SponsorBookingDetail: {
+            activity: components["schemas"]["SponsorBookingEvent"][];
+            campaign?: components["schemas"]["SponsorCampaignRef"];
+            canManage: boolean;
+            canShare: boolean;
+            /** Format: date-time */
+            canceledAt?: string;
+            creative: components["schemas"]["SponsorCreative"];
+            /** Format: date-time */
+            creativeDue?: string;
+            /** @enum {string} */
+            creativeStatus: "waiting" | "ready";
+            currency: string;
+            helpers: string[];
+            /** Format: date-time */
+            holdUntil?: string;
+            id: string;
+            /** Format: int64 */
+            issue: number;
+            /** Format: date-time */
+            issueOn: string;
+            label: string;
+            library: components["schemas"]["SponsorRef"][];
+            listName: string;
+            notes: string;
+            payment: components["schemas"]["SponsorPayment"];
+            placement: string;
+            /** Format: int64 */
+            priceCents: number;
+            proposal?: components["schemas"]["SponsorPropose"];
+            /** Format: date-time */
+            readyAt?: string;
+            report?: components["schemas"]["SponsorReport"];
+            shares: components["schemas"]["SponsorShareLink"][];
+            slotId: string;
+            slotName: string;
+            /** Format: int64 */
+            slotPriceCents: number;
+            sponsor?: components["schemas"]["SponsorItem"];
+            /** @enum {string} */
+            status: "proposed" | "hold" | "booked" | "sent" | "canceled";
+        };
+        SponsorBookingEvent: {
+            actor?: string;
+            /** Format: date-time */
+            at: string;
+            data: {
+                [key: string]: unknown;
+            };
+            kind: string;
+        };
+        SponsorCampaignRef: {
+            /** Format: date-time */
+            at?: string;
+            author?: string;
+            byHand: boolean;
+            id: string;
+            name: string;
+            status: string;
+        };
+        SponsorCreative: {
+            button?: string;
+            headline?: string;
+            image?: string;
+            link?: string;
+            logo?: string;
+            /** @description Up to 280 characters. */
+            text?: string;
+            utm: components["schemas"]["SponsorUTMs"];
+        };
+        SponsorImage: {
+            url: string;
+        };
+        SponsorInput: {
+            contactEmail?: string;
+            contactName?: string;
+            logoUrl?: string;
+            name: string;
+            notes?: string;
+            /**
+             * Format: int64
+             * @description Payments are due this many days after the issue (14 when absent).
+             */
+            termsDays?: number;
+            website?: string;
+        };
+        SponsorIssueDetail: {
+            bookingId?: string;
+            campaign?: components["schemas"]["SponsorCampaignRef"];
+            canManage: boolean;
+            /** Format: date-time */
+            creativeDue: string;
+            currency: string;
+            helpers: string[];
+            /** Format: int64 */
+            issue: number;
+            /** Format: date-time */
+            issueOn: string;
+            library: components["schemas"]["SponsorRef"][];
+            listName: string;
+            /** Format: date-time */
+            paymentDue: string;
+            placement: string;
+            /** Format: int64 */
+            priceCents: number;
+            proposals: components["schemas"]["SponsorPropose"][];
+            slotId: string;
+            slotName: string;
+            /** Format: int64 */
+            termsDays: number;
+        };
+        SponsorIssueRow: {
+            booking?: components["schemas"]["SponsorBookingBrief"];
+            campaign?: components["schemas"]["SponsorCampaignRef"];
+            /** Format: date-time */
+            issueOn: string;
+            /** Format: int64 */
+            number: number;
+            past: boolean;
+            proposal?: components["schemas"]["SponsorPropose"];
+            slotId: string;
+            slotName: string;
+        };
+        SponsorItem: {
+            /** Format: int64 */
+            bookedCents: number;
+            /** Format: double */
+            clickRate?: number;
+            /** Format: int64 */
+            clickRateIssue?: number;
+            contactEmail: string;
+            contactName: string;
+            currency: string;
+            hold: number[];
+            /** Format: int64 */
+            holdCents: number;
+            id: string;
+            initials: string;
+            issues: number[];
+            logoUrl: string;
+            name: string;
+            notes: string;
+            /** Format: int64 */
+            paidCents: number;
+            /** Format: int64 */
+            termsDays: number;
+            website: string;
+        };
+        SponsorNotice: {
+            /** Format: int64 */
+            amountCents: number;
+            bookingId: string;
+            contactEmail: string;
+            contactName: string;
+            /** Format: int64 */
+            daysToIssue: number;
+            /** Format: date-time */
+            due?: string;
+            /** Format: int64 */
+            issue: number;
+            /** Format: date-time */
+            issueOn: string;
+            /** @enum {string} */
+            kind: "creative_late" | "payment_overdue" | "hold_lapsing" | "no_campaign";
+            listName: string;
+            slotId: string;
+            sponsor: string;
+        };
+        SponsorOverview: {
+            canManage: boolean;
+            currency: string;
+            helpers: string[];
+            library: components["schemas"]["SponsorItem"][];
+            notices: components["schemas"]["SponsorNotice"][];
+            past: components["schemas"]["SponsorIssueRow"][];
+            /** @enum {string} */
+            range: "around" | "upcoming" | "recent" | "all";
+            slotId: string;
+            slots: components["schemas"]["SponsorSlotItem"][];
+            tiles: components["schemas"]["SponsorTiles"];
+            upcoming: components["schemas"]["SponsorIssueRow"][];
+        };
+        SponsorPayment: {
+            /** Format: date-time */
+            due?: string;
+            note: string;
+            /** Format: int64 */
+            paidCents?: number;
+            /** Format: date-time */
+            paidOn?: string;
+            /** Format: date-time */
+            recordedAt?: string;
+            recordedBy?: string;
+            /** @enum {string} */
+            status: "unpaid" | "paid" | "overdue";
+        };
+        SponsorPropose: {
+            agent: string;
+            /** Format: date-time */
+            at: string;
+            id: string;
+            note: string;
+            /** Format: int64 */
+            priceCents: number;
+            sponsor?: components["schemas"]["SponsorRef"];
+        };
+        SponsorRef: {
+            id: string;
+            initials: string;
+            logoUrl?: string;
+            name: string;
+        };
+        SponsorReport: {
+            bookingId: string;
+            /** Format: double */
+            clickRate: number;
+            /** Format: double */
+            clickToOpen: number;
+            /** Format: int64 */
+            clicks: number;
+            creative: components["schemas"]["SponsorCreative"];
+            /** Format: int64 */
+            delivered: number;
+            final: boolean;
+            /** Format: date-time */
+            finalAt?: string;
+            /** Format: double */
+            humanOpenRate: number;
+            /** Format: int64 */
+            humanOpens: number;
+            initials: string;
+            /** Format: int64 */
+            issue: number;
+            /** Format: date-time */
+            issueOn: string;
+            label: string;
+            linkCampaign: string;
+            linkHost: string;
+            links: components["schemas"]["SponsorReportLink"][];
+            listName: string;
+            placement: string;
+            /** Format: date-time */
+            sentAt?: string;
+            slotName: string;
+            sponsor: string;
+            sponsorName: string;
+            /** Format: int64 */
+            uniqueClickers: number;
+            visibility?: string;
+        };
+        SponsorReportLink: {
+            /** Format: int64 */
+            clicks: number;
+            /** @enum {string} */
+            kind: "button" | "logo" | "link";
+            label: string;
+            /** Format: double */
+            share: number;
+        };
+        SponsorShareLink: {
+            /** Format: date-time */
+            createdAt: string;
+            createdBy: string;
+            every: boolean;
+            /** Format: date-time */
+            expiresAt?: string;
+            id: string;
+            /** Format: date-time */
+            lastViewedAt?: string;
+            url?: string;
+            /** Format: int64 */
+            views: number;
+        };
+        SponsorShareList: {
+            items: components["schemas"]["SponsorShareLink"][];
+        };
+        SponsorSlotItem: {
+            /** Format: int64 */
+            bookings: number;
+            /** Format: int64 */
+            creativeDays: number;
+            currency: string;
+            /** Format: int64 */
+            everyDays: number;
+            /** Format: int64 */
+            firstNumber: number;
+            /** Format: date-time */
+            firstOn: string;
+            id: string;
+            listId: string;
+            listName: string;
+            name: string;
+            placement: string;
+            /** Format: int64 */
+            priceCents: number;
+            selling: boolean;
+            weekday?: string;
+        };
+        SponsorTiles: {
+            avgClickIssues: number[];
+            /** Format: double */
+            avgClickRate?: number;
+            /** Format: int64 */
+            bookedAheadCents: number;
+            bookedAheadIssues: number[];
+            /** Format: int64 */
+            holdAheadCents: number;
+            /** Format: int64 */
+            income30dCents: number;
+            /** Format: int64 */
+            incomeIssues: number;
+            /** Format: int64 */
+            nextBooked: number;
+            /** Format: int64 */
+            nextCount: number;
+            /** Format: int64 */
+            nextFrom: number;
+            /** Format: int64 */
+            nextHold: number;
+            /** Format: int64 */
+            nextOpen: number;
+            /** Format: int64 */
+            nextTo: number;
+            /** Format: int64 */
+            paid30dCents: number;
+            /** Format: int64 */
+            unpaid30dCents: number;
+        };
+        SponsorUTMs: {
+            campaign?: string;
+            medium?: string;
+            source?: string;
+        };
+        SponsorsShareInput: {
+            /**
+             * Format: int64
+             * @description 0 keeps the link until it's revoked.
+             */
+            expiresInDays?: number;
         };
         SubscribePage: {
             description: string;
@@ -33277,6 +34118,45 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VisibilityPreviewContactList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-campaign-sponsor-block": {
+        parameters: {
+            query?: {
+                /** @description The block's layout */
+                layout?: "logo-left" | "image-top" | "text" | "";
+                /** @description Plain "Sponsored", or "Sponsored by" the sponsor */
+                label?: "plain" | "name" | "";
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The campaign's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorBlock"];
                 };
             };
             /** @description Error */
@@ -44741,6 +45621,840 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WorkspaceSidebar"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-sponsor-booking": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorBookingDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-sponsor-booking": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BookingInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorBookingDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "link-sponsor-booking-campaign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CampaignInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorBookingDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "cancel-sponsor-booking": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CancelInput"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "confirm-sponsor-proposal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorBookingDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-sponsor-creative": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SponsorCreative"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorBookingDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "upload-sponsor-image": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The booking's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": {
+                    /**
+                     * Format: binary
+                     * @description PNG, JPEG or GIF, up to 5 MB
+                     */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorImage"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "mark-sponsor-creative-ready": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorBookingDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "record-sponsor-payment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PaymentInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorBookingDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-sponsor-report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorReport"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-sponsor-shares": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorShareList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-sponsor-booking-share": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SponsorsShareInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorShareLink"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "revoke-sponsor-share": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-sponsor-slot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SlotInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorSlotItem"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-sponsor-slot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SlotInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorSlotItem"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-sponsor-slot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-sponsor-issue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The slot's id */
+                id: string;
+                /** @description The issue's number */
+                number: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorIssueDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "book-sponsor-issue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The slot's id */
+                id: string;
+                /** @description The issue's number */
+                number: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BookInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorBookingDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-sponsor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SponsorInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorItem"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-sponsor-overview": {
+        parameters: {
+            query?: {
+                /** @description A slot's id; the first slot when absent. */
+                slot?: string;
+                range?: "around" | "upcoming" | "recent" | "all";
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorOverview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-sponsor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SponsorInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorItem"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-sponsor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-sponsor-share": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SponsorsShareInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorShareLink"];
                 };
             };
             /** @description Error */

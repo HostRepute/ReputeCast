@@ -21,6 +21,9 @@ type SponsorCampaignRef struct {
 	Status string `json:"status"`
 	// ByHand: linked by a person rather than by list and date.
 	ByHand bool `json:"byHand"`
+	// Author made the campaign; At is when it goes out or went out.
+	Author string     `json:"author,omitempty"`
+	At     *time.Time `json:"at,omitempty"`
 }
 
 // SponsorCreative is a booking's creative.
@@ -182,7 +185,7 @@ type SponsorOverview struct {
 	Tiles    SponsorTiles      `json:"tiles"`
 	Slots    []SponsorSlotItem `json:"slots"`
 	SlotID   string            `json:"slotId"`
-	Range    string            `json:"range" enum:"around,upcoming,past"`
+	Range    string            `json:"range" enum:"around,upcoming,recent,all"`
 	Past     []SponsorIssueRow `json:"past"`
 	Upcoming []SponsorIssueRow `json:"upcoming"`
 	Library  []SponsorItem     `json:"library"`

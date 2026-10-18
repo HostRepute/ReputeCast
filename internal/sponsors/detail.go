@@ -62,11 +62,9 @@ func (s *Service) Booking(ctx context.Context, ws *store.Workspace, p *authz.Pri
 		out.Label = text(ctx, "block.labelBy", map[string]any{"sponsor": b.SponsorName})
 	}
 	if b.CampaignID != nil && b.CampaignName != "" {
-		out.Campaign = &SponsorCampaignRef{ID: b.CampaignID.String(), Name: b.CampaignName, Status: b.CampaignStatus, ByHand: b.CampaignByHand}
+		out.Campaign = s.campaignRef(ctx, ws, *b.CampaignID, b.CampaignByHand)
 	} else if cid := s.campaignOn(ctx, ws, slot.ListID, b.IssueOn); cid != nil {
-		if cp, err := s.Q.SponsorCampaignBrief(ctx, store.SponsorCampaignBriefParams{ID: *cid, WorkspaceID: ws.ID}); err == nil {
-			out.Campaign = &SponsorCampaignRef{ID: cp.ID.String(), Name: cp.Name, Status: cp.Status}
-		}
+		out.Campaign = s.campaignRef(ctx, ws, *cid, false)
 	}
 	if b.Status == "proposed" {
 		out.Proposal = proposalOf(b.ID, b.ProposedName, b.ProposedNote, b.CreatedAt, b.SponsorID, b.SponsorName, b.PriceCents)
@@ -124,9 +122,7 @@ func (s *Service) Issue(ctx context.Context, ws *store.Workspace, p *authz.Princ
 		return out, err
 	}
 	if cid := s.campaignOn(ctx, ws, slot.ListID, on); cid != nil {
-		if cp, err := s.Q.SponsorCampaignBrief(ctx, store.SponsorCampaignBriefParams{ID: *cid, WorkspaceID: ws.ID}); err == nil {
-			out.Campaign = &SponsorCampaignRef{ID: cp.ID.String(), Name: cp.Name, Status: cp.Status}
-		}
+		out.Campaign = s.campaignRef(ctx, ws, *cid, false)
 	}
 	props, err := s.Q.SponsorBookingProposals(ctx, store.SponsorBookingProposalsParams{SlotID: slot.ID, IssueNumber: int32(number)})
 	if err != nil {
