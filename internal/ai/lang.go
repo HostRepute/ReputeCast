@@ -40,6 +40,7 @@ var (
 	mNoImageInput         = msgs.M("problem.noImageInput")
 	mNoImageInputAlone    = msgs.M("problem.noImageInputAlone")
 	mDemoModel            = msgs.M("problem.demoModel")
+	mDemoLanguage         = msgs.M("problem.demoLanguage")
 	mPrivateAddress       = msgs.M("problem.privateAddress")
 	mPrivateHost          = msgs.M("problem.privateHost")
 	mBadAddress           = msgs.M("problem.badAddress")

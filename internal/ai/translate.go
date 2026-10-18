@@ -195,6 +195,10 @@ func (s *Service) Translate(ctx context.Context, ws *store.Workspace, p *authz.P
 	if t.Chars > maxEmailChars {
 		return AITranslation{}, invalid(ctx, "body.campaignId", mTooLong, map[string]any{"count": t.Chars, "max": maxEmailChars})
 	}
+	// The demo's sample connection answers from recordings in Spanish and German only.
+	if conn, err := s.load(ctx, s.Q, ws.ID); err == nil && conn != nil && conn.Demo && conn.connected() && demoPhrases[target] == nil {
+		return AITranslation{}, problem(ctx, http.StatusConflict, codeDemoModel, mDemoLanguage, map[string]any{"language": languages.NameOf(target)})
+	}
 	res, err := s.run(ctx, ws, p, task{feature: FeatureTranslate, action: target, targetKind: "campaign", targetID: &c.id, targetLabel: c.name, req: translatePrompt(t)})
 	if err != nil {
 		return AITranslation{}, err

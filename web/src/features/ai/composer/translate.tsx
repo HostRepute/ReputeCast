@@ -441,7 +441,8 @@ export function AITranslateView() {
               ) : null}
             </>
           ) : null}
-          {ca.assist.status ? <div className="ai-sug-f">{sentLine}</div> : null}
+          {/* An error card says what happened instead, as the other cards do. */}
+          {ca.assist.status && s.phase !== 'error' ? <div className="ai-sug-f">{sentLine}</div> : null}
         </section>
       </div>
     </div>

@@ -719,10 +719,17 @@ func TestAITranslationAndSummary(t *testing.T) {
 	c := env.Client()
 	c.SignInDemo("sofia@acme.io")
 	digest := campaignID(t, env, "Weekly Digest #143")
-	// Vietnamese: a workspace language #143 has no version of.
+	// The demo's sample model knows Spanish and German: another language says
+	// so instead of coming back in English.
 	if _, err := env.App.Pool.Exec(ctx, `INSERT INTO workspace_languages (workspace_id, code) SELECT id, 'fr' FROM workspaces WHERE slug = 'acme-newsletter' ON CONFLICT DO NOTHING`); err != nil {
 		t.Fatal(err)
 	}
+	p := c.Do(http.MethodPost, ws+"/ai/translate", map[string]any{"campaignId": digest, "language": "fr"}).MustStatus(t, 409).Problem(t)
+	if p["code"] != "ai_demo_model" || !strings.Contains(p["detail"].(string), "translates into Spanish and German only. To translate into French") {
+		t.Fatalf("French from the demo: %v", p)
+	}
+	// Spanish, with #143's Spanish version removed: a language it has no version of.
+	c.Do(http.MethodDelete, ws+"/campaigns/"+digest+"/languages/es", nil).MustStatus(t, 200)
 	var tr struct {
 		RequestID           string
 		SourceVersion       int
@@ -738,7 +745,7 @@ func TestAITranslationAndSummary(t *testing.T) {
 			}
 		}
 	}
-	c.Do(http.MethodPost, ws+"/ai/translate", map[string]any{"campaignId": digest, "language": "fr"}).MustStatus(t, 200).JSON(t, &tr)
+	c.Do(http.MethodPost, ws+"/ai/translate", map[string]any{"campaignId": digest, "language": "es"}).MustStatus(t, 200).JSON(t, &tr)
 	if tr.Status != "missing" || len(tr.Blocks) == 0 || tr.RequestID == "" {
 		t.Fatalf("translation: %+v", tr)
 	}
@@ -746,7 +753,7 @@ func TestAITranslationAndSummary(t *testing.T) {
 	for _, b := range tr.Blocks {
 		segs := []map[string]any{}
 		for _, s := range b.Segments {
-			segs = append(segs, map[string]any{"path": s.Path, "kind": s.Kind, "text": "FR " + s.Suggestion})
+			segs = append(segs, map[string]any{"path": s.Path, "kind": s.Kind, "text": "ES " + s.Suggestion})
 		}
 		blocks = append(blocks, map[string]any{"index": b.Index, "segments": segs})
 	}
@@ -756,8 +763,8 @@ func TestAITranslationAndSummary(t *testing.T) {
 		Version  int
 		Accepted int
 	}
-	c.Do(http.MethodPost, ws+"/campaigns/"+digest+"/languages/fr/ai-translation", map[string]any{"requestId": tr.RequestID, "sourceVersion": tr.SourceVersion,
-		"subject": "Déploiements programmés", "preheader": tr.PreheaderSuggestion, "blocks": blocks, "items": items}).MustStatus(t, 200).JSON(t, &acc)
+	c.Do(http.MethodPost, ws+"/campaigns/"+digest+"/languages/es/ai-translation", map[string]any{"requestId": tr.RequestID, "sourceVersion": tr.SourceVersion,
+		"subject": "Despliegues programados", "preheader": tr.PreheaderSuggestion, "blocks": blocks, "items": items}).MustStatus(t, 200).JSON(t, &acc)
 	if acc.Status != "up_to_date" || acc.Accepted != items {
 		t.Fatalf("accepted: %+v", acc)
 	}
@@ -768,22 +775,25 @@ func TestAITranslationAndSummary(t *testing.T) {
 		}
 	}
 	c.Do(http.MethodGet, ws+"/campaigns/"+digest+"/ai-translations", nil).MustStatus(t, 200).JSON(t, &marks)
-	if len(marks.Items) != 1 || marks.Items[0].Language != "fr" || marks.Items[0].Reviewed || marks.Items[0].Model != "Claude Sonnet 5.5" {
+	if len(marks.Items) != 1 || marks.Items[0].Language != "es" || marks.Items[0].Reviewed || marks.Items[0].Model != "Claude Sonnet 5.5" {
 		t.Fatalf("marks: %+v", marks)
 	}
 	var subj, mj, status string
-	if err := env.App.Pool.QueryRow(ctx, `SELECT subject, mjml, status FROM content_translations WHERE owner_id = $1 AND language = 'fr'`, digest).Scan(&subj, &mj, &status); err != nil {
+	if err := env.App.Pool.QueryRow(ctx, `SELECT subject, mjml, status FROM content_translations WHERE owner_id = $1 AND language = 'es'`, digest).Scan(&subj, &mj, &status); err != nil {
 		t.Fatal(err)
 	}
-	if subj != "Déploiements programmés" || status != "translated" || !strings.Contains(mj, "FR ") || !strings.Contains(mj, `{{ first_name | default: "there" }}`) {
+	if subj != "Despliegues programados" || status != "translated" || !strings.Contains(mj, "ES ") || !strings.Contains(mj, `{{ first_name | default: "there" }}`) {
 		t.Fatalf("version: %s %s", subj, status)
+	}
+	if !strings.Contains(mj, `text-transform:uppercase;color:#0F766E;padding-bottom:6px">Rincón beta</div>`) {
+		t.Fatal("the Beta corner lost its look")
 	}
 	// The same suggestion can't be accepted again after the source changed.
 	if _, err := env.App.Pool.Exec(ctx, `UPDATE campaigns SET version = version + 1 WHERE id = $1`, digest); err == nil {
-		c.Do(http.MethodPost, ws+"/campaigns/"+digest+"/languages/fr/ai-translation", map[string]any{"requestId": tr.RequestID, "sourceVersion": tr.SourceVersion,
+		c.Do(http.MethodPost, ws+"/campaigns/"+digest+"/languages/es/ai-translation", map[string]any{"requestId": tr.RequestID, "sourceVersion": tr.SourceVersion,
 			"blocks": blocks, "items": items}).MustStatus(t, 409)
 	}
-	c.Do(http.MethodPost, ws+"/campaigns/"+digest+"/languages/fr/ai-reviewed", nil).MustStatus(t, 204)
+	c.Do(http.MethodPost, ws+"/campaigns/"+digest+"/languages/es/ai-reviewed", nil).MustStatus(t, 204)
 	c.Do(http.MethodGet, ws+"/campaigns/"+digest+"/ai-translations", nil).MustStatus(t, 200).JSON(t, &marks)
 	if len(marks.Items) != 1 || !marks.Items[0].Reviewed {
 		t.Fatalf("reviewed: %+v", marks)

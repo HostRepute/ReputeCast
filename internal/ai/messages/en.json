@@ -21,6 +21,7 @@
   "problem.noImageInput": { "message": "Alt text needs a model that reads images. {helpers} can connect one that does.", "note": "helpers: names joined as 'A or B'" },
   "problem.noImageInputAlone": "Alt text needs a model that reads images. Someone with integrations:manage can connect one that does.",
   "problem.demoModel": "The demo's sample model only answers in development. Connect your own model in Settings › Integrations · AI assistant.",
+  "problem.demoLanguage": { "message": "The demo's sample model translates into Spanish and German only. To translate into {language}, connect your own model in Settings › Integrations · AI assistant.", "note": "the demo connection was asked for a language its recordings lack; language: Vietnamese" },
   "problem.privateAddress": { "message": "{host} resolves to {ip}, a private address. An instance admin can allow private addresses.", "note": "host: ollama.acme.internal; ip: 10.0.4.12" },
   "problem.privateHost": { "message": "{host} is a private address. An instance admin can allow private addresses.", "note": "host: 10.0.4.12, localhost" },
   "problem.badAddress": { "message": "Use the server's full address, like {example}.", "note": "example: http://ollama.acme.internal:11434/v1" },
