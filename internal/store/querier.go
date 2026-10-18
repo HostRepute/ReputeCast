@@ -1672,7 +1672,11 @@ type Querier interface {
 	ResumeAutomation(ctx context.Context, arg ResumeAutomationParams) error
 	RetireAutomationVersion(ctx context.Context, arg RetireAutomationVersionParams) error
 	RevenueActiveSubscriptions(ctx context.Context, arg RevenueActiveSubscriptionsParams) (int64, error)
-	// The latest paid-member event of each kind the overview lists.
+	// The latest paid-member event of each kind the overview lists. A paid
+	// start is "subscribed" or a completed checkout without a trial (trials
+	// have their own event), whichever came last. With it: what the line says
+	// about the subscription (its discount, when access ends, who canceled it
+	// at once) and the retention offer the member saw on the cancel page.
 	RevenueActivity(ctx context.Context, arg RevenueActivityParams) ([]RevenueActivityRow, error)
 	RevenueAttributionSettings(ctx context.Context, workspaceID uuid.UUID) (RevenueAttributionSettingsRow, error)
 	// Paying subscriptions by tier, period and discount, today.

@@ -38392,12 +38392,18 @@
       "RevenueActivity": {
         "additionalProperties": false,
         "properties": {
+          "accessPaused": {
+            "type": "boolean"
+          },
           "amountCents": {
             "format": "int64",
             "type": "integer"
           },
           "at": {
             "format": "date-time",
+            "type": "string"
+          },
+          "canceledBy": {
             "type": "string"
           },
           "contactId": {
@@ -38410,13 +38416,49 @@
             "additionalProperties": {},
             "type": "object"
           },
+          "endsAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "firstName": {
+            "type": "string"
+          },
           "kind": {
+            "enum": [
+              "payment_failed",
+              "refunded",
+              "cancel_scheduled",
+              "offer_applied",
+              "gift_redeemed",
+              "subscribed"
+            ],
             "type": "string"
           },
           "name": {
             "type": "string"
           },
+          "offerCents": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "offerEndsAt": {
+            "format": "date-time",
+            "type": "string"
+          },
           "period": {
+            "type": "string"
+          },
+          "priceCents": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "sawOffer": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "sourceKind": {
             "type": "string"
           },
           "tier": {
@@ -38428,10 +38470,15 @@
           "at",
           "contactId",
           "name",
+          "firstName",
           "tier",
           "period",
           "currency",
-          "data"
+          "data",
+          "sourceKind",
+          "source",
+          "priceCents",
+          "accessPaused"
         ],
         "type": "object"
       },

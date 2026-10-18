@@ -270,15 +270,30 @@ ORDER BY e.email;
 SELECT coalesce((SELECT gift_page_on FROM earn_settings WHERE workspace_id = @workspace_id), false)::boolean;
 
 -- name: RevenueActivity :many
--- The latest paid-member event of each kind the overview lists.
-SELECT DISTINCT ON (e.kind) e.id, e.kind, e.occurred_at, e.amount_cents, e.currency, e.data, e.contact_id,
-       c.email, c.first_name, c.last_name, coalesce(t.name, '')::text AS tier, coalesce(s.period, '')::text AS period
+-- The latest paid-member event of each kind the overview lists. A paid
+-- start is "subscribed" or a completed checkout without a trial (trials
+-- have their own event), whichever came last. With it: what the line says
+-- about the subscription (its discount, when access ends, who canceled it
+-- at once) and the retention offer the member saw on the cancel page.
+SELECT DISTINCT ON (grp) grp::text AS grp, e.id, e.kind, e.occurred_at, e.amount_cents, e.currency, e.data, e.contact_id,
+       c.email, c.first_name, c.last_name, coalesce(t.name, '')::text AS tier, coalesce(s.period, '')::text AS period,
+       coalesce(s.source_kind, '')::text AS source_kind, coalesce(s.source_label, '')::text AS source_label,
+       coalesce(s.amount_cents, 0)::bigint AS sub_amount_cents, s.discount, s.current_period_end, s.cancel_at, s.ended_at,
+       coalesce(s.access_paused, false)::boolean AS access_paused,
+       (CASE WHEN s.canceled_at IS NOT NULL AND s.ended_at IS NOT NULL AND s.ended_at - s.canceled_at < interval '1 hour'
+             THEN coalesce(u.name, '') ELSE '' END)::text AS canceled_at_once_by,
+       coalesce((SELECT o.name FROM earn_cancel_visits v JOIN earn_offers o ON o.id = v.offer_id
+                 WHERE v.contact_id = e.contact_id AND v.mode = 'live' AND v.visited_at <= e.occurred_at + interval '1 hour'
+                 ORDER BY v.visited_at DESC LIMIT 1), '')::text AS saw_offer
 FROM paid_events e
+CROSS JOIN LATERAL (SELECT CASE WHEN e.kind IN ('subscribed', 'checkout_completed') THEN 'subscribed' ELSE e.kind END AS grp) g
 JOIN contacts c ON c.id = e.contact_id
 LEFT JOIN paid_subscriptions s ON s.id = e.subscription_id
 LEFT JOIN earn_tiers t ON t.id = s.tier_id
-WHERE e.workspace_id = @workspace_id AND e.mode = 'live' AND e.kind = ANY(@kinds::text[]) AND c.erased_at IS NULL
-ORDER BY e.kind, e.occurred_at DESC;
+LEFT JOIN users u ON u.id = s.canceled_by
+WHERE e.workspace_id = @workspace_id AND e.mode = 'live' AND c.erased_at IS NULL
+  AND (e.kind = ANY(@kinds::text[]) OR (e.kind = 'checkout_completed' AND s.trial_end IS NULL))
+ORDER BY grp, e.occurred_at DESC;
 
 -- name: RevenueTiers :many
 -- The workspace's tiers by access rank (a higher tier includes the lower).

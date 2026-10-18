@@ -186,6 +186,9 @@ func (s *Service) Campaign(ctx context.Context, ws *store.Workspace, p *authz.Pr
 			out.HasUpgradeLinks = true
 		}
 	}
+	// Clicks on upgrade links mean the email had them, whatever its links
+	// table says (an email sent before link tracking, or edited since).
+	out.HasUpgradeLinks = out.HasUpgradeLinks || out.UpgradeClicks > 0 || out.Checkouts > 0
 	if !out.HasUpgradeLinks && strings.Contains(c.Mjml, "upgrade") {
 		out.HasUpgradeLinks = strings.Contains(c.Mjml, "/upgrade") || strings.Contains(c.Mjml, "upgrade_url")
 	}

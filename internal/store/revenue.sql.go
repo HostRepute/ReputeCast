@@ -31,14 +31,25 @@ func (q *Queries) RevenueActiveSubscriptions(ctx context.Context, arg RevenueAct
 }
 
 const revenueActivity = `-- name: RevenueActivity :many
-SELECT DISTINCT ON (e.kind) e.id, e.kind, e.occurred_at, e.amount_cents, e.currency, e.data, e.contact_id,
-       c.email, c.first_name, c.last_name, coalesce(t.name, '')::text AS tier, coalesce(s.period, '')::text AS period
+SELECT DISTINCT ON (grp) grp::text AS grp, e.id, e.kind, e.occurred_at, e.amount_cents, e.currency, e.data, e.contact_id,
+       c.email, c.first_name, c.last_name, coalesce(t.name, '')::text AS tier, coalesce(s.period, '')::text AS period,
+       coalesce(s.source_kind, '')::text AS source_kind, coalesce(s.source_label, '')::text AS source_label,
+       coalesce(s.amount_cents, 0)::bigint AS sub_amount_cents, s.discount, s.current_period_end, s.cancel_at, s.ended_at,
+       coalesce(s.access_paused, false)::boolean AS access_paused,
+       (CASE WHEN s.canceled_at IS NOT NULL AND s.ended_at IS NOT NULL AND s.ended_at - s.canceled_at < interval '1 hour'
+             THEN coalesce(u.name, '') ELSE '' END)::text AS canceled_at_once_by,
+       coalesce((SELECT o.name FROM earn_cancel_visits v JOIN earn_offers o ON o.id = v.offer_id
+                 WHERE v.contact_id = e.contact_id AND v.mode = 'live' AND v.visited_at <= e.occurred_at + interval '1 hour'
+                 ORDER BY v.visited_at DESC LIMIT 1), '')::text AS saw_offer
 FROM paid_events e
+CROSS JOIN LATERAL (SELECT CASE WHEN e.kind IN ('subscribed', 'checkout_completed') THEN 'subscribed' ELSE e.kind END AS grp) g
 JOIN contacts c ON c.id = e.contact_id
 LEFT JOIN paid_subscriptions s ON s.id = e.subscription_id
 LEFT JOIN earn_tiers t ON t.id = s.tier_id
-WHERE e.workspace_id = $1 AND e.mode = 'live' AND e.kind = ANY($2::text[]) AND c.erased_at IS NULL
-ORDER BY e.kind, e.occurred_at DESC
+LEFT JOIN users u ON u.id = s.canceled_by
+WHERE e.workspace_id = $1 AND e.mode = 'live' AND c.erased_at IS NULL
+  AND (e.kind = ANY($2::text[]) OR (e.kind = 'checkout_completed' AND s.trial_end IS NULL))
+ORDER BY grp, e.occurred_at DESC
 `
 
 type RevenueActivityParams struct {
@@ -47,21 +58,36 @@ type RevenueActivityParams struct {
 }
 
 type RevenueActivityRow struct {
-	ID          uuid.UUID       `json:"id"`
-	Kind        string          `json:"kind"`
-	OccurredAt  time.Time       `json:"occurredAt"`
-	AmountCents *int64          `json:"amountCents"`
-	Currency    string          `json:"currency"`
-	Data        json.RawMessage `json:"data"`
-	ContactID   uuid.UUID       `json:"contactId"`
-	Email       string          `json:"email"`
-	FirstName   string          `json:"firstName"`
-	LastName    string          `json:"lastName"`
-	Tier        string          `json:"tier"`
-	Period      string          `json:"period"`
+	Grp              string          `json:"grp"`
+	ID               uuid.UUID       `json:"id"`
+	Kind             string          `json:"kind"`
+	OccurredAt       time.Time       `json:"occurredAt"`
+	AmountCents      *int64          `json:"amountCents"`
+	Currency         string          `json:"currency"`
+	Data             json.RawMessage `json:"data"`
+	ContactID        uuid.UUID       `json:"contactId"`
+	Email            string          `json:"email"`
+	FirstName        string          `json:"firstName"`
+	LastName         string          `json:"lastName"`
+	Tier             string          `json:"tier"`
+	Period           string          `json:"period"`
+	SourceKind       string          `json:"sourceKind"`
+	SourceLabel      string          `json:"sourceLabel"`
+	SubAmountCents   int64           `json:"subAmountCents"`
+	Discount         json.RawMessage `json:"discount"`
+	CurrentPeriodEnd *time.Time      `json:"currentPeriodEnd"`
+	CancelAt         *time.Time      `json:"cancelAt"`
+	EndedAt          *time.Time      `json:"endedAt"`
+	AccessPaused     bool            `json:"accessPaused"`
+	CanceledAtOnceBy string          `json:"canceledAtOnceBy"`
+	SawOffer         string          `json:"sawOffer"`
 }
 
-// The latest paid-member event of each kind the overview lists.
+// The latest paid-member event of each kind the overview lists. A paid
+// start is "subscribed" or a completed checkout without a trial (trials
+// have their own event), whichever came last. With it: what the line says
+// about the subscription (its discount, when access ends, who canceled it
+// at once) and the retention offer the member saw on the cancel page.
 func (q *Queries) RevenueActivity(ctx context.Context, arg RevenueActivityParams) ([]RevenueActivityRow, error) {
 	rows, err := q.db.Query(ctx, revenueActivity, arg.WorkspaceID, arg.Kinds)
 	if err != nil {
@@ -72,6 +98,7 @@ func (q *Queries) RevenueActivity(ctx context.Context, arg RevenueActivityParams
 	for rows.Next() {
 		var i RevenueActivityRow
 		if err := rows.Scan(
+			&i.Grp,
 			&i.ID,
 			&i.Kind,
 			&i.OccurredAt,
@@ -84,6 +111,16 @@ func (q *Queries) RevenueActivity(ctx context.Context, arg RevenueActivityParams
 			&i.LastName,
 			&i.Tier,
 			&i.Period,
+			&i.SourceKind,
+			&i.SourceLabel,
+			&i.SubAmountCents,
+			&i.Discount,
+			&i.CurrentPeriodEnd,
+			&i.CancelAt,
+			&i.EndedAt,
+			&i.AccessPaused,
+			&i.CanceledAtOnceBy,
+			&i.SawOffer,
 		); err != nil {
 			return nil, err
 		}

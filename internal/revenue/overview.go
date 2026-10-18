@@ -672,16 +672,20 @@ func (s *Service) needs(ctx context.Context, ws *store.Workspace, out *RevenueOv
 		t := time.Date(d.Year(), d.Month(), d.Day(), 12, 0, 0, 0, loc)
 		return &t
 	}
+	// Creatives due before the issue goes out come first, then the issues
+	// sent and not yet paid for.
+	var unpaid []RevenueNeed
 	for _, b := range books {
 		if b.Status == "booked" && b.CreativeStatus == "waiting" && b.CreativeDue != nil && !b.CreativeDue.After(civilToday.AddDate(0, 0, 7)) && !b.IssueOn.Before(civilToday) {
 			out.Needs = append(out.Needs, RevenueNeed{Kind: "creative", Issue: int(b.IssueNumber), List: b.ListName, Sponsor: b.Sponsor, Due: noonOf(b.CreativeDue),
 				Overdue: b.CreativeDue.Before(civilToday), TargetID: b.ID.String()})
 		}
 		if b.PaymentStatus == "unpaid" && b.IssueOn.Before(civilToday) {
-			out.Needs = append(out.Needs, RevenueNeed{Kind: "sponsor_payment", Issue: int(b.IssueNumber), List: b.ListName, Sponsor: b.Sponsor, Due: noonOf(b.PaymentDue),
+			unpaid = append(unpaid, RevenueNeed{Kind: "sponsor_payment", Issue: int(b.IssueNumber), List: b.ListName, Sponsor: b.Sponsor, Due: noonOf(b.PaymentDue),
 				Overdue: b.PaymentDue != nil && b.PaymentDue.Before(civilToday), TargetID: b.ID.String()})
 		}
 	}
+	out.Needs = append(out.Needs, unpaid...)
 	giftsOn, err := s.Q.RevenueGiftPageOn(ctx, ws.ID)
 	if err != nil {
 		return err
@@ -721,8 +725,36 @@ func (s *Service) activity(ctx context.Context, ws *store.Workspace, out *Revenu
 		if name == "" {
 			name = r.Email
 		}
-		out.Activity = append(out.Activity, RevenueActivity{Kind: r.Kind, At: r.OccurredAt, ContactID: r.ContactID.String(), Name: name, Tier: r.Tier, Period: r.Period,
-			AmountCents: r.AmountCents, Currency: r.Currency, Data: d})
+		first := strings.TrimSpace(r.FirstName)
+		if first == "" {
+			first = name
+		}
+		a := RevenueActivity{Kind: r.Grp, At: r.OccurredAt, ContactID: r.ContactID.String(), Name: name, FirstName: first, Tier: r.Tier, Period: r.Period,
+			AmountCents: r.AmountCents, Currency: r.Currency, Data: d, SourceKind: r.SourceKind, Source: r.SourceLabel, PriceCents: r.SubAmountCents,
+			AccessPaused: r.AccessPaused, CanceledBy: r.CanceledAtOnceBy, SawOffer: r.SawOffer}
+		var disc struct {
+			AmountCents *int64 `json:"amountCents"`
+			EndsAt      string `json:"endsAt"`
+		}
+		if len(r.Discount) > 0 && json.Unmarshal(r.Discount, &disc) == nil && disc.AmountCents != nil {
+			a.OfferCents = disc.AmountCents
+			if at, err := time.Parse(time.RFC3339, disc.EndsAt); err == nil {
+				a.OfferEndsAt = &at
+			}
+		}
+		switch r.Grp {
+		case "gift_redeemed":
+			a.EndsAt = r.CurrentPeriodEnd
+		case "subscribed":
+			if a.AmountCents == nil {
+				first := r.SubAmountCents
+				if a.OfferCents != nil {
+					first = *a.OfferCents
+				}
+				a.AmountCents = &first
+			}
+		}
+		out.Activity = append(out.Activity, a)
 	}
 	return nil
 }

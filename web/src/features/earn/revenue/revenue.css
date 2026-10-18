@@ -1,0 +1,368 @@
+/*
+ * Earn › Overview once Earn is live (EarnOverview, EarnStates): the boards'
+ * components, value for value, prefixed `er-` so they never collide with
+ * the shared vocabulary in app.css.
+ */
+@layer components {
+  .er-tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+  }
+  .er-stat {
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .er-stat .v {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.25;
+    margin-top: 2px;
+  }
+  .er-stat .s {
+    font-size: 12px;
+    color: var(--ink-3);
+    font-weight: 500;
+  }
+  @media (max-width: 767px) {
+    .er-tiles {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  .er-k {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+  /* ▲ $418 (+4.9%) */
+  .er-mv {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .er-mv.up {
+    color: var(--ok-fg);
+  }
+  .er-mv.dn {
+    color: var(--bad-fg);
+  }
+  /* The (i) beside a title: its definition in a tooltip. */
+  .er-tip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    margin: -3px 0;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: none;
+    color: var(--ink-3);
+    cursor: help;
+    flex: none;
+    vertical-align: middle;
+  }
+  .er-tip:hover,
+  .er-tip:focus-visible {
+    background: var(--line-2);
+    color: var(--ink);
+  }
+  .er-tipbox {
+    background: var(--ink);
+    color: #fff;
+    font-size: 12px;
+    line-height: 1.45;
+    padding: 8px 11px;
+    border-radius: 7px;
+    max-width: 340px;
+    box-shadow: 0 12px 30px rgba(11, 18, 32, 0.25);
+    z-index: 80;
+  }
+
+  .er-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: stretch;
+  }
+  .er-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(480px, 100%), 1fr));
+    gap: 16px;
+    align-items: start;
+  }
+  .er-col {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+  }
+  .er-sec {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--line-2);
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .er-head {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .er-pad {
+    padding: 16px 18px;
+  }
+  .er-big {
+    font-size: 30px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+  }
+  .er-num {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
+  }
+  .er-lnk {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+    font-size: 13px;
+  }
+  .er-legend {
+    display: flex;
+    gap: 8px 16px;
+    flex-wrap: wrap;
+    font-size: 12px;
+    color: var(--ink-2);
+    align-items: center;
+  }
+  .er-legend > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .er-sw {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    flex: none;
+  }
+  .er-mnum {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--ink);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    flex: none;
+  }
+  .er-stack {
+    display: flex;
+    height: 10px;
+    border-radius: 5px;
+    overflow: hidden;
+    gap: 2px;
+  }
+  .er-bar {
+    height: 6px;
+    border-radius: 3px;
+    background: var(--line-2);
+    overflow: hidden;
+  }
+  .er-bar i {
+    display: block;
+    height: 100%;
+    border-radius: 3px;
+    background: var(--accent);
+  }
+
+  /* Needs you. */
+  .er-need {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 12px 18px;
+    border-top: 1px solid var(--line-2);
+  }
+  .er-need:first-child {
+    border-top: 0;
+  }
+  .er-need .ic {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+  }
+  .er-need .tx {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 13.5px;
+  }
+  .er-need .tx b {
+    font-weight: 600;
+  }
+
+  /* A line of a card ("October Product Update … 23 · $667"). */
+  .er-vline {
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-top: 1px solid var(--line-2);
+    font-size: 13px;
+  }
+  .er-vline:first-child {
+    border-top: 0;
+  }
+
+  /* Phones: a row per table line. */
+  .er-lrow {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 5px;
+    padding: 12px 16px;
+    border-top: 1px solid var(--line-2);
+    color: var(--ink);
+  }
+  .er-lrow .lt {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .er-tline {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .er-tline b {
+    font-weight: 600;
+  }
+  .er-tbl tr.total td {
+    background: #fbfbfc;
+  }
+
+  /* Recent activity. */
+  .er-ev {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    padding: 12px 0;
+    border-top: 1px solid var(--line-2);
+  }
+  .er-ev:first-child {
+    border-top: 0;
+  }
+  .er-ev .ic {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+  }
+  .er-ev .tx {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    flex: 1;
+  }
+  .er-ev .tm {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--ink-3);
+    flex: none;
+    padding-top: 5px;
+  }
+
+  /* Too early: the chart's place. */
+  .er-early {
+    border: 1px dashed var(--line-hover);
+    border-radius: 10px;
+    padding: 34px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 8px;
+    background: #fbfbfc;
+  }
+
+  /* A card that failed. */
+  .er-failed {
+    padding: 28px 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 8px;
+  }
+
+  /* The invitation before a payment provider. */
+  .er-invite {
+    padding: 18px 22px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 14px 24px;
+    border-color: var(--accent-line);
+    background: var(--accent-tint);
+  }
+  .er-invite .ico {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: #fff;
+    border: 1px solid var(--accent-line);
+    color: var(--accent);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+  }
+
+  /* Charts: a variant per width. */
+  .er-wide {
+    display: block;
+  }
+  .er-narrow {
+    display: none;
+  }
+  @media (max-width: 767px) {
+    .er-wide {
+      display: none;
+    }
+    .er-narrow {
+      display: block;
+    }
+  }
+}

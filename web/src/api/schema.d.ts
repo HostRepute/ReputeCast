@@ -21370,18 +21370,33 @@ export interface components {
             source?: string;
         };
         RevenueActivity: {
+            accessPaused: boolean;
             /** Format: int64 */
             amountCents?: number;
             /** Format: date-time */
             at: string;
+            canceledBy?: string;
             contactId: string;
             currency: string;
             data: {
                 [key: string]: unknown;
             };
-            kind: string;
+            /** Format: date-time */
+            endsAt?: string;
+            firstName: string;
+            /** @enum {string} */
+            kind: "payment_failed" | "refunded" | "cancel_scheduled" | "offer_applied" | "gift_redeemed" | "subscribed";
             name: string;
+            /** Format: int64 */
+            offerCents?: number;
+            /** Format: date-time */
+            offerEndsAt?: string;
             period: string;
+            /** Format: int64 */
+            priceCents: number;
+            sawOffer?: string;
+            source: string;
+            sourceKind: string;
             tier: string;
         };
         RevenueCancellations: {

@@ -29,6 +29,11 @@ type earnMore struct {
 	slot               uuid.UUID
 	northwind, contoso uuid.UUID
 	bookings           map[int]uuid.UUID
+
+	// Offers and the cancel page.
+	insider                uuid.UUID
+	fall26, stay, referral uuid.UUID
+	keptAt                 []keptOffer
 }
 
 func seedEarnMoreImpl(ctx context.Context, s *Seeder) error {
@@ -44,7 +49,7 @@ func seedEarnMoreImpl(ctx context.Context, s *Seeder) error {
 			*p = &id
 		}
 	}
-	for _, step := range []func(context.Context) error{e.sponsors, e.bookingsSeed, e.sponsorAudit} {
+	for _, step := range []func(context.Context) error{e.sponsors, e.bookingsSeed, e.sponsorAudit, e.offersSeed, e.cancelVisitsSeed, e.ledgerSeed, e.sourcesSeed, e.checkoutsSeed, e.conversionsSeed} {
 		if err := step(ctx); err != nil {
 			return err
 		}

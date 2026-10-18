@@ -296,15 +296,37 @@ type RevenueNeed struct {
 
 // RevenueActivity is a recent paid-member event.
 type RevenueActivity struct {
-	Kind        string         `json:"kind"`
-	At          time.Time      `json:"at"`
-	ContactID   string         `json:"contactId"`
-	Name        string         `json:"name"`
-	Tier        string         `json:"tier"`
-	Period      string         `json:"period"`
+	Kind      string    `json:"kind" enum:"payment_failed,refunded,cancel_scheduled,offer_applied,gift_redeemed,subscribed"`
+	At        time.Time `json:"at"`
+	ContactID string    `json:"contactId"`
+	Name      string    `json:"name"`
+	// FirstName, or the name when the contact has none.
+	FirstName string `json:"firstName"`
+	Tier      string `json:"tier"`
+	Period    string `json:"period"`
+	// The event's amount; a paid start's is its first payment.
 	AmountCents *int64         `json:"amountCents,omitempty"`
 	Currency    string         `json:"currency"`
 	Data        map[string]any `json:"data"`
+	// SourceKind and Source say where the paid member came from
+	// ("campaign", "Weekly Digest #141").
+	SourceKind string `json:"sourceKind"`
+	Source     string `json:"source"`
+	// PriceCents is the recurring price before discounts; with an offer the
+	// member pays OfferCents until OfferEndsAt.
+	PriceCents  int64      `json:"priceCents"`
+	OfferCents  *int64     `json:"offerCents,omitempty"`
+	OfferEndsAt *time.Time `json:"offerEndsAt,omitempty"`
+	// EndsAt is when a gift's access ends.
+	EndsAt *time.Time `json:"endsAt,omitempty"`
+	// AccessPaused: a past due member whose access is paused while the
+	// provider retries.
+	AccessPaused bool `json:"accessPaused"`
+	// CanceledBy is the person who canceled the subscription at once (a
+	// refund's line).
+	CanceledBy string `json:"canceledBy,omitempty"`
+	// SawOffer is the retention offer shown on the member's cancel page.
+	SawOffer string `json:"sawOffer,omitempty"`
 }
 
 // EarnCard is the Earn card of the workspace Overview.
