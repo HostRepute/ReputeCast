@@ -41,6 +41,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/mailer"
 	"github.com/hostrepute/reputecast/internal/media"
 	"github.com/hostrepute/reputecast/internal/netguard"
+	"github.com/hostrepute/reputecast/internal/referrals"
 	"github.com/hostrepute/reputecast/internal/secrets"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -126,6 +127,9 @@ type Service struct {
 	Media *media.Service
 	// Jobs enqueues River jobs (a request to send now).
 	Jobs func() Inserter
+	// Referrals reads the referral program for Grow's overview (nil: the
+	// overview leaves out the milestones' problems).
+	Referrals func() *referrals.Service
 }
 
 func (s *Service) now() time.Time {

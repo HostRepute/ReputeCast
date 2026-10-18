@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"sync"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -38,7 +39,8 @@ func (a *App) referrals() *referrals.Service {
 		// Milestone emails go out on the Automations stream through the
 		// sending engine, outside any flow.
 		Emails: func() referrals.MilestoneSender { return milestoneMailer{a: a} },
-		// Stripe coupons wait for phase 6 (Earn): no coupon service yet.
+		// Stripe coupons: Earn's Stripe connection (M26); offers of the
+		// kind "Referral reward" come with Earn's offers (M27).
 		Coupons:      referralCoupons(a),
 		AllowPrivate: func() bool { return a.Cfg != nil && a.Cfg.Webhooks.AllowPrivateNetworks },
 		Jobs: func() referrals.Inserter {
@@ -53,9 +55,46 @@ func (a *App) referrals() *referrals.Service {
 	return s
 }
 
-// referralCoupons is the Stripe coupon seam of rewards; phase 6 (Earn)
-// replaces it from its wire file. Nil shows "Connect Stripe".
-var referralCoupons = func(*App) func() referrals.Coupons { return nil }
+// referralCoupons is the Stripe coupon seam of rewards. By default it reads
+// Earn's Stripe connection (M26) and has no offers to issue yet; Earn's
+// offers (M27) replace it from their wire file's init. A nil seam shows
+// "Connect Stripe".
+var referralCoupons = func(a *App) func() referrals.Coupons {
+	return func() referrals.Coupons { return earnCoupons{a: a} }
+}
+
+// earnCoupons is the coupon reward's view of Earn before its offers exist:
+// whether Stripe is connected, no "Referral reward" offers, nothing to
+// issue (rewards wait and retry).
+type earnCoupons struct{ a *App }
+
+// Status implements referrals.Coupons: a connected Stripe account whose key
+// still works.
+func (c earnCoupons) Status(ctx context.Context, ws *store.Workspace) (referrals.CouponStatus, error) {
+	var name string
+	err := c.a.Pool.QueryRow(ctx, `SELECT account_name FROM payment_connections
+		WHERE workspace_id = $1 AND status = 'connected' AND key_rejected_at IS NULL ORDER BY (mode = 'live') DESC LIMIT 1`, ws.ID).Scan(&name)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return referrals.CouponStatus{}, nil
+	}
+	if err != nil {
+		return referrals.CouponStatus{}, err
+	}
+	return referrals.CouponStatus{Connected: true, Account: name}, nil
+}
+
+// Offers implements referrals.Coupons: none until Earn's offers.
+func (earnCoupons) Offers(context.Context, *store.Workspace) ([]referrals.CouponOffer, error) {
+	return nil, nil
+}
+
+// errNoCouponOffers: a coupon can't be issued without Earn's offers.
+var errNoCouponOffers = errors.New("no Referral reward offer can issue a coupon yet: offers come with Earn's offers")
+
+// Issue implements referrals.Coupons: the reward waits and tries again.
+func (earnCoupons) Issue(context.Context, *store.Workspace, string, uuid.UUID, int) (referrals.IssuedCoupon, error) {
+	return referrals.IssuedCoupon{}, errNoCouponOffers
+}
 
 // growPages are a workspace's public page links (its custom domain's when
 // verified).

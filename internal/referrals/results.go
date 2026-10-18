@@ -310,7 +310,8 @@ func (s *Service) overTime(ctx context.Context, programID uuid.UUID, from, now t
 		for d := w; d.Before(w.AddDate(0, 0, 7)); d = d.AddDate(0, 0, 1) {
 			b.Confirmed += perDay[d.Format("2006-01-02")]
 		}
-		if b.End.After(end) {
+		// The week with today in it is still going.
+		if !b.End.Before(end) {
 			b.End, b.Partial = end, true
 			b.Days = int(end.Sub(w).Hours()/24) + 1
 		}

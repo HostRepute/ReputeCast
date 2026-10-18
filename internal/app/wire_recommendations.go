@@ -51,6 +51,7 @@ func (a *App) recommendations() *recommendations.Service {
 			}
 			return a.Jobs
 		},
+		Referrals: a.referrals,
 	}
 	recommendationsServices[a] = s
 	return s
@@ -62,6 +63,7 @@ const partnerCodePath = "/p/{code:[2-9A-HJKMNP-Za-hjkmnp-z]{4}-[2-9A-HJKMNP-Za-h
 func init() {
 	apiRegistrars = append(apiRegistrars, func(a *App, h huma.API) {
 		recommendations.Register(h, a.recommendations())
+		recommendations.RegisterOverview(h, a.recommendations())
 	})
 	publicRegistrars = append(publicRegistrars, func(a *App, r chi.Router) {
 		a.recommendations().Routes(r)

@@ -5954,6 +5954,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/grow/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Grow's overview: the last 30 days' numbers, what needs a person, and new subscribers per week by source */
+        get: operations["get-grow-overview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/grow/partner-codes": {
         parameters: {
             query?: never;
@@ -17321,6 +17338,81 @@ export interface components {
             export: string[];
             review: string[];
         };
+        GrowNamedCount: {
+            /** Format: int64 */
+            count: number;
+            name: string;
+        };
+        GrowNeed: {
+            /** Format: date-time */
+            at: string;
+            /** Format: int64 */
+            codesLeft: number;
+            /** Format: int64 */
+            count: number;
+            expires: string[];
+            /** @enum {string} */
+            kind: "held" | "partner_invalid" | "partner_unreachable" | "unclaimed" | "codes_out" | "codes_low" | "webhook_failing" | "to_fulfill" | "stripe_missing" | "file_missing";
+            /** Format: int64 */
+            milestone: number;
+            partner: string;
+            people: components["schemas"]["GrowNamedCount"][];
+            /** @enum {string} */
+            reason: "signature_rejected" | "ended" | "unknown_link" | "";
+            reward: string;
+            /** Format: date-time */
+            since?: string;
+        };
+        GrowOverview: {
+            /**
+             * Format: date-time
+             * @description The period's first day (workspace time zone)
+             */
+            from: string;
+            helpers: components["schemas"]["GrowHelperSets"];
+            listId: string;
+            listName: string;
+            needsYou: components["schemas"]["GrowNeed"][];
+            programId: string;
+            /** Format: date-time */
+            programStart?: string;
+            /** @enum {string} */
+            programStatus: "on" | "off" | "";
+            /** Format: int64 */
+            recommendedBy: number;
+            /** Format: int64 */
+            recommends: number;
+            tiles: components["schemas"]["GrowOverviewTiles"];
+            /**
+             * Format: date-time
+             * @description Today
+             */
+            to: string;
+            /** Format: date-time */
+            updatedAt: string;
+            weeks: components["schemas"]["GrowWeek"][];
+        };
+        GrowOverviewTiles: {
+            /** Format: int64 */
+            confirmed: number;
+            /**
+             * Format: double
+             * @description Percent
+             */
+            conversion: number;
+            /** Format: int64 */
+            fromGrow: number;
+            /** Format: int64 */
+            newSubscribers: number;
+            /** Format: int64 */
+            partnerSignups: number;
+            partners: string[];
+            rewards: components["schemas"]["GrowRewardCount"][];
+            /** Format: int64 */
+            rewardsSent: number;
+            /** Format: int64 */
+            visits: number;
+        };
         GrowPreviewContact: {
             /** Format: int64 */
             counted: number;
@@ -17336,6 +17428,32 @@ export interface components {
             programId: string;
             /** @enum {string} */
             status: "on" | "off" | "";
+        };
+        GrowRewardCount: {
+            /** Format: int64 */
+            count: number;
+            /** Format: int64 */
+            milestone: number;
+            name: string;
+        };
+        GrowWeek: {
+            /** Format: int64 */
+            days: number;
+            /** Format: date-time */
+            end: string;
+            /**
+             * Format: int64
+             * @description Forms and other sources (imports left out)
+             */
+            other: number;
+            /** @description The week is still going */
+            partial: boolean;
+            /** Format: int64 */
+            partners: number;
+            /** Format: int64 */
+            referrals: number;
+            /** Format: date-time */
+            start: string;
         };
         GrowthChart: {
             days: components["schemas"]["GrowthChartDay"][];
@@ -42861,6 +42979,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReferralWebhookTestResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-grow-overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GrowOverview"];
                 };
             };
             /** @description Error */

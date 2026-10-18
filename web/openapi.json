@@ -21148,6 +21148,244 @@
         ],
         "type": "object"
       },
+      "GrowNamedCount": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "count"
+        ],
+        "type": "object"
+      },
+      "GrowNeed": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "codesLeft": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "expires": {
+            "items": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "kind": {
+            "enum": [
+              "held",
+              "partner_invalid",
+              "partner_unreachable",
+              "unclaimed",
+              "codes_out",
+              "codes_low",
+              "webhook_failing",
+              "to_fulfill",
+              "stripe_missing",
+              "file_missing"
+            ],
+            "type": "string"
+          },
+          "milestone": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "partner": {
+            "type": "string"
+          },
+          "people": {
+            "items": {
+              "$ref": "#/components/schemas/GrowNamedCount"
+            },
+            "type": "array"
+          },
+          "reason": {
+            "enum": [
+              "signature_rejected",
+              "ended",
+              "unknown_link",
+              ""
+            ],
+            "type": "string"
+          },
+          "reward": {
+            "type": "string"
+          },
+          "since": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "at",
+          "count",
+          "people",
+          "partner",
+          "reason",
+          "reward",
+          "milestone",
+          "codesLeft",
+          "expires"
+        ],
+        "type": "object"
+      },
+      "GrowOverview": {
+        "additionalProperties": false,
+        "properties": {
+          "from": {
+            "description": "The period's first day (workspace time zone)",
+            "format": "date-time",
+            "type": "string"
+          },
+          "helpers": {
+            "$ref": "#/components/schemas/GrowHelperSets"
+          },
+          "listId": {
+            "type": "string"
+          },
+          "listName": {
+            "type": "string"
+          },
+          "needsYou": {
+            "items": {
+              "$ref": "#/components/schemas/GrowNeed"
+            },
+            "type": "array"
+          },
+          "programId": {
+            "type": "string"
+          },
+          "programStart": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "programStatus": {
+            "enum": [
+              "on",
+              "off",
+              ""
+            ],
+            "type": "string"
+          },
+          "recommendedBy": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "recommends": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "tiles": {
+            "$ref": "#/components/schemas/GrowOverviewTiles"
+          },
+          "to": {
+            "description": "Today",
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "weeks": {
+            "items": {
+              "$ref": "#/components/schemas/GrowWeek"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "from",
+          "to",
+          "updatedAt",
+          "listId",
+          "listName",
+          "programId",
+          "programStatus",
+          "recommends",
+          "recommendedBy",
+          "tiles",
+          "needsYou",
+          "weeks",
+          "helpers"
+        ],
+        "type": "object"
+      },
+      "GrowOverviewTiles": {
+        "additionalProperties": false,
+        "properties": {
+          "confirmed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "conversion": {
+            "description": "Percent",
+            "format": "double",
+            "type": "number"
+          },
+          "fromGrow": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "newSubscribers": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "partnerSignups": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "partners": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "rewards": {
+            "items": {
+              "$ref": "#/components/schemas/GrowRewardCount"
+            },
+            "type": "array"
+          },
+          "rewardsSent": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "visits": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "fromGrow",
+          "newSubscribers",
+          "visits",
+          "confirmed",
+          "conversion",
+          "partnerSignups",
+          "partners",
+          "rewardsSent",
+          "rewards"
+        ],
+        "type": "object"
+      },
       "GrowPreviewContact": {
         "additionalProperties": false,
         "properties": {
@@ -21213,6 +21451,72 @@
           "programId",
           "listName",
           "status"
+        ],
+        "type": "object"
+      },
+      "GrowRewardCount": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "milestone": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "milestone",
+          "name",
+          "count"
+        ],
+        "type": "object"
+      },
+      "GrowWeek": {
+        "additionalProperties": false,
+        "properties": {
+          "days": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "end": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "other": {
+            "description": "Forms and other sources (imports left out)",
+            "format": "int64",
+            "type": "integer"
+          },
+          "partial": {
+            "description": "The week is still going",
+            "type": "boolean"
+          },
+          "partners": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "referrals": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "start": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "start",
+          "end",
+          "days",
+          "partial",
+          "other",
+          "referrals",
+          "partners"
         ],
         "type": "object"
       },
@@ -89042,6 +89346,63 @@
         ],
         "x-access": "workspace",
         "x-permission": "grow:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/overview": {
+      "get": {
+        "operationId": "get-grow-overview",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GrowOverview"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Grow's overview: the last 30 days' numbers, what needs a person, and new subscribers per week by source",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:view"
       }
     },
     "/api/v1/workspaces/{workspace}/grow/partner-codes": {
