@@ -284,8 +284,19 @@ func (s *Service) DraftSegment(ctx context.Context, ws *store.Workspace, p *auth
 	if err != nil {
 		return AISegmentDraft{}, err
 	}
+	// "Your description and the condition schema, N characters": both count,
+	// and the conditions the draft would replace.
+	sent := chars(desc)
+	if b, err := json.Marshal(t.Schema); err == nil {
+		sent += chars(string(b))
+	}
+	if len(current.Groups) > 0 {
+		if b, err := json.Marshal(current); err == nil {
+			sent += chars(string(b))
+		}
+	}
 	out := AISegmentDraft{RequestID: res.RequestID.String(), Groups: []AISegmentDraftGroup{}, Definition: segments.SegmentDefinition{Groups: []segments.SegmentGroup{}},
-		Sent: res.sent(chars(desc)), Refusal: res.Refusal}
+		Sent: res.sent(sent), Refusal: res.Refusal}
 	if res.Refusal != "" {
 		return out, nil
 	}

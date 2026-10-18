@@ -432,11 +432,17 @@ func TestAINeverSendsContactData(t *testing.T) {
 			Conditions []struct{ Field, Mark string }
 		}
 		Nothing string
+		Sent    struct{ Characters int }
 	}
-	c.Do(http.MethodPost, ws+"/ai/segment-draft", map[string]any{"description": "Clicked something in the last 30 days but haven't opened anything in two weeks, active only", "current": map[string]any{"groups": []any{}}}).
+	describe := "Clicked something in the last 30 days but haven't opened anything in two weeks, active only"
+	c.Do(http.MethodPost, ws+"/ai/segment-draft", map[string]any{"description": describe, "current": map[string]any{"groups": []any{}}}).
 		MustStatus(t, 200).JSON(t, &draft)
 	if draft.Added != 3 || draft.Count == nil || draft.Count.Total == 0 || !strings.Contains(draft.Note, "Clicked any email") || len(draft.Groups) != 1 || len(draft.Groups[0].Conditions) != 3 {
 		t.Fatalf("segment draft: %+v", draft)
+	}
+	// "Your description and the condition schema, N characters": both count.
+	if draft.Sent.Characters <= len(describe)+500 {
+		t.Fatalf("sent: %d characters", draft.Sent.Characters)
 	}
 	c.Do(http.MethodPost, ws+"/ai/segment-draft", map[string]any{"description": "People who opened on a phone last week", "current": map[string]any{"groups": []any{}}}).
 		MustStatus(t, 200).JSON(t, &draft)
