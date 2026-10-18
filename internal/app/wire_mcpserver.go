@@ -21,6 +21,7 @@ func (a *App) mcpserver() *mcpserver.Service {
 		Growth:        a.growth(),
 		Digests:       digestsService(a),
 		Polls:         a.polls(),
+		Website:       websiteService(a),
 		PublicURL:     func(context.Context) string { return a.URLs.Base() },
 	}
 }

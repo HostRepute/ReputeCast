@@ -1447,6 +1447,21 @@ type Querier interface {
 	// A campaign's poll as its content says now (a test send or a send needs
 	// its links). The number in signed links never changes.
 	PollsUpsert(ctx context.Context, arg PollsUpsertParams) (PollsUpsertRow, error)
+	// A new request replaces a pending one.
+	PostApprovalCancelPending(ctx context.Context, arg PostApprovalCancelPendingParams) error
+	// The approved request that covers a post as it is, if any.
+	PostApprovalForHash(ctx context.Context, arg PostApprovalForHashParams) (uuid.UUID, error)
+	// A post that changed after its request: pending and approved requests for
+	// the post as it was are invalidated (a change needs a new approval).
+	PostApprovalInvalidate(ctx context.Context, arg PostApprovalInvalidateParams) ([]PostApprovalInvalidateRow, error)
+	// Approvals for publishing posts of the publication website (design
+	// expansion phase 7): one request covers a post as it is (its hash: the
+	// content, the address, the visibility and the publish time).
+	// The latest request about a post, pending first.
+	PostApprovalLatest(ctx context.Context, postID *uuid.UUID) (PostApprovalLatestRow, error)
+	// The approved request a publish relied on remembers it went out.
+	PostApprovalMarkPublished(ctx context.Context, arg PostApprovalMarkPublishedParams) error
+	PostApprovalPending(ctx context.Context, postID *uuid.UUID) (PostApprovalPendingRow, error)
 	ProvActiveFailovers(ctx context.Context, workspaceID uuid.UUID) ([]StreamFailover, error)
 	ProvAwaitingCampaigns(ctx context.Context, arg ProvAwaitingCampaignsParams) ([]ProvAwaitingCampaignsRow, error)
 	ProvAwaitingCount(ctx context.Context, arg ProvAwaitingCountParams) (ProvAwaitingCountRow, error)
@@ -2557,6 +2572,10 @@ type Querier interface {
 	WebsiteMeterReads(ctx context.Context, arg WebsiteMeterReadsParams) ([]WebsiteMeterReadsRow, error)
 	// The meter
 	WebsiteMeterState(ctx context.Context, arg WebsiteMeterStateParams) (WebsiteMeterStateRow, error)
+	// Campaigns of the archived lists that the archive filed while the website
+	// was on and that have no post (not even a deleted one): they go on the
+	// site with their send, as turning the website on did with older ones.
+	WebsiteNewIssues(ctx context.Context, arg WebsiteNewIssuesParams) ([]WebsiteNewIssuesRow, error)
 	// The payment connection the site sells through: its mode and account ("" when none is connected).
 	WebsitePayments(ctx context.Context, workspaceID uuid.UUID) (WebsitePaymentsRow, error)
 	WebsitePostAddTag(ctx context.Context, arg WebsitePostAddTagParams) error
@@ -2576,6 +2595,7 @@ type Querier interface {
 	WebsitePostSaveFields(ctx context.Context, arg WebsitePostSaveFieldsParams) error
 	WebsitePostSchedule(ctx context.Context, arg WebsitePostScheduleParams) error
 	WebsitePostSetRedirect(ctx context.Context, arg WebsitePostSetRedirectParams) error
+	// The web version of the content a post was published with.
 	WebsitePostSetRendered(ctx context.Context, arg WebsitePostSetRenderedParams) error
 	WebsitePostSetSentAs(ctx context.Context, arg WebsitePostSetSentAsParams) error
 	// The post that holds a slug, or once held it.

@@ -34,20 +34,18 @@ var HomeID = uuid.Nil
 // the day is over, so nothing links a visitor across days and nothing
 // that identifies them is kept.
 
-// salts caches today's salt per process.
+// saltCache caches today's salt (each Service holds one).
 type saltCache struct {
 	mu   sync.Mutex
 	day  time.Time
 	salt []byte
 }
 
-var salts saltCache
-
 func (s *Service) salt(ctx context.Context, d time.Time) ([]byte, error) {
-	salts.mu.Lock()
-	defer salts.mu.Unlock()
-	if salts.day.Equal(d) && salts.salt != nil {
-		return salts.salt, nil
+	s.salts.mu.Lock()
+	defer s.salts.mu.Unlock()
+	if s.salts.day.Equal(d) && s.salts.salt != nil {
+		return s.salts.salt, nil
 	}
 	fresh := make([]byte, 32)
 	_, _ = rand.Read(fresh)
@@ -56,7 +54,7 @@ func (s *Service) salt(ctx context.Context, d time.Time) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	salts.day, salts.salt = d, salt
+	s.salts.day, s.salts.salt = d, salt
 	return salt, nil
 }
 

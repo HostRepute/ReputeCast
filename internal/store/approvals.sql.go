@@ -268,7 +268,7 @@ SELECT r.id, r.workspace_id, r.subject_type, r.campaign_id, r.automation_id, r.r
        coalesce(u.avatar_color, '')::text AS requested_by_color,
        coalesce(d.name, '')::text AS decided_by_name,
        coalesce(i.name, '')::text AS invalidated_by_name,
-       coalesce(c.name, a.name, t.name, '')::text AS subject_name,
+       coalesce(c.name, a.name, t.name, wp.title, '')::text AS subject_name,
        coalesce(c.status, '')::text AS campaign_status,
        c.scheduled_at AS campaign_scheduled_at,
        c.started_at AS campaign_started_at,
@@ -280,6 +280,7 @@ LEFT JOIN users i ON i.id = r.invalidated_by
 LEFT JOIN campaigns c ON c.id = r.campaign_id
 LEFT JOIN automations a ON a.id = r.automation_id
 LEFT JOIN transactional_templates t ON t.id = r.transactional_template_id
+LEFT JOIN website_posts wp ON wp.id = r.website_post_id
 WHERE r.workspace_id = $1 AND r.id = $2
 `
 
@@ -490,10 +491,10 @@ func (q *Queries) ApprovalInsertHold(ctx context.Context, arg ApprovalInsertHold
 const approvalInsertRequest = `-- name: ApprovalInsertRequest :exec
 INSERT INTO approval_requests (id, workspace_id, subject_type, campaign_id, automation_id, requested_by, requested_at, note, status,
                                matched_rules, approvals_required, snapshot, campaign_version, readiness_run_id, previous_id, bypass_reason,
-                               transactional_template_id)
+                               transactional_template_id, website_post_id)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9,
         $10, $11, $12, $13, $14, $15, $16,
-        $17)
+        $17, $18)
 `
 
 type ApprovalInsertRequestParams struct {
@@ -514,6 +515,7 @@ type ApprovalInsertRequestParams struct {
 	PreviousID              *uuid.UUID      `json:"previousId"`
 	BypassReason            string          `json:"bypassReason"`
 	TransactionalTemplateID *uuid.UUID      `json:"transactionalTemplateId"`
+	WebsitePostID           *uuid.UUID      `json:"websitePostId"`
 }
 
 func (q *Queries) ApprovalInsertRequest(ctx context.Context, arg ApprovalInsertRequestParams) error {
@@ -535,6 +537,7 @@ func (q *Queries) ApprovalInsertRequest(ctx context.Context, arg ApprovalInsertR
 		arg.PreviousID,
 		arg.BypassReason,
 		arg.TransactionalTemplateID,
+		arg.WebsitePostID,
 	)
 	return err
 }
@@ -683,18 +686,19 @@ func (q *Queries) ApprovalLatestForCampaign(ctx context.Context, campaignID *uui
 }
 
 const approvalList = `-- name: ApprovalList :many
-SELECT r.id, r.subject_type, r.campaign_id, r.automation_id, r.transactional_template_id, r.requested_by, r.requested_at, r.status, r.matched_rules, r.approvals_required,
+SELECT r.id, r.subject_type, r.campaign_id, r.automation_id, r.transactional_template_id, r.website_post_id, r.requested_by, r.requested_at, r.status, r.matched_rules, r.approvals_required,
        r.decided_at, r.invalidated_at, r.invalidated_reason, r.changes, r.bypass_reason,
        coalesce((r.snapshot ->> 'audience_count')::bigint, 0)::bigint AS audience_count,
        coalesce(r.snapshot -> 'route', '[]'::jsonb)::jsonb AS route,
        coalesce(r.snapshot -> 'schedule', '{}'::jsonb)::jsonb AS schedule,
        coalesce(r.snapshot -> 'rules', '[]'::jsonb)::jsonb AS rules,
        coalesce(r.snapshot ->> 'subject', '')::text AS subject,
+       coalesce(r.snapshot -> 'website', 'null'::jsonb)::jsonb AS website,
        coalesce(u.name, '')::text AS requested_by_name,
        coalesce(u.email, '')::text AS requested_by_email,
        coalesce(u.avatar_color, '')::text AS requested_by_color,
        coalesce(d.name, '')::text AS decided_by_name,
-       coalesce(c.name, a.name, t.name, '')::text AS subject_name,
+       coalesce(c.name, a.name, t.name, wp.title, '')::text AS subject_name,
        coalesce(c.status, '')::text AS campaign_status,
        c.scheduled_at AS campaign_scheduled_at,
        c.started_at AS campaign_started_at,
@@ -705,6 +709,7 @@ LEFT JOIN users d ON d.id = r.decided_by
 LEFT JOIN campaigns c ON c.id = r.campaign_id
 LEFT JOIN automations a ON a.id = r.automation_id
 LEFT JOIN transactional_templates t ON t.id = r.transactional_template_id
+LEFT JOIN website_posts wp ON wp.id = r.website_post_id
 WHERE r.workspace_id = $1 AND r.status <> 'bypassed'
   AND ($2::boolean OR r.requested_by = $3::uuid)
   AND r.requested_at >= $4::timestamptz
@@ -733,6 +738,7 @@ type ApprovalListRow struct {
 	CampaignID              *uuid.UUID      `json:"campaignId"`
 	AutomationID            *uuid.UUID      `json:"automationId"`
 	TransactionalTemplateID *uuid.UUID      `json:"transactionalTemplateId"`
+	WebsitePostID           *uuid.UUID      `json:"websitePostId"`
 	RequestedBy             *uuid.UUID      `json:"requestedBy"`
 	RequestedAt             time.Time       `json:"requestedAt"`
 	Status                  string          `json:"status"`
@@ -748,6 +754,7 @@ type ApprovalListRow struct {
 	Schedule                json.RawMessage `json:"schedule"`
 	Rules                   json.RawMessage `json:"rules"`
 	Subject                 string          `json:"subject"`
+	Website                 json.RawMessage `json:"website"`
 	RequestedByName         string          `json:"requestedByName"`
 	RequestedByEmail        string          `json:"requestedByEmail"`
 	RequestedByColor        string          `json:"requestedByColor"`
@@ -783,6 +790,7 @@ func (q *Queries) ApprovalList(ctx context.Context, arg ApprovalListParams) ([]A
 			&i.CampaignID,
 			&i.AutomationID,
 			&i.TransactionalTemplateID,
+			&i.WebsitePostID,
 			&i.RequestedBy,
 			&i.RequestedAt,
 			&i.Status,
@@ -798,6 +806,7 @@ func (q *Queries) ApprovalList(ctx context.Context, arg ApprovalListParams) ([]A
 			&i.Schedule,
 			&i.Rules,
 			&i.Subject,
+			&i.Website,
 			&i.RequestedByName,
 			&i.RequestedByEmail,
 			&i.RequestedByColor,
@@ -1108,7 +1117,7 @@ func (q *Queries) ApprovalPauseAlertsSlack(ctx context.Context, workspaceID uuid
 
 const approvalPendingForWorkspace = `-- name: ApprovalPendingForWorkspace :many
 SELECT r.id, r.requested_at, coalesce((r.snapshot ->> 'audience_count')::bigint, 0)::bigint AS audience_count,
-       coalesce(c.name, a.name, t.name, '')::text AS subject_name,
+       coalesce(c.name, a.name, t.name, wp.title, '')::text AS subject_name,
        coalesce(u.name, '')::text AS requested_by_name,
        coalesce(u.email, '')::text AS requested_by_email,
        coalesce(u.avatar_color, '')::text AS requested_by_color
@@ -1117,6 +1126,7 @@ LEFT JOIN users u ON u.id = r.requested_by
 LEFT JOIN campaigns c ON c.id = r.campaign_id
 LEFT JOIN automations a ON a.id = r.automation_id
 LEFT JOIN transactional_templates t ON t.id = r.transactional_template_id
+LEFT JOIN website_posts wp ON wp.id = r.website_post_id
 WHERE r.workspace_id = $1 AND r.status = 'pending'
 ORDER BY r.requested_at DESC
 `

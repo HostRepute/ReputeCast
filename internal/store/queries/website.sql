@@ -169,14 +169,17 @@ WHERE v.post_id = @post_id ORDER BY v.version DESC LIMIT 50;
 SELECT * FROM website_post_versions WHERE post_id = @post_id AND version = @version;
 
 -- name: WebsitePostSetRendered :exec
-UPDATE website_posts SET body_html = @body_html, preview_html = @preview_html, has_marker = @has_marker, marker_after = @marker_after,
-    body_text = @body_text, preview_text = @preview_text, words = @words, render_notes = @render_notes, rendered_hash = @rendered_hash
+-- The web version of the content a post was published with.
+UPDATE website_posts SET published_mjml = @published_mjml, published_version = @published_version,
+    body_html = @body_html, preview_html = @preview_html, has_marker = @has_marker, marker_after = @marker_after,
+    body_text = @body_text, preview_text = @preview_text, words = @words, render_notes = @render_notes, paid_blocks = @paid_blocks,
+    rendered_hash = @rendered_hash
 WHERE id = @id;
 
 -- name: WebsitePostPublish :exec
-UPDATE website_posts SET status = 'published', published_at = @at, published_by = sqlc.narg(published_by),
-    first_published_at = coalesce(first_published_at, @at), unpublished_at = NULL, unpublished_by = NULL, unpublish_reason = '', redirect_to = '',
-    updated_at = greatest(updated_at, @at)
+UPDATE website_posts SET status = 'published', published_at = @at::timestamptz, published_by = sqlc.narg(published_by),
+    first_published_at = coalesce(first_published_at, @at::timestamptz), unpublished_at = NULL, unpublished_by = NULL, unpublish_reason = '', redirect_to = '',
+    updated_at = greatest(updated_at, @at::timestamptz)
 WHERE workspace_id = @workspace_id AND id = @id;
 
 -- name: WebsitePostSchedule :exec
@@ -189,8 +192,8 @@ UPDATE website_posts SET status = 'draft', updated_by = sqlc.narg(updated_by), u
 WHERE workspace_id = @workspace_id AND id = @id;
 
 -- name: WebsitePostUnpublish :exec
-UPDATE website_posts SET status = 'unpublished', unpublished_at = @at, unpublished_by = sqlc.narg(unpublished_by), unpublish_reason = @reason,
-    redirect_to = @redirect_to, updated_at = @at
+UPDATE website_posts SET status = 'unpublished', unpublished_at = @at::timestamptz, unpublished_by = sqlc.narg(unpublished_by), unpublish_reason = @reason,
+    redirect_to = @redirect_to, updated_at = @at::timestamptz
 WHERE workspace_id = @workspace_id AND id = @id;
 
 -- name: WebsitePostSetRedirect :exec
@@ -200,7 +203,7 @@ UPDATE website_posts SET redirect_to = @redirect_to, updated_at = @at WHERE work
 UPDATE website_posts SET sent_as_campaign = @campaign_id, updated_at = @at WHERE workspace_id = @workspace_id AND id = @id;
 
 -- name: WebsitePostDelete :exec
-UPDATE website_posts SET deleted_at = @at, updated_by = sqlc.narg(updated_by), updated_at = @at WHERE workspace_id = @workspace_id AND id = @id;
+UPDATE website_posts SET deleted_at = @at::timestamptz, updated_by = sqlc.narg(updated_by), updated_at = @at::timestamptz WHERE workspace_id = @workspace_id AND id = @id;
 
 -- name: WebsitePostsDue :many
 -- Posts whose time has come: scheduled at a time, or set to go live with
@@ -257,6 +260,20 @@ JOIN campaigns c ON c.id = ai.campaign_id AND c.deleted_at IS NULL AND c.status 
 WHERE ai.workspace_id = @workspace_id AND ai.list_id = ANY (@lists::uuid[]) AND NOT ai.hidden
   AND NOT EXISTS (SELECT 1 FROM digests dg WHERE dg.id = c.digest_id AND NOT dg.archive)
 ORDER BY sent_at, c.id;
+
+-- name: WebsiteNewIssues :many
+-- Campaigns of the archived lists that the archive filed while the website
+-- was on and that have no post (not even a deleted one): they go on the
+-- site with their send, as turning the website on did with older ones.
+SELECT ai.campaign_id, ai.slug, ai.list_id, ai.title, ai.excerpt, ai.hidden, c.name, c.subject, c.preheader, c.audience,
+       coalesce(c.started_at, c.completed_at, c.created_at)::timestamptz AS sent_at
+FROM archive_issues ai
+JOIN campaigns c ON c.id = ai.campaign_id AND c.deleted_at IS NULL AND c.status = 'sent'
+WHERE ai.workspace_id = @workspace_id AND ai.list_id = ANY (@lists::uuid[]) AND NOT ai.hidden
+  AND NOT EXISTS (SELECT 1 FROM digests dg WHERE dg.id = c.digest_id AND NOT dg.archive)
+  AND NOT EXISTS (SELECT 1 FROM website_posts p WHERE p.campaign_id = c.id)
+ORDER BY sent_at, c.id
+LIMIT 100;
 
 -- name: WebsiteSentWithoutPost :many
 -- Sent campaigns that aren't posts yet ("Publish past campaigns").

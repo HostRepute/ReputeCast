@@ -61,6 +61,9 @@ type Approvals interface {
 	RequestPost(ctx context.Context, ws *store.Workspace, p *authz.Principal, req PostApprovalRequest, note string) (uuid.UUID, error)
 	// PostPublished settles the approval a publish relied on.
 	PostPublished(ctx context.Context, ws *store.Workspace, postID uuid.UUID, hash string) error
+	// PostChanged invalidates requests for the post as it was (hash is the
+	// post as it is now).
+	PostChanged(ctx context.Context, ws *store.Workspace, p *authz.Principal, postID uuid.UUID, title, hash string) error
 }
 
 // CampaignDrafts makes a campaign draft from a web-only post ("Send as a
@@ -89,6 +92,11 @@ type Service struct {
 	Jobs      func() Inserter
 	Approvals func() Approvals
 	Campaigns func() CampaignDrafts
+	// Certs checks the certificate the custom domain serves (nil: unknown).
+	Certs func() CertChecker
+
+	certs certCache
+	salts saltCache
 }
 
 func (s *Service) now() time.Time {

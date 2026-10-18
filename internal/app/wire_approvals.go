@@ -44,8 +44,19 @@ func readinessService(a *App) *readiness.Service {
 	if c := readinessConditional(a); c != nil {
 		rs.Conditional = c
 	}
+	if w := readinessWebsite(a); w != nil {
+		rs.Website = w
+	}
 	return rs
 }
+
+// readinessWebsite gives the web checks of campaigns that publish to the
+// website; set from wire_website.go. Nil leaves them out.
+var readinessWebsite = func(*App) readiness.WebsiteChecker { return nil }
+
+// approvalsWebsite plugs the website's post approvals into the approvals
+// service; set from wire_website.go.
+var approvalsWebsite = func(*App, *approvals.Service) {}
 
 // readinessAccessibility runs the Accessibility group of Send Readiness; the
 // accessibility domain replaces it from its wire file. Nil leaves it out.
@@ -76,6 +87,7 @@ func newApprovals(a *App) *approvals.Service {
 			Accessibility: automationAccessibility(a),
 		},
 	}
+	approvalsWebsite(a, s)
 	// Fixes and send settings re-check open approvals; so do composer saves.
 	rs.AfterChange = s.CampaignChanged
 	rs.Campaigns.AfterChange = s.CampaignChanged

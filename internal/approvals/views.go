@@ -50,7 +50,7 @@ type ApprovalAuditLine struct {
 type ApprovalRequestView struct {
 	ID          string                 `json:"id"`
 	Status      string                 `json:"status" enum:"pending,approved,changes_requested,rejected,invalidated,bypassed,sent,cancelled"`
-	SubjectType string                 `json:"subjectType" enum:"campaign,automation,transactional_template"`
+	SubjectType string                 `json:"subjectType" enum:"campaign,automation,transactional_template,website_post"`
 	RequestedAt time.Time              `json:"requestedAt"`
 	RequestedBy ApprovalPerson         `json:"requestedBy"`
 	Note        string                 `json:"note"`

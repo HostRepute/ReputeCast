@@ -143,6 +143,7 @@ func (s *Service) newServer(log *slog.Logger) *mcp.Server {
 	s.addDigestTools(server)
 	s.addPollTools(server)
 	s.addEarnTools(server)
+	s.addWebsiteTools(server)
 	s.addResources(server)
 	s.addPrompts(server)
 	return server

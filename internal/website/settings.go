@@ -90,10 +90,12 @@ type WebsiteFooter struct {
 	Preferences bool `json:"preferences"`
 }
 
-// WebsiteSignupList is a list offered on sign-up, and whether it's checked.
+// WebsiteSignupList is a list offered on sign-up, whether it's checked,
+// and the consent text shown with it (kept with each sign-up).
 type WebsiteSignupList struct {
 	ListID  string `json:"listId" format:"uuid"`
 	Checked bool   `json:"checked"`
+	Consent string `json:"consent,omitempty" maxLength:"300"`
 }
 
 // WebsitePaywall is the paywall card's text and the tiers it offers.

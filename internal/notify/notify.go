@@ -51,6 +51,8 @@ const (
 	KindUnmappedPrice     = "payments_unmapped_price" // a Stripe price isn't mapped to a tier
 	KindPaidImportDone    = "paid_import_finished"    // a paid-members import finished
 	KindFailedPayments    = "failed_payments_daily"   // the daily summary of failed payments (off by default)
+	// The publication website (design expansion, phase 7).
+	KindWebsiteDomain = "website_domain" // the website's custom domain stopped checking out, or its certificate is failing
 )
 
 // Notification is what appears in the notification center.

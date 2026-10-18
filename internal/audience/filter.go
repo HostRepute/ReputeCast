@@ -33,6 +33,8 @@ type ContactFilter struct {
 	Language string `json:"language,omitempty" maxLength:"16"`
 	// Score, band and growth source (scoregrowth.go).
 	ScoreGrowthFilter
+	// Members of the website (website.go).
+	WebsiteFilter
 }
 
 // Empty reports whether the filter matches everyone.
@@ -108,6 +110,7 @@ func (s *Service) applyFilter(ctx context.Context, wsID uuid.UUID, out *filterSQ
 	if err := s.languageFilter(ctx, wsID, out, f.Language); err != nil {
 		return err
 	}
+	websiteFilter(out, f.WebsiteFilter)
 	if f.Segment != "" {
 		id, err := uuid.Parse(f.Segment)
 		if err != nil {

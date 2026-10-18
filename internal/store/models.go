@@ -2835,6 +2835,9 @@ type WebsitePost struct {
 	UpdatedBy        *uuid.UUID      `json:"updatedBy"`
 	UpdatedAt        time.Time       `json:"updatedAt"`
 	DeletedAt        *time.Time      `json:"deletedAt"`
+	PublishedMjml    string          `json:"publishedMjml"`
+	PublishedVersion int32           `json:"publishedVersion"`
+	PaidBlocks       json.RawMessage `json:"paidBlocks"`
 }
 
 type WebsitePostConversion struct {

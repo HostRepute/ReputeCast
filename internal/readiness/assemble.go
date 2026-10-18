@@ -77,6 +77,7 @@ func Assemble(f Facts) ReadinessResult {
 	b.authentication()
 	b.content()
 	b.polls()
+	b.web()
 	b.languages()
 	b.accessibility()
 	b.links()
