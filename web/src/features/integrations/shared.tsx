@@ -6,6 +6,7 @@ import { Badge, SensitiveFlag } from '@/components/ui/Badge'
 import { T, useT, formatList, type MessageDescriptor } from '@/i18n'
 import { clock, dayMonthDate, dayMonthYear } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
+import { aiCatalogCapabilities, aiEntryLine, aiEntryName, aiMaintainer } from '@/features/ai/entries'
 import { m } from './messages'
 import './integrations.css'
 
@@ -73,6 +74,7 @@ export const entryName: Record<EntryKey, MessageDescriptor> = {
   api: m.api,
   webhooks: m.webhooks,
   mcp: m.mcp,
+  ...aiEntryName,
   zerobounce: m.zerobounce,
   neverbounce: m.neverbounce,
   kickbox: m.kickbox,
@@ -89,6 +91,7 @@ export const maintainer: Record<EntryKey, MessageDescriptor> = {
   api: m.builtIn,
   webhooks: m.builtIn,
   mcp: m.builtIn,
+  ...aiMaintainer,
   zerobounce: m.byOwnAccount,
   neverbounce: m.byOwnAccount,
   kickbox: m.byOwnAccount,
@@ -105,6 +108,7 @@ export const entryLine: Record<EntryKey, MessageDescriptor> = {
   api: m.apiLine,
   webhooks: m.webhooksLine,
   mcp: m.mcpLine,
+  ...aiEntryLine,
   zerobounce: m.zerobounceLine,
   neverbounce: m.neverbounceLine,
   kickbox: m.kickboxLine,
@@ -121,6 +125,7 @@ export const capabilities: Record<EntryKey, MessageDescriptor[]> = {
   api: [m.capScopedKeys],
   webhooks: [m.capSigned, m.capReplay],
   mcp: [m.capScopedAgents],
+  ...aiCatalogCapabilities,
   zerobounce: [m.capBulkLists, m.capRealtime, m.capCreditBalance],
   neverbounce: [m.capBulkLists, m.capRealtime, m.capCreditBalance],
   kickbox: [m.capBulkLists, m.capRealtime, m.capCreditBalance],

@@ -1,0 +1,15 @@
+{
+  "status": 429,
+  "header": {
+    "retry-after": "20",
+    "x-ratelimit-remaining-requests": "0"
+  },
+  "body": {
+    "error": {
+      "message": "Rate limit reached for gpt-5 in organization org-3Kq on requests per min (RPM): Limit 500, Used 500, Requested 1. Please try again in 20s.",
+      "type": "requests",
+      "param": null,
+      "code": "rate_limit_exceeded"
+    }
+  }
+}

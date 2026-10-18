@@ -20,6 +20,7 @@ import { ReportSkeleton } from './ReportSkeleton'
 import { copyText, ShareCard, ShareDialog, useShares } from './ShareCard'
 import { StateAlert } from './StateAlert'
 import { headerCaption, notSentLead, statusBadge, type CampaignReport } from './words'
+import { useReportAI } from '@/features/ai/report'
 import './reports.css'
 
 type BounceRow = Schemas['ReportBounceRow']
@@ -206,6 +207,8 @@ export function ReportPage({ campaignId }: { campaignId: string }) {
   const [suppressing, setSuppressing] = useState<BounceRow>()
   const [reviewing, setReviewing] = useState<BounceRow>()
   const shareCard = useRef<HTMLElement>(null)
+  // Summarize results and the kept summary (features/ai), on a sent campaign.
+  const ai = useReportAI(campaignId, Boolean(r && !r.notSent))
   const print = $api.useMutation('post', '/api/v1/workspaces/{workspace}/campaigns/{campaignId}/report/print')
   const suppress = $api.useMutation('post', '/api/v1/workspaces/{workspace}/campaigns/{campaignId}/report/bounces/{type}/suppress')
 
@@ -276,6 +279,7 @@ export function ReportPage({ campaignId }: { campaignId: string }) {
       actions={
         sent ? (
           <>
+            {ai.button}
             <Button disabledReason={shareReason} loading={exporting === 'csv'} onClick={() => void exportCSV()}>
               Export CSV
             </Button>
@@ -309,6 +313,7 @@ export function ReportPage({ campaignId }: { campaignId: string }) {
       ) : (
         <>
           {r.backlog ? <BacklogAlert b={r.backlog} onRefresh={() => void q.refetch()} /> : null}
+          {ai.panel}
           {issue ? <IssueComparison issue={issue} report={r} /> : null}
           <ReportBody r={r} actions={actions} polls={{ items: polls.data?.items, error: polls.error ?? undefined, retry: () => void polls.refetch() }} />
           <ShareCard ref={shareCard} campaignId={campaignId} onCreate={() => setSharing(true)} />

@@ -1,0 +1,15 @@
+{
+  "status": 429,
+  "header": {
+    "retry-after": "20",
+    "anthropic-ratelimit-requests-remaining": "0"
+  },
+  "body": {
+    "type": "error",
+    "error": {
+      "type": "rate_limit_error",
+      "message": "Number of requests has exceeded your per-minute rate limit"
+    },
+    "request_id": "req_011CU8oGzUMw5Ebr3m4S8h2Q"
+  }
+}

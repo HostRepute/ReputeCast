@@ -46,6 +46,9 @@ const (
 	KindDigestPaused      = "digest_paused"       // a digest paused (by a person, its owner's permissions, the feed)
 	KindDigestFeedFailing = "digest_feed_failing" // a digest's feed failed at preparation, then the issue was skipped
 	KindDigestDraftReady  = "digest_draft_ready"  // draft mode: an issue is a draft to send through Review & send
+	// AI assistant (design expansion, phase 3).
+	KindAIUsage       = "ai_usage"        // this month's AI use reached 80% of the cap, or the cap
+	KindAIKeyRejected = "ai_key_rejected" // the model provider rejected the workspace's key
 	// Earn (design expansion, phase 6).
 	KindPaymentsAttention = "payments_attention"      // a payment provider's key rejected, webhook missing or silent
 	KindUnmappedPrice     = "payments_unmapped_price" // a Stripe price isn't mapped to a tier

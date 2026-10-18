@@ -164,7 +164,7 @@ func (q *Queries) ContentSourceUpsert(ctx context.Context, arg ContentSourceUpse
 }
 
 const contentTranslation = `-- name: ContentTranslation :one
-SELECT t.id, t.workspace_id, t.owner_kind, t.owner_id, t.owner_version, t.language, t.status, t.held, t.subject, t.preheader, t.mjml, t.html, t.plain_text, t.ab_test, t.links, t.version, t.content_hash, t.translated_from, t.translated_by, t.translated_at, t.created_by, t.created_at, t.updated_by, t.updated_at, t.autosaved_at,
+SELECT t.id, t.workspace_id, t.owner_kind, t.owner_id, t.owner_version, t.language, t.status, t.held, t.subject, t.preheader, t.mjml, t.html, t.plain_text, t.ab_test, t.links, t.version, t.content_hash, t.translated_from, t.translated_by, t.translated_at, t.created_by, t.created_at, t.updated_by, t.updated_at, t.autosaved_at, t.ai_model, t.ai_version, t.ai_reviewed_by, t.ai_reviewed_at,
        coalesce(tu.name, '')::text AS translated_by_name,
        coalesce(uu.name, '')::text AS updated_by_name
 FROM content_translations t
@@ -206,6 +206,10 @@ type ContentTranslationRow struct {
 	UpdatedBy        *uuid.UUID      `json:"updatedBy"`
 	UpdatedAt        time.Time       `json:"updatedAt"`
 	AutosavedAt      *time.Time      `json:"autosavedAt"`
+	AiModel          string          `json:"aiModel"`
+	AiVersion        int32           `json:"aiVersion"`
+	AiReviewedBy     *uuid.UUID      `json:"aiReviewedBy"`
+	AiReviewedAt     *time.Time      `json:"aiReviewedAt"`
 	TranslatedByName string          `json:"translatedByName"`
 	UpdatedByName    string          `json:"updatedByName"`
 }
@@ -244,6 +248,10 @@ func (q *Queries) ContentTranslation(ctx context.Context, arg ContentTranslation
 		&i.UpdatedBy,
 		&i.UpdatedAt,
 		&i.AutosavedAt,
+		&i.AiModel,
+		&i.AiVersion,
+		&i.AiReviewedBy,
+		&i.AiReviewedAt,
 		&i.TranslatedByName,
 		&i.UpdatedByName,
 	)
@@ -276,7 +284,7 @@ func (q *Queries) ContentTranslationDelete(ctx context.Context, arg ContentTrans
 }
 
 const contentTranslationForUpdate = `-- name: ContentTranslationForUpdate :one
-SELECT id, workspace_id, owner_kind, owner_id, owner_version, language, status, held, subject, preheader, mjml, html, plain_text, ab_test, links, version, content_hash, translated_from, translated_by, translated_at, created_by, created_at, updated_by, updated_at, autosaved_at FROM content_translations
+SELECT id, workspace_id, owner_kind, owner_id, owner_version, language, status, held, subject, preheader, mjml, html, plain_text, ab_test, links, version, content_hash, translated_from, translated_by, translated_at, created_by, created_at, updated_by, updated_at, autosaved_at, ai_model, ai_version, ai_reviewed_by, ai_reviewed_at FROM content_translations
 WHERE owner_kind = $1 AND owner_id = $2 AND owner_version = $3 AND language = $4
 FOR UPDATE
 `
@@ -322,6 +330,10 @@ func (q *Queries) ContentTranslationForUpdate(ctx context.Context, arg ContentTr
 		&i.UpdatedBy,
 		&i.UpdatedAt,
 		&i.AutosavedAt,
+		&i.AiModel,
+		&i.AiVersion,
+		&i.AiReviewedBy,
+		&i.AiReviewedAt,
 	)
 	return i, err
 }
@@ -657,7 +669,7 @@ func (q *Queries) ContentTranslationVersions(ctx context.Context, arg ContentTra
 }
 
 const contentTranslations = `-- name: ContentTranslations :many
-SELECT t.id, t.workspace_id, t.owner_kind, t.owner_id, t.owner_version, t.language, t.status, t.held, t.subject, t.preheader, t.mjml, t.html, t.plain_text, t.ab_test, t.links, t.version, t.content_hash, t.translated_from, t.translated_by, t.translated_at, t.created_by, t.created_at, t.updated_by, t.updated_at, t.autosaved_at,
+SELECT t.id, t.workspace_id, t.owner_kind, t.owner_id, t.owner_version, t.language, t.status, t.held, t.subject, t.preheader, t.mjml, t.html, t.plain_text, t.ab_test, t.links, t.version, t.content_hash, t.translated_from, t.translated_by, t.translated_at, t.created_by, t.created_at, t.updated_by, t.updated_at, t.autosaved_at, t.ai_model, t.ai_version, t.ai_reviewed_by, t.ai_reviewed_at,
        coalesce(tu.name, '')::text AS translated_by_name,
        coalesce(uu.name, '')::text AS updated_by_name
 FROM content_translations t
@@ -700,6 +712,10 @@ type ContentTranslationsRow struct {
 	UpdatedBy        *uuid.UUID      `json:"updatedBy"`
 	UpdatedAt        time.Time       `json:"updatedAt"`
 	AutosavedAt      *time.Time      `json:"autosavedAt"`
+	AiModel          string          `json:"aiModel"`
+	AiVersion        int32           `json:"aiVersion"`
+	AiReviewedBy     *uuid.UUID      `json:"aiReviewedBy"`
+	AiReviewedAt     *time.Time      `json:"aiReviewedAt"`
 	TranslatedByName string          `json:"translatedByName"`
 	UpdatedByName    string          `json:"updatedByName"`
 }
@@ -742,6 +758,10 @@ func (q *Queries) ContentTranslations(ctx context.Context, arg ContentTranslatio
 			&i.UpdatedBy,
 			&i.UpdatedAt,
 			&i.AutosavedAt,
+			&i.AiModel,
+			&i.AiVersion,
+			&i.AiReviewedBy,
+			&i.AiReviewedAt,
 			&i.TranslatedByName,
 			&i.UpdatedByName,
 		); err != nil {

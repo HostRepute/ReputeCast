@@ -1,0 +1,20 @@
+{
+  "status": 200,
+  "body": {
+    "object": "list",
+    "data": [
+      {
+        "id": "llama3.3:70b",
+        "object": "model",
+        "created": 1759921480,
+        "owned_by": "library"
+      },
+      {
+        "id": "gemma3:27b",
+        "object": "model",
+        "created": 1759013020,
+        "owned_by": "library"
+      }
+    ]
+  }
+}

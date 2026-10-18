@@ -1,0 +1,20 @@
+{
+  "status": 200,
+  "body": {
+    "promptFeedback": {
+      "blockReason": "SAFETY",
+      "safetyRatings": [
+        {
+          "category": "HARM_CATEGORY_HARASSMENT",
+          "probability": "MEDIUM"
+        }
+      ]
+    },
+    "usageMetadata": {
+      "promptTokenCount": 31,
+      "totalTokenCount": 31
+    },
+    "modelVersion": "gemini-2.5-flash",
+    "responseId": "r1TvaNb8LZ2N-8YP0p-x8Q4"
+  }
+}
