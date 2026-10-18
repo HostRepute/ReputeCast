@@ -255,6 +255,7 @@ export function RewritePanel() {
         done={(r) => {
           if (r.reputation) {
             return {
+              unsent: true,
               body: <Reputation hostRepute={r.reputation.hostRepute} instruction={panel.instruction} />,
               actions: (
                 <>

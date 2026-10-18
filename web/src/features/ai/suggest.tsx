@@ -288,7 +288,8 @@ export function SuggestFlow<T>({
   onRetry: () => void
   floating?: boolean
   className?: string
-  done: (data: T) => { body: ReactNode; checks?: Check[]; actions?: ReactNode; sent?: string; tone?: 'bad' | 'warn' }
+  /** `unsent`: nothing went to the model, so the card doesn't name it (AIStates · a reputation question). */
+  done: (data: T) => { body: ReactNode; checks?: Check[]; actions?: ReactNode; sent?: string; tone?: 'bad' | 'warn'; unsent?: boolean }
 }) {
   const t = useT()
   if (s.phase === 'idle') return null
@@ -326,7 +327,7 @@ export function SuggestFlow<T>({
   }
   const d = done(s.data)
   return (
-    <SuggestionCard title={title} model={assist.model} onClose={onClose} tone={d.tone} checks={d.checks} actions={d.actions} sent={d.sent} floating={floating} className={className}>
+    <SuggestionCard title={title} model={d.unsent ? undefined : assist.model} onClose={onClose} tone={d.tone} checks={d.checks} actions={d.actions} sent={d.sent} floating={floating} className={className}>
       {d.body}
     </SuggestionCard>
   )
