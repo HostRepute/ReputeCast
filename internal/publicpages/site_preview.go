@@ -3,6 +3,7 @@ package publicpages
 import (
 	"context"
 	"net/http"
+	"strings"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/google/uuid"
@@ -37,6 +38,11 @@ type postPreviewInput struct {
 	Body WebsitePostPreviewInput
 }
 
+type homePreviewInput struct {
+	api.WorkspaceInput
+	Body website.WebsiteHomeNavInput
+}
+
 // registerSitePreviews adds the post preview operation.
 func registerSitePreviews(h huma.API, p *Handler) {
 	api.Post(h, api.Op{ID: "preview-website-post", Path: "/workspaces/{workspace}/website/posts/{post}/preview",
@@ -49,6 +55,49 @@ func registerSitePreviews(h huma.API, p *Handler) {
 			out, err := p.PostPreview(ctx, api.WorkspaceFrom(ctx), id, in.Body.As, in.Body.Tier)
 			return api.OK(out), err
 		})
+	api.Post(h, api.Op{ID: "preview-website-home", Path: "/workspaces/{workspace}/website/home-nav/preview",
+		Summary: "Preview the home page with unsaved Home & navigation settings, as a visitor sees it", Tags: []string{"Website"}, Access: api.Workspace(authz.WebsiteView)},
+		func(ctx context.Context, in *homePreviewInput) (*api.Body[PublicPagePreview], error) {
+			out, err := p.HomePreview(ctx, api.WorkspaceFrom(ctx), in.Body)
+			return api.OK(out), err
+		})
+}
+
+// HomePreview renders the home page as a visitor sees it, with unsaved
+// Home & navigation settings (the tab's live preview). Nothing is saved.
+func (h *Handler) HomePreview(ctx context.Context, ws *store.Workspace, in website.WebsiteHomeNavInput) (PublicPagePreview, error) {
+	if h.Website == nil {
+		return PublicPagePreview{}, api.Err(http.StatusServiceUnavailable, "unavailable", "The website isn't available on this server.")
+	}
+	ctx, err := h.Website.WithHomeNavDraft(ctx, ws, in)
+	if err != nil {
+		return PublicPagePreview{}, err
+	}
+	s, err := h.previewSite(ctx, ws)
+	if err != nil {
+		return PublicPagePreview{}, err
+	}
+	// The footer's links are the branding's, changed in the same tab.
+	s.set.Branding.PoweredBy = in.PoweredBy
+	s.set.Branding.PrivacyURL = strings.TrimSpace(in.PrivacyURL)
+	code := h.defaultLang(ctx, s)
+	v, err := h.siteViewIn(ctx, s, pageLang{Code: code, Labels: pagelabels.For(code, nil)})
+	if err != nil {
+		return PublicPagePreview{}, err
+	}
+	body, err := h.homeBody(ctx, s, v, "")
+	if err != nil {
+		return PublicPagePreview{}, err
+	}
+	v.Body = body
+	v.mark("home", v.Frame)
+	v.Title = v.Frame.Title
+	v.Description = v.Frame.Description
+	out, err := h.siteHTML("home", v)
+	if err != nil {
+		return PublicPagePreview{}, err
+	}
+	return PublicPagePreview{HTML: string(out), URL: s.canonPath()}, nil
 }
 
 // PostPreview renders a post's page as one kind of reader, in the

@@ -10855,6 +10855,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/website/home-nav/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview the home page with unsaved Home & navigation settings, as a visitor sees it */
+        post: operations["preview-website-home"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/website/past-campaigns": {
         parameters: {
             query?: never;
@@ -28394,6 +28411,10 @@ export interface components {
             preferences: boolean;
             rss: boolean;
         };
+        WebsiteHelpers: {
+            manage: string[];
+            publish: string[];
+        };
         WebsiteHiddenBlock: {
             condition?: string;
             id?: string;
@@ -28544,6 +28565,7 @@ export interface components {
         WebsiteOverview: {
             address: components["schemas"]["WebsiteAddress"];
             archive: components["schemas"]["WebsiteArchiveFacts"];
+            helpers: components["schemas"]["WebsiteHelpers"];
             /** @enum {string} */
             homeLayout: "featured" | "list" | "grid";
             members: components["schemas"]["WebsiteMembersFacts"];
@@ -28599,6 +28621,7 @@ export interface components {
             autosavedAt?: string;
             base: string;
             byline: components["schemas"]["WebsiteByline"];
+            bylines: components["schemas"]["WebsiteByline"][];
             campaign?: components["schemas"]["WebsitePostCampaign"];
             checks: components["schemas"]["WebsiteWebCheck"][];
             coverAlt: string;
@@ -54487,6 +54510,42 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WebsiteHomeNav"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "preview-website-home": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebsiteHomeNavInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPagePreview"];
                 };
             };
             /** @description Error */

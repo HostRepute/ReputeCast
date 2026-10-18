@@ -60298,6 +60298,28 @@
         ],
         "type": "object"
       },
+      "WebsiteHelpers": {
+        "additionalProperties": false,
+        "properties": {
+          "manage": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "publish": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "manage",
+          "publish"
+        ],
+        "type": "object"
+      },
       "WebsiteHiddenBlock": {
         "additionalProperties": false,
         "properties": {
@@ -60870,6 +60892,9 @@
           "archive": {
             "$ref": "#/components/schemas/WebsiteArchiveFacts"
           },
+          "helpers": {
+            "$ref": "#/components/schemas/WebsiteHelpers"
+          },
           "homeLayout": {
             "enum": [
               "featured",
@@ -60929,7 +60954,8 @@
           "off",
           "homeLayout",
           "title",
-          "updatedAt"
+          "updatedAt",
+          "helpers"
         ],
         "type": "object"
       },
@@ -61085,6 +61111,12 @@
           },
           "byline": {
             "$ref": "#/components/schemas/WebsiteByline"
+          },
+          "bylines": {
+            "items": {
+              "$ref": "#/components/schemas/WebsiteByline"
+            },
+            "type": "array"
           },
           "campaign": {
             "$ref": "#/components/schemas/WebsitePostCampaign"
@@ -61270,6 +61302,7 @@
           "readingMinutes",
           "checks",
           "publish",
+          "bylines",
           "id",
           "kind",
           "title",
@@ -113195,6 +113228,73 @@
         ],
         "x-access": "workspace",
         "x-permission": "website:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/website/home-nav/preview": {
+      "post": {
+        "operationId": "preview-website-home",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebsiteHomeNavInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicPagePreview"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Preview the home page with unsaved Home \u0026 navigation settings, as a visitor sees it",
+        "tags": [
+          "Website"
+        ],
+        "x-access": "workspace",
+        "x-permission": "website:view"
       }
     },
     "/api/v1/workspaces/{workspace}/website/past-campaigns": {

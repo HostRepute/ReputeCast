@@ -15,6 +15,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/apptest"
 	"github.com/hostrepute/reputecast/internal/mailer"
+	"github.com/hostrepute/reputecast/internal/website"
 )
 
 const site = "/p/acme-newsletter"
@@ -535,4 +536,51 @@ func TestSiteAccount(t *testing.T) {
 	if active != 0 {
 		t.Fatalf("sessions after signing out everywhere: %d", active)
 	}
+}
+
+// The Home & navigation tab's live preview renders unsaved settings and
+// saves nothing; settings that wouldn't save are refused the same way.
+func TestHomeNavPreview(t *testing.T) {
+	env, _ := demoOn(t)
+	c := env.Client()
+	c.SignInDemo("linh@acme.io")
+	var saved website.WebsiteHomeNav
+	c.Do("GET", ws+"/website/home-nav", nil).MustStatus(t, 200).JSON(t, &saved)
+	in := website.WebsiteHomeNavInput{Layout: "grid", Featured: []string{}, About: saved.About, Footer: saved.Footer, PrivacyURL: saved.PrivacyURL,
+		PoweredBy: saved.PoweredBy, Identity: saved.Identity, Index: saved.Index, Header: []website.WebsiteNavLink{}}
+	in.Identity.Title = "Acme, unsaved"
+	for _, s := range saved.Sections {
+		if s.Kind != website.SectionTiers {
+			in.Sections = append(in.Sections, s)
+		}
+	}
+	for _, h := range saved.Header {
+		in.Header = append(in.Header, h.WebsiteNavLink)
+	}
+	in.Header = in.Header[:1]
+	var out struct{ HTML, URL string }
+	c.Do("POST", ws+"/website/home-nav/preview", in).MustStatus(t, 200).JSON(t, &out)
+	// The grid layout: the latest posts as cards, not a list.
+	grid := regexp.MustCompile(`id="latest-h">[^<]*</h2>.*?</div><div class="st-cards">`)
+	if !has(out.HTML, "Acme, unsaved") || !grid.MatchString(out.HTML) || strings.Contains(out.HTML, `class="st-list"`) || strings.Count(out.HTML, `<nav class="st-nav"`) != 1 {
+		t.Fatalf("preview: %.600s", out.HTML)
+	}
+	if !strings.Contains(out.HTML, saved.Header[0].Name) || strings.Contains(out.HTML, ">"+saved.Header[1].Name+"</a>") {
+		t.Fatalf("header links: %v", saved.Header)
+	}
+	if strings.Contains(out.HTML, "<form") && !strings.Contains(out.HTML, "disabled") {
+		t.Fatal("the preview's subscribe form isn't inert")
+	}
+	var after website.WebsiteHomeNav
+	c.Do("GET", ws+"/website/home-nav", nil).MustStatus(t, 200).JSON(t, &after)
+	if after.Layout != saved.Layout || after.Identity.Title != saved.Identity.Title || len(after.Header) != len(saved.Header) {
+		t.Fatalf("the preview saved: %s %q %d", after.Layout, after.Identity.Title, len(after.Header))
+	}
+	if r := page(t, env.Client(), "/", 200); has(r, "Acme, unsaved") {
+		t.Fatal("the live home shows the unsaved title")
+	}
+	in.Identity.Title = " "
+	c.Do("POST", ws+"/website/home-nav/preview", in).MustStatus(t, 422)
+	signedOut := env.Client()
+	signedOut.Do("POST", ws+"/website/home-nav/preview", in).MustStatus(t, 401)
 }
