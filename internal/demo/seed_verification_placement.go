@@ -120,7 +120,8 @@ func seedVerificationDemo(ctx context.Context, s *Seeder) error {
 	for i, r := range rename {
 		var id uuid.UUID
 		err := s.Tx.QueryRow(ctx, `SELECT id FROM contacts WHERE workspace_id = $1 AND tier = 'sunset' AND erased_at IS NULL AND status = 'active'
-			AND mailbox_provider = $2 AND email <> 'g.okafor@outlook.com' ORDER BY id OFFSET $3 LIMIT 1`, ws.ID, r.mailbox, i).Scan(&id)
+			AND mailbox_provider = $2 AND email <> 'g.okafor@outlook.com' ORDER BY (coalesce(language, '') NOT IN ('', 'en')), id OFFSET $3 LIMIT 1`,
+			ws.ID, r.mailbox, i).Scan(&id)
 		if err != nil {
 			return fmt.Errorf("a sunset contact at %s: %w", r.mailbox, err)
 		}
@@ -146,8 +147,11 @@ func seedVerificationDemo(ctx context.Context, s *Seeder) error {
 		}
 	}
 
-	// The Sunset tier, checked on Tue 14 Oct from 15:02 to 15:09.
-	rows, err := s.Tx.Query(ctx, `SELECT id, email FROM contacts WHERE workspace_id = $1 AND tier = 'sunset' AND erased_at IS NULL ORDER BY id`, ws.ID)
+	// The Sunset tier, checked on Tue 14 Oct from 15:02 to 15:09. The answers
+	// that suppress or tag go to contacts without another content language
+	// first, so the language counts (SettingsLanguages) stay the boards'.
+	rows, err := s.Tx.Query(ctx, `SELECT id, email FROM contacts WHERE workspace_id = $1 AND tier = 'sunset' AND erased_at IS NULL
+		ORDER BY (coalesce(language, '') NOT IN ('', 'en')), id`, ws.ID)
 	if err != nil {
 		return err
 	}
@@ -278,6 +282,16 @@ func seedVerificationDemo(ctx context.Context, s *Seeder) error {
 	if err := q.VerifConsentEvents(ctx, store.VerifConsentEventsParams{Ids: evIDs, ContactIds: supIDs, Notes: notes, Actor: &marcus.ID, At: finished}); err != nil {
 		return err
 	}
+	// Segments leave suppressed contacts out: the Sunset segment's stored
+	// count follows the check, as its next recount would. The audience's
+	// segments are saved by a deferred step, so this one runs after it.
+	suppressed := int64(len(supIDs))
+	s.After(func(ctx context.Context, s *Seeder) error {
+		_, err := s.Tx.Exec(ctx, `UPDATE segments SET cached_count = cached_count - $3,
+				tier_counts = jsonb_set(tier_counts, '{sunset}', to_jsonb((tier_counts->>'sunset')::bigint - $3))
+			WHERE workspace_id = $1 AND name = $2 AND cached_count >= $3`, s.WS().ID, "Unengaged 180 days, for sunset", suppressed)
+		return err
+	})
 
 	// The Mailchimp import's new addresses, this morning at 09:12.
 	importAt := s.designDay(0, 9, 12)
@@ -500,6 +514,9 @@ func seedPlacementDemo(ctx context.Context, s *Seeder) error {
 	}
 	lastUsed := map[uuid.UUID]use{}
 	for ti, t := range tests {
+		if t.kind == "transactional" && SkipTransactional {
+			continue // no transactional templates in this demo
+		}
 		id, err := seedPlacementTest(ctx, s, t, ti, seeds)
 		if err != nil {
 			return fmt.Errorf("%s: %w", t.name, err)
