@@ -63,6 +63,7 @@ var publicNotifications = func(*App) publicpages.Notifications { return nil }
 
 func (a *App) publicPages() *publicpages.Handler {
 	fs := a.formsService()
+	pl := a.polls()
 	formsMu.Lock()
 	defer formsMu.Unlock()
 	if h, ok := formsPages[a]; ok {
@@ -73,6 +74,10 @@ func (a *App) publicPages() *publicpages.Handler {
 		// Root paths on hosts that aren't a custom domain stay the web app's.
 		SPA:           server.NewSPA(web.Dist()),
 		Notifications: publicNotifications(a),
+		// The poll answer pages and survey pages; emails in the browser get
+		// their version of conditional content and their poll links.
+		Polls:   pl,
+		Browser: browserContent{a},
 		// The upgrade page, its welcome page and the billing links (X16).
 		Earn: earnService(a),
 	}

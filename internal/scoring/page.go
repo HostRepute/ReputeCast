@@ -39,7 +39,8 @@ type ScoringUse struct {
 	Kind string `json:"kind" enum:"automation,segment,block"`
 	ID   string `json:"id"`
 	Name string `json:"name"`
-	// Status is an automation's (live, paused, draft).
+	// Status is an automation's (live, paused, draft), or the status of a
+	// block's email (draft, approval, approved, scheduled).
 	Status string `json:"status,omitempty"`
 	By     string `json:"by,omitempty"`
 	// Since is when an automation went live.
@@ -52,8 +53,13 @@ type ScoringUse struct {
 	OnceInDays int    `json:"onceInDays,omitempty"`
 	// Contacts is a segment's last count, or a block's recipients.
 	Contacts *int64 `json:"contacts,omitempty"`
-	// Conditions are a segment's conditions, for its one-line summary.
+	// Conditions are a segment's conditions, for its one-line summary, or
+	// the score conditions of a block's Visibility rule, written the same way
+	// ({"field": "score_band", "op": "is", "value": "hot"}).
 	Conditions json.RawMessage `json:"conditions,omitempty"`
+	// Show is a block's Visibility: shown only to contacts who match, or to
+	// everyone except them.
+	Show string `json:"show,omitempty" enum:"only,except"`
 	// Where says where a block is ("Weekly Digest #143 (draft)"); Of is
 	// the total its count is out of.
 	Where string `json:"where,omitempty"`
@@ -62,8 +68,9 @@ type ScoringUse struct {
 }
 
 // UseFinder lists the things of one kind that read the score. Conditional
-// content (phase 3) registers one for its blocks.
-type UseFinder func(ctx context.Context, wsID uuid.UUID) ([]ScoringUse, error)
+// content (phase 3) registers one for its blocks, from its package's init:
+// it reads through q, as Scoring's page does.
+type UseFinder func(ctx context.Context, q *store.Queries, ws *store.Workspace) ([]ScoringUse, error)
 
 var (
 	usesMu      sync.Mutex
@@ -451,7 +458,7 @@ func (s *Service) uses(ctx context.Context, q *store.Queries, ws *store.Workspac
 	finders := slices.Clone(usesFinders)
 	usesMu.Unlock()
 	for _, f := range finders {
-		more, err := f(ctx, ws.ID)
+		more, err := f(ctx, q, ws)
 		if err != nil {
 			s.log().WarnContext(ctx, "scoring uses", "err", err)
 			continue

@@ -119,6 +119,8 @@ const resolvers: Record<string, (ctx: BrowserContext, value: string) => Promise<
     if (!body.templateId) throw new Error(`the digest ${name} has no template`)
     return body.templateId
   },
+  // A survey by its name ({survey:Beta feedback · October 2026}).
+  survey: (ctx, name) => lookup(ctx, 'surveys', 'items', (s) => s.name === name, `no survey named ${name}`),
 }
 
 /** The id of the first item of a workspace list that matches. */

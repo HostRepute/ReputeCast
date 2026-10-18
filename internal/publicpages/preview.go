@@ -52,6 +52,8 @@ func RegisterAPI(h huma.API, p *Handler) {
 			out, err := p.Preview(ctx, api.WorkspaceFrom(ctx), in.Page, in.Form, in.Draft, in.Contact, in.Language)
 			return api.OK(out), err
 		})
+	// The poll answer page and the survey page (polls_preview.go).
+	registerPollPreviews(h, p)
 }
 
 // Preview renders one public page for the app.

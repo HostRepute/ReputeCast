@@ -270,6 +270,11 @@ func Minify(src string) string {
 		if strings.HasPrefix(c, "<!--[if") || strings.HasPrefix(c, "<!--<![endif]") || strings.Contains(c, "<![endif]") {
 			return c
 		}
+		// Conditional blocks' markers (internal/visibility cuts each
+		// recipient's version at them).
+		if strings.HasPrefix(c, "<!--rc:if ") || strings.HasPrefix(c, "<!--rc:fi ") {
+			return c
+		}
 		return ""
 	})
 	out = interTagSpace.ReplaceAllString(out, "><")

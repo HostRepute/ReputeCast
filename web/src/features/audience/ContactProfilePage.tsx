@@ -23,6 +23,7 @@ import { useI18n, useT } from '@/i18n'
 import { NotificationsRow, TransactionalActivityRow, transactionalCount, useContactTransactional, withTransactional } from '@/features/transactional/ContactActivity'
 import { JoinLine } from '@/features/growth/JoinLine'
 import { ProfileScoreCard } from '@/features/scoring/ProfileScoreCard'
+import { FieldSourceNote, useAnswerActivity, useFieldSources } from '@/features/polls/contact'
 import './audience.css'
 
 type Profile = Schemas['ContactProfile']
@@ -213,6 +214,8 @@ function fieldValue(f: Schemas['ContactProfileField']) {
 }
 
 function FieldsCard({ p }: { p: Profile }) {
+  // Fields a poll or a survey set say so (design expansion, X11).
+  const sources = useFieldSources(p.id)
   const [editing, setEditing] = useState(false)
   const [adding, setAdding] = useState(false)
   const reason = usePermissionReason('subscribers:edit')
@@ -242,7 +245,10 @@ function FieldsCard({ p }: { p: Profile }) {
               {f.label}
               {f.custom ? <> <span className="mono">{f.type === 'text' || f.type === 'select' ? 'custom' : `custom · ${f.type}`}</span></> : null}
             </span>
-            {fieldValue(f)}
+            <span>
+              {fieldValue(f)}
+              <FieldSourceNote source={sources.get(f.key)} />
+            </span>
           </div>
         ),
       )}
@@ -631,6 +637,8 @@ const tone = {
 }
 
 function eventIcon(it: Item): [keyof typeof icons, keyof typeof tone] {
+  // Poll answers and survey responses (design expansion, X11).
+  if (it.type === 'poll_answer' || it.type === 'survey_response' || it.type === 'survey_started') return ['check', 'green']
   if (it.category === 'consent') {
     switch (it.type) {
       case 'confirmed':
@@ -696,6 +704,7 @@ const verb: Record<string, string> = {
 }
 
 function ActivityRow({ it }: { it: Item }) {
+  const answerActivity = useAnswerActivity()
   const [icon, t] = eventIcon(it)
   const c = tone[t]
   const tr = useT()
@@ -705,7 +714,11 @@ function ActivityRow({ it }: { it: Item }) {
   const dl = deliveryLanguage(it, tr, locale, brandOf(me.workspace.name))
   let title: ReactNode
   let meta: string[] = [dateTime(it.at)]
-  if (it.category === 'consent') {
+  const answer = answerActivity(it)
+  if (answer) {
+    title = <b>{answer.title}</b>
+    meta = [...meta, ...answer.meta]
+  } else if (it.category === 'consent') {
     switch (it.type) {
       case 'confirmed':
         title = (

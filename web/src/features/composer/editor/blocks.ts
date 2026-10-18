@@ -4,11 +4,15 @@
  * content blocks into columns. ReputeCast blocks start with an
  * <!-- rc:… --> marker so they stay recognisable (layer names, checks).
  */
+import { newPoll, pollSection } from '@/features/polls/config'
+
 export type BlockGroup = 'layout' | 'content' | 'reputecast'
 
 export interface BlockDef {
   id: string
   label: string
+  /** A badge on the tile ("New"). */
+  badge?: string
   group: BlockGroup
   /** Icon from icons.tsx (24-unit grid). */
   icon: string
@@ -174,6 +178,8 @@ export function blockDefs(address: string): BlockDef[] {
       keywords: 'shop price ecommerce',
     },
     { id: 'rc-footer', label: 'Footer + unsubscribe', group: 'reputecast', icon: 'rcFooter', kind: 'section', content: footerBlock(address), keywords: 'address unsubscribe compliance' },
+    // The Poll block (design expansion, X11): each answer a plain link.
+    { id: 'rc-poll', label: 'Poll', badge: 'New', group: 'reputecast', icon: 'rcPoll', kind: 'section', content: pollSection(newPoll()), keywords: 'poll question vote nps rating survey feedback' },
   ]
 }
 

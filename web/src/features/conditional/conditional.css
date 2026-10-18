@@ -1,0 +1,378 @@
+/*
+ * Conditional content in the composer (design expansion, X11): the
+ * Visibility section, the canvas badges, the layer marks, the footer's
+ * versions, the versions panel and the preview's version line
+ * (ComposerVisibility, VisibilityStates).
+ */
+
+/* Inspector: who sees the block. */
+.prop.cv .t {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.prop.cv .t svg {
+  color: var(--info-fg);
+}
+.prop.cv.bad .t svg {
+  color: var(--bad-strong);
+}
+.cv-show {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.cv-show > label.tg,
+.pl-opts > label.tg {
+  align-items: flex-start;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  font-weight: 500;
+}
+.cv-show > label.tg input,
+.pl-opts > label.tg input {
+  margin-top: 1px;
+  flex: none;
+}
+.cv-show > label.tg:has(input:checked),
+.pl-opts > label.tg:has(input:checked) {
+  border-color: var(--accent);
+  background: var(--accent-tint);
+  font-weight: 600;
+}
+.cv-show > label.tg:has(input:disabled),
+.pl-opts > label.tg:has(input:disabled) {
+  cursor: default;
+}
+.cv-cond {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--ground-3);
+}
+/* "is between 20 and 49": both ends in the value's column. */
+.cv-range {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.cv-range > input {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0 6px;
+  /* Room for "100" in half the row: no spin buttons. */
+  appearance: textfield;
+}
+.cv-range > input::-webkit-inner-spin-button,
+.cv-range > input::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
+}
+.cv-cond.broken {
+  border-color: var(--bad-line);
+  background: var(--bad-tint);
+}
+.cv-cond-h {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.cv-cond-h > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+.cv-cond-kind {
+  display: flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--line-input);
+  border-radius: 6px;
+  background: var(--surface);
+  font-size: 12.5px;
+}
+.cv-broken {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--bad-strong);
+  font-size: 12px;
+  font-weight: 600;
+}
+.cv-broken .btn {
+  font-weight: 600;
+}
+.cv-empty {
+  color: var(--ink-3);
+  font-size: 12px;
+}
+.cv-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--line-2);
+  overflow: hidden;
+}
+.cv-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--accent);
+}
+.cv-note {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--ground-3);
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.cv-note svg {
+  flex: none;
+  margin-top: 1px;
+}
+
+/* "Add condition": the grouped, searchable picker. */
+.cv-pick {
+  width: min(360px, calc(100vw - 32px));
+  padding: 0;
+}
+.cv-pick-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px;
+  /* Every group fits where there is room (the score and its band included);
+     the list scrolls inside the space the popover has. */
+  max-height: min(600px, calc(var(--radix-popover-content-available-height, 600px) - 14px));
+  overflow: auto;
+}
+.cv-pick-group {
+  display: flex;
+  flex-direction: column;
+}
+.cv-pick-h {
+  padding: 10px 6px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.cv-pick-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 7px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  font: inherit;
+  font-size: 12.5px;
+  text-align: left;
+  color: var(--ink);
+  cursor: pointer;
+}
+.cv-pick-item:hover,
+.cv-pick-item:focus-visible {
+  background: var(--ground);
+}
+
+/* Canvas: each conditional block's badge, the toggle in the toolbar. */
+.cv-badge {
+  position: absolute;
+  z-index: 6;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  max-width: 420px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+.cv-badge span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cv-toggle .in {
+  height: 30px;
+  max-width: min(320px, calc(100vw - 120px));
+}
+
+/* Layers: a long name ends in an ellipsis before the eye-off mark. */
+.lay .lay-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Layers: the eye-off mark and the note under the tree. */
+.cv-lay {
+  display: inline-flex;
+  margin-left: auto;
+  color: var(--info-fg);
+  flex: none;
+}
+.lay .cv-lay svg {
+  stroke: currentColor;
+}
+.cv-lay.bad {
+  color: var(--bad-strong);
+}
+.cv-lay-note {
+  display: flex;
+  gap: 8px;
+  margin: 8px 12px 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--ground-3);
+}
+
+/* Footer: "3 conditional blocks · 6 versions". */
+.cv-foot {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 7px;
+  background: var(--ink);
+  color: #fff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.cv-foot:hover {
+  background: #1f2937;
+}
+
+/* The versions panel, docked over the bottom of the canvas. */
+.cv-panel {
+  position: relative;
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  max-height: min(60%, 520px);
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+  box-shadow: 0 -12px 28px rgba(11, 18, 32, 0.1);
+}
+.cv-panel-h {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid var(--line-2);
+}
+.cv-panel-h svg {
+  color: var(--info-fg);
+  flex: none;
+  margin-top: 2px;
+}
+.cv-panel-h h2 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+.cv-panel-b {
+  overflow: auto;
+}
+.cv-panel-f {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 16px 12px;
+  border-top: 1px solid var(--line-2);
+}
+.cv-tbl td,
+.cv-tbl th {
+  white-space: nowrap;
+}
+.cv-tbl td:nth-child(2) {
+  white-space: normal;
+}
+.cv-tbl tr.now td {
+  background: var(--accent-tint);
+}
+.cv-tbl tr.hl td {
+  background: #fffbeb;
+}
+.cv-tbl tr.hl td.num.over {
+  color: var(--warn-fg);
+  font-weight: 600;
+}
+
+/* Preview: the version line and the This version card. */
+.cv-pv {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--line);
+  background: #eff6ff;
+  color: var(--info-fg);
+  font-size: 12.5px;
+}
+.cv-pv b {
+  font-weight: 600;
+}
+.cv-pv.empty {
+  background: var(--bad-tint);
+  color: var(--bad-strong);
+}
+.cv-dl {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 8px 18px;
+  margin: 0;
+  font-size: 12.5px;
+}
+.cv-dl dt {
+  color: var(--ink-3);
+}
+.cv-dl dd {
+  margin: 0;
+}
+.cv-versions {
+  display: flex;
+  flex-direction: column;
+}
+.cv-versions > div {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr) max-content;
+  gap: 2px 14px;
+  padding: 9px 16px;
+  border-top: 1px solid var(--line-2);
+  font-size: 12.5px;
+}
+.cv-versions > div.now {
+  background: var(--accent-tint);
+}
+.cv-versions > div.hl {
+  background: #fffbeb;
+}
+.cv-versions .r {
+  text-align: right;
+}

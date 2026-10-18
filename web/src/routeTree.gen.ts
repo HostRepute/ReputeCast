@@ -94,6 +94,7 @@ import { Route as WWorkspaceAppEarnPlansUpgradePageRouteImport } from './routes/
 import { Route as WWorkspaceAppEarnProductsIndexRouteImport } from './routes/w/$workspace/_app/earn/products/index'
 import { Route as WWorkspaceAppEarnSettingsIndexRouteImport } from './routes/w/$workspace/_app/earn/settings/index'
 import { Route as WWorkspaceAppEarnSponsorsIndexRouteImport } from './routes/w/$workspace/_app/earn/sponsors/index'
+import { Route as WWorkspaceAppFormsSurveysSurveyIdRouteImport } from './routes/w/$workspace/_app/forms/surveys.$surveyId'
 import { Route as WWorkspaceAppSettingsIntegrationsIndexRouteImport } from './routes/w/$workspace/_app/settings/integrations/index'
 import { Route as WWorkspaceAppSettingsIntegrationsKindRouteImport } from './routes/w/$workspace/_app/settings/integrations/$kind'
 import { Route as WWorkspaceAppSettingsIntegrationsHostreputeRouteImport } from './routes/w/$workspace/_app/settings/integrations/hostrepute'
@@ -601,6 +602,12 @@ const WWorkspaceAppEarnSponsorsIndexRoute =
     path: '/earn/sponsors/',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
+const WWorkspaceAppFormsSurveysSurveyIdRoute =
+  WWorkspaceAppFormsSurveysSurveyIdRouteImport.update({
+    id: '/forms/surveys/$surveyId',
+    path: '/forms/surveys/$surveyId',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
 const WWorkspaceAppSettingsIntegrationsIndexRoute =
   WWorkspaceAppSettingsIntegrationsIndexRouteImport.update({
     id: '/settings/integrations/',
@@ -775,6 +782,7 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/campaigns/$campaignId/report': typeof WWorkspaceAppCampaignsCampaignIdReportRoute
   '/w/$workspace/campaigns/$campaignId/review': typeof WWorkspaceAppCampaignsCampaignIdReviewRoute
   '/w/$workspace/earn/plans/upgrade-page': typeof WWorkspaceAppEarnPlansUpgradePageRoute
+  '/w/$workspace/forms/surveys/$surveyId': typeof WWorkspaceAppFormsSurveysSurveyIdRoute
   '/w/$workspace/settings/integrations/$kind': typeof WWorkspaceAppSettingsIntegrationsKindRoute
   '/w/$workspace/settings/integrations/hostrepute': typeof WWorkspaceAppSettingsIntegrationsHostreputeRoute
   '/w/$workspace/settings/integrations/wordpress': typeof WWorkspaceAppSettingsIntegrationsWordpressRoute
@@ -876,6 +884,7 @@ export interface FileRoutesByTo {
   '/w/$workspace/campaigns/$campaignId/report': typeof WWorkspaceAppCampaignsCampaignIdReportRoute
   '/w/$workspace/campaigns/$campaignId/review': typeof WWorkspaceAppCampaignsCampaignIdReviewRoute
   '/w/$workspace/earn/plans/upgrade-page': typeof WWorkspaceAppEarnPlansUpgradePageRoute
+  '/w/$workspace/forms/surveys/$surveyId': typeof WWorkspaceAppFormsSurveysSurveyIdRoute
   '/w/$workspace/settings/integrations/$kind': typeof WWorkspaceAppSettingsIntegrationsKindRoute
   '/w/$workspace/settings/integrations/hostrepute': typeof WWorkspaceAppSettingsIntegrationsHostreputeRoute
   '/w/$workspace/settings/integrations/wordpress': typeof WWorkspaceAppSettingsIntegrationsWordpressRoute
@@ -980,6 +989,7 @@ export interface FileRoutesById {
   '/w/$workspace/_app/campaigns/$campaignId/report': typeof WWorkspaceAppCampaignsCampaignIdReportRoute
   '/w/$workspace/_app/campaigns/$campaignId/review': typeof WWorkspaceAppCampaignsCampaignIdReviewRoute
   '/w/$workspace/_app/earn/plans/upgrade-page': typeof WWorkspaceAppEarnPlansUpgradePageRoute
+  '/w/$workspace/_app/forms/surveys/$surveyId': typeof WWorkspaceAppFormsSurveysSurveyIdRoute
   '/w/$workspace/_app/settings/integrations/$kind': typeof WWorkspaceAppSettingsIntegrationsKindRoute
   '/w/$workspace/_app/settings/integrations/hostrepute': typeof WWorkspaceAppSettingsIntegrationsHostreputeRoute
   '/w/$workspace/_app/settings/integrations/wordpress': typeof WWorkspaceAppSettingsIntegrationsWordpressRoute
@@ -1084,6 +1094,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/campaigns/$campaignId/report'
     | '/w/$workspace/campaigns/$campaignId/review'
     | '/w/$workspace/earn/plans/upgrade-page'
+    | '/w/$workspace/forms/surveys/$surveyId'
     | '/w/$workspace/settings/integrations/$kind'
     | '/w/$workspace/settings/integrations/hostrepute'
     | '/w/$workspace/settings/integrations/wordpress'
@@ -1185,6 +1196,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/campaigns/$campaignId/report'
     | '/w/$workspace/campaigns/$campaignId/review'
     | '/w/$workspace/earn/plans/upgrade-page'
+    | '/w/$workspace/forms/surveys/$surveyId'
     | '/w/$workspace/settings/integrations/$kind'
     | '/w/$workspace/settings/integrations/hostrepute'
     | '/w/$workspace/settings/integrations/wordpress'
@@ -1288,6 +1300,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/_app/campaigns/$campaignId/report'
     | '/w/$workspace/_app/campaigns/$campaignId/review'
     | '/w/$workspace/_app/earn/plans/upgrade-page'
+    | '/w/$workspace/_app/forms/surveys/$surveyId'
     | '/w/$workspace/_app/settings/integrations/$kind'
     | '/w/$workspace/_app/settings/integrations/hostrepute'
     | '/w/$workspace/_app/settings/integrations/wordpress'
@@ -1922,6 +1935,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceAppEarnSponsorsIndexRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
+    '/w/$workspace/_app/forms/surveys/$surveyId': {
+      id: '/w/$workspace/_app/forms/surveys/$surveyId'
+      path: '/forms/surveys/$surveyId'
+      fullPath: '/w/$workspace/forms/surveys/$surveyId'
+      preLoaderRoute: typeof WWorkspaceAppFormsSurveysSurveyIdRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
     '/w/$workspace/_app/settings/integrations/': {
       id: '/w/$workspace/_app/settings/integrations/'
       path: '/settings/integrations'
@@ -2100,6 +2120,7 @@ interface WWorkspaceAppRouteRouteChildren {
   WWorkspaceAppCampaignsCampaignIdReportRoute: typeof WWorkspaceAppCampaignsCampaignIdReportRoute
   WWorkspaceAppCampaignsCampaignIdReviewRoute: typeof WWorkspaceAppCampaignsCampaignIdReviewRoute
   WWorkspaceAppEarnPlansUpgradePageRoute: typeof WWorkspaceAppEarnPlansUpgradePageRoute
+  WWorkspaceAppFormsSurveysSurveyIdRoute: typeof WWorkspaceAppFormsSurveysSurveyIdRoute
   WWorkspaceAppSettingsIntegrationsKindRoute: typeof WWorkspaceAppSettingsIntegrationsKindRoute
   WWorkspaceAppSettingsIntegrationsHostreputeRoute: typeof WWorkspaceAppSettingsIntegrationsHostreputeRoute
   WWorkspaceAppSettingsIntegrationsWordpressRoute: typeof WWorkspaceAppSettingsIntegrationsWordpressRoute
@@ -2186,6 +2207,8 @@ const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
     WWorkspaceAppCampaignsCampaignIdReviewRoute,
   WWorkspaceAppEarnPlansUpgradePageRoute:
     WWorkspaceAppEarnPlansUpgradePageRoute,
+  WWorkspaceAppFormsSurveysSurveyIdRoute:
+    WWorkspaceAppFormsSurveysSurveyIdRoute,
   WWorkspaceAppSettingsIntegrationsKindRoute:
     WWorkspaceAppSettingsIntegrationsKindRoute,
   WWorkspaceAppSettingsIntegrationsHostreputeRoute:

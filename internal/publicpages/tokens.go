@@ -888,6 +888,14 @@ func (h *Handler) viewOnline(w http.ResponseWriter, r *http.Request) {
 			subj, html = variantContent(mv.Subject, mv.Html, mv.AbTest, m.Variant)
 		}
 	}
+	// The reader's version of conditional content; poll links answer as
+	// someone who isn't a contact (design expansion, X11).
+	if h.Browser != nil {
+		html = h.Browser.BrowserHTML(r.Context(), s.ws, cp.ID, m.ID, html)
+		for k, v := range h.Browser.BrowserLinks(r.Context(), s.ws, cp.ID) {
+			links[k] = v
+		}
+	}
 	subject, body := renderEmail(subj, html, pc.Email, pc.FirstName, pc.LastName, pc.Attributes, links, h.URLs.Base())
 	doc := setDocLang(injectHead(body, emailHead{Title: subject, Robots: "noindex, nofollow"}), lang)
 	emailHeaders(w, true)
