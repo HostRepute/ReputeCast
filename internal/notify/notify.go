@@ -56,6 +56,8 @@ const (
 	KindVerificationCreditsLow = "verification_credits_low" // a service's balance runs low
 	KindPlacementFinished      = "placement_finished"       // a placement test finished
 	KindSeedSignInFailed       = "seed_signin_failed"       // a seed mailbox's sign-in failed or expired
+	// The publication website (design expansion, phase 7).
+	KindWebsiteDomain = "website_domain" // the website's custom domain stopped checking out, or its certificate is failing
 )
 
 // Notification is what appears in the notification center.

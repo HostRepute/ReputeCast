@@ -36,6 +36,8 @@ type Facts struct {
 	Polls       PollFacts
 	// Verification is the audience's address-check results (verification.go).
 	Verification VerificationFacts
+	// Web is the campaign's post on the website (design expansion, X18).
+	Web WebFacts
 	// MailboxRates are the per-mailbox-provider throttles (messages per
 	// second, 0 = full rate).
 	MailboxRates map[string]float64

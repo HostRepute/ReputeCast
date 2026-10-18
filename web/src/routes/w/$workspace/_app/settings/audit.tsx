@@ -13,7 +13,7 @@ const search = z.object({
   actorType: z.enum(['user', 'api_key', 'mcp_agent', 'system']).optional().catch(undefined),
   actor: z.string().max(64).optional().catch(undefined),
   action: z.string().max(64).optional().catch(undefined),
-  category: z.enum(['sending', 'routing', 'audience', 'team', 'settings', 'integrations', 'transactional', 'scoring', 'digests', 'polls', 'earn', 'verification', 'placement']).optional().catch(undefined),
+  category: z.enum(['sending', 'routing', 'audience', 'team', 'settings', 'integrations', 'transactional', 'scoring', 'digests', 'polls', 'earn', 'verification', 'placement', 'website']).optional().catch(undefined),
   result: z.enum(['allowed', 'denied', 'error']).optional().catch(undefined),
   range: z.enum(['24h', '7d', '30d', '90d', 'all', 'custom']).optional().catch(undefined),
   /** Custom range, as dates in the workspace timezone. */

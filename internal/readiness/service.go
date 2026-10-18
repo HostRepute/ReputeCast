@@ -54,6 +54,9 @@ type Service struct {
 	// Verification gives the address checks in Audience quality; nil
 	// leaves them out.
 	Verification VerificationChecker
+	// Website gives the web checks of a campaign that publishes to the
+	// website; nil leaves them out.
+	Website WebsiteChecker
 }
 
 func (s *Service) now() time.Time {

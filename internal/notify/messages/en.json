@@ -27,5 +27,6 @@
   "short.verification_ended": "verification jobs",
   "short.verification_credits_low": "low verification credits",
   "short.placement_finished": "placement tests",
-  "short.seed_signin_failed": "seed sign-in failures"
+  "short.seed_signin_failed": "seed sign-in failures",
+  "short.website_domain": "website domain problems"
 }

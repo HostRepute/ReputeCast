@@ -28,6 +28,9 @@ const (
 	// RuleTransactionalPublish: publishing a transactional template needs
 	// approval (add-on transactional §3.6; off by default).
 	RuleTransactionalPublish = "transactional_publish"
+	// RulePostPublish: publishing a post of the publication website (or a
+	// page) needs approval (design expansion phase 7; off by default).
+	RulePostPublish = "post_publish"
 )
 
 // InvalidationShare is how far the audience may move (in percent) before an
@@ -66,6 +69,7 @@ type policyDoc struct {
 	ApproverRoles        []string `json:"approver_roles,omitempty"`
 	AutomationPublish    bool     `json:"automation_publish"`
 	TransactionalPublish bool     `json:"transactional_publish"`
+	PostPublish          bool     `json:"post_publish"`
 	EmergencyBypass      *bool    `json:"emergency_bypass"`
 }
 
@@ -90,7 +94,11 @@ type ApprovalPolicy struct {
 	// TransactionalPublish: publishing a transactional template needs an
 	// approver other than the publisher (off by default).
 	TransactionalPublish bool `json:"transactionalPublish"`
-	EmergencyBypass      bool `json:"emergencyBypass"`
+	// PostPublish: publishing a post or page of the website needs an
+	// approver other than the publisher (off by default). "The author
+	// lacks the send permission" covers website:publish too.
+	PostPublish     bool `json:"postPublish"`
+	EmergencyBypass bool `json:"emergencyBypass"`
 }
 
 // ParsePolicy reads the stored policy. An empty policy is the default of a
@@ -111,6 +119,7 @@ func ParsePolicy(raw json.RawMessage) ApprovalPolicy {
 		ApprovalsRequired:    d.ApprovalsRequired,
 		AutomationPublish:    d.AutomationPublish,
 		TransactionalPublish: d.TransactionalPublish,
+		PostPublish:          d.PostPublish,
 		EmergencyBypass:      d.EmergencyBypass == nil || *d.EmergencyBypass,
 	}
 	if p.AudienceMin.N <= 0 {
@@ -143,6 +152,7 @@ func (p ApprovalPolicy) toDB(prev json.RawMessage) json.RawMessage {
 	d.ApprovalsRequired = p.ApprovalsRequired
 	d.AutomationPublish = p.AutomationPublish
 	d.TransactionalPublish = p.TransactionalPublish
+	d.PostPublish = p.PostPublish
 	b := p.EmergencyBypass
 	d.EmergencyBypass = &b
 	if len(d.ApproverRoles) == 0 {
@@ -170,12 +180,15 @@ func (p ApprovalPolicy) RuleLabels() []string {
 	if p.ApprovalLists {
 		out = append(out, "list requires approval")
 	}
+	if p.PostPublish {
+		out = append(out, "post or page publish")
+	}
 	return out
 }
 
 // ApprovalRuleMatch is a rule that matched a send.
 type ApprovalRuleMatch struct {
-	Key string `json:"key" enum:"audience_min,warming_provider,new_provider,ready_with_warnings,author_lacks_send,approval_lists,automation_publish,transactional_publish"`
+	Key string `json:"key" enum:"audience_min,warming_provider,new_provider,ready_with_warnings,author_lacks_send,approval_lists,automation_publish,transactional_publish,post_publish"`
 	// Label is the sentence ("Audience of 47,912 is at least 10,000"),
 	// Short the inbox phrase ("audience ≥ 10,000") and Badge the chip.
 	Label string `json:"label"`
