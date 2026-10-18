@@ -111,8 +111,9 @@ func (e *earnMore) bookingsSeed(ctx context.Context) error {
 		return sponsorCreativeSeed{Headline: "Postgres that scales to zero", Text: "Managed Postgres with a branch for every pull request.", Button: "Start building",
 			Link: "https://contoso.example/postgres", UTM: utmOf(issue)}
 	}
-	waiting := func(issue int, link string) sponsorCreativeSeed {
-		return sponsorCreativeSeed{Link: link, UTM: utmOf(issue)}
+	// A creative still to come has only its UTM parameters.
+	waiting := func(issue int) sponsorCreativeSeed {
+		return sponsorCreativeSeed{UTM: utmOf(issue)}
 	}
 	type paid struct {
 		on     time.Time
@@ -147,11 +148,11 @@ func (e *earnMore) bookingsSeed(ctx context.Context) error {
 			notes: "First booking. Maya wants the report shared after each issue.", stats: []int64{31299, 14022, 412, 431, 67}, final: true},
 		{issue: 142, sponsor: e.contoso, status: "sent", campaign: "Weekly Digest #142", creative: contoso(142), ready: true, readyAt: s.earnDay(2026, 10, 9, 10, 0),
 			created: s.earnDay(2026, 9, 19, 15, 46), createdBy: e.sofia, stats: []int64{31342, 12108, 296, 309, 42}},
-		{issue: 143, sponsor: e.northwind, status: "booked", campaign: "Weekly Digest #143", creative: waiting(143, "https://northwind-analytics.example/trial"),
+		{issue: 143, sponsor: e.northwind, status: "booked", campaign: "Weekly Digest #143", creative: waiting(143),
 			notes:   "Second of three issues booked after #141. Maya asked for the same slot and the trial link again.",
 			created: s.earnDay(2026, 10, 9, 16, 20), createdBy: e.sofia},
-		{issue: 145, sponsor: e.contoso, status: "hold", hold: &hold, creative: waiting(145, "https://contoso.example/postgres"), created: s.earnDay(2026, 10, 13, 11, 30), createdBy: e.sofia},
-		{issue: 146, sponsor: e.northwind, status: "booked", creative: waiting(146, "https://northwind-analytics.example/trial"), created: s.earnDay(2026, 10, 9, 16, 20), createdBy: e.sofia},
+		{issue: 145, sponsor: e.contoso, status: "hold", hold: &hold, creative: waiting(145), created: s.earnDay(2026, 10, 13, 11, 30), createdBy: e.sofia},
+		{issue: 146, sponsor: e.northwind, status: "booked", creative: waiting(146), created: s.earnDay(2026, 10, 9, 16, 20), createdBy: e.sofia},
 	}
 	for _, b := range list {
 		// The issue's date in the sample's calendar, and the demo's.
@@ -168,7 +169,7 @@ func (e *earnMore) bookingsSeed(ctx context.Context) error {
 		}
 		sid := b.sponsor
 		if err := e.q.SponsorBookingInsert(ctx, store.SponsorBookingInsertParams{ID: id, WorkspaceID: e.ws.ID, SlotID: e.slot, IssueNumber: int32(b.issue), IssueOn: on,
-			SponsorID: &sid, CampaignID: camp, CampaignByHand: camp != nil, PriceCents: 75000, Currency: "usd", Status: b.status, HoldUntil: b.hold, Creative: cr,
+			SponsorID: &sid, CampaignID: camp, CampaignByHand: false, PriceCents: 75000, Currency: "usd", Status: b.status, HoldUntil: b.hold, Creative: cr,
 			CreativeStatus: "waiting", CreativeDue: &creativeDue, PaymentDue: &paymentDue, Notes: b.notes, CreatedBy: b.createdBy, At: b.created}); err != nil {
 			return fmt.Errorf("booking #%d: %w", b.issue, err)
 		}
@@ -214,11 +215,11 @@ func (e *earnMore) bookingsSeed(ctx context.Context) error {
 		{141, "booked", s.earnDay(2026, 9, 26, 10, 20), e.sofia, "Sofia Rossi", map[string]any{"sponsor": "Northwind Analytics", "priceCents": 75000}},
 		{141, "creative_ready", s.earnDay(2026, 10, 2, 16, 30), e.sofia, "Sofia Rossi", nil},
 		{141, "report_shared", s.earnDay(2026, 10, 9, 11, 5), e.sofia, "Sofia Rossi", map[string]any{"expiresAt": s.earnDay(2027, 1, 7, 11, 5).UTC().Format(time.RFC3339)}},
-		{141, "paid", s.earnDay(2026, 10, 9, 15, 2), e.sofia, "Sofia Rossi", map[string]any{"amountCents": 75000, "paidOn": "2026-10-09", "note": "Wire transfer, ref 5523"}},
+		{141, "paid", s.earnDay(2026, 10, 9, 15, 2), e.sofia, "Sofia Rossi", map[string]any{"amountCents": 75000, "paidOn": e.day(10, 9).Format(time.DateOnly), "note": "Wire transfer, ref 5523"}},
 		{143, "booked", s.earnDay(2026, 10, 9, 16, 20), e.sofia, "Sofia Rossi", map[string]any{"sponsor": "Northwind Analytics", "priceCents": 75000, "with": []int{143, 146}, "after": 141}},
 		{143, "creative_requested", s.earnDay(2026, 10, 10, 9, 40), e.sofia, "Sofia Rossi", map[string]any{"contact": "Maya Lindqvist"}},
 		{146, "booked", s.earnDay(2026, 10, 9, 16, 20), e.sofia, "Sofia Rossi", map[string]any{"sponsor": "Northwind Analytics", "priceCents": 75000, "with": []int{143, 146}, "after": 141}},
-		{145, "held", s.earnDay(2026, 10, 13, 11, 30), e.sofia, "Sofia Rossi", map[string]any{"sponsor": "Contoso Cloud", "holdUntil": "2026-10-20"}},
+		{145, "held", s.earnDay(2026, 10, 13, 11, 30), e.sofia, "Sofia Rossi", map[string]any{"sponsor": "Contoso Cloud", "holdUntil": e.day(10, 20).Format(time.DateOnly)}},
 	} {
 		data := ev.data
 		if data == nil {
@@ -266,13 +267,13 @@ func (e *earnMore) sponsorAudit(ctx context.Context) error {
 			after: map[string]any{"expiresAt": "2027-01-07", "readOnly": true}},
 		{at: s.earnDay(2026, 10, 9, 15, 2), actorType: "user", actor: "sofia@acme.io", action: "sponsors.payment_recorded", targetType: "sponsor_booking",
 			targetID: e.bookings[141].String(), target: "Weekly Digest #141 · Main sponsor", ip: "203.0.113.14", ua: uaChromeMac,
-			before: map[string]any{"payment": "unpaid"}, after: map[string]any{"payment": "paid", "paidOn": "2026-10-09", "paidCents": 75000, "note": "Wire transfer, ref 5523"}},
+			before: map[string]any{"payment": "unpaid"}, after: map[string]any{"payment": "paid", "paidOn": e.day(10, 9).Format(time.DateOnly), "paidCents": 75000, "note": "Wire transfer, ref 5523"}},
 		{at: s.earnDay(2026, 10, 9, 16, 20), actorType: "user", actor: "sofia@acme.io", action: "sponsors.booking_created", targetType: "sponsor_booking",
 			targetID: e.bookings[143].String(), target: "Weekly Digest #143 · Main sponsor", ip: "203.0.113.14", ua: uaChromeMac,
 			after: map[string]any{"sponsor": "Northwind Analytics", "status": "booked", "priceCents": 75000}},
 		{at: s.earnDay(2026, 10, 13, 11, 30), actorType: "user", actor: "sofia@acme.io", action: "sponsors.booking_created", targetType: "sponsor_booking",
 			targetID: e.bookings[145].String(), target: "Weekly Digest #145 · Main sponsor", ip: "203.0.113.14", ua: uaChromeMac,
-			after: map[string]any{"sponsor": "Contoso Cloud", "status": "hold", "holdUntil": "2026-10-20", "priceCents": 75000}},
+			after: map[string]any{"sponsor": "Contoso Cloud", "status": "hold", "holdUntil": e.day(10, 20).Format(time.DateOnly), "priceCents": 75000}},
 	} {
 		if err := s.insertAudit(ctx, e.ws.ID, a); err != nil {
 			return err

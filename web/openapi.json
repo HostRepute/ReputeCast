@@ -95279,6 +95279,90 @@
         "x-permission": "sponsors:manage"
       }
     },
+    "/api/v1/workspaces/{workspace}/sponsors/logo": {
+      "post": {
+        "description": "The logo is kept in the media library; save its URL as the sponsor's logoUrl.",
+        "operationId": "upload-sponsor-logo",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "encoding": {
+                "file": {
+                  "contentType": "image/png,image/jpeg,image/gif,application/octet-stream"
+                }
+              },
+              "schema": {
+                "properties": {
+                  "file": {
+                    "contentEncoding": "binary",
+                    "contentMediaType": "application/octet-stream",
+                    "description": "PNG, JPEG or GIF, up to 5 MB",
+                    "format": "binary",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "file"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SponsorImage"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Upload a sponsor's logo (PNG, JPEG or GIF, up to 5 MB)",
+        "tags": [
+          "Sponsors"
+        ],
+        "x-access": "workspace",
+        "x-permission": "sponsors:manage"
+      }
+    },
     "/api/v1/workspaces/{workspace}/sponsors/overview": {
       "get": {
         "operationId": "get-sponsor-overview",

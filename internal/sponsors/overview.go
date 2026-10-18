@@ -126,7 +126,7 @@ func (s *Service) Overview(ctx context.Context, ws *store.Workspace, p *authz.Pr
 	if err := s.tiles(ctx, ws, &out, all, today); err != nil {
 		return out, err
 	}
-	out.Notices = s.notices(ws, all, slots, today)
+	out.Notices = s.notices(ctx, ws, all, slots, today)
 	if len(slots) == 0 {
 		return out, nil
 	}
@@ -356,10 +356,17 @@ func (s *Service) tiles(ctx context.Context, ws *store.Workspace, out *SponsorOv
 // notices are what needs a person: a creative due or late before its
 // issue, an overdue payment, a hold ending tomorrow, a booked issue soon
 // without a campaign.
-func (s *Service) notices(ws *store.Workspace, all []store.SponsorBookingsOfWorkspaceRow, slots []store.SponsorSlotsRow, today time.Time) []SponsorNotice {
+func (s *Service) notices(ctx context.Context, ws *store.Workspace, all []store.SponsorBookingsOfWorkspaceRow, slots []store.SponsorSlotsRow, today time.Time) []SponsorNotice {
 	lists := map[uuid.UUID]string{}
+	listIDs := map[uuid.UUID]uuid.UUID{}
 	for _, sl := range slots {
 		lists[sl.ID] = sl.ListName
+		listIDs[sl.ID] = sl.ListID
+	}
+	// An issue without a campaign of its own links to one by list and date
+	// as soon as that campaign exists.
+	noCampaign := func(b store.SponsorBookingsOfWorkspaceRow, on time.Time) bool {
+		return b.CampaignID == nil && s.campaignOn(ctx, ws, listIDs[b.SlotID], on) == nil
 	}
 	var late, overdue, lapsing, nocamp []SponsorNotice
 	for _, b := range all {
@@ -375,7 +382,7 @@ func (s *Service) notices(ws *store.Workspace, all []store.SponsorBookingsOfWork
 		case b.Status == "hold" && b.HoldUntil != nil && civil(*b.HoldUntil).Sub(today) <= 24*time.Hour && !civil(*b.HoldUntil).Before(today):
 			n.Kind, n.Due = "hold_lapsing", noonPtr(b.HoldUntil, ws)
 			lapsing = append(lapsing, n)
-		case b.Status == "booked" && !sent && b.CampaignID == nil && days >= 0 && days <= noticeWindow:
+		case b.Status == "booked" && !sent && days >= 0 && days <= noticeWindow && noCampaign(b, on):
 			n.Kind = "no_campaign"
 			nocamp = append(nocamp, n)
 		}

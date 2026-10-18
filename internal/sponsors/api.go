@@ -79,6 +79,32 @@ type uploadInput struct {
 
 func (p uploadInput) id() (uuid.UUID, error) { return parseID(p.ID) }
 
+type logoInput struct {
+	api.WorkspaceInput
+	RawBody huma.MultipartFormFiles[struct {
+		File huma.FormFile `form:"file" contentType:"image/png,image/jpeg,image/gif,application/octet-stream" required:"true" doc:"PNG, JPEG or GIF, up to 5 MB"`
+	}]
+}
+
+// upload keeps an uploaded logo or image in the media library.
+func (s *Service) upload(ctx context.Context, f huma.FormFile) (SponsorImage, error) {
+	if !f.IsSet {
+		return SponsorImage{}, api.Invalid("body.file", text(ctx, "problem.imageMissing", nil))
+	}
+	data, err := io.ReadAll(io.LimitReader(f, maxImage+1))
+	if err != nil || len(data) > maxImage {
+		return SponsorImage{}, api.Invalid("body.file", text(ctx, "problem.imageTooLarge", nil))
+	}
+	if s.Images == nil {
+		return SponsorImage{}, api.Err(http.StatusServiceUnavailable, api.CodeUnavailable, text(ctx, "problem.imagesUnavailable", nil))
+	}
+	u, err := s.Images.Upload(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), f.Filename, data)
+	if err != nil {
+		return SponsorImage{}, err
+	}
+	return SponsorImage{URL: u}, nil
+}
+
 // SponsorImage is an uploaded logo or image.
 type SponsorImage struct {
 	URL string `json:"url"`
@@ -113,6 +139,12 @@ func Register(h huma.API, s *Service) {
 	api.Post(h, api.Op{ID: "create-sponsor", Path: ws + "/sponsors", Summary: "Add a sponsor to the library", Tags: tags, Access: manage, Status: http.StatusCreated},
 		func(ctx context.Context, in *body[SponsorInput]) (*api.Body[SponsorItem], error) {
 			out, err := s.CreateSponsor(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Body)
+			return api.OK(out), err
+		})
+	api.Post(h, api.Op{ID: "upload-sponsor-logo", Path: ws + "/sponsors/logo", Summary: "Upload a sponsor's logo (PNG, JPEG or GIF, up to 5 MB)",
+		Description: "The logo is kept in the media library; save its URL as the sponsor's logoUrl.", Tags: tags, Access: manage, MaxBodyBytes: maxImage + 64<<10, Status: http.StatusCreated},
+		func(ctx context.Context, in *logoInput) (*api.Body[SponsorImage], error) {
+			out, err := s.upload(ctx, in.RawBody.Data().File)
 			return api.OK(out), err
 		})
 	api.Put(h, api.Op{ID: "update-sponsor", Path: ws + "/sponsors/{id}", Summary: "Change a sponsor", Tags: tags, Access: manage},
@@ -242,26 +274,11 @@ func Register(h huma.API, s *Service) {
 			if err != nil {
 				return nil, err
 			}
-			ws, p := api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx)
-			if _, _, err := s.mustBooking(ctx, ws, id); err != nil {
+			if _, _, err := s.mustBooking(ctx, api.WorkspaceFrom(ctx), id); err != nil {
 				return nil, err
 			}
-			f := in.RawBody.Data().File
-			if !f.IsSet {
-				return nil, api.Invalid("body.file", text(ctx, "problem.imageMissing", nil))
-			}
-			data, err := io.ReadAll(io.LimitReader(f, maxImage+1))
-			if err != nil || len(data) > maxImage {
-				return nil, api.Invalid("body.file", text(ctx, "problem.imageTooLarge", nil))
-			}
-			if s.Images == nil {
-				return nil, api.Err(http.StatusServiceUnavailable, api.CodeUnavailable, text(ctx, "problem.imagesUnavailable", nil))
-			}
-			u, err := s.Images.Upload(ctx, ws, p, f.Filename, data)
-			if err != nil {
-				return nil, err
-			}
-			return api.OK(SponsorImage{URL: u}), nil
+			out, err := s.upload(ctx, in.RawBody.Data().File)
+			return api.OK(out), err
 		})
 	api.Put(h, api.Op{ID: "record-sponsor-payment", Path: ws + "/sponsor-bookings/{id}/payment", Summary: "Record a booking's payment by hand, or change it",
 		Description: "ReputeCast sends no invoices and moves no money: this records what the sponsor paid.", Tags: tags, Access: person},
