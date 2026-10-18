@@ -211,7 +211,7 @@ export function MembersPage({ search, onSearch }: { search: MembersSearch; onSea
         </div>
       )}
       {search.member ? <MemberPanel id={search.member} onClose={() => onSearch({ ...search, member: undefined })} /> : null}
-      {search.comp && d ? <ComplimentaryDialog tiers={d.tiers} onClose={() => onSearch({ ...search, comp: undefined })} /> : null}
+      {search.comp && d ? <ComplimentaryDialog onClose={() => onSearch({ ...search, comp: undefined })} /> : null}
       {search.import ? <ImportDialog id={search.import === 'new' ? undefined : search.import} onClose={() => onSearch({ ...search, import: undefined })} onChange={(id) => onSearch({ ...search, import: id }, true)} /> : null}
     </EarnPage>
   )

@@ -56,6 +56,7 @@ export const me = defineMessages('earn', {
   giftFrom: '{length, select, year {A year} other {{months, plural, one {# month} other {# months}}}}, from {from}',
   giftFromNoName: '{length, select, year {A year} other {{months, plural, one {# month} other {# months}}}} as a gift',
   discountOnce: '{amount} for the first {period, select, year {year} other {month}} with {offer}, then {price}',
+  offerPercent: '{offer} ({percent}% off)',
   discountUntil: '{amount} until {date} ({offer}), then {full}',
   discountForever: '{amount} with {offer} (normally {price})',
   refundedOn: 'refunded {amount} on {date}',

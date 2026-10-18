@@ -11,7 +11,7 @@ import { Note } from '@/components/ui/Note'
 import { TableScroll } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { useT } from '@/i18n'
-import { count, dayMonthDate, dayMonthYear, monthDayTime } from '@/lib/format'
+import { andList, clock, count, dayMonthDate, dayMonthYear, monthDayTime } from '@/lib/format'
 import { trackJob, updateJob } from '@/lib/jobs'
 import { useWorkspace } from '@/lib/session'
 import { EARN, useEarnStatus } from './EarnPage'
@@ -36,16 +36,21 @@ export function ImportDialog({ id, onClose, onChange }: { id?: string; onClose: 
   const step = picked === 0 && imp ? (imp.status === 'uploaded' ? 2 : imp.status === 'matched' ? 3 : 5) : picked
   const connected = Boolean(status.data?.mode)
   const platform = imp?.platform ?? platformLabel(t, source)
-  const title = step === 1 ? t(mi.title) : imp?.status === 'done' ? t(mi.doneTitle, { rows: imp.rows, platform: imp.platform }) : t(mi.titleFrom, { platform })
+  const title =
+    step <= 1 ? t(mi.title) : step === 2 ? t(mi.uploadTitle) : imp?.status === 'done' ? t(mi.doneTitle, { rows: imp.rows, platform: imp.platform }) : t(mi.titleFrom, { platform })
+  // Matching, prices and the review lay out wide, as EarnImport draws them.
+  const wide = step >= 3 && imp?.status !== 'done' && imp?.status !== 'importing'
   const stepName = [t(mi.stepSource), t(mi.stepUpload), t(mi.stepMatch), t(mi.stepPrices), t(mi.stepReview)][Math.max(0, Math.min(4, step - 1))]
   return (
     <Dialog
       open
-      size="lg"
+      size={wide ? 'lg' : 'md'}
+      hideClose
       onOpenChange={(o) => !o && onClose()}
-      className="ea-import"
+      className={wide ? 'ea-import ea-wide' : 'ea-import'}
       eyebrow={step > 0 && imp?.status !== 'done' ? <span className="k">{t(mi.stepOf, { n: step, step: (stepName ?? '').toLowerCase() })}</span> : undefined}
       title={title}
+      description={wide ? t(mi.matchLead, { account: status.data?.account ?? '' }) : undefined}
       dismissible={imp?.status !== 'importing'}
     >
       {!connected && status.data ? (
@@ -123,9 +128,12 @@ function SourceStep({ source, onSource, account, onCancel, onNext }: { source: S
     <div className="flex flex-col gap-3">
       <Steps at={1} platform="" />
       <p className="m-0 text-ink-2">{t(mi.sourceLead, { account })}</p>
-      <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }} role="radiogroup" aria-label={t(mi.stepSource)}>
+      <div className="ea-srcopts" role="group" aria-label={t(mi.stepSource)}>
         {sources.map((s) => (
-          <OptionCard key={s} name="source" value={s} checked={source === s} onChange={() => onSource(s)} title={platformLabel(t, s)} description={hints[s]} />
+          <button key={s} type="button" className="ea-srcopt" aria-pressed={source === s} onClick={() => onSource(s)}>
+            <b>{platformLabel(t, s)}</b>
+            <span className="k">{hints[s]}</span>
+          </button>
         ))}
       </div>
       <Footer>
@@ -323,7 +331,6 @@ function MatchStep({ imp, onBack, onCancel, onNext }: { imp: Import; onBack: () 
   return (
     <div className="flex flex-col gap-3">
       <Steps at={3} platform={imp.platform} />
-      <p className="m-0 text-ink-2">{t(mi.matchLead, { account: imp.account })}</p>
       <div className="flex flex-wrap items-center justify-between gap-2 text-[13px]">
         <span>
           <b>{imp.fileName}</b> <span className="k">· {t(mi.fileMatched, { rows: imp.rows, account: imp.account })}</span>
@@ -569,7 +576,7 @@ function ReviewStep({ imp, onBack, onClose }: { imp: Import; onBack: () => void;
   if (imp.status === 'done' && st) {
     return (
       <div className="flex flex-col gap-3">
-        <span className="k">{t(mi.doneLine, { when: imp.finishedAt ? monthDayTime(imp.finishedAt) : '', name: imp.createdBy ?? '' })}</span>
+        <span className="k">{t(mi.doneLine, { when: imp.finishedAt ? `${dayMonthDate(imp.finishedAt)}, ${clock(imp.finishedAt)}` : '', name: imp.createdBy ?? '' })}</span>
         <dl className="ea-kv">
           <dt>{t(mi.reviewPaid)}</dt>
           <dd>{t(mi.donePaid, { count: st.paid })}</dd>
@@ -582,25 +589,32 @@ function ReviewStep({ imp, onBack, onClose }: { imp: Import; onBack: () => void;
           <dt>{t(mi.reviewConsent)}</dt>
           <dd>{t(mi.consentValue, { platform: imp.platform })}</dd>
           <dt>{t(mi.donePrices)}</dt>
-          <dd>{t(mi.donePricesValue, { count: st.pricesMapped })}</dd>
+          <dd>{pricesMapped(t, imp, st.pricesMapped)}</dd>
           <dt>{t(mi.reviewEmails)}</dt>
           <dd>{t(mi.doneEmails, { count: st.emailsSent })}</dd>
           <dt>{t(mi.reviewStripe)}</dt>
-          <dd>{t(mi.reviewStripeValue)}</dd>
+          <dd>{t(mi.doneStripe)}</dd>
         </dl>
-        <Note tone="info" label={t(mi.oldTitle)}>
-          {t(mi.oldText)}
-          <ul className="m-0 mt-2 flex flex-col gap-1 pl-5">
-            <li>{t(mi.old1, { platform: imp.platform })}</li>
-            <li>{t(mi.old2, { platform: imp.platform })}</li>
-            <li>{t(mi.old3)}</li>
-          </ul>
-        </Note>
+        <div className="ea-oldbox">
+          <b>{t(mi.oldTitle)}</b>
+          <span>{t(mi.oldText)}</span>
+          {[t(mi.old1, { platform: imp.platform }), t(mi.old2, { platform: imp.platform }), t(mi.old3)].map((x) => (
+            <label key={x} className="flex items-start gap-2">
+              <input type="checkbox" className="mt-0.5" />
+              <span>{x}</span>
+            </label>
+          ))}
+        </div>
         <Footer>
           <span />
-          <Button variant="primary" onClick={onClose}>
-            {t(mi.seeMembers)}
-          </Button>
+          <span className="flex gap-2">
+            <ButtonLink to="/w/$workspace/earn" params={{ workspace: slug }}>
+              {t(mi.overview)}
+            </ButtonLink>
+            <Button variant="primary" onClick={onClose}>
+              {t(mi.seeMembers)}
+            </Button>
+          </span>
         </Footer>
       </div>
     )
@@ -646,4 +660,17 @@ function ReviewStep({ imp, onBack, onClose }: { imp: Import; onBack: () => void;
       </Footer>
     </div>
   )
+}
+
+/** "3 mapped: $8/month and $80/year to Insider, $200/year to Founding member". */
+function pricesMapped(t: ReturnType<typeof useT>, imp: Import, n: number): string {
+  const byTier = new Map<string, string[]>()
+  for (const p of imp.prices) {
+    if (!p.tierId || !p.period) continue
+    const name = imp.tiers.find((x) => x.id === p.tierId)?.name ?? ''
+    byTier.set(name, [...(byTier.get(name) ?? []), pricePer(t, p.amountCents, p.currency, p.period)])
+  }
+  if (!byTier.size) return t(mi.donePricesValue, { count: n })
+  const parts = [...byTier.entries()].map(([tier, prices]) => t(mi.pricesTo, { prices: andList(prices), tier }))
+  return t(mi.donePricesDetail, { count: n, detail: parts.join(', ') })
 }

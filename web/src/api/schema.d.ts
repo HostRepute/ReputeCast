@@ -15038,6 +15038,7 @@ export interface components {
             kind: "stripe" | "complimentary" | "gift";
             legacy: boolean;
             link: string;
+            lists: string[];
             /** Format: int64 */
             ltvCents: number;
             matchedBy?: string;
@@ -15062,6 +15063,7 @@ export interface components {
             status: "trialing" | "active" | "past_due" | "canceled" | "complimentary" | "gift";
             subscriptionId?: string;
             subscriptionUrl?: string;
+            taxAdded: boolean;
             test: boolean;
             tier: string;
             tierId?: string;

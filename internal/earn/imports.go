@@ -786,6 +786,15 @@ func (s *Service) Import(ctx context.Context, ws *store.Workspace, p *authz.Prin
 			}
 		}
 	}
+	// Without prices to go by (their rows are gone), everyone joined the
+	// tiers' lists.
+	if len(lists) == 0 {
+		for _, t := range tiers {
+			for _, l := range t.ListIds {
+				lists[l] = true
+			}
+		}
+	}
 	all, _ := s.Q.EarnLists(ctx, ws.ID)
 	for _, l := range all {
 		if lists[l.ID] {

@@ -108,6 +108,8 @@ type earnRow struct {
 	imported   bool
 	emailed    []string
 	updated    time.Time
+	// billing is a billing email that differs from the contact's.
+	billing string
 }
 
 // earnDay is a moment of the Earn sample's calendar, where today is Wed 15
@@ -525,6 +527,8 @@ func (e *earnSeed) add(r earnRow) uuid.UUID {
 		importID = &imp
 		r.srcDetail["platform"] = "substack"
 		r.srcDetail["import_id"] = e.imp.String()
+		r.srcDetail["imported_at"] = e.s.earnDay(2026, 9, 18, 10, 6).UTC().Format(time.RFC3339)
+		r.srcDetail["matched_by"] = "customer"
 	}
 	cus, sub := "", ""
 	if r.kind == "stripe" {
@@ -538,7 +542,7 @@ func (e *earnSeed) add(r earnRow) uuid.UUID {
 	}
 	e.subs = append(e.subs, []any{id, e.ws.ID, r.c.id, r.mode, r.kind, r.tier, r.price, r.stripePr, r.status, r.period, r.amount, "usd", discount,
 		r.started, r.trialEnd, r.periodEnd, r.cancelAt, r.canceled, r.canceledBy, r.ended, r.endReason, r.cancelWhy, r.paid, r.refunded, r.failedAt,
-		r.failure, r.retryAt, cus, sub, "", r.srcKind, r.srcCamp, r.srcLabel, mustJSON(r.srcDetail), r.grantWhy, r.grantNote, r.grantedBy, r.grantTill,
+		r.failure, r.retryAt, cus, sub, r.billing, r.srcKind, r.srcCamp, r.srcLabel, mustJSON(r.srcDetail), r.grantWhy, r.grantNote, r.grantedBy, r.grantTill,
 		importID, tp(r.updated), r.emailed, r.started, r.updated})
 	if r.key != "" {
 		e.byKey[r.key] = id
@@ -558,7 +562,14 @@ func (e *earnSeed) event(sub uuid.UUID, c earnContact, mode, kind string, at tim
 	if amount != nil {
 		cur = "usd"
 	}
-	e.events = append(e.events, []any{ID(), e.ws.ID, c.id, sub, mode, kind, at, amount, cur, nil, "", msg, actor, mustJSON(data)})
+	e.events = append(e.events, []any{ID(), e.ws.ID, c.id, sub, mode, kind, at, amount, cur, nil, stripeEventOf[kind], msg, actor, mustJSON(data)})
+}
+
+// stripeEventOf is the Stripe event behind each kind of timeline event.
+var stripeEventOf = map[string]string{
+	"paid": "invoice.paid", "renewed": "invoice.paid", "checkout_completed": "checkout.session.completed", "payment_failed": "invoice.payment_failed",
+	"refunded": "charge.refunded", "access_ended": "customer.subscription.deleted", "trial_started": "customer.subscription.created",
+	"cancel_scheduled": "customer.subscription.updated", "plan_changed": "customer.subscription.updated",
 }
 
 func i64(v int64) *int64 { return &v }
@@ -600,7 +611,7 @@ func (e *earnSeed) members(ctx context.Context) error {
 	sam := e.add(earnRow{key: "sam", c: e.contacts["sam"], kind: "stripe", tier: e.insider, price: &py, stripePr: "price_1Q8mL5cD", status: "active", period: "year",
 		amount: 8000, discount: map[string]any{"label": "FALL26", "coupon": "FALL26", "duration": "once", "amountCents": 6400, "percent": 20, "endsAt": samStart.AddDate(1, 0, 0).UTC().Format(time.RFC3339)},
 		started: samStart, periodEnd: tp(samStart.AddDate(1, 0, 0)), paid: 6400, srcKind: "campaign", srcCamp: camp(c141), srcLabel: "Weekly Digest #141",
-		srcDetail: map[string]any{"clickedAt": s.earnDay(2026, 10, 7, 9, 44).UTC().Format(time.RFC3339), "offer": "FALL26"}, emailed: []string{"welcome"}, updated: upd(0)})
+		srcDetail: map[string]any{"clicked_at": s.earnDay(2026, 10, 7, 9, 44).UTC().Format(time.RFC3339), "offer": "FALL26"}, emailed: []string{"welcome"}, updated: upd(0)})
 	welcomeMsg := e.memberMessage(ctx, e.contacts["sam"], earn.EmailWelcome, 2, "Welcome to Insider, Sam", s.earnDay(2026, 10, 7, 9, 53))
 	e.event(sam, e.contacts["sam"], "", "clicked_upgrade", s.earnDay(2026, 10, 7, 9, 44), nil, nil, map[string]any{"campaign": "Weekly Digest #141", "credited": true}, nil)
 	e.event(sam, e.contacts["sam"], "", "checkout_completed", s.earnDay(2026, 10, 7, 9, 52), nil, nil, map[string]any{"tier": "Weekly Digest Insider", "period": "year", "offer": "FALL26", "lists": "already"}, nil)
@@ -636,7 +647,8 @@ func (e *earnSeed) members(ctx context.Context) error {
 	grace := e.add(earnRow{key: "grace", c: e.contacts["grace"], kind: "stripe", tier: e.insider, price: &pm, stripePr: "price_1Q8mL2aB", status: "past_due", period: "month",
 		amount: 800, started: graceStart, periodEnd: tp(s.earnDay(2026, 11, 13, 9, 12)), paid: 6400, failedAt: tp(s.earnDay(2026, 10, 13, 9, 12)),
 		failure: "Your card has insufficient funds.", retryAt: tp(s.earnDay(2026, 10, 16, 9, 12)), srcKind: "import", srcLabel: importedLabel, imported: true,
-		emailed: []string{}, updated: upd(4)})
+		emailed: []string{}, updated: upd(4), billing: "grace.okafor.billing@outlook.com"})
+	e.event(grace, e.contacts["grace"], "", "paid", s.earnDay(2026, 9, 13, 9, 12), i64(800), nil, map[string]any{"period": "month", "history": true}, nil)
 	// Her Payment failed email isn't in the transactional log: the
 	// Transactional boards' last seven days hold Acme Cloud's mail only.
 	e.event(grace, e.contacts["grace"], "", "imported", imported, nil, e.linh, map[string]any{"platform": "substack", "matchedBy": "customer"}, nil)
@@ -671,7 +683,10 @@ func (e *earnSeed) members(ctx context.Context) error {
 	e.event(marta, e.contacts["marta"], "", "imported", imported, nil, e.linh, map[string]any{"platform": "substack", "matchedBy": "customer"}, nil)
 	e.event(marta, e.contacts["marta"], "", "renewed", s.earnDay(2026, 10, 10, 8, 0), i64(8000), nil, map[string]any{"tier": "Weekly Digest Insider", "period": "year"}, nil)
 	e.event(marta, e.contacts["marta"], "", "refunded", s.earnDay(2026, 10, 13, 16, 32), i64(-8000), nil, map[string]any{"amount": 8000}, nil)
+	e.event(marta, e.contacts["marta"], "", "canceled_by_team", s.earnDay(2026, 10, 13, 16, 40), nil, e.marcus, map[string]any{"when": "now",
+		"note": "Asked by email for a refund after the renewal"}, nil)
 	e.event(marta, e.contacts["marta"], "", "access_ended", s.earnDay(2026, 10, 13, 16, 41), nil, e.marcus, map[string]any{"reason": "canceled", "by": "Marcus Chen"}, nil)
+	e.event(marta, e.contacts["marta"], "", "email_sent", s.earnDay(2026, 10, 13, 16, 42), nil, nil, map[string]any{"email": "canceled", "template": "member-canceled", "version": 1, "status": "sent"}, nil)
 
 	// Jonas Weber and Chloé Martin: their access ended in the last 30 days.
 	jonas := e.add(earnRow{key: "jonas", c: e.contacts["jonas"], kind: "stripe", tier: e.insider, price: &pm, stripePr: "price_1Q8mL2aB", status: "canceled", period: "month",

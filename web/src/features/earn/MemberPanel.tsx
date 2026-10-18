@@ -6,14 +6,16 @@ import { Icon, type IconName } from '@/components/icons/Icon'
 import { Avatar } from '@/components/ui/Avatar'
 import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonAnchor, ButtonLink } from '@/components/ui/Button'
+import { Link } from '@tanstack/react-router'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Dialog } from '@/components/ui/Dialog'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
-import { Checkbox, Field, OptionCard, Select, Textarea } from '@/components/ui/Field'
+import { Select } from '@/components/ui/Field'
+import { Menu, MenuItem } from '@/components/ui/Menu'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
-import { useT } from '@/i18n'
-import { clock, dayMonthDate } from '@/lib/format'
+import { T, useT } from '@/i18n'
+import { clock, dayMonthDate, dayMonthYear, orList } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { ComplimentaryDialog } from './ComplimentaryDialog'
 import { EARN, copyText } from './EarnPage'
@@ -61,20 +63,24 @@ export function MemberPanel({ id, onClose }: { id: string; onClose: () => void }
 function PanelBody({ m, onClose }: { m: Member; onClose: () => void }) {
   const t = useT()
   const { slug } = useWorkspace()
-  const [dialog, setDialog] = useState<'cancel' | 'resend' | 'change' | 'remove'>()
+  const [dialog, setDialog] = useState<'cancel' | 'resend' | 'change' | 'remove' | 'give'>()
+  const [resendEmail, setResendEmail] = useState<string>()
   const name = m.hidden ? t(mm.hiddenName) : m.name || m.email
   const statusIcon: IconName = m.status === 'past_due' ? 'alert' : m.status === 'canceled' ? 'close' : m.status === 'trialing' ? 'clock' : 'check'
   const tone = { trialing: 'info', active: '', past_due: 'warn', canceled: 'mut', complimentary: 'pur', gift: 'pur' }[m.status] ?? ''
+  const tierRow = m.kind === 'stripe' && m.period ? `${m.tierName} · ${m.period === 'year' ? t(me.yearly) : t(me.monthly)}` : m.tierName || m.tier
   const rows: [ReactNode, ReactNode][] = [
-    [t(mm.tier), m.kind === 'stripe' && m.period ? `${m.tierName} · ${m.period === 'year' ? t(me.yearly) : t(me.monthly)}` : m.tierName || m.tier],
-    [t(mm.price), priceLine(t, m)],
-    [t(mm.status), <StatusLine key="s" m={m} />],
-    [t(mm.memberSince), day(m.since)],
+    [t(mm.tier), m.warning ? <Two key="t" a={tierRow} b={t(mm.higherOf, { count: m.warning.subscriptions.length })} /> : tierRow],
   ]
-  if (m.next === 'renews' && m.nextAt) rows.push([t(mm.renewsLabel), m.renewalReminder ? t(mm.renewsWithReminder, { date: day(m.nextAt), reminder: day(m.renewalReminder) }) : day(m.nextAt)])
+  if (!m.warning && m.kind !== 'gift') rows.push([t(mm.price), m.kind === 'complimentary' ? t(me.complimentaryNoPayment) : priceLine(t, m, { percent: true, refund: false })])
+  rows.push([t(mm.status), <StatusLine key="s" m={m} />])
+  rows.push([t(mm.memberSince), dayMonthYear(m.since)])
+  if (m.warning) {
+    // The higher tier's row stands for the person; its renewal is in the warning.
+  } else if (m.next === 'renews' && m.nextAt) rows.push([t(mm.renewsLabel), m.renewalReminder ? t(mm.renewsWithReminder, { date: day(m.nextAt), reminder: day(m.renewalReminder) }) : day(m.nextAt)])
   else if (m.next === 'ends' && m.nextAt) rows.push([t(mm.endsLabel), day(m.nextAt)])
   else if (m.next === 'trial_ends' && m.nextAt) rows.push([t(mm.trialEndsLabel), day(m.nextAt)])
-  else if (m.next === 'retries') rows.push([t(mm.retryLabel), m.nextAt ? day(m.nextAt) : t(me.retriesSoon)])
+  else if (m.next === 'retries') rows.push([t(mm.retryLabel), m.nextAt ? t(mm.retryLine, { date: day(m.nextAt) }) : t(me.retriesSoon)])
   else if (m.next === 'no_end') rows.push([t(mm.endsLabel), t(me.noEnd)])
   if (m.discount)
     rows.push([
@@ -85,19 +91,25 @@ function PanelBody({ m, onClose }: { m: Member; onClose: () => void }) {
           ? t(mm.discountLineNoDate, { offer: m.discount.label, percent: m.discount.percent })
           : m.discount.label,
     ])
-  rows.push([t(mm.ltv), m.refundedCents ? t(mm.ltvRefunded, { ltv: money(m.ltvCents, m.currency, 'auto'), refunded: money(m.refundedCents, m.currency, 'always') }) : money(m.ltvCents, m.currency || 'usd', 'auto')])
+  const ltv = money(m.ltvCents, m.currency || 'usd', 'auto')
   rows.push([
-    t(mm.source),
-    <span key="src">
-      {sourceLine(t, m)}
-      {m.clickedAt ? <span className="k"> · {t(mm.clickedAt, { when: `${dayMonthDate(m.clickedAt)}, ${clock(m.clickedAt)}` })}</span> : null}
-      {m.importedAt && m.matchedBy ? <span className="k"> · {t(mm.importedAt, { date: day(m.importedAt), by: m.matchedBy })}</span> : null}
-    </span>,
+    t(mm.ltv),
+    m.refundedCents ? (
+      <Two key="l" a={ltv} b={t(mm.ltvPaidRefunded, { paid: money(m.paidCents, m.currency, 'auto'), refunded: money(m.refundedCents, m.currency, 'auto') })} />
+    ) : m.warning ? (
+      <Two
+        key="l"
+        a={ltv}
+        b={m.warning.subscriptions.map((x) => t(mm.ltvFor, { amount: money(x.ltvCents || x.amountCents, x.currency, 'auto'), tier: tierLine(t, { ...x, periodShown: true }) })).join(', ')}
+      />
+    ) : (
+      ltv
+    ),
   ])
+  rows.push([t(mm.source), <SourceValue key="src" m={m} />])
   if (m.kind === 'complimentary' && m.grantNote) rows.push([t(mm.grantNote), m.grantNote])
-  if (m.kind === 'stripe') rows.push([t(mm.billingEmail), m.billingDiffers ? m.billingEmail : t(mm.sameAsContact)])
-  if (m.failureReason && m.failedAt) rows.push([t(mm.failure), t(mm.failureLine, { reason: m.failureReason, date: day(m.failedAt) })])
-  if (m.canceledBy) rows.push([t(mm.canceledBy), m.canceledBy])
+  if (m.kind === 'stripe' && !m.warning && m.status !== 'canceled')
+    rows.push([t(mm.billingEmail), m.billingDiffers ? <Two key="b" a={m.billingEmail} b={t(mm.billingDiffersLine)} /> : t(mm.sameAsContact)])
   if (m.cancelReason) rows.push([t(mm.source), cancelReason(t, m.cancelReason)])
   return (
     <>
@@ -127,13 +139,26 @@ function PanelBody({ m, onClose }: { m: Member; onClose: () => void }) {
             <Icon name={statusIcon} size={14} />
           </span>
           <span>
-            <b>{statusLabel(t, m.status)}</b> · {tierLine(t, m)} · {priceLine(t, m)} · {nextLine(t, m).replace(/^./, (c) => c.toLowerCase())}
+            <StatusSentence m={m} />
           </span>
         </div>
         {m.test ? <Note tone="info">{t(mm.testText)}</Note> : null}
         {m.warning ? (
-          <Note tone="warn" label={t(mm.syncWarnTitle)}>
-            {t(mm.syncWarnText, { count: m.warning.subscriptions.length })}
+          <Note tone="warn">
+            <span className="font-semibold">{t(mm.syncWarnTitle)}</span>
+            <div className="flex flex-col gap-2">
+              {t(mm.syncWarnText, { count: m.warning.subscriptions.length })}
+              {m.warning.subscriptions.map((x) => (
+                <div key={x.id} className="flex flex-wrap items-center justify-between gap-2">
+                  <span>
+                    <b>{tierLine(t, { ...x, periodShown: true })}</b> · {priceLine(t, x)} · {t(mm.sinceDate, { date: dayMonthYear(x.since) })}
+                  </span>
+                  <ButtonLink size="sm" to="/w/$workspace/earn/members" params={{ workspace: slug }} search={{ member: x.id }}>
+                    {t(mm.open)}
+                  </ButtonLink>
+                </div>
+              ))}
+            </div>
           </Note>
         ) : null}
         <section aria-labelledby="ea-sum">
@@ -168,7 +193,12 @@ function PanelBody({ m, onClose }: { m: Member; onClose: () => void }) {
                   <dd className="ea-mono">{m.customerId}</dd>
                 </>
               ) : null}
-              {m.subscriptionId ? (
+              {m.warning ? (
+                <>
+                  <dt>{t(mm.subscription)}</dt>
+                  <dd>{t(mm.twoActive, { count: m.warning.subscriptions.length })}</dd>
+                </>
+              ) : m.subscriptionId ? (
                 <>
                   <dt>{t(mm.subscription)}</dt>
                   <dd className="ea-mono">{m.subscriptionId}</dd>
@@ -193,28 +223,74 @@ function PanelBody({ m, onClose }: { m: Member; onClose: () => void }) {
           )}
         </section>
       </div>
-      {m.canManage && !m.test && m.status !== 'canceled' ? (
+      {m.test ? null : m.canManage ? (
         <div className="ea-sheet-foot">
-          {m.kind === 'stripe' ? (
+          {m.kind === 'complimentary' ? (
             <>
-              {m.emails.length ? <Button onClick={() => setDialog('resend')}>{t(mm.resend)}</Button> : null}
-              <Button variant="danger" onClick={() => setDialog('cancel')}>
-                {t(mm.cancelSub)}
+              <Button size="sm" onClick={() => setDialog('change')}>
+                {t(mm.changeComp)}
               </Button>
-            </>
-          ) : m.kind === 'complimentary' ? (
-            <>
-              <Button onClick={() => setDialog('change')}>{t(mm.changeComp)}</Button>
-              <Button variant="danger" onClick={() => setDialog('remove')}>
+              <Button size="sm" variant="danger" onClick={() => setDialog('remove')}>
                 {t(mm.removeComp)}
               </Button>
             </>
-          ) : null}
+          ) : (
+            <>
+              <Button size="sm" onClick={() => setDialog('give')}>
+                {t(mm.giveComp)}
+              </Button>
+              {m.kind === 'stripe' && m.status !== 'canceled' ? (
+                <Button size="sm" variant="danger" onClick={() => setDialog('cancel')}>
+                  {t(mm.cancelSub)}
+                </Button>
+              ) : null}
+            </>
+          )}
+          {m.emails.length === 0 ? null : m.status === 'past_due' && m.emails[0] ? (
+            <Button
+              size="sm"
+              onClick={() => {
+                setResendEmail(m.emails[0])
+                setDialog('resend')
+              }}
+            >
+              {t(mm.resendOne, { email: memberEmailName(t, m.emails[0], m.tier) })}
+            </Button>
+          ) : (
+            <Menu
+              align="end"
+              label={t(mm.resendMenu)}
+              trigger={
+                <Button size="sm" iconRight="chevronDown">
+                  {t(mm.resendMenu)}
+                </Button>
+              }
+            >
+              {m.emails.map((e) => (
+                <MenuItem
+                  key={e}
+                  onSelect={() => {
+                    setResendEmail(e)
+                    setDialog('resend')
+                  }}
+                >
+                  {memberEmailName(t, e, m.tier)}
+                </MenuItem>
+              ))}
+            </Menu>
+          )}
         </div>
-      ) : null}
+      ) : (
+        <div className="ea-sheet-foot">
+          <span className="k">
+            <T msg={m.helpers.length ? mm.manageNeeds : mm.manageNeedsNoHelpers} values={{ permission: <span className="mono">earn:manage</span>, helpers: orList(m.helpers) }} />
+          </span>
+        </div>
+      )}
       {dialog === 'cancel' ? <CancelDialog m={m} onClose={() => setDialog(undefined)} /> : null}
-      {dialog === 'resend' ? <ResendDialog m={m} onClose={() => setDialog(undefined)} /> : null}
+      {dialog === 'resend' ? <ResendDialog m={m} email={resendEmail} onClose={() => setDialog(undefined)} /> : null}
       {dialog === 'change' ? <ComplimentaryDialog member={m} onClose={() => setDialog(undefined)} /> : null}
+      {dialog === 'give' ? <ComplimentaryDialog person={{ id: m.contactId, name: m.name, email: m.email, lists: m.lists }} onClose={() => setDialog(undefined)} /> : null}
       {dialog === 'remove' ? <RemoveDialog m={m} onClose={() => setDialog(undefined)} onRemoved={onClose} /> : null}
     </>
   )
@@ -222,11 +298,80 @@ function PanelBody({ m, onClose }: { m: Member; onClose: () => void }) {
 
 function StatusLine({ m }: { m: Member }) {
   const t = useT()
+  const ended = m.status === 'canceled' ? m.timeline.find((x) => x.kind === 'access_ended') : undefined
   return (
-    <span className="inline-flex flex-wrap items-center gap-1.5">
-      <Badge tone={statusTone(m.status)}>{statusLabel(t, m.status)}</Badge>
-      {m.cancelAt && m.status !== 'canceled' ? <span className="badge sm mut">{t(me.cancelsOn, { date: dayMonthDate(m.cancelAt) })}</span> : null}
-      {m.accessPaused ? <span className="badge sm warn">{t(me.accessPaused)}</span> : null}
+    <span className="inline-flex flex-col items-start gap-0.5">
+      <span className="inline-flex flex-wrap items-center gap-1.5">
+        <Badge tone={statusTone(m.status)}>{statusLabel(t, m.status)}</Badge>
+        {m.cancelAt && m.status !== 'canceled' ? <span className="badge sm mut">{t(me.cancelsOn, { date: dayMonthDate(m.cancelAt) })}</span> : null}
+        {m.accessPaused ? <span className="badge sm warn">{t(me.accessPaused)}</span> : null}
+      </span>
+      {ended || (m.status === 'canceled' && m.nextAt) ? <span className="k">{t(mm.accessEndedOn, { date: dayMonthDate(ended?.at ?? m.nextAt ?? '') })}</span> : null}
+    </span>
+  )
+}
+
+/** A value with a second, quieter line under it. */
+function Two({ a, b }: { a: ReactNode; b: ReactNode }) {
+  return (
+    <span className="flex flex-col">
+      <span>{a}</span>
+      <span className="k">{b}</span>
+    </span>
+  )
+}
+
+/** The sentence at the top of the panel: the status with the plan, or what happened. */
+function StatusSentence({ m }: { m: Member }) {
+  const t = useT()
+  const first = (m.name || m.email).split(' ')[0] ?? ''
+  if (m.status === 'past_due' && m.failedAt) {
+    return (
+      <>
+        {t(mm.stPastDue, {
+          date: dayMonthDate(m.failedAt),
+          reason: m.failureReason ? ` (${m.failureReason.replace(/\.$/, '').replace(/^Your card has /, '').toLowerCase()})` : '',
+          next: m.nextAt ? t(mm.stNextTry, { date: dayMonthDate(m.nextAt) }) : '',
+          name: first,
+          tier: m.tier,
+        })}
+      </>
+    )
+  }
+  if (m.status === 'canceled' && m.refundedCents > 0) {
+    const refunded = m.timeline.find((x) => x.kind === 'refunded')
+    return (
+      <>
+        {t(mm.stRefunded, { amount: money(m.refundedCents, m.currency, 'always'), date: refunded ? dayMonthDate(refunded.at) : '' })}
+        {m.canceledBy ? ` ${t(mm.stCanceledBy, { name: m.canceledBy })}` : ''}
+      </>
+    )
+  }
+  const next = nextLine(t, m)
+  return (
+    <>
+      <b>{statusLabel(t, m.status)}</b> · {tierLine(t, m)}
+      {m.kind === 'stripe' ? ` · ${priceLine(t, m, { words: true })}` : ''} · {next.replace(/^./, (c) => c.toLowerCase())}
+    </>
+  )
+}
+
+/** Where the paid member came from: the email (a link to its report) and the click, or the import. */
+function SourceValue({ m }: { m: Member }) {
+  const t = useT()
+  const { slug } = useWorkspace()
+  const label = sourceLine(t, m)
+  if (m.source.kind === 'import' && m.importedAt) return <>{t(mm.importedOn, { label, date: dayMonthDate(m.importedAt) })}</>
+  return (
+    <span>
+      {m.source.kind === 'campaign' && m.source.campaignId ? (
+        <Link to="/w/$workspace/campaigns/$campaignId/report" params={{ workspace: slug, campaignId: m.source.campaignId }}>
+          {label}
+        </Link>
+      ) : (
+        label
+      )}
+      {m.clickedAt ? <span className="k"> · {t(mm.clickedAt, { when: `${dayMonthDate(m.clickedAt)}, ${clock(m.clickedAt)}` })}</span> : null}
     </span>
   )
 }
@@ -258,6 +403,8 @@ function TimelineRow({ it, m }: { it: Item; m: Member }) {
   const d = it.data as Record<string, unknown>
   const s = (k: string) => (typeof d[k] === 'string' ? (d[k] as string) : '')
   const amount = it.amountCents === undefined ? '' : money(Math.abs(it.amountCents), it.currency || m.currency || 'usd', 'always')
+  // "Insider yearly": the tier and the period it was paid for.
+  const planOf = (period: string) => (period ? `${m.tier} ${period === 'year' ? t(me.yearly) : t(me.monthly)}` : m.tier)
   let icon: IconName = 'check'
   let tone = ''
   let title: ReactNode = it.kind
@@ -270,28 +417,46 @@ function TimelineRow({ it, m }: { it: Item; m: Member }) {
       detail = t(mm.tlClickedDetail, { campaign: s('campaign').replace(/^.*(#\d+).*$/, '$1'), days: 7 })
       break
     case 'checkout_completed':
+      tone = 'ok'
       title = t(mm.tlCheckout)
-      detail = [s('period') ? `${m.tier} ${s('period') === 'year' ? t(me.yearly) : t(me.monthly)}` : m.tier, s('offer') ? `${s('offer')}` : ''].filter(Boolean).join(' · ')
+      detail = [
+        planOf(s('period')),
+        s('offer') ? t(mm.tlOfferCode, { offer: s('offer') }) : '',
+        s('lists') === 'already' && m.lists.length ? t(mm.tlAlreadyOn, { lists: orList(m.lists) }) : s('lists') === 'joined' && m.lists.length ? t(mm.tlJoined, { lists: orList(m.lists) }) : '',
+      ]
+        .filter(Boolean)
+        .join(' · ')
       break
     case 'paid':
-      title = t(mm.tlPaid, { amount })
-      detail = [it.stripeEvent, s('offer') ? `${m.tier} · ${s('offer')}` : m.tier].filter(Boolean).join(' · ')
-      break
     case 'renewed':
-      title = t(mm.tlRenewed, { amount })
-      detail = [it.stripeEvent, s('offer')].filter(Boolean).join(' · ')
+      tone = 'ok'
+      title = it.kind === 'paid' ? t(mm.tlPaid, { amount }) : t(mm.tlRenewed, { amount })
+      // Checkout payments are before tax; renewals and Stripe's history say so in Stripe.
+      detail = [
+        it.stripeEvent,
+        d.history ? t(mm.tlFromHistory) : s('offer') ? t(mm.tlPlanWith, { plan: planOf(s('period')), offer: s('offer') }) : planOf(s('period')),
+        m.taxAdded && it.kind === 'paid' && !d.history ? t(mm.tlBeforeTax) : '',
+      ]
+        .filter(Boolean)
+        .join(' · ')
       break
     case 'refunded':
       icon = 'undo'
       tone = 'mut'
-      title = t(mm.tlRefunded, { amount })
-      detail = it.stripeEvent
+      title = t(mm.tlRefunded, { amount: `−${amount}` })
+      detail = [it.stripeEvent, t(mm.tlMadeInStripe)].filter(Boolean).join(' · ')
       break
     case 'payment_failed':
       icon = 'alert'
       tone = 'warn'
       title = t(mm.tlFailed, { amount })
-      detail = [s('reason'), s('retry') ? t(me.retries, { date: day(s('retry')) }) : ''].filter(Boolean).join(' · ')
+      detail = [it.stripeEvent, [s('reason') ? `“${s('reason')}”` : '', s('retry') ? t(mm.tlRetryOn, { date: day(s('retry')) }) : ''].filter(Boolean).join(' ')].filter(Boolean).join(' · ')
+      break
+    case 'canceled_by_team':
+      icon = 'close'
+      tone = 'mut'
+      title = s('when') === 'now' ? t(mm.tlCanceledNow, { name: it.actor ?? '' }) : t(mm.tlCanceledAtEnd, { name: it.actor ?? '' })
+      detail = [s('note') ? `“${s('note')}”` : '', t(mm.tlAudited)].filter(Boolean).join(' · ')
       break
     case 'trial_started':
       icon = 'clock'
@@ -315,7 +480,7 @@ function TimelineRow({ it, m }: { it: Item; m: Member }) {
       icon = 'close'
       tone = 'mut'
       title = t(mm.tlEnded)
-      detail = s('by') ? t(mm.tlBy, { name: s('by') }) : null
+      detail = it.stripeEvent || (s('by') ? t(mm.tlBy, { name: s('by') }) : null)
       break
     case 'plan_changed':
       icon = 'refresh'
@@ -347,7 +512,7 @@ function TimelineRow({ it, m }: { it: Item; m: Member }) {
       icon = 'upload'
       tone = 'mut'
       title = t(mm.tlImported, { platform: platformName(s('platform')) })
-      detail = s('matchedBy') ? t(mm.tlImportedDetail, { by: s('matchedBy') }) : null
+      detail = [s('matchedBy') ? t(mm.tlImportedDetail, { by: s('matchedBy') }) : '', s('platform') ? t(mm.tlImportConsent, { platform: platformName(s('platform')) }) : ''].filter(Boolean).join(' · ')
       break
     case 'gift_redeemed':
       icon = 'star'
@@ -358,8 +523,8 @@ function TimelineRow({ it, m }: { it: Item; m: Member }) {
     case 'email_sent':
     case 'email_not_sent': {
       const sent = it.kind === 'email_sent'
-      icon = sent ? 'mail' : 'alert'
-      tone = sent ? '' : 'warn'
+      icon = sent ? 'check' : 'alert'
+      tone = sent ? 'ok' : 'warn'
       const nm = memberEmailName(t, s('email'), m.tier)
       title = sent ? t(mm.tlEmailSent, { email: nm }) : t(mm.tlEmailNotSent, { email: nm })
       detail = sent ? (
@@ -415,26 +580,32 @@ function CancelDialog({ m, onClose }: { m: Member; onClose: () => void }) {
   const t = useT()
   const { slug } = useWorkspace()
   const qc = useQueryClient()
+  const emails = $api.useQuery('get', `${EARN}/settings/member-emails`, { params: { path: { workspace: slug } } })
   const [when, setWhen] = useState<'period_end' | 'now'>(m.status === 'past_due' ? 'now' : 'period_end')
   const [email, setEmail] = useState(true)
   const [note, setNote] = useState('')
   const cancel = $api.useMutation('post', `${EARN}/members/{id}/cancel`)
   const name = m.name || m.email
+  const first = name.split(' ')[0] ?? name
+  const canceled = emails.data?.emails.find((e) => e.email === 'canceled')
+  const live = canceled?.status === 'live'
+  const end = m.nextAt && (m.next === 'renews' || m.next === 'trial_ends' || m.next === 'retries') ? dayMonthYear(m.nextAt) : ''
   return (
     <Dialog
       open
+      hideClose
       onOpenChange={(o) => !o && onClose()}
-      title={t(mm.cancelTitle, { name })}
-      description={t(mm.cancelText)}
+      eyebrow={<span className="k">{t(mm.cancelEyebrow)}</span>}
+      title={t(mm.cancelTitle, { name, tier: m.tier })}
       footer={
         <>
-          <Button onClick={onClose}>{t(mm.cancel)}</Button>
+          <Button onClick={onClose}>{t(mm.cancelKeep)}</Button>
           <Button
-            variant="danger"
+            variant="danger-primary"
             loading={cancel.isPending}
             onClick={() =>
               cancel.mutate(
-                { params: { path: { workspace: slug, id: m.id } }, body: { when, email, note } },
+                { params: { path: { workspace: slug, id: m.id } }, body: { when, email: email && live, note } },
                 {
                   onSuccess: (r) => {
                     void qc.invalidateQueries({ queryKey: ['get', `${EARN}/members`] })
@@ -447,38 +618,65 @@ function CancelDialog({ m, onClose }: { m: Member; onClose: () => void }) {
               )
             }
           >
-            {t(mm.cancelSubmit)}
+            {when === 'now' ? t(mm.cancelSubmitNow) : t(mm.cancelSubmit)}
           </Button>
         </>
       }
     >
-      <div className="flex flex-col gap-3">
-        <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
-          <legend className="mb-1 text-[13px] font-semibold">{t(mm.cancelWhen)}</legend>
-          <OptionCard name="when" value="period_end" checked={when === 'period_end'} onChange={() => setWhen('period_end')} title={t(mm.cancelAtEnd)} description={m.nextAt ? t(mm.cancelAtEndHint, { tier: m.tier, date: day(m.nextAt) }) : undefined} />
-          <OptionCard name="when" value="now" checked={when === 'now'} onChange={() => setWhen('now')} title={t(mm.cancelNow)} description={t(mm.cancelNowHint)} />
-        </fieldset>
-        <Checkbox label={t(mm.cancelEmail)} checked={email} onChange={(e) => setEmail(e.target.checked)} />
-        <Field label={t(mm.cancelNote)} optional>
-          <Textarea rows={2} maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} />
-        </Field>
-      </div>
+      <span className="k">{t(mm.cancelPays, { name: first, price: priceLine(t, m) })}</span>
+      <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
+        <legend className="lbl mb-1">{t(mm.cancelWhen)}</legend>
+        <label className={`ea-radio${when === 'period_end' ? ' on' : ''}`}>
+          <input type="radio" name="cancel-when" checked={when === 'period_end'} onChange={() => setWhen('period_end')} />
+          <span className="flex min-w-0 flex-col gap-0.5 font-semibold">
+            {end ? t(mm.cancelAtEndOn, { date: end }) : t(mm.cancelAtEnd)}
+            <span className="k">{t(mm.cancelAtEndHint, { name: first, tier: m.tier })}</span>
+          </span>
+        </label>
+        <label className={`ea-radio${when === 'now' ? ' on' : ''}`}>
+          <input type="radio" name="cancel-when" checked={when === 'now'} onChange={() => setWhen('now')} />
+          <span className="flex min-w-0 flex-col gap-0.5 font-semibold">
+            {t(mm.cancelNow)}
+            <span className="k">{t(mm.cancelNowHint)}</span>
+          </span>
+        </label>
+      </fieldset>
+      <label className="flex items-start gap-2.5">
+        <input type="checkbox" className="mt-0.5" checked={email && live} disabled={!live} onChange={(e) => setEmail(e.target.checked)} />
+        <span className="flex min-w-0 flex-col gap-0.5 font-semibold">
+          {t(mm.cancelEmail, { name: first })}
+          <span className="k font-medium">
+            {canceled
+              ? live
+                ? t(mm.cancelEmailTemplate, { name: memberEmailName(t, 'canceled', m.tier), template: canceled.template, version: canceled.liveVersion })
+                : t(mm.cancelEmailDraft, { name: memberEmailName(t, 'canceled', m.tier) })
+              : memberEmailName(t, 'canceled', m.tier)}
+          </span>
+        </span>
+      </label>
+      <label className="lbl">
+        {t(mm.cancelNote)}
+        <textarea className="in ea-ta" style={{ height: 64 }} maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} />
+        <span className="k font-medium">{t(mm.cancelNoteHint)}</span>
+      </label>
     </Dialog>
   )
 }
 
-function ResendDialog({ m, onClose }: { m: Member; onClose: () => void }) {
+function ResendDialog({ m, email: preset, onClose }: { m: Member; email?: string; onClose: () => void }) {
   const t = useT()
   const { slug } = useWorkspace()
   const qc = useQueryClient()
-  const [email, setEmail] = useState(m.emails[0] ?? 'welcome')
+  const [email, setEmail] = useState(preset ?? m.emails[0] ?? 'welcome')
   const resend = $api.useMutation('post', `${EARN}/members/{id}/resend`)
   return (
     <Dialog
       open
       size="sm"
+      hideClose
       onOpenChange={(o) => !o && onClose()}
-      title={t(mm.resendTitle, { name: m.name || m.email })}
+      eyebrow={<span className="k">{t(mm.resendEyebrow)}</span>}
+      title={t(mm.resendTitle, { name: m.name || m.email, email: memberEmailName(t, email, m.tier) })}
       footer={
         <>
           <Button onClick={onClose}>{t(mm.cancel)}</Button>
@@ -505,15 +703,20 @@ function ResendDialog({ m, onClose }: { m: Member; onClose: () => void }) {
         </>
       }
     >
-      <Field label={t(mm.resendWhich)}>
-        <Select value={email} onChange={(e) => setEmail(e.target.value)}>
-          {m.emails.map((e) => (
-            <option key={e} value={e}>
-              {memberEmailName(t, e, m.tier)}
-            </option>
-          ))}
-        </Select>
-      </Field>
+      {preset ? (
+        <span className="k">{t(mm.resendText, { email: m.email })}</span>
+      ) : (
+        <label className="lbl">
+          {t(mm.resendWhich)}
+          <Select value={email} onChange={(e) => setEmail(e.target.value)}>
+            {m.emails.map((e) => (
+              <option key={e} value={e}>
+                {memberEmailName(t, e, m.tier)}
+              </option>
+            ))}
+          </Select>
+        </label>
+      )}
     </Dialog>
   )
 }

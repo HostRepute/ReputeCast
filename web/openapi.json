@@ -18402,6 +18402,12 @@
           "link": {
             "type": "string"
           },
+          "lists": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "ltvCents": {
             "format": "int64",
             "type": "integer"
@@ -18474,6 +18480,9 @@
           "subscriptionUrl": {
             "type": "string"
           },
+          "taxAdded": {
+            "type": "boolean"
+          },
           "test": {
             "type": "boolean"
           },
@@ -18504,6 +18513,8 @@
           "helpers",
           "emails",
           "link",
+          "lists",
+          "taxAdded",
           "id",
           "contactId",
           "name",

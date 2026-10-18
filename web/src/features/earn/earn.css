@@ -168,12 +168,14 @@
   .ea-schip:hover {
     background: var(--ground-3);
   }
-  .ea-schip[aria-pressed='true'] {
+  .ea-schip[aria-pressed='true'],
+  .ea-schip[aria-selected='true'] {
     background: var(--ink);
     border-color: var(--ink);
     color: #fff;
   }
-  .ea-schip[aria-pressed='true'] .c {
+  .ea-schip[aria-pressed='true'] .c,
+  .ea-schip[aria-selected='true'] .c {
     color: #d1d5db;
   }
   .ea-filters {
@@ -310,6 +312,8 @@
     bottom: 0;
     width: min(600px, 100vw);
     background: #fff;
+    border-left: 1px solid var(--line);
+    outline: none;
     box-shadow: var(--shadow-dialog);
     z-index: 61;
     display: flex;
@@ -1103,5 +1107,149 @@
     font-size: 12.5px;
     color: var(--ink-3);
     line-height: 1.45;
+  }
+
+  /* Dialog pickers: contacts found by a search. */
+  .ea-picks {
+    list-style: none;
+    margin: 0;
+    padding: 4px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-height: 220px;
+    overflow: auto;
+  }
+  .ea-picks button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 6px 8px;
+    border: 0;
+    border-radius: 6px;
+    background: none;
+    font: inherit;
+    font-size: 13px;
+    color: var(--ink);
+    text-align: left;
+    cursor: pointer;
+  }
+  .ea-picks button:hover,
+  .ea-picks button:focus-visible {
+    background: var(--ground-3);
+  }
+
+  /* Two columns that stack (Settings › Member emails, Pages). */
+  .ea-two {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(460px, 100%), 1fr));
+    gap: 16px;
+    align-items: start;
+  }
+  .ea-lnk {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+    font-size: 13px;
+  }
+  .ea-sel td {
+    background: #f0fdfa;
+  }
+  .ea-flowr {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    font-size: 13px;
+  }
+  .ea-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 28px;
+    padding: 0 10px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: #f9fafb;
+    font-size: 12.5px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .ea-arw {
+    color: #9aa3b2;
+  }
+  .ea-always {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 13.5px;
+  }
+  .ea-always li {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .ea-always svg {
+    flex: none;
+    margin-top: 3px;
+    color: var(--ok-bar);
+  }
+
+  .ea-oldbox {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 14px 16px;
+    border-radius: 10px;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: #1e3a8a;
+    font-size: 13px;
+  }
+
+  /* The import dialog: wide while matching (EarnImport), source cards. */
+  .dlg.ea-wide {
+    max-width: 980px;
+  }
+  .ea-srcopts {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  @media (max-width: 560px) {
+    .ea-srcopts {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+  .ea-srcopt {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 14px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #fff;
+    font: inherit;
+    font-size: 14px;
+    color: var(--ink);
+    text-align: left;
+    cursor: pointer;
+  }
+  .ea-srcopt .k {
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--ink-2);
+  }
+  .ea-srcopt[aria-pressed='true'] {
+    border: 2px solid var(--accent);
+    padding: 13px;
+    background: #f0fdfa;
   }
 }
