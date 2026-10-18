@@ -24,6 +24,7 @@ import { NotificationsRow, TransactionalActivityRow, transactionalCount, useCont
 import { JoinLine } from '@/features/growth/JoinLine'
 import { ProfileScoreCard } from '@/features/scoring/ProfileScoreCard'
 import { FieldSourceNote, useAnswerActivity, useFieldSources } from '@/features/polls/contact'
+import { AddressCheckRow } from '@/features/verification/AddressCheck'
 import './audience.css'
 
 type Profile = Schemas['ContactProfile']
@@ -236,6 +237,7 @@ function FieldsCard({ p }: { p: Profile }) {
           Edit
         </Button>
       </div>
+      <AddressCheckRow contactId={p.id} />
       {p.fields.map((f) =>
         f.key === 'language' ? (
           <ContactLanguageField key={f.key} p={p} />

@@ -5,6 +5,7 @@ import { toast } from '@/components/ui/Toast'
 import { useMe } from '@/lib/session'
 import { useComposer } from './context'
 import { TestLanguagePicker, testLanguageBody } from '@/features/languages/composerParts'
+import { TestSplit } from '@/features/placement/EntryPoints'
 
 async function sendTest(slug: string, campaignId: string, to: string[], variant: string, language?: string) {
   const { data } = await http.POST('/api/v1/workspaces/{workspace}/campaigns/{campaignId}/test', {
@@ -56,16 +57,24 @@ export function SendTestButton({ disabled, toMe }: { disabled?: boolean; toMe?: 
     )
   }
   if (!c.campaign.access.canSendTestToOthers || toMe) {
-    return (
+    const own = (
       <button type="button" className="btn" aria-busy={busy || undefined} onClick={() => void run([email])}>
         {toMe && email ? `Send test to ${email}` : 'Send test to me'}
       </button>
+    )
+    // X14: the menu adds Run a placement test… (not in the preview's row).
+    return toMe ? (
+      own
+    ) : (
+      <TestSplit campaignId={c.campaign.id} toMe onSendTest={() => void run([email])} before={() => c.save()}>
+        {own}
+      </TestSplit>
     )
   }
   const members = c.context.members
   const toggle = (e: string) => setPicked((p) => (p.includes(e) ? p.filter((x) => x !== e) : [...p, e]))
   const recipients = [...picked, ...extra.split(/[\s,;]+/).filter((x) => x.includes('@'))]
-  return (
+  const popover = (
     <Popover
       trigger={
         <button type="button" className="btn">
@@ -108,5 +117,18 @@ export function SendTestButton({ disabled, toMe }: { disabled?: boolean; toMe?: 
         </button>
       </div>
     </Popover>
+  )
+  // X14: Send test is a split button; its menu adds Run a placement test….
+  return (
+    <TestSplit
+      campaignId={c.campaign.id}
+      onSendTest={() => {
+        setPicked([email])
+        setOpen(true)
+      }}
+      before={() => c.save()}
+    >
+      {popover}
+    </TestSplit>
   )
 }

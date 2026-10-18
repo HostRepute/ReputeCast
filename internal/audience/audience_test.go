@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -162,13 +163,28 @@ func TestAudienceDemo(t *testing.T) {
 			Sources []struct{ Value, Label string }
 		}
 		c.Do(http.MethodGet, ws+"/suppressions", nil).MustStatus(t, 200).JSON(t, &l)
-		// The board's 1,874 and billing@northwind.example's role entry (Transactional).
-		if l.Counts.Total != 1875 || l.Counts.HardBounce != 1402 || l.Counts.Complaint != 96 || l.Counts.Unsubscribe != 331 || l.Counts.Manual != 45 {
+		// The board's 1,874, billing@northwind.example's role entry
+		// (Transactional) and the 287 invalid addresses the Sunset tier's
+		// verification suppressed (X14).
+		if l.Counts.Total != 2162 || l.Counts.HardBounce != 1402 || l.Counts.Complaint != 96 || l.Counts.Unsubscribe != 331 || l.Counts.Manual != 45 {
 			t.Fatalf("counts %+v", l.Counts)
 		}
+		// The Brevo import is one row, after the newer suppressions.
 		var group bool
-		for _, it := range l.Items {
-			group = group || (it.Group && it.Rows == 1033)
+		for page := 1; page <= 30 && !group; page++ {
+			var pg struct {
+				Items []struct {
+					Group bool
+					Rows  int64
+				}
+			}
+			c.Do(http.MethodGet, ws+"/suppressions?pageSize=100&page="+strconv.Itoa(page), nil).MustStatus(t, 200).JSON(t, &pg)
+			for _, it := range pg.Items {
+				group = group || (it.Group && it.Rows == 1033)
+			}
+			if len(pg.Items) == 0 {
+				break
+			}
 		}
 		if !group {
 			t.Error("the Brevo import rows are not grouped")
@@ -209,8 +225,8 @@ func TestAudienceDemo(t *testing.T) {
 		}
 		viewer.Do(http.MethodGet, ws+"/suppressions/export", nil).MustStatus(t, 403)
 		r := c.Do(http.MethodGet, ws+"/suppressions/export", nil).MustStatus(t, 200)
-		if lines := strings.Count(string(r.Body), "\n"); lines != 1875+1 {
-			t.Fatalf("export has %d lines, want header + 1,875", lines)
+		if lines := strings.Count(string(r.Body), "\n"); lines != 2162+1 {
+			t.Fatalf("export has %d lines, want header + 2,162", lines)
 		}
 	})
 

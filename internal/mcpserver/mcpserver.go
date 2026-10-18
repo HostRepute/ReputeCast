@@ -46,7 +46,9 @@ type Service struct {
 	// Growth reads Audience › Growth (nil: unavailable).
 	Growth GrowthReader
 	// Digests reads recurring digests and their issues (nil: unavailable).
-	Digests   DigestReader
+	Digests DigestReader
+	// Placement reads placement tests (nil: unavailable).
+	Placement PlacementReader
 	PublicURL func(context.Context) string
 	Now       func() time.Time
 	// Polls reads poll and survey results (nil: unavailable).
@@ -100,6 +102,8 @@ var Tools = []MCPToolInfo{
 	{"list_digests", "Recurring digests with their status, schedule, next issue and owner. Agents can't turn a digest on.", string(authz.CampaignsView), false},
 	{"get_digest_issues", "A digest's issues: sent, skipped, held and waiting, each with its posts and results. Agents can't release or skip an issue.", string(authz.CampaignsView), false},
 	{"get_poll_results", "Results of a campaign's polls or of a survey: answers by answer, NPS, by tier and language. Aggregate only.", string(authz.ReportsView), false},
+	{"list_placement_tests", "Placement tests people ran: the email, the providers and where the copies landed.", string(authz.DeliverabilityView), false},
+	{"get_placement_test", "One placement test: each copy's folder, time to arrive and SPF, DKIM and DMARC, with the guidance.", string(authz.DeliverabilityView), false},
 }
 
 // Settings are the per-workspace MCP options.

@@ -44,6 +44,9 @@ func readinessService(a *App) *readiness.Service {
 	if c := readinessConditional(a); c != nil {
 		rs.Conditional = c
 	}
+	if v := readinessVerification(a); v != nil {
+		rs.Verification = v
+	}
 	return rs
 }
 
@@ -54,6 +57,10 @@ var readinessAccessibility = func(*App) readiness.AccessibilityChecker { return 
 // readinessConditional runs the Conditional content group and the poll
 // checks; set from wire_visibility.go. Nil leaves them out.
 var readinessConditional = func(*App) readiness.ConditionalChecker { return nil }
+
+// readinessVerification gives Audience quality the address checks; the
+// verification domain replaces it from its wire file. Nil leaves them out.
+var readinessVerification = func(*App) readiness.VerificationChecker { return nil }
 
 // newApprovals builds the approvals service with its own Send Readiness.
 func newApprovals(a *App) *approvals.Service {

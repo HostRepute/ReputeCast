@@ -267,6 +267,11 @@ func (n *Normalizer) Apply(ctx context.Context, tx pgx.Tx, p store.Provider, raw
 			return 0, err
 		}
 	}
+	// A placement test copy went to a seed mailbox the workspace owns: its
+	// bounces and complaints never suppress the seed (internal/placement).
+	if msg != nil && msg.Kind == "placement" {
+		return 0, nil
+	}
 	reason, contactStatus := "", ""
 	switch ev.Type {
 	case providers.EventHardBounce:
@@ -339,6 +344,8 @@ func sourceLabel(campaign, automation string, node *string, kind string) string 
 		return "Password reset"
 	case "api":
 		return "API · transactional"
+	case "placement":
+		return "Placement test copy"
 	}
 	return ""
 }

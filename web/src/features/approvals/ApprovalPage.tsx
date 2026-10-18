@@ -24,6 +24,7 @@ import { IssueApprovalCard, RecurringDigestBadge } from '@/features/digests/Issu
 import { im } from '@/features/digests/issueMessages'
 import { useIssueInfo, type IssueInfo } from '@/features/digests/shared'
 import { useT } from '@/i18n'
+import { PlacementApprovalCard } from '@/features/placement/EntryPoints'
 import { ApprovalStatusBadge, approverNames, decidedText, deciderFirst, DiffLines, requestTone, unchangedText, type Change } from './parts'
 import '@/features/review/review.css'
 
@@ -199,6 +200,7 @@ function DetailBody({ detail: d }: { detail: Detail }) {
           {d.campaign ? <CampaignCard detail={d} busy={busy === 'test'} onTest={() => void sendTest()} /> : null}
           {d.readiness ? <ReadinessCard detail={d} busy={busy} onFix={(c, f) => void applyFix(c, f)} /> : null}
           {d.audience || d.route ? <AudienceRouteCard detail={d} /> : null}
+          {d.campaign ? <PlacementApprovalCard campaignId={d.campaign.id} /> : null}
           <ScheduleNoteCard detail={d} />
           <DiscussionCard detail={d} comment={comment} setComment={setComment} busy={busy === 'comment'} onPost={() => void post()} others={others} />
         </div>

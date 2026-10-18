@@ -292,4 +292,26 @@ export const entries: Entry[] = [
   { board: 'PublicPollPhone', manual: true, widths: [390] },
   { board: 'PollResults', path: `${ws}/campaigns/{campaign:Weekly Digest #141}/report`, widths: [1440] },
   { board: 'SurveyBuilder', path: `${ws}/forms/surveys/{survey:Beta feedback · October 2026}?q=q3`, widths: [1440] },
+  // X14 · address verification and placement tests. VerificationRun's job page is the Sunset tier's
+  // check; its dialog opens from List health's tier cards. PlacementRun's first frame opens from
+  // Review & send through the URL an entry point builds; its other frames (composer, warm-up planner,
+  // template editor, a provider that is down, no verified sender) and the …States boards need clicks
+  // or data changes.
+  { board: 'VerificationServices', path: `${ws}/settings/integrations/verification`, widths: [1440] },
+  { board: 'VerificationRun', path: `${ws}/audience/verification/{verification:Sunset}`, widths: [1440] },
+  { board: 'VerificationStates', manual: true },
+  { board: 'PlacementTests', path: `${ws}/deliverability/placement`, widths: [1440] },
+  {
+    board: 'PlacementRun',
+    path: `${ws}/deliverability/placement?run=review&kind=campaign&content={campaign:Weekly Digest #142}&through=compare&from=Weekly%20Digest%20%23142`,
+    widths: [1440],
+    viewportOnly: true,
+    height: 1000,
+  },
+  { board: 'PlacementResult', path: `${ws}/deliverability/placement/{placement:Weekly Digest #142 · SES vs Postal}`, widths: [1440] },
+  { board: 'PlacementResultTablet', path: `${ws}/deliverability/placement/{placement:Weekly Digest #142 · SES vs Postal}`, widths: [834] },
+  { board: 'PlacementResultPhone', path: `${ws}/deliverability/placement/{placement:Weekly Digest #142 · SES vs Postal}`, widths: [390] },
+  { board: 'PlacementSeeds', path: `${ws}/deliverability/placement/seeds`, widths: [1440] },
+  { board: 'PlacementStates', manual: true },
+  { board: 'PlacementSeedStates', manual: true },
 ]

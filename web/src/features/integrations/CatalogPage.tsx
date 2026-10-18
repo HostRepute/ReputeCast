@@ -20,6 +20,7 @@ import {
   entryName,
   helpersText,
   isPlatform,
+  isVerification,
   maintainer,
   reasonWhy,
   ReasonSentence,
@@ -348,6 +349,20 @@ function EntryCard({ entry: e, canManage, onConnect }: { entry: Entry; canManage
         {e.facts.mcpEnabled || e.facts.agents ? t(m.manage) : t(m.setUp)}
       </ButtonLink>
     )
+  } else if (isVerification(e.key)) {
+    // Address verification services live on their own page (X14).
+    action =
+      e.status === 'not_connected' ? (
+        canManage ? (
+          <ButtonLink size="sm" to="/w/$workspace/settings/integrations/verification" params={params} search={{ service: e.key, connect: true }}>
+            {t(m.connect)}
+          </ButtonLink>
+        ) : null
+      ) : (
+        <ButtonLink size="sm" to="/w/$workspace/settings/integrations/verification" params={params} search={{ service: e.key }}>
+          {canManage ? t(m.manage) : t(m.view)}
+        </ButtonLink>
+      )
   }
 
   return (
@@ -412,6 +427,11 @@ function Fact({ entry: e }: { entry: Entry }) {
     case 'mcp':
       if (!f.mcpEnabled) return <>{t(m.factMcpOff)}</>
       return f.agents ? <>{t(m.factMcpOn, { count: f.agents })}</> : <>{t(m.factMcpOnNone)}</>
+  }
+  if (isVerification(e.key)) {
+    const price = `$${(f.price ?? 0).toFixed(3)}`
+    if (e.status === 'not_connected') return <>{t(m.factPayPerCheck)}</>
+    return f.balance != null ? <>{t(m.factCredits, { credits: f.balance, price })}</> : <>{t(m.factCheckPrice, { price })}</>
   }
   return null
 }

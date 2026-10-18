@@ -12,6 +12,7 @@ import { LiveLog } from './ProgressStep'
 import { downloadImportFile } from './SourceStep'
 import { ReadingSource } from './states'
 import { $api, errorMessage } from '@/api/client'
+import { serviceReasonKeys, serviceReasonRow } from '@/features/verification/ImportCheck'
 
 /** "3 minutes 10 seconds" */
 function took(ms: number) {
@@ -56,7 +57,7 @@ function reasonRow(key: string, d: Detail): [string, string] | null {
   return null
 }
 
-const reasonOrder = ['invalid', 'disposable', 'trap', 'typo_fixed', 'typo', 'role', 'stale', 'already_suppressed', 'status_skipped']
+const reasonOrder = ['invalid', 'disposable', 'trap', 'typo_fixed', 'typo', 'role', 'stale', 'already_suppressed', 'status_skipped', ...serviceReasonKeys]
 
 /** The import summary (MigrationDone). */
 export function ReportStep({ importId }: { importId: string }) {
@@ -110,15 +111,15 @@ function Summary({ d, now }: { d: Detail; now: number }) {
         ? `${andList(lists.map((l, i) => (i === 0 ? `${l.name} now has ${count(l.contacts)}` : `${l.name} ${count(l.contacts)}`)))} contacts.`
         : ''
   const skippedParts = [
-    reasons.invalid ? `${count(reasons.invalid)} invalid` : '',
+    reasons.invalid || reasons.invalid_service ? `${count((reasons.invalid ?? 0) + (reasons.invalid_service ?? 0))} invalid` : '',
     reasons.disposable ? `${count(reasons.disposable)} disposable` : '',
     reasons.trap ? `${count(reasons.trap)} trap-like` : '',
   ].filter(Boolean)
-  const known = (reasons.invalid ?? 0) + (reasons.disposable ?? 0) + (reasons.trap ?? 0)
+  const known = (reasons.invalid ?? 0) + (reasons.invalid_service ?? 0) + (reasons.disposable ?? 0) + (reasons.trap ?? 0)
   if (skipped - known > 0 && skippedParts.length > 0) skippedParts.push(`${count(skipped - known)} other`)
   const rows = reasonOrder
     .filter((k) => (reasons[k] ?? 0) > 0)
-    .map((k) => [k, reasons[k]!, reasonRow(k, d)] as const)
+    .map((k) => [k, reasons[k]!, reasonRow(k, d) ?? serviceReasonRow(k)] as const)
     .filter((r): r is readonly [string, number, [string, string]] => r[2] !== null)
   const flow = flows.data?.items?.find((f) => /re-?permission/i.test(f.name))
   const firstList = lists[0]?.name ?? 'this list'

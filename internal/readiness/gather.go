@@ -209,6 +209,10 @@ func (s *Service) gather(ctx context.Context, ws *store.Workspace, c store.Readi
 		}
 	}
 	done(stageLinks, f)
+	// Address checks: the verification results of the final recipients.
+	if s.Verification != nil && !f.Audience.Empty {
+		f.Verification = s.Verification.ReadinessFacts(ctx, ws, c.ID, g.recipients, f.Audience.SuppressedEmails)
+	}
 	done(stageAudience, f)
 	done(stageRouting, f)
 	return f, nil
