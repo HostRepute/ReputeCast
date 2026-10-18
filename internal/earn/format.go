@@ -139,3 +139,9 @@ func article(word string) string {
 	}
 	return "a"
 }
+
+// PageLang is the Earn pages' language (English until they're translated).
+var PageLang = defaultLang
+
+// Text is one of the Earn pages' built-in words (internal/publicpages).
+func Text(key string, args i18n.Args) string { return msgs.M(key).Text(PageLang, args) }
