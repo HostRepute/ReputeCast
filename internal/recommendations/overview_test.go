@@ -83,6 +83,56 @@ func TestGrowOverview(t *testing.T) {
 		t.Fatalf("unclaimed: %+v", o.NeedsYou)
 	}
 
+	// The screens behind it, over HTTP (their inputs embed the program's
+	// and the link's paths): results, milestones, referrers and one of them,
+	// the review queue, the settings' impact and a partner's request log.
+	p := ws + "/grow/referrals/" + o.ProgramID
+	var res struct {
+		Enough bool
+		Funnel struct{ Visits, Counted int64 }
+		Top    []struct{ LinkID, Name string }
+	}
+	c.Do("GET", p+"/results?period=all&grouping=week", nil).MustStatus(t, 200).JSON(t, &res)
+	if !res.Enough || res.Funnel.Visits != 2940 || res.Funnel.Counted != 139 || len(res.Top) == 0 || res.Top[0].Name != "Omar Haddad" {
+		t.Fatalf("results: %+v", res)
+	}
+	var ms struct{ Items []struct{ ID string } }
+	c.Do("GET", p+"/milestones", nil).MustStatus(t, 200).JSON(t, &ms)
+	if len(ms.Items) != 3 {
+		t.Fatalf("milestones: %+v", ms)
+	}
+	c.Do("GET", ws+"/grow/milestones/"+ms.Items[0].ID, nil).MustStatus(t, 200)
+	var people struct {
+		Items []struct{ LinkID, Name string }
+	}
+	c.Do("GET", p+"/referrers?q=sam.rivera", nil).MustStatus(t, 200).JSON(t, &people)
+	if len(people.Items) != 1 || people.Items[0].Name != "Sam Rivera" {
+		t.Fatalf("referrers: %+v", people)
+	}
+	var panel struct {
+		Code      string
+		Referrals []struct{ Number int }
+	}
+	c.Do("GET", p+"/referrers/"+people.Items[0].LinkID, nil).MustStatus(t, 200).JSON(t, &panel)
+	if panel.Code != "K7Q2MX" || len(panel.Referrals) != 4 {
+		t.Fatalf("Sam's panel: %+v", panel)
+	}
+	var queue struct{ Held int64 }
+	c.Do("GET", p+"/review", nil).MustStatus(t, 200).JSON(t, &queue)
+	if queue.Held != 9 {
+		t.Fatalf("review: %+v", queue)
+	}
+	c.Do("POST", p+"/settings/impact", map[string]any{"holdDays": 14, "sameIp": true, "disposable": true, "left": true, "numbered": true,
+		"burst": map[string]any{"on": true, "threshold": 5}, "sharedIp": map[string]any{"on": true, "threshold": 3}}).MustStatus(t, 200)
+	var recs struct {
+		Items []struct{ Name, LinkID string }
+	}
+	c.Do("GET", ws+"/grow/recommendations", nil).MustStatus(t, 200).JSON(t, &recs)
+	if len(recs.Items) != 3 || recs.Items[0].LinkID == "" {
+		t.Fatalf("recommendations: %+v", recs)
+	}
+	c.Do("GET", ws+"/grow/partner-links/"+recs.Items[0].LinkID+"/requests", nil).MustStatus(t, 200)
+
 	// Aisha (Viewer) reads the overview; she can't decide or edit.
 	v := env.Client()
 	v.SignInDemo("aisha@acme.io")

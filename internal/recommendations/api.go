@@ -11,19 +11,22 @@ import (
 	"github.com/hostrepute/reputecast/internal/authz"
 )
 
-type recInput struct {
+// RecInput is a recommendation's path. The input types are exported so
+// Huma finds their parameters when an operation's input embeds them.
+type RecInput struct {
 	api.WorkspaceInput
 	Recommendation string `path:"recommendation" format:"uuid"`
 }
 
-func (in recInput) id() uuid.UUID { return uuid.MustParse(in.Recommendation) }
+func (in RecInput) id() uuid.UUID { return uuid.MustParse(in.Recommendation) }
 
-type linkInput struct {
+// LinkInput is a partner link's path.
+type LinkInput struct {
 	api.WorkspaceInput
 	Link string `path:"link" format:"uuid"`
 }
 
-func (in linkInput) id() uuid.UUID { return uuid.MustParse(in.Link) }
+func (in LinkInput) id() uuid.UUID { return uuid.MustParse(in.Link) }
 
 // PartnerCodeText is a pasted partner code.
 type PartnerCodeText struct {
@@ -87,7 +90,7 @@ func Register(h huma.API, s *Service) {
 	api.Put(h, api.Op{ID: "update-recommendation", Path: base + "/{recommendation}", Summary: "Change a recommendation (a partner's: only where it shows)",
 		Tags: tags, Access: edit},
 		func(ctx context.Context, in *struct {
-			recInput
+			RecInput
 			Body RecLinkInput
 		}) (*api.Body[RecommendationItem], error) {
 			out, err := s.Update(ctx, api.WorkspaceFrom(ctx), in.id(), in.Body)
@@ -95,18 +98,18 @@ func Register(h huma.API, s *Service) {
 		})
 	api.Post(h, api.Op{ID: "pause-recommendation", Path: base + "/{recommendation}/pause", Summary: "Pause a link recommendation: hidden until resumed, numbers kept",
 		Tags: tags, Access: edit},
-		func(ctx context.Context, in *recInput) (*api.Body[RecommendationItem], error) {
+		func(ctx context.Context, in *RecInput) (*api.Body[RecommendationItem], error) {
 			out, err := s.SetPaused(ctx, api.WorkspaceFrom(ctx), in.id(), true)
 			return api.OK(out), err
 		})
 	api.Post(h, api.Op{ID: "resume-recommendation", Path: base + "/{recommendation}/resume", Summary: "Resume a paused link recommendation", Tags: tags, Access: edit},
-		func(ctx context.Context, in *recInput) (*api.Body[RecommendationItem], error) {
+		func(ctx context.Context, in *RecInput) (*api.Body[RecommendationItem], error) {
 			out, err := s.SetPaused(ctx, api.WorkspaceFrom(ctx), in.id(), false)
 			return api.OK(out), err
 		})
 	api.Delete(h, api.Op{ID: "remove-recommendation", Path: base + "/{recommendation}", Summary: "Remove a recommendation (a partner's also ends its link, which needs grow:connect)",
 		Tags: tags, Access: edit},
-		func(ctx context.Context, in *recInput) (*api.Empty, error) {
+		func(ctx context.Context, in *RecInput) (*api.Empty, error) {
 			return api.NoContent, s.Remove(ctx, api.WorkspaceFrom(ctx), in.id())
 		})
 
@@ -149,39 +152,39 @@ func Register(h huma.API, s *Service) {
 		})
 	lbase := "/workspaces/{workspace}/grow/partner-links/{link}"
 	api.Post(h, api.Op{ID: "pause-partner-link", Path: lbase + "/pause", Summary: "Pause a partner link: requests stop until it resumes", Tags: tags, Access: connect},
-		func(ctx context.Context, in *linkInput) (*api.Empty, error) {
+		func(ctx context.Context, in *LinkInput) (*api.Empty, error) {
 			return api.NoContent, s.PauseLink(ctx, api.WorkspaceFrom(ctx), in.id(), true)
 		})
 	api.Post(h, api.Op{ID: "resume-partner-link", Path: lbase + "/resume", Summary: "Resume a partner link this side paused", Tags: tags, Access: connect},
-		func(ctx context.Context, in *linkInput) (*api.Empty, error) {
+		func(ctx context.Context, in *LinkInput) (*api.Empty, error) {
 			return api.NoContent, s.PauseLink(ctx, api.WorkspaceFrom(ctx), in.id(), false)
 		})
 	api.Post(h, api.Op{ID: "end-partner-link", Path: lbase + "/end", Summary: "End a partnership for good; reconnecting needs a new partner code",
 		Tags: tags, Access: connect},
-		func(ctx context.Context, in *linkInput) (*api.Empty, error) {
+		func(ctx context.Context, in *LinkInput) (*api.Empty, error) {
 			return api.NoContent, s.EndLink(ctx, api.WorkspaceFrom(ctx), in.id())
 		})
 	api.Put(h, api.Op{ID: "set-partner-limit", Path: lbase + "/limit", Summary: "Change the daily limit of a partner that recommends you", Tags: tags, Access: connect},
 		func(ctx context.Context, in *struct {
-			linkInput
+			LinkInput
 			Body PartnerLimitInput
 		}) (*api.Empty, error) {
 			return api.NoContent, s.SetLimit(ctx, api.WorkspaceFrom(ctx), in.id(), in.Body.DailyLimit)
 		})
 	api.Post(h, api.Op{ID: "rotate-partner-secret", Path: lbase + "/rotate", Summary: "Agree a new signing secret with the partner; both work for 24 hours",
 		Tags: tags, Access: connect},
-		func(ctx context.Context, in *linkInput) (*api.Empty, error) {
+		func(ctx context.Context, in *LinkInput) (*api.Empty, error) {
 			return api.NoContent, s.RotateSecret(ctx, api.WorkspaceFrom(ctx), in.id())
 		})
 	api.Post(h, api.Op{ID: "check-partner-link", Path: lbase + "/check", Summary: "Retry a partner's waiting requests now", Tags: tags, Access: connect},
-		func(ctx context.Context, in *linkInput) (*api.Body[RecommendationItem], error) {
+		func(ctx context.Context, in *LinkInput) (*api.Body[RecommendationItem], error) {
 			out, err := s.CheckAgain(ctx, api.WorkspaceFrom(ctx), in.id())
 			return api.OK(out), err
 		})
 	api.Get(h, api.Op{ID: "get-partner-requests", Path: lbase + "/requests", Summary: "A partner link's request log (90 days; never the addresses)",
 		Tags: tags, Access: view},
 		func(ctx context.Context, in *struct {
-			linkInput
+			LinkInput
 			Page int `query:"page" minimum:"1" default:"1"`
 		}) (*api.Body[PartnerRequestLog], error) {
 			out, err := s.RequestLog(ctx, api.WorkspaceFrom(ctx), in.id(), in.Page)

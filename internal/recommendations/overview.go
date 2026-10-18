@@ -93,10 +93,11 @@ type GrowNeed struct {
 	Reason  string `json:"reason" enum:"signature_rejected,ended,unknown_link,"`
 	// Reward problems: the reward and its milestone; codes left; when
 	// unclaimed codes expire.
-	Reward    string      `json:"reward"`
-	Milestone int         `json:"milestone"`
-	CodesLeft int64       `json:"codesLeft"`
-	Expires   []time.Time `json:"expires"`
+	Reward      string      `json:"reward"`
+	Milestone   int         `json:"milestone"`
+	MilestoneID string      `json:"milestoneId"`
+	CodesLeft   int64       `json:"codesLeft"`
+	Expires     []time.Time `json:"expires"`
 }
 
 // GrowWeek is the list's new confirmed subscribers in a week, by source.
@@ -373,7 +374,7 @@ func (s *Service) needsYou(ctx context.Context, ws *store.Workspace, program uui
 			out = append(out, held)
 		}
 		// Coupons nobody claimed yet.
-		rows, err = s.Pool.Query(ctx, `SELECT rw.reward_name, rw.milestone_count, coalesce(nullif(trim(c.first_name || ' ' || c.last_name), ''), c.email), rw.expires_at, rw.sent_at
+		rows, err = s.Pool.Query(ctx, `SELECT rw.reward_name, rw.milestone_count, coalesce(rw.milestone_id::text, ''), coalesce(nullif(trim(c.first_name || ' ' || c.last_name), ''), c.email), rw.expires_at, rw.sent_at
 			FROM referral_rewards rw JOIN contacts c ON c.id = rw.contact_id
 			WHERE rw.program_id = $1 AND rw.reward_type = 'coupon' AND rw.status = 'sent' AND rw.used_at IS NULL AND (rw.expires_at IS NULL OR rw.expires_at > $2)
 			ORDER BY rw.milestone_count, rw.expires_at NULLS LAST, rw.sent_at`, program, s.now())
@@ -383,16 +384,16 @@ func (s *Service) needsYou(ctx context.Context, ws *store.Workspace, program uui
 		unclaimed := map[int]*GrowNeed{}
 		order := []int{}
 		for rows.Next() {
-			var name, person string
+			var name, milestoneID, person string
 			var milestone int
 			var expires, sent *time.Time
-			if err := rows.Scan(&name, &milestone, &person, &expires, &sent); err != nil {
+			if err := rows.Scan(&name, &milestone, &milestoneID, &person, &expires, &sent); err != nil {
 				rows.Close()
 				return nil, err
 			}
 			n := unclaimed[milestone]
 			if n == nil {
-				n = &GrowNeed{Kind: "unclaimed", Reward: name, Milestone: milestone, People: []GrowNamedCount{}, Expires: []time.Time{}}
+				n = &GrowNeed{Kind: "unclaimed", Reward: name, Milestone: milestone, MilestoneID: milestoneID, People: []GrowNamedCount{}, Expires: []time.Time{}}
 				unclaimed[milestone] = n
 				order = append(order, milestone)
 			}
@@ -423,7 +424,7 @@ func (s *Service) needsYou(ctx context.Context, ws *store.Workspace, program uui
 					out = append(out, n)
 				}
 				if m.Stats.ToFulfill > 0 {
-					n := GrowNeed{Kind: "to_fulfill", Count: m.Stats.ToFulfill, Reward: m.RewardName, Milestone: m.Count, People: []GrowNamedCount{}, Expires: []time.Time{}}
+					n := GrowNeed{Kind: "to_fulfill", Count: m.Stats.ToFulfill, Reward: m.RewardName, Milestone: m.Count, MilestoneID: m.ID, People: []GrowNamedCount{}, Expires: []time.Time{}}
 					for _, f := range list.ToFulfill {
 						if f.Milestone == m.Count && f.ReachedAt.After(n.At) {
 							n.At = f.ReachedAt
@@ -467,7 +468,7 @@ func (s *Service) needsYou(ctx context.Context, ws *store.Workspace, program uui
 
 // milestoneNeed is a milestone's reward problem, if it has one.
 func milestoneNeed(m referrals.ReferralMilestoneView, now time.Time) (GrowNeed, bool) {
-	n := GrowNeed{Kind: m.Health.Kind, Reward: m.RewardName, Milestone: m.Count, People: []GrowNamedCount{}, Expires: []time.Time{}, At: now,
+	n := GrowNeed{Kind: m.Health.Kind, Reward: m.RewardName, Milestone: m.Count, MilestoneID: m.ID, People: []GrowNamedCount{}, Expires: []time.Time{}, At: now,
 		Count: m.Health.Waiting, CodesLeft: m.Health.CodesLeft}
 	switch m.Health.Kind {
 	case "codes_out", "codes_low", "webhook_failing", "stripe_missing", "file_missing":

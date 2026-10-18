@@ -386,7 +386,13 @@ func (w *growWorld) netFor(r *growReferral) {
 
 // at is a time on a design day, at a deterministic hour.
 func (w *growWorld) at(daysAgo int) time.Time {
-	return w.day(daysAgo, 7+w.rng.IntN(14), w.rng.IntN(60))
+	t := w.day(daysAgo, 7+w.rng.IntN(14), w.rng.IntN(60))
+	// Nobody signed up through a link before the program was on (no extra
+	// random draw, so the rest of the sample stays as it was).
+	if t.Before(w.start) {
+		t = w.start.Add(time.Duration(15+t.Minute()) * time.Minute)
+	}
+	return t
 }
 
 func (w *growWorld) seedReferrals() error {
