@@ -50,22 +50,25 @@ type Consumed struct {
 // the event to the next consumer, then to Earn.
 type PaymentConsumer func(ctx context.Context, tx pgx.Tx, e PaymentEvent) (Consumed, bool, error)
 
+// Consumers belong to one Service: each App (and each test's) has its own,
+// with its own database.
 var (
 	consumersMu sync.RWMutex
-	consumers   []PaymentConsumer
+	consumers   = map[*Service][]PaymentConsumer{}
 )
 
-// RegisterPaymentConsumer adds a consumer of one-time payment events.
-func RegisterPaymentConsumer(c PaymentConsumer) {
+// RegisterPaymentConsumer adds a consumer of the one-time payment events s
+// applies.
+func RegisterPaymentConsumer(s *Service, c PaymentConsumer) {
 	consumersMu.Lock()
 	defer consumersMu.Unlock()
-	consumers = append(consumers, c)
+	consumers[s] = append(consumers[s], c)
 }
 
 // consume offers an event to the consumers; ok reports that one took it.
 func (s *Service) consume(ctx context.Context, tx pgx.Tx, ws *store.Workspace, conn store.PaymentConnection, pe store.PaymentEvent) (outcome, bool, error) {
 	consumersMu.RLock()
-	list := append([]PaymentConsumer(nil), consumers...)
+	list := append([]PaymentConsumer(nil), consumers[s]...)
 	consumersMu.RUnlock()
 	if len(list) == 0 {
 		return outcome{}, false, nil

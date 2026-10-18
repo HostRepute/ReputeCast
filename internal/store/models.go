@@ -367,6 +367,11 @@ type AutomationEvent struct {
 	Enrolled    int32           `json:"enrolled"`
 }
 
+type AutomationMessageVar struct {
+	MessageID uuid.UUID       `json:"messageId"`
+	Vars      json.RawMessage `json:"vars"`
+}
+
 type AutomationRun struct {
 	ID            uuid.UUID       `json:"id"`
 	AutomationID  uuid.UUID       `json:"automationId"`

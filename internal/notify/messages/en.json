@@ -30,5 +30,7 @@
   "short.verification_credits_low": "low verification credits",
   "short.placement_finished": "placement tests",
   "short.seed_signin_failed": "seed sign-in failures",
-  "short.website_domain": "website domain problems"
+  "short.website_domain": "website domain problems",
+  "short.product_delivery_failed": "failed product deliveries",
+  "short.order_disputed": "order disputes"
 }

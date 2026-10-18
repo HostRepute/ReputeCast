@@ -26,7 +26,7 @@ var elements = map[string][]string{
 	"section": nil, "div": nil, "span": nil, "p": nil, "h1": nil, "h2": nil, "h3": nil, "h4": nil,
 	"ul": nil, "ol": {"start"}, "li": nil, "a": {"href", "title", "target", "rel"},
 	"strong": nil, "b": nil, "em": nil, "i": nil, "u": nil, "s": nil, "br": nil, "small": nil, "sup": nil, "sub": nil,
-	"img": {"src", "alt", "width", "height", "loading", "title"},
+	"img":    {"src", "alt", "width", "height", "loading", "title"},
 	"figure": nil, "figcaption": nil, "blockquote": nil, "details": {"open"}, "summary": nil, "hr": nil,
 	"time": {"datetime"},
 }

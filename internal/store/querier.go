@@ -198,6 +198,9 @@ type Querier interface {
 	AutomationAddContactTag(ctx context.Context, arg AutomationAddContactTagParams) error
 	AutomationAddListMembership(ctx context.Context, arg AutomationAddListMembershipParams) error
 	AutomationContact(ctx context.Context, id uuid.UUID) (AutomationContactRow, error)
+	// Whether a contact bought the product (any product when empty) since a
+	// time, not refunded in full.
+	AutomationContactBought(ctx context.Context, arg AutomationContactBoughtParams) (bool, error)
 	AutomationContactByEmail(ctx context.Context, arg AutomationContactByEmailParams) (AutomationContactByEmailRow, error)
 	AutomationContactEmailedSince(ctx context.Context, arg AutomationContactEmailedSinceParams) (bool, error)
 	AutomationContactInList(ctx context.Context, arg AutomationContactInListParams) (bool, error)
@@ -213,6 +216,9 @@ type Querier interface {
 	AutomationEventNames(ctx context.Context, workspaceID uuid.UUID) ([]string, error)
 	AutomationFields(ctx context.Context, workspaceID uuid.UUID) ([]AutomationFieldsRow, error)
 	AutomationForms(ctx context.Context, workspaceID uuid.UUID) ([]AutomationFormsRow, error)
+	// Runs of a version whose contact bought the product (any product when
+	// empty) since entering, not refunded in full.
+	AutomationGoalRunsBought(ctx context.Context, arg AutomationGoalRunsBoughtParams) ([]uuid.UUID, error)
 	// Runs whose contact opened or clicked an email of this flow since entering.
 	AutomationGoalRunsEngaged(ctx context.Context, arg AutomationGoalRunsEngagedParams) ([]AutomationGoalRunsEngagedRow, error)
 	AutomationGoalRunsEvent(ctx context.Context, arg AutomationGoalRunsEventParams) ([]AutomationGoalRunsEventRow, error)
@@ -223,9 +229,14 @@ type Querier interface {
 	AutomationLostWebhookRuns(ctx context.Context, before time.Time) ([]AutomationLostWebhookRunsRow, error)
 	AutomationMessageEngaged(ctx context.Context, arg AutomationMessageEngagedParams) (bool, error)
 	AutomationMessageForStats(ctx context.Context, id uuid.UUID) (AutomationMessageForStatsRow, error)
+	AutomationMessageVars(ctx context.Context, messageID uuid.UUID) (json.RawMessage, error)
+	// Trigger data in automation emails (design expansion phase 7).
+	AutomationMessageVarsInsert(ctx context.Context, arg AutomationMessageVarsInsertParams) error
 	// What the trigger "Answered a poll or survey" can point at, by the ref
 	// its events carry ("poll:<id>", "survey:<id>").
 	AutomationPollRefs(ctx context.Context, workspaceID uuid.UUID) ([]AutomationPollRefsRow, error)
+	// The products a trigger or goal can name.
+	AutomationProductRefs(ctx context.Context, workspaceID uuid.UUID) ([]AutomationProductRefsRow, error)
 	// Automation emails per sending provider since a day, and the last day each sent.
 	AutomationProviderSendsSince(ctx context.Context, arg AutomationProviderSendsSinceParams) ([]AutomationProviderSendsSinceRow, error)
 	AutomationProviders(ctx context.Context, workspaceID uuid.UUID) ([]AutomationProvidersRow, error)
@@ -236,6 +247,9 @@ type Querier interface {
 	AutomationRunExists(ctx context.Context, arg AutomationRunExistsParams) (bool, error)
 	// The message a run's email step queued (for branch checks).
 	AutomationRunMessage(ctx context.Context, arg AutomationRunMessageParams) (AutomationRunMessageRow, error)
+	// A refund makes the contact leave the "Bought a product" flows of that
+	// product (or of any product) they're in.
+	AutomationRunsExitBought(ctx context.Context, arg AutomationRunsExitBoughtParams) ([]AutomationRunsExitBoughtRow, error)
 	// Whether a contact entered a "Score crosses…" automation recently, or is in it.
 	AutomationScoreRunSince(ctx context.Context, arg AutomationScoreRunSinceParams) (bool, error)
 	// The latest alert per webhook step, open or resolved (for the publish diff).
@@ -585,6 +599,16 @@ type Querier interface {
 	DomUpdateNote(ctx context.Context, arg DomUpdateNoteParams) error
 	DomUpdateRecords(ctx context.Context, arg DomUpdateRecordsParams) error
 	DomUpdateTracking(ctx context.Context, arg DomUpdateTrackingParams) error
+	DownloadFileGet(ctx context.Context, arg DownloadFileGetParams) (DownloadFile, error)
+	// Whether any file, removed or not, still keeps these bytes on disk.
+	DownloadFileInUse(ctx context.Context, arg DownloadFileInUseParams) (bool, error)
+	DownloadFileInsert(ctx context.Context, arg DownloadFileInsertParams) error
+	DownloadFileRemove(ctx context.Context, arg DownloadFileRemoveParams) error
+	DownloadFilesNextPosition(ctx context.Context, arg DownloadFilesNextPositionParams) (int32, error)
+	// Files
+	DownloadFilesOf(ctx context.Context, arg DownloadFilesOfParams) ([]DownloadFilesOfRow, error)
+	DownloadFilesOfOwners(ctx context.Context, arg DownloadFilesOfOwnersParams) ([]DownloadFile, error)
+	DownloadFilesSize(ctx context.Context, arg DownloadFilesSizeParams) (int64, error)
 	EarnCampaignName(ctx context.Context, id uuid.UUID) (string, error)
 	EarnCheckout(ctx context.Context, id uuid.UUID) (EarnCheckout, error)
 	EarnCheckoutBySession(ctx context.Context, stripeSessionID string) (EarnCheckout, error)
@@ -755,6 +779,9 @@ type Querier interface {
 	FormCopyUpsert(ctx context.Context, arg FormCopyUpsertParams) error
 	FormDelete(ctx context.Context, arg FormDeleteParams) (int64, error)
 	FormDismissOrigin(ctx context.Context, arg FormDismissOriginParams) (int64, error)
+	FormDownloadGet(ctx context.Context, id uuid.UUID) (FormDownloadGetRow, error)
+	// Lead magnets
+	FormDownloadSet(ctx context.Context, arg FormDownloadSetParams) error
 	FormGet(ctx context.Context, arg FormGetParams) (Form, error)
 	FormInsert(ctx context.Context, arg FormInsertParams) (Form, error)
 	FormLastSubmissionForContact(ctx context.Context, contactID uuid.UUID) (FormLastSubmissionForContactRow, error)
@@ -1242,6 +1269,12 @@ type Querier interface {
 	LatestDeliverabilityCheckRun(ctx context.Context, workspaceID uuid.UUID) (DeliverabilityCheckRun, error)
 	LatestFinishedDeliverabilityCheckRun(ctx context.Context, arg LatestFinishedDeliverabilityCheckRunParams) (DeliverabilityCheckRun, error)
 	LatestFinishedImport(ctx context.Context, workspaceID uuid.UUID) (Import, error)
+	// The link a contact got for a form's download (one per signup).
+	LeadMagnetLinkFor(ctx context.Context, arg LeadMagnetLinkForParams) (LeadMagnetLink, error)
+	LeadMagnetLinkGet(ctx context.Context, id uuid.UUID) (LeadMagnetLink, error)
+	LeadMagnetLinkInsert(ctx context.Context, arg LeadMagnetLinkInsertParams) error
+	LeadMagnetLinkUse(ctx context.Context, id uuid.UUID) error
+	LeadMagnetStats(ctx context.Context, formID uuid.UUID) (LeadMagnetStatsRow, error)
 	ListAPIKeys(ctx context.Context, arg ListAPIKeysParams) ([]ListAPIKeysRow, error)
 	ListAuditEvents(ctx context.Context, arg ListAuditEventsParams) ([]AuditEvent, error)
 	// Open alerts, held sending first: nothing goes out until it is fixed.
@@ -1629,6 +1662,101 @@ type Querier interface {
 	// The approved request a publish relied on remembers it went out.
 	PostApprovalMarkPublished(ctx context.Context, arg PostApprovalMarkPublishedParams) error
 	PostApprovalPending(ctx context.Context, postID *uuid.UUID) (PostApprovalPendingRow, error)
+	// A product, deleted or not (an order's product).
+	ProductAny(ctx context.Context, id uuid.UUID) (Product, error)
+	ProductArchive(ctx context.Context, arg ProductArchiveParams) error
+	ProductBuyerByEmail(ctx context.Context, arg ProductBuyerByEmailParams) (ProductBuyerByEmailRow, error)
+	ProductBuyerContact(ctx context.Context, arg ProductBuyerContactParams) (ProductBuyerContactRow, error)
+	ProductBuyerMembership(ctx context.Context, arg ProductBuyerMembershipParams) (ProductBuyerMembershipRow, error)
+	ProductByLiveSlug(ctx context.Context, arg ProductByLiveSlugParams) (Product, error)
+	ProductCheckoutBySession(ctx context.Context, sessionID string) (ProductCheckout, error)
+	ProductCheckoutCompleted(ctx context.Context, arg ProductCheckoutCompletedParams) error
+	ProductCheckoutFailed(ctx context.Context, id uuid.UUID) error
+	ProductCheckoutGet(ctx context.Context, id uuid.UUID) (ProductCheckout, error)
+	// Checkouts
+	ProductCheckoutInsert(ctx context.Context, arg ProductCheckoutInsertParams) error
+	ProductCheckoutSetSession(ctx context.Context, arg ProductCheckoutSetSessionParams) error
+	ProductCheckoutsExpire(ctx context.Context, before time.Time) error
+	// The delivery emails of orders' links (Transactional › Messages).
+	ProductDeliveryMessages(ctx context.Context, arg ProductDeliveryMessagesParams) ([]ProductDeliveryMessagesRow, error)
+	// The transactional templates a product can deliver with, product-delivery first.
+	ProductDeliveryTemplates(ctx context.Context, workspaceID uuid.UUID) ([]ProductDeliveryTemplatesRow, error)
+	ProductGet(ctx context.Context, arg ProductGetParams) (Product, error)
+	ProductInsert(ctx context.Context, arg ProductInsertParams) error
+	// The email a buyer clicked last within the attribution window.
+	ProductLastClick(ctx context.Context, arg ProductLastClickParams) (ProductLastClickRow, error)
+	ProductListOptions(ctx context.Context, workspaceID uuid.UUID) ([]ProductListOptionsRow, error)
+	ProductLock(ctx context.Context, arg ProductLockParams) (Product, error)
+	// Buyers and contacts, per product, and the list offers ticked.
+	ProductOrderBuyers(ctx context.Context, arg ProductOrderBuyersParams) ([]ProductOrderBuyersRow, error)
+	ProductOrderByCharge(ctx context.Context, arg ProductOrderByChargeParams) (ProductOrder, error)
+	ProductOrderByID(ctx context.Context, id uuid.UUID) (ProductOrder, error)
+	ProductOrderByIntent(ctx context.Context, arg ProductOrderByIntentParams) (ProductOrder, error)
+	ProductOrderBySession(ctx context.Context, sessionID string) (ProductOrder, error)
+	ProductOrderDispute(ctx context.Context, arg ProductOrderDisputeParams) error
+	ProductOrderDownloadInsert(ctx context.Context, arg ProductOrderDownloadInsertParams) error
+	ProductOrderDownloads(ctx context.Context, orderID uuid.UUID) (ProductOrderDownloadsRow, error)
+	// Activity
+	ProductOrderEventInsert(ctx context.Context, arg ProductOrderEventInsertParams) error
+	ProductOrderEvents(ctx context.Context, orderID uuid.UUID) ([]ProductOrderEventsRow, error)
+	ProductOrderGet(ctx context.Context, arg ProductOrderGetParams) (ProductOrder, error)
+	ProductOrderInsert(ctx context.Context, arg ProductOrderInsertParams) error
+	// Each order's current link.
+	ProductOrderLatestLinks(ctx context.Context, orderIds []uuid.UUID) ([]ProductOrderLatestLinksRow, error)
+	ProductOrderLinkDelivery(ctx context.Context, arg ProductOrderLinkDeliveryParams) error
+	ProductOrderLinkGet(ctx context.Context, id uuid.UUID) (ProductOrderLink, error)
+	// Links
+	ProductOrderLinkInsert(ctx context.Context, arg ProductOrderLinkInsertParams) error
+	ProductOrderLinkLock(ctx context.Context, id uuid.UUID) (ProductOrderLink, error)
+	ProductOrderLinkUse(ctx context.Context, id uuid.UUID) error
+	ProductOrderLinks(ctx context.Context, orderID uuid.UUID) ([]ProductOrderLinksRow, error)
+	ProductOrderLinksSupersede(ctx context.Context, arg ProductOrderLinksSupersedeParams) error
+	ProductOrderLock(ctx context.Context, arg ProductOrderLockParams) (ProductOrder, error)
+	ProductOrderNames(ctx context.Context, revokedBy *uuid.UUID) (string, error)
+	// Orders
+	ProductOrderNextNumber(ctx context.Context, workspaceID uuid.UUID) (int64, error)
+	ProductOrderRefund(ctx context.Context, arg ProductOrderRefundParams) error
+	ProductOrderRestore(ctx context.Context, id uuid.UUID) error
+	ProductOrderRevoke(ctx context.Context, arg ProductOrderRevokeParams) error
+	ProductOrderSetCharge(ctx context.Context, arg ProductOrderSetChargeParams) error
+	ProductOrderSetContact(ctx context.Context, arg ProductOrderSetContactParams) error
+	// Where sales came from, per product and source.
+	ProductOrderSources(ctx context.Context, arg ProductOrderSourcesParams) ([]ProductOrderSourcesRow, error)
+	// Numbers
+	// Per product, in one mode, between two times: orders, gross, refunds.
+	ProductOrderStats(ctx context.Context, arg ProductOrderStatsParams) ([]ProductOrderStatsRow, error)
+	// Sales credited to a campaign (the report's Revenue rows).
+	ProductOrdersByCampaign(ctx context.Context, arg ProductOrdersByCampaignParams) (ProductOrdersByCampaignRow, error)
+	ProductOrdersCount(ctx context.Context, arg ProductOrdersCountParams) (int64, error)
+	ProductOrdersExport(ctx context.Context, arg ProductOrdersExportParams) ([]ProductOrdersExportRow, error)
+	// Orders newest first, with the latest link's state. q matches the order
+	// number or the buyer's email.
+	ProductOrdersList(ctx context.Context, arg ProductOrdersListParams) ([]ProductOrdersListRow, error)
+	ProductOrdersOfContact(ctx context.Context, arg ProductOrdersOfContactParams) ([]ProductOrdersOfContactRow, error)
+	// Makes the draft live.
+	ProductPublish(ctx context.Context, arg ProductPublishParams) error
+	ProductRedirectDelete(ctx context.Context, arg ProductRedirectDeleteParams) error
+	ProductRedirectGet(ctx context.Context, arg ProductRedirectGetParams) (uuid.UUID, error)
+	ProductRedirectInsert(ctx context.Context, arg ProductRedirectInsertParams) error
+	// Saves the draft.
+	ProductSave(ctx context.Context, arg ProductSaveParams) error
+	ProductSetStripe(ctx context.Context, arg ProductSetStripeParams) error
+	ProductSlugTaken(ctx context.Context, arg ProductSlugTakenParams) (bool, error)
+	ProductSoftDelete(ctx context.Context, arg ProductSoftDeleteParams) error
+	ProductTemplateByKey(ctx context.Context, arg ProductTemplateByKeyParams) (ProductTemplateByKeyRow, error)
+	ProductTemplateExists(ctx context.Context, arg ProductTemplateExistsParams) (ProductTemplateExistsRow, error)
+	ProductUnarchive(ctx context.Context, arg ProductUnarchiveParams) error
+	ProductsByIDs(ctx context.Context, arg ProductsByIDsParams) ([]Product, error)
+	// Digital products (internal/products, design expansion phase 7, M29):
+	// products and their files, checkouts, orders with their download links,
+	// downloads and activity, and lead magnets' links.
+	ProductsList(ctx context.Context, workspaceID uuid.UUID) ([]ProductsListRow, error)
+	ProductsPublished(ctx context.Context, workspaceID uuid.UUID) ([]Product, error)
+	// Published products shown in the shop, oldest first.
+	ProductsShop(ctx context.Context, workspaceID uuid.UUID) ([]Product, error)
+	ProductsUsingPage(ctx context.Context, arg ProductsUsingPageParams) ([]ProductsUsingPageRow, error)
+	// Products whose delivery uses a transactional template ("Used by 2 products").
+	ProductsUsingTemplate(ctx context.Context, arg ProductsUsingTemplateParams) ([]ProductsUsingTemplateRow, error)
 	ProvActiveFailovers(ctx context.Context, workspaceID uuid.UUID) ([]StreamFailover, error)
 	ProvAwaitingCampaigns(ctx context.Context, arg ProvAwaitingCampaignsParams) ([]ProvAwaitingCampaignsRow, error)
 	ProvAwaitingCount(ctx context.Context, arg ProvAwaitingCountParams) (ProvAwaitingCountRow, error)

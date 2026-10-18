@@ -39,6 +39,9 @@ type runState struct {
 	Messages map[string]string `json:"messages,omitempty"`
 	// Event is the trigger event that enrolled the contact.
 	Event int64 `json:"event,omitempty"`
+	// Vars is the trigger's Liquid data ({{ order.product_name }}), kept
+	// with each email the run sends (products.go).
+	Vars map[string]any `json:"vars,omitempty"`
 }
 
 func parseState(raw []byte) runState {
@@ -214,6 +217,8 @@ func triggerMatches(t AutomationTrigger, ev store.ClaimAutomationEventsRow) bool
 		return scoreTriggerMatches(t, ev.Payload)
 	case TriggerPollAnswered:
 		return pollTriggerMatches(t, ev)
+	case TriggerBoughtProduct:
+		return productTriggerMatches(t, ev)
 	}
 	return false
 }
@@ -249,7 +254,7 @@ func (s *Service) enroll(ctx context.Context, q *store.Queries, stats statsBuf, 
 	}
 	n, err := q.InsertAutomationRun(ctx, store.InsertAutomationRunParams{
 		ID: uuid.Must(uuid.NewV7()), AutomationID: f.ID, Version: *f.LiveVersion, ContactID: ev.ContactID,
-		NodeID: trig.ID, State: runState{Event: ev.ID}.json(), EnteredAt: now,
+		NodeID: trig.ID, State: runState{Event: ev.ID, Vars: eventVars(ev)}.json(), EnteredAt: now,
 	})
 	if err != nil || n == 0 {
 		return false, err
@@ -434,7 +439,7 @@ func (e *executor) moveOn(ctx context.Context, from AutomationNode, next, path s
 	e.run.NodeID = next
 	e.run.NodeEnteredAt = e.now
 	e.run.Status = "active"
-	e.st = runState{Messages: e.st.Messages, Event: e.st.Event}
+	e.st = runState{Messages: e.st.Messages, Event: e.st.Event, Vars: e.st.Vars}
 	e.stat(next).Entered++
 	return nil
 }
@@ -538,6 +543,9 @@ func (e *executor) email(ctx context.Context, n AutomationNode) (string, string,
 		if err := e.s.noteHeld(ctx, e.q, e.run.AutomationID, e.now); err != nil {
 			return "", "", true, err
 		}
+	}
+	if err := e.keepVars(ctx, queued.MessageID); err != nil {
+		return "", "", true, err
 	}
 	if e.st.Messages == nil {
 		e.st.Messages = map[string]string{}
@@ -643,6 +651,8 @@ func (e *executor) eval(ctx context.Context, c *AutomationCondition) (bool, erro
 		return e.q.AutomationContactInList(ctx, store.AutomationContactInListParams{ListID: lid, ContactID: e.run.ContactID})
 	case "event":
 		return e.q.AutomationContactSentEvent(ctx, store.AutomationContactSentEventParams{WorkspaceID: e.run.WorkspaceID, ContactID: e.run.ContactID, Event: c.Event, Since: e.run.EnteredAt})
+	case TriggerBoughtProduct:
+		return e.boughtSince(ctx, c)
 	case "field":
 		ct, err := e.contact(ctx)
 		if err != nil {
@@ -908,6 +918,12 @@ func (s *Service) detectGoals(ctx context.Context, now time.Time) error {
 					for _, r := range rows {
 						ids = append(ids, r.ID)
 					}
+				case TriggerBoughtProduct:
+					rows, err := goalRunsBought(ctx, q, v.AutomationID, v.Version, c)
+					if err != nil {
+						return err
+					}
+					ids = append(ids, rows...)
 				}
 				if len(ids) == 0 {
 					return nil

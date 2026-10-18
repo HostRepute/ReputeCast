@@ -432,7 +432,14 @@ func (e *Engine) composeAutomation(ctx context.Context, r *runRoute, row store.S
 	}
 	var attrs map[string]any
 	_ = json.Unmarshal(row.Attributes, &attrs)
-	out, err := ot.tpl.Render(liquid.Vars(row.Email, row.FirstName, row.LastName, attrs, links), tracked)
+	vars := liquid.Vars(row.Email, row.FirstName, row.LastName, attrs, links)
+	// The trigger's data ({{ order.product_name }}, automations/products.go).
+	for k, v := range automations.MessageVars(ctx, e.Q, row.ID) {
+		if _, taken := vars[k]; !taken {
+			vars[k] = v
+		}
+	}
+	out, err := ot.tpl.Render(vars, tracked)
 	if err != nil {
 		return providers.Message{}, err
 	}

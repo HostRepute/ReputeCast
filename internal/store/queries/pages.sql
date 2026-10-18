@@ -4,7 +4,7 @@
 
 -- name: PagesList :many
 -- Every page with who edited it last.
-SELECT p.*, coalesce(u.name, '')::text AS saved_by_name, coalesce(pb.name, '')::text AS published_by_name
+SELECT sqlc.embed(p), coalesce(u.name, '')::text AS saved_by_name, coalesce(pb.name, '')::text AS published_by_name
 FROM pages p
 LEFT JOIN users u ON u.id = p.saved_by
 LEFT JOIN users pb ON pb.id = p.published_by
@@ -65,12 +65,12 @@ WHERE id = @id;
 -- name: PagePublish :exec
 -- Puts a version live at the page's address.
 UPDATE pages SET status = 'published', live_version = @live_version, live_slug = @live_slug, publish_at = NULL, publish_tz = '',
-    published_at = @at, published_by = sqlc.narg(actor), first_published_at = coalesce(first_published_at, @at),
+    published_at = @at::timestamptz, published_by = sqlc.narg(actor), first_published_at = coalesce(first_published_at, @at::timestamptz),
     unpublished_at = NULL, unpublished_by = NULL, unpublish_reason = '', redirect_to = '', updated_at = @at
 WHERE id = @id;
 
 -- name: PageUnpublish :exec
-UPDATE pages SET status = 'unpublished', unpublished_at = @at, unpublished_by = sqlc.narg(actor), unpublish_reason = @reason,
+UPDATE pages SET status = 'unpublished', unpublished_at = @at::timestamptz, unpublished_by = sqlc.narg(actor), unpublish_reason = @reason,
     redirect_to = @redirect_to, publish_at = NULL, publish_tz = '', updated_at = @at
 WHERE id = @id;
 
@@ -82,7 +82,7 @@ UPDATE pages SET status = @status, live_version = sqlc.narg(live_version), live_
 WHERE id = @id;
 
 -- name: PageSoftDelete :exec
-UPDATE pages SET deleted_at = @at, updated_at = @at, updated_by = sqlc.narg(actor) WHERE id = @id;
+UPDATE pages SET deleted_at = @at::timestamptz, updated_at = @at, updated_by = sqlc.narg(actor) WHERE id = @id;
 
 -- name: PagesDue :many
 -- Scheduled pages whose time has come and that wait for no approval.
@@ -101,10 +101,10 @@ ON CONFLICT (page_id, version) DO UPDATE SET name = EXCLUDED.name, slug = EXCLUD
     project = EXCLUDED.project, html = EXCLUDED.html, label = EXCLUDED.label;
 
 -- name: PageVersionPublished :exec
-UPDATE page_versions SET published_at = @at, published_by = sqlc.narg(actor) WHERE page_id = @page_id AND version = @version;
+UPDATE page_versions SET published_at = @at::timestamptz, published_by = sqlc.narg(actor) WHERE page_id = @page_id AND version = @version;
 
 -- name: PageVersionGet :one
-SELECT v.*, coalesce(u.name, '')::text AS saved_by_name, coalesce(pb.name, '')::text AS published_by_name
+SELECT sqlc.embed(v), coalesce(u.name, '')::text AS saved_by_name, coalesce(pb.name, '')::text AS published_by_name
 FROM page_versions v
 LEFT JOIN users u ON u.id = v.saved_by
 LEFT JOIN users pb ON pb.id = v.published_by

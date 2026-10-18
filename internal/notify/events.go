@@ -54,6 +54,9 @@ var Events = []EventType{
 	{Key: KindSeedSignInFailed, Label: "Seed mailbox sign-in failed", Audience: "Everyone with placement:manage", Short: "seed sign-in failures", DefaultEmail: true, Kinds: []string{KindSeedSignInFailed}},
 	// The publication website (design expansion, phase 7).
 	{Key: KindWebsiteDomain, Label: "Website domain or certificate problem", Audience: "Everyone with website:manage", Short: "website domain problems", DefaultEmail: true, Kinds: []string{KindWebsiteDomain}},
+	// Digital products (design expansion, phase 7).
+	{Key: KindProductDeliveryFailed, Label: "Product delivery failed", Audience: "Everyone with orders:manage", Short: "failed product deliveries", DefaultEmail: true, Kinds: []string{KindProductDeliveryFailed}},
+	{Key: KindOrderDisputed, Label: "Dispute opened on an order", Audience: "Everyone with orders:manage", Short: "order disputes", DefaultEmail: true, Kinds: []string{KindOrderDisputed}},
 }
 
 // otherEvent covers kinds without a preference row (send finished, jobs):
@@ -103,7 +106,7 @@ var categoryKinds = map[string][]string{
 	CategoryTransactional: {KindTransactionalAlert, KindSMTPRelayUnreachable},
 	CategoryAI:            {KindAIUsage, KindAIKeyRejected},
 	CategoryEarn:          {KindPaymentsAttention, KindUnmappedPrice, KindPaidImportDone, KindFailedPayments},
-	CategoryWebsite:       {KindWebsiteDomain},
+	CategoryWebsite:       {KindWebsiteDomain, KindProductDeliveryFailed, KindOrderDisputed},
 }
 
 var categoryLabels = map[string]string{

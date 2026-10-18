@@ -74,6 +74,8 @@ func (e *Env) start(pool *pgxpool.Pool) {
 	cfg.Providers.AllowPrivateNetworks = true
 	// Packages test in parallel against one server: keep each app's pool small.
 	cfg.Database.MaxConns = 6
+	// Uploaded files (digital products, lead magnets) go to the test's own folder.
+	cfg.Files.Dir = t.TempDir()
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	if testing.Verbose() {
 		log = slog.New(slog.NewTextHandler(&testWriter{t}, &slog.HandlerOptions{Level: slog.LevelWarn}))

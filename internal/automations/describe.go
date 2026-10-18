@@ -59,6 +59,8 @@ func TriggerKindLabel(kind string) string {
 		return "Score crosses…"
 	case TriggerPollAnswered:
 		return "Answered a poll or survey"
+	case TriggerBoughtProduct:
+		return "Bought a product"
 	}
 	return "Trigger"
 }
@@ -98,6 +100,13 @@ func TriggerRef(t *AutomationTrigger, refs *Refs) string {
 			}
 		}
 		return "a poll"
+	case TriggerBoughtProduct:
+		if refs != nil && t.ProductID != "" {
+			if n, ok := refs.Products[t.ProductID]; ok {
+				return n
+			}
+		}
+		return "any product"
 	}
 	return ""
 }

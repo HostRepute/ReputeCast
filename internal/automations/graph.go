@@ -94,7 +94,7 @@ type AutomationNodeData struct {
 
 // AutomationTrigger says which contacts enter the flow.
 type AutomationTrigger struct {
-	Kind string `json:"kind" enum:"joined_list,form_submitted,tag_added,api_event,date_field,score_crosses,poll_answered"`
+	Kind string `json:"kind" enum:"joined_list,form_submitted,tag_added,api_event,date_field,score_crosses,poll_answered,bought_product"`
 	// Joined list: the list, whether to wait for double opt-in, and whether
 	// contacts added by an import count.
 	ListID         string `json:"listId,omitempty" maxLength:"40"`
@@ -124,6 +124,8 @@ type AutomationTrigger struct {
 	AnswerOp string `json:"answerOp,omitempty" enum:"any,is,is_not"`
 	Answers  []int  `json:"answers,omitempty" maxItems:"11"`
 	OnChange bool   `json:"onChange,omitempty"`
+	// Bought a product (products.go): the product, or any when empty.
+	ProductID string `json:"productId,omitempty" maxLength:"40"`
 }
 
 // AutomationDuration is a delay or a time window.
@@ -155,7 +157,7 @@ type AutomationSendWindow struct {
 
 // AutomationCondition is what a branch asks, a filter keeps or a goal waits for.
 type AutomationCondition struct {
-	Kind string `json:"kind" enum:"opened,clicked,field,tag,list,event"`
+	Kind string `json:"kind" enum:"opened,clicked,field,tag,list,event,bought_product"`
 	// Opened / clicked: the email step (empty = any email in this flow), the
 	// window and whether machine opens (Apple Mail Privacy Protection) count.
 	Step        string              `json:"step,omitempty" maxLength:"40"`
@@ -171,6 +173,8 @@ type AutomationCondition struct {
 	ListID string `json:"listId,omitempty" maxLength:"40"`
 	// Event: an API event arrived for the contact.
 	Event string `json:"event,omitempty" maxLength:"100"`
+	// Bought a product (products.go): the product, or any when empty.
+	ProductID string `json:"productId,omitempty" maxLength:"40"`
 }
 
 // AutomationSplitVariant is one arm of an A/B split.
@@ -466,6 +470,7 @@ type Refs struct {
 	Fields     map[string]string // key → type
 	Providers  map[string]string // id → name
 	Polls      map[string]string // "poll:<id>" or "survey:<id>" → name
+	Products   map[string]string // id → name
 }
 
 var (
@@ -623,6 +628,8 @@ func checkConfig(n AutomationNode, refs *Refs) []configProblem {
 			if !reEvent.MatchString(t.Event) {
 				bad("invalid_event", "Name the API event, like workspace.created (letters, numbers and . _ : -).")
 			}
+		case TriggerBoughtProduct:
+			checkProduct(t.ProductID, refs, bad)
 		case TriggerPollAnswered:
 			if t.Poll == "" {
 				bad("missing_ref", "Pick the poll or survey.")
@@ -720,6 +727,8 @@ func checkConfig(n AutomationNode, refs *Refs) []configProblem {
 			if !reEvent.MatchString(c.Event) {
 				bad("invalid_event", "Name the API event, like teammate.invited.")
 			}
+		case TriggerBoughtProduct:
+			checkProduct(c.ProductID, refs, bad)
 		}
 	case NodeSplit:
 		if len(d.Variants) < 2 {

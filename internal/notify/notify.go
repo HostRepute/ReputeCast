@@ -61,6 +61,9 @@ const (
 	KindSeedSignInFailed       = "seed_signin_failed"       // a seed mailbox's sign-in failed or expired
 	// The publication website (design expansion, phase 7).
 	KindWebsiteDomain = "website_domain" // the website's custom domain stopped checking out, or its certificate is failing
+	// Digital products (design expansion, phase 7).
+	KindProductDeliveryFailed = "product_delivery_failed" // an order's delivery email couldn't be sent
+	KindOrderDisputed         = "order_disputed"          // a buyer disputed an order's payment in Stripe
 )
 
 // Notification is what appears in the notification center.

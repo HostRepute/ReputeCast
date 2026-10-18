@@ -415,7 +415,7 @@ func (q *Queries) PagePreviousPublished(ctx context.Context, arg PagePreviousPub
 
 const pagePublish = `-- name: PagePublish :exec
 UPDATE pages SET status = 'published', live_version = $1, live_slug = $2, publish_at = NULL, publish_tz = '',
-    published_at = $3, published_by = $4, first_published_at = coalesce(first_published_at, $3),
+    published_at = $3::timestamptz, published_by = $4, first_published_at = coalesce(first_published_at, $3::timestamptz),
     unpublished_at = NULL, unpublished_by = NULL, unpublish_reason = '', redirect_to = '', updated_at = $3
 WHERE id = $5
 `
@@ -423,7 +423,7 @@ WHERE id = $5
 type PagePublishParams struct {
 	LiveVersion *int32     `json:"liveVersion"`
 	LiveSlug    *string    `json:"liveSlug"`
-	At          *time.Time `json:"at"`
+	At          time.Time  `json:"at"`
 	Actor       *uuid.UUID `json:"actor"`
 	ID          uuid.UUID  `json:"id"`
 }
@@ -648,11 +648,11 @@ func (q *Queries) PageSlugTaken(ctx context.Context, arg PageSlugTakenParams) (b
 }
 
 const pageSoftDelete = `-- name: PageSoftDelete :exec
-UPDATE pages SET deleted_at = $1, updated_at = $1, updated_by = $2 WHERE id = $3
+UPDATE pages SET deleted_at = $1::timestamptz, updated_at = $1, updated_by = $2 WHERE id = $3
 `
 
 type PageSoftDeleteParams struct {
-	At    *time.Time `json:"at"`
+	At    time.Time  `json:"at"`
 	Actor *uuid.UUID `json:"actor"`
 	ID    uuid.UUID  `json:"id"`
 }
@@ -703,13 +703,13 @@ func (q *Queries) PageTitlesBySlug(ctx context.Context, arg PageTitlesBySlugPara
 }
 
 const pageUnpublish = `-- name: PageUnpublish :exec
-UPDATE pages SET status = 'unpublished', unpublished_at = $1, unpublished_by = $2, unpublish_reason = $3,
+UPDATE pages SET status = 'unpublished', unpublished_at = $1::timestamptz, unpublished_by = $2, unpublish_reason = $3,
     redirect_to = $4, publish_at = NULL, publish_tz = '', updated_at = $1
 WHERE id = $5
 `
 
 type PageUnpublishParams struct {
-	At         *time.Time `json:"at"`
+	At         time.Time  `json:"at"`
 	Actor      *uuid.UUID `json:"actor"`
 	Reason     string     `json:"reason"`
 	RedirectTo string     `json:"redirectTo"`
@@ -752,38 +752,27 @@ type PageVersionGetParams struct {
 }
 
 type PageVersionGetRow struct {
-	PageID          uuid.UUID       `json:"pageId"`
-	Version         int32           `json:"version"`
-	Name            string          `json:"name"`
-	Slug            string          `json:"slug"`
-	Settings        json.RawMessage `json:"settings"`
-	Project         json.RawMessage `json:"project"`
-	Html            string          `json:"html"`
-	Label           string          `json:"label"`
-	SavedBy         *uuid.UUID      `json:"savedBy"`
-	SavedAt         time.Time       `json:"savedAt"`
-	PublishedAt     *time.Time      `json:"publishedAt"`
-	PublishedBy     *uuid.UUID      `json:"publishedBy"`
-	SavedByName     string          `json:"savedByName"`
-	PublishedByName string          `json:"publishedByName"`
+	PageVersion     PageVersion `json:"pageVersion"`
+	SavedByName     string      `json:"savedByName"`
+	PublishedByName string      `json:"publishedByName"`
 }
 
 func (q *Queries) PageVersionGet(ctx context.Context, arg PageVersionGetParams) (PageVersionGetRow, error) {
 	row := q.db.QueryRow(ctx, pageVersionGet, arg.PageID, arg.Version)
 	var i PageVersionGetRow
 	err := row.Scan(
-		&i.PageID,
-		&i.Version,
-		&i.Name,
-		&i.Slug,
-		&i.Settings,
-		&i.Project,
-		&i.Html,
-		&i.Label,
-		&i.SavedBy,
-		&i.SavedAt,
-		&i.PublishedAt,
-		&i.PublishedBy,
+		&i.PageVersion.PageID,
+		&i.PageVersion.Version,
+		&i.PageVersion.Name,
+		&i.PageVersion.Slug,
+		&i.PageVersion.Settings,
+		&i.PageVersion.Project,
+		&i.PageVersion.Html,
+		&i.PageVersion.Label,
+		&i.PageVersion.SavedBy,
+		&i.PageVersion.SavedAt,
+		&i.PageVersion.PublishedAt,
+		&i.PageVersion.PublishedBy,
 		&i.SavedByName,
 		&i.PublishedByName,
 	)
@@ -829,11 +818,11 @@ func (q *Queries) PageVersionInsert(ctx context.Context, arg PageVersionInsertPa
 }
 
 const pageVersionPublished = `-- name: PageVersionPublished :exec
-UPDATE page_versions SET published_at = $1, published_by = $2 WHERE page_id = $3 AND version = $4
+UPDATE page_versions SET published_at = $1::timestamptz, published_by = $2 WHERE page_id = $3 AND version = $4
 `
 
 type PageVersionPublishedParams struct {
-	At      *time.Time `json:"at"`
+	At      time.Time  `json:"at"`
 	Actor   *uuid.UUID `json:"actor"`
 	PageID  uuid.UUID  `json:"pageId"`
 	Version int32      `json:"version"`
@@ -987,44 +976,9 @@ ORDER BY coalesce(p.first_published_at, p.created_at), p.created_at
 `
 
 type PagesListRow struct {
-	ID               uuid.UUID       `json:"id"`
-	WorkspaceID      uuid.UUID       `json:"workspaceId"`
-	Name             string          `json:"name"`
-	Slug             string          `json:"slug"`
-	Template         string          `json:"template"`
-	SeoTitle         string          `json:"seoTitle"`
-	SeoDescription   string          `json:"seoDescription"`
-	SocialImage      string          `json:"socialImage"`
-	Visibility       string          `json:"visibility"`
-	Tiers            []uuid.UUID     `json:"tiers"`
-	HideHeader       bool            `json:"hideHeader"`
-	ShowInNav        bool            `json:"showInNav"`
-	NavLabel         string          `json:"navLabel"`
-	Project          json.RawMessage `json:"project"`
-	Html             string          `json:"html"`
-	Version          int32           `json:"version"`
-	SavedAt          time.Time       `json:"savedAt"`
-	SavedBy          *uuid.UUID      `json:"savedBy"`
-	Autosaves        int32           `json:"autosaves"`
-	Status           string          `json:"status"`
-	PublishAt        *time.Time      `json:"publishAt"`
-	PublishTz        string          `json:"publishTz"`
-	LiveVersion      *int32          `json:"liveVersion"`
-	LiveSlug         *string         `json:"liveSlug"`
-	PublishedAt      *time.Time      `json:"publishedAt"`
-	PublishedBy      *uuid.UUID      `json:"publishedBy"`
-	FirstPublishedAt *time.Time      `json:"firstPublishedAt"`
-	UnpublishedAt    *time.Time      `json:"unpublishedAt"`
-	UnpublishedBy    *uuid.UUID      `json:"unpublishedBy"`
-	UnpublishReason  string          `json:"unpublishReason"`
-	RedirectTo       string          `json:"redirectTo"`
-	CreatedBy        *uuid.UUID      `json:"createdBy"`
-	CreatedAt        time.Time       `json:"createdAt"`
-	UpdatedBy        *uuid.UUID      `json:"updatedBy"`
-	UpdatedAt        time.Time       `json:"updatedAt"`
-	DeletedAt        *time.Time      `json:"deletedAt"`
-	SavedByName      string          `json:"savedByName"`
-	PublishedByName  string          `json:"publishedByName"`
+	Page            Page   `json:"page"`
+	SavedByName     string `json:"savedByName"`
+	PublishedByName string `json:"publishedByName"`
 }
 
 // Landing and sales pages (internal/pages, design expansion phase 7, M29):
@@ -1041,42 +995,42 @@ func (q *Queries) PagesList(ctx context.Context, workspaceID uuid.UUID) ([]Pages
 	for rows.Next() {
 		var i PagesListRow
 		if err := rows.Scan(
-			&i.ID,
-			&i.WorkspaceID,
-			&i.Name,
-			&i.Slug,
-			&i.Template,
-			&i.SeoTitle,
-			&i.SeoDescription,
-			&i.SocialImage,
-			&i.Visibility,
-			&i.Tiers,
-			&i.HideHeader,
-			&i.ShowInNav,
-			&i.NavLabel,
-			&i.Project,
-			&i.Html,
-			&i.Version,
-			&i.SavedAt,
-			&i.SavedBy,
-			&i.Autosaves,
-			&i.Status,
-			&i.PublishAt,
-			&i.PublishTz,
-			&i.LiveVersion,
-			&i.LiveSlug,
-			&i.PublishedAt,
-			&i.PublishedBy,
-			&i.FirstPublishedAt,
-			&i.UnpublishedAt,
-			&i.UnpublishedBy,
-			&i.UnpublishReason,
-			&i.RedirectTo,
-			&i.CreatedBy,
-			&i.CreatedAt,
-			&i.UpdatedBy,
-			&i.UpdatedAt,
-			&i.DeletedAt,
+			&i.Page.ID,
+			&i.Page.WorkspaceID,
+			&i.Page.Name,
+			&i.Page.Slug,
+			&i.Page.Template,
+			&i.Page.SeoTitle,
+			&i.Page.SeoDescription,
+			&i.Page.SocialImage,
+			&i.Page.Visibility,
+			&i.Page.Tiers,
+			&i.Page.HideHeader,
+			&i.Page.ShowInNav,
+			&i.Page.NavLabel,
+			&i.Page.Project,
+			&i.Page.Html,
+			&i.Page.Version,
+			&i.Page.SavedAt,
+			&i.Page.SavedBy,
+			&i.Page.Autosaves,
+			&i.Page.Status,
+			&i.Page.PublishAt,
+			&i.Page.PublishTz,
+			&i.Page.LiveVersion,
+			&i.Page.LiveSlug,
+			&i.Page.PublishedAt,
+			&i.Page.PublishedBy,
+			&i.Page.FirstPublishedAt,
+			&i.Page.UnpublishedAt,
+			&i.Page.UnpublishedBy,
+			&i.Page.UnpublishReason,
+			&i.Page.RedirectTo,
+			&i.Page.CreatedBy,
+			&i.Page.CreatedAt,
+			&i.Page.UpdatedBy,
+			&i.Page.UpdatedAt,
+			&i.Page.DeletedAt,
 			&i.SavedByName,
 			&i.PublishedByName,
 		); err != nil {

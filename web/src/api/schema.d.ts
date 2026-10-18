@@ -8293,6 +8293,302 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Products with their numbers, where sales came from and the payment connection */
+        get: operations["list-products"];
+        put?: never;
+        /** Start a draft product */
+        post: operations["create-product"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/products/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Orders, newest first, with their download links */
+        get: operations["list-product-orders"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/products/orders/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The orders a filter shows, as CSV (they hold buyers' addresses; logged) */
+        get: operations["export-product-orders"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/products/orders/{order}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** An order: its buyer and consent, payment, delivery, downloads and activity */
+        get: operations["get-product-order"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/products/orders/{order}/new-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send a new download link, to the address on the order only */
+        post: operations["send-order-link"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/products/orders/{order}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Let an order's downloads work again */
+        post: operations["restore-order-access"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/products/orders/{order}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke an order's downloads */
+        post: operations["revoke-order-access"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/products/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Product sales over 30 days (the Earn overview's card) */
+        get: operations["get-products-summary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/products/{product}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A product: its draft and what's live, files, publish checks and numbers */
+        get: operations["get-product"];
+        /** Save a product's draft (a published product changes with Publish changes) */
+        put: operations["save-product"];
+        post?: never;
+        /** Delete a product that was never published */
+        delete: operations["delete-product"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/products/{product}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stop selling a product; its buyers keep their downloads */
+        post: operations["archive-product"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/products/{product}/cover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload a cover image (PNG, JPEG or GIF, up to 5 MB) */
+        post: operations["upload-product-cover"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/products/{product}/files/{file}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a file from a product */
+        delete: operations["remove-product-file"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/products/{product}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Publish the draft: its price in Stripe, the shop and its pages
+         * @description Blocked until every publish check passes. A new price on a published product needs confirmPrice: existing buyers keep their access.
+         */
+        post: operations["publish-product"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/products/{product}/unarchive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sell an archived product again */
+        post: operations["unarchive-product"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/products/{product}/uploads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Announce a file: up to 500 MB, 2 GB per product */
+        post: operations["start-product-upload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/products/{product}/uploads/{upload}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Send the next chunk of a file */
+        put: operations["upload-product-chunk"];
+        post?: never;
+        /** Cancel an upload; nothing is kept */
+        delete: operations["cancel-product-upload"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/products/{product}/uploads/{upload}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Finish an upload: the file's type is checked from its content */
+        post: operations["finish-product-upload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/provider-events": {
         parameters: {
             query?: never;
@@ -13281,10 +13577,11 @@ export interface components {
             field?: string;
             humanOnly?: boolean;
             /** @enum {string} */
-            kind: "opened" | "clicked" | "field" | "tag" | "list" | "event";
+            kind: "opened" | "clicked" | "field" | "tag" | "list" | "event" | "bought_product";
             listId?: string;
             /** @description equals, not_equals, contains, is_set, is_not_set, is_one_of (comma-separated values) */
             op?: string;
+            productId?: string;
             step?: string;
             tag?: string;
             urlContains?: string;
@@ -13834,7 +14131,7 @@ export interface components {
             formId?: string;
             includeImports?: boolean;
             /** @enum {string} */
-            kind: "joined_list" | "form_submitted" | "tag_added" | "api_event" | "date_field" | "score_crosses" | "poll_answered";
+            kind: "joined_list" | "form_submitted" | "tag_added" | "api_event" | "date_field" | "score_crosses" | "poll_answered" | "bought_product";
             listId?: string;
             /** Format: int64 */
             offsetDays?: number;
@@ -13842,6 +14139,7 @@ export interface components {
             /** Format: int64 */
             onceInDays?: number;
             poll?: string;
+            productId?: string;
             reentry?: string;
             tag?: string;
             /** Format: int64 */
@@ -20606,6 +20904,9 @@ export interface components {
             confirmationSent: boolean;
             id: string;
         };
+        NewLinkInput: {
+            requestedBy?: string;
+        };
         NewPlanInput: {
             /**
              * Format: int64
@@ -21878,6 +22179,582 @@ export interface components {
              * @example https://example.com/errors/example
              */
             type: string;
+        };
+        ProductAutomationNumbers: {
+            /** Format: int64 */
+            contacts: number;
+            /**
+             * Format: int64
+             * @description Contacts still in the flow or through it
+             */
+            entered: number;
+            id: string;
+            name: string;
+            /**
+             * Format: int64
+             * @description Contacts who left because their payment was refunded
+             */
+            refunded: number;
+        };
+        ProductCheck: {
+            account?: string;
+            /** Format: date-time */
+            at?: string;
+            /** Format: int64 */
+            bytes?: number;
+            /** @description No sales page chosen: the default product page */
+            default?: boolean;
+            /** @description The template has a draft but no published version */
+            draft?: boolean;
+            file?: string;
+            /** @enum {string} */
+            key: "stripe" | "file" | "price" | "template" | "route" | "cover_alt" | "sales_page";
+            mode?: string;
+            ok: boolean;
+            path?: string;
+            /** @example Postmark, then Amazon SES */
+            route?: string;
+            template?: string;
+            templateId?: string;
+            /** Format: int32 */
+            version?: number;
+        };
+        ProductCount: {
+            /** Format: int64 */
+            count: number;
+            name: string;
+            productId: string;
+        };
+        ProductCover: {
+            /** Format: int64 */
+            height: number;
+            url: string;
+            /** Format: int64 */
+            width: number;
+        };
+        ProductCreate: {
+            name?: string;
+        };
+        ProductDelivery: {
+            /** Format: int32 */
+            downloads: number;
+            /** Format: int32 */
+            linkDays: number;
+            /** @description Revoke access when a payment is refunded or disputed */
+            revokeOnRefund: boolean;
+            /** @description The transactional template of the delivery email */
+            templateId: string;
+        };
+        ProductDetail: {
+            /** Format: date-time */
+            archivedAt?: string;
+            /** @description The draft's fields that differ from what's live */
+            changes: string[];
+            checks: components["schemas"]["ProductCheck"][];
+            /** Format: int64 */
+            chunkBytes: number;
+            createdBy: string;
+            draft: components["schemas"]["ProductFields"];
+            files: components["schemas"]["ProductFile"][];
+            /** Format: int64 */
+            filesBytes: number;
+            helpers: components["schemas"]["ProductsHelpers"];
+            id: string;
+            lists: components["schemas"]["ProductListOption"][];
+            live?: components["schemas"]["ProductFields"];
+            /** Format: int64 */
+            maxBytes: number;
+            /** Format: int64 */
+            maxFile: number;
+            numbers?: components["schemas"]["ProductNumbers"];
+            /** Format: int64 */
+            orders: number;
+            pageUrl: string;
+            pages: components["schemas"]["ProductPageOption"][];
+            payments: components["schemas"]["ProductsPayments"];
+            /** Format: date-time */
+            publishedAt?: string;
+            publishedBy: string;
+            route: string;
+            salesPage: components["schemas"]["ProductSalesPage"];
+            shopUrl: string;
+            siteHost: string;
+            /** @enum {string} */
+            status: "draft" | "published" | "archived";
+            templates: components["schemas"]["ProductTemplateOption"][];
+            /** Format: date-time */
+            updatedAt: string;
+            updatedBy: string;
+        };
+        ProductDownloadState: {
+            /** Format: int32 */
+            allowed: number;
+            /** Format: date-time */
+            deliveredAt?: string;
+            error?: string;
+            /** Format: date-time */
+            expiresAt?: string;
+            newLink: boolean;
+            /** Format: date-time */
+            newLinkAt?: string;
+            newLinkBy: string;
+            provider: string;
+            /** @enum {string} */
+            revokeReason: "" | "manual" | "refund" | "dispute";
+            /** Format: date-time */
+            revokedAt?: string;
+            revokedBy: string;
+            /** Format: date-time */
+            sentAt?: string;
+            /** @enum {string} */
+            state: "pending" | "sent" | "delivered" | "failed" | "expired" | "used_up" | "revoked" | "revoked_auto";
+            /** Format: int32 */
+            used: number;
+        };
+        ProductFields: {
+            coverAlt: string;
+            coverUrl: string;
+            delivery: components["schemas"]["ProductDelivery"];
+            longDescription: string;
+            name: string;
+            offer: components["schemas"]["ProductOffer"];
+            price: components["schemas"]["ProductPrice"];
+            /** @description Empty for the default product page */
+            salesPageId: string;
+            shortDescription: string;
+            showInShop: boolean;
+            slug: string;
+        };
+        ProductFile: {
+            contentType: string;
+            id: string;
+            /** @description What the content is: pdf, zip, xlsx…, empty when it couldn't be told */
+            kind: string;
+            /** @description PDF, ZIP, XLSX */
+            kindLabel: string;
+            name: string;
+            /** Format: int64 */
+            pages: number;
+            /** Format: int64 */
+            sizeBytes: number;
+            /** Format: date-time */
+            uploadedAt: string;
+            uploadedBy: string;
+        };
+        ProductFilesSummary: {
+            /** Format: int64 */
+            bytes: number;
+            /** Format: int64 */
+            count: number;
+            /** @description The first file's kind in capitals (PDF, ZIP, XLSX) */
+            kind: string;
+            /**
+             * Format: int64
+             * @description The first file's pages, for a PDF
+             */
+            pages: number;
+        };
+        ProductListItem: {
+            coverAlt: string;
+            coverUrl: string;
+            currency: string;
+            files: components["schemas"]["ProductFilesSummary"];
+            /** Format: int64 */
+            grossCents: number;
+            id: string;
+            name: string;
+            /** Format: int64 */
+            orders: number;
+            price: components["schemas"]["ProductPrice"];
+            /** Format: int64 */
+            refundedCents: number;
+            /** Format: int64 */
+            refunds: number;
+            salesPage: components["schemas"]["ProductSalesPage"];
+            shortName: string;
+            /** @enum {string} */
+            status: "draft" | "published" | "archived";
+            /** Format: date-time */
+            statusAt?: string;
+            statusBy: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        ProductListOption: {
+            doubleOptIn: boolean;
+            id: string;
+            name: string;
+        };
+        ProductNumbers: {
+            automation?: components["schemas"]["ProductAutomationNumbers"];
+            /** Format: int64 */
+            contacts: number;
+            /** Format: int64 */
+            fromDefault: number;
+            /** Format: int64 */
+            fromPage: number;
+            /** Format: int64 */
+            fromShop: number;
+            /** Format: int64 */
+            grossCents: number;
+            /** Format: int64 */
+            joined: number;
+            /** Format: int64 */
+            none: number;
+            offerList: string;
+            /** Format: int64 */
+            orders: number;
+            /** Format: int64 */
+            refundedCents: number;
+            /** Format: int64 */
+            refunds: number;
+            /** Format: date-time */
+            since: string;
+            test: boolean;
+        };
+        ProductOffer: {
+            /** @description The list a buyer who ticks it joins, with its double opt-in */
+            listId: string;
+            on: boolean;
+            /** @description The exact text, kept as consent */
+            text: string;
+        };
+        ProductOrderBuyer: {
+            /** Format: date-time */
+            confirmedAt?: string;
+            contactId?: string;
+            /** Format: date-time */
+            contactSince?: string;
+            doubleOptIn: boolean;
+            email: string;
+            /** @enum {string} */
+            kind: "contact" | "joined" | "none";
+            list: string;
+            /** @enum {string} */
+            listStatus: "" | "pending" | "subscribed" | "unsubscribed";
+            name: string;
+        };
+        ProductOrderConsent: {
+            /** Format: date-time */
+            at?: string;
+            ip: string;
+            list: string;
+            offered: boolean;
+            page: string;
+            text: string;
+            ticked: boolean;
+        };
+        ProductOrderDelivery: {
+            /** Format: date-time */
+            deliveredAt?: string;
+            messageId?: string;
+            newLink: boolean;
+            provider: string;
+            /** Format: double */
+            seconds: number;
+            /** Format: date-time */
+            sentAt?: string;
+            status: string;
+            template: string;
+            /** Format: int32 */
+            version: number;
+        };
+        ProductOrderDetail: {
+            activity: components["schemas"]["ProductOrderEvent"][];
+            /** Format: int64 */
+            amountCents: number;
+            buyer: components["schemas"]["ProductOrderBuyer"];
+            buyerEmail: string;
+            canRestore: boolean;
+            canRevoke: boolean;
+            canSendLink: boolean;
+            consent: components["schemas"]["ProductOrderConsent"];
+            currency: string;
+            delivery?: components["schemas"]["ProductOrderDelivery"];
+            disputeReason: string;
+            /** @enum {string} */
+            disputeStatus: "" | "open" | "won" | "lost";
+            /** Format: date-time */
+            disputedAt?: string;
+            download: components["schemas"]["ProductDownloadState"];
+            downloads: components["schemas"]["ProductOrderDownloads"];
+            files: components["schemas"]["ProductFilesSummary"];
+            helpers: string[];
+            id: string;
+            /** Format: int64 */
+            number: number;
+            /** Format: date-time */
+            paidAt: string;
+            payWhatYouWant: boolean;
+            payment: components["schemas"]["ProductOrderPayment"];
+            price: components["schemas"]["ProductPrice"];
+            /** @description The product's short name (Field Guide) */
+            product: string;
+            productAlt: string;
+            productCover: string;
+            productId: string;
+            productName: string;
+            /** Format: date-time */
+            refundedAt?: string;
+            /** Format: int64 */
+            refundedCents: number;
+            route: string;
+            /** @enum {string} */
+            status: "paid" | "refunded" | "partially_refunded" | "disputed";
+            test: boolean;
+        };
+        ProductOrderDownloads: {
+            /**
+             * Format: int64
+             * @description Distinct IP addresses (kept only as hashes)
+             */
+            addresses: number;
+            /** Format: int64 */
+            count: number;
+            /** Format: date-time */
+            first?: string;
+            /** Format: date-time */
+            last?: string;
+        };
+        ProductOrderEvent: {
+            /** Format: int32 */
+            allowed?: number;
+            /** Format: int64 */
+            amount?: number;
+            /** Format: date-time */
+            at: string;
+            /** @description Done by the system, as the product's setting says */
+            auto?: boolean;
+            by: string;
+            /** @description Done in Stripe's dashboard */
+            byStripe?: boolean;
+            /** Format: int64 */
+            bytes?: number;
+            /** Format: int64 */
+            count?: number;
+            currency?: string;
+            email?: string;
+            file?: string;
+            /** @enum {string} */
+            kind: "checkout_started" | "paid" | "delivery_sent" | "delivery_delivered" | "delivery_failed" | "downloaded" | "refunded" | "dispute_opened" | "dispute_closed" | "access_revoked" | "access_restored" | "new_link" | "buyer_asked";
+            note?: string;
+            outcome?: string;
+            page?: string;
+            provider?: string;
+            reason?: string;
+            /** Format: date-time */
+            respondBy?: string;
+            /** Format: double */
+            seconds?: number;
+            stripe?: string;
+            template?: string;
+            ticked?: boolean;
+            /** Format: int32 */
+            used?: number;
+            /** Format: int32 */
+            version?: number;
+        };
+        ProductOrderItem: {
+            /** Format: int64 */
+            amountCents: number;
+            buyerEmail: string;
+            currency: string;
+            disputeReason: string;
+            /** @enum {string} */
+            disputeStatus: "" | "open" | "won" | "lost";
+            /** Format: date-time */
+            disputedAt?: string;
+            download: components["schemas"]["ProductDownloadState"];
+            id: string;
+            /** Format: int64 */
+            number: number;
+            /** Format: date-time */
+            paidAt: string;
+            payWhatYouWant: boolean;
+            /** @description The product's short name (Field Guide) */
+            product: string;
+            productId: string;
+            productName: string;
+            /** Format: date-time */
+            refundedAt?: string;
+            /** Format: int64 */
+            refundedCents: number;
+            /** @enum {string} */
+            status: "paid" | "refunded" | "partially_refunded" | "disputed";
+            test: boolean;
+        };
+        ProductOrderList: {
+            items: components["schemas"]["ProductOrderItem"][];
+            /** Format: int64 */
+            page: number;
+            /** Format: int64 */
+            pageSize: number;
+            products: components["schemas"]["ProductCount"][];
+            /** Format: int64 */
+            total: number;
+        };
+        ProductOrderPayment: {
+            account: string;
+            /** Format: int64 */
+            amountCents: number;
+            currency: string;
+            /** Format: date-time */
+            disputeDueBy?: string;
+            /** Format: int64 */
+            disputeFeeCents: number;
+            disputeReason: string;
+            /** @enum {string} */
+            disputeStatus: "" | "open" | "won" | "lost";
+            disputeUrl: string;
+            /** @enum {string} */
+            mode: "live" | "test";
+            provider: string;
+            /** Format: date-time */
+            refundedAt?: string;
+            /** Format: int64 */
+            refundedCents: number;
+            /** Format: int64 */
+            taxCents: number;
+            url: string;
+        };
+        ProductPageOption: {
+            id: string;
+            name: string;
+            path: string;
+            /** @enum {string} */
+            status: "draft" | "scheduled" | "published" | "unpublished";
+        };
+        ProductPrice: {
+            /** Format: int64 */
+            amountCents: number;
+            /** @enum {string} */
+            kind: "one_time" | "pwyw";
+            /** Format: int64 */
+            minimumCents: number;
+            /** Format: int64 */
+            suggestedCents: number;
+        };
+        ProductPublishInput: {
+            confirmPrice?: boolean;
+        };
+        ProductSalesPage: {
+            name: string;
+            /** @description Empty for the default product page */
+            pageId?: string;
+            /** @example /field-guide */
+            path: string;
+            /** Format: date-time */
+            publishedAt?: string;
+            /** @enum {string} */
+            status: "draft" | "scheduled" | "published" | "unpublished" | "default";
+        };
+        ProductSourceRow: {
+            /** Format: int64 */
+            grossCents: number;
+            /** Format: int64 */
+            orders: number;
+            product: string;
+            productId: string;
+            /** @enum {string} */
+            source: "page" | "shop" | "product_page";
+        };
+        ProductTemplateOption: {
+            category: string;
+            id: string;
+            key: string;
+            /** @description essential or optional */
+            kind: string;
+            name: string;
+            /**
+             * Format: int32
+             * @description The live version; 0 when none is published
+             */
+            version: number;
+        };
+        ProductsBuyers: {
+            /**
+             * Format: int64
+             * @description Buyers who were contacts already
+             */
+            contacts: number;
+            /**
+             * Format: int64
+             * @description Buyers who ticked the list offer and became contacts
+             */
+            joined: number;
+            /**
+             * Format: int64
+             * @description Buyers who aren't contacts
+             */
+            none: number;
+            offerText: string;
+            product: string;
+            /** Format: int64 */
+            ticked: number;
+            tickedBy: components["schemas"]["ProductCount"][];
+        };
+        ProductsHelpers: {
+            edit: string[];
+            export: string[];
+            orders: string[];
+            publish: string[];
+        };
+        ProductsOverview: {
+            buyers: components["schemas"]["ProductsBuyers"];
+            /** Format: date-time */
+            from: string;
+            helpers: components["schemas"]["ProductsHelpers"];
+            payments: components["schemas"]["ProductsPayments"];
+            /** @enum {string} */
+            period: "30d" | "90d" | "12m";
+            products: components["schemas"]["ProductListItem"][];
+            sources: components["schemas"]["ProductSourceRow"][];
+            stats: components["schemas"]["ProductsStats"];
+            /** Format: date-time */
+            until: string;
+        };
+        ProductsPayments: {
+            account: string;
+            connected: boolean;
+            currency: string;
+            hasLive: boolean;
+            /** @enum {string} */
+            mode: "live" | "test" | "";
+            pricesIncludeTax: boolean;
+            provider: string;
+            taxAtCheckout: boolean;
+        };
+        ProductsStats: {
+            byProduct: components["schemas"]["ProductCount"][];
+            /** Format: int64 */
+            grossCents: number;
+            /** Format: int64 */
+            netCents: number;
+            /** Format: int64 */
+            openDisputes: number;
+            /** Format: int64 */
+            orders: number;
+            /** Format: int64 */
+            refundedCents: number;
+            /** Format: int64 */
+            refundedOrders: number;
+        };
+        ProductsSummary: {
+            currency: string;
+            /** Format: date-time */
+            from: string;
+            /** Format: int64 */
+            grossCents: number;
+            /** Format: int64 */
+            orders: number;
+            /** Format: int64 */
+            products: number;
+            /** Format: int64 */
+            refundedCents: number;
+            /** Format: int64 */
+            refundedOrders: number;
+            /** Format: date-time */
+            until: string;
         };
         ProviderAuthFailure: {
             down: components["schemas"]["ProviderDownState"];
@@ -27351,6 +28228,22 @@ export interface components {
             order: string[];
             /** @description The welcome page after checkout; {{ first_name }} and {{ next_issue }} are filled in. */
             welcome: string;
+        };
+        UploadStart: {
+            name: string;
+            /** Format: uuid */
+            replaces?: string;
+            /** Format: int64 */
+            size: number;
+        };
+        UploadState: {
+            /** Format: int64 */
+            chunkBytes: number;
+            id: string;
+            /** Format: int64 */
+            received: number;
+            /** Format: int64 */
+            size: number;
         };
         VariableUse: {
             /** Format: int64 */
@@ -34351,7 +35244,7 @@ export interface operations {
                 /** @description Action group (routing) or action (routing.updated) */
                 action?: string;
                 /** @description A group of actions, as in the action filter */
-                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "ai" | "earn" | "verification" | "placement" | "website";
+                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "ai" | "earn" | "verification" | "placement" | "website" | "products";
                 result?: "allowed" | "denied" | "error";
                 range?: "24h" | "7d" | "30d" | "90d" | "all";
                 /** @description Overrides range */
@@ -34433,7 +35326,7 @@ export interface operations {
                 /** @description Action group (routing) or action (routing.updated) */
                 action?: string;
                 /** @description A group of actions, as in the action filter */
-                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "ai" | "earn" | "verification" | "placement" | "website";
+                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "ai" | "earn" | "verification" | "placement" | "website" | "products";
                 result?: "allowed" | "denied" | "error";
                 range?: "24h" | "7d" | "30d" | "90d" | "all";
                 /** @description Overrides range */
@@ -48095,6 +48988,718 @@ export interface operations {
                 };
                 content: {
                     "application/json": string;
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-products": {
+        parameters: {
+            query?: {
+                period?: "30d" | "90d" | "12m";
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductsOverview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-product": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProductCreate"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-product-orders": {
+        parameters: {
+            query?: {
+                /** @description An order number or part of the buyer's email */
+                q?: string;
+                /** @description A product's id */
+                product?: string;
+                status?: "" | "paid" | "refunded" | "partially_refunded" | "disputed" | "test";
+                period?: "7d" | "30d" | "90d" | "all";
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductOrderList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "export-product-orders": {
+        parameters: {
+            query?: {
+                /** @description An order number or part of the buyer's email */
+                q?: string;
+                /** @description A product's id */
+                product?: string;
+                status?: "" | "paid" | "refunded" | "partially_refunded" | "disputed" | "test";
+                period?: "7d" | "30d" | "90d" | "all";
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control"?: string;
+                    "Content-Disposition"?: string;
+                    "Content-Type"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-product-order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                order: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductOrderDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "send-order-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewLinkInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductOrderDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "restore-order-access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                order: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductOrderDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "revoke-order-access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                order: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductOrderDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-products-summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductsSummary"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-product": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                product: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-product": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProductFields"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-product": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                product: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "archive-product": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                product: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "upload-product-cover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": {
+                    /**
+                     * Format: binary
+                     * @description PNG, JPEG or GIF, up to 5 MB
+                     */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductCover"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-product-file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                file: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "publish-product": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProductPublishInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "unarchive-product": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                product: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "start-product-upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UploadStart"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadState"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "upload-product-chunk": {
+        parameters: {
+            query?: {
+                /** @description Where this chunk starts: the bytes received so far */
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/octet-stream": string;
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadState"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "cancel-product-upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                upload: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "finish-product-upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                upload: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductFile"];
                 };
             };
             /** @description Error */

@@ -27,6 +27,8 @@ export interface Refs {
   fields: Map<string, { label: string; type: string }>
   /** Polls and surveys the trigger "Answered a poll or survey" names ("poll:<id>" → name). */
   polls?: Map<string, string>
+  /** Products the trigger and goal "Bought a product" name (id → name). */
+  products?: Map<string, string>
 }
 
 export const emptyRefs: Refs = { lists: new Map(), forms: new Map(), emails: new Map(), providers: new Map(), fields: new Map() }
@@ -66,6 +68,7 @@ export const triggerKindLabels: Record<TriggerConfig['kind'], string> = {
     return scoreTriggerName()
   },
   poll_answered: 'Answered a poll or survey',
+  bought_product: 'Bought a product',
 }
 
 /** Colour of a step type: the palette swatch and the node header. */
@@ -203,6 +206,8 @@ export function triggerRef(t: TriggerConfig | undefined, refs: Refs): string {
       return scoreTriggerRef(t)
     case 'poll_answered':
       return refs.polls?.get(t.poll ?? '') ?? 'a poll or survey'
+    case 'bought_product':
+      return t.productId ? (refs.products?.get(t.productId) ?? 'a product') : 'any product'
   }
 }
 

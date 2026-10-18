@@ -7352,7 +7352,8 @@
               "field",
               "tag",
               "list",
-              "event"
+              "event",
+              "bought_product"
             ],
             "type": "string"
           },
@@ -7363,6 +7364,10 @@
           "op": {
             "description": "equals, not_equals, contains, is_set, is_not_set, is_one_of (comma-separated values)",
             "maxLength": 16,
+            "type": "string"
+          },
+          "productId": {
+            "maxLength": 40,
             "type": "string"
           },
           "step": {
@@ -9184,7 +9189,8 @@
               "api_event",
               "date_field",
               "score_crosses",
-              "poll_answered"
+              "poll_answered",
+              "bought_product"
             ],
             "type": "string"
           },
@@ -9209,6 +9215,10 @@
           },
           "poll": {
             "maxLength": 60,
+            "type": "string"
+          },
+          "productId": {
+            "maxLength": 40,
             "type": "string"
           },
           "reentry": {
@@ -32987,6 +32997,16 @@
         ],
         "type": "object"
       },
+      "NewLinkInput": {
+        "additionalProperties": false,
+        "properties": {
+          "requestedBy": {
+            "maxLength": 200,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "NewPlanInput": {
         "additionalProperties": false,
         "properties": {
@@ -33317,7 +33337,7 @@
             "items": {
               "$ref": "#/components/schemas/NotificationEventChoice"
             },
-            "maxItems": 20,
+            "maxItems": 100,
             "type": "array"
           },
           "quietHours": {
@@ -37398,6 +37418,1871 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "ProductAutomationNumbers": {
+        "additionalProperties": false,
+        "properties": {
+          "contacts": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "entered": {
+            "description": "Contacts still in the flow or through it",
+            "format": "int64",
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "refunded": {
+            "description": "Contacts who left because their payment was refunded",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "entered",
+          "contacts",
+          "refunded"
+        ],
+        "type": "object"
+      },
+      "ProductCheck": {
+        "additionalProperties": false,
+        "properties": {
+          "account": {
+            "type": "string"
+          },
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "bytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "default": {
+            "description": "No sales page chosen: the default product page",
+            "type": "boolean"
+          },
+          "draft": {
+            "description": "The template has a draft but no published version",
+            "type": "boolean"
+          },
+          "file": {
+            "type": "string"
+          },
+          "key": {
+            "enum": [
+              "stripe",
+              "file",
+              "price",
+              "template",
+              "route",
+              "cover_alt",
+              "sales_page"
+            ],
+            "type": "string"
+          },
+          "mode": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "path": {
+            "type": "string"
+          },
+          "route": {
+            "examples": [
+              "Postmark, then Amazon SES"
+            ],
+            "type": "string"
+          },
+          "template": {
+            "type": "string"
+          },
+          "templateId": {
+            "type": "string"
+          },
+          "version": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "key",
+          "ok"
+        ],
+        "type": "object"
+      },
+      "ProductCount": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "productId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "productId",
+          "name",
+          "count"
+        ],
+        "type": "object"
+      },
+      "ProductCover": {
+        "additionalProperties": false,
+        "properties": {
+          "height": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "url": {
+            "type": "string"
+          },
+          "width": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "url",
+          "width",
+          "height"
+        ],
+        "type": "object"
+      },
+      "ProductCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "maxLength": 120,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ProductDelivery": {
+        "additionalProperties": false,
+        "properties": {
+          "downloads": {
+            "format": "int32",
+            "maximum": 20,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "linkDays": {
+            "format": "int32",
+            "maximum": 30,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "revokeOnRefund": {
+            "description": "Revoke access when a payment is refunded or disputed",
+            "type": "boolean"
+          },
+          "templateId": {
+            "description": "The transactional template of the delivery email",
+            "type": "string"
+          }
+        },
+        "required": [
+          "templateId",
+          "linkDays",
+          "downloads",
+          "revokeOnRefund"
+        ],
+        "type": "object"
+      },
+      "ProductDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "archivedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "changes": {
+            "description": "The draft's fields that differ from what's live",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/ProductCheck"
+            },
+            "type": "array"
+          },
+          "chunkBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "draft": {
+            "$ref": "#/components/schemas/ProductFields"
+          },
+          "files": {
+            "items": {
+              "$ref": "#/components/schemas/ProductFile"
+            },
+            "type": "array"
+          },
+          "filesBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "helpers": {
+            "$ref": "#/components/schemas/ProductsHelpers"
+          },
+          "id": {
+            "type": "string"
+          },
+          "lists": {
+            "items": {
+              "$ref": "#/components/schemas/ProductListOption"
+            },
+            "type": "array"
+          },
+          "live": {
+            "$ref": "#/components/schemas/ProductFields"
+          },
+          "maxBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "maxFile": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "numbers": {
+            "$ref": "#/components/schemas/ProductNumbers"
+          },
+          "orders": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "pageUrl": {
+            "type": "string"
+          },
+          "pages": {
+            "items": {
+              "$ref": "#/components/schemas/ProductPageOption"
+            },
+            "type": "array"
+          },
+          "payments": {
+            "$ref": "#/components/schemas/ProductsPayments"
+          },
+          "publishedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "publishedBy": {
+            "type": "string"
+          },
+          "route": {
+            "type": "string"
+          },
+          "salesPage": {
+            "$ref": "#/components/schemas/ProductSalesPage"
+          },
+          "shopUrl": {
+            "type": "string"
+          },
+          "siteHost": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "draft",
+              "published",
+              "archived"
+            ],
+            "type": "string"
+          },
+          "templates": {
+            "items": {
+              "$ref": "#/components/schemas/ProductTemplateOption"
+            },
+            "type": "array"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedBy": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "draft",
+          "changes",
+          "publishedBy",
+          "createdBy",
+          "updatedAt",
+          "updatedBy",
+          "files",
+          "filesBytes",
+          "maxBytes",
+          "maxFile",
+          "chunkBytes",
+          "checks",
+          "pages",
+          "lists",
+          "templates",
+          "payments",
+          "route",
+          "siteHost",
+          "shopUrl",
+          "pageUrl",
+          "salesPage",
+          "orders",
+          "helpers"
+        ],
+        "type": "object"
+      },
+      "ProductDownloadState": {
+        "additionalProperties": false,
+        "properties": {
+          "allowed": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "deliveredAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "newLink": {
+            "type": "boolean"
+          },
+          "newLinkAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "newLinkBy": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "revokeReason": {
+            "enum": [
+              "",
+              "manual",
+              "refund",
+              "dispute"
+            ],
+            "type": "string"
+          },
+          "revokedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "revokedBy": {
+            "type": "string"
+          },
+          "sentAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "pending",
+              "sent",
+              "delivered",
+              "failed",
+              "expired",
+              "used_up",
+              "revoked",
+              "revoked_auto"
+            ],
+            "type": "string"
+          },
+          "used": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "state",
+          "provider",
+          "used",
+          "allowed",
+          "newLink",
+          "newLinkBy",
+          "revokedBy",
+          "revokeReason"
+        ],
+        "type": "object"
+      },
+      "ProductFields": {
+        "additionalProperties": false,
+        "properties": {
+          "coverAlt": {
+            "maxLength": 300,
+            "type": "string"
+          },
+          "coverUrl": {
+            "maxLength": 1000,
+            "type": "string"
+          },
+          "delivery": {
+            "$ref": "#/components/schemas/ProductDelivery"
+          },
+          "longDescription": {
+            "maxLength": 4000,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "offer": {
+            "$ref": "#/components/schemas/ProductOffer"
+          },
+          "price": {
+            "$ref": "#/components/schemas/ProductPrice"
+          },
+          "salesPageId": {
+            "description": "Empty for the default product page",
+            "type": "string"
+          },
+          "shortDescription": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "showInShop": {
+            "type": "boolean"
+          },
+          "slug": {
+            "maxLength": 80,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "slug",
+          "shortDescription",
+          "longDescription",
+          "coverUrl",
+          "coverAlt",
+          "price",
+          "salesPageId",
+          "showInShop",
+          "offer",
+          "delivery"
+        ],
+        "type": "object"
+      },
+      "ProductFile": {
+        "additionalProperties": false,
+        "properties": {
+          "contentType": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "description": "What the content is: pdf, zip, xlsx…, empty when it couldn't be told",
+            "type": "string"
+          },
+          "kindLabel": {
+            "description": "PDF, ZIP, XLSX",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "pages": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "sizeBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "uploadedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "uploadedBy": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "kindLabel",
+          "contentType",
+          "pages",
+          "sizeBytes",
+          "uploadedAt",
+          "uploadedBy"
+        ],
+        "type": "object"
+      },
+      "ProductFilesSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "bytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "kind": {
+            "description": "The first file's kind in capitals (PDF, ZIP, XLSX)",
+            "type": "string"
+          },
+          "pages": {
+            "description": "The first file's pages, for a PDF",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "count",
+          "kind",
+          "pages",
+          "bytes"
+        ],
+        "type": "object"
+      },
+      "ProductListItem": {
+        "additionalProperties": false,
+        "properties": {
+          "coverAlt": {
+            "type": "string"
+          },
+          "coverUrl": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "files": {
+            "$ref": "#/components/schemas/ProductFilesSummary"
+          },
+          "grossCents": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "orders": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "price": {
+            "$ref": "#/components/schemas/ProductPrice"
+          },
+          "refundedCents": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "refunds": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "salesPage": {
+            "$ref": "#/components/schemas/ProductSalesPage"
+          },
+          "shortName": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "draft",
+              "published",
+              "archived"
+            ],
+            "type": "string"
+          },
+          "statusAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "statusBy": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "shortName",
+          "coverUrl",
+          "coverAlt",
+          "files",
+          "price",
+          "currency",
+          "status",
+          "statusBy",
+          "orders",
+          "grossCents",
+          "refunds",
+          "refundedCents",
+          "salesPage",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
+      "ProductListOption": {
+        "additionalProperties": false,
+        "properties": {
+          "doubleOptIn": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "doubleOptIn"
+        ],
+        "type": "object"
+      },
+      "ProductNumbers": {
+        "additionalProperties": false,
+        "properties": {
+          "automation": {
+            "$ref": "#/components/schemas/ProductAutomationNumbers"
+          },
+          "contacts": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "fromDefault": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "fromPage": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "fromShop": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "grossCents": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "joined": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "none": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "offerList": {
+            "type": "string"
+          },
+          "orders": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "refundedCents": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "refunds": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "since": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "test": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "since",
+          "orders",
+          "grossCents",
+          "refundedCents",
+          "refunds",
+          "fromPage",
+          "fromShop",
+          "fromDefault",
+          "contacts",
+          "joined",
+          "none",
+          "offerList",
+          "test"
+        ],
+        "type": "object"
+      },
+      "ProductOffer": {
+        "additionalProperties": false,
+        "properties": {
+          "listId": {
+            "description": "The list a buyer who ticks it joins, with its double opt-in",
+            "type": "string"
+          },
+          "on": {
+            "type": "boolean"
+          },
+          "text": {
+            "description": "The exact text, kept as consent",
+            "maxLength": 160,
+            "type": "string"
+          }
+        },
+        "required": [
+          "on",
+          "listId",
+          "text"
+        ],
+        "type": "object"
+      },
+      "ProductOrderBuyer": {
+        "additionalProperties": false,
+        "properties": {
+          "confirmedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "contactId": {
+            "type": "string"
+          },
+          "contactSince": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "doubleOptIn": {
+            "type": "boolean"
+          },
+          "email": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "contact",
+              "joined",
+              "none"
+            ],
+            "type": "string"
+          },
+          "list": {
+            "type": "string"
+          },
+          "listStatus": {
+            "enum": [
+              "",
+              "pending",
+              "subscribed",
+              "unsubscribed"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "name",
+          "kind",
+          "list",
+          "listStatus",
+          "doubleOptIn"
+        ],
+        "type": "object"
+      },
+      "ProductOrderConsent": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "ip": {
+            "type": "string"
+          },
+          "list": {
+            "type": "string"
+          },
+          "offered": {
+            "type": "boolean"
+          },
+          "page": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "ticked": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "offered",
+          "ticked",
+          "text",
+          "list",
+          "page",
+          "ip"
+        ],
+        "type": "object"
+      },
+      "ProductOrderDelivery": {
+        "additionalProperties": false,
+        "properties": {
+          "deliveredAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "messageId": {
+            "type": "string"
+          },
+          "newLink": {
+            "type": "boolean"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "seconds": {
+            "format": "double",
+            "type": "number"
+          },
+          "sentAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "template": {
+            "type": "string"
+          },
+          "version": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "template",
+          "version",
+          "status",
+          "provider",
+          "seconds",
+          "newLink"
+        ],
+        "type": "object"
+      },
+      "ProductOrderDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "activity": {
+            "items": {
+              "$ref": "#/components/schemas/ProductOrderEvent"
+            },
+            "type": "array"
+          },
+          "amountCents": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "buyer": {
+            "$ref": "#/components/schemas/ProductOrderBuyer"
+          },
+          "buyerEmail": {
+            "type": "string"
+          },
+          "canRestore": {
+            "type": "boolean"
+          },
+          "canRevoke": {
+            "type": "boolean"
+          },
+          "canSendLink": {
+            "type": "boolean"
+          },
+          "consent": {
+            "$ref": "#/components/schemas/ProductOrderConsent"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "delivery": {
+            "$ref": "#/components/schemas/ProductOrderDelivery"
+          },
+          "disputeReason": {
+            "type": "string"
+          },
+          "disputeStatus": {
+            "enum": [
+              "",
+              "open",
+              "won",
+              "lost"
+            ],
+            "type": "string"
+          },
+          "disputedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "download": {
+            "$ref": "#/components/schemas/ProductDownloadState"
+          },
+          "downloads": {
+            "$ref": "#/components/schemas/ProductOrderDownloads"
+          },
+          "files": {
+            "$ref": "#/components/schemas/ProductFilesSummary"
+          },
+          "helpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "string"
+          },
+          "number": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "paidAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "payWhatYouWant": {
+            "type": "boolean"
+          },
+          "payment": {
+            "$ref": "#/components/schemas/ProductOrderPayment"
+          },
+          "price": {
+            "$ref": "#/components/schemas/ProductPrice"
+          },
+          "product": {
+            "description": "The product's short name (Field Guide)",
+            "type": "string"
+          },
+          "productAlt": {
+            "type": "string"
+          },
+          "productCover": {
+            "type": "string"
+          },
+          "productId": {
+            "type": "string"
+          },
+          "productName": {
+            "type": "string"
+          },
+          "refundedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "refundedCents": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "route": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "paid",
+              "refunded",
+              "partially_refunded",
+              "disputed"
+            ],
+            "type": "string"
+          },
+          "test": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "productCover",
+          "productAlt",
+          "files",
+          "price",
+          "buyer",
+          "consent",
+          "payment",
+          "downloads",
+          "activity",
+          "canSendLink",
+          "canRevoke",
+          "canRestore",
+          "route",
+          "helpers",
+          "id",
+          "number",
+          "paidAt",
+          "buyerEmail",
+          "productId",
+          "product",
+          "productName",
+          "amountCents",
+          "currency",
+          "payWhatYouWant",
+          "status",
+          "test",
+          "refundedCents",
+          "disputeStatus",
+          "disputeReason",
+          "download"
+        ],
+        "type": "object"
+      },
+      "ProductOrderDownloads": {
+        "additionalProperties": false,
+        "properties": {
+          "addresses": {
+            "description": "Distinct IP addresses (kept only as hashes)",
+            "format": "int64",
+            "type": "integer"
+          },
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "first": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "last": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "count",
+          "addresses"
+        ],
+        "type": "object"
+      },
+      "ProductOrderEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "allowed": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "amount": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "auto": {
+            "description": "Done by the system, as the product's setting says",
+            "type": "boolean"
+          },
+          "by": {
+            "type": "string"
+          },
+          "byStripe": {
+            "description": "Done in Stripe's dashboard",
+            "type": "boolean"
+          },
+          "bytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "file": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "checkout_started",
+              "paid",
+              "delivery_sent",
+              "delivery_delivered",
+              "delivery_failed",
+              "downloaded",
+              "refunded",
+              "dispute_opened",
+              "dispute_closed",
+              "access_revoked",
+              "access_restored",
+              "new_link",
+              "buyer_asked"
+            ],
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          },
+          "outcome": {
+            "type": "string"
+          },
+          "page": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "respondBy": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "seconds": {
+            "format": "double",
+            "type": "number"
+          },
+          "stripe": {
+            "type": "string"
+          },
+          "template": {
+            "type": "string"
+          },
+          "ticked": {
+            "type": "boolean"
+          },
+          "used": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "version": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "kind",
+          "at",
+          "by"
+        ],
+        "type": "object"
+      },
+      "ProductOrderItem": {
+        "additionalProperties": false,
+        "properties": {
+          "amountCents": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "buyerEmail": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "disputeReason": {
+            "type": "string"
+          },
+          "disputeStatus": {
+            "enum": [
+              "",
+              "open",
+              "won",
+              "lost"
+            ],
+            "type": "string"
+          },
+          "disputedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "download": {
+            "$ref": "#/components/schemas/ProductDownloadState"
+          },
+          "id": {
+            "type": "string"
+          },
+          "number": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "paidAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "payWhatYouWant": {
+            "type": "boolean"
+          },
+          "product": {
+            "description": "The product's short name (Field Guide)",
+            "type": "string"
+          },
+          "productId": {
+            "type": "string"
+          },
+          "productName": {
+            "type": "string"
+          },
+          "refundedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "refundedCents": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "paid",
+              "refunded",
+              "partially_refunded",
+              "disputed"
+            ],
+            "type": "string"
+          },
+          "test": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "number",
+          "paidAt",
+          "buyerEmail",
+          "productId",
+          "product",
+          "productName",
+          "amountCents",
+          "currency",
+          "payWhatYouWant",
+          "status",
+          "test",
+          "refundedCents",
+          "disputeStatus",
+          "disputeReason",
+          "download"
+        ],
+        "type": "object"
+      },
+      "ProductOrderList": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ProductOrderItem"
+            },
+            "type": "array"
+          },
+          "page": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "pageSize": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "products": {
+            "items": {
+              "$ref": "#/components/schemas/ProductCount"
+            },
+            "type": "array"
+          },
+          "total": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "pageSize",
+          "products"
+        ],
+        "type": "object"
+      },
+      "ProductOrderPayment": {
+        "additionalProperties": false,
+        "properties": {
+          "account": {
+            "type": "string"
+          },
+          "amountCents": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "disputeDueBy": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "disputeFeeCents": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "disputeReason": {
+            "type": "string"
+          },
+          "disputeStatus": {
+            "enum": [
+              "",
+              "open",
+              "won",
+              "lost"
+            ],
+            "type": "string"
+          },
+          "disputeUrl": {
+            "type": "string"
+          },
+          "mode": {
+            "enum": [
+              "live",
+              "test"
+            ],
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "refundedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "refundedCents": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "taxCents": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider",
+          "account",
+          "mode",
+          "amountCents",
+          "taxCents",
+          "currency",
+          "refundedCents",
+          "disputeStatus",
+          "disputeReason",
+          "disputeFeeCents",
+          "url",
+          "disputeUrl"
+        ],
+        "type": "object"
+      },
+      "ProductPageOption": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "draft",
+              "scheduled",
+              "published",
+              "unpublished"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "path",
+          "status"
+        ],
+        "type": "object"
+      },
+      "ProductPrice": {
+        "additionalProperties": false,
+        "properties": {
+          "amountCents": {
+            "format": "int64",
+            "maximum": 100000000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "kind": {
+            "enum": [
+              "one_time",
+              "pwyw"
+            ],
+            "type": "string"
+          },
+          "minimumCents": {
+            "format": "int64",
+            "maximum": 100000000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "suggestedCents": {
+            "format": "int64",
+            "maximum": 100000000,
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "kind",
+          "amountCents",
+          "minimumCents",
+          "suggestedCents"
+        ],
+        "type": "object"
+      },
+      "ProductPublishInput": {
+        "additionalProperties": false,
+        "properties": {
+          "confirmPrice": {
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "ProductSalesPage": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "pageId": {
+            "description": "Empty for the default product page",
+            "type": "string"
+          },
+          "path": {
+            "examples": [
+              "/field-guide"
+            ],
+            "type": "string"
+          },
+          "publishedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "draft",
+              "scheduled",
+              "published",
+              "unpublished",
+              "default"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "path",
+          "status"
+        ],
+        "type": "object"
+      },
+      "ProductSourceRow": {
+        "additionalProperties": false,
+        "properties": {
+          "grossCents": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "orders": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "product": {
+            "type": "string"
+          },
+          "productId": {
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "page",
+              "shop",
+              "product_page"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "productId",
+          "product",
+          "source",
+          "orders",
+          "grossCents"
+        ],
+        "type": "object"
+      },
+      "ProductTemplateOption": {
+        "additionalProperties": false,
+        "properties": {
+          "category": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "kind": {
+            "description": "essential or optional",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "version": {
+            "description": "The live version; 0 when none is published",
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "key",
+          "name",
+          "version",
+          "category",
+          "kind"
+        ],
+        "type": "object"
+      },
+      "ProductsBuyers": {
+        "additionalProperties": false,
+        "properties": {
+          "contacts": {
+            "description": "Buyers who were contacts already",
+            "format": "int64",
+            "type": "integer"
+          },
+          "joined": {
+            "description": "Buyers who ticked the list offer and became contacts",
+            "format": "int64",
+            "type": "integer"
+          },
+          "none": {
+            "description": "Buyers who aren't contacts",
+            "format": "int64",
+            "type": "integer"
+          },
+          "offerText": {
+            "type": "string"
+          },
+          "product": {
+            "type": "string"
+          },
+          "ticked": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "tickedBy": {
+            "items": {
+              "$ref": "#/components/schemas/ProductCount"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "product",
+          "contacts",
+          "joined",
+          "none",
+          "ticked",
+          "tickedBy",
+          "offerText"
+        ],
+        "type": "object"
+      },
+      "ProductsHelpers": {
+        "additionalProperties": false,
+        "properties": {
+          "edit": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "export": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "orders": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "publish": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "edit",
+          "publish",
+          "orders",
+          "export"
+        ],
+        "type": "object"
+      },
+      "ProductsOverview": {
+        "additionalProperties": false,
+        "properties": {
+          "buyers": {
+            "$ref": "#/components/schemas/ProductsBuyers"
+          },
+          "from": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "helpers": {
+            "$ref": "#/components/schemas/ProductsHelpers"
+          },
+          "payments": {
+            "$ref": "#/components/schemas/ProductsPayments"
+          },
+          "period": {
+            "enum": [
+              "30d",
+              "90d",
+              "12m"
+            ],
+            "type": "string"
+          },
+          "products": {
+            "items": {
+              "$ref": "#/components/schemas/ProductListItem"
+            },
+            "type": "array"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/ProductSourceRow"
+            },
+            "type": "array"
+          },
+          "stats": {
+            "$ref": "#/components/schemas/ProductsStats"
+          },
+          "until": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "period",
+          "from",
+          "until",
+          "stats",
+          "products",
+          "sources",
+          "buyers",
+          "payments",
+          "helpers"
+        ],
+        "type": "object"
+      },
+      "ProductsPayments": {
+        "additionalProperties": false,
+        "properties": {
+          "account": {
+            "type": "string"
+          },
+          "connected": {
+            "type": "boolean"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "hasLive": {
+            "type": "boolean"
+          },
+          "mode": {
+            "enum": [
+              "live",
+              "test",
+              ""
+            ],
+            "type": "string"
+          },
+          "pricesIncludeTax": {
+            "type": "boolean"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "taxAtCheckout": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "connected",
+          "provider",
+          "mode",
+          "account",
+          "hasLive",
+          "currency",
+          "taxAtCheckout",
+          "pricesIncludeTax"
+        ],
+        "type": "object"
+      },
+      "ProductsStats": {
+        "additionalProperties": false,
+        "properties": {
+          "byProduct": {
+            "items": {
+              "$ref": "#/components/schemas/ProductCount"
+            },
+            "type": "array"
+          },
+          "grossCents": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "netCents": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "openDisputes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "orders": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "refundedCents": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "refundedOrders": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "orders",
+          "byProduct",
+          "grossCents",
+          "refundedCents",
+          "refundedOrders",
+          "openDisputes",
+          "netCents"
+        ],
+        "type": "object"
+      },
+      "ProductsSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "currency": {
+            "type": "string"
+          },
+          "from": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "grossCents": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "orders": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "products": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "refundedCents": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "refundedOrders": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "until": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "orders",
+          "grossCents",
+          "refundedCents",
+          "refundedOrders",
+          "currency",
+          "products",
+          "from",
+          "until"
+        ],
         "type": "object"
       },
       "ProviderAuthFailure": {
@@ -56691,6 +58576,57 @@
         ],
         "type": "object"
       },
+      "UploadStart": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "replaces": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "size": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "size"
+        ],
+        "type": "object"
+      },
+      "UploadState": {
+        "additionalProperties": false,
+        "properties": {
+          "chunkBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "received": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "size": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "received",
+          "size",
+          "chunkBytes"
+        ],
+        "type": "object"
+      },
       "VariableUse": {
         "additionalProperties": false,
         "properties": {
@@ -72130,7 +74066,8 @@
                 "earn",
                 "verification",
                 "placement",
-                "website"
+                "website",
+                "products"
               ],
               "type": "string"
             }
@@ -72396,7 +74333,8 @@
                 "earn",
                 "verification",
                 "placement",
-                "website"
+                "website",
+                "products"
               ],
               "type": "string"
             }
@@ -100199,6 +102137,1411 @@
         ],
         "x-access": "workspace",
         "x-permission": "reports:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/products": {
+      "get": {
+        "operationId": "list-products",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "period",
+            "schema": {
+              "default": "30d",
+              "enum": [
+                "30d",
+                "90d",
+                "12m"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductsOverview"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Products with their numbers, where sales came from and the payment connection",
+        "tags": [
+          "Products"
+        ],
+        "x-access": "workspace",
+        "x-permission": "products:view"
+      },
+      "post": {
+        "operationId": "create-product",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProductCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductDetail"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Start a draft product",
+        "tags": [
+          "Products"
+        ],
+        "x-access": "workspace",
+        "x-permission": "products:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/products/orders": {
+      "get": {
+        "operationId": "list-product-orders",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "An order number or part of the buyer's email",
+            "explode": false,
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "description": "An order number or part of the buyer's email",
+              "maxLength": 200,
+              "type": "string"
+            }
+          },
+          {
+            "description": "A product's id",
+            "explode": false,
+            "in": "query",
+            "name": "product",
+            "schema": {
+              "description": "A product's id",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "enum": [
+                "",
+                "paid",
+                "refunded",
+                "partially_refunded",
+                "disputed",
+                "test"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "period",
+            "schema": {
+              "default": "30d",
+              "enum": [
+                "7d",
+                "30d",
+                "90d",
+                "all"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "default": 1,
+              "format": "int64",
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "pageSize",
+            "schema": {
+              "default": 10,
+              "format": "int64",
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductOrderList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Orders, newest first, with their download links",
+        "tags": [
+          "Products"
+        ],
+        "x-access": "workspace",
+        "x-permission": "products:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/products/orders/export": {
+      "get": {
+        "operationId": "export-product-orders",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "An order number or part of the buyer's email",
+            "explode": false,
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "description": "An order number or part of the buyer's email",
+              "maxLength": 200,
+              "type": "string"
+            }
+          },
+          {
+            "description": "A product's id",
+            "explode": false,
+            "in": "query",
+            "name": "product",
+            "schema": {
+              "description": "A product's id",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "enum": [
+                "",
+                "paid",
+                "refunded",
+                "partially_refunded",
+                "disputed",
+                "test"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "period",
+            "schema": {
+              "default": "30d",
+              "enum": [
+                "7d",
+                "30d",
+                "90d",
+                "all"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "default": 1,
+              "format": "int64",
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "pageSize",
+            "schema": {
+              "default": 10,
+              "format": "int64",
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "contentEncoding": "base64",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Content-Type": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The orders a filter shows, as CSV (they hold buyers' addresses; logged)",
+        "tags": [
+          "Products"
+        ],
+        "x-access": "workspace",
+        "x-permission": "subscribers:export"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/products/orders/{order}": {
+      "get": {
+        "operationId": "get-product-order",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "order",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductOrderDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "An order: its buyer and consent, payment, delivery, downloads and activity",
+        "tags": [
+          "Products"
+        ],
+        "x-access": "workspace",
+        "x-permission": "products:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/products/orders/{order}/new-link": {
+      "post": {
+        "operationId": "send-order-link",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewLinkInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductOrderDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Send a new download link, to the address on the order only",
+        "tags": [
+          "Products"
+        ],
+        "x-access": "workspace",
+        "x-permission": "orders:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/products/orders/{order}/restore": {
+      "post": {
+        "operationId": "restore-order-access",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "order",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductOrderDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Let an order's downloads work again",
+        "tags": [
+          "Products"
+        ],
+        "x-access": "workspace",
+        "x-permission": "orders:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/products/orders/{order}/revoke": {
+      "post": {
+        "operationId": "revoke-order-access",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "order",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductOrderDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Revoke an order's downloads",
+        "tags": [
+          "Products"
+        ],
+        "x-access": "workspace",
+        "x-permission": "orders:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/products/summary": {
+      "get": {
+        "operationId": "get-products-summary",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductsSummary"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Product sales over 30 days (the Earn overview's card)",
+        "tags": [
+          "Products"
+        ],
+        "x-access": "workspace",
+        "x-permission": "products:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/products/{product}": {
+      "delete": {
+        "operationId": "delete-product",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "product",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a product that was never published",
+        "tags": [
+          "Products"
+        ],
+        "x-access": "workspace",
+        "x-permission": "products:edit"
+      },
+      "get": {
+        "operationId": "get-product",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "product",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A product: its draft and what's live, files, publish checks and numbers",
+        "tags": [
+          "Products"
+        ],
+        "x-access": "workspace",
+        "x-permission": "products:view"
+      },
+      "put": {
+        "operationId": "save-product",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProductFields"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Save a product's draft (a published product changes with Publish changes)",
+        "tags": [
+          "Products"
+        ],
+        "x-access": "workspace",
+        "x-permission": "products:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/products/{product}/archive": {
+      "post": {
+        "operationId": "archive-product",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "product",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Stop selling a product; its buyers keep their downloads",
+        "tags": [
+          "Products"
+        ],
+        "x-access": "workspace",
+        "x-permission": "products:publish"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/products/{product}/cover": {
+      "post": {
+        "operationId": "upload-product-cover",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "encoding": {
+                "file": {
+                  "contentType": "image/png,image/jpeg,image/gif,application/octet-stream"
+                }
+              },
+              "schema": {
+                "properties": {
+                  "file": {
+                    "contentEncoding": "binary",
+                    "contentMediaType": "application/octet-stream",
+                    "description": "PNG, JPEG or GIF, up to 5 MB",
+                    "format": "binary",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "file"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductCover"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Upload a cover image (PNG, JPEG or GIF, up to 5 MB)",
+        "tags": [
+          "Products"
+        ],
+        "x-access": "workspace",
+        "x-permission": "products:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/products/{product}/files/{file}": {
+      "delete": {
+        "operationId": "remove-product-file",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "file",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a file from a product",
+        "tags": [
+          "Products"
+        ],
+        "x-access": "workspace",
+        "x-permission": "products:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/products/{product}/publish": {
+      "post": {
+        "description": "Blocked until every publish check passes. A new price on a published product needs confirmPrice: existing buyers keep their access.",
+        "operationId": "publish-product",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProductPublishInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Publish the draft: its price in Stripe, the shop and its pages",
+        "tags": [
+          "Products"
+        ],
+        "x-access": "workspace",
+        "x-permission": "products:publish"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/products/{product}/unarchive": {
+      "post": {
+        "operationId": "unarchive-product",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "product",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Sell an archived product again",
+        "tags": [
+          "Products"
+        ],
+        "x-access": "workspace",
+        "x-permission": "products:publish"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/products/{product}/uploads": {
+      "post": {
+        "operationId": "start-product-upload",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadStart"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadState"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Announce a file: up to 500 MB, 2 GB per product",
+        "tags": [
+          "Products"
+        ],
+        "x-access": "workspace",
+        "x-permission": "products:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/products/{product}/uploads/{upload}": {
+      "delete": {
+        "operationId": "cancel-product-upload",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "upload",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cancel an upload; nothing is kept",
+        "tags": [
+          "Products"
+        ],
+        "x-access": "workspace",
+        "x-permission": "products:edit"
+      },
+      "put": {
+        "operationId": "upload-product-chunk",
+        "parameters": [
+          {
+            "description": "Where this chunk starts: the bytes received so far",
+            "explode": false,
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "description": "Where this chunk starts: the bytes received so far",
+              "format": "int64",
+              "minimum": 0,
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "contentMediaType": "application/octet-stream",
+                "format": "binary",
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadState"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Send the next chunk of a file",
+        "tags": [
+          "Products"
+        ],
+        "x-access": "workspace",
+        "x-permission": "products:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/products/{product}/uploads/{upload}/complete": {
+      "post": {
+        "operationId": "finish-product-upload",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "upload",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductFile"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Finish an upload: the file's type is checked from its content",
+        "tags": [
+          "Products"
+        ],
+        "x-access": "workspace",
+        "x-permission": "products:edit"
       }
     },
     "/api/v1/workspaces/{workspace}/provider-events": {
