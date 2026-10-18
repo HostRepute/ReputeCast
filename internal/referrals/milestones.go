@@ -5,6 +5,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"errors"
+	"html"
 	"math"
 	"net/http"
 	"strings"
@@ -497,7 +498,7 @@ func (s *Service) CreateMilestone(ctx context.Context, ws *store.Workspace, prog
 		}
 	}
 	offerName := s.offerName(ctx, ws, in.CouponOfferID)
-	subject, preheader, mjmlSrc := defaultMilestoneEmail(cur.ListName, in.RewardName, in.Type)
+	subject, preheader, mjmlSrc := defaultMilestoneEmail(cur.ReferralProgram.ID, cur.ListName, in.RewardName, in.Type)
 	compiled := mjml.Compile(mjmlSrc)
 	now := s.now()
 	by := actorUser(ctx)
@@ -709,8 +710,7 @@ func (s *Service) codeHash(milestone uuid.UUID, code string) []byte {
 
 // parseCodes reads codes from text or CSV: one per line, the first column
 // of a CSV, a header row named "code" skipped.
-func parseCodes(text string) []string {
-	var out []string
+func parseCodes(text string) (out []string, repeated int64) {
 	seen := map[string]bool{}
 	for i, line := range strings.Split(strings.ReplaceAll(text, "\r\n", "\n"), "\n") {
 		line = strings.TrimSpace(line)
@@ -718,13 +718,17 @@ func parseCodes(text string) []string {
 			line = strings.TrimSpace(line[:c])
 		}
 		line = strings.Trim(line, `"`)
-		if line == "" || (i == 0 && strings.EqualFold(line, "code")) || seen[line] {
+		if line == "" || (i == 0 && strings.EqualFold(line, "code")) {
+			continue
+		}
+		if seen[line] {
+			repeated++
 			continue
 		}
 		seen[line] = true
 		out = append(out, line)
 	}
-	return out
+	return out, repeated
 }
 
 // UploadCodes adds codes to a code reward. Codes are sealed and only their
@@ -737,7 +741,7 @@ func (s *Service) UploadCodes(ctx context.Context, ws *store.Workspace, mileston
 	if m.RewardType != RewardCodes {
 		return ReferralCodesResult{}, api.Err(http.StatusConflict, "not_codes", s.text(ctx, mCodesNotCodes, nil))
 	}
-	codes := parseCodes(in.Text)
+	codes, repeated := parseCodes(in.Text)
 	if len(codes) == 0 {
 		return ReferralCodesResult{}, api.Invalid("body.text", s.text(ctx, mCodesNone, nil))
 	}
@@ -749,7 +753,7 @@ func (s *Service) UploadCodes(ctx context.Context, ws *store.Workspace, mileston
 			return ReferralCodesResult{}, api.Invalid("body.text", s.text(ctx, mCodesLong, nil))
 		}
 	}
-	out := ReferralCodesResult{}
+	out := ReferralCodesResult{Duplicates: repeated}
 	batch := uuid.Must(uuid.NewV7())
 	now := s.now()
 	by := actorUser(ctx)
@@ -816,7 +820,7 @@ func (s *Service) RemoveCodes(ctx context.Context, ws *store.Workspace, mileston
 // defaultMilestoneEmail is a new milestone's email: a heading, a thank-you
 // line, the Reward block, then the Referral block with the progress to the
 // next milestone, and the footer.
-func defaultMilestoneEmail(list, reward, rewardType string) (subject, preheader, src string) {
+func defaultMilestoneEmail(programID uuid.UUID, list, reward, rewardType string) (subject, preheader, src string) {
 	subject = "You unlocked " + articled(reward)
 	preheader = `Thanks for sharing the ` + list + `, {{ first_name | default: "there" }}.`
 	button := "Get your reward"
@@ -828,7 +832,7 @@ func defaultMilestoneEmail(list, reward, rewardType string) (subject, preheader,
 	case RewardCodes:
 		button = "Use your code"
 	}
-	reward = strings.ReplaceAll(reward, "<", "&lt;")
+	text := html.EscapeString(list)
 	src = `<mjml>
   <mj-head>
     <mj-attributes>
@@ -839,15 +843,15 @@ func defaultMilestoneEmail(list, reward, rewardType string) (subject, preheader,
   <mj-body background-color="#F3F4F6" width="600px">
     <mj-section background-color="#FFFFFF" padding="22px 24px 8px">
       <mj-column>
-        <mj-text font-size="26px" line-height="1.2" font-weight="700" padding="0 0 10px">You unlocked ` + articled(reward) + `</mj-text>
-        <mj-text padding="0">Thanks for sharing the ` + list + `, {{ first_name | default: "there" }}. Your friends now read it because of you, so this one is yours.</mj-text>
+        <mj-text font-size="26px" line-height="1.2" font-weight="700" padding="0 0 10px">You unlocked ` + html.EscapeString(articled(reward)) + `</mj-text>
+        <mj-text padding="0">Thanks for sharing the ` + text + `, {{ first_name | default: "there" }}. Your friends now read it because of you, so this one is yours.</mj-text>
       </mj-column>
     </mj-section>
     <mj-raw><!-- rc:reward {"button":"` + jsonText(button) + `","image":true,"description":true,"expiry":true,"hub":true} --></mj-raw>
-    <mj-raw><!-- rc:referral {"layout":"progress","share":["email","x","linkedin","whatsapp"],"button":"Share your link","progress":true} --></mj-raw>
+    <mj-raw><!-- rc:referral {"program":"` + programID.String() + `","layout":"progress","share":["email","x","linkedin","whatsapp"],"button":"Share your link","progress":true} --></mj-raw>
     <mj-section background-color="#F3F4F6" padding="18px 24px">
       <mj-column>
-        <mj-text align="center" font-size="12px" color="#5B6472" line-height="1.6">You get this because you're in the ` + list + ` referral program.<br/><a href="{{ unsubscribe_url }}" style="color:#0F766E">Unsubscribe</a> · <a href="{{ preferences_url }}" style="color:#0F766E">Email preferences</a></mj-text>
+        <mj-text align="center" font-size="12px" color="#5B6472" line-height="1.6">You get this because you're in the ` + text + ` referral program.<br/><a href="{{ unsubscribe_url }}" style="color:#0F766E">Unsubscribe</a> · <a href="{{ preferences_url }}" style="color:#0F766E">Email preferences</a></mj-text>
       </mj-column>
     </mj-section>
   </mj-body>
@@ -865,6 +869,7 @@ func articled(reward string) string {
 }
 
 func jsonText(s string) string {
-	r := strings.NewReplacer(`\`, `\\`, `"`, `\"`, "--", `--`, "<", `<`, ">", `>`)
+	// JSON inside an HTML comment: no "--", "<" or ">".
+	r := strings.NewReplacer(`\`, `\\`, `"`, `\"`, "-", `\u002d`, "<", `\u003c`, ">", `\u003e`)
 	return r.Replace(s)
 }

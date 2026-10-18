@@ -78,8 +78,10 @@ var (
 )
 
 // Prepare decodes HTML entities inside Liquid delimiters and rewrites the
-// short fallback form, so Liquid embedded in compiled HTML parses.
+// short fallback form, so Liquid embedded in compiled HTML parses. Blocks
+// that render per reader are expanded first (ExpandBlocks).
 func Prepare(src string) string {
+	src = ExpandBlocks(src)
 	if !strings.Contains(src, "{{") && !strings.Contains(src, "{%") {
 		return src
 	}

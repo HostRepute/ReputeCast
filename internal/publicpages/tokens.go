@@ -19,6 +19,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/linktoken"
+	"github.com/hostrepute/reputecast/internal/liquid"
 	"github.com/hostrepute/reputecast/internal/pagelabels"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -872,7 +873,12 @@ func (h *Handler) viewOnline(w http.ResponseWriter, r *http.Request) {
 			subj, html = variantContent(mv.Subject, mv.Html, mv.AbTest, m.Variant)
 		}
 	}
-	subject, body := renderEmail(subj, html, pc.Email, pc.FirstName, pc.LastName, pc.Attributes, links, h.URLs.Base())
+	vars := liquid.Vars(pc.Email, pc.FirstName, pc.LastName, pc.Attributes, links)
+	if h.Recipients != nil {
+		// Grow's blocks show the reader's own link and progress.
+		vars = liquid.Fill(r.Context(), h.Recipients(), s.ws.ID, liquid.Recipient{ContactID: pc.ID, MessageID: m.ID}, liquid.ExpandBlocks(subj+"\n"+html), vars)
+	}
+	subject, body := renderEmailVars(subj, html, vars, h.URLs.Base())
 	doc := setDocLang(injectHead(body, emailHead{Title: subject, Robots: "noindex, nofollow"}), lang)
 	emailHeaders(w, true)
 	_, _ = w.Write([]byte(doc))

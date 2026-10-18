@@ -17450,6 +17450,184 @@
         ],
         "type": "object"
       },
+      "GrowBlockRender": {
+        "additionalProperties": false,
+        "properties": {
+          "for": {
+            "type": "string"
+          },
+          "hidden": {
+            "enum": [
+              "none",
+              "not_on_list",
+              "program_off",
+              "no_program"
+            ],
+            "type": "string"
+          },
+          "html": {
+            "type": "string"
+          },
+          "listName": {
+            "type": "string"
+          },
+          "offAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "offBy": {
+            "type": "string"
+          },
+          "programId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "html",
+          "hidden",
+          "programId",
+          "listName",
+          "offBy",
+          "for"
+        ],
+        "type": "object"
+      },
+      "GrowBlockRenderInput": {
+        "additionalProperties": false,
+        "properties": {
+          "contactId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "referral",
+              "reward"
+            ],
+            "type": "string"
+          },
+          "milestoneId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "settings": {}
+        },
+        "required": [
+          "kind"
+        ],
+        "type": "object"
+      },
+      "GrowHelperSets": {
+        "additionalProperties": false,
+        "properties": {
+          "connect": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "earn": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "edit": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "export": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "review": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "edit",
+          "review",
+          "connect",
+          "export",
+          "earn"
+        ],
+        "type": "object"
+      },
+      "GrowPreviewContact": {
+        "additionalProperties": false,
+        "properties": {
+          "counted": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "email": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "lists": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          },
+          "onList": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email",
+          "onList",
+          "counted",
+          "lists"
+        ],
+        "type": "object"
+      },
+      "GrowPreviewContacts": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/GrowPreviewContact"
+            },
+            "type": "array"
+          },
+          "listName": {
+            "type": "string"
+          },
+          "programId": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "on",
+              "off",
+              ""
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "items",
+          "programId",
+          "listName",
+          "status"
+        ],
+        "type": "object"
+      },
       "GrowthChart": {
         "additionalProperties": false,
         "properties": {
@@ -32023,6 +32201,3312 @@
           "alias",
           "name",
           "suggested"
+        ],
+        "type": "object"
+      },
+      "ReferralBucket": {
+        "additionalProperties": false,
+        "properties": {
+          "confirmed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "days": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "end": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "partial": {
+            "type": "boolean"
+          },
+          "start": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "start",
+          "end",
+          "confirmed",
+          "partial",
+          "days"
+        ],
+        "type": "object"
+      },
+      "ReferralCampaignRef": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "scheduledAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
+      "ReferralChannel": {
+        "additionalProperties": false,
+        "properties": {
+          "channel": {
+            "enum": [
+              "copy",
+              "x",
+              "linkedin",
+              "whatsapp",
+              "email",
+              "other"
+            ],
+            "type": "string"
+          },
+          "signups": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "visits": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "channel",
+          "visits",
+          "signups"
+        ],
+        "type": "object"
+      },
+      "ReferralCheck": {
+        "additionalProperties": false,
+        "properties": {
+          "account": {
+            "type": "string"
+          },
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "counts": {
+            "items": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "emails": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "files": {
+            "items": {
+              "$ref": "#/components/schemas/ReferralCheckFile"
+            },
+            "type": "array"
+          },
+          "key": {
+            "enum": [
+              "milestones",
+              "emails",
+              "files",
+              "stripe",
+              "sender"
+            ],
+            "type": "string"
+          },
+          "missing": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "offer": {
+            "type": "string"
+          },
+          "rewards": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "sender": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "pass",
+              "fail"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "status",
+          "count",
+          "counts",
+          "files",
+          "rewards",
+          "account",
+          "offer",
+          "sender",
+          "emails",
+          "missing"
+        ],
+        "type": "object"
+      },
+      "ReferralCheckFile": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "size": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "size"
+        ],
+        "type": "object"
+      },
+      "ReferralChecks": {
+        "additionalProperties": false,
+        "properties": {
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/ReferralCheck"
+            },
+            "type": "array"
+          },
+          "links": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "pass": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "checks",
+          "pass",
+          "links"
+        ],
+        "type": "object"
+      },
+      "ReferralClaimLink": {
+        "additionalProperties": false,
+        "properties": {
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "type": "object"
+      },
+      "ReferralCodesInput": {
+        "additionalProperties": false,
+        "properties": {
+          "text": {
+            "description": "The codes, one per line; for CSV the first column",
+            "maxLength": 5000000,
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "type": "object"
+      },
+      "ReferralCodesResult": {
+        "additionalProperties": false,
+        "properties": {
+          "added": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "duplicates": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "left": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "released": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "added",
+          "duplicates",
+          "left",
+          "released"
+        ],
+        "type": "object"
+      },
+      "ReferralContact": {
+        "additionalProperties": false,
+        "properties": {
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/ReferralTimelineEvent"
+            },
+            "type": "array"
+          },
+          "referredBy": {
+            "$ref": "#/components/schemas/ReferralContactReferredBy"
+          },
+          "referrer": {
+            "$ref": "#/components/schemas/ReferralContactReferrer"
+          }
+        },
+        "required": [
+          "events"
+        ],
+        "type": "object"
+      },
+      "ReferralContactReferredBy": {
+        "additionalProperties": false,
+        "properties": {
+          "countedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "countsOn": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "linkId": {
+            "type": "string"
+          },
+          "programId": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "referrer": {
+            "type": "string"
+          },
+          "referrerId": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "awaiting",
+              "hold",
+              "review",
+              "counted",
+              "not_counted"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "programId",
+          "linkId",
+          "referrerId",
+          "referrer",
+          "status",
+          "reason"
+        ],
+        "type": "object"
+      },
+      "ReferralContactReferrer": {
+        "additionalProperties": false,
+        "properties": {
+          "awaiting": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "code": {
+            "type": "string"
+          },
+          "counted": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "held": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "inHold": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "link": {
+            "type": "string"
+          },
+          "linkId": {
+            "type": "string"
+          },
+          "linkStatus": {
+            "enum": [
+              "active",
+              "paused"
+            ],
+            "type": "string"
+          },
+          "listName": {
+            "type": "string"
+          },
+          "milestones": {
+            "items": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "programId": {
+            "type": "string"
+          },
+          "rewards": {
+            "items": {
+              "$ref": "#/components/schemas/ReferralContactReward"
+            },
+            "type": "array"
+          },
+          "signups": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "visits": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "programId",
+          "listName",
+          "linkId",
+          "link",
+          "code",
+          "linkStatus",
+          "counted",
+          "inHold",
+          "awaiting",
+          "held",
+          "visits",
+          "signups",
+          "milestones",
+          "rewards"
+        ],
+        "type": "object"
+      },
+      "ReferralContactReward": {
+        "additionalProperties": false,
+        "properties": {
+          "milestone": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "sentAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "usedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "milestone",
+          "status"
+        ],
+        "type": "object"
+      },
+      "ReferralCounting": {
+        "additionalProperties": false,
+        "properties": {
+          "burst": {
+            "$ref": "#/components/schemas/ReferralRule"
+          },
+          "disposable": {
+            "type": "boolean"
+          },
+          "holdDays": {
+            "enum": [
+              0,
+              3,
+              7,
+              14,
+              30
+            ],
+            "format": "int64",
+            "type": "integer"
+          },
+          "left": {
+            "type": "boolean"
+          },
+          "numbered": {
+            "type": "boolean"
+          },
+          "sameIp": {
+            "type": "boolean"
+          },
+          "sharedIp": {
+            "$ref": "#/components/schemas/ReferralRule"
+          }
+        },
+        "required": [
+          "holdDays",
+          "sameIp",
+          "disposable",
+          "left",
+          "burst",
+          "sharedIp",
+          "numbered"
+        ],
+        "type": "object"
+      },
+      "ReferralCouponOffer": {
+        "additionalProperties": false,
+        "properties": {
+          "appliesTo": {
+            "type": "string"
+          },
+          "discount": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "issued": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "redeemed": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "discount",
+          "appliesTo",
+          "issued",
+          "redeemed"
+        ],
+        "type": "object"
+      },
+      "ReferralCreateInput": {
+        "additionalProperties": false,
+        "properties": {
+          "listId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "listId"
+        ],
+        "type": "object"
+      },
+      "ReferralDecision": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "preview": {
+            "$ref": "#/components/schemas/ReferralDecisionPreview"
+          },
+          "undoUntil": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "preview",
+          "undoUntil"
+        ],
+        "type": "object"
+      },
+      "ReferralDecisionInput": {
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "enum": [
+              "count",
+              "dont",
+              "dont_pause"
+            ],
+            "type": "string"
+          },
+          "ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 500,
+            "minItems": 1,
+            "type": "array"
+          },
+          "note": {
+            "maxLength": 500,
+            "type": "string"
+          }
+        },
+        "required": [
+          "ids",
+          "decision"
+        ],
+        "type": "object"
+      },
+      "ReferralDecisionPreview": {
+        "additionalProperties": false,
+        "properties": {
+          "after": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "counted": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "decision": {
+            "type": "string"
+          },
+          "holdEnds": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "now": {
+            "type": "boolean"
+          },
+          "referrer": {
+            "type": "string"
+          },
+          "rewards": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "decision",
+          "count",
+          "referrer",
+          "counted",
+          "after",
+          "rewards",
+          "now"
+        ],
+        "type": "object"
+      },
+      "ReferralEmailOnInput": {
+        "additionalProperties": false,
+        "properties": {
+          "on": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "on"
+        ],
+        "type": "object"
+      },
+      "ReferralEmailPreviewInput": {
+        "additionalProperties": false,
+        "properties": {
+          "contactId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "html": {
+            "maxLength": 4000000,
+            "type": "string"
+          },
+          "preheader": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "subject": {
+            "maxLength": 500,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ReferralEmailRender": {
+        "additionalProperties": false,
+        "properties": {
+          "for": {
+            "type": "string"
+          },
+          "html": {
+            "type": "string"
+          },
+          "preheader": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "subject",
+          "preheader",
+          "html",
+          "for"
+        ],
+        "type": "object"
+      },
+      "ReferralEmailSave": {
+        "additionalProperties": false,
+        "properties": {
+          "baseRevision": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "html": {
+            "maxLength": 4000000,
+            "type": "string"
+          },
+          "mjml": {
+            "maxLength": 2000000,
+            "type": "string"
+          },
+          "preheader": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "subject": {
+            "maxLength": 500,
+            "type": "string"
+          }
+        },
+        "required": [
+          "subject",
+          "preheader",
+          "mjml",
+          "html",
+          "baseRevision"
+        ],
+        "type": "object"
+      },
+      "ReferralEmailSaved": {
+        "additionalProperties": false,
+        "properties": {
+          "revision": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "savedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "version": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "revision",
+          "savedAt"
+        ],
+        "type": "object"
+      },
+      "ReferralEmailSettings": {
+        "additionalProperties": false,
+        "properties": {
+          "milestones": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "on": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "replyTo": {
+            "type": "string"
+          },
+          "senderId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "senderId",
+          "replyTo",
+          "on",
+          "milestones"
+        ],
+        "type": "object"
+      },
+      "ReferralEmailTest": {
+        "additionalProperties": false,
+        "properties": {
+          "contactId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "html": {
+            "maxLength": 4000000,
+            "type": "string"
+          },
+          "preheader": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "subject": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "to": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 5,
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "to"
+        ],
+        "type": "object"
+      },
+      "ReferralEmailTestResult": {
+        "additionalProperties": false,
+        "properties": {
+          "provider": {
+            "type": "string"
+          },
+          "sent": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "sent",
+          "provider"
+        ],
+        "type": "object"
+      },
+      "ReferralEmailVersion": {
+        "additionalProperties": false,
+        "properties": {
+          "savedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "savedBy": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "version": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "subject",
+          "savedAt",
+          "savedBy"
+        ],
+        "type": "object"
+      },
+      "ReferralEngagement": {
+        "additionalProperties": false,
+        "properties": {
+          "clicks": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "joinedAfter": {
+            "type": "string"
+          },
+          "opened": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "short": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "opened",
+          "short",
+          "clicks",
+          "joinedAfter"
+        ],
+        "type": "object"
+      },
+      "ReferralFile": {
+        "additionalProperties": false,
+        "properties": {
+          "contentType": {
+            "type": "string"
+          },
+          "downloads": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "size": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "uploadedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "uploadedBy": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "contentType",
+          "size",
+          "downloads",
+          "uploadedBy",
+          "uploadedAt"
+        ],
+        "type": "object"
+      },
+      "ReferralFilterOption": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "linkId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "linkId",
+          "name",
+          "count"
+        ],
+        "type": "object"
+      },
+      "ReferralFulfillInput": {
+        "additionalProperties": false,
+        "properties": {
+          "note": {
+            "maxLength": 500,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ReferralFulfillItem": {
+        "additionalProperties": false,
+        "properties": {
+          "address": {
+            "$ref": "#/components/schemas/ReferralShippingAddress"
+          },
+          "contactId": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "milestone": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "reachedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "referrer": {
+            "type": "string"
+          },
+          "rewardId": {
+            "type": "string"
+          },
+          "rewardName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "rewardId",
+          "contactId",
+          "referrer",
+          "email",
+          "milestone",
+          "rewardName",
+          "reachedAt"
+        ],
+        "type": "object"
+      },
+      "ReferralFunnel": {
+        "additionalProperties": false,
+        "properties": {
+          "confirmed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "counted": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "held": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "holdEndsBy": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "inHold": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "notCounted": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "reasons": {
+            "items": {
+              "$ref": "#/components/schemas/ReferralReasonCount"
+            },
+            "type": "array"
+          },
+          "referrers": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "rewardsSent": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "signups": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "unconfirmed": {
+            "description": "Never confirmed, or still waiting to confirm",
+            "format": "int64",
+            "type": "integer"
+          },
+          "visits": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "weeks": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "visits",
+          "signups",
+          "confirmed",
+          "counted",
+          "unconfirmed",
+          "inHold",
+          "held",
+          "notCounted",
+          "reasons",
+          "rewardsSent",
+          "referrers",
+          "weeks"
+        ],
+        "type": "object"
+      },
+      "ReferralHeldItem": {
+        "additionalProperties": false,
+        "properties": {
+          "confirmedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "engagement": {
+            "$ref": "#/components/schemas/ReferralEngagement"
+          },
+          "holdEnds": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "ip": {
+            "type": "string"
+          },
+          "network": {
+            "$ref": "#/components/schemas/ReferralNetwork"
+          },
+          "signals": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "signedUpAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "signedUpAt",
+          "ip",
+          "network",
+          "engagement",
+          "signals"
+        ],
+        "type": "object"
+      },
+      "ReferralImage": {
+        "additionalProperties": false,
+        "properties": {
+          "height": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "size": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "url": {
+            "type": "string"
+          },
+          "width": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "url",
+          "name",
+          "width",
+          "height",
+          "size"
+        ],
+        "type": "object"
+      },
+      "ReferralItem": {
+        "additionalProperties": false,
+        "properties": {
+          "confirmedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "countedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "countsOn": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "leftKind": {
+            "type": "string"
+          },
+          "number": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "remindedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "signedUpAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "awaiting",
+              "hold",
+              "review",
+              "counted",
+              "not_counted"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "number",
+          "email",
+          "status",
+          "reason",
+          "leftKind",
+          "signedUpAt"
+        ],
+        "type": "object"
+      },
+      "ReferralLeaderboardInput": {
+        "additionalProperties": false,
+        "properties": {
+          "on": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "on"
+        ],
+        "type": "object"
+      },
+      "ReferralLeaderboardSettings": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "by": {
+            "type": "string"
+          },
+          "on": {
+            "type": "boolean"
+          },
+          "periods": {
+            "items": {
+              "enum": [
+                "month",
+                "all"
+              ],
+              "type": "string"
+            },
+            "maxItems": 2,
+            "type": "array"
+          },
+          "rows": {
+            "enum": [
+              5,
+              10,
+              25
+            ],
+            "format": "int64",
+            "type": "integer"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "on",
+          "by",
+          "periods",
+          "rows",
+          "url"
+        ],
+        "type": "object"
+      },
+      "ReferralLinkPauseInput": {
+        "additionalProperties": false,
+        "properties": {
+          "note": {
+            "maxLength": 500,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ReferralListOption": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "subscribers": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "taken": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "subscribers",
+          "taken"
+        ],
+        "type": "object"
+      },
+      "ReferralMilestoneCnt": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "referrers": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "count",
+          "referrers"
+        ],
+        "type": "object"
+      },
+      "ReferralMilestoneEmail": {
+        "additionalProperties": false,
+        "properties": {
+          "emailId": {
+            "type": "string"
+          },
+          "on": {
+            "type": "boolean"
+          },
+          "savedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "versions": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "on",
+          "emailId",
+          "subject",
+          "versions"
+        ],
+        "type": "object"
+      },
+      "ReferralMilestoneEmailDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "description": {
+            "type": "string"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "fileSize": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "fileType": {
+            "type": "string"
+          },
+          "html": {
+            "type": "string"
+          },
+          "listName": {
+            "type": "string"
+          },
+          "milestoneId": {
+            "type": "string"
+          },
+          "mjml": {
+            "type": "string"
+          },
+          "on": {
+            "type": "boolean"
+          },
+          "preheader": {
+            "type": "string"
+          },
+          "programId": {
+            "type": "string"
+          },
+          "revision": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "rewardName": {
+            "type": "string"
+          },
+          "rewardType": {
+            "type": "string"
+          },
+          "savedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "sender": {
+            "type": "string"
+          },
+          "senderDefault": {
+            "type": "boolean"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "uploadedBy": {
+            "type": "string"
+          },
+          "versions": {
+            "items": {
+              "$ref": "#/components/schemas/ReferralEmailVersion"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "milestoneId",
+          "programId",
+          "count",
+          "rewardName",
+          "rewardType",
+          "listName",
+          "sender",
+          "senderDefault",
+          "on",
+          "subject",
+          "preheader",
+          "mjml",
+          "html",
+          "revision",
+          "versions",
+          "fileName",
+          "fileType",
+          "fileSize",
+          "description",
+          "uploadedBy"
+        ],
+        "type": "object"
+      },
+      "ReferralMilestoneHealth": {
+        "additionalProperties": false,
+        "properties": {
+          "codesLeft": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "failures": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "kind": {
+            "enum": [
+              "healthy",
+              "codes_low",
+              "codes_out",
+              "webhook_failing",
+              "stripe_missing",
+              "file_missing"
+            ],
+            "type": "string"
+          },
+          "lastStatus": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "runOutDays": {
+            "format": "double",
+            "type": "number"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "warn",
+              "bad"
+            ],
+            "type": "string"
+          },
+          "waiting": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "status",
+          "kind",
+          "codesLeft",
+          "waiting",
+          "lastStatus",
+          "failures"
+        ],
+        "type": "object"
+      },
+      "ReferralMilestoneInput": {
+        "additionalProperties": false,
+        "properties": {
+          "askAddress": {
+            "type": "boolean"
+          },
+          "codesAlertBelow": {
+            "format": "int64",
+            "maximum": 100000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "count": {
+            "format": "int64",
+            "maximum": 100000,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "couponOfferId": {
+            "maxLength": 200,
+            "type": "string"
+          },
+          "couponValidDays": {
+            "enum": [
+              0,
+              30,
+              60,
+              90
+            ],
+            "format": "int64",
+            "type": "integer"
+          },
+          "downloadUrl": {
+            "maxLength": 2000,
+            "type": "string"
+          },
+          "emailOn": {
+            "type": "boolean"
+          },
+          "fileId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "imageId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "rewardDescription": {
+            "maxLength": 200,
+            "type": "string"
+          },
+          "rewardName": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "download",
+              "codes",
+              "manual",
+              "coupon",
+              "webhook"
+            ],
+            "type": "string"
+          },
+          "webhookSecret": {
+            "maxLength": 200,
+            "type": "string"
+          },
+          "webhookUrl": {
+            "maxLength": 2000,
+            "type": "string"
+          }
+        },
+        "required": [
+          "count",
+          "rewardName",
+          "rewardDescription",
+          "type",
+          "emailOn"
+        ],
+        "type": "object"
+      },
+      "ReferralMilestoneList": {
+        "additionalProperties": false,
+        "properties": {
+          "files": {
+            "items": {
+              "$ref": "#/components/schemas/ReferralFile"
+            },
+            "type": "array"
+          },
+          "helpers": {
+            "$ref": "#/components/schemas/GrowHelperSets"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ReferralMilestoneView"
+            },
+            "type": "array"
+          },
+          "listName": {
+            "type": "string"
+          },
+          "programId": {
+            "type": "string"
+          },
+          "sender": {
+            "type": "string"
+          },
+          "showAddresses": {
+            "type": "boolean"
+          },
+          "stripe": {
+            "$ref": "#/components/schemas/ReferralStripe"
+          },
+          "toFulfill": {
+            "items": {
+              "$ref": "#/components/schemas/ReferralFulfillItem"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "programId",
+          "listName",
+          "sender",
+          "items",
+          "files",
+          "toFulfill",
+          "stripe",
+          "showAddresses",
+          "helpers"
+        ],
+        "type": "object"
+      },
+      "ReferralMilestoneStats": {
+        "additionalProperties": false,
+        "properties": {
+          "failed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "reached": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "sent": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "toFulfill": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "used": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "waiting": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "waitingCodes": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "reached",
+          "sent",
+          "used",
+          "waiting",
+          "failed",
+          "waitingCodes",
+          "toFulfill"
+        ],
+        "type": "object"
+      },
+      "ReferralMilestoneView": {
+        "additionalProperties": false,
+        "properties": {
+          "askAddress": {
+            "type": "boolean"
+          },
+          "codesAlertBelow": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "codesLeft": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "codesUploaded": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "couponOfferId": {
+            "type": "string"
+          },
+          "couponOfferName": {
+            "type": "string"
+          },
+          "couponValidDays": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "downloadUrl": {
+            "type": "string"
+          },
+          "email": {
+            "$ref": "#/components/schemas/ReferralMilestoneEmail"
+          },
+          "file": {
+            "$ref": "#/components/schemas/ReferralFile"
+          },
+          "health": {
+            "$ref": "#/components/schemas/ReferralMilestoneHealth"
+          },
+          "id": {
+            "type": "string"
+          },
+          "image": {
+            "$ref": "#/components/schemas/ReferralImage"
+          },
+          "rewardDescription": {
+            "type": "string"
+          },
+          "rewardName": {
+            "type": "string"
+          },
+          "stats": {
+            "$ref": "#/components/schemas/ReferralMilestoneStats"
+          },
+          "type": {
+            "enum": [
+              "download",
+              "codes",
+              "manual",
+              "coupon",
+              "webhook"
+            ],
+            "type": "string"
+          },
+          "webhookCalledAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "webhookSecretSet": {
+            "type": "boolean"
+          },
+          "webhookStatus": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "webhookUrl": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "count",
+          "rewardName",
+          "rewardDescription",
+          "type",
+          "downloadUrl",
+          "codesUploaded",
+          "codesLeft",
+          "codesAlertBelow",
+          "askAddress",
+          "couponOfferId",
+          "couponOfferName",
+          "couponValidDays",
+          "webhookUrl",
+          "webhookSecretSet",
+          "email",
+          "stats",
+          "health"
+        ],
+        "type": "object"
+      },
+      "ReferralNetwork": {
+        "additionalProperties": false,
+        "properties": {
+          "asn": {
+            "type": "string"
+          },
+          "cidr": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "hosting",
+              "office",
+              "residential",
+              "mobile",
+              ""
+            ],
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "cidr",
+          "name",
+          "asn",
+          "kind"
+        ],
+        "type": "object"
+      },
+      "ReferralPageSettings": {
+        "additionalProperties": false,
+        "properties": {
+          "hubIntro": {
+            "maxLength": 600,
+            "type": "string"
+          },
+          "inviteHeadline": {
+            "maxLength": 200,
+            "type": "string"
+          },
+          "inviteText": {
+            "maxLength": 600,
+            "type": "string"
+          },
+          "shareButtons": {
+            "items": {
+              "enum": [
+                "copy",
+                "email",
+                "x",
+                "linkedin",
+                "whatsapp"
+              ],
+              "type": "string"
+            },
+            "maxItems": 5,
+            "type": "array"
+          },
+          "shareMessage": {
+            "maxLength": 500,
+            "type": "string"
+          }
+        },
+        "required": [
+          "inviteHeadline",
+          "inviteText",
+          "hubIntro",
+          "shareMessage",
+          "shareButtons"
+        ],
+        "type": "object"
+      },
+      "ReferralPerson": {
+        "additionalProperties": false,
+        "properties": {
+          "contactId": {
+            "type": "string"
+          },
+          "counted": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "email": {
+            "type": "string"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "linkId": {
+            "type": "string"
+          },
+          "linkStatus": {
+            "enum": [
+              "active",
+              "paused"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "since": {
+            "description": "On the program's list since",
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "contactId",
+          "name",
+          "email",
+          "firstName",
+          "counted",
+          "linkId",
+          "linkStatus"
+        ],
+        "type": "object"
+      },
+      "ReferralProgramDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "announcedIn": {
+            "type": "string"
+          },
+          "awaiting": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "counting": {
+            "$ref": "#/components/schemas/ReferralCounting"
+          },
+          "emails": {
+            "$ref": "#/components/schemas/ReferralEmailSettings"
+          },
+          "held": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "heldOldest": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "helpers": {
+            "$ref": "#/components/schemas/GrowHelperSets"
+          },
+          "id": {
+            "type": "string"
+          },
+          "inHold": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "leaderboard": {
+            "$ref": "#/components/schemas/ReferralLeaderboardSettings"
+          },
+          "linkExample": {
+            "type": "string"
+          },
+          "linkHost": {
+            "type": "string"
+          },
+          "links": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "listId": {
+            "type": "string"
+          },
+          "listName": {
+            "type": "string"
+          },
+          "pages": {
+            "$ref": "#/components/schemas/ReferralPageSettings"
+          },
+          "senders": {
+            "items": {
+              "$ref": "#/components/schemas/ReferralSenderOption"
+            },
+            "type": "array"
+          },
+          "setupSavedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "setupSavedBy": {
+            "type": "string"
+          },
+          "setupStep": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "startedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "startedBy": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "off",
+              "on"
+            ],
+            "type": "string"
+          },
+          "statusAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "statusBy": {
+            "type": "string"
+          },
+          "subscribers": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "listId",
+          "listName",
+          "status",
+          "subscribers",
+          "links",
+          "setupStep",
+          "setupSavedBy",
+          "startedBy",
+          "statusBy",
+          "announcedIn",
+          "counting",
+          "pages",
+          "leaderboard",
+          "emails",
+          "senders",
+          "linkHost",
+          "linkExample",
+          "held",
+          "inHold",
+          "awaiting",
+          "updatedAt",
+          "helpers"
+        ],
+        "type": "object"
+      },
+      "ReferralProgramList": {
+        "additionalProperties": false,
+        "properties": {
+          "helpers": {
+            "$ref": "#/components/schemas/GrowHelperSets"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ReferralProgramSummary"
+            },
+            "type": "array"
+          },
+          "lists": {
+            "items": {
+              "$ref": "#/components/schemas/ReferralListOption"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items",
+          "lists",
+          "helpers"
+        ],
+        "type": "object"
+      },
+      "ReferralProgramSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "listId": {
+            "type": "string"
+          },
+          "listName": {
+            "type": "string"
+          },
+          "setupStep": {
+            "description": "The set-up guide's step (1 to 5) until the program is first turned on; 0 afterwards",
+            "format": "int64",
+            "type": "integer"
+          },
+          "startedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "off",
+              "on"
+            ],
+            "type": "string"
+          },
+          "subscribers": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "listId",
+          "listName",
+          "status",
+          "setupStep",
+          "subscribers"
+        ],
+        "type": "object"
+      },
+      "ReferralQuality": {
+        "additionalProperties": false,
+        "properties": {
+          "bounced": {
+            "$ref": "#/components/schemas/ReferralQualityLine"
+          },
+          "campaign": {
+            "type": "string"
+          },
+          "enough": {
+            "type": "boolean"
+          },
+          "opens": {
+            "$ref": "#/components/schemas/ReferralQualityLine"
+          },
+          "referred": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "unsubscribed": {
+            "$ref": "#/components/schemas/ReferralQualityLine"
+          }
+        },
+        "required": [
+          "referred",
+          "enough",
+          "campaign",
+          "opens",
+          "unsubscribed",
+          "bounced"
+        ],
+        "type": "object"
+      },
+      "ReferralQualityLine": {
+        "additionalProperties": false,
+        "properties": {
+          "others": {
+            "format": "double",
+            "type": "number"
+          },
+          "othersN": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "othersOf": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "referred": {
+            "format": "double",
+            "type": "number"
+          },
+          "referredN": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "referredOf": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "referred",
+          "referredN",
+          "referredOf",
+          "others",
+          "othersN",
+          "othersOf"
+        ],
+        "type": "object"
+      },
+      "ReferralReasonCount": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "leftKind": {
+            "type": "string"
+          },
+          "reason": {
+            "enum": [
+              "self",
+              "same_ip",
+              "disposable",
+              "left",
+              "already",
+              "never_confirmed",
+              "reviewer"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason",
+          "leftKind",
+          "count"
+        ],
+        "type": "object"
+      },
+      "ReferralReferrerList": {
+        "additionalProperties": false,
+        "properties": {
+          "heldReferrers": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "helpers": {
+            "$ref": "#/components/schemas/GrowHelperSets"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ReferralReferrerRow"
+            },
+            "type": "array"
+          },
+          "milestoneCounts": {
+            "items": {
+              "$ref": "#/components/schemas/ReferralMilestoneCnt"
+            },
+            "type": "array"
+          },
+          "page": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "pausedLinks": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "showAddresses": {
+            "type": "boolean"
+          },
+          "total": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "withCounted": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "withCounted",
+          "heldReferrers",
+          "pausedLinks",
+          "milestoneCounts",
+          "showAddresses",
+          "helpers"
+        ],
+        "type": "object"
+      },
+      "ReferralReferrerPanel": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "helpers": {
+            "$ref": "#/components/schemas/GrowHelperSets"
+          },
+          "link": {
+            "type": "string"
+          },
+          "linkCreated": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "pauseNote": {
+            "type": "string"
+          },
+          "pausedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "pausedBy": {
+            "type": "string"
+          },
+          "pausedNotCounted": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "pausedSignals": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "referrals": {
+            "items": {
+              "$ref": "#/components/schemas/ReferralItem"
+            },
+            "type": "array"
+          },
+          "referrer": {
+            "$ref": "#/components/schemas/ReferralPerson"
+          },
+          "rewards": {
+            "items": {
+              "$ref": "#/components/schemas/ReferralRewardItem"
+            },
+            "type": "array"
+          },
+          "showAddresses": {
+            "type": "boolean"
+          },
+          "showLeaderboard": {
+            "type": "boolean"
+          },
+          "showName": {
+            "type": "boolean"
+          },
+          "signups": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "track": {
+            "$ref": "#/components/schemas/ReferralTrack"
+          },
+          "visits": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "referrer",
+          "link",
+          "code",
+          "linkCreated",
+          "visits",
+          "signups",
+          "pausedBy",
+          "pauseNote",
+          "pausedNotCounted",
+          "pausedSignals",
+          "showName",
+          "showLeaderboard",
+          "track",
+          "referrals",
+          "rewards",
+          "showAddresses",
+          "helpers"
+        ],
+        "type": "object"
+      },
+      "ReferralReferrerRow": {
+        "additionalProperties": false,
+        "properties": {
+          "contactId": {
+            "type": "string"
+          },
+          "counted": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "email": {
+            "type": "string"
+          },
+          "held": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "inHold": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "lastReferral": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "linkId": {
+            "type": "string"
+          },
+          "linkStatus": {
+            "enum": [
+              "active",
+              "paused"
+            ],
+            "type": "string"
+          },
+          "milestones": {
+            "items": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          },
+          "notCounted": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "rewardsSent": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "unclaimed": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "linkId",
+          "contactId",
+          "name",
+          "email",
+          "counted",
+          "inHold",
+          "held",
+          "notCounted",
+          "milestones",
+          "rewardsSent",
+          "unclaimed",
+          "linkStatus"
+        ],
+        "type": "object"
+      },
+      "ReferralRemoved": {
+        "additionalProperties": false,
+        "properties": {
+          "removed": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "removed"
+        ],
+        "type": "object"
+      },
+      "ReferralResults": {
+        "additionalProperties": false,
+        "properties": {
+          "channels": {
+            "items": {
+              "$ref": "#/components/schemas/ReferralChannel"
+            },
+            "type": "array"
+          },
+          "enough": {
+            "description": "20 confirmed referrals or more",
+            "type": "boolean"
+          },
+          "from": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "funnel": {
+            "$ref": "#/components/schemas/ReferralFunnel"
+          },
+          "grouping": {
+            "enum": [
+              "day",
+              "week"
+            ],
+            "type": "string"
+          },
+          "overTime": {
+            "items": {
+              "$ref": "#/components/schemas/ReferralBucket"
+            },
+            "type": "array"
+          },
+          "period": {
+            "enum": [
+              "7d",
+              "30d",
+              "all"
+            ],
+            "type": "string"
+          },
+          "program": {
+            "$ref": "#/components/schemas/ReferralProgramDetail"
+          },
+          "quality": {
+            "$ref": "#/components/schemas/ReferralQuality"
+          },
+          "rewards": {
+            "items": {
+              "$ref": "#/components/schemas/ReferralRewardRow"
+            },
+            "type": "array"
+          },
+          "to": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "top": {
+            "items": {
+              "$ref": "#/components/schemas/ReferralTopReferrer"
+            },
+            "type": "array"
+          },
+          "withTen": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "withThree": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "program",
+          "period",
+          "from",
+          "to",
+          "enough",
+          "funnel",
+          "grouping",
+          "overTime",
+          "channels",
+          "top",
+          "withThree",
+          "withTen",
+          "rewards",
+          "quality"
+        ],
+        "type": "object"
+      },
+      "ReferralReviewGroup": {
+        "additionalProperties": false,
+        "properties": {
+          "confirmedDays": {
+            "items": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "days": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "differentNames": {
+            "type": "boolean"
+          },
+          "engaged": {
+            "type": "boolean"
+          },
+          "holdEnds": {
+            "items": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ReferralHeldItem"
+            },
+            "type": "array"
+          },
+          "opened": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "openedIn": {
+            "type": "string"
+          },
+          "referrer": {
+            "$ref": "#/components/schemas/ReferralPerson"
+          },
+          "sameDomain": {
+            "type": "string"
+          },
+          "signals": {
+            "items": {
+              "$ref": "#/components/schemas/ReferralSignal"
+            },
+            "type": "array"
+          },
+          "suggestion": {
+            "enum": [
+              "dont_pause",
+              "count",
+              ""
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "referrer",
+          "items",
+          "signals",
+          "suggestion",
+          "sameDomain",
+          "differentNames",
+          "days",
+          "opened",
+          "openedIn",
+          "confirmedDays",
+          "holdEnds",
+          "engaged"
+        ],
+        "type": "object"
+      },
+      "ReferralReviewQueue": {
+        "additionalProperties": false,
+        "properties": {
+          "groups": {
+            "items": {
+              "$ref": "#/components/schemas/ReferralReviewGroup"
+            },
+            "type": "array"
+          },
+          "held": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "helpers": {
+            "$ref": "#/components/schemas/GrowHelperSets"
+          },
+          "holdDays": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "oldest": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "referrers": {
+            "items": {
+              "$ref": "#/components/schemas/ReferralFilterOption"
+            },
+            "type": "array"
+          },
+          "showAddresses": {
+            "type": "boolean"
+          },
+          "signals": {
+            "items": {
+              "$ref": "#/components/schemas/ReferralSignalCount"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "held",
+          "holdDays",
+          "groups",
+          "signals",
+          "referrers",
+          "showAddresses",
+          "helpers"
+        ],
+        "type": "object"
+      },
+      "ReferralRewardItem": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "fileSize": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "fileType": {
+            "type": "string"
+          },
+          "hasClaim": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "milestone": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          },
+          "reachedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "sentAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "sent",
+              "waiting_codes",
+              "to_fulfill",
+              "fulfilled",
+              "failed",
+              "expired"
+            ],
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "download",
+              "codes",
+              "manual",
+              "coupon",
+              "webhook"
+            ],
+            "type": "string"
+          },
+          "usedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "milestone",
+          "name",
+          "type",
+          "status",
+          "reachedAt",
+          "fileName",
+          "fileType",
+          "fileSize",
+          "hasClaim",
+          "note",
+          "error"
+        ],
+        "type": "object"
+      },
+      "ReferralRewardRow": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "failed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "milestoneId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "reached": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "sent": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "type": {
+            "type": "string"
+          },
+          "used": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "waiting": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "milestoneId",
+          "count",
+          "name",
+          "type",
+          "reached",
+          "sent",
+          "used",
+          "waiting",
+          "failed"
+        ],
+        "type": "object"
+      },
+      "ReferralRule": {
+        "additionalProperties": false,
+        "properties": {
+          "on": {
+            "type": "boolean"
+          },
+          "threshold": {
+            "format": "int64",
+            "maximum": 1000,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "on",
+          "threshold"
+        ],
+        "type": "object"
+      },
+      "ReferralSenderOption": {
+        "additionalProperties": false,
+        "properties": {
+          "default": {
+            "type": "boolean"
+          },
+          "email": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "verified": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email",
+          "verified",
+          "default"
+        ],
+        "type": "object"
+      },
+      "ReferralSettingsImpact": {
+        "additionalProperties": false,
+        "properties": {
+          "awaiting": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "holdFrom": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "holdTo": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "inHold": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "rulesChanged": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "holdFrom",
+          "holdTo",
+          "inHold",
+          "awaiting",
+          "rulesChanged"
+        ],
+        "type": "object"
+      },
+      "ReferralSettingsInput": {
+        "additionalProperties": false,
+        "properties": {
+          "baseUpdatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "counting": {
+            "$ref": "#/components/schemas/ReferralCounting"
+          },
+          "leaderboardPeriods": {
+            "items": {
+              "enum": [
+                "month",
+                "all"
+              ],
+              "type": "string"
+            },
+            "maxItems": 2,
+            "type": "array"
+          },
+          "leaderboardRows": {
+            "enum": [
+              5,
+              10,
+              25
+            ],
+            "format": "int64",
+            "type": "integer"
+          },
+          "pages": {
+            "$ref": "#/components/schemas/ReferralPageSettings"
+          },
+          "replyTo": {
+            "maxLength": 254,
+            "type": "string"
+          },
+          "senderId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "counting",
+          "pages",
+          "leaderboardPeriods",
+          "leaderboardRows",
+          "replyTo"
+        ],
+        "type": "object"
+      },
+      "ReferralSetupInput": {
+        "additionalProperties": false,
+        "properties": {
+          "listId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "step": {
+            "format": "int64",
+            "maximum": 5,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "step"
+        ],
+        "type": "object"
+      },
+      "ReferralShippingAddress": {
+        "additionalProperties": false,
+        "properties": {
+          "city": {
+            "maxLength": 200,
+            "type": "string"
+          },
+          "country": {
+            "maxLength": 100,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 200,
+            "type": "string"
+          },
+          "street": {
+            "maxLength": 300,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "street",
+          "city",
+          "country"
+        ],
+        "type": "object"
+      },
+      "ReferralSignal": {
+        "additionalProperties": false,
+        "properties": {
+          "all": {
+            "type": "boolean"
+          },
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "first": {
+            "type": "string"
+          },
+          "from": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "ip": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "burst",
+              "shared_ip",
+              "numbered"
+            ],
+            "type": "string"
+          },
+          "last": {
+            "type": "string"
+          },
+          "minutes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "network": {
+            "$ref": "#/components/schemas/ReferralNetwork"
+          },
+          "threshold": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "to": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "count",
+          "minutes",
+          "threshold",
+          "ip",
+          "network",
+          "all",
+          "first",
+          "last"
+        ],
+        "type": "object"
+      },
+      "ReferralSignalCount": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "referrers": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "kind",
+          "referrers"
+        ],
+        "type": "object"
+      },
+      "ReferralStripe": {
+        "additionalProperties": false,
+        "properties": {
+          "account": {
+            "type": "string"
+          },
+          "connected": {
+            "type": "boolean"
+          },
+          "offers": {
+            "items": {
+              "$ref": "#/components/schemas/ReferralCouponOffer"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "connected",
+          "account",
+          "offers"
+        ],
+        "type": "object"
+      },
+      "ReferralTimelineEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "counted": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "kind": {
+            "enum": [
+              "joined",
+              "counted",
+              "milestone",
+              "reward_sent",
+              "partner_request"
+            ],
+            "type": "string"
+          },
+          "milestone": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "partner": {
+            "type": "string"
+          },
+          "referrer": {
+            "type": "string"
+          },
+          "referrerId": {
+            "type": "string"
+          },
+          "reward": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "at",
+          "referrer",
+          "referrerId",
+          "counted",
+          "milestone",
+          "reward",
+          "partner"
+        ],
+        "type": "object"
+      },
+      "ReferralTopReferrer": {
+        "additionalProperties": false,
+        "properties": {
+          "counted": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "email": {
+            "type": "string"
+          },
+          "held": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "inHold": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "lastReferral": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "linkId": {
+            "type": "string"
+          },
+          "milestones": {
+            "items": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          },
+          "unclaimed": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "linkId",
+          "name",
+          "email",
+          "counted",
+          "inHold",
+          "held",
+          "milestones",
+          "unclaimed"
+        ],
+        "type": "object"
+      },
+      "ReferralTrack": {
+        "additionalProperties": false,
+        "properties": {
+          "awaiting": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "counted": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "held": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "inHold": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "nextBySeq": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "nextCount": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "nextHold": {
+            "description": "When the next referral in hold counts",
+            "format": "date-time",
+            "type": "string"
+          },
+          "nextName": {
+            "type": "string"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/ReferralTrackPoint"
+            },
+            "type": "array"
+          },
+          "toNext": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "counted",
+          "inHold",
+          "awaiting",
+          "held",
+          "points",
+          "nextCount",
+          "nextName",
+          "toNext",
+          "nextBySeq"
+        ],
+        "type": "object"
+      },
+      "ReferralTrackPoint": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "reachedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "reward": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "count",
+          "reward"
+        ],
+        "type": "object"
+      },
+      "ReferralTurnedOn": {
+        "additionalProperties": false,
+        "properties": {
+          "linksCreated": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "nextIssue": {
+            "$ref": "#/components/schemas/ReferralCampaignRef"
+          },
+          "program": {
+            "$ref": "#/components/schemas/ReferralProgramDetail"
+          }
+        },
+        "required": [
+          "program",
+          "linksCreated"
+        ],
+        "type": "object"
+      },
+      "ReferralWebhookTestResult": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "status": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ok",
+          "status",
+          "code",
+          "url",
+          "error"
         ],
         "type": "object"
       },
@@ -66179,6 +69663,73 @@
         "x-permission": "subscribers:edit"
       }
     },
+    "/api/v1/workspaces/{workspace}/contacts/{contact}/referrals": {
+      "get": {
+        "description": "API keys with grow:view can read a contact's referral link and counts, so an app can show them to its users.",
+        "operationId": "get-contact-referrals",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "contact",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferralContact"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A contact's referral link and counts, who referred them, and Grow's timeline events",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:view"
+      }
+    },
     "/api/v1/workspaces/{workspace}/contacts/{contact}/resend-optin": {
       "post": {
         "operationId": "resend-contact-optin",
@@ -70334,6 +73885,2506 @@
         ],
         "x-access": "workspace",
         "x-permission": "subscribers:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/blocks/preview-contacts": {
+      "get": {
+        "operationId": "list-grow-preview-contacts",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "program",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GrowPreviewContacts"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Readers to preview the Grow blocks as: referrers, and readers the block hides for",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/blocks/render": {
+      "post": {
+        "operationId": "render-grow-block",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GrowBlockRenderInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GrowBlockRender"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Render a Grow block for the composer's canvas, as a reader or a sample",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/milestones/{milestone}": {
+      "delete": {
+        "operationId": "delete-referral-milestone",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "milestone",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Delete a milestone: rewards already sent stay with their referrers",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:edit"
+      },
+      "get": {
+        "operationId": "get-referral-milestone",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "milestone",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferralMilestoneView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A milestone with its reward",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:view"
+      },
+      "put": {
+        "operationId": "update-referral-milestone",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReferralMilestoneInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferralMilestoneView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Change a milestone and its reward (rewards given from now on)",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/milestones/{milestone}/codes": {
+      "delete": {
+        "operationId": "remove-referral-codes",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "milestone",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferralRemoved"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Remove the codes nobody has received yet",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:edit"
+      },
+      "post": {
+        "operationId": "upload-referral-codes",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReferralCodesInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferralCodesResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Upload codes for a code reward (one per line); only their count is logged",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/milestones/{milestone}/email": {
+      "get": {
+        "operationId": "get-referral-milestone-email",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "milestone",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferralMilestoneEmailDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A milestone email for the composer's milestone mode",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:view"
+      },
+      "put": {
+        "operationId": "autosave-referral-milestone-email",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReferralEmailSave"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferralEmailSaved"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Autosave a milestone email's draft (409 when saved elsewhere since)",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/milestones/{milestone}/email/on": {
+      "put": {
+        "operationId": "set-referral-milestone-email-on",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReferralEmailOnInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Send this milestone's email, or none (an automation sends one)",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/milestones/{milestone}/email/preview": {
+      "post": {
+        "operationId": "preview-referral-milestone-email",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReferralEmailPreviewInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferralEmailRender"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Render a milestone email as a reader gets it",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/milestones/{milestone}/email/save": {
+      "post": {
+        "operationId": "save-referral-milestone-email",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReferralEmailSave"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferralEmailSaved"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Save a milestone email: the saved version is the one that goes out",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/milestones/{milestone}/email/test": {
+      "post": {
+        "operationId": "test-referral-milestone-email",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReferralEmailTest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferralEmailTestResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Send a test of a milestone email through the System route",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/milestones/{milestone}/webhook-test": {
+      "post": {
+        "operationId": "test-referral-webhook",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "milestone",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferralWebhookTestResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Send a test referral.milestone_reached to a webhook reward's endpoint",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/referrals": {
+      "get": {
+        "operationId": "list-referral-programs",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferralProgramList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The referral programs and the lists a new one can use",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:view"
+      },
+      "post": {
+        "operationId": "create-referral-program",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReferralCreateInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferralProgramDetail"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Start a referral program on a list (off, at the guide's second step)",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}": {
+      "delete": {
+        "operationId": "delete-referral-program",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "program",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Delete a program that is off: its links stop for good",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:edit"
+      },
+      "get": {
+        "operationId": "get-referral-program",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "program",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferralProgramDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A referral program with its settings",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/checks": {
+      "get": {
+        "operationId": "get-referral-checks",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "program",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferralChecks"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The checks before a program turns on",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/files": {
+      "post": {
+        "operationId": "upload-referral-file",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "encoding": {
+                "file": {
+                  "contentType": "application/pdf,application/zip,image/png,image/jpeg,image/gif,image/webp,application/octet-stream"
+                }
+              },
+              "schema": {
+                "properties": {
+                  "file": {
+                    "contentEncoding": "binary",
+                    "contentMediaType": "application/octet-stream",
+                    "format": "binary",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "file"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferralFile"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Upload a file for download rewards (PDF, ZIP or an image, up to 100 MB)",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/files/{file}": {
+      "delete": {
+        "operationId": "remove-referral-file",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "file",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Remove a file from the program's files",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/fulfill.csv": {
+      "get": {
+        "operationId": "export-referral-fulfillment",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "program",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "contentEncoding": "base64",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Content-Type": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "The To fulfill queue with shipping addresses as CSV (logged)",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "subscribers:export"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/leaderboard": {
+      "put": {
+        "operationId": "set-referral-leaderboard",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReferralLeaderboardInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferralProgramDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Turn the public leaderboard on or off",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/milestones": {
+      "get": {
+        "operationId": "list-referral-milestones",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "program",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferralMilestoneList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The milestones with their rewards, health and emails, the files and the To fulfill queue",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:view"
+      },
+      "post": {
+        "description": "A Stripe coupon reward also needs earn:edit and Stripe connected.",
+        "operationId": "create-referral-milestone",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReferralMilestoneInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferralMilestoneView"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Add a milestone with its reward and a milestone email",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/off": {
+      "post": {
+        "description": "Earned rewards stay available on readers' hubs; counted referrals and sent rewards are kept.",
+        "operationId": "turn-off-referral-program",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "program",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferralProgramDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Turn a program off: links lead to the normal subscribe page and Referral blocks hide",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/on": {
+      "post": {
+        "operationId": "turn-on-referral-program",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "program",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferralTurnedOn"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Turn a program on: every confirmed subscriber of its list gets a link",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/referrers": {
+      "get": {
+        "operationId": "list-referrers",
+        "parameters": [
+          {
+            "explode": false,
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "maxLength": 200,
+              "type": "string"
+            }
+          },
+          {
+            "description": "0 any, -1 none yet, n reached n",
+            "explode": false,
+            "in": "query",
+            "name": "milestone",
+            "schema": {
+              "description": "0 any, -1 none yet, n reached n",
+              "format": "int64",
+              "maximum": 100000,
+              "minimum": -1,
+              "type": "integer"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "held",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "paused",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "default": 1,
+              "format": "int64",
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferralReferrerList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Referrers by counted referrals, with search and filters",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/referrers.csv": {
+      "get": {
+        "operationId": "export-referrers",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "program",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "contentEncoding": "base64",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Content-Type": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "The referrers list as CSV (logged)",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "subscribers:export"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/referrers/{link}": {
+      "get": {
+        "operationId": "get-referrer",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "link",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferralReferrerPanel"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A referrer: their link, progress, referrals and rewards",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/referrers/{link}/pause": {
+      "post": {
+        "operationId": "pause-referral-link",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReferralLinkPauseInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Pause a referrer's link: it leads to the normal subscribe page",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:review"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/referrers/{link}/resume": {
+      "post": {
+        "operationId": "resume-referral-link",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "link",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Resume a referrer's paused link",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:review"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/results": {
+      "get": {
+        "operationId": "get-referral-results",
+        "parameters": [
+          {
+            "explode": false,
+            "in": "query",
+            "name": "period",
+            "schema": {
+              "default": "all",
+              "enum": [
+                "7d",
+                "30d",
+                "all"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "grouping",
+            "schema": {
+              "default": "week",
+              "enum": [
+                "day",
+                "week"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferralResults"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A program's results: the funnel, confirmed referrals over time, channels, top referrers, rewards and quality",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/review": {
+      "get": {
+        "operationId": "get-referral-review",
+        "parameters": [
+          {
+            "explode": false,
+            "in": "query",
+            "name": "signal",
+            "schema": {
+              "enum": [
+                "burst",
+                "shared_ip",
+                "numbered",
+                ""
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "referrer",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferralReviewQueue"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Held referrals grouped by referrer, with their evidence",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/review/decide": {
+      "post": {
+        "description": "People only: MCP agents can propose a decision (propose_referral_decision), never make one. Undo works for 10 seconds.",
+        "operationId": "decide-referrals",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReferralDecisionInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferralDecision"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Count held referrals, don't count them, or don't count them and pause the link",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:review"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/review/decisions/{decision}/undo": {
+      "post": {
+        "operationId": "undo-referral-decision",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "decision",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Undo a decision within 10 seconds",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:review"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/review/preview": {
+      "post": {
+        "operationId": "preview-referral-decision",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReferralDecisionInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferralDecisionPreview"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What a decision on held referrals would do",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/settings": {
+      "put": {
+        "description": "Changes apply going forward: counted referrals and sent rewards never change.",
+        "operationId": "update-referral-settings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReferralSettingsInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferralProgramDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Change the counting rules, pages, leaderboard and milestone emails' sender",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/settings/impact": {
+      "post": {
+        "operationId": "referral-settings-impact",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReferralCounting"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferralSettingsImpact"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What a change of the counting rules does to referrals not decided yet",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/setup": {
+      "put": {
+        "operationId": "save-referral-setup",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReferralSetupInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferralProgramDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Keep the set-up guide's step (and the list, until the program has been on)",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/rewards/{reward}/claim-link": {
+      "post": {
+        "operationId": "copy-referral-claim-link",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "reward",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferralClaimLink"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "A coupon reward's claim link to copy (logged)",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:review"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/rewards/{reward}/fulfill": {
+      "post": {
+        "operationId": "fulfill-referral-reward",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReferralFulfillInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Mark a manual reward fulfilled, with a note the referrer sees",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:review"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/rewards/{reward}/resend": {
+      "post": {
+        "operationId": "resend-referral-reward",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "reward",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Send a reward's milestone email again",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:review"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/grow/rewards/{reward}/retry": {
+      "post": {
+        "operationId": "retry-referral-reward",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "reward",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Try a failed webhook reward again",
+        "tags": [
+          "Grow"
+        ],
+        "x-access": "workspace",
+        "x-permission": "grow:review"
       }
     },
     "/api/v1/workspaces/{workspace}/growth": {

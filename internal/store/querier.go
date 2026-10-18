@@ -1209,6 +1209,42 @@ type Querier interface {
 	PageCopySetLabels(ctx context.Context, arg PageCopySetLabelsParams) error
 	PageCopySetPages(ctx context.Context, arg PageCopySetPagesParams) error
 	PageCopyUserName(ctx context.Context, id uuid.UUID) (string, error)
+	PartnerCodeByHash(ctx context.Context, codeHash []byte) (PartnerCode, error)
+	PartnerCodeInsert(ctx context.Context, arg PartnerCodeInsertParams) error
+	PartnerCodeLock(ctx context.Context, id uuid.UUID) (PartnerCode, error)
+	PartnerCodeRevoke(ctx context.Context, arg PartnerCodeRevokeParams) error
+	PartnerCodeUse(ctx context.Context, arg PartnerCodeUseParams) error
+	// Codes not used, revoked or expired yet ("Waiting for …").
+	PartnerCodesOpen(ctx context.Context, arg PartnerCodesOpenParams) ([]PartnerCodesOpenRow, error)
+	PartnerLinkByCodeHash(ctx context.Context, arg PartnerLinkByCodeHashParams) (PartnerLinkByCodeHashRow, error)
+	PartnerLinkByID(ctx context.Context, id uuid.UUID) (PartnerLink, error)
+	PartnerLinkEnd(ctx context.Context, arg PartnerLinkEndParams) error
+	PartnerLinkFailing(ctx context.Context, arg PartnerLinkFailingParams) error
+	PartnerLinkGet(ctx context.Context, arg PartnerLinkGetParams) (PartnerLink, error)
+	PartnerLinkInsert(ctx context.Context, arg PartnerLinkInsertParams) error
+	PartnerLinkInvalid(ctx context.Context, arg PartnerLinkInvalidParams) error
+	PartnerLinkLimit(ctx context.Context, arg PartnerLinkLimitParams) error
+	PartnerLinkLock(ctx context.Context, id uuid.UUID) (PartnerLink, error)
+	PartnerLinkNotified(ctx context.Context, arg PartnerLinkNotifiedParams) error
+	PartnerLinkRotate(ctx context.Context, arg PartnerLinkRotateParams) error
+	PartnerLinkSetLimit(ctx context.Context, arg PartnerLinkSetLimitParams) error
+	PartnerLinkSetProfile(ctx context.Context, arg PartnerLinkSetProfileParams) error
+	PartnerLinkSetStatus(ctx context.Context, arg PartnerLinkSetStatusParams) error
+	PartnerLinks(ctx context.Context, arg PartnerLinksParams) ([]PartnerLinksRow, error)
+	PartnerNoticeResult(ctx context.Context, arg PartnerNoticeResultParams) error
+	PartnerNoticesDue(ctx context.Context, arg PartnerNoticesDueParams) ([]PartnerRequestsIn, error)
+	PartnerRequestInConfirmed(ctx context.Context, arg PartnerRequestInConfirmedParams) error
+	PartnerRequestInInsert(ctx context.Context, arg PartnerRequestInInsertParams) (uuid.UUID, error)
+	PartnerRequestOutConfirmed(ctx context.Context, arg PartnerRequestOutConfirmedParams) (*uuid.UUID, error)
+	PartnerRequestOutGet(ctx context.Context, id uuid.UUID) (PartnerRequestsOut, error)
+	PartnerRequestOutInsert(ctx context.Context, arg PartnerRequestOutInsertParams) error
+	PartnerRequestOutResult(ctx context.Context, arg PartnerRequestOutResultParams) error
+	// Accepted requests of a contact waiting for their confirmation.
+	PartnerRequestsInPending(ctx context.Context, contactID *uuid.UUID) ([]PartnerRequestsInPendingRow, error)
+	PartnerRequestsInToday(ctx context.Context, arg PartnerRequestsInTodayParams) (int64, error)
+	PartnerRequestsOutDue(ctx context.Context, arg PartnerRequestsOutDueParams) ([]PartnerRequestsOut, error)
+	// The partner request logs keep 90 days.
+	PartnerRequestsPrune(ctx context.Context, before time.Time) error
 	PauseAutomation(ctx context.Context, arg PauseAutomationParams) error
 	ProvActiveFailovers(ctx context.Context, workspaceID uuid.UUID) ([]StreamFailover, error)
 	ProvAwaitingCampaigns(ctx context.Context, arg ProvAwaitingCampaignsParams) ([]ProvAwaitingCampaignsRow, error)
@@ -1354,6 +1390,22 @@ type Querier interface {
 	// The latest test emails of a campaign, from the audit log.
 	ReadinessTestSends(ctx context.Context, arg ReadinessTestSendsParams) ([]ReadinessTestSendsRow, error)
 	ReadinessUpdateProgress(ctx context.Context, arg ReadinessUpdateProgressParams) error
+	RecByID(ctx context.Context, id uuid.UUID) (Recommendation, error)
+	RecDailyBump(ctx context.Context, arg RecDailyBumpParams) error
+	RecGet(ctx context.Context, arg RecGetParams) (Recommendation, error)
+	RecInsert(ctx context.Context, arg RecInsertParams) error
+	RecList(ctx context.Context, workspaceID uuid.UUID) ([]Recommendation, error)
+	RecOfLink(ctx context.Context, linkID *uuid.UUID) (Recommendation, error)
+	RecRemove(ctx context.Context, arg RecRemoveParams) error
+	RecSetPosition(ctx context.Context, arg RecSetPositionParams) error
+	RecSetStatus(ctx context.Context, arg RecSetStatusParams) error
+	// Recommendations and partner links (internal/recommendations): the
+	// newsletters a workspace recommends, its partner profile, partner codes,
+	// partner links in both directions and the partner request logs.
+	RecSettingsGet(ctx context.Context, workspaceID uuid.UUID) (RecommendationSetting, error)
+	RecSettingsUpsert(ctx context.Context, arg RecSettingsUpsertParams) (RecommendationSetting, error)
+	RecTotals(ctx context.Context, arg RecTotalsParams) ([]RecTotalsRow, error)
+	RecUpdate(ctx context.Context, arg RecUpdateParams) error
 	// Campaigns a segment can refer to ("Opened campaign …").
 	RecentSentCampaigns(ctx context.Context, workspaceID uuid.UUID) ([]RecentSentCampaignsRow, error)
 	RecordHostReputeSyncError(ctx context.Context, arg RecordHostReputeSyncErrorParams) error

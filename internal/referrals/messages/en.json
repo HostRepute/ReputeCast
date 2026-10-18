@@ -30,6 +30,8 @@
   "milestone.programOnLast": "The program needs at least one milestone while it's on. Add another one first, or turn the program off.",
   "milestone.emailStale": "This email was saved somewhere else since you opened it. Reload to see that version.",
   "milestone.noEmail": "This milestone has no email. Turn the email on first.",
+  "milestone.webhookMissing": "This milestone's reward isn't a webhook with an endpoint. Save an endpoint first.",
+  "milestone.webhookAnswered": { "message": "The endpoint answered {status}. It needs to answer 2xx.", "note": "status: the HTTP status code" },
 
   "file.tooLarge": "Files can be up to 100 MB.",
   "file.type": "Upload a PDF, a ZIP file or an image (PNG, JPEG, GIF or WebP).",

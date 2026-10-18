@@ -652,6 +652,7 @@ func (e *Engine) deliver(ctx context.Context, rs *runState, r *runRoute, claimed
 		msg providers.Message
 	}
 	var batch []pending
+	extra := e.readerVars(ctx, rs, claimed)
 	for _, m := range claimed {
 		switch {
 		case m.Gone:
@@ -661,7 +662,7 @@ func (e *Engine) deliver(ctx context.Context, rs *runState, r *runRoute, claimed
 			out.drop(m.ID, "cancelled", "On the shared suppression list since the send started.")
 			continue
 		}
-		pm, err := e.compose(rs, r, m)
+		pm, err := e.compose(rs, r, m, extra)
 		if err != nil {
 			out.drop(m.ID, "failed", err.Error())
 			continue
@@ -827,7 +828,7 @@ func simRows(ws uuid.UUID, campaign *uuid.UUID, msg, provider uuid.UUID, now tim
 
 // compose builds one recipient's message: personalization, per-recipient
 // tracking and system links, and the bulk-mail headers.
-func (e *Engine) compose(rs *runState, r *runRoute, m store.SendingClaimRow) (providers.Message, error) {
+func (e *Engine) compose(rs *runState, r *runRoute, m store.SendingClaimRow, extra map[uuid.UUID]map[string]any) (providers.Message, error) {
 	tpl := rs.templates[renderKey(rs.content, m.Language, m.Variant)]
 	if tpl == nil {
 		tpl = rs.templates[renderKey(rs.content, m.Language, "")]
@@ -864,6 +865,9 @@ func (e *Engine) compose(rs *runState, r *runRoute, m store.SendingClaimRow) (pr
 		_ = json.Unmarshal(m.Attributes, &attrs)
 	}
 	vars := liquid.Vars(m.Email, m.FirstName, m.LastName, attrs, links)
+	if m.ContactID != nil {
+		vars = liquid.Merge(vars, extra[*m.ContactID])
+	}
 	out, err := tpl.Render(vars, tracked)
 	if err != nil {
 		return providers.Message{}, err
@@ -888,6 +892,29 @@ func (e *Engine) compose(rs *runState, r *runRoute, m store.SendingClaimRow) (pr
 		msg.Tags[simulator.TagEngaged] = fmt.Sprint(m.Engaged)
 	}
 	return msg, nil
+}
+
+// readerVars are the per-reader variables (Engine.Recipients) the send's
+// templates use, for a page of claimed messages, by contact.
+func (e *Engine) readerVars(ctx context.Context, rs *runState, claimed []store.SendingClaimRow) map[uuid.UUID]map[string]any {
+	if e.Recipients == nil || len(claimed) == 0 {
+		return nil
+	}
+	providers := e.Recipients()
+	if len(providers) == 0 {
+		return nil
+	}
+	var src strings.Builder
+	for _, t := range rs.templates {
+		src.WriteString(t.Source())
+	}
+	recipients := make([]liquid.Recipient, 0, len(claimed))
+	for _, m := range claimed {
+		if m.ContactID != nil && !m.Gone && !m.Suppressed {
+			recipients = append(recipients, liquid.Recipient{ContactID: *m.ContactID, MessageID: m.ID})
+		}
+	}
+	return liquid.FillBatch(ctx, providers, rs.campaign.WorkspaceID, recipients, src.String())
 }
 
 // contentKey is the variant whose content (and links) a message renders.

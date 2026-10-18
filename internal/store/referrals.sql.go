@@ -1206,7 +1206,7 @@ func (q *Queries) ReferralLinkSetChoices(ctx context.Context, arg ReferralLinkSe
 
 const referralLinkSetStatus = `-- name: ReferralLinkSetStatus :exec
 UPDATE referral_links SET status = $1, paused_at = CASE WHEN $1 = 'paused' THEN $2::timestamptz END,
-       paused_by = CASE WHEN $1 = 'paused' THEN $3 END,
+       paused_by = CASE WHEN $1 = 'paused' THEN $3::uuid END,
        pause_note = CASE WHEN $1 = 'paused' THEN $4 ELSE '' END
 WHERE id = $5
 `
@@ -3126,46 +3126,15 @@ type ReferralRewardsOfContactParams struct {
 }
 
 type ReferralRewardsOfContactRow struct {
-	ID                uuid.UUID  `json:"id"`
-	WorkspaceID       uuid.UUID  `json:"workspaceId"`
-	ProgramID         uuid.UUID  `json:"programId"`
-	MilestoneID       *uuid.UUID `json:"milestoneId"`
-	ContactID         uuid.UUID  `json:"contactId"`
-	LinkID            *uuid.UUID `json:"linkId"`
-	MilestoneCount    int32      `json:"milestoneCount"`
-	RewardName        string     `json:"rewardName"`
-	RewardType        string     `json:"rewardType"`
-	Status            string     `json:"status"`
-	ReachedAt         time.Time  `json:"reachedAt"`
-	SentAt            *time.Time `json:"sentAt"`
-	UsedAt            *time.Time `json:"usedAt"`
-	Downloads         int32      `json:"downloads"`
-	CodeID            *uuid.UUID `json:"codeId"`
-	ClaimUrl          string     `json:"claimUrl"`
-	ExpiresAt         *time.Time `json:"expiresAt"`
-	Answer            []byte     `json:"answer"`
-	Attempts          int32      `json:"attempts"`
-	NextAttemptAt     *time.Time `json:"nextAttemptAt"`
-	LastError         string     `json:"lastError"`
-	FailedAt          *time.Time `json:"failedAt"`
-	Address           []byte     `json:"address"`
-	AddressAt         *time.Time `json:"addressAt"`
-	FulfilledBy       *uuid.UUID `json:"fulfilledBy"`
-	FulfillNote       string     `json:"fulfillNote"`
-	AddressPurgeAt    *time.Time `json:"addressPurgeAt"`
-	EmailSentAt       *time.Time `json:"emailSentAt"`
-	EmailMessageID    *uuid.UUID `json:"emailMessageId"`
-	ResentAt          *time.Time `json:"resentAt"`
-	CreatedAt         time.Time  `json:"createdAt"`
-	UpdatedAt         time.Time  `json:"updatedAt"`
-	RewardDescription string     `json:"rewardDescription"`
-	FileID            *uuid.UUID `json:"fileId"`
-	DownloadUrl       string     `json:"downloadUrl"`
-	AskAddress        bool       `json:"askAddress"`
-	FileName          string     `json:"fileName"`
-	FileType          string     `json:"fileType"`
-	FileSize          int64      `json:"fileSize"`
-	ImageID           *uuid.UUID `json:"imageId"`
+	ReferralReward    ReferralReward `json:"referralReward"`
+	RewardDescription string         `json:"rewardDescription"`
+	FileID            *uuid.UUID     `json:"fileId"`
+	DownloadUrl       string         `json:"downloadUrl"`
+	AskAddress        bool           `json:"askAddress"`
+	FileName          string         `json:"fileName"`
+	FileType          string         `json:"fileType"`
+	FileSize          int64          `json:"fileSize"`
+	ImageID           *uuid.UUID     `json:"imageId"`
 }
 
 func (q *Queries) ReferralRewardsOfContact(ctx context.Context, arg ReferralRewardsOfContactParams) ([]ReferralRewardsOfContactRow, error) {
@@ -3178,38 +3147,38 @@ func (q *Queries) ReferralRewardsOfContact(ctx context.Context, arg ReferralRewa
 	for rows.Next() {
 		var i ReferralRewardsOfContactRow
 		if err := rows.Scan(
-			&i.ID,
-			&i.WorkspaceID,
-			&i.ProgramID,
-			&i.MilestoneID,
-			&i.ContactID,
-			&i.LinkID,
-			&i.MilestoneCount,
-			&i.RewardName,
-			&i.RewardType,
-			&i.Status,
-			&i.ReachedAt,
-			&i.SentAt,
-			&i.UsedAt,
-			&i.Downloads,
-			&i.CodeID,
-			&i.ClaimUrl,
-			&i.ExpiresAt,
-			&i.Answer,
-			&i.Attempts,
-			&i.NextAttemptAt,
-			&i.LastError,
-			&i.FailedAt,
-			&i.Address,
-			&i.AddressAt,
-			&i.FulfilledBy,
-			&i.FulfillNote,
-			&i.AddressPurgeAt,
-			&i.EmailSentAt,
-			&i.EmailMessageID,
-			&i.ResentAt,
-			&i.CreatedAt,
-			&i.UpdatedAt,
+			&i.ReferralReward.ID,
+			&i.ReferralReward.WorkspaceID,
+			&i.ReferralReward.ProgramID,
+			&i.ReferralReward.MilestoneID,
+			&i.ReferralReward.ContactID,
+			&i.ReferralReward.LinkID,
+			&i.ReferralReward.MilestoneCount,
+			&i.ReferralReward.RewardName,
+			&i.ReferralReward.RewardType,
+			&i.ReferralReward.Status,
+			&i.ReferralReward.ReachedAt,
+			&i.ReferralReward.SentAt,
+			&i.ReferralReward.UsedAt,
+			&i.ReferralReward.Downloads,
+			&i.ReferralReward.CodeID,
+			&i.ReferralReward.ClaimUrl,
+			&i.ReferralReward.ExpiresAt,
+			&i.ReferralReward.Answer,
+			&i.ReferralReward.Attempts,
+			&i.ReferralReward.NextAttemptAt,
+			&i.ReferralReward.LastError,
+			&i.ReferralReward.FailedAt,
+			&i.ReferralReward.Address,
+			&i.ReferralReward.AddressAt,
+			&i.ReferralReward.FulfilledBy,
+			&i.ReferralReward.FulfillNote,
+			&i.ReferralReward.AddressPurgeAt,
+			&i.ReferralReward.EmailSentAt,
+			&i.ReferralReward.EmailMessageID,
+			&i.ReferralReward.ResentAt,
+			&i.ReferralReward.CreatedAt,
+			&i.ReferralReward.UpdatedAt,
 			&i.RewardDescription,
 			&i.FileID,
 			&i.DownloadUrl,

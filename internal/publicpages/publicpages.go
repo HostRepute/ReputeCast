@@ -43,6 +43,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/forms"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/linktoken"
+	"github.com/hostrepute/reputecast/internal/liquid"
 	"github.com/hostrepute/reputecast/internal/pagelabels"
 	"github.com/hostrepute/reputecast/internal/publicurl"
 	"github.com/hostrepute/reputecast/internal/server"
@@ -71,6 +72,9 @@ type Handler struct {
 	// the preference center has no such section).
 	Notifications Notifications
 	Now           func() time.Time
+	// Recipients add the per-reader variables of blocks (Grow's Referral
+	// block) to view online; nil adds none.
+	Recipients func() []liquid.RecipientData
 
 	tmpl    map[string]*template.Template
 	version string

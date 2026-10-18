@@ -6,6 +6,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/campaigns"
 	"github.com/hostrepute/reputecast/internal/contentcheck"
 	"github.com/hostrepute/reputecast/internal/demo"
+	"github.com/hostrepute/reputecast/internal/liquid"
 	"github.com/hostrepute/reputecast/internal/mailer"
 	"github.com/hostrepute/reputecast/internal/templates"
 )
@@ -25,6 +26,8 @@ func init() {
 			AfterChange: CampaignChangeHook(a),
 			// ?language= reaches the campaign's language versions.
 			Translations: campaignTranslations(a),
+			// Previews and test sends show Grow's blocks for the reader.
+			Recipients: func() []liquid.RecipientData { return recipientData(a) },
 		}
 		campaigns.Register(h, s)
 		campaigns.RegisterComposer(h, s)

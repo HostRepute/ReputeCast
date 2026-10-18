@@ -623,3 +623,65 @@ func ExpiredLink(c linktoken.Claims, valid time.Duration, now time.Time) bool {
 	issued := linktoken.IssuedOn(c.Link)
 	return now.Sub(issued) > valid+24*time.Hour
 }
+
+// rewardCode is the code a reward took, or the code or address its webhook
+// answered (a coupon's promotion code is its answer).
+func (s *Service) rewardCode(ctx context.Context, rw store.ReferralReward) (code, url string) {
+	if rw.CodeID != nil && rw.MilestoneID != nil {
+		if sealed, err := s.Q.ReferralCodeOf(ctx, *rw.CodeID); err == nil {
+			if c, err := s.Box.OpenString(sealed, codeAD(*rw.MilestoneID)); err == nil {
+				code = c
+			}
+		}
+	}
+	if len(rw.Answer) == 0 {
+		return code, url
+	}
+	raw, err := s.Box.Open(rw.Answer, answerAD(rw.ID))
+	if err != nil {
+		return code, url
+	}
+	if rw.RewardType == RewardCoupon {
+		return string(raw), url
+	}
+	var a rewardAnswer
+	if json.Unmarshal(raw, &a) == nil {
+		if a.Code != "" {
+			code = a.Code
+		}
+		url = a.URL
+	}
+	return code, url
+}
+
+// TestWebhook posts a sample referral.milestone_reached to a webhook
+// reward's endpoint, signed like the real calls, and shows the answer. It
+// changes neither the reward's health nor any referrer's reward.
+func (s *Service) TestWebhook(ctx context.Context, ws *store.Workspace, milestoneID uuid.UUID) (ReferralWebhookTestResult, error) {
+	m, err := s.Q.ReferralMilestoneByID(ctx, milestoneID)
+	if err != nil || m.WorkspaceID != ws.ID || m.DeletedAt != nil {
+		return ReferralWebhookTestResult{}, api.NotFound("Milestone")
+	}
+	if m.RewardType != RewardWebhook || m.WebhookUrl == "" {
+		return ReferralWebhookTestResult{}, api.Invalid("milestone", s.text(ctx, msgs.M("milestone.webhookMissing"), nil))
+	}
+	now := s.now()
+	id := "test_" + uuid.Must(uuid.NewV7()).String()
+	sample := hookContact{ContactID: "00000000-0000-0000-0000-000000000000", Email: "reader@example.com", FirstName: "Sam"}
+	body := s.webhookBody(ws, id, m, sample, id, int64(m.Count), now)
+	call := s.post(ctx, m, id, body, now)
+	out := ReferralWebhookTestResult{OK: call.Err == nil, Status: call.Status, Code: call.Answer.Code, URL: call.Answer.URL}
+	if call.Err != nil {
+		out.Error = netguard.Describe(ctx, call.Err)
+		if call.Status > 0 {
+			out.Error = s.text(ctx, msgs.M("milestone.webhookAnswered"), i18n.Args{"status": call.Status})
+		}
+	}
+	result := audit.Allowed
+	if !out.OK {
+		result = audit.Failed
+	}
+	err = s.Audit.Log(ctx, audit.Event{WorkspaceID: &ws.ID, Action: "referral.webhook_tested", TargetType: "referral_milestone", TargetID: m.ID.String(),
+		TargetName: m.RewardName, Result: result, Metadata: map[string]any{"status": call.Status, "url": m.WebhookUrl}})
+	return out, err
+}

@@ -1445,6 +1445,8 @@ type PartnerLink struct {
 	ListID            *uuid.UUID `json:"listId"`
 	Label             string     `json:"label"`
 	CodeID            *uuid.UUID `json:"codeId"`
+	CodeHash          []byte     `json:"codeHash"`
+	LastRotation      string     `json:"lastRotation"`
 	Secret            []byte     `json:"secret"`
 	PrevSecret        []byte     `json:"prevSecret"`
 	PrevSecretUntil   *time.Time `json:"prevSecretUntil"`
@@ -1475,6 +1477,11 @@ type PartnerRequestsIn struct {
 	Status         string     `json:"status"`
 	ContactID      *uuid.UUID `json:"contactId"`
 	Asked          bool       `json:"asked"`
+	OptinStatus    string     `json:"optinStatus"`
+	OptinAttempts  int32      `json:"optinAttempts"`
+	OptinNextAt    *time.Time `json:"optinNextAt"`
+	OptinSentAt    *time.Time `json:"optinSentAt"`
+	SourceName     string     `json:"sourceName"`
 	ReceivedAt     time.Time  `json:"receivedAt"`
 	ConfirmedAt    *time.Time `json:"confirmedAt"`
 	NoticeStatus   string     `json:"noticeStatus"`

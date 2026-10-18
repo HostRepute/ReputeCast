@@ -148,8 +148,8 @@ type Service struct {
 	AllowPrivate func() bool
 	// Jobs enqueues River jobs.
 	Jobs func() Inserter
-	// Sample, when set, is the demo's clock for the setup guide's dates.
-	Sample func() time.Time
+	// Base is the instance's public URL (images in emails).
+	Base func() string
 }
 
 func (s *Service) now() time.Time {

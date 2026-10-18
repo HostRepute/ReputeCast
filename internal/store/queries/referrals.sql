@@ -309,7 +309,7 @@ ORDER BY rl.created_at;
 
 -- name: ReferralLinkSetStatus :exec
 UPDATE referral_links SET status = @status, paused_at = CASE WHEN @status = 'paused' THEN @now::timestamptz END,
-       paused_by = CASE WHEN @status = 'paused' THEN sqlc.narg(by) END,
+       paused_by = CASE WHEN @status = 'paused' THEN sqlc.narg(by)::uuid END,
        pause_note = CASE WHEN @status = 'paused' THEN @note ELSE '' END
 WHERE id = @id;
 
@@ -484,7 +484,7 @@ SELECT * FROM referral_rewards WHERE id = @id;
 SELECT * FROM referral_rewards WHERE id = @id FOR UPDATE;
 
 -- name: ReferralRewardsOfContact :many
-SELECT rw.*, coalesce(m.reward_description, '')::text AS reward_description, m.file_id, coalesce(m.download_url, '')::text AS download_url,
+SELECT sqlc.embed(rw), coalesce(m.reward_description, '')::text AS reward_description, m.file_id, coalesce(m.download_url, '')::text AS download_url,
        coalesce(m.ask_address, false)::boolean AS ask_address, coalesce(f.file_name, '')::text AS file_name,
        coalesce(f.content_type, '')::text AS file_type, coalesce(f.size_bytes, 0)::bigint AS file_size, m.image_id
 FROM referral_rewards rw

@@ -76,6 +76,11 @@ CREATE TABLE partner_links (
     list_id            uuid        REFERENCES lists(id) ON DELETE SET NULL,
     label              text        NOT NULL DEFAULT '',
     code_id            uuid        REFERENCES partner_codes(id) ON DELETE SET NULL,
+    -- 'out': the hash of the partner code pasted to connect ("Marcus Chen
+    -- used this code on 22 Sep").
+    code_hash          bytea,
+    -- The last rotation applied (a repeated rotate message changes nothing).
+    last_rotation      text        NOT NULL DEFAULT '',
     -- The shared signing secret (sealed), and the previous one for 24
     -- hours after a rotation.
     secret             bytea       NOT NULL,
@@ -181,8 +186,17 @@ CREATE TABLE partner_requests_in (
     request_id         text        NOT NULL,
     status             text        NOT NULL CHECK (status IN ('accepted', 'limit', 'paused')),
     contact_id         uuid        REFERENCES contacts(id) ON DELETE SET NULL,
-    -- Whether a confirmation email went out (not for an existing subscriber).
+    -- Whether a confirmation email goes out (not for an existing
+    -- subscriber), and its sending: queued, sent, or failed after 3 days
+    -- without a System provider.
     asked              boolean     NOT NULL DEFAULT false,
+    optin_status       text        NOT NULL DEFAULT '' CHECK (optin_status IN ('', 'queued', 'sent', 'failed')),
+    optin_attempts     integer     NOT NULL DEFAULT 0,
+    optin_next_at      timestamptz,
+    optin_sent_at      timestamptz,
+    -- The recommending newsletter's name, for the email's "You asked for
+    -- this on …'s page."
+    source_name        text        NOT NULL DEFAULT '',
     received_at        timestamptz NOT NULL DEFAULT now(),
     confirmed_at       timestamptz,
     notice_status      text        NOT NULL DEFAULT '' CHECK (notice_status IN ('', 'queued', 'sent', 'failed')),
@@ -194,6 +208,7 @@ CREATE UNIQUE INDEX partner_requests_in_key ON partner_requests_in (link_id, req
 CREATE INDEX partner_requests_in_day_idx ON partner_requests_in (link_id, received_at);
 CREATE INDEX partner_requests_in_contact_idx ON partner_requests_in (contact_id) WHERE contact_id IS NOT NULL;
 CREATE INDEX partner_requests_in_notice_idx ON partner_requests_in (notice_next_at) WHERE notice_status = 'queued';
+CREATE INDEX partner_requests_in_optin_idx ON partner_requests_in (optin_next_at) WHERE optin_status = 'queued';
 
 -- Recommendations-page visits are personal (a signed link): no table; the
 -- page answers from the signed token.

@@ -437,7 +437,11 @@ func (e *Engine) composeAutomation(ctx context.Context, r *runRoute, row store.S
 	}
 	var attrs map[string]any
 	_ = json.Unmarshal(row.Attributes, &attrs)
-	out, err := ot.tpl.Render(liquid.Vars(row.Email, row.FirstName, row.LastName, attrs, links), tracked)
+	vars := liquid.Vars(row.Email, row.FirstName, row.LastName, attrs, links)
+	if e.Recipients != nil && contact != uuid.Nil {
+		vars = liquid.Fill(ctx, e.Recipients(), row.WorkspaceID, liquid.Recipient{ContactID: contact, MessageID: row.ID, EmailID: ref.Email}, ot.tpl.Source(), vars)
+	}
+	out, err := ot.tpl.Render(vars, tracked)
 	if err != nil {
 		return providers.Message{}, err
 	}

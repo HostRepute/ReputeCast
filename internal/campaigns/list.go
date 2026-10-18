@@ -15,6 +15,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/contentcheck"
 	"github.com/hostrepute/reputecast/internal/i18n"
+	"github.com/hostrepute/reputecast/internal/liquid"
 	"github.com/hostrepute/reputecast/internal/mailer"
 	"github.com/hostrepute/reputecast/internal/publicurl"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -41,6 +42,9 @@ type Service struct {
 	// Translations handles language versions (?language= on the content
 	// endpoints); nil without content languages.
 	Translations Translations
+	// Recipients add the per-reader variables of blocks (Grow's Referral
+	// and Recommendations blocks) to previews and test sends; nil adds none.
+	Recipients func() []liquid.RecipientData
 }
 
 // ChangeHook is told which campaign changed. The save already committed, so

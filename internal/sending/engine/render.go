@@ -48,7 +48,13 @@ type Template struct {
 	Links []TrackedLink
 	// Opens and Clicks say what the tracked variant tracks.
 	Opens, Clicks bool
+	// source is the subject, HTML and text with blocks expanded: what the
+	// per-reader variables are looked up for (Source).
+	source string
 }
+
+// Source is the template's subject, HTML and text, blocks expanded.
+func (t *Template) Source() string { return t.source }
 
 // Tracking options of a campaign (campaigns.tracking).
 type Tracking struct {
@@ -81,12 +87,15 @@ var ErrRender = errors.New("the email's personalization doesn't render")
 // Prepare parses an email's Liquid once and indexes its links. Library
 // image paths must already be absolute (media.Absolutize).
 func Prepare(c Content, t Tracking) (*Template, error) {
+	// Blocks that render per reader (Grow's) become Liquid first, so their
+	// links are indexed and tracked like the email's own.
+	c.HTML = liquid.ExpandBlocks(c.HTML)
 	for _, src := range []string{c.Subject, c.HTML, c.Text} {
 		if probs := liquid.Validate(src); len(probs) > 0 {
 			return nil, fmt.Errorf("%w: %s", ErrRender, probs[0].Message)
 		}
 	}
-	out := &Template{Opens: t.Opens, Clicks: t.Clicks}
+	out := &Template{Opens: t.Opens, Clicks: t.Clicks, source: c.Subject + "\n" + c.HTML + "\n" + c.Text}
 	var err error
 	if out.subject, err = parse(c.Subject); err != nil {
 		return nil, err
