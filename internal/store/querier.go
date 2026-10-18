@@ -13,6 +13,50 @@ import (
 )
 
 type Querier interface {
+	// What the assistant needs about a campaign: its name, content and language.
+	AICampaignBrief(ctx context.Context, arg AICampaignBriefParams) (AICampaignBriefRow, error)
+	// AI assistant (design expansion M22): the workspace's model, the AI
+	// activity log, kept report summaries and AI translations.
+	AIConnection(ctx context.Context, workspaceID uuid.UUID) (AiConnection, error)
+	// Claims this month's cap-reached notice, once.
+	AIConnectionClaimCapNotice(ctx context.Context, arg AIConnectionClaimCapNoticeParams) (int64, error)
+	// Claims this month's 80% notice, once.
+	AIConnectionClaimNotice(ctx context.Context, arg AIConnectionClaimNoticeParams) (int64, error)
+	AIConnectionForUpdate(ctx context.Context, workspaceID uuid.UUID) (AiConnection, error)
+	AIConnectionSave(ctx context.Context, arg AIConnectionSaveParams) error
+	// The provider rejected the saved key (or a passing request cleared it).
+	AIConnectionSetStatus(ctx context.Context, arg AIConnectionSetStatusParams) (int64, error)
+	AIConnectionSetTest(ctx context.Context, arg AIConnectionSetTestParams) error
+	// The people who can allow private addresses for model servers.
+	AIInstanceAdmins(ctx context.Context) ([]string, error)
+	// An image of the workspace's media library, for alt text.
+	AIMediaImage(ctx context.Context, arg AIMediaImageParams) (AIMediaImageRow, error)
+	// The members with their role, for "Members with ai:use: Owner, Admin…".
+	AIMembersRoles(ctx context.Context, workspaceID uuid.UUID) ([]AIMembersRolesRow, error)
+	AIReportSummary(ctx context.Context, arg AIReportSummaryParams) (AIReportSummaryRow, error)
+	AIReportSummaryDelete(ctx context.Context, arg AIReportSummaryDeleteParams) (int64, error)
+	AIReportSummarySave(ctx context.Context, arg AIReportSummarySaveParams) error
+	AIRequest(ctx context.Context, arg AIRequestParams) (AiRequest, error)
+	AIRequestCount(ctx context.Context, arg AIRequestCountParams) (int64, error)
+	AIRequestInsert(ctx context.Context, arg AIRequestInsertParams) error
+	// A person accepted, kept, rejected or discarded a suggestion; only the
+	// person who asked can, and only once it has an answer.
+	AIRequestSetOutcome(ctx context.Context, arg AIRequestSetOutcomeParams) (int64, error)
+	// The AI activity log, newest first.
+	AIRequests(ctx context.Context, arg AIRequestsParams) ([]AIRequestsRow, error)
+	// The activity log keeps 90 days.
+	AIRequestsPurge(ctx context.Context, before time.Time) (int64, error)
+	AISegmentName(ctx context.Context, arg AISegmentNameParams) (string, error)
+	// The workspace's tag names, for the segment drafts' condition schema
+	// (names only: no contact is named or counted).
+	AITagNames(ctx context.Context, workspaceID uuid.UUID) ([]string, error)
+	AITranslationMark(ctx context.Context, arg AITranslationMarkParams) (int64, error)
+	// A campaign's language versions an accepted AI translation wrote.
+	AITranslationMarks(ctx context.Context, arg AITranslationMarksParams) ([]AITranslationMarksRow, error)
+	AITranslationReviewed(ctx context.Context, arg AITranslationReviewedParams) (int64, error)
+	AIUsageByFeature(ctx context.Context, arg AIUsageByFeatureParams) ([]AIUsageByFeatureRow, error)
+	AIUsageByMember(ctx context.Context, arg AIUsageByMemberParams) ([]AIUsageByMemberRow, error)
+	AIUsageTotal(ctx context.Context, arg AIUsageTotalParams) (AIUsageTotalRow, error)
 	AcceptInvitation(ctx context.Context, arg AcceptInvitationParams) error
 	AcceptPendingInvitation(ctx context.Context, arg AcceptPendingInvitationParams) (int64, error)
 	// Access requests from the "403 · no permission" screen (internal/accessrequests).
@@ -1514,6 +1558,21 @@ type Querier interface {
 	// A campaign's poll as its content says now (a test send or a send needs
 	// its links). The number in signed links never changes.
 	PollsUpsert(ctx context.Context, arg PollsUpsertParams) (PollsUpsertRow, error)
+	// A new request replaces a pending one.
+	PostApprovalCancelPending(ctx context.Context, arg PostApprovalCancelPendingParams) error
+	// The approved request that covers a post as it is, if any.
+	PostApprovalForHash(ctx context.Context, arg PostApprovalForHashParams) (uuid.UUID, error)
+	// A post that changed after its request: pending and approved requests for
+	// the post as it was are invalidated (a change needs a new approval).
+	PostApprovalInvalidate(ctx context.Context, arg PostApprovalInvalidateParams) ([]PostApprovalInvalidateRow, error)
+	// Approvals for publishing posts of the publication website (design
+	// expansion phase 7): one request covers a post as it is (its hash: the
+	// content, the address, the visibility and the publish time).
+	// The latest request about a post, pending first.
+	PostApprovalLatest(ctx context.Context, postID *uuid.UUID) (PostApprovalLatestRow, error)
+	// The approved request a publish relied on remembers it went out.
+	PostApprovalMarkPublished(ctx context.Context, arg PostApprovalMarkPublishedParams) error
+	PostApprovalPending(ctx context.Context, postID *uuid.UUID) (PostApprovalPendingRow, error)
 	ProvActiveFailovers(ctx context.Context, workspaceID uuid.UUID) ([]StreamFailover, error)
 	ProvAwaitingCampaigns(ctx context.Context, arg ProvAwaitingCampaignsParams) ([]ProvAwaitingCampaignsRow, error)
 	ProvAwaitingCount(ctx context.Context, arg ProvAwaitingCountParams) (ProvAwaitingCountRow, error)
@@ -2672,6 +2731,133 @@ type Querier interface {
 	WarmupUpdateSettings(ctx context.Context, arg WarmupUpdateSettingsParams) error
 	// The next contact events to deliver; deleted as they are taken.
 	WebhookContactEventsTake(ctx context.Context, lim int32) ([]WebhookContactEvent, error)
+	// Sent campaigns of the archived lists, as the archive files them: the
+	// posts turning the website on creates.
+	WebsiteArchiveCampaigns(ctx context.Context, arg WebsiteArchiveCampaignsParams) ([]WebsiteArchiveCampaignsRow, error)
+	WebsiteConversionCounts(ctx context.Context, arg WebsiteConversionCountsParams) ([]WebsiteConversionCountsRow, error)
+	WebsiteConversionInsert(ctx context.Context, arg WebsiteConversionInsertParams) error
+	WebsiteConversionTotals(ctx context.Context, arg WebsiteConversionTotalsParams) (WebsiteConversionTotalsRow, error)
+	WebsiteLinkByToken(ctx context.Context, tokenHash []byte) (WebsiteSigninLink, error)
+	// Sign-in links
+	WebsiteLinkInsert(ctx context.Context, arg WebsiteLinkInsertParams) error
+	// The newest link this browser asked for (the code is typed where the link was asked for).
+	WebsiteLinkLatestForBrowser(ctx context.Context, arg WebsiteLinkLatestForBrowserParams) (WebsiteSigninLink, error)
+	WebsiteLinkOldestInHour(ctx context.Context, arg WebsiteLinkOldestInHourParams) (time.Time, error)
+	// A newer link replaces the contact's earlier links of the same purpose.
+	WebsiteLinkReplaceOlder(ctx context.Context, arg WebsiteLinkReplaceOlderParams) error
+	WebsiteLinkTry(ctx context.Context, id uuid.UUID) (int32, error)
+	// Uses a link once: false when it was used, replaced or expired meanwhile.
+	WebsiteLinkUse(ctx context.Context, arg WebsiteLinkUseParams) (uuid.UUID, error)
+	WebsiteLinksLastHour(ctx context.Context, arg WebsiteLinksLastHourParams) (int64, error)
+	WebsiteMemberCounts(ctx context.Context, arg WebsiteMemberCountsParams) (WebsiteMemberCountsRow, error)
+	WebsiteMemberEventInsert(ctx context.Context, arg WebsiteMemberEventInsertParams) error
+	WebsiteMemberEvents(ctx context.Context, arg WebsiteMemberEventsParams) ([]WebsiteMemberEventsRow, error)
+	WebsiteMemberGet(ctx context.Context, arg WebsiteMemberGetParams) (WebsiteMember, error)
+	// Members
+	WebsiteMemberSignedIn(ctx context.Context, arg WebsiteMemberSignedInParams) error
+	WebsiteMeterRead(ctx context.Context, arg WebsiteMeterReadParams) error
+	WebsiteMeterReads(ctx context.Context, arg WebsiteMeterReadsParams) ([]WebsiteMeterReadsRow, error)
+	// The meter
+	WebsiteMeterState(ctx context.Context, arg WebsiteMeterStateParams) (WebsiteMeterStateRow, error)
+	// Campaigns of the archived lists that the archive filed while the website
+	// was on and that have no post (not even a deleted one): they go on the
+	// site with their send, as turning the website on did with older ones.
+	WebsiteNewIssues(ctx context.Context, arg WebsiteNewIssuesParams) ([]WebsiteNewIssuesRow, error)
+	// The payment connection the site sells through: its mode and account ("" when none is connected).
+	WebsitePayments(ctx context.Context, workspaceID uuid.UUID) (WebsitePaymentsRow, error)
+	WebsitePostAddTag(ctx context.Context, arg WebsitePostAddTagParams) error
+	WebsitePostByCampaign(ctx context.Context, campaignID *uuid.UUID) (WebsitePost, error)
+	WebsitePostBySlug(ctx context.Context, arg WebsitePostBySlugParams) (WebsitePost, error)
+	WebsitePostClearTags(ctx context.Context, postID uuid.UUID) error
+	// Posts by kind, status and visibility; a campaign's post set to go live
+	// with a scheduled send counts as scheduled.
+	WebsitePostCounts(ctx context.Context, workspaceID uuid.UUID) ([]WebsitePostCountsRow, error)
+	WebsitePostDelete(ctx context.Context, arg WebsitePostDeleteParams) error
+	WebsitePostGet(ctx context.Context, arg WebsitePostGetParams) (WebsitePostGetRow, error)
+	// Posts
+	WebsitePostInsert(ctx context.Context, arg WebsitePostInsertParams) error
+	WebsitePostLock(ctx context.Context, arg WebsitePostLockParams) (WebsitePost, error)
+	WebsitePostPublish(ctx context.Context, arg WebsitePostPublishParams) error
+	WebsitePostSaveContent(ctx context.Context, arg WebsitePostSaveContentParams) error
+	WebsitePostSaveFields(ctx context.Context, arg WebsitePostSaveFieldsParams) error
+	WebsitePostSchedule(ctx context.Context, arg WebsitePostScheduleParams) error
+	WebsitePostSetRedirect(ctx context.Context, arg WebsitePostSetRedirectParams) error
+	// The web version of the content a post was published with.
+	WebsitePostSetRendered(ctx context.Context, arg WebsitePostSetRenderedParams) error
+	WebsitePostSetSentAs(ctx context.Context, arg WebsitePostSetSentAsParams) error
+	// The post that holds a slug, or once held it.
+	WebsitePostSlugOwner(ctx context.Context, arg WebsitePostSlugOwnerParams) (WebsitePostSlugOwnerRow, error)
+	// A slug in use by another post, or kept as an earlier address of one.
+	WebsitePostSlugTaken(ctx context.Context, arg WebsitePostSlugTakenParams) (bool, error)
+	WebsitePostSources(ctx context.Context, arg WebsitePostSourcesParams) ([]WebsitePostSourcesRow, error)
+	WebsitePostTags(ctx context.Context, posts []uuid.UUID) ([]WebsitePostTagsRow, error)
+	WebsitePostToDraft(ctx context.Context, arg WebsitePostToDraftParams) error
+	WebsitePostUnpublish(ctx context.Context, arg WebsitePostUnpublishParams) error
+	WebsitePostVersion(ctx context.Context, arg WebsitePostVersionParams) (WebsitePostVersion, error)
+	WebsitePostVersionInsert(ctx context.Context, arg WebsitePostVersionInsertParams) error
+	WebsitePostVersions(ctx context.Context, postID uuid.UUID) ([]WebsitePostVersionsRow, error)
+	WebsitePostViewCounts(ctx context.Context, arg WebsitePostViewCountsParams) ([]WebsitePostViewCountsRow, error)
+	// The posts of campaigns (the Campaigns list's Web column).
+	WebsitePostsByCampaigns(ctx context.Context, arg WebsitePostsByCampaignsParams) ([]WebsitePostsByCampaignsRow, error)
+	// Posts whose time has come: scheduled at a time, or set to go live with
+	// their campaign's send once it started.
+	WebsitePostsDue(ctx context.Context, now time.Time) ([]WebsitePostsDueRow, error)
+	// Paid tiers of readers
+	// The paid tiers a contact holds now (internal/earn's access rule).
+	WebsiteReaderTiers(ctx context.Context, arg WebsiteReaderTiersParams) ([]WebsiteReaderTiersRow, error)
+	WebsiteRedirectCount(ctx context.Context, workspaceID uuid.UUID) (int64, error)
+	WebsiteRedirectGet(ctx context.Context, arg WebsiteRedirectGetParams) (WebsitePost, error)
+	WebsiteRedirectInsert(ctx context.Context, arg WebsiteRedirectInsertParams) error
+	// Views
+	WebsiteSalt(ctx context.Context, day time.Time) ([]byte, error)
+	WebsiteSaltInsert(ctx context.Context, arg WebsiteSaltInsertParams) ([]byte, error)
+	WebsiteSaltsPurge(ctx context.Context, day time.Time) error
+	// True the first time a hash is seen on a day.
+	WebsiteSeen(ctx context.Context, arg WebsiteSeenParams) (bool, error)
+	// Sent campaigns that aren't posts yet ("Publish past campaigns").
+	WebsiteSentWithoutPost(ctx context.Context, workspaceID uuid.UUID) ([]WebsiteSentWithoutPostRow, error)
+	WebsiteSessionByToken(ctx context.Context, arg WebsiteSessionByTokenParams) (WebsiteSessionByTokenRow, error)
+	WebsiteSessionEnd(ctx context.Context, arg WebsiteSessionEndParams) error
+	// Sessions
+	WebsiteSessionInsert(ctx context.Context, arg WebsiteSessionInsertParams) error
+	WebsiteSessionTouch(ctx context.Context, arg WebsiteSessionTouchParams) error
+	WebsiteSessionsActive(ctx context.Context, arg WebsiteSessionsActiveParams) ([]WebsiteSession, error)
+	WebsiteSessionsEndAll(ctx context.Context, arg WebsiteSessionsEndAllParams) (int64, error)
+	WebsiteSetDomainNotified(ctx context.Context, arg WebsiteSetDomainNotifiedParams) error
+	WebsiteSetProgress(ctx context.Context, arg WebsiteSetProgressParams) error
+	WebsiteSetStatus(ctx context.Context, arg WebsiteSetStatusParams) error
+	// The publication website (internal/website, design expansion phase 7):
+	// its settings, tags, posts and their earlier addresses, views counted
+	// without cookies, members, sign-in links, sessions and the meter.
+	WebsiteSettingsEnsure(ctx context.Context, workspaceID uuid.UUID) error
+	WebsiteSettingsGet(ctx context.Context, workspaceID uuid.UUID) (WebsiteSetting, error)
+	WebsiteSettingsLock(ctx context.Context, workspaceID uuid.UUID) (WebsiteSetting, error)
+	WebsiteSettingsSave(ctx context.Context, arg WebsiteSettingsSaveParams) error
+	WebsiteSettingsUpdatedBy(ctx context.Context, workspaceID uuid.UUID) (string, error)
+	WebsiteTagByList(ctx context.Context, arg WebsiteTagByListParams) (WebsiteTag, error)
+	WebsiteTagBySlug(ctx context.Context, arg WebsiteTagBySlugParams) (WebsiteTag, error)
+	WebsiteTagDelete(ctx context.Context, arg WebsiteTagDeleteParams) error
+	WebsiteTagGet(ctx context.Context, arg WebsiteTagGetParams) (WebsiteTag, error)
+	WebsiteTagInsert(ctx context.Context, arg WebsiteTagInsertParams) error
+	WebsiteTagSlugTaken(ctx context.Context, arg WebsiteTagSlugTakenParams) (bool, error)
+	WebsiteTagUpdate(ctx context.Context, arg WebsiteTagUpdateParams) error
+	// Tags
+	// Every tag with its published posts (and whether only unpublished ones are left).
+	WebsiteTags(ctx context.Context, workspaceID uuid.UUID) ([]WebsiteTagsRow, error)
+	// The paid tiers that can be bought, with their current prices: the
+	// paywall card's rows and the account page's plan.
+	WebsiteTierPrices(ctx context.Context, workspaceID uuid.UUID) ([]WebsiteTierPricesRow, error)
+	// The workspace's paid tiers that can be sold or held (not archived).
+	WebsiteTiers(ctx context.Context, workspaceID uuid.UUID) ([]WebsiteTiersRow, error)
+	// Websites whose turning-on job hasn't finished (the job resumes them).
+	WebsiteTurningOn(ctx context.Context) ([]uuid.UUID, error)
+	WebsiteViewAdd(ctx context.Context, arg WebsiteViewAddParams) error
+	WebsiteViewSourceAdd(ctx context.Context, arg WebsiteViewSourceAddParams) error
+	WebsiteViewTotals(ctx context.Context, arg WebsiteViewTotalsParams) (WebsiteViewTotalsRow, error)
+	// Salts and hashes of days that are over: nothing links a visitor across days.
+	WebsiteViewsPurge(ctx context.Context, day time.Time) error
+	WebsiteVisitorAdd(ctx context.Context, arg WebsiteVisitorAddParams) error
+	WebsitesOn(ctx context.Context) ([]uuid.UUID, error)
 	WelcomeDismiss(ctx context.Context, arg WelcomeDismissParams) error
 	WelcomeDismissedLists(ctx context.Context, workspaceID uuid.UUID) ([]uuid.UUID, error)
 	WelcomeForm(ctx context.Context, arg WelcomeFormParams) (WelcomeFormRow, error)

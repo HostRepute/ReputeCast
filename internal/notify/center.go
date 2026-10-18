@@ -36,7 +36,7 @@ type Service struct {
 type NotificationItem struct {
 	ID            string    `json:"id"`
 	Kind          string    `json:"kind"`
-	Category      string    `json:"category" enum:"approvals,sending,providers,team,hostrepute,other,integrations,transactional,earn"`
+	Category      string    `json:"category" enum:"approvals,sending,providers,team,hostrepute,other,integrations,transactional,earn,website"`
 	CategoryLabel string    `json:"categoryLabel" example:"Approvals"`
 	Severity      string    `json:"severity" enum:"info,ok,warn,bad"`
 	Title         string    `json:"title" example:"Approval requested"`

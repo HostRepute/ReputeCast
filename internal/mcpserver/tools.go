@@ -745,9 +745,15 @@ func (s *Service) propose(ctx context.Context, c *agentCall, tool string, perm a
 		target = "the workspace"
 	}
 	verb := strings.ReplaceAll(strings.TrimSuffix(tool, "_campaign"), "_", " ")
+	if v, ok := proposeVerbs[tool]; ok {
+		verb = v
+	}
 	link := "/w/" + c.Workspace.Slug + "/settings/mcp"
 	if e.targetType == "campaign" && e.targetID != "" {
 		link = "/w/" + c.Workspace.Slug + "/campaigns/" + e.targetID + "/live"
+	}
+	if e.targetType == "website_post" && e.targetID != "" {
+		link = "/w/" + c.Workspace.Slug + "/forms/website/posts/" + e.targetID
 	}
 	expires := s.now().Add(time.Duration(c.Settings.ApprovalExpiryHours) * time.Hour)
 	_ = notify.ToUser(ctx, s.Pool, userID, notify.Notification{

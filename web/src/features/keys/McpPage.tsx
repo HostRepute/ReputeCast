@@ -20,8 +20,7 @@ import { CreateKeyDialog } from './CreateKeyDialog'
 import { KeySecretDialog } from './KeySecretDialog'
 import { DashedEmpty, TableSkeleton } from './parts'
 import { McpIntegrationsNote } from '@/features/integrations/ManagedWebhook'
-import { im } from '@/features/digests/issueMessages'
-import { useT } from '@/i18n'
+import { McpAssistantNote } from '@/features/ai/parts'
 
 type Overview = Schemas['MCPOverview']
 
@@ -219,15 +218,9 @@ function AgentsMatrix({ o }: { o: Overview }) {
           ))}
         </tbody>
       </Table>
-      <AgentsDigestNote />
+      <McpAssistantNote />
     </section>
   )
-}
-
-/** Under the matrix: what agents can and can't do with recurring digests. */
-function AgentsDigestNote() {
-  const t = useT()
-  return <p className="k m-0 border-t border-line-2 px-4.5 py-2.5">{t(im.mcpAgents)}</p>
 }
 
 /** "09:36 · get_campaign_report" from the agents list. */

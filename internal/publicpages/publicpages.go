@@ -50,6 +50,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/publicurl"
 	"github.com/hostrepute/reputecast/internal/server"
 	"github.com/hostrepute/reputecast/internal/store"
+	"github.com/hostrepute/reputecast/internal/website"
 )
 
 //go:embed templates/*.html
@@ -74,6 +75,9 @@ type Handler struct {
 	// the preference center has no such section).
 	Notifications Notifications
 	Now           func() time.Time
+	// Website serves the publication website's pages (site.go); nil: the
+	// archive alone.
+	Website *website.Service
 	// Polls answers the poll and survey pages (nil: they answer 404).
 	Polls *polls.Service
 	// Browser gives emails shown in the browser their version of
@@ -83,8 +87,9 @@ type Handler struct {
 	// links, and the paid parts of the preference center (nil: none).
 	Earn *earn.Service
 
-	tmpl    map[string]*template.Template
-	version string
+	tmpl     map[string]*template.Template
+	version  string
+	siteTmpl siteState
 }
 
 func (h *Handler) now() time.Time {
@@ -140,7 +145,6 @@ func (h *Handler) Routes(r chi.Router) {
 	// On a verified custom domain the same pages answer at the root.
 	root := chi.NewRouter()
 	h.pageRoutes(root)
-	root.Get("/", h.home)
 	root.Get("/robots.txt", h.robots)
 	custom := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		slug := h.Forms.WorkspaceForHost(r.Context(), r.Host)
@@ -158,12 +162,18 @@ func (h *Handler) Routes(r chi.Router) {
 		"/unsubscribe/*", "/view/*", "/archive", "/archive/*", "/archive.rss", "/sitemap.xml", "/poll/*", "/s/*"} {
 		r.Handle(p, custom)
 	}
+	// The upgrade page (earn.go).
 	for _, p := range earnRootPaths {
+		r.Handle(p, custom)
+	}
+	// The publication website (site.go).
+	for _, p := range siteRootPaths {
 		r.Handle(p, custom)
 	}
 }
 
 func (h *Handler) pageRoutes(r chi.Router) {
+	r.Get("/", h.home)
 	r.Get("/theme.css", h.theme)
 	r.Get("/logo", h.logo)
 	r.Post("/turnstile-error", h.turnstileError)
@@ -193,6 +203,8 @@ func (h *Handler) pageRoutes(r chi.Router) {
 	r.Options("/forms/{id}/session", h.formPreflight)
 	r.Post("/forms/{id}/submit", h.formSubmit)
 	r.Options("/forms/{id}/submit", h.formPreflight)
+	// The publication website (design expansion phase 7, site.go).
+	h.siteRoutes(r)
 	// Polls and surveys (design expansion, X11): GET records nothing.
 	r.Get("/poll/{token}/{answer}", h.pollPage)
 	r.Head("/poll/{token}/{answer}", h.headOnly)
@@ -583,6 +595,12 @@ func (h *Handler) static(w http.ResponseWriter, r *http.Request) {
 	case "challenge.js":
 		data, _ = fs.ReadFile(staticFS, "static/challenge.js")
 		ctype = "text/javascript; charset=utf-8"
+	case "site.css":
+		data, _ = fs.ReadFile(staticFS, "static/site.css")
+		ctype = "text/css; charset=utf-8"
+	case "site.js":
+		data, _ = fs.ReadFile(staticFS, "static/site.js")
+		ctype = "text/javascript; charset=utf-8"
 	case "poll.js":
 		data, _ = fs.ReadFile(staticFS, "static/poll.js")
 		ctype = "text/javascript; charset=utf-8"
@@ -684,13 +702,4 @@ func (h *Handler) tlsCheck(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNotFound)
-}
-
-// home is "/" on a custom domain: the subscribe page.
-func (h *Handler) home(w http.ResponseWriter, r *http.Request) {
-	s, ok := h.siteOr404(w, r)
-	if !ok {
-		return
-	}
-	http.Redirect(w, r, s.links.Subscribe(""), http.StatusFound)
 }
