@@ -46,6 +46,10 @@ func (r *readinessRecheck) Recheck(ctx context.Context, campaignID uuid.UUID) (s
 	return sending.Recheck{Verdict: rc.Verdict, Blocking: rc.Blocking, Throttles: rc.Throttles, Audience: rc.Audience, RunID: rc.RunID}, nil
 }
 
+// sendingConditional decides conditional content and fills poll links;
+// set from wire_visibility.go. Nil sends every block.
+var sendingConditional = func(*App) engine.Conditional { return nil }
+
 // sendingSegments resolves segment audiences: the audience domain's
 // segments service (dynamic segments are evaluated when the send starts,
 // static ones use their snapshot).
@@ -87,6 +91,9 @@ func sendingEngine(a *App) *engine.Engine {
 		Automations: &automations.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Log: a.Log},
 		// Each reader gets the language version for them.
 		Languages: &languages.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit},
+		// Each reader gets their version of conditional content, and their
+		// own poll and survey links.
+		Conditional: sendingConditional(a),
 	}
 	v, _ := sendingEngines.LoadOrStore(a, e)
 	return v.(*engine.Engine)

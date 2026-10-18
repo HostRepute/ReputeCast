@@ -76,7 +76,8 @@ type VerificationFacts struct {
 	InvalidCheckedOn  *time.Time
 }
 
-func (b *builder) day(t *time.Time) string {
+// checkedDay is a check's day as the board writes it ("14 Oct").
+func (b *builder) checkedDay(t *time.Time) string {
 	if t == nil {
 		return ""
 	}
@@ -129,9 +130,9 @@ func (b *builder) verification() {
 		detail := "Old, quiet addresses are where spam traps and dead mailboxes hide."
 		switch {
 		case v.SunsetUnchecked == 0 && v.Sunset > 0 && v.SunsetCheckedOn != nil:
-			detail = fmt.Sprintf("The %s Sunset contacts were checked on %s. %s", Count(v.Sunset), b.day(v.SunsetCheckedOn), detail)
+			detail = fmt.Sprintf("The %s Sunset contacts were checked on %s. %s", Count(v.Sunset), b.checkedDay(v.SunsetCheckedOn), detail)
 		case v.AtRiskUnchecked == 0 && v.AtRisk > 0 && v.AtRiskCheckedOn != nil:
-			detail = fmt.Sprintf("The %s At risk contacts were checked on %s. %s", Count(v.AtRisk), b.day(v.AtRiskCheckedOn), detail)
+			detail = fmt.Sprintf("The %s At risk contacts were checked on %s. %s", Count(v.AtRisk), b.checkedDay(v.AtRiskCheckedOn), detail)
 		}
 		c.Detail = detail
 		c.Ack = fmt.Sprintf("I understand %s inactive contacts haven't been checked.", Count(unchecked))
@@ -156,7 +157,7 @@ func (b *builder) verification() {
 		words := reasonWords(v.RiskyReasons)
 		on := ""
 		if v.RiskyCheckedOn != nil {
-			on = " by the " + b.day(v.RiskyCheckedOn) + " check"
+			on = " by the " + b.checkedDay(v.RiskyCheckedOn) + " check"
 		}
 		if share >= VerifyRiskyShare {
 			c.Status = Warn
@@ -182,7 +183,7 @@ func (b *builder) verification() {
 	if v.InvalidSuppressed > 0 {
 		on := "after a check"
 		if v.InvalidCheckedOn != nil {
-			on = "after the " + b.day(v.InvalidCheckedOn) + " check"
+			on = "after the " + b.checkedDay(v.InvalidCheckedOn) + " check"
 		}
 		b.add(ReadinessCheck{Key: "audience.invalid", Group: GroupAudience, Status: Pass, Label: "Invalid addresses",
 			Title:  fmt.Sprintf("%s invalid %s already suppressed", Count(v.InvalidSuppressed), Plural(v.InvalidSuppressed, "address is", "addresses are")),

@@ -30,6 +30,10 @@ type Facts struct {
 	Languages LanguagesFacts
 	// Accessibility is the accessibility checks of every language version.
 	Accessibility accessibility.ReadinessFacts
+	// Conditional is the email's conditional blocks and versions, Polls its
+	// polls and surveys (design expansion, X11).
+	Conditional ConditionalFacts
+	Polls       PollFacts
 	// Verification is the audience's address-check results (verification.go).
 	Verification VerificationFacts
 	// MailboxRates are the per-mailbox-provider throttles (messages per

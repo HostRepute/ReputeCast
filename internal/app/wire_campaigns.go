@@ -25,11 +25,17 @@ func init() {
 			AfterChange: CampaignChangeHook(a),
 			// ?language= reaches the campaign's language versions.
 			Translations: campaignTranslations(a),
+			// Test emails get their poll links and the contact's version.
+			Extras: campaignExtras(a),
 		}
 		campaigns.Register(h, s)
 		campaigns.RegisterComposer(h, s)
 	})
 }
+
+// campaignExtras plugs polls and conditional content into previews and
+// test sends; set from wire_visibility.go.
+var campaignExtras = func(*App) campaigns.Extras { return nil }
 
 // linkProber requests the links of an email. In development and tests the
 // demo's links answer offline, as in Send Readiness: their hosts are real

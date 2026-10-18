@@ -41,6 +41,9 @@ func readinessService(a *App) *readiness.Service {
 	if acc := readinessAccessibility(a); acc != nil {
 		rs.Accessibility = acc
 	}
+	if c := readinessConditional(a); c != nil {
+		rs.Conditional = c
+	}
 	if v := readinessVerification(a); v != nil {
 		rs.Verification = v
 	}
@@ -50,6 +53,10 @@ func readinessService(a *App) *readiness.Service {
 // readinessAccessibility runs the Accessibility group of Send Readiness; the
 // accessibility domain replaces it from its wire file. Nil leaves it out.
 var readinessAccessibility = func(*App) readiness.AccessibilityChecker { return nil }
+
+// readinessConditional runs the Conditional content group and the poll
+// checks; set from wire_visibility.go. Nil leaves them out.
+var readinessConditional = func(*App) readiness.ConditionalChecker { return nil }
 
 // readinessVerification gives Audience quality the address checks; the
 // verification domain replaces it from its wire file. Nil leaves them out.

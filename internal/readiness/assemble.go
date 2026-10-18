@@ -76,9 +76,11 @@ func Assemble(f Facts) ReadinessResult {
 	b.reputation()
 	b.authentication()
 	b.content()
+	b.polls()
 	b.languages()
 	b.accessibility()
 	b.links()
+	b.conditional()
 	b.compliance()
 	b.audience()
 	b.verification()
@@ -733,6 +735,11 @@ func (b *builder) content() {
 			}
 		}
 		size.Fixes = append(size.Fixes, link("Open in editor", b.editor(nil, "deliverability")))
+	}
+	// With conditional content no one gets the whole email: Conditional
+	// content checks the size of each version (design expansion, X11).
+	if b.conditionalVersions() {
+		size = b.conditionalSize(size)
 	}
 	b.add(size)
 	// Alt text is an accessibility check when the Accessibility group runs.
@@ -1499,6 +1506,9 @@ func (b *builder) groups() []ReadinessGroup {
 		if g == GroupAccessibility {
 			grp.Note = b.accessibilityNote()
 		}
+		if g == GroupConditional {
+			grp.Note = b.conditionalNote()
+		}
 		out = append(out, grp)
 	}
 	return out
@@ -1552,6 +1562,8 @@ func (b *builder) caption(g string, grp ReadinessGroup) string {
 		return streamLabel(b.f.Route.Stream) + " stream"
 	case GroupAccessibility:
 		return b.accessibilityCaption()
+	case GroupConditional:
+		return b.conditionalCaption()
 	}
 	return ""
 }
@@ -1641,6 +1653,8 @@ func (b *builder) running(g string) string {
 		return "who gets which version, outdated and draft versions, page copy"
 	case GroupAccessibility:
 		return accessibilityRunning
+	case GroupConditional:
+		return conditionalRunning
 	}
 	return ""
 }
@@ -1666,6 +1680,8 @@ func RunningText(g string) string {
 		return "who gets which version, outdated and draft versions, page copy"
 	case GroupAccessibility:
 		return accessibilityRunning
+	case GroupConditional:
+		return conditionalRunning
 	}
 	return ""
 }

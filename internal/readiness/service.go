@@ -48,6 +48,9 @@ type Service struct {
 	// Accessibility runs the Accessibility group and its fixes; nil leaves
 	// the group out.
 	Accessibility AccessibilityChecker
+	// Conditional gives the Conditional content group and the poll checks;
+	// nil leaves them out.
+	Conditional ConditionalChecker
 	// Verification gives the address checks in Audience quality; nil
 	// leaves them out.
 	Verification VerificationChecker
@@ -134,6 +137,9 @@ func (s *Service) Run(ctx context.Context, ws *store.Workspace, id uuid.UUID, o 
 	groups := make([]ReadinessProgressGroup, 0, len(runOrder))
 	for _, g := range runOrder {
 		if g == GroupAccessibility && s.Accessibility == nil {
+			continue
+		}
+		if g == GroupConditional && s.Conditional == nil {
 			continue
 		}
 		groups = append(groups, ReadinessProgressGroup{Key: g, Title: groupTitles[g], Status: "queued", Text: RunningText(g)})

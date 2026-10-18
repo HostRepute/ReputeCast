@@ -119,6 +119,8 @@ const resolvers: Record<string, (ctx: BrowserContext, value: string) => Promise<
     if (!body.templateId) throw new Error(`the digest ${name} has no template`)
     return body.templateId
   },
+  // A survey by its name ({survey:Beta feedback · October 2026}).
+  survey: (ctx, name) => lookup(ctx, 'surveys', 'items', (s) => s.name === name, `no survey named ${name}`),
   // A placement test by its name ({placement:Weekly Digest #142 · SES vs Postal}) and a
   // verification job by its label ({verification:Sunset}).
   placement: (ctx, name) => lookup(ctx, 'placement/tests', 'tests', (t) => t.name === name, `no placement test named ${name}`),

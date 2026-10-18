@@ -53,10 +53,11 @@ const (
 	stageAudience stage = GroupAudience
 	stageRouting  stage = GroupRouting
 	stageLang     stage = GroupLanguages
+	stageCond     stage = GroupConditional
 )
 
 // runOrder is the order groups run (and tick in on the review screen).
-var runOrder = []string{GroupAuthentication, GroupContent, GroupLanguages, GroupAccessibility, GroupCompliance, GroupReputation, GroupLinks, GroupAudience, GroupRouting}
+var runOrder = []string{GroupAuthentication, GroupContent, GroupLanguages, GroupAccessibility, GroupConditional, GroupCompliance, GroupReputation, GroupLinks, GroupAudience, GroupRouting}
 
 // sunsetDays is the number of days without an open or click after which a
 // contact is unengaged: the last day before the sunset tier of the
@@ -154,6 +155,9 @@ func (s *Service) gather(ctx context.Context, ws *store.Workspace, c store.Readi
 			s.Log.WarnContext(ctx, "readiness content check failed", "campaign", c.ID, "err", err)
 		}
 	}
+	if s.Conditional != nil {
+		f.Polls = s.Conditional.PollFacts(ctx, ws, c.ID, c.Mjml)
+	}
 	done(stageContent, f)
 
 	// Languages: who gets which version, and the content checks of every
@@ -180,6 +184,13 @@ func (s *Service) gather(ctx context.Context, ws *store.Workspace, c store.Readi
 	if s.Accessibility != nil {
 		f.Accessibility = s.Accessibility.ReadinessFacts(ctx, ws, accessibility.CampaignContent{ID: c.ID, Name: c.Name, Status: c.Status, MJML: c.Mjml, HTML: c.Html, Hash: c.ContentHash})
 		done(stageAccess, f)
+	}
+
+	// Conditional content: every version the audience gets; and the polls
+	// and surveys of the content (design expansion, X11).
+	if s.Conditional != nil {
+		f.Conditional = s.Conditional.ConditionalFacts(ctx, ws, c.ID)
+		done(stageCond, f)
 	}
 
 	f.Compliance = s.compliance(ws, f)

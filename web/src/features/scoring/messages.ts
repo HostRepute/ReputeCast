@@ -157,8 +157,12 @@ export const m = defineMessages('scoring', {
   automationTrigger: 'Trigger: score {direction, select, falls {falls below {threshold}} other {rises to {threshold} or more}}{once, select, none {} other {, at most once per contact in {once} days}} · {entered, number} entered',
   segmentLine: 'Segment · {by}',
   segmentCount: '{count, plural, one {# contact} other {# contacts}}',
-  blockLine: '{where}',
+  blockLine:
+    'Conditional block in {where}{status, select, draft { (draft)} approval { (waiting for approval)} approved { (approved)} scheduled { (scheduled)} other {}}',
   blockCount: '{count, number} of {of, number} recipients',
+  blockWhenBand: '{show, select, except {Hidden} other {Shown}} when the score band {op, select, is_not {isn’t} other {is}} {band}',
+  blockWhenScore:
+    '{show, select, except {Hidden} other {Shown}} when the score {op, select, at_most {is at most {a}} between {is between {a} and {b}} other {is at least {a}}}',
   moveTo: 'to',
   // A segment's conditions in one line.
   condBand: 'Score band is {band}',

@@ -16,5 +16,10 @@ func init() {
 }
 
 func (a *App) audience() *audience.Service {
-	return &audience.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Segments: a.segments(), Mail: a.Mail, Links: a.Links, URLs: a.URLs}
+	return &audience.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Segments: a.segments(), Mail: a.Mail, Links: a.Links, URLs: a.URLs,
+		Answers: audienceAnswers(a)}
 }
+
+// audienceAnswers adds poll answers and survey responses to the contact
+// timeline; the polls domain sets it from its wire file.
+var audienceAnswers = func(*App) audience.ActivitySource { return nil }

@@ -119,7 +119,7 @@ export const entries: Entry[] = [
   // the step into view, which a click on it (as the board shows) doesn't.
   { board: 'AutomationFlow', path: `${ws}/automations/{automation:Welcome series}?step=n3` },
   { board: 'AutomationsStates', manual: true },
-  { board: 'FormBuilder', path: `${ws}/forms` },
+  { board: 'FormBuilder', path: `${ws}/forms?form={form:Newsletter signup}` },
   { board: 'FormsStates', manual: true },
   { board: 'Notifications', path: `${ws}/notifications` },
   { board: 'AccountSecurity', path: `${ws}/account` },
@@ -281,6 +281,17 @@ export const entries: Entry[] = [
   { board: 'DigestSetupTablet', path: `${ws}/campaigns/digests/{digest:Engineering blog roundup}/settings`, widths: [834] },
   { board: 'DigestSetupStates', manual: true },
   { board: 'DigestComposer', path: `${ws}/campaigns/{digestTemplate:Engineering blog roundup}/edit?select=2&panel=settings`, widths: [1440], viewportOnly: true, height: 1000 },
+  // X11 · conditional content, polls and surveys. Weekly Digest #143's Beta corner is section 7 and
+  // its topics poll section 9; the composer's other frames (the picker open, a deleted segment, an
+  // empty version, more than 50 versions, Gmail's clipping size) and the answer pages (signed links,
+  // see internal/publicpages/polls_test.go) need data changes or a signed token.
+  { board: 'ComposerVisibility', path: `${ws}/campaigns/{campaign:Weekly Digest #143}/edit?select=7&panel=settings&left=layers`, widths: [1440] },
+  { board: 'VisibilityStates', manual: true },
+  { board: 'ComposerPoll', path: `${ws}/campaigns/{campaign:Weekly Digest #143}/edit?select=9&panel=settings`, widths: [1440] },
+  { board: 'PublicPoll', manual: true },
+  { board: 'PublicPollPhone', manual: true, widths: [390] },
+  { board: 'PollResults', path: `${ws}/campaigns/{campaign:Weekly Digest #141}/report`, widths: [1440] },
+  { board: 'SurveyBuilder', path: `${ws}/forms/surveys/{survey:Beta feedback · October 2026}?q=q3`, widths: [1440] },
   // X14 · address verification and placement tests. VerificationRun's job page is the Sunset tier's
   // check; its dialog opens from List health's tier cards. PlacementRun's first frame opens from
   // Review & send through the URL an entry point builds; its other frames (composer, warm-up planner,

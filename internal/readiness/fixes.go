@@ -26,7 +26,7 @@ import (
 
 // ReadinessFixRequest is one fix to apply.
 type ReadinessFixRequest struct {
-	Action string            `json:"action" enum:"exclude_sunset,route_only,insert_footer,replace_link,use_subject,minify,mark_language_up_to_date,mark_language_translated,hold_language,release_language,accessibility_decorative,accessibility_color,accessibility_one_click,exclude_risky,verify_addresses"`
+	Action string            `json:"action" enum:"exclude_sunset,route_only,insert_footer,replace_link,use_subject,minify,mark_language_up_to_date,mark_language_translated,hold_language,release_language,accessibility_decorative,accessibility_color,accessibility_one_click,visibility_show_everyone,visibility_hide_block,visibility_remove_condition,poll_close_days,exclude_risky,verify_addresses"`
 	Params map[string]string `json:"params,omitempty"`
 }
 
@@ -204,6 +204,18 @@ func (s *Service) ApplyFixes(ctx context.Context, ws *store.Workspace, p *authz.
 			out.Applied = append(out.Applied, change.Applied)
 			a11y = append(a11y, change)
 			a11yFixes = append(a11yFixes, fx)
+		case FixVisibilityShowEveryone, FixVisibilityHideBlock, FixVisibilityRemoveCondition, FixPollCloseDays:
+			// Rules and polls are the source's: language versions follow it.
+			if strings.TrimSpace(src) == "" {
+				return out, api.Invalid(field, "This campaign is written in HTML. Change it in the editor.")
+			}
+			next, label, applied, err := conditionalFix(src, fx.Action, fx.Params)
+			if err != nil {
+				return out, api.Invalid(field, sentence(capitalize(err.Error())))
+			}
+			src, content = next, true
+			labels = append(labels, label)
+			out.Applied = append(out.Applied, applied)
 		default:
 			return out, api.Invalid(field+".action", "Unknown fix.")
 		}

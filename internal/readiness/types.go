@@ -38,7 +38,7 @@ const (
 )
 
 // Groups lists the check groups in checklist order.
-var Groups = []string{GroupReputation, GroupAuthentication, GroupContent, GroupLanguages, GroupAccessibility, GroupLinks, GroupCompliance, GroupAudience, GroupRouting}
+var Groups = []string{GroupReputation, GroupAuthentication, GroupContent, GroupLanguages, GroupAccessibility, GroupConditional, GroupLinks, GroupCompliance, GroupAudience, GroupRouting}
 
 // Triggers of a run (readiness_runs.trigger).
 const (
@@ -64,7 +64,7 @@ const (
 // where it's fixed (Kind "link", Href is an app path).
 type ReadinessFix struct {
 	Kind   string            `json:"kind" enum:"apply,link"`
-	Action string            `json:"action,omitempty" enum:"exclude_sunset,route_only,insert_footer,replace_link,use_subject,minify,mark_language_up_to_date,mark_language_translated,hold_language,release_language,accessibility_decorative,accessibility_color,accessibility_one_click,exclude_risky,verify_addresses"`
+	Action string            `json:"action,omitempty" enum:"exclude_sunset,route_only,insert_footer,replace_link,use_subject,minify,mark_language_up_to_date,mark_language_translated,hold_language,release_language,accessibility_decorative,accessibility_color,accessibility_one_click,visibility_show_everyone,visibility_hide_block,visibility_remove_condition,poll_close_days,exclude_risky,verify_addresses"`
 	Label  string            `json:"label"`
 	Tone   string            `json:"tone,omitempty" enum:"primary,danger"`
 	Href   string            `json:"href,omitempty"`
@@ -75,7 +75,7 @@ type ReadinessFix struct {
 type ReadinessCheck struct {
 	// Key identifies the check: "audience.unengaged", "reputation.provider.ses".
 	Key    string `json:"key"`
-	Group  string `json:"group" enum:"reputation,authentication,content,languages,links,compliance,audience,routing,accessibility"`
+	Group  string `json:"group" enum:"reputation,authentication,content,languages,links,compliance,audience,routing,accessibility,conditional"`
 	Status string `json:"status" enum:"pass,warn,block,unknown"`
 	// Title states the finding; FlatTitle is the same finding prefixed with
 	// its group, for lists ordered by severity ("Links: go.acme-promo.link…").
@@ -117,7 +117,7 @@ type ReadinessCheckRow struct {
 // ReadinessGroup is a group heading with its caption and a summary of what
 // passed (the collapsed "Passed" list and the running state show it).
 type ReadinessGroup struct {
-	Key     string `json:"key" enum:"reputation,authentication,content,languages,links,compliance,audience,routing,accessibility"`
+	Key     string `json:"key" enum:"reputation,authentication,content,languages,links,compliance,audience,routing,accessibility,conditional"`
 	Title   string `json:"title"`
 	Caption string `json:"caption"`
 	Status  string `json:"status" enum:"pass,warn,block,unknown"`
@@ -271,7 +271,7 @@ type ReadinessRun struct {
 
 // ReadinessProgressGroup is one group of a run in progress.
 type ReadinessProgressGroup struct {
-	Key     string `json:"key" enum:"reputation,authentication,content,languages,links,compliance,audience,routing,accessibility"`
+	Key     string `json:"key" enum:"reputation,authentication,content,languages,links,compliance,audience,routing,accessibility,conditional"`
 	Title   string `json:"title"`
 	Status  string `json:"status" enum:"queued,running,pass,warn,block,unknown"`
 	Text    string `json:"text"`

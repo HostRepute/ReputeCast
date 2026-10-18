@@ -19,6 +19,9 @@ import { ToolIcon } from './icons'
 import { contentIssues } from './RightPanel'
 import { StateCards } from './StateCards'
 import { AccessibilityOverlays } from '@/features/accessibility/composer/Overlays'
+import { ConditionalOverlays, ConditionalToggle } from '@/features/conditional/Canvas'
+import { VersionsPanel } from '@/features/conditional/Versions'
+import { SurveyLinkChoices } from '@/features/surveys/LinkChoices'
 
 interface Box {
   top: number
@@ -188,6 +191,7 @@ function Toolbar({ zoom }: { zoom: number }) {
       <DeviceSeg />
       <ViewSeg />
       {digest ? <DigestPreviewWith /> : <CanvasPreviewAs />}
+      <ConditionalToggle />
       {digest?.preview === 'six' ? (
         // "6 items" shows the whole issue, zoomed out, instead of the canvas.
         <span className="k" style={{ marginLeft: 'auto' }}>
@@ -541,6 +545,8 @@ function RteToolbar({ host, tick }: { host: HTMLElement | null; tick: number }) 
               <input className="in mono" value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://" autoFocus />
             </label>
             <span className="k">Leave it empty to remove the link. Tokens like {'{{ unsubscribe_url }}'} work too.</span>
+            {/* A campaign links to a survey with each contact's token (design expansion, X11). */}
+            {c.kind !== 'transactional' ? <SurveyLinkChoices value={link} onPick={setLink} /> : null}
             <div className="flex justify-end gap-2">
               <button type="button" className="btn sm" onClick={() => setLinkOpen(false)}>
                 Cancel
@@ -745,6 +751,7 @@ export function CanvasArea({
             )}
             <WarningOverlays host={host} tick={tick} />
             <AccessibilityOverlays host={host} tick={tick} boxOf={boxOf} />
+            <ConditionalOverlays host={host} tick={tick} boxOf={boxOf} />
             <LanguageTags host={host} tick={tick} />
             <SelectionOverlay host={host} tick={tick} />
             <RteToolbar host={host} tick={tick} />
@@ -757,6 +764,8 @@ export function CanvasArea({
           ) : null}
         </div>
       </div>
+      {/* The versions of conditional content, over the bottom of the canvas. */}
+      <VersionsPanel />
     </>
   )
 }

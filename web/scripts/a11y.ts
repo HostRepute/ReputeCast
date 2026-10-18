@@ -44,6 +44,7 @@ const lists: Record<string, (v: string) => [string, string, (i: Item) => boolean
   import: (which) => ['imports', 'items', (i) => (which === 'draft' ? i.status === 'draft' : i.source === which && i.status === 'done')],
   form: (name) => ['forms', 'forms', (f) => f.name === name],
   digest: (name) => ['digests', 'items', (d) => d.name === name],
+  survey: (name) => ['surveys', 'items', (s) => s.name === name],
   placement: (name) => ['placement/tests', 'tests', (t) => t.name === name],
   verification: (label) => ['verification/services', 'uses', (u) => u.label === label && u.kind !== 'realtime'],
 }

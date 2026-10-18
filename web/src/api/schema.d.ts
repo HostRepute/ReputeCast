@@ -3068,6 +3068,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/poll-test-answers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Test answers to a campaign's polls, from test sends (never counted) */
+        get: operations["list-campaign-poll-test-answers"];
+        put?: never;
+        post?: never;
+        /** Delete the test answers of a campaign's polls (logged) */
+        delete: operations["clear-campaign-poll-test-answers"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/polls": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Results of a campaign's polls: answers by answer, NPS, breakdowns, the first 72 hours
+         * @description Answers are recorded on the answer page, never on the click: automated visits, answers from people who aren't contacts and test answers are counted apart.
+         */
+        get: operations["list-campaign-polls"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/preview": {
         parameters: {
             query?: never;
@@ -3447,6 +3485,60 @@ export interface paths {
         put?: never;
         /** Restore a version (saved as a new version) */
         post: operations["restore-campaign-version"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/visibility": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Count the versions of an email's conditional content
+         * @description Reads the Visibility rules of the content sent (the composer's unsaved MJML and HTML) or saved, and counts the versions the campaign's audience gets with the live audience. The count is kept until the rules or the audience change; recount counts again.
+         */
+        post: operations["campaign-visibility"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/visibility/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The version one contact gets, and why each block is hidden */
+        post: operations["campaign-visibility-preview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/visibility/preview-contacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A contact for each version, to preview as */
+        get: operations["campaign-visibility-preview-contacts"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3897,6 +3989,23 @@ export interface paths {
         post?: never;
         /** Delete a saved view */
         delete: operations["delete-contact-view"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/contacts/{contactId}/field-sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The fields of a contact that a poll or a survey set, and when */
+        get: operations["contact-field-sources"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -4615,6 +4724,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/earn/checklist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The launch checklist: connect, a tier, member emails, the upgrade page, a test checkout, the live key */
+        get: operations["get-earn-checklist"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/earn/checkout": {
         parameters: {
             query?: never;
@@ -5304,6 +5430,26 @@ export interface paths {
         /** Save and publish the upgrade page */
         put: operations["save-upgrade-page"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/upgrade-page/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Render the upgrade page with unsaved settings
+         * @description Nothing is saved; the page's links and buttons don't work in the preview.
+         */
+        post: operations["preview-upgrade-page"];
         delete?: never;
         options?: never;
         head?: never;
@@ -7500,6 +7646,134 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/poll-sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Polls and surveys an automation can start from */
+        get: operations["list-poll-sources"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/polls/{pollId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One poll's results */
+        get: operations["get-poll-results"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/polls/{pollId}/answers.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download every answer with its contact as CSV (logged) */
+        get: operations["export-poll-answers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/polls/{pollId}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Close a poll now (logged)
+         * @description Its answer page says when it closed and records nothing.
+         */
+        post: operations["close-poll"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/polls/{pollId}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A poll's comments, newest first
+         * @description Contacts' names are included for people with subscribers:view.
+         */
+        get: operations["list-poll-comments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/polls/{pollId}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reopen a closed poll (logged)
+         * @description Answers made after reopening count as usual; it stays open until someone closes it.
+         */
+        post: operations["reopen-poll"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/polls/{pollId}/results.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download a poll's results as CSV, aggregate only (logged) */
+        get: operations["export-poll-results"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/provider-events": {
         parameters: {
             query?: never;
@@ -7936,6 +8210,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/public-pages/poll-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview a poll's answer page as a contact sees it after answering */
+        post: operations["preview-poll-page"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/public-pages/preview/{page}": {
         parameters: {
             query?: never;
@@ -7947,6 +8238,23 @@ export interface paths {
         get: operations["preview-public-page"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/public-pages/survey-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview a survey's page as a contact sees it */
+        post: operations["preview-survey-page"];
         delete?: never;
         options?: never;
         head?: never;
@@ -8469,6 +8777,188 @@ export interface paths {
         put?: never;
         /** Take an address off the suppression list (needs a reason, logged) */
         post: operations["remove-suppression"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/surveys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Surveys, newest first, with their counts */
+        get: operations["list-surveys"];
+        put?: never;
+        /** Start a survey (a draft with no questions; logged) */
+        post: operations["create-survey"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/surveys/{surveyId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A survey: its questions, settings and counts */
+        get: operations["get-survey"];
+        put?: never;
+        post?: never;
+        /** Delete a survey; its page stops answering (logged) */
+        delete: operations["delete-survey"];
+        options?: never;
+        head?: never;
+        /**
+         * Change a survey's name, address, questions or settings (logged)
+         * @description Edits to an open survey apply to new responses; answers already given stay as they were given.
+         */
+        patch: operations["update-survey"];
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/surveys/{surveyId}/answers.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download every response with its contact as CSV (logged) */
+        get: operations["export-survey-answers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/surveys/{surveyId}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Close a survey: its page takes no answers (logged) */
+        post: operations["close-survey"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/surveys/{surveyId}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Publish a survey: its page goes live (logged)
+         * @description Every question must be complete. The page records answers only when someone presses Send.
+         */
+        post: operations["publish-survey"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/surveys/{surveyId}/questions/{key}/answers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A text question's answers, newest first */
+        get: operations["list-survey-text-answers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/surveys/{surveyId}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reopen a closed survey, with a new closing date or none (logged) */
+        post: operations["reopen-survey"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/surveys/{surveyId}/responses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Completed responses, newest first
+         * @description Contacts are named for people with subscribers:view.
+         */
+        get: operations["list-survey-responses"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/surveys/{surveyId}/results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A survey's completion and per-question results */
+        get: operations["get-survey-results"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/surveys/{surveyId}/results.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download a survey's results as CSV, aggregate only (logged) */
+        get: operations["export-survey-results"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -9512,6 +10002,40 @@ export interface paths {
         put?: never;
         /** Read a connected service's balance again (no address is sent) */
         post: operations["test-verification-service"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/visibility/catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Conditions a Visibility rule can use, with their values */
+        get: operations["visibility-catalog"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/visibility/usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Conditional blocks that use a segment, list, field or tag */
+        get: operations["visibility-usage"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -11807,6 +12331,9 @@ export interface components {
             templates: components["schemas"]["AutomationStarterTemplate"][];
         };
         AutomationTrigger: {
+            /** @enum {string} */
+            answerOp?: "any" | "is" | "is_not";
+            answers?: number[];
             at?: string;
             confirmedOnly?: boolean;
             /** @enum {string} */
@@ -11816,12 +12343,14 @@ export interface components {
             formId?: string;
             includeImports?: boolean;
             /** @enum {string} */
-            kind: "joined_list" | "form_submitted" | "tag_added" | "api_event" | "date_field" | "score_crosses";
+            kind: "joined_list" | "form_submitted" | "tag_added" | "api_event" | "date_field" | "score_crosses" | "poll_answered";
             listId?: string;
             /** Format: int64 */
             offsetDays?: number;
+            onChange?: boolean;
             /** Format: int64 */
             onceInDays?: number;
+            poll?: string;
             reentry?: string;
             tag?: string;
             /** Format: int64 */
@@ -12973,6 +13502,9 @@ export interface components {
             actor?: string;
             /** Format: int64 */
             afterDeliveryMin?: number;
+            answer?: string;
+            /** Format: int64 */
+            answered?: number;
             /** Format: date-time */
             at: string;
             /** @enum {string} */
@@ -12980,11 +13512,14 @@ export interface components {
             client?: string;
             /** @description Provider code: 250 2.6.0, 452 4.2.2 */
             code?: string;
+            comment?: string;
             consentLanguage?: string;
             consentVersion?: string;
             contactLanguageName?: string;
             detail?: string;
             diagnostic?: string;
+            /** Format: date-time */
+            editableUntil?: string;
             failover: boolean;
             id: string;
             imported?: string;
@@ -12996,7 +13531,11 @@ export interface components {
             list?: string;
             machine: boolean;
             note?: string;
+            previous?: string;
             provider?: components["schemas"]["ContactActivityProvider"];
+            question?: string;
+            /** Format: int64 */
+            questions?: number;
             /** Format: date-time */
             retriedDeliveredAt?: string;
             routeNote?: string;
@@ -14647,6 +15186,35 @@ export interface components {
             /** @enum {string} */
             when: "period_end" | "now";
         };
+        EarnChecklist: {
+            canEdit: boolean;
+            canManage: boolean;
+            /** Format: int64 */
+            done: number;
+            launched: boolean;
+            steps: components["schemas"]["EarnChecklistStep"][];
+            testCheckoutUrl?: string;
+            testCheckouts: components["schemas"]["EarnMemberRow"][];
+            upgradeHost: string;
+        };
+        EarnChecklistStep: {
+            account?: string;
+            /** Format: date-time */
+            at?: string;
+            /** @enum {string} */
+            blocked?: "no_route" | "";
+            /** Format: int64 */
+            count?: number;
+            detail?: string;
+            done: boolean;
+            /** @enum {string} */
+            key: "connect" | "tier" | "emails" | "page" | "test" | "live";
+            mode?: string;
+            name?: string;
+            priceLine?: string;
+            /** Format: int64 */
+            total?: number;
+        };
         EarnCheckoutInput: {
             portal: components["schemas"]["EarnPortal"];
             pricesIncludeTax: boolean;
@@ -15015,6 +15583,7 @@ export interface components {
             paidCents: number;
             /** @enum {string} */
             period: "month" | "year" | "";
+            periodShown: boolean;
             /** Format: int64 */
             refundedCents: number;
             /** Format: date-time */
@@ -15028,6 +15597,7 @@ export interface components {
             subscriptionUrl?: string;
             test: boolean;
             tier: string;
+            tierId?: string;
             tierName: string;
             timeline: components["schemas"]["EarnTimelineItem"][];
             warning?: components["schemas"]["EarnSyncWarning"];
@@ -15148,6 +15718,7 @@ export interface components {
             nextAt?: string;
             /** @enum {string} */
             period: "month" | "year" | "";
+            periodShown: boolean;
             /** Format: int64 */
             refundedCents: number;
             /** Format: date-time */
@@ -15157,11 +15728,13 @@ export interface components {
             status: "trialing" | "active" | "past_due" | "canceled" | "complimentary" | "gift";
             test: boolean;
             tier: string;
+            tierId?: string;
             tierName: string;
         };
         EarnMemberSource: {
             campaignId?: string;
             grantedBy?: string;
+            importId?: string;
             /** @enum {string} */
             kind: "campaign" | "automation" | "page" | "offer" | "website" | "import" | "gift" | "grant" | "direct" | "";
             label: string;
@@ -15234,6 +15807,17 @@ export interface components {
             invoices: boolean;
             switchPeriod: boolean;
             updateCard: boolean;
+        };
+        EarnPreview: {
+            html: string;
+        };
+        EarnPreviewInput: {
+            /**
+             * @default visitor
+             * @enum {string}
+             */
+            as: "visitor" | "free" | "paid" | "offer";
+            page: components["schemas"]["UpgradePage"];
         };
         EarnPrice: {
             /** Format: int64 */
@@ -15441,6 +16025,7 @@ export interface components {
             live: boolean;
             /** Format: int64 */
             paidAtOnce: number;
+            testCheckoutUrl?: string;
             testMode: boolean;
             /** Format: int64 */
             trials: number;
@@ -15458,6 +16043,7 @@ export interface components {
             publishedAt?: string;
             publishedBy?: string;
             testCheckout: boolean;
+            testCheckoutUrl?: string;
             tiers: components["schemas"]["EarnPageTier"][];
             url: string;
         };
@@ -15646,6 +16232,17 @@ export interface components {
             noLanguage: number;
             /** Format: int64 */
             notOffered: number;
+        };
+        FieldSource: {
+            /** Format: date-time */
+            at: string;
+            field: string;
+            /** @enum {string} */
+            kind: "poll" | "survey";
+            name: string;
+        };
+        FieldSources: {
+            items: components["schemas"]["FieldSource"][];
         };
         GrowthChart: {
             days: components["schemas"]["GrowthChartDay"][];
@@ -18606,6 +19203,10 @@ export interface components {
             /** Format: int64 */
             marked: number;
         };
+        Operator: {
+            key: string;
+            noValue?: boolean;
+        };
         OptInResendResult: {
             confirmUrl?: string;
             sent: boolean;
@@ -19484,6 +20085,197 @@ export interface components {
             key: string;
             subject: string;
         };
+        PollAnswerCount: {
+            /** Format: int64 */
+            count: number;
+            emoji?: string;
+            /** Format: int64 */
+            key: number;
+            label: string;
+            /** Format: double */
+            percent: number;
+            tag?: string;
+        };
+        PollAutomatedVisits: {
+            /** Format: int64 */
+            gateways: number;
+            /** Format: int64 */
+            prefetch: number;
+            /** Format: int64 */
+            total: number;
+        };
+        PollBreakdownRow: {
+            /** Format: int64 */
+            answers: number;
+            counts: components["schemas"]["PollAnswerCount"][];
+            key: string;
+            label: string;
+            /** Format: int64 */
+            nps?: number;
+            /** Format: double */
+            percent: number;
+            tooFew: boolean;
+        };
+        PollBreakdowns: {
+            languages: components["schemas"]["PollBreakdownRow"][];
+            lists: components["schemas"]["PollBreakdownRow"][];
+            tiers: components["schemas"]["PollBreakdownRow"][];
+        };
+        PollComment: {
+            /** Format: int64 */
+            answer: number;
+            /** Format: date-time */
+            at: string;
+            comment: string;
+            contact?: string;
+            contactId?: string;
+            /** @enum {string} */
+            group?: "promoter" | "passive" | "detractor";
+            id: string;
+            label: string;
+            nonContact: boolean;
+        };
+        PollCommentCounts: {
+            /** Format: int64 */
+            all: number;
+            /** Format: int64 */
+            detractors: number;
+            /** Format: int64 */
+            passives: number;
+            /** Format: int64 */
+            promoters: number;
+        };
+        PollCommentList: {
+            counts: components["schemas"]["PollCommentCounts"];
+            items: components["schemas"]["PollComment"][];
+            names: boolean;
+            /** Format: int64 */
+            total: number;
+        };
+        PollNPS: {
+            /** Format: double */
+            detractorPercent: number;
+            /** Format: int64 */
+            detractors: number;
+            /** Format: double */
+            passivePercent: number;
+            /** Format: int64 */
+            passives: number;
+            /** Format: double */
+            promoterPercent: number;
+            /** Format: int64 */
+            promoters: number;
+            /** Format: int64 */
+            score: number;
+        };
+        PollOption: {
+            /** Format: int64 */
+            key: number;
+            label: string;
+        };
+        PollOverTime: {
+            /** Format: int64 */
+            after: number;
+            cumulative: number[];
+            /** Format: double */
+            firstSixPercent: number;
+            /** Format: date-time */
+            since?: string;
+        };
+        PollPagePreviewInput: {
+            campaign?: string;
+            /** @description The Poll block's settings, as its rc-poll attribute holds them */
+            config: string;
+        };
+        PollResults: {
+            answerPage: string;
+            /** Format: int64 */
+            answers: number;
+            automated: components["schemas"]["PollAutomatedVisits"];
+            blockId: string;
+            breakdown: components["schemas"]["PollBreakdowns"];
+            campaign: string;
+            campaignId?: string;
+            canClose: boolean;
+            canExportAnswers: boolean;
+            /** Format: int64 */
+            changed: number;
+            closeHelpers: string[];
+            closedAsScheduled: boolean;
+            /** Format: date-time */
+            closedAt?: string;
+            closedBy?: string;
+            /** Format: date-time */
+            closesAt?: string;
+            /** Format: int64 */
+            comments: number;
+            config: string;
+            counts: components["schemas"]["PollAnswerCount"][];
+            /** Format: int64 */
+            delivered: number;
+            exportHelpers: string[];
+            field?: string;
+            high?: string;
+            id: string;
+            /** @enum {string} */
+            kind: "choice" | "scale" | "emoji";
+            live: boolean;
+            low?: string;
+            names: boolean;
+            /** Format: int64 */
+            nonContacts: number;
+            nps?: components["schemas"]["PollNPS"];
+            npsWording: boolean;
+            overTime: components["schemas"]["PollOverTime"];
+            /** Format: double */
+            percent: number;
+            question: string;
+            /** Format: date-time */
+            reopenedAt?: string;
+            /** @enum {string} */
+            save: "none" | "tag" | "field";
+            /** Format: date-time */
+            startedAt?: string;
+            /** @enum {string} */
+            status: "open" | "closed";
+            /** Format: int64 */
+            tests: number;
+        };
+        PollResultsList: {
+            items: components["schemas"]["PollResults"][];
+        };
+        PollSource: {
+            answers: components["schemas"]["PollOption"][];
+            campaign?: string;
+            /** Format: date-time */
+            closesAt?: string;
+            /** @enum {string} */
+            kind: "poll" | "survey";
+            name: string;
+            /** @enum {string} */
+            pollKind?: "choice" | "scale" | "emoji";
+            ref: string;
+            status: string;
+        };
+        PollSourceList: {
+            items: components["schemas"]["PollSource"][];
+        };
+        PollTestAnswer: {
+            /** Format: int64 */
+            answer: number;
+            /** Format: date-time */
+            at: string;
+            blockId: string;
+            email: string;
+            pollId: string;
+        };
+        PollTestAnswers: {
+            items: components["schemas"]["PollTestAnswer"][];
+        };
+        PollTestAnswersCleared: {
+            /** Format: int64 */
+            deleted: number;
+        };
         PreferenceLinkResult: {
             url: string;
         };
@@ -19507,6 +20299,12 @@ export interface components {
         };
         PreviewContactList: {
             items: components["schemas"]["PreviewContact"][];
+        };
+        PreviewInput: {
+            /** Format: uuid */
+            contactId: string;
+            html?: string;
+            mjml?: string;
         };
         Problem: {
             /** @description Stable error code, e.g. permission_denied */
@@ -20312,7 +21110,7 @@ export interface components {
             fixes: components["schemas"]["ReadinessFix"][];
             flatTitle: string;
             /** @enum {string} */
-            group: "reputation" | "authentication" | "content" | "languages" | "links" | "compliance" | "audience" | "routing" | "accessibility";
+            group: "reputation" | "authentication" | "content" | "languages" | "links" | "compliance" | "audience" | "routing" | "accessibility" | "conditional";
             key: string;
             label?: string;
             mono?: boolean;
@@ -20351,7 +21149,7 @@ export interface components {
         };
         ReadinessFix: {
             /** @enum {string} */
-            action?: "exclude_sunset" | "route_only" | "insert_footer" | "replace_link" | "use_subject" | "minify" | "mark_language_up_to_date" | "mark_language_translated" | "hold_language" | "release_language" | "accessibility_decorative" | "accessibility_color" | "accessibility_one_click" | "exclude_risky" | "verify_addresses";
+            action?: "exclude_sunset" | "route_only" | "insert_footer" | "replace_link" | "use_subject" | "minify" | "mark_language_up_to_date" | "mark_language_translated" | "hold_language" | "release_language" | "accessibility_decorative" | "accessibility_color" | "accessibility_one_click" | "visibility_show_everyone" | "visibility_hide_block" | "visibility_remove_condition" | "poll_close_days" | "exclude_risky" | "verify_addresses";
             href?: string;
             /** @enum {string} */
             kind: "apply" | "link";
@@ -20370,7 +21168,7 @@ export interface components {
         };
         ReadinessFixRequest: {
             /** @enum {string} */
-            action: "exclude_sunset" | "route_only" | "insert_footer" | "replace_link" | "use_subject" | "minify" | "mark_language_up_to_date" | "mark_language_translated" | "hold_language" | "release_language" | "accessibility_decorative" | "accessibility_color" | "accessibility_one_click" | "exclude_risky" | "verify_addresses";
+            action: "exclude_sunset" | "route_only" | "insert_footer" | "replace_link" | "use_subject" | "minify" | "mark_language_up_to_date" | "mark_language_translated" | "hold_language" | "release_language" | "accessibility_decorative" | "accessibility_color" | "accessibility_one_click" | "visibility_show_everyone" | "visibility_hide_block" | "visibility_remove_condition" | "poll_close_days" | "exclude_risky" | "verify_addresses";
             params?: {
                 [key: string]: string;
             };
@@ -20381,7 +21179,7 @@ export interface components {
         ReadinessGroup: {
             caption: string;
             /** @enum {string} */
-            key: "reputation" | "authentication" | "content" | "languages" | "links" | "compliance" | "audience" | "routing" | "accessibility";
+            key: "reputation" | "authentication" | "content" | "languages" | "links" | "compliance" | "audience" | "routing" | "accessibility" | "conditional";
             note?: string;
             /** Format: int64 */
             passed: number;
@@ -20420,7 +21218,7 @@ export interface components {
             /** Format: int64 */
             done: number;
             /** @enum {string} */
-            key: "reputation" | "authentication" | "content" | "languages" | "links" | "compliance" | "audience" | "routing" | "accessibility";
+            key: "reputation" | "authentication" | "content" | "languages" | "links" | "compliance" | "audience" | "routing" | "accessibility" | "conditional";
             /** @enum {string} */
             status: "queued" | "running" | "pass" | "warn" | "block" | "unknown";
             text: string;
@@ -20785,6 +21583,11 @@ export interface components {
             providers: components["schemas"]["ReportBacklogProvider"][];
             /** Format: date-time */
             since: string;
+        };
+        ReportInput: {
+            html?: string;
+            mjml?: string;
+            recount?: boolean;
         };
         ReportLanguageCount: {
             /** Format: int64 */
@@ -22058,6 +22861,8 @@ export interface components {
             of?: number;
             /** Format: int64 */
             onceInDays?: number;
+            /** @enum {string} */
+            show?: "only" | "except";
             /** Format: date-time */
             since?: string;
             status?: string;
@@ -23089,6 +23894,175 @@ export interface components {
             invalid: string[];
             /** Format: int64 */
             rows: number;
+        };
+        Survey: {
+            canEdit: boolean;
+            /** Format: date-time */
+            closedAt?: string;
+            closedBy?: string;
+            /** Format: date-time */
+            closesAt?: string;
+            /** Format: int64 */
+            completed: number;
+            /** Format: date-time */
+            createdAt: string;
+            createdBy: string;
+            description: string;
+            editHelpers: string[];
+            id: string;
+            linked: components["schemas"]["SurveyLink"][];
+            name: string;
+            /** Format: int64 */
+            number: number;
+            problems: components["schemas"]["SurveyProblem"][];
+            /** Format: date-time */
+            publishedAt?: string;
+            publishedBy?: string;
+            questions: components["schemas"]["SurveyQuestion"][];
+            settings: components["schemas"]["SurveySettings"];
+            slug: string;
+            /** Format: int64 */
+            started: number;
+            /** @enum {string} */
+            status: "draft" | "open" | "closed";
+            /** Format: date-time */
+            updatedAt: string;
+            url: string;
+            variable: string;
+        };
+        SurveyClose: {
+            date?: string;
+            /** @enum {string} */
+            mode: "date" | "manual";
+            time?: string;
+        };
+        SurveyCreate: {
+            name?: string;
+        };
+        SurveyLink: {
+            campaignId: string;
+            name: string;
+            /** Format: int64 */
+            recipients?: number;
+            /** Format: date-time */
+            sentAt?: string;
+            status: string;
+            /** @enum {string} */
+            via: "link" | "poll";
+        };
+        SurveyList: {
+            items: components["schemas"]["Survey"][];
+        };
+        SurveyOption: {
+            /** Format: int64 */
+            key: number;
+            label: string;
+            tag?: string;
+        };
+        SurveyPagePreviewInput: {
+            description?: string;
+            name: string;
+            questions: components["schemas"]["SurveyQuestion"][];
+            settings: components["schemas"]["SurveySettings"];
+            slug?: string;
+        };
+        SurveyProblem: {
+            field: string;
+            message: string;
+            question?: string;
+        };
+        SurveyQuestion: {
+            answers: components["schemas"]["SurveyOption"][];
+            description?: string;
+            /** Format: int64 */
+            faces?: number;
+            high?: string;
+            key: string;
+            low?: string;
+            nps?: boolean;
+            required: boolean;
+            requiredText?: string;
+            save: components["schemas"]["SurveySave"];
+            text: string;
+            /** @enum {string} */
+            type: "single" | "multi" | "scale" | "emoji" | "short" | "long";
+        };
+        SurveyQuestionResult: {
+            /** Format: int64 */
+            answered: number;
+            counts: components["schemas"]["PollAnswerCount"][];
+            key: string;
+            nps?: components["schemas"]["PollNPS"];
+            /** Format: int64 */
+            number: number;
+            required: boolean;
+            savedTo?: string;
+            text: string;
+            type: string;
+        };
+        SurveyReopen: {
+            close?: components["schemas"]["SurveyClose"];
+        };
+        SurveyResponse: {
+            answers: string[];
+            /** Format: date-time */
+            completedAt?: string;
+            contact?: string;
+            contactId?: string;
+            id: string;
+            nonContact: boolean;
+        };
+        SurveyResponseList: {
+            items: components["schemas"]["SurveyResponse"][];
+            names: boolean;
+            /** Format: int64 */
+            total: number;
+        };
+        SurveyResults: {
+            /** Format: int64 */
+            completed: number;
+            /** Format: double */
+            completionPercent: number;
+            /** Format: int64 */
+            nonContacts: number;
+            /** Format: int64 */
+            pollOnly: number;
+            questions: components["schemas"]["SurveyQuestionResult"][];
+            /** Format: int64 */
+            recipients: number;
+            /** Format: int64 */
+            started: number;
+        };
+        SurveySave: {
+            field?: string;
+            /** @enum {string} */
+            to: "none" | "field" | "tags";
+        };
+        SurveySettings: {
+            acceptNonContacts: boolean;
+            close: components["schemas"]["SurveyClose"];
+            oneResponse: boolean;
+            thanks?: string;
+            timezone?: string;
+        };
+        SurveyTextAnswer: {
+            /** Format: date-time */
+            at: string;
+            contact?: string;
+            text: string;
+        };
+        SurveyTextAnswerList: {
+            items: components["schemas"]["SurveyTextAnswer"][];
+            names: boolean;
+            /** Format: int64 */
+            total: number;
+        };
+        SurveyUpdate: {
+            description?: string;
+            name?: string;
+            questions?: components["schemas"]["SurveyQuestion"][];
+            settings?: components["schemas"]["SurveySettings"];
+            slug?: string;
         };
         TOTPSetup: {
             account: string;
@@ -25227,6 +26201,168 @@ export interface components {
         VerifyContactInput: {
             /** @enum {string} */
             service?: "zerobounce" | "kickbox" | "neverbounce" | "bouncer" | "emailable" | "";
+        };
+        VisibilityBlockInfo: {
+            broken: components["schemas"]["VisibilityBroken"][];
+            id: string;
+            name: string;
+            path: number[];
+            rule: components["schemas"]["VisibilityRule"];
+            section: boolean;
+            /** Format: int64 */
+            shown: number;
+            tag: string;
+            versions: number[];
+            words: string;
+        };
+        VisibilityBroken: {
+            /** Format: int64 */
+            condition: number;
+            /** Format: date-time */
+            deletedAt?: string;
+            deletedBy?: string;
+            /** @enum {string} */
+            kind: "segment" | "list" | "field";
+            name: string;
+        };
+        VisibilityCatalog: {
+            bands: components["schemas"]["VisibilityOption"][];
+            fields: components["schemas"]["VisibilityCatalogField"][];
+            groups: string[];
+            kinds: components["schemas"]["VisibilityCatalogKind"][];
+            languages: components["schemas"]["VisibilityOption"][];
+            lists: components["schemas"]["VisibilityOption"][];
+            score: components["schemas"]["VisibilityCatalogScore"];
+            segments: components["schemas"]["VisibilityOption"][];
+            tags: components["schemas"]["VisibilityOption"][];
+            tiers: components["schemas"]["VisibilityOption"][];
+        };
+        VisibilityCatalogField: {
+            key: string;
+            label: string;
+            ops: components["schemas"]["Operator"][];
+            options: string[];
+            type: string;
+        };
+        VisibilityCatalogKind: {
+            group: string;
+            key: string;
+            ops: components["schemas"]["Operator"][];
+        };
+        VisibilityCatalogScore: {
+            configured: boolean;
+            /** Format: int64 */
+            hotFrom: number;
+            /** Format: int64 */
+            warmFrom: number;
+        };
+        VisibilityCondition: {
+            field?: string;
+            kind: string;
+            label?: string;
+            op: string;
+            to?: string;
+            value?: string;
+        };
+        VisibilityHiddenBlock: {
+            id: string;
+            name: string;
+            why: string;
+        };
+        VisibilityOption: {
+            /** Format: int64 */
+            contacts?: number;
+            label: string;
+            value: string;
+        };
+        VisibilityPreview: {
+            contactId: string;
+            email: string;
+            empty: boolean;
+            hidden: components["schemas"]["VisibilityHiddenBlock"][];
+            inAudience: boolean;
+            name: string;
+            /** Format: int64 */
+            recipients: number;
+            shown: string[];
+            shows: string;
+            traits: string[];
+            /** Format: int64 */
+            version: number;
+            /** Format: int64 */
+            versions: number;
+        };
+        VisibilityPreviewContact: {
+            email: string;
+            id: string;
+            language: string;
+            name: string;
+            trait: string;
+            /** Format: int64 */
+            version: number;
+        };
+        VisibilityPreviewContactList: {
+            items: components["schemas"]["VisibilityPreviewContact"][];
+        };
+        VisibilityReport: {
+            blocks: components["schemas"]["VisibilityBlockInfo"][];
+            /** Format: int64 */
+            checked: number;
+            counted: boolean;
+            /** Format: date-time */
+            countedAt?: string;
+            /** Format: int64 */
+            durationMs: number;
+            invalid: string[];
+            /** Format: int64 */
+            maxSize: number;
+            /** Format: int64 */
+            minSize: number;
+            /** Format: int64 */
+            missing: number;
+            /** Format: int64 */
+            possible: number;
+            /** Format: int64 */
+            total: number;
+            versions: components["schemas"]["VisibilityVersion"][];
+        };
+        VisibilityRule: {
+            conditions: components["schemas"]["VisibilityCondition"][];
+            id: string;
+            /** @enum {string} */
+            match?: "all" | "any";
+            /** @enum {string} */
+            show: "everyone" | "only" | "except" | "nobody";
+        };
+        VisibilityUsage: {
+            /** Format: int64 */
+            blocks: number;
+            emails: components["schemas"]["VisibilityUseEmail"][];
+        };
+        VisibilityUseEmail: {
+            blocks: string[];
+            campaignId: string;
+            name: string;
+            paths: number[][];
+            /** Format: date-time */
+            scheduledAt?: string;
+            status: string;
+        };
+        VisibilityVersion: {
+            checked: boolean;
+            empty: boolean;
+            hidden: string[];
+            largest?: boolean;
+            /** Format: int64 */
+            number: number;
+            overClip: boolean;
+            /** Format: int64 */
+            recipients: number;
+            shown: string[];
+            shows: string;
+            /** Format: int64 */
+            sizeBytes: number;
+            smallest?: boolean;
         };
         WarmupCampaignUse: {
             /** Format: int64 */
@@ -30184,7 +31320,7 @@ export interface operations {
                 /** @description Action group (routing) or action (routing.updated) */
                 action?: string;
                 /** @description A group of actions, as in the action filter */
-                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "earn" | "verification" | "placement";
+                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "earn" | "verification" | "placement";
                 result?: "allowed" | "denied" | "error";
                 range?: "24h" | "7d" | "30d" | "90d" | "all";
                 /** @description Overrides range */
@@ -30266,7 +31402,7 @@ export interface operations {
                 /** @description Action group (routing) or action (routing.updated) */
                 action?: string;
                 /** @description A group of actions, as in the action filter */
-                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "earn" | "verification" | "placement";
+                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "earn" | "verification" | "placement";
                 result?: "allowed" | "denied" | "error";
                 range?: "24h" | "7d" | "30d" | "90d" | "all";
                 /** @description Overrides range */
@@ -32799,6 +33935,108 @@ export interface operations {
             };
         };
     };
+    "list-campaign-poll-test-answers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PollTestAnswers"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "clear-campaign-poll-test-answers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PollTestAnswersCleared"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-campaign-polls": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PollResultsList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "preview-campaign": {
         parameters: {
             query?: never;
@@ -33559,6 +34797,113 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ComposerSavedContent"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "campaign-visibility": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisibilityReport"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "campaign-visibility-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PreviewInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisibilityPreview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "campaign-visibility-preview-contacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisibilityPreviewContactList"];
                 };
             };
             /** @description Error */
@@ -34674,6 +36019,40 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "contact-field-sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Contact id */
+                contactId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FieldSources"];
+                };
             };
             /** @description Error */
             default: {
@@ -36277,6 +37656,38 @@ export interface operations {
             };
         };
     };
+    "get-earn-checklist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnChecklist"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "save-earn-checkout": {
         parameters: {
             query?: never;
@@ -36421,7 +37832,12 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -36452,7 +37868,12 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -36485,7 +37906,12 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -36518,7 +37944,12 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -36585,7 +38016,12 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -36793,7 +38229,12 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -36826,7 +38267,12 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -37102,7 +38548,12 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -37135,7 +38586,12 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -37200,7 +38656,12 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -37642,7 +39103,12 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -37741,7 +39207,12 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -37823,6 +39294,42 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EarnUpgradeEditor"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "preview-upgrade-page": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EarnPreviewInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnPreview"];
                 };
             };
             /** @description Error */
@@ -42906,6 +44413,255 @@ export interface operations {
             };
         };
     };
+    "list-poll-sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PollSourceList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-poll-results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Poll id */
+                pollId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PollResults"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "export-poll-answers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Poll id */
+                pollId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control"?: string;
+                    "Content-Disposition"?: string;
+                    "Content-Type"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "close-poll": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Poll id */
+                pollId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PollResults"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-poll-comments": {
+        parameters: {
+            query?: {
+                /** @description Comments of 0–10 answers by group */
+                group?: "all" | "promoters" | "passives" | "detractors";
+                /** @description Words in the comment (and the contact's name, with subscribers:view) */
+                search?: string;
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Poll id */
+                pollId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PollCommentList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "reopen-poll": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Poll id */
+                pollId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PollResults"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "export-poll-results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Poll id */
+                pollId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control"?: string;
+                    "Content-Disposition"?: string;
+                    "Content-Type"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "list-provider-events": {
         parameters: {
             query?: {
@@ -43833,6 +45589,42 @@ export interface operations {
             };
         };
     };
+    "preview-poll-page": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PollPagePreviewInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPagePreview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "preview-public-page": {
         parameters: {
             query?: {
@@ -43854,6 +45646,42 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPagePreview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "preview-survey-page": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SurveyPagePreviewInput"];
+            };
+        };
         responses: {
             /** @description OK */
             200: {
@@ -45342,6 +47170,469 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-surveys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SurveyList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-survey": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SurveyCreate"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Survey"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-survey": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Survey id */
+                surveyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Survey"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-survey": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Survey id */
+                surveyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-survey": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Survey id */
+                surveyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SurveyUpdate"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Survey"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "export-survey-answers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Survey id */
+                surveyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control"?: string;
+                    "Content-Disposition"?: string;
+                    "Content-Type"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "close-survey": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Survey id */
+                surveyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Survey"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "publish-survey": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Survey id */
+                surveyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Survey"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-survey-text-answers": {
+        parameters: {
+            query?: {
+                search?: string;
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Survey id */
+                surveyId: string;
+                /** @description The question's key */
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SurveyTextAnswerList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "reopen-survey": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Survey id */
+                surveyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SurveyReopen"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Survey"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-survey-responses": {
+        parameters: {
+            query?: {
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Survey id */
+                surveyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SurveyResponseList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-survey-results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Survey id */
+                surveyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SurveyResults"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "export-survey-results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Survey id */
+                surveyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control"?: string;
+                    "Content-Disposition"?: string;
+                    "Content-Type"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
             };
             /** @description Error */
             default: {
@@ -47913,6 +50204,75 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VerificationKeyTest"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "visibility-catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisibilityCatalog"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "visibility-usage": {
+        parameters: {
+            query?: {
+                /** @description What the rules refer to */
+                kind?: "segment" | "list" | "field" | "tag";
+                /** @description A segment or list id, a field key or a tag */
+                ref?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisibilityUsage"];
                 };
             };
             /** @description Error */
