@@ -19619,12 +19619,16 @@
           },
           "testOnly": {
             "type": "boolean"
+          },
+          "upgradeUrl": {
+            "type": "string"
           }
         },
         "required": [
           "mode",
           "testOnly",
-          "canManage"
+          "canManage",
+          "upgradeUrl"
         ],
         "type": "object"
       },

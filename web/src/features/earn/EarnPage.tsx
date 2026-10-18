@@ -4,7 +4,7 @@ import { $api, type Schemas } from '@/api/client'
 import { Page } from '@/components/shell/Page'
 import type { NavTab } from '@/components/ui/Tabs'
 import { ForbiddenState } from '@/components/shell/SystemScreens'
-import { ButtonLink } from '@/components/ui/Button'
+import { ButtonAnchor, ButtonLink } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { useT } from '@/i18n'
 import { useCan, useWorkspace } from '@/lib/session'
@@ -34,6 +34,13 @@ export function EarnPage({ tab, title, actions, children, banner = true }: { tab
   const can = useCan('earn:view')
   const status = useEarnStatus()
   const params = { workspace: slug }
+  // The overview opens the upgrade page from the top bar (EarnStates).
+  const open =
+    tab === 'overview' && !actions && status.data?.upgradeUrl ? (
+      <ButtonAnchor href={status.data.upgradeUrl} iconRight="external">
+        {t(me.openUpgrade)}
+      </ButtonAnchor>
+    ) : null
   const tabs: NavTab[] = [
     { label: t(me.tabOverview), to: '/w/$workspace/earn', params, exact: true, current: tab === 'overview' },
     { label: t(me.tabPlans), to: '/w/$workspace/earn/plans', params, current: tab === 'plans' },
@@ -51,7 +58,7 @@ export function EarnPage({ tab, title, actions, children, banner = true }: { tab
     )
   }
   return (
-    <Page title={t(me.title)} documentTitle={title ?? t(me.title)} badges={<ProviderChip status={status.data} />} tabs={tabs} tabsLabel={t(me.tabsLabel)} actions={actions}>
+    <Page title={t(me.title)} documentTitle={title ?? t(me.title)} badges={<ProviderChip status={status.data} />} tabs={tabs} tabsLabel={t(me.tabsLabel)} actions={actions ?? open}>
       {banner && status.data?.testOnly ? <TestModeBanner /> : null}
       {children}
     </Page>

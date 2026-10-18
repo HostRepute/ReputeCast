@@ -15357,6 +15357,7 @@ export interface components {
             providerName?: string;
             setup?: string;
             testOnly: boolean;
+            upgradeUrl: string;
         };
         EarnStepInput: {
             /** @enum {string} */

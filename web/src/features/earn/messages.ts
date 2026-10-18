@@ -30,6 +30,7 @@ export const me = defineMessages('earn', {
   copied: 'Link copied',
   copyFailed: 'Couldn’t copy the link',
   copyLink: 'Copy link',
+  openUpgrade: 'Open upgrade page',
   openInStripe: 'Open in Stripe',
   // Paid status badges (design system: money and paid status).
   statusTrialing: 'Trialing',
