@@ -169,9 +169,7 @@ func measure(t Text, domain string) Measured {
 	body := withShortLinks(t.Body, domain, placeholder)
 	full := Text{Prefix: t.Prefix, Body: render(body, Recipient{}), OptOut: t.OptOut}.Full()
 	m := Measured{Count: sms.CountText(full), Links: findLinks(t.Body), Fields: []liquid.Use{}}
-	for _, u := range tokensOf(t.Body) {
-		m.Fields = append(m.Fields, u)
-	}
+	m.Fields = append(m.Fields, tokensOf(t.Body)...)
 	base := Text{Prefix: t.Prefix, Body: stripTokens(body), OptOut: t.OptOut}.Full()
 	m.Base = sms.CountText(base).Characters
 	return m
@@ -209,7 +207,7 @@ func spread(t Text, domain string, rs []Recipient) (out []Spread, longest *Recip
 // ("Summit: 8 days to go" → "summit-8-days").
 func utmCampaign(name string) string {
 	words := strings.FieldsFunc(strings.ToLower(name), func(r rune) bool {
-		return !(r >= 'a' && r <= 'z' || r >= '0' && r <= '9')
+		return (r < 'a' || r > 'z') && (r < '0' || r > '9')
 	})
 	if len(words) > 3 {
 		words = words[:3]

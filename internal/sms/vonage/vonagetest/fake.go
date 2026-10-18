@@ -5,6 +5,7 @@
 package vonagetest
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -15,7 +16,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hostrepute/reputecast/internal/sms/contracttest"
 	"github.com/hostrepute/reputecast/internal/sms/smsfake"
 	"github.com/hostrepute/reputecast/internal/sms/vonage"
 )
@@ -82,10 +82,10 @@ func (f *Fake) serve(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	switch f.Mode.Of() {
-	case contracttest.ModeOutage:
+	case smsfake.ModeOutage:
 		w.WriteHeader(http.StatusServiceUnavailable)
 		return
-	case contracttest.ModeAuth:
+	case smsfake.ModeAuth:
 		if r.URL.Path == "/sms/json" {
 			writeJSON(w, 200, map[string]any{"message-count": "1", "messages": []any{map[string]any{"status": "4", "error-text": "Bad Credentials"}}})
 			return
@@ -109,7 +109,7 @@ func (f *Fake) serve(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, 200, map[string]any{"value": 75.20, "autoReload": false})
 	case "/sms/json":
 		to := "+" + v.Get("to")
-		if to == contracttest.InvalidNumber {
+		if to == smsfake.InvalidNumber {
 			writeJSON(w, 200, map[string]any{"message-count": "1", "messages": []any{map[string]any{"status": "3", "error-text": "Invalid to address"}}})
 			return
 		}
@@ -155,7 +155,7 @@ func signed(secret, hookURL string, v url.Values, at time.Time) (*http.Request, 
 		m[k] = v.Get(k)
 	}
 	body, _ := json.Marshal(m)
-	r := httptest.NewRequest(http.MethodPost, hookURL, strings.NewReader(string(body)))
+	r := httptest.NewRequestWithContext(context.Background(), http.MethodPost, hookURL, strings.NewReader(string(body)))
 	r.Header.Set("Content-Type", "application/json")
 	return r, body
 }

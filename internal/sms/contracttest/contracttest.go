@@ -22,23 +22,18 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/sms"
+	"github.com/hostrepute/reputecast/internal/sms/smsfake"
 )
 
-// Modes the fake API answers in.
+// Modes the fake API answers in, and the numbers it refuses (smsfake: the
+// demo's fakes use them without this test-only package).
 const (
-	ModeOK = ""
-	// ModeOutage answers 5xx to every call.
-	ModeOutage = "outage"
-	// ModeAuth answers 401: the credentials were revoked.
-	ModeAuth = "auth"
+	ModeOK         = smsfake.ModeOK
+	ModeOutage     = smsfake.ModeOutage
+	ModeAuth       = smsfake.ModeAuth
+	InvalidNumber  = smsfake.InvalidNumber
+	LandlineNumber = smsfake.LandlineNumber
 )
-
-// InvalidNumber is a recipient the fake refuses as not a valid number.
-const InvalidNumber = "+15005550001"
-
-// LandlineNumber is a recipient the fake refuses as a landline (or reports
-// undelivered as one, for providers that only learn it later).
-const LandlineNumber = "+15005550009"
 
 // Env is a running fake.
 type Env struct {

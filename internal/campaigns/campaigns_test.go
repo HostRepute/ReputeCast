@@ -32,18 +32,21 @@ func TestListCampaigns(t *testing.T) {
 		Total  int64 `json:"total"`
 		Counts struct{ All, Drafts, Scheduled, Sending, Sent int64 }
 	}
-	c.Do("GET", "/workspaces/acme-newsletter/campaigns?pageSize=9", nil).MustStatus(t, 200).JSON(t, &list)
+	// Eleven rows: the board's nine, and the two text campaigns (SMS, X21)
+	// that sort before October Product Update.
+	c.Do("GET", "/workspaces/acme-newsletter/campaigns?pageSize=11", nil).MustStatus(t, 200).JSON(t, &list)
 	// 48 campaigns of the Campaigns board plus the approval sample data:
 	// November Product Update (waiting for approval), two of Daniel's drafts
 	// and the Beta Program launch invite (sent). The integrations hub adds
 	// the draft blog.acme.io made from a post (Scheduled rollouts are here),
 	// and the accessibility sample its draft, Weekly Digest #143. The recurring
 	// digest's sent issues #1 and #2 are campaigns too, and so is the survey's
-	// email, Beta Program: October check-in, sent.
-	if list.Total != 57 || list.Counts.All != 57 || list.Counts.Drafts != 7 || list.Counts.Scheduled != 1 || list.Counts.Sent != 49 {
+	// email, Beta Program: October check-in, sent. SMS (X21) adds a text
+	// campaign sent, "Summit: 8 days to go", and a draft, "Summit: doors open".
+	if list.Total != 59 || list.Counts.All != 59 || list.Counts.Drafts != 8 || list.Counts.Scheduled != 1 || list.Counts.Sent != 50 {
 		t.Fatalf("counts: total %d %+v", list.Total, list.Counts)
 	}
-	if len(list.Items) != 9 {
+	if len(list.Items) != 11 {
 		t.Fatalf("page size: %d", len(list.Items))
 	}
 	first := list.Items[0]
@@ -83,8 +86,18 @@ func TestListCampaigns(t *testing.T) {
 	}
 
 	c.Do("GET", "/workspaces/acme-newsletter/campaigns?status=drafts", nil).MustStatus(t, 200).JSON(t, &list)
-	if list.Total != 7 {
+	if list.Total != 8 {
 		t.Fatalf("drafts: %d", list.Total)
+	}
+	// The channel chips: SMS has the two text campaigns.
+	c.Do("GET", "/workspaces/acme-newsletter/campaigns?channel=sms", nil).MustStatus(t, 200).JSON(t, &list)
+	if list.Total != 2 || len(list.Items) != 2 {
+		t.Fatalf("sms: %+v", list.Items)
+	}
+	for _, it := range list.Items {
+		if it.Name != "Summit: 8 days to go" && it.Name != "Summit: doors open" {
+			t.Fatalf("sms row: %+v", it)
+		}
 	}
 	c.Do("GET", "/workspaces/acme-newsletter/campaigns?q=flash", nil).MustStatus(t, 200).JSON(t, &list)
 	if list.Total != 1 || list.Items[0].Name != "Flash sale: 48 hours only" {

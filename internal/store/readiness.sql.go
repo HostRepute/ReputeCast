@@ -369,13 +369,14 @@ func (q *Queries) ReadinessListCount(ctx context.Context, workspaceID uuid.UUID)
 }
 
 const readinessListNames = `-- name: ReadinessListNames :many
-SELECT id, name, requires_approval FROM lists WHERE workspace_id = $1 AND deleted_at IS NULL ORDER BY created_at
+SELECT id, name, requires_approval, public FROM lists WHERE workspace_id = $1 AND deleted_at IS NULL ORDER BY created_at
 `
 
 type ReadinessListNamesRow struct {
 	ID               uuid.UUID `json:"id"`
 	Name             string    `json:"name"`
 	RequiresApproval bool      `json:"requiresApproval"`
+	Public           bool      `json:"public"`
 }
 
 func (q *Queries) ReadinessListNames(ctx context.Context, workspaceID uuid.UUID) ([]ReadinessListNamesRow, error) {
@@ -387,7 +388,12 @@ func (q *Queries) ReadinessListNames(ctx context.Context, workspaceID uuid.UUID)
 	items := []ReadinessListNamesRow{}
 	for rows.Next() {
 		var i ReadinessListNamesRow
-		if err := rows.Scan(&i.ID, &i.Name, &i.RequiresApproval); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.RequiresApproval,
+			&i.Public,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -504,6 +510,7 @@ SELECT c.id, c.workspace_id, c.scheduled_at
 FROM campaigns c
 JOIN workspaces w ON w.id = c.workspace_id AND w.deleted_at IS NULL
 WHERE c.deleted_at IS NULL AND c.status = 'scheduled' AND c.scheduled_at IS NOT NULL
+  AND c.channel = 'email'
   AND c.scheduled_at <= $1::timestamptz
   AND NOT EXISTS (SELECT 1 FROM readiness_runs r WHERE r.campaign_id = c.id AND r.ran_at >= c.scheduled_at - $2::interval)
   -- A recurring digest checks its own issues before they start (internal/digests).

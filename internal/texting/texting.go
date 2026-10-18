@@ -66,9 +66,36 @@ type Service struct {
 	Emit func(ctx context.Context, q store.DBTX, ws *store.Workspace, event string, data any) error
 	// Changed re-checks a campaign's open approval after an edit.
 	Changed func(ctx context.Context, ws *store.Workspace, campaignID uuid.UUID)
-	// DemoDelivered plays a demo provider's delivery receipt back through
-	// the webhook path, as the real provider would send it.
-	DemoDelivered func(ctx context.Context, p store.SmsProvider, messageID uuid.UUID, providerMessageID, to, from string)
+	// DemoReceipt builds the delivery receipt a demo provider's fake would
+	// send for a text, signed as the provider signs it; the demo plays it
+	// back through the webhook path a few seconds after the send. False
+	// when the adapter has no fake.
+	DemoReceipt func(adapter string, cfg sms.Config, hookURL, providerMessageID, to, from string, at time.Time) (*http.Request, []byte, bool)
+}
+
+// demoReceipt plays a demo provider's delivery receipt back through the
+// webhook path, as the real provider would send it, a few seconds after
+// the text went.
+func (s *Service) demoReceipt(p store.SmsProvider, providerMessageID, to, from string) {
+	if s.DemoReceipt == nil || providerMessageID == "" {
+		return
+	}
+	cfg, err := s.config(p)
+	if err != nil {
+		return
+	}
+	delay := 2*time.Second + time.Duration(len(providerMessageID)%3)*500*time.Millisecond
+	time.AfterFunc(delay, func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		r, body, ok := s.DemoReceipt(p.Adapter, cfg, s.hookURL(p), providerMessageID, to, from, s.now())
+		if !ok {
+			return
+		}
+		if code := s.Ingest(ctx, p.Adapter, p.WebhookToken, r, body); code != http.StatusOK {
+			s.log().WarnContext(ctx, "sms demo receipt", "provider", p.ID, "status", code)
+		}
+	})
 }
 
 // SegmentResolver lists a segment's contacts.

@@ -3,7 +3,7 @@
 -- name: OverviewNextScheduled :one
 SELECT c.id, c.name, c.scheduled_at, c.schedule, c.audience_count
 FROM campaigns c
-WHERE c.workspace_id = @workspace_id AND c.deleted_at IS NULL AND c.status = 'scheduled'
+WHERE c.workspace_id = @workspace_id AND c.deleted_at IS NULL AND c.status = 'scheduled' AND c.channel = 'email'
   AND c.scheduled_at IS NOT NULL AND c.scheduled_at >= @since
 ORDER BY c.scheduled_at, c.id
 LIMIT 1;

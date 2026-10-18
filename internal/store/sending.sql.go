@@ -1161,6 +1161,8 @@ func (q *Queries) SendingDeleteSimEvents(ctx context.Context, ids []int64) error
 const sendingDueScheduled = `-- name: SendingDueScheduled :many
 SELECT c.id FROM campaigns c
 WHERE c.status = 'scheduled' AND c.scheduled_at <= $1 AND c.deleted_at IS NULL
+  -- SMS campaigns start from their own dispatcher (internal/texting).
+  AND c.channel = 'email'
   AND NOT EXISTS (SELECT 1 FROM campaign_incidents i WHERE i.campaign_id = c.id AND i.kind = 'recheck_blocked' AND i.resolved_at IS NULL)
   -- A recurring digest starts its own issues (internal/digests).
   AND NOT EXISTS (SELECT 1 FROM digest_issues di WHERE di.campaign_id = c.id AND di.mode = 'auto')
@@ -1736,12 +1738,13 @@ func (q *Queries) SendingInsertSend(ctx context.Context, arg SendingInsertSendPa
 }
 
 const sendingListNames = `-- name: SendingListNames :many
-SELECT id, name FROM lists WHERE workspace_id = $1 AND deleted_at IS NULL ORDER BY created_at
+SELECT id, name, public FROM lists WHERE workspace_id = $1 AND deleted_at IS NULL ORDER BY created_at
 `
 
 type SendingListNamesRow struct {
-	ID   uuid.UUID `json:"id"`
-	Name string    `json:"name"`
+	ID     uuid.UUID `json:"id"`
+	Name   string    `json:"name"`
+	Public bool      `json:"public"`
 }
 
 func (q *Queries) SendingListNames(ctx context.Context, workspaceID uuid.UUID) ([]SendingListNamesRow, error) {
@@ -1753,7 +1756,7 @@ func (q *Queries) SendingListNames(ctx context.Context, workspaceID uuid.UUID) (
 	items := []SendingListNamesRow{}
 	for rows.Next() {
 		var i SendingListNamesRow
-		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+		if err := rows.Scan(&i.ID, &i.Name, &i.Public); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

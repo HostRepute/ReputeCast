@@ -1,6 +1,7 @@
 package channels
 
 import (
+	"errors"
 	"testing"
 	"time"
 )
@@ -27,7 +28,7 @@ func TestWindowValidate(t *testing.T) {
 		{Window{From: 20 * 60, To: 9 * 60}, ErrWindowEmpty},
 	}
 	for _, c := range cases {
-		if got := c.w.Validate(); got != c.want {
+		if got := c.w.Validate(); !errors.Is(got, c.want) || (got == nil) != (c.want == nil) {
 			t.Errorf("%s: %v, want %v", c.w, got, c.want)
 		}
 	}
@@ -124,10 +125,10 @@ func TestQuietHoursAcrossDST(t *testing.T) {
 }
 
 func TestStatusesAndSwitch(t *testing.T) {
-	if SwitchShown([]Status{{Channel: Email, SetUp: true}, {Channel: SMS}}) {
+	if SwitchShown([]ChannelStatus{{Channel: Email, SetUp: true}, {Channel: SMS}}) {
 		t.Fatal("one channel set up: no switch yet")
 	}
-	if !SwitchShown([]Status{{Channel: Email, SetUp: true}, {Channel: SMS, SetUp: true}}) {
+	if !SwitchShown([]ChannelStatus{{Channel: Email, SetUp: true}, {Channel: SMS, SetUp: true}}) {
 		t.Fatal("two channels: the switch shows")
 	}
 }

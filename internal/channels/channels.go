@@ -69,8 +69,8 @@ func Lookup(c Channel) (Info, bool) {
 	return i, ok
 }
 
-// Status is one channel in the switch.
-type Status struct {
+// ChannelStatus is one channel in the switch.
+type ChannelStatus struct {
 	Channel Channel `json:"channel" enum:"email,sms,push,whatsapp"`
 	// Available is false for a channel this build doesn't have yet.
 	Available bool `json:"available"`
@@ -80,10 +80,10 @@ type Status struct {
 
 // Statuses returns every channel's state in a workspace. A channel whose
 // check fails counts as not set up, so the switch still renders.
-func Statuses(ctx context.Context, workspaceID uuid.UUID) []Status {
-	out := make([]Status, 0, len(All))
+func Statuses(ctx context.Context, workspaceID uuid.UUID) []ChannelStatus {
+	out := make([]ChannelStatus, 0, len(All))
 	for _, c := range All {
-		s := Status{Channel: c}
+		s := ChannelStatus{Channel: c}
 		if i, ok := Lookup(c); ok && i.SetUp != nil {
 			s.Available = true
 			if up, err := i.SetUp(ctx, workspaceID); err == nil {
@@ -97,7 +97,7 @@ func Statuses(ctx context.Context, workspaceID uuid.UUID) []Status {
 
 // SwitchShown is the rule for the channel switch: it appears once a second
 // channel is set up. Until then the header offers "Add a channel".
-func SwitchShown(statuses []Status) bool {
+func SwitchShown(statuses []ChannelStatus) bool {
 	n := 0
 	for _, s := range statuses {
 		if s.SetUp {

@@ -472,6 +472,9 @@ func (l PageLinks) Archive() string                 { return l.page("archive") }
 func (l PageLinks) Issue(slug string) string        { return l.page("archive", slug) }
 func (l PageLinks) Feed() string                    { return l.page("archive.rss") }
 func (l PageLinks) Sitemap() string                 { return l.page("sitemap.xml") }
+
+// SmsTerms is the text message terms page (SMS, X21).
+func (l PageLinks) SmsTerms() string { return l.page("sms-terms") }
 func (l PageLinks) forms(rest string) string {
 	return l.origin + "/p/" + url.PathEscape(l.slug) + "/forms/" + rest
 }

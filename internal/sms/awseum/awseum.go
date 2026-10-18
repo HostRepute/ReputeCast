@@ -166,10 +166,10 @@ func mapErr(op string, err error) error {
 	}
 	var re interface{ HTTPStatusCode() int }
 	if errors.As(err, &re) && (re.HTTPStatusCode() >= 500 || re.HTTPStatusCode() == 429) {
-		return fmt.Errorf("%w: %v", sms.ErrUnavailable, err)
+		return fmt.Errorf("%w: %w", sms.ErrUnavailable, err)
 	}
 	if strings.Contains(err.Error(), "StatusCode: 5") || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "no such host") {
-		return fmt.Errorf("%w: %v", sms.ErrUnavailable, err)
+		return fmt.Errorf("%w: %w", sms.ErrUnavailable, err)
 	}
 	return err
 }

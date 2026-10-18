@@ -106,11 +106,11 @@ type SmsLarge struct {
 
 // SmsReviewPolicy is what the approval note quotes.
 type SmsReviewPolicy struct {
-	AudienceMin    int64   `json:"audienceMin"`
-	AudienceRule   bool    `json:"audienceRule"`
-	CostRule       bool    `json:"costRule"`
-	CostAmount     float64 `json:"costAmount"`
-	AuthorLacksSend bool   `json:"authorLacksSend"`
+	AudienceMin     int64   `json:"audienceMin"`
+	AudienceRule    bool    `json:"audienceRule"`
+	CostRule        bool    `json:"costRule"`
+	CostAmount      float64 `json:"costAmount"`
+	AuthorLacksSend bool    `json:"authorLacksSend"`
 }
 
 // SmsSendView is a campaign's send, once scheduled.
@@ -124,36 +124,36 @@ type SmsSendView struct {
 
 // SmsReview is Review & send for an SMS campaign.
 type SmsReview struct {
-	Campaign    SmsReviewCampaign `json:"campaign"`
-	Verdict     string            `json:"verdict" enum:"ready,warnings,blocked"`
-	Passed      int               `json:"passed"`
-	Warnings    int               `json:"warnings"`
-	Blocks      int               `json:"blocks"`
-	CheckedAt   time.Time         `json:"checkedAt"`
-	Checks      []SmsCheck        `json:"checks"`
-	Funnel      SmsFunnel         `json:"funnel"`
-	Lists       []string          `json:"lists"`
-	Routes      []SmsReviewRoute  `json:"routes"`
-	Costs       []CountryLine     `json:"costs"`
-	Texts       int64             `json:"texts"`
-	Segments    int64             `json:"segments"`
-	SegmentsEach int              `json:"segmentsEach"`
-	Cost        float64           `json:"cost"`
-	PricedOn    *time.Time        `json:"pricedOn,omitempty"`
-	Budget      SmsBudgetView     `json:"budget"`
-	Schedule    SmsSchedule       `json:"schedule"`
-	PendingPolicy string          `json:"pendingPolicy" enum:"skip,wait"`
-	Thresholds  SmsThresholds     `json:"thresholds"`
-	Defaults    SmsThresholds     `json:"defaults"`
-	Tests       []SmsTestNumber   `json:"tests"`
-	Approval    approvals.ReviewApproval `json:"approval"`
-	Policy      SmsReviewPolicy   `json:"policy"`
-	Access      SmsCampaignAccess `json:"access"`
-	Large       SmsLarge          `json:"large"`
-	Fingerprint string            `json:"fingerprint"`
-	Send        *SmsSendView      `json:"send,omitempty"`
-	Preview     SmsPreview        `json:"preview"`
-	Timezone    string            `json:"timezone"`
+	Campaign      SmsReviewCampaign        `json:"campaign"`
+	Verdict       string                   `json:"verdict" enum:"ready,warnings,blocked"`
+	Passed        int                      `json:"passed"`
+	Warnings      int                      `json:"warnings"`
+	Blocks        int                      `json:"blocks"`
+	CheckedAt     time.Time                `json:"checkedAt"`
+	Checks        []SmsCheck               `json:"checks"`
+	Funnel        SmsFunnel                `json:"funnel"`
+	Lists         []string                 `json:"lists"`
+	Routes        []SmsReviewRoute         `json:"routes"`
+	Costs         []CountryLine            `json:"costs"`
+	Texts         int64                    `json:"texts"`
+	Segments      int64                    `json:"segments"`
+	SegmentsEach  int                      `json:"segmentsEach"`
+	Cost          float64                  `json:"cost"`
+	PricedOn      *time.Time               `json:"pricedOn,omitempty"`
+	Budget        SmsBudgetView            `json:"budget"`
+	Schedule      SmsSchedule              `json:"schedule"`
+	PendingPolicy string                   `json:"pendingPolicy" enum:"skip,wait"`
+	Thresholds    SmsThresholds            `json:"thresholds"`
+	Defaults      SmsThresholds            `json:"defaults"`
+	Tests         []SmsTestNumber          `json:"tests"`
+	Approval      approvals.ReviewApproval `json:"approval"`
+	Policy        SmsReviewPolicy          `json:"policy"`
+	Access        SmsCampaignAccess        `json:"access"`
+	Large         SmsLarge                 `json:"large"`
+	Fingerprint   string                   `json:"fingerprint"`
+	Send          *SmsSendView             `json:"send,omitempty"`
+	Preview       SmsPreview               `json:"preview"`
+	Timezone      string                   `json:"timezone"`
 }
 
 // SmsReviewCampaign is the campaign as Review & send shows it.
@@ -483,7 +483,7 @@ func (s *Service) SaveSendSettings(ctx context.Context, ws *store.Workspace, p *
 		th = *in.Thresholds
 		thRaw = jsonOf(th)
 	}
-	before := map[string]any{"mode": c.ScheduleMode, "pendingPolicy": c.PendingPolicy, "thresholds": json.RawMessage(c.Thresholds)}
+	before := map[string]any{"mode": c.ScheduleMode, "pendingPolicy": c.PendingPolicy, "thresholds": c.Thresholds}
 	err = s.tx(ctx, func(q *store.Queries, _ pgx.Tx) error {
 		if err := q.SmsCampaignScheduleSave(ctx, store.SmsCampaignScheduleSaveParams{ScheduleMode: mode, SendAt: sendAt, LocalDate: localDate, LocalMinute: localMinute,
 			PendingPolicy: policy, Thresholds: thRaw, CampaignID: c.ID}); err != nil {

@@ -302,8 +302,8 @@ func (s *Service) deliver(ctx context.Context, ws *store.Workspace, prov store.S
 			_ = s.Q.ChanMessageSent(ctx, store.ChanMessageSentParams{ProviderMessageID: res.ProviderMessageID, At: &now, Units: int32(res.Segments), ID: m.ID})
 			s.event(ctx, ws.ID, m.ID, "sent", "", nil, false, now)
 			s.recordCall(ctx, prov, nil)
-			if prov.Demo && s.DemoDelivered != nil {
-				s.DemoDelivered(ctx, prov, m.ID, res.ProviderMessageID, m.Recipient, m.Sender)
+			if prov.Demo {
+				s.demoReceipt(prov, res.ProviderMessageID, m.Recipient, m.Sender)
 			}
 			return
 		}

@@ -8,6 +8,7 @@
 package awseumtest
 
 import (
+	"context"
 	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
@@ -26,7 +27,6 @@ import (
 	"time"
 
 	"github.com/hostrepute/reputecast/internal/sms/awseum"
-	"github.com/hostrepute/reputecast/internal/sms/contracttest"
 	"github.com/hostrepute/reputecast/internal/sms/smsfake"
 )
 
@@ -107,10 +107,10 @@ func (f *Fake) serve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	switch f.Mode.Of() {
-	case contracttest.ModeOutage:
+	case smsfake.ModeOutage:
 		awsErr(w, 503, "ServiceUnavailableException", "Service unavailable")
 		return
-	case contracttest.ModeAuth:
+	case smsfake.ModeAuth:
 		awsErr(w, 400, "UnrecognizedClientException", "The security token included in the request is invalid.")
 		return
 	}
@@ -133,7 +133,7 @@ func (f *Fake) serve(w http.ResponseWriter, r *http.Request) {
 	case "DescribeAccountAttributes":
 		writeJSON(w, 200, map[string]any{"AccountAttributes": []any{map[string]any{"Name": "ACCOUNT_TIER", "Value": "PRODUCTION"}}})
 	case "SendTextMessage":
-		if fmt.Sprint(in["DestinationPhoneNumber"]) == contracttest.InvalidNumber {
+		if fmt.Sprint(in["DestinationPhoneNumber"]) == smsfake.InvalidNumber {
 			awsErr(w, 400, "ValidationException", "Invalid destination phone number")
 			return
 		}
@@ -203,7 +203,7 @@ func (f *Fake) serveSNS(w http.ResponseWriter, body []byte) {
 	case "Subscribe":
 		fmt.Fprint(w, `<SubscribeResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/"><SubscribeResult><SubscriptionArn>pending confirmation</SubscriptionArn></SubscribeResult><ResponseMetadata><RequestId>2</RequestId></ResponseMetadata></SubscribeResponse>`)
 	default:
-		w.WriteHeader(400)
+		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(w, `<ErrorResponse><Error><Code>InvalidAction</Code><Message>unknown</Message></Error></ErrorResponse>`)
 	}
 }
@@ -222,7 +222,7 @@ func sign(e awseum.Envelope) awseum.Envelope {
 
 func post(hookURL string, e awseum.Envelope) (*http.Request, []byte) {
 	body, _ := json.Marshal(e)
-	r, _ := http.NewRequest(http.MethodPost, hookURL, strings.NewReader(string(body)))
+	r, _ := http.NewRequestWithContext(context.Background(), http.MethodPost, hookURL, strings.NewReader(string(body)))
 	r.Header.Set("Content-Type", "text/plain; charset=UTF-8")
 	r.Header.Set("X-Amz-Sns-Message-Type", e.Type)
 	r.Header.Set("X-Amz-Sns-Topic-Arn", e.TopicArn)

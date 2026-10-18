@@ -183,11 +183,16 @@ func (s *Service) healthTick(ctx context.Context) error {
 			return ctx.Err()
 		}
 		h := healthOf(p)
+		s.checkReceipts(ctx, p, h, now)
+		if p.Demo {
+			// The demo's sample providers answer from fakes: their seeded
+			// registrations, prices and opt-out lists stay as they are.
+			continue
+		}
 		trouble := p.Status != "healthy"
-		if !p.Demo && (p.LastCheckedAt == nil || now.Sub(*p.LastCheckedAt) >= checkEvery || trouble) {
+		if p.LastCheckedAt == nil || now.Sub(*p.LastCheckedAt) >= checkEvery || trouble {
 			_ = s.CheckProvider(ctx, p)
 		}
-		s.checkReceipts(ctx, p, h, now)
 		if p.RegistrationsReadAt == nil || now.Sub(*p.RegistrationsReadAt) >= readRegsEvery {
 			if err := s.ReadRegistrations(ctx, p); err != nil {
 				s.log().WarnContext(ctx, "sms registrations", "provider", p.ID, "err", err)
@@ -247,7 +252,9 @@ func (s *Service) checkReceipts(ctx context.Context, p store.SmsProvider, h prov
 // approved or rejected.
 func (s *Service) ReadRegistrations(ctx context.Context, p store.SmsProvider) error {
 	now := s.now()
-	defer func() { _ = s.Q.SmsProviderRegistrationsRead(ctx, store.SmsProviderRegistrationsReadParams{At: &now, ID: p.ID}) }()
+	defer func() {
+		_ = s.Q.SmsProviderRegistrationsRead(ctx, store.SmsProviderRegistrationsReadParams{At: &now, ID: p.ID})
+	}()
 	ad, err := s.open(p)
 	if err != nil {
 		return err
@@ -336,7 +343,9 @@ func (s *Service) ReadPrices(ctx context.Context, p store.SmsProvider) error {
 	now := s.now()
 	h := healthOf(p)
 	h.PricesReadAt = &now
-	defer func() { _ = s.Pool.QueryRow(ctx, `UPDATE sms_providers SET health = health || $2::jsonb WHERE id = $1 RETURNING id`, p.ID, jsonOf(map[string]any{"pricesReadAt": now})).Scan(new(uuid.UUID)) }()
+	defer func() {
+		_ = s.Pool.QueryRow(ctx, `UPDATE sms_providers SET health = health || $2::jsonb WHERE id = $1 RETURNING id`, p.ID, jsonOf(map[string]any{"pricesReadAt": now})).Scan(new(uuid.UUID))
+	}()
 	ad, err := s.open(p)
 	if err != nil {
 		return err
@@ -380,7 +389,9 @@ func (s *Service) ReadPrices(ctx context.Context, p store.SmsProvider) error {
 // list and, for two-way adapters, pushes numbers that opted out here.
 func (s *Service) SyncOptOuts(ctx context.Context, p store.SmsProvider) error {
 	now := s.now()
-	defer func() { _ = s.Pool.QueryRow(ctx, `UPDATE sms_providers SET health = health || $2::jsonb WHERE id = $1 RETURNING id`, p.ID, jsonOf(map[string]any{"optOutsReadAt": now})).Scan(new(uuid.UUID)) }()
+	defer func() {
+		_ = s.Pool.QueryRow(ctx, `UPDATE sms_providers SET health = health || $2::jsonb WHERE id = $1 RETURNING id`, p.ID, jsonOf(map[string]any{"optOutsReadAt": now})).Scan(new(uuid.UUID))
+	}()
 	d, ok := sms.Lookup(p.Adapter)
 	if !ok {
 		return nil

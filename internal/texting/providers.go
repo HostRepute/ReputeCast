@@ -79,6 +79,8 @@ type SmsOverviewTiles struct {
 	Suppressed int64              `json:"suppressed"`
 	// SuppressedBy counts the list by reason.
 	SuppressedBy map[string]int64 `json:"suppressedBy"`
+	// BudgetHeld counts the texts waiting for the budget to be raised.
+	BudgetHeld int64 `json:"budgetHeld"`
 }
 
 // SmsProviderSpend is a provider's spend this month.
@@ -110,34 +112,34 @@ type SmsProviderCard struct {
 	SenderKinds []string `json:"senderKinds"`
 	SenderCount int      `json:"senderCount"`
 	// SenderIDs and SenderIDCountries: its alphanumeric sender IDs.
-	SenderIDs         []string   `json:"senderIds"`
-	SenderIDCountries int        `json:"senderIdCountries"`
-	Webhooks          string     `json:"webhooks" enum:"registered,manual"`
-	WebhookURL        string     `json:"webhookUrl"`
-	ConnectedAt       time.Time  `json:"connectedAt"`
-	ConnectedBy       string     `json:"connectedBy"`
-	LastReceiptAt     *time.Time `json:"lastReceiptAt,omitempty"`
-	LastCheckedAt     *time.Time `json:"lastCheckedAt,omitempty"`
-	FailedPct         float64    `json:"failedPct"`
-	FilteredPct       float64    `json:"filteredPct"`
-	PauseFailed       float64    `json:"pauseFailed"`
-	PauseFiltered     float64    `json:"pauseFiltered"`
-	Spend             float64    `json:"spend"`
-	PriceMin          float64    `json:"priceMin"`
-	PriceMax          float64    `json:"priceMax"`
-	PriceCountries    []string   `json:"priceCountries"`
+	SenderIDs         []string    `json:"senderIds"`
+	SenderIDCountries int         `json:"senderIdCountries"`
+	Webhooks          string      `json:"webhooks" enum:"registered,manual"`
+	WebhookURL        string      `json:"webhookUrl"`
+	ConnectedAt       time.Time   `json:"connectedAt"`
+	ConnectedBy       string      `json:"connectedBy"`
+	LastReceiptAt     *time.Time  `json:"lastReceiptAt,omitempty"`
+	LastCheckedAt     *time.Time  `json:"lastCheckedAt,omitempty"`
+	FailedPct         float64     `json:"failedPct"`
+	FilteredPct       float64     `json:"filteredPct"`
+	PauseFailed       float64     `json:"pauseFailed"`
+	PauseFiltered     float64     `json:"pauseFiltered"`
+	Spend             float64     `json:"spend"`
+	PriceMin          float64     `json:"priceMin"`
+	PriceMax          float64     `json:"priceMax"`
+	PriceCountries    []string    `json:"priceCountries"`
 	Badges            []sms.Badge `json:"badges"`
-	Demo              bool       `json:"demo"`
+	Demo              bool        `json:"demo"`
 	// Answer is the provider's answer to the last failed call; Held the
 	// texts waiting for it; SentSince and ReceiptsSince the texts and
 	// receipts since receipts went silent.
-	Answer        string    `json:"answer,omitempty"`
-	HeldTexts     int64     `json:"heldTexts"`
-	SentSince     int64     `json:"sentSince"`
-	ReceiptsSince int64     `json:"receiptsSince"`
-	Told          []string  `json:"told"`
-	Console       string    `json:"console"`
-	OptOutSync    string    `json:"optOutSync" enum:"two_way,read_only,off"`
+	Answer        string   `json:"answer,omitempty"`
+	HeldTexts     int64    `json:"heldTexts"`
+	SentSince     int64    `json:"sentSince"`
+	ReceiptsSince int64    `json:"receiptsSince"`
+	Told          []string `json:"told"`
+	Console       string   `json:"console"`
+	OptOutSync    string   `json:"optOutSync" enum:"two_way,read_only,off"`
 }
 
 // SmsRegistrationView is a sender's registration in one country (or for
@@ -233,7 +235,7 @@ func (s *Service) Overview(ctx context.Context, ws *store.Workspace, p *authz.Pr
 		AlertPct: g.rules.BudgetAlertPct}
 	rows, err := s.Pool.Query(ctx, `SELECT kind, count(*) FILTER (WHERE sent_at IS NOT NULL), count(*) FILTER (WHERE status = 'delivered'),
 			count(*) FILTER (WHERE status IN ('undelivered','failed') AND sent_at IS NOT NULL)
-		FROM channel_messages WHERE workspace_id = $1 AND channel = 'sms' AND coalesce(sent_at, created_at) >= $2 GROUP BY kind`, ws.ID, month)
+		FROM channel_messages WHERE workspace_id = $1 AND channel = 'sms' AND kind <> 'reply' AND coalesce(sent_at, created_at) >= $2 GROUP BY kind`, ws.ID, month)
 	if err != nil {
 		return out, err
 	}
@@ -253,6 +255,8 @@ func (s *Service) Overview(ctx context.Context, ws *store.Workspace, p *authz.Pr
 	}
 	rows.Close()
 	t.DeliveredPct = pct(t.Delivered, t.Sent)
+	_ = s.Pool.QueryRow(ctx, `SELECT count(*) FROM channel_messages WHERE workspace_id = $1 AND channel = 'sms' AND status = 'held' AND reason = 'budget'`,
+		ws.ID).Scan(&t.BudgetHeld)
 	if t.Spend, err = s.spentThisMonth(ctx, ws); err != nil {
 		return out, err
 	}
@@ -369,6 +373,11 @@ func (s *Service) Overview(ctx context.Context, ws *store.Workspace, p *authz.Pr
 			if sy.ProviderID == pr.ID && sy.Mode != "" {
 				c.OptOutSync = sy.Mode
 			}
+		}
+		if !out.CanManage {
+			// Viewers see providers, senders and costs, never the account's
+			// identifiers or the webhook address (it carries its token).
+			c.AccountHint, c.WebhookURL = "", ""
 		}
 		out.Providers = append(out.Providers, c)
 		t.SpendBy = append(t.SpendBy, SmsProviderSpend{Name: pr.Name, Spend: c.Spend})
@@ -755,6 +764,33 @@ func (s *Service) foundSenders(ctx context.Context, p store.SmsProvider, found [
 	return out
 }
 
+// SmsFoundSenderList is the numbers in a provider's account.
+type SmsFoundSenderList struct {
+	Items []SmsFoundSender `json:"items"`
+}
+
+// AccountNumbers lists the numbers in a provider's account with their
+// registration, marking the ones already imported (Import from providers).
+func (s *Service) AccountNumbers(ctx context.Context, ws *store.Workspace, providerID uuid.UUID) (SmsFoundSenderList, error) {
+	prov, err := s.Q.SmsProvider(ctx, store.SmsProviderParams{ID: providerID, WorkspaceID: ws.ID})
+	if err != nil {
+		return SmsFoundSenderList{}, api.MapError(err, "SMS provider")
+	}
+	ad, err := s.open(prov)
+	if err != nil {
+		return SmsFoundSenderList{}, err
+	}
+	sl, ok := ad.(sms.SenderLister)
+	if !ok {
+		return SmsFoundSenderList{}, api.Conflict(prov.Name + " doesn't list its numbers through its API. Add a sender ID instead.")
+	}
+	found, err := sl.Senders(ctx)
+	if err != nil {
+		return SmsFoundSenderList{}, api.Err(http.StatusBadGateway, "provider_unreachable", prov.Name+" didn't answer: "+answerOf(err)+".")
+	}
+	return SmsFoundSenderList{Items: s.foundSenders(ctx, prov, found)}, nil
+}
+
 // SmsImportInput imports numbers found in the account.
 type SmsImportInput struct {
 	Senders []SmsImportSender `json:"senders" minItems:"1" maxItems:"50"`
@@ -996,9 +1032,7 @@ func (s *Service) UpdateSender(ctx context.Context, ws *store.Workspace, p *auth
 }
 
 func storeSenderRow(sn store.SmsSenderRow) store.SmsSendersRow {
-	return store.SmsSendersRow{ID: sn.ID, WorkspaceID: sn.WorkspaceID, ProviderID: sn.ProviderID, Kind: sn.Kind, Value: sn.Value, Countries: sn.Countries,
-		Throughput: sn.Throughput, ProviderRef: sn.ProviderRef, AddedBy: sn.AddedBy, AddedAt: sn.AddedAt, RemovedAt: sn.RemovedAt, ProviderName: sn.ProviderName,
-		ProviderAdapter: sn.ProviderAdapter}
+	return store.SmsSendersRow(sn)
 }
 
 // RemoveSender removes a sender; routes that use it must change first.
@@ -1528,4 +1562,8 @@ func (s *Service) FinishSetup(ctx context.Context, ws *store.Workspace, p *authz
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "sms_provider.setup_finished", TargetType: "sms_setup", TargetID: st.ID.String(),
 			TargetName: st.Adapter, After: map[string]any{"step": "done"}})
 	})
+}
+
+func smsProviderParams(id, workspaceID uuid.UUID) store.SmsProviderParams {
+	return store.SmsProviderParams{ID: id, WorkspaceID: workspaceID}
 }

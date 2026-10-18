@@ -6,6 +6,7 @@
 package plivotest
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -14,7 +15,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/hostrepute/reputecast/internal/sms/contracttest"
 	"github.com/hostrepute/reputecast/internal/sms/plivo"
 	"github.com/hostrepute/reputecast/internal/sms/smsfake"
 )
@@ -56,10 +56,10 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 func (f *Fake) serve(w http.ResponseWriter, r *http.Request) {
 	body := f.rec.Record(r)
 	switch f.Mode.Of() {
-	case contracttest.ModeOutage:
+	case smsfake.ModeOutage:
 		writeJSON(w, 503, map[string]any{"error": "service unavailable"})
 		return
-	case contracttest.ModeAuth:
+	case smsfake.ModeAuth:
 		writeJSON(w, 401, map[string]any{"error": "Authentication failed"})
 		return
 	}
@@ -79,7 +79,7 @@ func (f *Fake) serve(w http.ResponseWriter, r *http.Request) {
 	case r.Method == http.MethodGet && p == "/":
 		writeJSON(w, 200, map[string]any{"name": "Acme Inc", "auth_id": AuthID, "account_type": "standard", "cash_credits": "50.00000"})
 	case r.Method == http.MethodPost && p == "/Message/":
-		if "+"+fmt.Sprint(in["dst"]) == contracttest.InvalidNumber {
+		if "+"+fmt.Sprint(in["dst"]) == smsfake.InvalidNumber {
 			writeJSON(w, 400, map[string]any{"api_id": "e9b2", "error": "dst parameter not valid"})
 			return
 		}
@@ -120,7 +120,7 @@ func (f *Fake) serve(w http.ResponseWriter, r *http.Request) {
 
 func signed(token, hookURL string, form url.Values) (*http.Request, []byte) {
 	body := []byte(form.Encode())
-	r := httptest.NewRequest(http.MethodPost, hookURL, strings.NewReader(string(body)))
+	r := httptest.NewRequestWithContext(context.Background(), http.MethodPost, hookURL, strings.NewReader(string(body)))
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	nonce := "05429567804466091622"
 	r.Header.Set(plivo.NonceHeader, nonce)

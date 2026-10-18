@@ -32,14 +32,14 @@ type SmsReportTiles struct {
 	Delivered    int64              `json:"delivered"`
 	DeliveredPct float64            `json:"deliveredPct"`
 	// Waiting are texts sent with no receipt yet.
-	Waiting  int64            `json:"waiting"`
-	Failed   int64            `json:"failed"`
-	FailedBy map[string]int64 `json:"failedBy"`
-	Clicks   int64            `json:"clicks"`
-	ClickPct float64          `json:"clickPct"`
-	Machine  int64            `json:"machine"`
-	OptOuts  int64            `json:"optOuts"`
-	OptOutPct float64         `json:"optOutPct"`
+	Waiting   int64            `json:"waiting"`
+	Failed    int64            `json:"failed"`
+	FailedBy  map[string]int64 `json:"failedBy"`
+	Clicks    int64            `json:"clicks"`
+	ClickPct  float64          `json:"clickPct"`
+	Machine   int64            `json:"machine"`
+	OptOuts   int64            `json:"optOuts"`
+	OptOutPct float64          `json:"optOutPct"`
 	// OptOutsByKeyword is true when every opt-out was a reply (STOP).
 	OptOutsByKeyword bool    `json:"optOutsByKeyword"`
 	Cost             float64 `json:"cost"`
@@ -146,18 +146,18 @@ type SmsClickLink struct {
 
 // SmsReply is a reply to the campaign.
 type SmsReply struct {
-	ID      string    `json:"id"`
-	At      time.Time `json:"at"`
-	Contact string    `json:"contact"`
-	ContactID string  `json:"contactId,omitempty"`
-	Number  string    `json:"number"`
-	Body    string    `json:"body"`
-	Kind    string    `json:"kind" enum:"opt_out,opt_in,help,yes,reply"`
-	Keyword string    `json:"keyword,omitempty"`
-	Lists   []string  `json:"lists"`
-	Replied bool      `json:"replied"`
-	ReplyChars    int `json:"replyChars"`
-	ReplySegments int `json:"replySegments"`
+	ID            string    `json:"id"`
+	At            time.Time `json:"at"`
+	Contact       string    `json:"contact"`
+	ContactID     string    `json:"contactId,omitempty"`
+	Number        string    `json:"number"`
+	Body          string    `json:"body"`
+	Kind          string    `json:"kind" enum:"opt_out,opt_in,help,yes,reply"`
+	Keyword       string    `json:"keyword,omitempty"`
+	Lists         []string  `json:"lists"`
+	Replied       bool      `json:"replied"`
+	ReplyChars    int       `json:"replyChars"`
+	ReplySegments int       `json:"replySegments"`
 	// Zone is the person's time zone, for "Chicago local".
 	Zone string `json:"zone"`
 	// AnyCase is true when the keyword matched in another case ("Stop").
@@ -232,21 +232,21 @@ type SmsTimelineSampleEv struct {
 
 // SmsReport is an SMS campaign's report.
 type SmsReport struct {
-	CampaignID  string     `json:"campaignId"`
-	Name        string     `json:"name"`
-	Status      string     `json:"status"`
-	Phase       string     `json:"phase" enum:"scheduled,sending,paused,completed,cancelled,"`
-	ScheduleMode string    `json:"scheduleMode" enum:"now,at,local"`
-	LocalTime   string     `json:"localTime,omitempty"`
-	ScheduledAt *time.Time `json:"scheduledAt,omitempty"`
-	StartedAt   *time.Time `json:"startedAt,omitempty"`
-	CompletedAt *time.Time `json:"completedAt,omitempty"`
-	Window      string     `json:"window"`
-	Recipients  int64      `json:"recipients"`
-	Tiles       SmsReportTiles     `json:"tiles"`
-	Points      []SmsTimePoint     `json:"points"`
-	Steps       []SmsZoneStep      `json:"steps"`
-	Senders     []SmsSenderReport  `json:"senders"`
+	CampaignID   string            `json:"campaignId"`
+	Name         string            `json:"name"`
+	Status       string            `json:"status"`
+	Phase        string            `json:"phase" enum:"scheduled,sending,paused,completed,cancelled,"`
+	ScheduleMode string            `json:"scheduleMode" enum:"now,at,local"`
+	LocalTime    string            `json:"localTime,omitempty"`
+	ScheduledAt  *time.Time        `json:"scheduledAt,omitempty"`
+	StartedAt    *time.Time        `json:"startedAt,omitempty"`
+	CompletedAt  *time.Time        `json:"completedAt,omitempty"`
+	Window       string            `json:"window"`
+	Recipients   int64             `json:"recipients"`
+	Tiles        SmsReportTiles    `json:"tiles"`
+	Points       []SmsTimePoint    `json:"points"`
+	Steps        []SmsZoneStep     `json:"steps"`
+	Senders      []SmsSenderReport `json:"senders"`
 	// ReceiptsWithin is the slowest receipt, in seconds.
 	ReceiptsWithin float64            `json:"receiptsWithin"`
 	Countries      []SmsCountryReport `json:"countries"`
@@ -709,8 +709,8 @@ func (s *Service) reportTimeline(ctx context.Context, out *SmsReport, id uuid.UU
 		return err
 	}
 	type part struct {
-		at                                         time.Time
-		zone, country                              string
+		at                                    time.Time
+		zone, country                         string
 		total, sent, delivered, held, waiting int64
 	}
 	parts := []part{}

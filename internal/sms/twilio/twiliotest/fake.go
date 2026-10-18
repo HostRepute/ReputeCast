@@ -6,6 +6,7 @@
 package twiliotest
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
@@ -17,7 +18,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hostrepute/reputecast/internal/sms/contracttest"
 	"github.com/hostrepute/reputecast/internal/sms/smsfake"
 	"github.com/hostrepute/reputecast/internal/sms/twilio"
 )
@@ -25,8 +25,8 @@ import (
 // The sample account (brief §4: Acme Inc, live, Account SID AC…3f9).
 const (
 	AccountSID = "AC8e2c5d1b7f4a9e06c3d2b1a0f9e8d3f9"
-	KeySID     = "SK41d0b9e7c6a5f4e3d2c1b0a9f8e7d6c2"
-	KeySecret  = "recorded-twilio-key-secret-7f3a"
+	KeySID     = "SK41d0b9e7c6a5f4e3d2c1b0a9f8e7d6c2" //nolint:gosec // the recorded sample account, not a credential
+	KeySecret  = "recorded-twilio-key-secret-7f3a"    //nolint:gosec // the recorded sample account, not a credential
 )
 
 // Number is a number in the account.
@@ -99,10 +99,10 @@ func twErr(w http.ResponseWriter, status, code int, msg string) {
 func (f *Fake) serve(w http.ResponseWriter, r *http.Request) {
 	body := f.rec.Record(r)
 	switch f.Mode.Of() {
-	case contracttest.ModeOutage:
+	case smsfake.ModeOutage:
 		twErr(w, http.StatusServiceUnavailable, 20500, "Service Unavailable")
 		return
-	case contracttest.ModeAuth:
+	case smsfake.ModeAuth:
 		twErr(w, http.StatusUnauthorized, 20003, "Authenticate")
 		return
 	}
@@ -203,10 +203,10 @@ func (f *Fake) send(w http.ResponseWriter, body []byte) {
 	form, _ := url.ParseQuery(string(body))
 	to := form.Get("To")
 	switch to {
-	case contracttest.InvalidNumber:
+	case smsfake.InvalidNumber:
 		twErr(w, 400, 21211, "Invalid 'To' Phone Number: "+to)
 		return
-	case contracttest.LandlineNumber:
+	case smsfake.LandlineNumber:
 		twErr(w, 400, 21614, "'To' number is not a valid mobile number")
 		return
 	}
@@ -232,7 +232,7 @@ func randomHex(n int) string {
 // key (HMAC-SHA256).
 func signed(secret, hookURL string, form url.Values) (*http.Request, []byte) {
 	body := []byte(form.Encode())
-	r := httptest.NewRequest(http.MethodPost, hookURL, strings.NewReader(string(body)))
+	r := httptest.NewRequestWithContext(context.Background(), http.MethodPost, hookURL, strings.NewReader(string(body)))
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	r.Header.Set(twilio.SettingsHeader, "key=webhooks_sharedkey_01jacmesummitreputecast00,algorithm=HMAC_SHA256")
 	r.Header.Set(twilio.SignatureHeader, twilio.Sign(secret, hookURL, form))

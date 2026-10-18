@@ -151,9 +151,6 @@ type oneText struct {
 	by     uuid.UUID
 }
 
-// errNoSender: nobody can text the number's country.
-var errNoSender = errors.New("texting: no sender can text this country")
-
 // sendOne sends a text now, through the route of the number's country, and
 // logs it. Failures are logged on the message; only an unroutable number
 // is an error.

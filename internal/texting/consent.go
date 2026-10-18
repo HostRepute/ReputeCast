@@ -119,10 +119,10 @@ func (s *Service) contact(ctx context.Context, ws *store.Workspace, id uuid.UUID
 }
 
 type phoneRow struct {
-	ID                                 uuid.UUID
-	Phone, Country, LineType           string
-	LineSource, Zone                   string
-	FirstName, LastName, Email         string
+	ID                         uuid.UUID
+	Phone, Country, LineType   string
+	LineSource, Zone           string
+	FirstName, LastName, Email string
 }
 
 // ContactChannels is the contact profile's "Consent per list" card.
@@ -252,7 +252,7 @@ func (s *Service) SetPhone(ctx context.Context, ws *store.Workspace, p *authz.Pr
 		}
 	}
 	now := s.now()
-	line, src := "", ""
+	line, src := string(phone.Unknown), ""
 	if n.E164 != "" {
 		line, src = string(n.Type), "number_plan"
 	}
@@ -458,6 +458,18 @@ type queuedText struct {
 // queueText renders and queues a text: its route and price, its window in
 // the person's time zone, its short links.
 func (s *Service) queueText(ctx context.Context, ws *store.Workspace, g *graph, t queuedText) (store.ChannelMessage, error) {
+	var m store.ChannelMessage
+	err := s.tx(ctx, func(q *store.Queries, tx pgx.Tx) error {
+		var err error
+		m, err = s.queueTextTx(ctx, q, tx, ws, g, t)
+		return err
+	})
+	return m, err
+}
+
+// queueTextTx queues a text in the caller's transaction (an automation
+// run's): the dispatcher is woken in it too.
+func (s *Service) queueTextTx(ctx context.Context, q *store.Queries, tx pgx.Tx, ws *store.Workspace, g *graph, t queuedText) (store.ChannelMessage, error) {
 	n, err := phone.Parse(t.recipient.Phone, "")
 	if err != nil {
 		return store.ChannelMessage{}, api.Invalid("phone", "That isn't a phone number ReputeCast can text.")
@@ -523,22 +535,18 @@ func (s *Service) queueText(ctx context.Context, ws *store.Workspace, g *graph, 
 		AutomationStep: t.step, RunID: t.runID, ContactID: t.contactID, ListID: t.listID, Recipient: n.E164, Country: n.Country, TimeZone: zone, ZoneSource: string(zsrc),
 		ProviderID: providerID, SenderID: senderID, Sender: sender, Body: &full, Units: int32(units), Encoding: string(cnt.Encoding), Price: price, Cost: cost,
 		Status: status, Reason: reason, SendAfter: sendAfter, ExpiresAt: expires, CreatedAt: now}
-	err = s.tx(ctx, func(q *store.Queries, _ pgx.Tx) error {
-		if err := q.ChanMessageInsert(ctx, msg); err != nil {
-			return err
-		}
-		for _, l := range links {
-			if err := q.SmsLinkInsert(ctx, l); err != nil {
-				return err
-			}
-		}
-		return nil
-	})
-	if err != nil {
+	if err := q.ChanMessageInsert(ctx, msg); err != nil {
 		return store.ChannelMessage{}, err
 	}
-	if status == "queued" {
-		s.kick(ctx)
+	for _, l := range links {
+		if err := q.SmsLinkInsert(ctx, l); err != nil {
+			return store.ChannelMessage{}, err
+		}
 	}
-	return s.Q.ChanMessage(ctx, id)
+	if c := s.jobs(); c != nil && status == "queued" {
+		if _, err := c.InsertTx(ctx, tx, DispatchArgs{}, nil); err != nil {
+			return store.ChannelMessage{}, err
+		}
+	}
+	return q.ChanMessage(ctx, id)
 }

@@ -25,18 +25,18 @@ import (
 
 // SmsRouteView is a route in Routing & rules.
 type SmsRouteView struct {
-	ID        string   `json:"id"`
-	Countries []string `json:"countries"`
-	SenderID  string   `json:"senderId"`
-	Sender    string   `json:"sender"`
-	SenderKind string  `json:"senderKind"`
-	Provider  string   `json:"provider"`
-	Adapter   string   `json:"adapter"`
+	ID         string   `json:"id"`
+	Countries  []string `json:"countries"`
+	SenderID   string   `json:"senderId"`
+	Sender     string   `json:"sender"`
+	SenderKind string   `json:"senderKind"`
+	Provider   string   `json:"provider"`
+	Adapter    string   `json:"adapter"`
 	// Registration is the sender's status in the route's countries.
-	Registration SmsRegistrationView `json:"registration"`
-	FallbackID   string              `json:"fallbackId,omitempty"`
-	Fallback     string              `json:"fallback,omitempty"`
-	FallbackProvider string          `json:"fallbackProvider,omitempty"`
+	Registration     SmsRegistrationView `json:"registration"`
+	FallbackID       string              `json:"fallbackId,omitempty"`
+	Fallback         string              `json:"fallback,omitempty"`
+	FallbackProvider string              `json:"fallbackProvider,omitempty"`
 	// OnLists counts the people on SMS lists in these countries.
 	OnLists int64 `json:"onLists"`
 	// Skipped is true when the sender can't text these countries yet.
@@ -101,19 +101,19 @@ type SmsMemberOption struct {
 
 // SmsRules is Routing & rules.
 type SmsRules struct {
-	Routes   []SmsRouteView    `json:"routes"`
-	Other    string            `json:"other" enum:"dont_send,route"`
-	OtherRouteID string        `json:"otherRouteId,omitempty"`
-	OtherPeople  int64         `json:"otherPeople"`
-	Gaps     []SmsRouteGap     `json:"gaps"`
-	Senders  []SmsSenderOption `json:"senders"`
+	Routes       []SmsRouteView    `json:"routes"`
+	Other        string            `json:"other" enum:"dont_send,route"`
+	OtherRouteID string            `json:"otherRouteId,omitempty"`
+	OtherPeople  int64             `json:"otherPeople"`
+	Gaps         []SmsRouteGap     `json:"gaps"`
+	Senders      []SmsSenderOption `json:"senders"`
 	// Quiet hours.
-	QuietFrom string       `json:"quietFrom"`
-	QuietTo   string       `json:"quietTo"`
-	Assumed   int64        `json:"assumed"`
-	Zones     []SmsZoneNow `json:"zones"`
-	PushWindow     bool    `json:"pushWindow"`
-	WhatsAppWindow bool    `json:"whatsAppWindow"`
+	QuietFrom      string       `json:"quietFrom"`
+	QuietTo        string       `json:"quietTo"`
+	Assumed        int64        `json:"assumed"`
+	Zones          []SmsZoneNow `json:"zones"`
+	PushWindow     bool         `json:"pushWindow"`
+	WhatsAppWindow bool         `json:"whatsAppWindow"`
 	// Keywords and replies.
 	OptOutKeywords []string     `json:"optOutKeywords"`
 	OptInKeywords  []string     `json:"optInKeywords"`
@@ -126,32 +126,32 @@ type SmsRules struct {
 	// keywords themselves.
 	ProviderAnswers []string `json:"providerAnswers"`
 	// Budget and guards.
-	Budget    float64       `json:"budget"`
-	AlertPct  int           `json:"alertPct"`
-	Spent     float64       `json:"spent"`
-	Month     time.Time     `json:"month"`
-	BudgetSetBy string      `json:"budgetSetBy,omitempty"`
-	BudgetSetAt *time.Time  `json:"budgetSetAt,omitempty"`
-	Thresholds SmsThresholds `json:"thresholds"`
+	Budget      float64       `json:"budget"`
+	AlertPct    int           `json:"alertPct"`
+	Spent       float64       `json:"spent"`
+	Month       time.Time     `json:"month"`
+	BudgetSetBy string        `json:"budgetSetBy,omitempty"`
+	BudgetSetAt *time.Time    `json:"budgetSetAt,omitempty"`
+	Thresholds  SmsThresholds `json:"thresholds"`
 	// Test numbers.
-	TestNumbers []SmsTestNumber   `json:"testNumbers"`
-	TestsSent   int64             `json:"testsSent"`
-	TestsCost   float64           `json:"testsCost"`
-	Members     []SmsMemberOption `json:"members"`
-	RetentionDays int             `json:"retentionDays"`
+	TestNumbers   []SmsTestNumber   `json:"testNumbers"`
+	TestsSent     int64             `json:"testsSent"`
+	TestsCost     float64           `json:"testsCost"`
+	Members       []SmsMemberOption `json:"members"`
+	RetentionDays int               `json:"retentionDays"`
 	// Message rules.
-	BrandPrefix    string       `json:"brandPrefix"`
-	OptOutText     string       `json:"optOutText"`
-	OptOutInSteps  bool         `json:"optOutInSteps"`
-	ConfirmationOn bool         `json:"confirmationOn"`
-	Confirmation   SmsReplyView `json:"confirmation"`
-	RequireYes     bool         `json:"requireYes"`
+	BrandPrefix    string         `json:"brandPrefix"`
+	OptOutText     string         `json:"optOutText"`
+	OptOutInSteps  bool           `json:"optOutInSteps"`
+	ConfirmationOn bool           `json:"confirmationOn"`
+	Confirmation   SmsReplyView   `json:"confirmation"`
+	RequireYes     bool           `json:"requireYes"`
 	ShortDomain    SmsShortDomain `json:"shortDomain"`
-	UpdatedAt   *time.Time `json:"updatedAt,omitempty"`
-	UpdatedBy   string     `json:"updatedBy,omitempty"`
-	CanManage   bool       `json:"canManage"`
-	Helpers     []string   `json:"helpers"`
-	Timezone    string     `json:"timezone"`
+	UpdatedAt      *time.Time     `json:"updatedAt,omitempty"`
+	UpdatedBy      string         `json:"updatedBy,omitempty"`
+	CanManage      bool           `json:"canManage"`
+	Helpers        []string       `json:"helpers"`
+	Timezone       string         `json:"timezone"`
 }
 
 // demoZones are the zones the quiet-hours preview shows: the workspace's,
@@ -332,27 +332,27 @@ func instanceHost(base string) string {
 
 // SmsRulesInput saves Routing & rules (routes apart).
 type SmsRulesInput struct {
-	QuietFrom      string   `json:"quietFrom" pattern:"^([01]\\d|2[0-3]):[0-5]\\d$"`
-	QuietTo        string   `json:"quietTo" pattern:"^([01]\\d|2[0-3]):[0-5]\\d$"`
-	PushWindow     bool     `json:"pushWindow"`
-	WhatsAppWindow bool     `json:"whatsAppWindow"`
-	OptOutKeywords []string `json:"optOutKeywords" maxItems:"30"`
-	OptInKeywords  []string `json:"optInKeywords" maxItems:"30"`
-	HelpKeywords   []string `json:"helpKeywords" maxItems:"30"`
-	HelpReply      string   `json:"helpReply" maxLength:"640"`
-	OptOutReply    string   `json:"optOutReply" maxLength:"640"`
-	OptInReply     string   `json:"optInReply" maxLength:"640"`
-	KeywordsBy     string   `json:"keywordsBy" enum:"reputecast,provider"`
-	Budget         float64  `json:"budget" minimum:"0"`
-	AlertPct       int      `json:"alertPct" minimum:"1" maximum:"100"`
+	QuietFrom      string        `json:"quietFrom" pattern:"^([01]\\d|2[0-3]):[0-5]\\d$"`
+	QuietTo        string        `json:"quietTo" pattern:"^([01]\\d|2[0-3]):[0-5]\\d$"`
+	PushWindow     bool          `json:"pushWindow"`
+	WhatsAppWindow bool          `json:"whatsAppWindow"`
+	OptOutKeywords []string      `json:"optOutKeywords" maxItems:"30"`
+	OptInKeywords  []string      `json:"optInKeywords" maxItems:"30"`
+	HelpKeywords   []string      `json:"helpKeywords" maxItems:"30"`
+	HelpReply      string        `json:"helpReply" maxLength:"640"`
+	OptOutReply    string        `json:"optOutReply" maxLength:"640"`
+	OptInReply     string        `json:"optInReply" maxLength:"640"`
+	KeywordsBy     string        `json:"keywordsBy" enum:"reputecast,provider"`
+	Budget         float64       `json:"budget" minimum:"0"`
+	AlertPct       int           `json:"alertPct" minimum:"1" maximum:"100"`
 	Thresholds     SmsThresholds `json:"thresholds"`
-	RetentionDays  int      `json:"retentionDays" enum:"0,7,30,60,90"`
-	BrandPrefix    string   `json:"brandPrefix" maxLength:"20"`
-	OptOutText     string   `json:"optOutText" maxLength:"60"`
-	OptOutInSteps  bool     `json:"optOutInSteps"`
-	ConfirmationOn bool     `json:"confirmationOn"`
-	Confirmation   string   `json:"confirmation" maxLength:"640"`
-	RequireYes     bool     `json:"requireYes"`
+	RetentionDays  int           `json:"retentionDays" enum:"0,7,30,60,90"`
+	BrandPrefix    string        `json:"brandPrefix" maxLength:"20"`
+	OptOutText     string        `json:"optOutText" maxLength:"60"`
+	OptOutInSteps  bool          `json:"optOutInSteps"`
+	ConfirmationOn bool          `json:"confirmationOn"`
+	Confirmation   string        `json:"confirmation" maxLength:"640"`
+	RequireYes     bool          `json:"requireYes"`
 }
 
 func minuteOf(hhmm string) int {
@@ -674,25 +674,25 @@ type SmsRouteTest struct {
 	CallingCode string `json:"callingCode"`
 	// Route is how the country is covered: route, other (every other
 	// country) or none.
-	Route        string              `json:"route" enum:"route,other,none"`
-	RouteCountries []string          `json:"routeCountries"`
-	Provider     string              `json:"provider"`
-	Adapter      string              `json:"adapter"`
-	Sender       string              `json:"sender"`
-	SenderKind   string              `json:"senderKind"`
-	CanReply     bool                `json:"canReply"`
-	Registration SmsRegistrationView `json:"registration"`
-	CanSend      bool                `json:"canSend"`
-	Price        float64             `json:"price"`
-	Segments     int                 `json:"segments"`
-	Cost         float64             `json:"cost"`
-	Suppressed   string              `json:"suppressed,omitempty"`
-	Zone         string              `json:"zone"`
-	ZoneSource   string              `json:"zoneSource"`
-	Local        string              `json:"local"`
-	Inside       bool                `json:"inside"`
-	Opens        string              `json:"opens"`
-	Window       string              `json:"window"`
+	Route          string              `json:"route" enum:"route,other,none"`
+	RouteCountries []string            `json:"routeCountries"`
+	Provider       string              `json:"provider"`
+	Adapter        string              `json:"adapter"`
+	Sender         string              `json:"sender"`
+	SenderKind     string              `json:"senderKind"`
+	CanReply       bool                `json:"canReply"`
+	Registration   SmsRegistrationView `json:"registration"`
+	CanSend        bool                `json:"canSend"`
+	Price          float64             `json:"price"`
+	Segments       int                 `json:"segments"`
+	Cost           float64             `json:"cost"`
+	Suppressed     string              `json:"suppressed,omitempty"`
+	Zone           string              `json:"zone"`
+	ZoneSource     string              `json:"zoneSource"`
+	Local          string              `json:"local"`
+	Inside         bool                `json:"inside"`
+	Opens          string              `json:"opens"`
+	Window         string              `json:"window"`
 	// HelpNumber is the number people can text for HELP when the sender is
 	// an ID they can't reply to.
 	HelpNumber string `json:"helpNumber,omitempty"`

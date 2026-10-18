@@ -192,8 +192,8 @@ func (s *Service) Sweep(ctx context.Context) error {
 	return err
 }
 
-// Register adds the SMS workers and their schedules.
-func Register(reg *jobs.Registry, s *Service) {
+// RegisterJobs adds the SMS workers and their schedules.
+func RegisterJobs(reg *jobs.Registry, s *Service) {
 	river.AddWorker(reg.Workers, &DispatchWorker{S: s})
 	river.AddWorker(reg.Workers, &NormalizeWorker{S: s})
 	river.AddWorker(reg.Workers, &HealthWorker{S: s})

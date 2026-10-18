@@ -160,7 +160,7 @@ func (s *Service) applyReceipt(ctx context.Context, ws *store.Workspace, p store
 				return err
 			}
 		}
-		if e.Price != nil && *e.Price > 0 {
+		if e.Price != nil && *e.Price > 0 && m.Price == nil {
 			if _, err := tx.Exec(ctx, `UPDATE channel_messages SET price = $2 / greatest(units, 1), cost = $2 WHERE id = $1`, m.ID, round4(*e.Price)); err != nil {
 				return err
 			}

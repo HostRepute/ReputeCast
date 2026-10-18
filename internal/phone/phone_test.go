@@ -1,6 +1,9 @@
 package phone
 
-import "testing"
+import (
+	"errors"
+	"testing"
+)
 
 func TestParse(t *testing.T) {
 	cases := []struct {
@@ -26,7 +29,7 @@ func TestParse(t *testing.T) {
 	for _, c := range cases {
 		n, err := Parse(c.raw, c.region)
 		if c.wantErr != nil {
-			if err != c.wantErr {
+			if !errors.Is(err, c.wantErr) {
 				t.Errorf("Parse(%q) error %v, want %v", c.raw, err, c.wantErr)
 			}
 			continue

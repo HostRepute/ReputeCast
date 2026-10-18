@@ -2,10 +2,8 @@ package texting
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"math"
-	"slices"
 	"strings"
 	"time"
 
@@ -112,17 +110,6 @@ func (s *Service) rules(ctx context.Context, q *store.Queries, ws *store.Workspa
 	}, nil
 }
 
-// Errors from validating rules; the API words them for the field.
-var (
-	errBudget     = errors.New("the monthly budget can't be negative")
-	errAlert      = errors.New("the alert is a share of the budget, 1 to 100%")
-	errThreshold  = errors.New("a threshold is a rate from 0.1% to 100%")
-	errRetention  = errors.New("text content is kept 0 to 90 days")
-	errBrand      = errors.New("the brand prefix is up to 20 characters")
-	errOptOutText = errors.New("the opt-out text is up to 60 characters")
-	errReply      = errors.New("a reply can't be empty")
-)
-
 // countryName is a country's English name ("GB" → "United Kingdom"); the
 // app shows names in the reader's language.
 func countryName(code string) string {
@@ -134,36 +121,6 @@ func countryName(code string) string {
 		return n
 	}
 	return code
-}
-
-// countryList writes countries for sentences: "UK, Germany, Netherlands".
-func countryList(codes []string) string {
-	names := make([]string, 0, len(codes))
-	for _, c := range codes {
-		names = append(names, shortCountry(c))
-	}
-	return strings.Join(names, ", ")
-}
-
-// shortCountry is how the boards write a country in running text: "UK",
-// "US", otherwise its name.
-func shortCountry(code string) string {
-	switch code {
-	case "GB":
-		return "UK"
-	case "US":
-		return "US"
-	}
-	return countryName(code)
-}
-
-// regionLabel names a route's countries: "US and Canada", "UK, Germany,
-// Netherlands".
-func regionLabel(codes []string) string {
-	if len(codes) == 2 {
-		return shortCountry(codes[0]) + " and " + countryName(codes[1])
-	}
-	return countryList(codes)
 }
 
 func validCountry(code string) bool {
@@ -200,11 +157,6 @@ func location(tz string) *time.Location {
 		return l
 	}
 	return time.UTC
-}
-
-// keywordsChanged reports whether two keyword sets differ.
-func keywordsChanged(a, b sms.Keywords) bool {
-	return !slices.Equal(a.OptOut, b.OptOut) || !slices.Equal(a.OptIn, b.OptIn) || !slices.Equal(a.Help, b.Help)
 }
 
 func pct(n, d int64) float64 {

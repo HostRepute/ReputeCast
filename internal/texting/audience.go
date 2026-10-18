@@ -25,8 +25,6 @@ func parseAudience(raw json.RawMessage) Audience {
 	return a
 }
 
-func (a Audience) empty() bool { return len(a.Lists) == 0 && len(a.Segments) == 0 }
-
 func uuids(ss []string) []uuid.UUID {
 	out := make([]uuid.UUID, 0, len(ss))
 	for _, s := range ss {

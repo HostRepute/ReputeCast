@@ -1,6 +1,9 @@
 package sms
 
-import "testing"
+import (
+	"errors"
+	"testing"
+)
 
 func TestKeywordMatch(t *testing.T) {
 	k := DefaultKeywords
@@ -55,7 +58,7 @@ func TestKeywordValidate(t *testing.T) {
 		{Keywords{OptOut: []string{"STOP", " "}, Help: []string{"HELP"}}, ErrKeywordEmpty},
 	}
 	for _, b := range bad {
-		if err := b.k.Validate(); err != b.want {
+		if err := b.k.Validate(); !errors.Is(err, b.want) {
 			t.Errorf("%+v: %v, want %v", b.k, err, b.want)
 		}
 	}

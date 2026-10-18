@@ -5,6 +5,7 @@
 package telnyxtest
 
 import (
+	"context"
 	"crypto/ed25519"
 	"encoding/base64"
 	"encoding/json"
@@ -16,13 +17,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hostrepute/reputecast/internal/sms/contracttest"
 	"github.com/hostrepute/reputecast/internal/sms/smsfake"
 	"github.com/hostrepute/reputecast/internal/sms/telnyx"
 )
 
 // APIKey is the sample key.
-const APIKey = "KEY0187ACMEINC5A1B2C3D4E5F"
+const APIKey = "KEY0187ACMEINC5A1B2C3D4E5F" //nolint:gosec // the recorded sample account, not a credential
 
 // The signing key is fixed so the public key is a constant tests and the
 // demo can paste.
@@ -69,10 +69,10 @@ func errs(w http.ResponseWriter, status int, code, title string) {
 func (f *Fake) serve(w http.ResponseWriter, r *http.Request) {
 	body := f.rec.Record(r)
 	switch f.Mode.Of() {
-	case contracttest.ModeOutage:
+	case smsfake.ModeOutage:
 		errs(w, 503, "10006", "Service unavailable")
 		return
-	case contracttest.ModeAuth:
+	case smsfake.ModeAuth:
 		errs(w, 401, "10009", "Authentication failed")
 		return
 	}
@@ -90,7 +90,7 @@ func (f *Fake) serve(w http.ResponseWriter, r *http.Request) {
 	case r.Method == http.MethodGet && p == "/v2/balance":
 		writeJSON(w, 200, map[string]any{"data": map[string]any{"balance": "300.00", "currency": "USD", "record_type": "balance"}})
 	case r.Method == http.MethodPost && p == "/v2/messages":
-		if fmt.Sprint(in["to"]) == contracttest.InvalidNumber {
+		if fmt.Sprint(in["to"]) == smsfake.InvalidNumber {
 			errs(w, 400, "40310", "Invalid 'to' address")
 			return
 		}
@@ -135,7 +135,7 @@ func (f *Fake) serve(w http.ResponseWriter, r *http.Request) {
 func Signed(hookURL string, payload map[string]any, at time.Time) (*http.Request, []byte) {
 	body, _ := json.Marshal(payload)
 	ts := strconv.FormatInt(at.Unix(), 10)
-	r := httptest.NewRequest(http.MethodPost, hookURL, strings.NewReader(string(body)))
+	r := httptest.NewRequestWithContext(context.Background(), http.MethodPost, hookURL, strings.NewReader(string(body)))
 	r.Header.Set("Content-Type", "application/json")
 	r.Header.Set(telnyx.TimestampHeader, ts)
 	r.Header.Set(telnyx.SignatureHeader, base64.StdEncoding.EncodeToString(ed25519.Sign(signing, []byte(ts+"|"+string(body)))))

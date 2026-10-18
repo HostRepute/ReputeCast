@@ -27,20 +27,20 @@ type SmsEvent struct {
 	// unmatched; pending while it waits for its job.
 	Normalized string `json:"normalized"`
 	// Reason, Code and the facts the detail is worded from.
-	Reason      string   `json:"reason,omitempty"`
-	Code        string   `json:"code,omitempty"`
-	Temporary   bool     `json:"temporary"`
-	Suppressed  bool     `json:"suppressed"`
-	Filtered    int64    `json:"filtered"`
-	Keyword     string   `json:"keyword,omitempty"`
-	Lists       []string `json:"lists"`
-	Replied     bool     `json:"replied"`
-	ProviderAnswered bool `json:"providerAnswered"`
-	SignatureOK bool     `json:"signatureOk"`
-	MessageRef  string   `json:"messageRef,omitempty"`
-	Number      string   `json:"number"`
-	Source      string   `json:"source"`
-	Error       string   `json:"error,omitempty"`
+	Reason           string   `json:"reason,omitempty"`
+	Code             string   `json:"code,omitempty"`
+	Temporary        bool     `json:"temporary"`
+	Suppressed       bool     `json:"suppressed"`
+	Filtered         int64    `json:"filtered"`
+	Keyword          string   `json:"keyword,omitempty"`
+	Lists            []string `json:"lists"`
+	Replied          bool     `json:"replied"`
+	ProviderAnswered bool     `json:"providerAnswered"`
+	SignatureOK      bool     `json:"signatureOk"`
+	MessageRef       string   `json:"messageRef,omitempty"`
+	Number           string   `json:"number"`
+	Source           string   `json:"source"`
+	Error            string   `json:"error,omitempty"`
 }
 
 // SmsOptOutSyncRow is a provider's opt-out sync.
@@ -57,15 +57,15 @@ type SmsOptOutSyncRow struct {
 
 // SmsEventList is the Events tab.
 type SmsEventList struct {
-	Items      []SmsEvent         `json:"items"`
-	Total      int64              `json:"total"`
-	ThisMonth  int64              `json:"thisMonth"`
-	Month      time.Time          `json:"month"`
-	Page       int                `json:"page"`
-	PageSize   int                `json:"pageSize"`
+	Items      []SmsEvent               `json:"items"`
+	Total      int64                    `json:"total"`
+	ThisMonth  int64                    `json:"thisMonth"`
+	Month      time.Time                `json:"month"`
+	Page       int                      `json:"page"`
+	PageSize   int                      `json:"pageSize"`
 	Providers  []SmsSuppressionProvider `json:"providers"`
-	OptOutSync []SmsOptOutSyncRow `json:"optOutSync"`
-	Suppressed int64              `json:"suppressed"`
+	OptOutSync []SmsOptOutSyncRow       `json:"optOutSync"`
+	Suppressed int64                    `json:"suppressed"`
 }
 
 // SmsEventFilter filters the Events tab: receipts, keywords, replies or

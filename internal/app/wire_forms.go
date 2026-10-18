@@ -61,9 +61,13 @@ func (a *App) formsService() *forms.Service {
 // public pages (wire_transactional.go sets it).
 var publicNotifications = func(*App) publicpages.Notifications { return nil }
 
+// publicTextTerms writes the text message terms page (wire_texting.go sets it).
+var publicTextTerms = func(*App) publicpages.TextTerms { return nil }
+
 func (a *App) publicPages() *publicpages.Handler {
 	fs := a.formsService()
 	pl := a.polls()
+	tt := publicTextTerms(a)
 	formsMu.Lock()
 	defer formsMu.Unlock()
 	if h, ok := formsPages[a]; ok {
@@ -78,6 +82,8 @@ func (a *App) publicPages() *publicpages.Handler {
 		// their version of conditional content and their poll links.
 		Polls:   pl,
 		Browser: browserContent{a},
+		// The text message terms page (SMS).
+		TextTerms: tt,
 	}
 	formsPages[a] = h
 	return h

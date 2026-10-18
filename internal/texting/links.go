@@ -116,12 +116,12 @@ func (s *Service) recordClick(ctx context.Context, l store.SmsLink, r *http.Requ
 		if err != nil {
 			return err
 		}
-		m, err := q.ChanMessage(ctx, *l.MessageID)
-		if err != nil {
-			return nil
+		// The text may be gone (past retention): the click still counts.
+		if m, err := q.ChanMessage(ctx, *l.MessageID); err == nil {
+			_, err = webhooks.Emit(ctx, tx, ws.ID, ws.Slug, "sms.clicked", s.hookData(m, map[string]any{"url": l.Original, "machine": machine, "clicked_at": now}))
+			return err
 		}
-		_, err = webhooks.Emit(ctx, tx, ws.ID, ws.Slug, "sms.clicked", s.hookData(m, map[string]any{"url": l.Original, "machine": machine, "clicked_at": now}))
-		return err
+		return nil
 	})
 	if err != nil {
 		s.log().WarnContext(ctx, "sms click", "code", l.Code, "err", err)

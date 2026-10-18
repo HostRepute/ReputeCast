@@ -193,10 +193,9 @@ func (s *Service) buildReview(ctx context.Context, ws *store.Workspace, c store.
 			body := render(withShortLinks(rv.text.Body, domain, placeholder), r)
 			p.segments = sms.CountText(Text{Prefix: rv.text.Prefix, Body: body, OptOut: rv.text.OptOut}.Full()).Segments
 		}
-		switch {
-		case d.Sender == nil:
+		if d.Sender == nil {
 			p.skip = d.Hold
-		default:
+		} else {
 			p.cost = d.Price * float64(p.segments)
 			rv.cost += p.cost
 			rv.sent++
@@ -409,8 +408,13 @@ func (s *Service) checks(ctx context.Context, rv *review) []SmsCheck {
 // that no longer describes the campaign.
 func (rv *review) fingerprint() string {
 	h := sha256.New()
-	fmt.Fprintf(h, "%s|%s|%s|%d|%s|%v|%v|%s|%d|%.4f", rv.text.Full(), rv.c.Audience, rv.c.ScheduleMode, rv.sent, rv.c.PendingPolicy, rv.c.LocalDate, rv.c.LocalMinute,
-		rv.c.Thresholds, rv.c.Version, rv.cost)
+	fmt.Fprintf(h, "%s|%s|%s|%d|%s|%s|%d|%.4f", rv.text.Full(), rv.c.Audience, rv.c.ScheduleMode, rv.sent, rv.c.PendingPolicy, rv.c.Thresholds, rv.c.Version, rv.cost)
+	if rv.c.LocalDate != nil {
+		fmt.Fprintf(h, "|%s", rv.c.LocalDate.Format("2006-01-02"))
+	}
+	if rv.c.LocalMinute != nil {
+		fmt.Fprintf(h, "|%d", *rv.c.LocalMinute)
+	}
 	if rv.c.SendAt != nil {
 		fmt.Fprintf(h, "|%s", rv.c.SendAt.UTC().Format(time.RFC3339))
 	}

@@ -2,7 +2,6 @@ package texting
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 	"slices"
 	"strings"
@@ -105,25 +104,25 @@ type SmsLinkView struct {
 
 // SmsBudgetView is the month's budget around a send.
 type SmsBudgetView struct {
-	Month    time.Time `json:"month"`
-	Budget   float64   `json:"budget"`
-	AlertPct int       `json:"alertPct"`
-	Spent    float64   `json:"spent"`
-	After    float64   `json:"after"`
-	SetBy    string    `json:"setBy,omitempty"`
+	Month    time.Time  `json:"month"`
+	Budget   float64    `json:"budget"`
+	AlertPct int        `json:"alertPct"`
+	Spent    float64    `json:"spent"`
+	After    float64    `json:"after"`
+	SetBy    string     `json:"setBy,omitempty"`
 	SetAt    *time.Time `json:"setAt,omitempty"`
 }
 
 // SmsTestNumber is a member's phone for test texts, with its last test.
 type SmsTestNumber struct {
-	ID       string `json:"id"`
-	Name     string `json:"name"`
-	Role     string `json:"role"`
-	Color    string `json:"color"`
-	Phone    string `json:"phone"`
-	Display  string `json:"display"`
-	Country  string `json:"country"`
-	UserID   string `json:"userId,omitempty"`
+	ID       string         `json:"id"`
+	Name     string         `json:"name"`
+	Role     string         `json:"role"`
+	Color    string         `json:"color"`
+	Phone    string         `json:"phone"`
+	Display  string         `json:"display"`
+	Country  string         `json:"country"`
+	UserID   string         `json:"userId,omitempty"`
 	LastTest *SmsTestResult `json:"lastTest,omitempty"`
 }
 
@@ -148,7 +147,7 @@ type SmsCampaignAccess struct {
 	Missing []string `json:"missing"`
 	Helpers []string `json:"helpers"`
 	// CanManageRules is providers:manage (Routing & rules).
-	CanManageRules bool `json:"canManageRules"`
+	CanManageRules  bool `json:"canManageRules"`
 	CanViewContacts bool `json:"canViewContacts"`
 }
 
@@ -168,22 +167,22 @@ type SmsCampaign struct {
 	Prefix string `json:"prefix"`
 	OptOut string `json:"optOut"`
 	// Text is the whole text as written (links not shortened yet).
-	Text     string            `json:"text"`
-	Audience []SmsAudienceRef  `json:"audience"`
-	Funnel   SmsFunnel         `json:"funnel"`
-	Routes   []SmsRouteLine    `json:"routes"`
-	Counter  SmsCounter        `json:"counter"`
-	Links    []SmsLinkView     `json:"links"`
-	ShortDomain       string     `json:"shortDomain"`
-	ShortDomainStatus string     `json:"shortDomainStatus" enum:"none,pending,verified,failed"`
-	Costs             []CountryLine `json:"costs"`
-	Texts             int64      `json:"texts"`
-	Segments          int64      `json:"segments"`
-	Cost              float64    `json:"cost"`
-	PricedOn          *time.Time `json:"pricedOn,omitempty"`
-	PriceProviders    []string   `json:"priceProviders"`
-	Budget            SmsBudgetView `json:"budget"`
-	Tests             []SmsTestNumber `json:"tests"`
+	Text              string           `json:"text"`
+	Audience          []SmsAudienceRef `json:"audience"`
+	Funnel            SmsFunnel        `json:"funnel"`
+	Routes            []SmsRouteLine   `json:"routes"`
+	Counter           SmsCounter       `json:"counter"`
+	Links             []SmsLinkView    `json:"links"`
+	ShortDomain       string           `json:"shortDomain"`
+	ShortDomainStatus string           `json:"shortDomainStatus" enum:"none,pending,verified,failed"`
+	Costs             []CountryLine    `json:"costs"`
+	Texts             int64            `json:"texts"`
+	Segments          int64            `json:"segments"`
+	Cost              float64          `json:"cost"`
+	PricedOn          *time.Time       `json:"pricedOn,omitempty"`
+	PriceProviders    []string         `json:"priceProviders"`
+	Budget            SmsBudgetView    `json:"budget"`
+	Tests             []SmsTestNumber  `json:"tests"`
 	// Schedule is when it goes out (Review & send sets it).
 	ScheduleMode string     `json:"scheduleMode" enum:"now,at,local"`
 	SendAt       *time.Time `json:"sendAt,omitempty"`
@@ -407,7 +406,7 @@ func (s *Service) composerView(ctx context.Context, ws *store.Workspace, p *auth
 		sp, longest, lc := spread(rv.text, domain, f.Recipients)
 		var over int64
 		for _, x := range sp {
-			out.Counter.Spread = append(out.Counter.Spread, SmsSpread{Segments: x.Segments, Recipients: x.Recipients})
+			out.Counter.Spread = append(out.Counter.Spread, SmsSpread(x))
 			if x.Segments > sp[0].Segments {
 				over += x.Recipients
 			}
@@ -513,7 +512,7 @@ func (s *Service) Update(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		version++
 	}
 	now := s.now()
-	before := map[string]any{"name": c.Name, "body": c.Body, "audience": json.RawMessage(c.Audience)}
+	before := map[string]any{"name": c.Name, "body": c.Body, "audience": c.Audience}
 	err = s.tx(ctx, func(q *store.Queries, _ pgx.Tx) error {
 		if err := q.SmsCampaignSave(ctx, store.SmsCampaignSaveParams{Name: name, Audience: jsonOf(aud), ContentHash: contentHash(textOf(body, r).Full()), Version: version,
 			By: uuidPtr(p.UserID), At: now, ID: c.ID, WorkspaceID: ws.ID}); err != nil {

@@ -62,6 +62,22 @@ func (r *Recorder) Requests() []Recorded {
 	return append([]Recorded(nil), r.reqs...)
 }
 
+// Modes a fake answers in.
+const (
+	ModeOK = ""
+	// ModeOutage answers 5xx to every call.
+	ModeOutage = "outage"
+	// ModeAuth answers 401: the credentials were revoked.
+	ModeAuth = "auth"
+)
+
+// InvalidNumber is a recipient the fakes refuse as not a valid number.
+const InvalidNumber = "+15005550001"
+
+// LandlineNumber is a recipient the fakes refuse as a landline (or report
+// undelivered as one, for providers that only learn it later).
+const LandlineNumber = "+15005550009"
+
 // Mode is a fake's failure mode: "" answers normally, "outage" answers
 // 503, "auth" answers 401.
 type Mode func() string

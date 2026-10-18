@@ -841,9 +841,12 @@ func TestUnsubscribe(t *testing.T) {
 	path := "/p/acme-newsletter/unsubscribe/" + tok
 	oneClick := url.Values{"List-Unsubscribe": {"One-Click"}}
 
+	// Sam registered for Acme Summit 2026 too (SMS, X21: the SmsStates
+	// contact profile), so the page names three lists and leaving writes
+	// three consent events.
 	t.Run("page", func(t *testing.T) {
 		r := get(t, env, path)
-		must(t, r, 200, "Unsubscribe sam.rivera@outlook.com?", "You're on Weekly Digest and Product Updates.",
+		must(t, r, 200, "Unsubscribe sam.rivera@outlook.com?", "You're on Weekly Digest, Product Updates and Acme Summit 2026.",
 			"Too many emails? Get fewer instead.", "Send me the monthly best-of only", "Why are you leaving?", "Not Sam?",
 			"Unsubscribe from all Acme emails", "One-click unsubscribe from your mail app works too.")
 		if r.Header.Get("Cache-Control") != "no-store" || r.Header.Get("Referrer-Policy") != "no-referrer" {
@@ -877,8 +880,8 @@ func TestUnsubscribe(t *testing.T) {
 		if reason != "unsubscribe" || scope != "marketing" || source != "one_click" {
 			t.Errorf("suppression %s / %s / %s, want unsubscribe / marketing / one_click", reason, scope, source)
 		}
-		if n := count(t, env, `SELECT count(*) FROM consent_events WHERE contact_id = $1 AND action = 'unsubscribed' AND source = 'one_click' AND occurred_at >= $2`, ids.sam, start); n != 2 {
-			t.Errorf("%d one-click consent events, want one per list (2)", n)
+		if n := count(t, env, `SELECT count(*) FROM consent_events WHERE contact_id = $1 AND action = 'unsubscribed' AND source = 'one_click' AND occurred_at >= $2`, ids.sam, start); n != 3 {
+			t.Errorf("%d one-click consent events, want one per list (3)", n)
 		}
 	})
 	t.Run("a repeated one-click is fine and changes nothing", func(t *testing.T) {
@@ -939,8 +942,8 @@ func TestUnsubscribe(t *testing.T) {
 		if reason != "other" || comment != "switching email addresses" {
 			t.Errorf("feedback %q %q", reason, comment)
 		}
-		if n := count(t, env, `SELECT count(*) FROM consent_events WHERE contact_id = $1 AND action = 'unsubscribed' AND source = 'unsubscribe_page' AND occurred_at >= $2`, ids.sam, start); n != 2 {
-			t.Errorf("%d unsubscribe-page events, want 2", n)
+		if n := count(t, env, `SELECT count(*) FROM consent_events WHERE contact_id = $1 AND action = 'unsubscribed' AND source = 'unsubscribe_page' AND occurred_at >= $2`, ids.sam, start); n != 3 {
+			t.Errorf("%d unsubscribe-page events, want 3", n)
 		}
 		if src := one[string](t, env, `SELECT source FROM suppressions WHERE workspace_id = $1 AND email = 'sam.rivera@outlook.com'`, ids.ws); src != "unsubscribe_page" {
 			t.Errorf("suppression source %q", src)

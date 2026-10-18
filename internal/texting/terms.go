@@ -11,6 +11,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -35,6 +36,8 @@ type SmsTermsContent struct {
 	// HelpNumber and HelpEmail are shown as links in the Help section.
 	HelpNumber string `json:"helpNumber,omitempty" maxLength:"40"`
 	HelpEmail  string `json:"helpEmail,omitempty" maxLength:"200"`
+	// Address is the sender's postal address, at the foot of the page.
+	Address string `json:"address,omitempty" maxLength:"300"`
 }
 
 // SmsTerms is the terms page in Forms & pages.
@@ -187,6 +190,115 @@ type TermsPage struct {
 	Version int
 	Since   time.Time
 	Content SmsTermsContent
+}
+
+// PublicTermsPage is the public page with every word written: the terms'
+// own text, and the page's headings in lang (English until translated).
+type PublicTermsPage struct {
+	Lang, Title, Version, Intro             string
+	Sections                                []PublicTermsSection
+	ClosingHeading, ClosingText             string
+	ManageLabel, BackLabel, BackURL, Footer string
+}
+
+// PublicTermsSection is a heading and its text; Links are words in the
+// text that link somewhere (a number, an address, the privacy policy).
+type PublicTermsSection struct {
+	Heading, Text string
+	Links         []PublicTermsLink
+}
+
+// PublicTermsLink is words to link and where.
+type PublicTermsLink struct {
+	Text, Href string
+	NoWrap     bool
+}
+
+var (
+	mTermsTitle          = msgs.M("terms.title")
+	mTermsVersion        = msgs.M("terms.version")
+	mTermsProgram        = msgs.M("terms.program")
+	mTermsFrequency      = msgs.M("terms.frequency")
+	mTermsCost           = msgs.M("terms.cost")
+	mTermsHelp           = msgs.M("terms.help")
+	mTermsOptOut         = msgs.M("terms.optOut")
+	mTermsSenders        = msgs.M("terms.senders")
+	mTermsPrivacy        = msgs.M("terms.privacy")
+	mTermsCarriers       = msgs.M("terms.carriers")
+	mTermsClosingHeading = msgs.M("terms.closingHeading")
+	mTermsClosingNumber  = msgs.M("terms.closingNumber")
+	mTermsClosing        = msgs.M("terms.closing")
+	mTermsManage         = msgs.M("terms.manage")
+	mTermsBack           = msgs.M("terms.back")
+	mTermsFooterAddress  = msgs.M("terms.footerAddress")
+	mTermsFooter         = msgs.M("terms.footer")
+	mTermsPrivacyRead    = msgs.M("terms.privacyRead")
+	mTermsPrivacyLink    = msgs.M("terms.privacyLink")
+)
+
+// PublicTermsPage writes the public page in lang (the pages' language);
+// false when the workspace has no SMS provider (the page answers 404).
+func (s *Service) PublicTermsPage(ctx context.Context, ws *store.Workspace, lang i18n.Lang, code string) (PublicTermsPage, bool) {
+	tp, ok := s.PublicTerms(ctx, ws)
+	if !ok {
+		return PublicTermsPage{}, false
+	}
+	c := tp.Content
+	date := tp.Since.In(location(ws.Timezone)).Format("2 Jan 2006")
+	if code != "" && code != "en" {
+		date = lang.Region.Date(tp.Since.In(location(ws.Timezone)))
+	}
+	out := PublicTermsPage{Lang: code, Title: mTermsTitle.Text(lang, nil), Version: mTermsVersion.Text(lang, i18n.Args{"version": tp.Version, "date": date}),
+		Intro: c.Intro, ClosingHeading: mTermsClosingHeading.Text(lang, nil), ManageLabel: mTermsManage.Text(lang, nil)}
+	number := []PublicTermsLink{}
+	if c.HelpNumber != "" {
+		number = append(number, PublicTermsLink{Text: c.HelpNumber, NoWrap: true})
+	}
+	add := func(heading i18n.Msg, text string, links ...PublicTermsLink) {
+		if strings.TrimSpace(text) != "" {
+			out.Sections = append(out.Sections, PublicTermsSection{Heading: heading.Text(lang, nil), Text: text, Links: links})
+		}
+	}
+	add(mTermsProgram, c.Program)
+	add(mTermsFrequency, c.Frequency)
+	add(mTermsCost, c.Cost)
+	helpLinks := append([]PublicTermsLink{}, number...)
+	if c.HelpEmail != "" {
+		helpLinks = append(helpLinks, PublicTermsLink{Text: c.HelpEmail, Href: "mailto:" + c.HelpEmail})
+	}
+	add(mTermsHelp, c.Help, helpLinks...)
+	add(mTermsOptOut, c.OptOut)
+	add(mTermsSenders, c.Senders, number...)
+	privacy := c.Privacy
+	var privacyLinks []PublicTermsLink
+	if c.PrivacyURL != "" {
+		read := mTermsPrivacyRead.Text(lang, nil)
+		privacy = strings.TrimSpace(privacy + " " + read)
+		privacyLinks = append(privacyLinks, PublicTermsLink{Text: mTermsPrivacyLink.Text(lang, nil), Href: c.PrivacyURL})
+	}
+	add(mTermsPrivacy, privacy, privacyLinks...)
+	add(mTermsCarriers, c.Carriers)
+	if c.HelpNumber != "" {
+		out.ClosingText = mTermsClosingNumber.Text(lang, i18n.Args{"number": c.HelpNumber})
+	} else {
+		out.ClosingText = mTermsClosing.Text(lang, nil)
+	}
+	// Back to where people give SMS consent: the page of the latest consent.
+	var page string
+	_ = s.Pool.QueryRow(ctx, `SELECT page FROM channel_consent_events WHERE workspace_id = $1 AND channel = 'sms' AND page LIKE '%.%' ORDER BY occurred_at DESC LIMIT 1`,
+		ws.ID).Scan(&page)
+	if page != "" {
+		if !strings.HasPrefix(page, "http") {
+			page = "https://" + page
+		}
+		out.BackLabel, out.BackURL = mTermsBack.Text(lang, nil), page
+	}
+	if strings.TrimSpace(c.Address) != "" {
+		out.Footer = mTermsFooterAddress.Text(lang, i18n.Args{"address": strings.TrimSuffix(strings.TrimSpace(c.Address), ".")})
+	} else {
+		out.Footer = mTermsFooter.Text(lang, nil)
+	}
+	return out, true
 }
 
 // PublicTerms is what the public page shows; false when the workspace has
