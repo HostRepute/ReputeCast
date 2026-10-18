@@ -199,12 +199,6 @@ func (s *Service) HomeNav(ctx context.Context, ws *store.Workspace, p *authz.Pri
 // SaveHomeNav saves Website › Home & navigation, with an audit entry per
 // part changed: the home page, the navigation, the site's identity.
 func (s *Service) SaveHomeNav(ctx context.Context, ws *store.Workspace, p *authz.Principal, in WebsiteHomeNavInput) (WebsiteHomeNav, error) {
-	if len(in.Header) > MaxHeaderLinks {
-		return WebsiteHomeNav{}, api.Invalid("body.header", tr(ctx, "nav.headerFull", nil))
-	}
-	if strings.TrimSpace(in.Identity.Title) == "" {
-		return WebsiteHomeNav{}, api.Invalid("body.identity.title", tr(ctx, "identity.titleRequired", nil))
-	}
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		c, err := s.lock(ctx, q, ws)
@@ -214,90 +208,9 @@ func (s *Service) SaveHomeNav(ctx context.Context, ws *store.Workspace, p *authz
 		before := *c
 		beforeSections := slices.Clone(c.Sections)
 		beforeHeader := slices.Clone(c.Header)
-		switch in.Layout {
-		case LayoutFeatured, LayoutList, LayoutGrid:
-			c.row.HomeLayout = in.Layout
-		default:
-			return api.Invalid("body.layout", tr(ctx, "home.layoutInvalid", nil))
+		if err := s.applyHomeNav(ctx, q, ws, c, in); err != nil {
+			return err
 		}
-		featured := []uuid.UUID{}
-		for _, raw := range in.Featured {
-			id, err := uuid.Parse(raw)
-			if err != nil {
-				return api.Invalid("body.featured", tr(ctx, "post.notFound", nil))
-			}
-			if _, err := q.WebsitePostGet(ctx, store.WebsitePostGetParams{WorkspaceID: ws.ID, ID: id}); err != nil {
-				return api.Invalid("body.featured", tr(ctx, "post.notFound", nil))
-			}
-			if !slices.Contains(featured, id) {
-				featured = append(featured, id)
-			}
-		}
-		if len(featured) > MaxFeatured {
-			return api.Invalid("body.featured", tr(ctx, "post.featuredFull", nil))
-		}
-		c.row.Featured = featured
-		sections := []WebsiteHomeSection{}
-		for _, sec := range in.Sections {
-			switch sec.Kind {
-			case SectionSubscribe, SectionFeatured, SectionLatest, SectionAbout, SectionTiers:
-			case SectionTag:
-				id, err := uuid.Parse(sec.Tag)
-				if err != nil {
-					return api.Invalid("body.sections", tr(ctx, "tag.notFound", nil))
-				}
-				if _, err := q.WebsiteTagGet(ctx, store.WebsiteTagGetParams{WorkspaceID: ws.ID, ID: id}); err != nil {
-					return api.Invalid("body.sections", tr(ctx, "tag.notFound", nil))
-				}
-			default:
-				return api.Invalid("body.sections", tr(ctx, "home.sectionInvalid", nil))
-			}
-			if sec.Kind == SectionLatest && (sec.Count < 1 || sec.Count > 24) {
-				sec.Count = 6
-			}
-			if sec.Kind == SectionTag && (sec.Count < 1 || sec.Count > 12) {
-				sec.Count = 3
-			}
-			sec.Note, sec.Text = strings.TrimSpace(sec.Note), strings.TrimSpace(sec.Text)
-			sections = append(sections, sec)
-		}
-		c.Sections = sections
-		header := []WebsiteNavLink{}
-		for _, l := range in.Header {
-			l.Label = strings.TrimSpace(l.Label)
-			switch l.Kind {
-			case NavHome, NavArchive:
-			case NavTag:
-				id, err := uuid.Parse(l.Ref)
-				if err != nil {
-					return api.Invalid("body.header", tr(ctx, "tag.notFound", nil))
-				}
-				if _, err := q.WebsiteTagGet(ctx, store.WebsiteTagGetParams{WorkspaceID: ws.ID, ID: id}); err != nil {
-					return api.Invalid("body.header", tr(ctx, "tag.notFound", nil))
-				}
-			case NavPage:
-				l.Ref = strings.Trim(strings.TrimSpace(l.Ref), "/")
-				if !slugRe.MatchString(l.Ref) {
-					return api.Invalid("body.header", tr(ctx, "nav.pageInvalid", nil))
-				}
-			case NavURL:
-				u, err := url.Parse(strings.TrimSpace(l.URL))
-				if err != nil || (u.Scheme != "https" && u.Scheme != "http") || u.Host == "" || l.Label == "" {
-					return api.Invalid("body.header", tr(ctx, "nav.urlInvalid", nil))
-				}
-			default:
-				return api.Invalid("body.header", tr(ctx, "nav.kindInvalid", nil))
-			}
-			if utf8.RuneCountInString(l.Label) > 40 {
-				return api.Invalid("body.header", tr(ctx, "nav.labelLong", nil))
-			}
-			header = append(header, l)
-		}
-		c.Header, c.Footer = header, in.Footer
-		c.row.AboutTitle, c.row.AboutText, c.row.AboutLink = strings.TrimSpace(in.About.Title), strings.TrimSpace(in.About.Text), strings.TrimSpace(in.About.Link)
-		c.row.Title, c.row.Tagline = strings.TrimSpace(in.Identity.Title), strings.TrimSpace(in.Identity.Tagline)
-		c.row.Description, c.row.SocialImage = strings.TrimSpace(in.Identity.Description), strings.TrimSpace(in.Identity.SocialImage)
-		c.row.IndexSite = in.Index
 		if err := s.save(ctx, q, ws, c, userID(p)); err != nil {
 			return err
 		}
@@ -337,4 +250,131 @@ func (s *Service) SaveHomeNav(ctx context.Context, ws *store.Workspace, p *authz
 		return WebsiteHomeNav{}, err
 	}
 	return s.HomeNav(ctx, ws, p)
+}
+
+// applyHomeNav checks Home & navigation settings and lays them over c.
+func (s *Service) applyHomeNav(ctx context.Context, q *store.Queries, ws *store.Workspace, c *config, in WebsiteHomeNavInput) error {
+	if len(in.Header) > MaxHeaderLinks {
+		return api.Invalid("body.header", tr(ctx, "nav.headerFull", nil))
+	}
+	if strings.TrimSpace(in.Identity.Title) == "" {
+		return api.Invalid("body.identity.title", tr(ctx, "identity.titleRequired", nil))
+	}
+	switch in.Layout {
+	case LayoutFeatured, LayoutList, LayoutGrid:
+		c.row.HomeLayout = in.Layout
+	default:
+		return api.Invalid("body.layout", tr(ctx, "home.layoutInvalid", nil))
+	}
+	featured := []uuid.UUID{}
+	for _, raw := range in.Featured {
+		id, err := uuid.Parse(raw)
+		if err != nil {
+			return api.Invalid("body.featured", tr(ctx, "post.notFound", nil))
+		}
+		if _, err := q.WebsitePostGet(ctx, store.WebsitePostGetParams{WorkspaceID: ws.ID, ID: id}); err != nil {
+			return api.Invalid("body.featured", tr(ctx, "post.notFound", nil))
+		}
+		if !slices.Contains(featured, id) {
+			featured = append(featured, id)
+		}
+	}
+	if len(featured) > MaxFeatured {
+		return api.Invalid("body.featured", tr(ctx, "post.featuredFull", nil))
+	}
+	c.row.Featured = featured
+	sections := []WebsiteHomeSection{}
+	for _, sec := range in.Sections {
+		switch sec.Kind {
+		case SectionSubscribe, SectionFeatured, SectionLatest, SectionAbout, SectionTiers:
+		case SectionTag:
+			id, err := uuid.Parse(sec.Tag)
+			if err != nil {
+				return api.Invalid("body.sections", tr(ctx, "tag.notFound", nil))
+			}
+			if _, err := q.WebsiteTagGet(ctx, store.WebsiteTagGetParams{WorkspaceID: ws.ID, ID: id}); err != nil {
+				return api.Invalid("body.sections", tr(ctx, "tag.notFound", nil))
+			}
+		default:
+			return api.Invalid("body.sections", tr(ctx, "home.sectionInvalid", nil))
+		}
+		if sec.Kind == SectionLatest && (sec.Count < 1 || sec.Count > 24) {
+			sec.Count = 6
+		}
+		if sec.Kind == SectionTag && (sec.Count < 1 || sec.Count > 12) {
+			sec.Count = 3
+		}
+		sec.Note, sec.Text = strings.TrimSpace(sec.Note), strings.TrimSpace(sec.Text)
+		sections = append(sections, sec)
+	}
+	c.Sections = sections
+	header := []WebsiteNavLink{}
+	for _, l := range in.Header {
+		l.Label = strings.TrimSpace(l.Label)
+		switch l.Kind {
+		case NavHome, NavArchive:
+		case NavTag:
+			id, err := uuid.Parse(l.Ref)
+			if err != nil {
+				return api.Invalid("body.header", tr(ctx, "tag.notFound", nil))
+			}
+			if _, err := q.WebsiteTagGet(ctx, store.WebsiteTagGetParams{WorkspaceID: ws.ID, ID: id}); err != nil {
+				return api.Invalid("body.header", tr(ctx, "tag.notFound", nil))
+			}
+		case NavPage:
+			l.Ref = strings.Trim(strings.TrimSpace(l.Ref), "/")
+			if !slugRe.MatchString(l.Ref) {
+				return api.Invalid("body.header", tr(ctx, "nav.pageInvalid", nil))
+			}
+		case NavURL:
+			u, err := url.Parse(strings.TrimSpace(l.URL))
+			if err != nil || (u.Scheme != "https" && u.Scheme != "http") || u.Host == "" || l.Label == "" {
+				return api.Invalid("body.header", tr(ctx, "nav.urlInvalid", nil))
+			}
+		default:
+			return api.Invalid("body.header", tr(ctx, "nav.kindInvalid", nil))
+		}
+		if utf8.RuneCountInString(l.Label) > 40 {
+			return api.Invalid("body.header", tr(ctx, "nav.labelLong", nil))
+		}
+		header = append(header, l)
+	}
+	c.Header, c.Footer = header, in.Footer
+	c.row.AboutTitle, c.row.AboutText, c.row.AboutLink = strings.TrimSpace(in.About.Title), strings.TrimSpace(in.About.Text), strings.TrimSpace(in.About.Link)
+	c.row.Title, c.row.Tagline = strings.TrimSpace(in.Identity.Title), strings.TrimSpace(in.Identity.Tagline)
+	c.row.Description, c.row.SocialImage = strings.TrimSpace(in.Identity.Description), strings.TrimSpace(in.Identity.SocialImage)
+	c.row.IndexSite = in.Index
+	return nil
+}
+
+// homeDraftKey carries unsaved Home & navigation settings (WithHomeNavDraft).
+type homeDraftKey struct{}
+
+type homeDraft struct {
+	ws uuid.UUID
+	c  *config
+}
+
+// WithHomeNavDraft returns ctx with unsaved Home & navigation settings laid
+// over the saved ones: the site's pages built in it (the tab's live
+// preview) read them. Nothing is saved; settings that wouldn't save are
+// refused the same way.
+func (s *Service) WithHomeNavDraft(ctx context.Context, ws *store.Workspace, in WebsiteHomeNavInput) (context.Context, error) {
+	c, err := s.load(ctx, s.Q, ws)
+	if err != nil {
+		return ctx, err
+	}
+	if err := s.applyHomeNav(ctx, s.Q, ws, c, in); err != nil {
+		return ctx, err
+	}
+	return context.WithValue(ctx, homeDraftKey{}, &homeDraft{ws: ws.ID, c: c}), nil
+}
+
+// draftConfig is the unsaved settings ctx carries for ws, if any.
+func draftConfig(ctx context.Context, ws uuid.UUID) *config {
+	if d, ok := ctx.Value(homeDraftKey{}).(*homeDraft); ok && d.ws == ws {
+		cp := *d.c
+		return &cp
+	}
+	return nil
 }

@@ -105,6 +105,8 @@ type WebsitePost struct {
 	ReadingMinutes int                 `json:"readingMinutes"`
 	Checks         []WebsiteWebCheck   `json:"checks"`
 	Publish        WebsitePublishState `json:"publish"`
+	// Bylines are the workspace's members a byline can name.
+	Bylines []WebsiteByline `json:"bylines"`
 }
 
 // Post returns one post.
@@ -154,6 +156,12 @@ func (s *Service) detail(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	out.ReadingMinutes = render.ReadingMinutes(out.Words)
 	out.Checks = s.checks(ctx, ws, post, res, rerr == nil)
 	out.Publish = s.publishState(ctx, ws, p, pr, out.Checks)
+	out.Bylines = []WebsiteByline{}
+	if members, err := s.Q.ApprovalMembers(ctx, ws.ID); err == nil {
+		for _, m := range members {
+			out.Bylines = append(out.Bylines, WebsiteByline{UserID: m.ID.String(), Name: m.Name, Color: m.AvatarColor})
+		}
+	}
 	return out, nil
 }
 
@@ -234,6 +242,10 @@ func slugTail(title, slug string) string {
 	}
 	return "2"
 }
+
+// PostHash is what an approval of a post covers, for a post and its
+// content (the demo's request for Daniel's post).
+func PostHash(p store.WebsitePost, src string) string { return contentHash(p, src) }
 
 // contentHash covers what an approval of a post covers: its content and
 // title, its address, its visibility and when it goes live.

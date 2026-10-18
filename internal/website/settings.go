@@ -168,6 +168,10 @@ func decodeConfig(row store.WebsiteSetting) *config {
 
 // load reads (and creates on first use) a workspace's website settings.
 func (s *Service) load(ctx context.Context, q *store.Queries, ws *store.Workspace) (*config, error) {
+	// A preview with unsaved Home & navigation settings (WithHomeNavDraft).
+	if c := draftConfig(ctx, ws.ID); c != nil {
+		return c, nil
+	}
 	row, err := q.WebsiteSettingsGet(ctx, ws.ID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		if err := q.WebsiteSettingsEnsure(ctx, ws.ID); err != nil {
