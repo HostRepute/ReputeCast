@@ -32,9 +32,9 @@ func (a *App) ai() *ai.Service {
 	}
 }
 
-// catalogSources fill the integrations hub's later groups: AI models.
-func catalogSources(a *App) map[string]integrations.GroupSource {
-	return map[string]integrations.GroupSource{"ai": a.ai().CatalogEntries}
+// aiCatalog fills the integrations hub's AI models group.
+func aiCatalog(a *App) integrations.GroupSource {
+	return a.ai().CatalogEntries
 }
 
 func init() {

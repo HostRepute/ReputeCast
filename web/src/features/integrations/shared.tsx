@@ -75,6 +75,11 @@ export const entryName: Record<EntryKey, MessageDescriptor> = {
   webhooks: m.webhooks,
   mcp: m.mcp,
   ...aiEntryName,
+  zerobounce: m.zerobounce,
+  neverbounce: m.neverbounce,
+  kickbox: m.kickbox,
+  bouncer: m.bouncer,
+  emailable: m.emailable,
 }
 
 export const maintainer: Record<EntryKey, MessageDescriptor> = {
@@ -87,6 +92,11 @@ export const maintainer: Record<EntryKey, MessageDescriptor> = {
   webhooks: m.builtIn,
   mcp: m.builtIn,
   ...aiMaintainer,
+  zerobounce: m.byOwnAccount,
+  neverbounce: m.byOwnAccount,
+  kickbox: m.byOwnAccount,
+  bouncer: m.byOwnAccount,
+  emailable: m.byOwnAccount,
 }
 
 export const entryLine: Record<EntryKey, MessageDescriptor> = {
@@ -99,6 +109,11 @@ export const entryLine: Record<EntryKey, MessageDescriptor> = {
   webhooks: m.webhooksLine,
   mcp: m.mcpLine,
   ...aiEntryLine,
+  zerobounce: m.zerobounceLine,
+  neverbounce: m.neverbounceLine,
+  kickbox: m.kickboxLine,
+  bouncer: m.bouncerLine,
+  emailable: m.emailableLine,
 }
 
 export const capabilities: Record<EntryKey, MessageDescriptor[]> = {
@@ -111,7 +126,17 @@ export const capabilities: Record<EntryKey, MessageDescriptor[]> = {
   webhooks: [m.capSigned, m.capReplay],
   mcp: [m.capScopedAgents],
   ...aiCatalogCapabilities,
+  zerobounce: [m.capBulkLists, m.capRealtime, m.capCreditBalance],
+  neverbounce: [m.capBulkLists, m.capRealtime, m.capCreditBalance],
+  kickbox: [m.capBulkLists, m.capRealtime, m.capCreditBalance],
+  bouncer: [m.capBulkLists, m.capRealtime, m.capCreditBalance],
+  emailable: [m.capBulkLists, m.capRealtime, m.capCreditBalance],
 }
+
+/** The address verification services' keys (X14). */
+export const verificationKeys = ['zerobounce', 'neverbounce', 'kickbox', 'bouncer', 'emailable'] as const
+export type VerificationKey = (typeof verificationKeys)[number]
+export const isVerification = (k: string): k is VerificationKey => (verificationKeys as readonly string[]).includes(k)
 
 /** Where "Open Zapier" goes: the platform's own app (n8n: the address it was connected with). */
 export function platformUrl(kind: PlatformKind, address?: string): string | undefined {
@@ -123,7 +148,7 @@ export function platformUrl(kind: PlatformKind, address?: string): string | unde
 /** The board's logo tiles: letters for the apps, icons for the built-in ones. */
 export function Tile({ k, size }: { k: EntryKey; size?: 'sm' | 'lg' }) {
   const px = size === 'lg' ? 22 : size === 'sm' ? 14 : 18
-  const letters: Partial<Record<EntryKey, string>> = { zapier: 'Z', make: 'M', n8n: 'n8n', wordpress: 'W' }
+  const letters: Partial<Record<EntryKey, string>> = { zapier: 'Z', make: 'M', n8n: 'n8n', wordpress: 'W', zerobounce: 'ZB', neverbounce: 'NB', kickbox: 'K', bouncer: 'B', emailable: 'E' }
   let inner: ReactNode = letters[k]
   if (k === 'hostrepute') inner = <ShieldTick size={px} />
   if (k === 'api') inner = <Icon name="code" size={px} strokeWidth={1.7} />

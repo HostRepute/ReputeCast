@@ -1,0 +1,12 @@
+{
+  "status": "success",
+  "result": "valid",
+  "flags": [
+    "has_dns",
+    "has_dns_mx",
+    "role_account",
+    "smtp_connectable"
+  ],
+  "suggested_correction": "",
+  "execution_time": 412
+}

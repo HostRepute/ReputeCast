@@ -111,7 +111,7 @@ func TestAccountOverviewInVietnamese(t *testing.T) {
 		t.Errorf("leave reason: %v", w["leaveReason"])
 	}
 	n := a["notifications"].(map[string]any)
-	if n["inApp"] != "Tất cả sự kiện" || n["email"] != "Phê duyệt, tự tạm dừng, nhà cung cấp gặp sự cố, cảnh báo HostRepute, sự cố tích hợp, bản nháp bài viết, cảnh báo gửi email giao dịch, sự cố SMTP relay, held digest issues, paused digests, failing digest feeds, digest drafts, AI usage notices, rejected AI keys, payment problems" ||
+	if n["inApp"] != "Tất cả sự kiện" || n["email"] != "Phê duyệt, tự tạm dừng, nhà cung cấp gặp sự cố, cảnh báo HostRepute, sự cố tích hợp, bản nháp bài viết, cảnh báo gửi email giao dịch, sự cố SMTP relay, held digest issues, paused digests, failing digest feeds, digest drafts, AI usage notices, rejected AI keys, payment problems, verification jobs, low verification credits, seed sign-in failures" ||
 		n["quietHours"] != "22:00–07:00 America/New_York, chỉ email" {
 		t.Errorf("notifications: %v", n)
 	}

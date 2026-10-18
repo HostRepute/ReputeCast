@@ -4,7 +4,7 @@
 SELECT m.id, m.workspace_id, m.stream, m.campaign_id, m.automation_id, m.contact_id, m.email, m.variant, m.provider_id,
        m.mailbox_provider, m.sent_at, m.delivered_at, m.opened_at, m.human_opened_at, m.clicked_at,
        coalesce(m.content_ref, '{}'::jsonb)::jsonb AS content_ref,
-       c.started_at AS campaign_started_at
+       c.started_at AS campaign_started_at, m.kind
 FROM messages m
 LEFT JOIN campaigns c ON c.id = m.campaign_id
 WHERE m.id = @id;

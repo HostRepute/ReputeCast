@@ -10,6 +10,7 @@ import { ToolIcon } from '../icons'
 import { m } from './messages'
 import { useTx } from './state'
 import { ComposerLanguageSwitcher } from '@/features/languages/composerParts'
+import { TemplateTestMenu } from '@/features/placement/EntryPoints'
 
 /** "Account · Essential" */
 export function useCategoryLabel(): string {
@@ -190,6 +191,7 @@ export function TxHeader() {
       <ComposerLanguageSwitcher />
       <div className="flex flex-wrap items-center gap-2" style={{ marginLeft: 'auto' }}>
         <Button onClick={tx.openVersions}>{t(m.versions)}</Button>
+        <TemplateTestMenu templateId={tpl.id} published={tpl.liveVersion != null} />
         <PublishButton />
       </div>
     </header>

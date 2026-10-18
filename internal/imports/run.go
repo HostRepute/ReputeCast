@@ -194,6 +194,8 @@ type runState struct {
 	actor     *uuid.UUID
 	actorName string
 	hosting   map[string]string
+	// checks are a verification service's answers for the new addresses (X14).
+	checks *ImportChecks
 }
 
 // Run imports every staged row in batches, with a live log.
@@ -247,6 +249,7 @@ func (s *Service) Run(ctx context.Context, id uuid.UUID) error {
 		return s.runFailed(ctx, st, err)
 	}
 	st.fm = s.effectiveMap(imp, custom)
+	st.checks = s.checks(ctx, &ws, imp.ID)
 	if err := s.createNewFields(ctx, st); err != nil {
 		return s.runFailed(ctx, st, err)
 	}
@@ -367,7 +370,7 @@ func (s *Service) importBatch(ctx context.Context, st *runState, b batch) error 
 	var outs []outcome
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		for _, r := range b.rows {
-			v := classify(r, b, st.cm, now)
+			v := withCheck(classify(r, b, st.cm, now), st.checks.answer(r.Email))
 			oc, reason, err := s.applyRow(ctx, tx, st, r, v, now)
 			if err != nil {
 				return err
@@ -411,6 +414,9 @@ func (s *Service) applyRow(ctx context.Context, tx pgx.Tx, st *runState, r mappe
 	}
 	switch v.Class {
 	case classInvalid:
+		if v.ByService {
+			return skip("invalid_service")
+		}
 		return skip("invalid")
 	case classSkipStatus:
 		return skip("status_skipped")
@@ -442,6 +448,15 @@ func (s *Service) applyRow(ctx context.Context, tx pgx.Tx, st *runState, r mappe
 			if action == "pending" {
 				pending = true
 				reason = "stale"
+			}
+		}
+		// A verification service's risky rows carry its reason as a tag (X14).
+		if v.ByService {
+			if tag := serviceTag(v.Class); tag != "" {
+				r.Tags = append(r.Tags, tag)
+				if reason == "" {
+					reason = "verify_" + v.Class
+				}
 			}
 		}
 		if reason != "" {
@@ -608,8 +623,13 @@ func (s *Service) createRow(ctx context.Context, tx pgx.Tx, st *runState, r mapp
 	tags := []string{}
 	if st.opts.ImportTags {
 		tags = cleanTags(r.Tags)
-	} else if containsStr(r.Tags, "review-typo") {
-		tags = []string{"review-typo"}
+	} else {
+		// ReputeCast's own tags stay: a fixed typo and a service's reason.
+		for _, t := range r.Tags {
+			if t == "review-typo" || strings.HasPrefix(t, "verify:") {
+				tags = append(tags, t)
+			}
+		}
 	}
 	consent := "single"
 	handling := st.cm.handling(r.Status)
