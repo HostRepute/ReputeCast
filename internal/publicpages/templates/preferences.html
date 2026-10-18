@@ -9,7 +9,7 @@
       {{range .Lists}}<label class="row"><input type="checkbox" name="list" value="{{.ID}}"{{if .Checked}} checked{{end}}><span><span class="nm">{{.Name}}</span>{{with .Text}}<br><span class="ds">{{.}}</span>{{end}}</span></label>
       {{end}}<input type="hidden" name="shown" value="{{.Shown}}">
     </fieldset>
-    {{end}}{{with .Notifications}}<fieldset class="group">
+    {{end}}{{template "grow-invite" $}}{{with .Notifications}}<fieldset class="group">
       <legend class="t13b">{{.Title}}</legend>
       {{range .Items}}<label class="row"><input type="checkbox" name="category" value="{{.ID}}"{{if .Checked}} checked{{end}}><span><span class="nm">{{.Name}}</span>{{with .Text}}<br><span class="ds">{{.}}</span>{{end}}</span></label>
       {{end}}<input type="hidden" name="categories_shown" value="{{.Shown}}">

@@ -179,6 +179,11 @@ type Querier interface {
 	AutomationLostWebhookRuns(ctx context.Context, before time.Time) ([]AutomationLostWebhookRunsRow, error)
 	AutomationMessageEngaged(ctx context.Context, arg AutomationMessageEngagedParams) (bool, error)
 	AutomationMessageForStats(ctx context.Context, id uuid.UUID) (AutomationMessageForStatsRow, error)
+	// Whether a contact already went through a flow for this milestone ("once
+	// per contact per milestone").
+	AutomationMilestoneRunExists(ctx context.Context, arg AutomationMilestoneRunExistsParams) (bool, error)
+	// The milestones a "Reached a milestone" trigger can start on.
+	AutomationMilestones(ctx context.Context, workspaceID uuid.UUID) ([]AutomationMilestonesRow, error)
 	// Automation emails per sending provider since a day, and the last day each sent.
 	AutomationProviderSendsSince(ctx context.Context, arg AutomationProviderSendsSinceParams) ([]AutomationProviderSendsSinceRow, error)
 	AutomationProviders(ctx context.Context, workspaceID uuid.UUID) ([]AutomationProvidersRow, error)
@@ -1063,6 +1068,8 @@ type Querier interface {
 	ListAuditEvents(ctx context.Context, arg ListAuditEventsParams) ([]AuditEvent, error)
 	// Open alerts, held sending first: nothing goes out until it is fixed.
 	ListAutomationAlerts(ctx context.Context, workspaceID uuid.UUID) ([]ListAutomationAlertsRow, error)
+	// Milestone emails (Grow) are automation emails too, edited from their
+	// milestone: not offered to flows.
 	ListAutomationEmails(ctx context.Context, workspaceID uuid.UUID) ([]ListAutomationEmailsRow, error)
 	ListAutomationHeldAlerts(ctx context.Context) ([]ListAutomationHeldAlertsRow, error)
 	ListAutomationPublishedGraphs(ctx context.Context, automationID uuid.UUID) ([]ListAutomationPublishedGraphsRow, error)
@@ -1225,6 +1232,9 @@ type Querier interface {
 	PartnerLinkInvalid(ctx context.Context, arg PartnerLinkInvalidParams) error
 	PartnerLinkLimit(ctx context.Context, arg PartnerLinkLimitParams) error
 	PartnerLinkLock(ctx context.Context, id uuid.UUID) (PartnerLink, error)
+	// The partners that recommend a workspace, for its growth sources
+	// ("Partner · Ops Weekly").
+	PartnerLinkNames(ctx context.Context, workspaceID uuid.UUID) ([]PartnerLinkNamesRow, error)
 	PartnerLinkNotified(ctx context.Context, arg PartnerLinkNotifiedParams) error
 	PartnerLinkRotate(ctx context.Context, arg PartnerLinkRotateParams) error
 	PartnerLinkSetLimit(ctx context.Context, arg PartnerLinkSetLimitParams) error

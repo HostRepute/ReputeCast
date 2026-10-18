@@ -433,6 +433,11 @@ func (s *Service) Invite(ctx context.Context, ws *store.Workspace, code string) 
 type PreferenceCard struct {
 	Counted int64
 	HubURL  string
+	// ListName is the program's list; NextCount and NextReward the next
+	// milestone (0 when every reward is earned).
+	ListName   string
+	NextCount  int
+	NextReward string
 }
 
 // PreferenceCardFor returns a contact's card, or nil.
@@ -458,7 +463,19 @@ func (s *Service) PreferenceCardFor(ctx context.Context, ws *store.Workspace, co
 		if err != nil {
 			return nil, err
 		}
-		return &PreferenceCard{Counted: n, HubURL: pages.Referrals(s.HubToken(ws.ID, contactID, s.now()))}, nil
+		card := &PreferenceCard{Counted: n, HubURL: pages.Referrals(s.HubToken(ws.ID, contactID, s.now()))}
+		_ = s.Pool.QueryRow(ctx, `SELECT name FROM lists WHERE id = $1`, l.ListID).Scan(&card.ListName)
+		ms, err := s.Q.ReferralMilestones(ctx, l.ProgramID)
+		if err != nil {
+			return nil, err
+		}
+		for _, m := range ms {
+			if int64(m.Count) > n {
+				card.NextCount, card.NextReward = int(m.Count), m.RewardName
+				break
+			}
+		}
+		return card, nil
 	}
 	return nil, nil
 }

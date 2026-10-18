@@ -20,7 +20,11 @@ func (a *App) mcpserver() *mcpserver.Service {
 		Transactional: transactionalService(a),
 		Growth:        a.growth(),
 		Digests:       digestsService(a),
-		PublicURL:     func(context.Context) string { return a.URLs.Base() },
+		// Grow: results, referrers, the review queue (masked) and
+		// recommendations; agents only read and propose.
+		Grow:            a.referrals(),
+		Recommendations: a.recommendations(),
+		PublicURL:       func(context.Context) string { return a.URLs.Base() },
 	}
 }
 

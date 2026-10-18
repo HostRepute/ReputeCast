@@ -11363,6 +11363,24 @@ export interface components {
             description: string;
             name: string;
         };
+        AutomationMilestoneOption: {
+            /**
+             * Format: int64
+             * @example 3
+             */
+            count: number;
+            id: string;
+            /**
+             * @description The list of the milestone's referral program
+             * @example Weekly Digest
+             */
+            listName: string;
+            /** @example 3 referrals · The Acme Field Guide */
+            name: string;
+            programId: string;
+            /** @example The Acme Field Guide */
+            reward: string;
+        };
         AutomationNode: {
             data: components["schemas"]["AutomationNodeData"];
             id: string;
@@ -11397,6 +11415,7 @@ export interface components {
             fields: components["schemas"]["AutomationFieldOption"][];
             forms: components["schemas"]["AutomationFormOption"][];
             lists: components["schemas"]["AutomationOptionItem"][];
+            milestones: components["schemas"]["AutomationMilestoneOption"][];
             providers: components["schemas"]["AutomationRouteProvider"][];
             scoreBands?: components["schemas"]["ScoringBands"];
             tags: string[];
@@ -11623,12 +11642,14 @@ export interface components {
             formId?: string;
             includeImports?: boolean;
             /** @enum {string} */
-            kind: "joined_list" | "form_submitted" | "tag_added" | "api_event" | "date_field" | "score_crosses";
+            kind: "joined_list" | "form_submitted" | "tag_added" | "api_event" | "date_field" | "score_crosses" | "milestone_reached";
             listId?: string;
+            milestoneId?: string;
             /** Format: int64 */
             offsetDays?: number;
             /** Format: int64 */
             onceInDays?: number;
+            programId?: string;
             reentry?: string;
             tag?: string;
             /** Format: int64 */
@@ -29216,7 +29237,7 @@ export interface operations {
                 /** @description Action group (routing) or action (routing.updated) */
                 action?: string;
                 /** @description A group of actions, as in the action filter */
-                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "digests";
+                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "digests" | "grow";
                 result?: "allowed" | "denied" | "error";
                 range?: "24h" | "7d" | "30d" | "90d" | "all";
                 /** @description Overrides range */
@@ -29298,7 +29319,7 @@ export interface operations {
                 /** @description Action group (routing) or action (routing.updated) */
                 action?: string;
                 /** @description A group of actions, as in the action filter */
-                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "digests";
+                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "digests" | "grow";
                 result?: "allowed" | "denied" | "error";
                 range?: "24h" | "7d" | "30d" | "90d" | "all";
                 /** @description Overrides range */

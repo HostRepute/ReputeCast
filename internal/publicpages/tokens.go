@@ -32,6 +32,8 @@ type gotView struct {
 type confirmBody struct {
 	Heading, Email, Sender, LatestHref, PrefsHref, Proof string
 	Lists                                                []gotView
+	// Grow is "While you're here": recommendations (grow_recommends.go).
+	Grow *growConfirm
 }
 
 func (h *Handler) evidence(r *http.Request, source string) audience.PublicEvidence {
@@ -75,6 +77,7 @@ func (h *Handler) confirm(w http.ResponseWriter, r *http.Request) {
 		h.serverError(w, r, s, err)
 		return
 	}
+	body.Grow = h.growConfirmSection(r.Context(), s, pc.ID, chi.URLParam(r, "token"), "", "", true)
 	v := h.view(s, pageTitle(pl, s, "confirm.title"), body)
 	h.setLang(v, r, s, pl, nil)
 	h.render(w, r, s, "confirm", http.StatusOK, v, csp{}, true)
@@ -225,6 +228,8 @@ type preferencesBody struct {
 	// stands in for it when there are none.
 	Notifications *notificationsView
 	Note          string
+	// Invite is Grow's "Invite friends" card (grow_recommends.go).
+	Invite *growInvite
 }
 
 func (h *Handler) preferencesPage(w http.ResponseWriter, r *http.Request) {
@@ -330,6 +335,7 @@ func (h *Handler) preferencesBody(ctx context.Context, s *site, pc audience.Publ
 		fallback, _ := languages.Lookup(cp.Languages.Fallback)
 		b.LanguageNote = l.Text("prefs.languageNote", i18n.Args{"publisher": s.set.Branding.PublisherName, "fallback": fallback.Native})
 	}
+	b.Invite = h.growInvite(ctx, s, pc.ID)
 	return b, nil
 }
 

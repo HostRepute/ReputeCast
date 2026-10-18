@@ -6038,6 +6038,52 @@
         ],
         "type": "object"
       },
+      "AutomationMilestoneOption": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "examples": [
+              3
+            ],
+            "format": "int64",
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "listName": {
+            "description": "The list of the milestone's referral program",
+            "examples": [
+              "Weekly Digest"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "examples": [
+              "3 referrals · The Acme Field Guide"
+            ],
+            "type": "string"
+          },
+          "programId": {
+            "type": "string"
+          },
+          "reward": {
+            "examples": [
+              "The Acme Field Guide"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "programId",
+          "listName",
+          "count",
+          "reward",
+          "name"
+        ],
+        "type": "object"
+      },
       "AutomationNode": {
         "additionalProperties": false,
         "properties": {
@@ -6180,6 +6226,12 @@
             },
             "type": "array"
           },
+          "milestones": {
+            "items": {
+              "$ref": "#/components/schemas/AutomationMilestoneOption"
+            },
+            "type": "array"
+          },
           "providers": {
             "items": {
               "$ref": "#/components/schemas/AutomationRouteProvider"
@@ -6203,7 +6255,8 @@
           "emails",
           "providers",
           "tags",
-          "events"
+          "events",
+          "milestones"
         ],
         "type": "object"
       },
@@ -6879,11 +6932,16 @@
               "tag_added",
               "api_event",
               "date_field",
-              "score_crosses"
+              "score_crosses",
+              "milestone_reached"
             ],
             "type": "string"
           },
           "listId": {
+            "maxLength": 40,
+            "type": "string"
+          },
+          "milestoneId": {
             "maxLength": 40,
             "type": "string"
           },
@@ -6898,6 +6956,10 @@
             "maximum": 3650,
             "minimum": 0,
             "type": "integer"
+          },
+          "programId": {
+            "maxLength": 40,
+            "type": "string"
           },
           "reentry": {
             "maxLength": 8,
@@ -60516,7 +60578,8 @@
                 "settings",
                 "integrations",
                 "transactional",
-                "digests"
+                "digests",
+                "grow"
               ],
               "type": "string"
             }
@@ -60775,7 +60838,8 @@
                 "settings",
                 "integrations",
                 "transactional",
-                "digests"
+                "digests",
+                "grow"
               ],
               "type": "string"
             }

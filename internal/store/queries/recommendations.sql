@@ -204,3 +204,8 @@ WHERE id = @id;
 -- The partner request logs keep 90 days.
 WITH a AS (DELETE FROM partner_requests_out WHERE created_at < @before::timestamptz)
 DELETE FROM partner_requests_in WHERE received_at < @before::timestamptz;
+
+-- name: PartnerLinkNames :many
+-- The partners that recommend a workspace, for its growth sources
+-- ("Partner · Ops Weekly").
+SELECT id, remote_name FROM partner_links WHERE workspace_id = @workspace_id AND direction = 'in';

@@ -41,6 +41,8 @@ func readinessService(a *App) *readiness.Service {
 	if acc := readinessAccessibility(a); acc != nil {
 		rs.Accessibility = acc
 	}
+	// Grow's Referral and Recommendations blocks (wire_grow.go).
+	rs.Grow = growReadiness{a: a}
 	return rs
 }
 

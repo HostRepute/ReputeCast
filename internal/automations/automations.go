@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"slices"
@@ -127,7 +128,8 @@ const (
 
 // loadRefs loads what steps can point at in a workspace.
 func (s *Service) loadRefs(ctx context.Context, q *store.Queries, wsID uuid.UUID) (*Refs, error) {
-	r := &Refs{Lists: map[string]string{}, Forms: map[string]string{}, Emails: map[string]int{}, EmailNames: map[string]string{}, Fields: map[string]string{}, Providers: map[string]string{}}
+	r := &Refs{Lists: map[string]string{}, Forms: map[string]string{}, Emails: map[string]int{}, EmailNames: map[string]string{}, Fields: map[string]string{}, Providers: map[string]string{},
+		Milestones: map[string]string{}}
 	lists, err := q.AutomationLists(ctx, wsID)
 	if err != nil {
 		return nil, err
@@ -164,7 +166,23 @@ func (s *Service) loadRefs(ctx context.Context, q *store.Queries, wsID uuid.UUID
 	for _, p := range provs {
 		r.Providers[p.ID.String()] = p.Name
 	}
+	ms, err := q.AutomationMilestones(ctx, wsID)
+	if err != nil {
+		return nil, err
+	}
+	for _, m := range ms {
+		r.Milestones[m.ID.String()] = milestoneName(m.Count, m.RewardName)
+	}
 	return r, nil
+}
+
+// milestoneName is how a flow names a referral milestone: "3 referrals ·
+// The Acme Field Guide".
+func milestoneName(count int32, reward string) string {
+	if count == 1 {
+		return fmt.Sprintf("1 referral · %s", reward)
+	}
+	return fmt.Sprintf("%d referrals · %s", count, reward)
 }
 
 // AutomationRouteProvider is a sending provider on the Automations route.

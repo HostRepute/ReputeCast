@@ -48,6 +48,9 @@ type Service struct {
 	// Accessibility runs the Accessibility group and its fixes; nil leaves
 	// the group out.
 	Accessibility AccessibilityChecker
+	// Grow checks the Referral and Recommendations blocks (Content rows);
+	// nil leaves them out.
+	Grow GrowChecker
 }
 
 func (s *Service) now() time.Time {

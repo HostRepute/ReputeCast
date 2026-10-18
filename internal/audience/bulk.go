@@ -248,6 +248,12 @@ func eraseContacts(ctx context.Context, tx pgx.Tx, ids []uuid.UUID) error {
 		`DELETE FROM segment_members WHERE contact_id = ANY ($1)`,
 		`UPDATE messages SET email = '' WHERE contact_id = ANY ($1)`,
 		`UPDATE delivery_events SET ip = NULL, user_agent = '', url = '' WHERE contact_id = ANY ($1)`,
+		// Grow: a referrer's link, hub and rewards go; the referrals they
+		// made, and their own referral, stay counted without an address.
+		`DELETE FROM referral_rewards WHERE contact_id = ANY ($1)`,
+		`DELETE FROM referral_links WHERE contact_id = ANY ($1)`,
+		`UPDATE referrals SET ip = NULL WHERE contact_id = ANY ($1)`,
+		`UPDATE partner_requests_in SET contact_id = NULL WHERE contact_id = ANY ($1)`,
 		`UPDATE contacts SET erased_at = now(), email = 'erased-' || id || '@erased.invalid', first_name = '', last_name = '', company = '',
 		    country = '', timezone = '', language = '', tags = '{}', attributes = '{}', consent_evidence = '{}', mailbox_detail = '',
 		    status = 'suppressed', updated_at = now()

@@ -557,3 +557,20 @@ SELECT max(computed_at)::timestamptz FROM referral_leaderboard WHERE program_id 
 
 -- name: ReferralContactOnList :one
 SELECT EXISTS (SELECT 1 FROM list_memberships WHERE list_id = @list_id AND contact_id = @contact_id AND status = 'subscribed');
+
+-- name: AutomationMilestones :many
+-- The milestones a "Reached a milestone" trigger can start on.
+SELECT m.id, m.program_id, m.count, m.reward_name, l.name AS list_name
+FROM referral_milestones m
+JOIN referral_programs p ON p.id = m.program_id AND p.deleted_at IS NULL
+JOIN lists l ON l.id = p.list_id
+WHERE m.workspace_id = @workspace_id AND m.deleted_at IS NULL
+ORDER BY l.name, m.count;
+
+-- name: AutomationMilestoneRunExists :one
+-- Whether a contact already went through a flow for this milestone ("once
+-- per contact per milestone").
+SELECT EXISTS (
+    SELECT 1 FROM automation_runs r JOIN automation_events e ON e.id::text = r.state->>'event'
+    WHERE r.automation_id = @automation_id AND r.contact_id = @contact_id AND e.ref = @ref
+)::boolean AS found;

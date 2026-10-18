@@ -89,6 +89,10 @@ func (a *App) publicPages() *publicpages.Handler {
 		SPA:           server.NewSPA(web.Dist()),
 		Notifications: publicNotifications(a),
 		Recipients:    func() []liquid.RecipientData { return recipientData(a) },
+		// Grow's pages: the hub, invite pages, the leaderboard, downloads
+		// and the recommendations page.
+		Referrals:       a.referrals,
+		Recommendations: a.recommendations,
 	}
 	formsPages[a] = h
 	return h

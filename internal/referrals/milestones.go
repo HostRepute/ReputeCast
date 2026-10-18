@@ -873,3 +873,9 @@ func jsonText(s string) string {
 	r := strings.NewReplacer(`\`, `\\`, `"`, `\"`, "-", `\u002d`, "<", `\u003c`, ">", `\u003e`)
 	return r.Replace(s)
 }
+
+// DefaultMilestoneEmail is a new milestone's email (subject, preheader and
+// MJML), for the demo data.
+func DefaultMilestoneEmail(programID uuid.UUID, list, reward, rewardType string) (subject, preheader, src string) {
+	return defaultMilestoneEmail(programID, list, reward, rewardType)
+}

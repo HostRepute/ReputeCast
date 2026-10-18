@@ -14,6 +14,72 @@ import (
 	"github.com/google/uuid"
 )
 
+const automationMilestoneRunExists = `-- name: AutomationMilestoneRunExists :one
+SELECT EXISTS (
+    SELECT 1 FROM automation_runs r JOIN automation_events e ON e.id::text = r.state->>'event'
+    WHERE r.automation_id = $1 AND r.contact_id = $2 AND e.ref = $3
+)::boolean AS found
+`
+
+type AutomationMilestoneRunExistsParams struct {
+	AutomationID uuid.UUID `json:"automationId"`
+	ContactID    uuid.UUID `json:"contactId"`
+	Ref          string    `json:"ref"`
+}
+
+// Whether a contact already went through a flow for this milestone ("once
+// per contact per milestone").
+func (q *Queries) AutomationMilestoneRunExists(ctx context.Context, arg AutomationMilestoneRunExistsParams) (bool, error) {
+	row := q.db.QueryRow(ctx, automationMilestoneRunExists, arg.AutomationID, arg.ContactID, arg.Ref)
+	var found bool
+	err := row.Scan(&found)
+	return found, err
+}
+
+const automationMilestones = `-- name: AutomationMilestones :many
+SELECT m.id, m.program_id, m.count, m.reward_name, l.name AS list_name
+FROM referral_milestones m
+JOIN referral_programs p ON p.id = m.program_id AND p.deleted_at IS NULL
+JOIN lists l ON l.id = p.list_id
+WHERE m.workspace_id = $1 AND m.deleted_at IS NULL
+ORDER BY l.name, m.count
+`
+
+type AutomationMilestonesRow struct {
+	ID         uuid.UUID `json:"id"`
+	ProgramID  uuid.UUID `json:"programId"`
+	Count      int32     `json:"count"`
+	RewardName string    `json:"rewardName"`
+	ListName   string    `json:"listName"`
+}
+
+// The milestones a "Reached a milestone" trigger can start on.
+func (q *Queries) AutomationMilestones(ctx context.Context, workspaceID uuid.UUID) ([]AutomationMilestonesRow, error) {
+	rows, err := q.db.Query(ctx, automationMilestones, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AutomationMilestonesRow{}
+	for rows.Next() {
+		var i AutomationMilestonesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ProgramID,
+			&i.Count,
+			&i.RewardName,
+			&i.ListName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const referralAddSignals = `-- name: ReferralAddSignals :exec
 UPDATE referrals SET signals = (SELECT array_agg(DISTINCT s) FROM unnest(signals || $1::text[]) s), updated_at = $2::timestamptz
 WHERE id = ANY ($3::uuid[]) AND status = 'review'

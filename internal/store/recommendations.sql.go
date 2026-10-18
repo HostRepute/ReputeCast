@@ -560,6 +560,37 @@ func (q *Queries) PartnerLinkLock(ctx context.Context, id uuid.UUID) (PartnerLin
 	return i, err
 }
 
+const partnerLinkNames = `-- name: PartnerLinkNames :many
+SELECT id, remote_name FROM partner_links WHERE workspace_id = $1 AND direction = 'in'
+`
+
+type PartnerLinkNamesRow struct {
+	ID         uuid.UUID `json:"id"`
+	RemoteName string    `json:"remoteName"`
+}
+
+// The partners that recommend a workspace, for its growth sources
+// ("Partner · Ops Weekly").
+func (q *Queries) PartnerLinkNames(ctx context.Context, workspaceID uuid.UUID) ([]PartnerLinkNamesRow, error) {
+	rows, err := q.db.Query(ctx, partnerLinkNames, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []PartnerLinkNamesRow{}
+	for rows.Next() {
+		var i PartnerLinkNamesRow
+		if err := rows.Scan(&i.ID, &i.RemoteName); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const partnerLinkNotified = `-- name: PartnerLinkNotified :exec
 UPDATE partner_links SET notified_at = $1::timestamptz WHERE id = $2
 `

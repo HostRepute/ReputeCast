@@ -219,6 +219,15 @@ func (s *Service) attribute(c candidate, n *names, calls map[uuid.UUID]string, a
 		return a, false // still waiting for the confirmation click
 	}
 	a.joinedAt = *c.joinedAt
+	// Sources later phases registered: referrals and partners.
+	if fs, _ := registered(); len(fs) > 0 {
+		for _, f := range fs {
+			if kind, id, ok := f(c.source, src); ok {
+				a.kind, a.id = kind, id
+				return a, true
+			}
+		}
+	}
 	kind, detail, _ := strings.Cut(src, ":")
 	switch {
 	case kind == "form":

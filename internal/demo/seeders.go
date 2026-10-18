@@ -37,6 +37,9 @@ var (
 	// contact scoring and growth sources: rules, scores, sources, "Sales-ready handoff" (seed_scoring_growth.go)
 	seedScoringGrowth = noop
 	seedDigests       = noop // recurring digests: Engineering blog roundup, its feed, issues #1–#3 (seed_digests.go)
+	// Grow: the Weekly Digest referral program, referrals and rewards,
+	// recommendations and partner links (seed_grow.go)
+	seedGrow = noop
 )
 
 func noop(context.Context, *Seeder) error { return nil }

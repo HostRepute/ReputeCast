@@ -61,6 +61,7 @@ export const welcomeRefs: Refs = {
   ]),
   providers: new Map(),
   fields: new Map(),
+  milestones: new Map(),
 }
 
 /** Step heights on the board (top of the next edge minus the step's top). */

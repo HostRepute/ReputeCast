@@ -46,6 +46,8 @@ import (
 	"github.com/hostrepute/reputecast/internal/liquid"
 	"github.com/hostrepute/reputecast/internal/pagelabels"
 	"github.com/hostrepute/reputecast/internal/publicurl"
+	"github.com/hostrepute/reputecast/internal/recommendations"
+	"github.com/hostrepute/reputecast/internal/referrals"
 	"github.com/hostrepute/reputecast/internal/server"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -75,6 +77,10 @@ type Handler struct {
 	// Recipients add the per-reader variables of blocks (Grow's Referral
 	// block) to view online; nil adds none.
 	Recipients func() []liquid.RecipientData
+	// Referrals and Recommendations serve Grow's pages (grow.go); nil
+	// leaves them out.
+	Referrals       func() *referrals.Service
+	Recommendations func() *recommendations.Service
 
 	tmpl    map[string]*template.Template
 	version string
@@ -95,7 +101,8 @@ func (h *Handler) log() *slog.Logger {
 }
 
 // pages are the templates, each rendered inside layout.html.
-var pages = []string{"subscribe", "confirm", "preferences", "request", "unsubscribe", "done", "message", "archive", "challenge", "category"}
+var pages = []string{"subscribe", "confirm", "preferences", "request", "unsubscribe", "done", "message", "archive", "challenge", "category",
+	"grow-hub", "grow-join", "grow-board", "grow-recommends", "grow-request"}
 
 // Init parses the templates; Routes calls it.
 func (h *Handler) Init() error {
@@ -105,7 +112,7 @@ func (h *Handler) Init() error {
 	funcs := template.FuncMap{"add": func(a, b int) int { return a + b }}
 	h.tmpl = map[string]*template.Template{}
 	for _, p := range pages {
-		t, err := template.New("layout.html").Funcs(funcs).ParseFS(templateFS, "templates/layout.html", "templates/"+p+".html")
+		t, err := template.New("layout.html").Funcs(funcs).ParseFS(templateFS, "templates/layout.html", "templates/"+p+".html", "templates/grow-parts.html")
 		if err != nil {
 			return fmt.Errorf("publicpages: template %s: %w", p, err)
 		}
@@ -146,8 +153,8 @@ func (h *Handler) Routes(r chi.Router) {
 		}
 		root.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), hostKey{}, slug)))
 	})
-	for _, p := range []string{"/", "/robots.txt", "/subscribe", "/subscribe/*", "/confirm/*", "/preferences", "/preferences/*",
-		"/unsubscribe/*", "/view/*", "/archive", "/archive/*", "/archive.rss", "/sitemap.xml"} {
+	for _, p := range append([]string{"/", "/robots.txt", "/subscribe", "/subscribe/*", "/confirm/*", "/preferences", "/preferences/*",
+		"/unsubscribe/*", "/view/*", "/archive", "/archive/*", "/archive.rss", "/sitemap.xml"}, growPaths...) {
 		r.Handle(p, custom)
 	}
 }
@@ -182,6 +189,7 @@ func (h *Handler) pageRoutes(r chi.Router) {
 	r.Options("/forms/{id}/session", h.formPreflight)
 	r.Post("/forms/{id}/submit", h.formSubmit)
 	r.Options("/forms/{id}/submit", h.formPreflight)
+	h.growRoutes(r)
 }
 
 type hostKey struct{}
@@ -551,6 +559,9 @@ func (h *Handler) static(w http.ResponseWriter, r *http.Request) {
 		ctype = "text/css; charset=utf-8"
 	case "challenge.js":
 		data, _ = fs.ReadFile(staticFS, "static/challenge.js")
+		ctype = "text/javascript; charset=utf-8"
+	case "grow.js":
+		data, _ = fs.ReadFile(staticFS, "static/grow.js")
 		ctype = "text/javascript; charset=utf-8"
 	default:
 		http.NotFound(w, r)

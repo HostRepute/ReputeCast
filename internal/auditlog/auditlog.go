@@ -132,6 +132,9 @@ var Categories = []AuditCategory{
 	{Key: "scoring", Label: "Scoring", Groups: []string{"scoring"}},
 	// Recurring digests (design expansion, phase 3).
 	{Key: "digests", Label: "Digests", Groups: []string{"digest"}},
+	// Grow (design expansion, phase 5): referral programs, recommendations
+	// and partner links.
+	{Key: "grow", Label: "Grow", Groups: []string{"referral", "recommendation", "partner"}},
 }
 
 // Filter narrows the log.

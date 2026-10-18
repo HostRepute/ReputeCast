@@ -44,9 +44,13 @@ type Service struct {
 	// Growth reads Audience › Growth (nil: unavailable).
 	Growth GrowthReader
 	// Digests reads recurring digests and their issues (nil: unavailable).
-	Digests   DigestReader
-	PublicURL func(context.Context) string
-	Now       func() time.Time
+	Digests DigestReader
+	// Grow and Recommendations read Grow's referrals and recommendations
+	// (nil: unavailable).
+	Grow            GrowReader
+	Recommendations RecommendationsReader
+	PublicURL       func(context.Context) string
+	Now             func() time.Time
 
 	limiters sync.Map // agent id → *limiter
 }
@@ -95,6 +99,12 @@ var Tools = []MCPToolInfo{
 	{"get_growth_sources", "Joins, departures, quality and cohort retention per growth source over a period (totals only, no addresses).", string(authz.SubscribersView), false},
 	{"list_digests", "Recurring digests with their status, schedule, next issue and owner. Agents can't turn a digest on.", string(authz.CampaignsView), false},
 	{"get_digest_issues", "A digest's issues: sent, skipped, held and waiting, each with its posts and results. Agents can't release or skip an issue.", string(authz.CampaignsView), false},
+	// Grow (design expansion phase 5).
+	{"get_referral_results", "A referral program's results: visits, signups, confirmations, counted referrals, channels, top referrers and rewards.", string(authz.GrowView), false},
+	{"list_referrers", "Referrers with their counted, in-hold and held referrals and the milestones they reached (no addresses).", string(authz.GrowView), false},
+	{"list_held_referrals", "Referrals held for review, grouped by referrer, with the signals and addresses masked to their network.", string(authz.GrowView), false},
+	{"propose_referral_decision", "Propose counting or not counting a referrer's held referrals. A person with grow:review decides in ReputeCast.", string(authz.GrowView), true},
+	{"list_recommendations", "The newsletters you recommend and the partners that recommend you, with their numbers. Agents can't change them or touch partner links.", string(authz.GrowView), false},
 }
 
 // Settings are the per-workspace MCP options.
