@@ -256,10 +256,10 @@ func (s *Service) Translate(ctx context.Context, ws *store.Workspace, p *authz.P
 			if strings.TrimSpace(plain(sug)) == "" {
 				sug = source
 			}
+			// The tags' and links' look (their attributes) is the source's,
+			// put back when the block is accepted: what Edit shows stays
+			// the words and the tags.
 			fixed, kept := restore(source, sug)
-			if seg.Kind == "text" || seg.Kind == "table" {
-				fixed = linkAttrs(source, tagLook(source, fixed))
-			}
 			blk.Tokens += kept.Tokens
 			blk.TokensRestored += kept.TokensRestored
 			blk.Links += kept.Links
