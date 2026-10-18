@@ -32,6 +32,16 @@ func init() {
 		return bindProgram(b.Program, ExpandReferral(b))
 	})
 	liquid.RegisterBlock("reward", func(raw []byte) string { return ExpandReward(parseRewardBlock(raw)) })
+	// The Referral tokens of the composer's token menu: empty for readers
+	// outside a program (the block hides itself; the checks say so).
+	liquid.RegisterTokens(
+		liquid.PersonalizationToken{Key: "referral.link", Label: "Referral link", Kind: "referral"},
+		liquid.PersonalizationToken{Key: "referral.count", Label: "Counted referrals", Kind: "referral"},
+		liquid.PersonalizationToken{Key: "referral.to_next", Label: "Referrals to the next reward", Kind: "referral"},
+		liquid.PersonalizationToken{Key: "referral.next_milestone.reward", Label: "Next reward", Kind: "referral"},
+		liquid.PersonalizationToken{Key: "referral.hub_url", Label: "Referral hub link", Kind: "referral"},
+		liquid.PersonalizationToken{Key: "referral.code", Label: "Referral code", Kind: "referral"},
+	)
 }
 
 // ReferralBlockTexts are the block's headline for 0, 1 and several counted

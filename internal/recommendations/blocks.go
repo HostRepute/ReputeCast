@@ -237,6 +237,8 @@ type BlockRender struct {
 	// picked or showing ones that can't show now, with why.
 	Shows  int              `json:"shows"`
 	Hidden []BlockHiddenRec `json:"hidden"`
+	// Settings are the block's effective settings, for the inspector.
+	Settings RecommendationsBlock `json:"settings"`
 }
 
 // BlockHiddenRec is a recommendation the block can't show now.
@@ -264,7 +266,7 @@ func (s *Service) RenderBlock(ctx context.Context, ws *store.Workspace, in Block
 		return BlockRender{}, err
 	}
 	v := liquid.Merge(liquid.Vars("", "", "", nil, nil), vars[uuid.Nil])
-	out := BlockRender{Hidden: []BlockHiddenRec{}}
+	out := BlockRender{Hidden: []BlockHiddenRec{}, Settings: b}
 	if items, ok := v["recommendations"].(map[string]any)["items"].([]map[string]any); ok {
 		for _, it := range items {
 			if b.Which == "all" || containsStr(b.IDs, it["id"].(string)) {

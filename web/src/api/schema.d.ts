@@ -13504,6 +13504,7 @@ export interface components {
         BlockRender: {
             hidden: components["schemas"]["BlockHiddenRec"][];
             html: string;
+            settings: components["schemas"]["RecommendationsBlock"];
             /** Format: int64 */
             shows: number;
         };
@@ -17341,6 +17342,8 @@ export interface components {
             offAt?: string;
             offBy: string;
             programId: string;
+            reward: components["schemas"]["RewardBlock"];
+            settings: components["schemas"]["ReferralBlock"];
         };
         GrowBlockRenderInput: {
             /** Format: uuid */
@@ -20748,7 +20751,7 @@ export interface components {
             /** @example first_name */
             key: string;
             /** @enum {string} */
-            kind: "contact" | "custom" | "system";
+            kind: "contact" | "custom" | "system" | "referral";
             /** @example First name */
             label: string;
         };
@@ -22775,6 +22778,15 @@ export interface components {
             /** Format: int64 */
             waiting: number;
         };
+        RecommendationsBlock: {
+            heading: string;
+            ids: string[];
+            intro: string;
+            /** @enum {string} */
+            layout: "stacked" | "columns" | "compact";
+            /** @enum {string} */
+            which: "all" | "pick";
+        };
         RecommendationsView: {
             /** Format: int64 */
             blockShows: number;
@@ -22821,6 +22833,21 @@ export interface components {
             name: string;
             ref: string;
             suggested: boolean;
+        };
+        ReferralBlock: {
+            button: string;
+            /** @enum {string} */
+            layout: "line" | "progress" | "rewards";
+            /** Format: uuid */
+            program?: string;
+            progress: boolean;
+            share: string[];
+            texts: components["schemas"]["ReferralBlockTexts"];
+        };
+        ReferralBlockTexts: {
+            many: string;
+            none: string;
+            one: string;
         };
         ReferralBucket: {
             /** Format: int64 */
@@ -24356,6 +24383,13 @@ export interface components {
             languages?: string[];
             provider: string;
             to: string;
+        };
+        RewardBlock: {
+            button: string;
+            description: boolean;
+            expiry: boolean;
+            hub: boolean;
+            image: boolean;
         };
         RoleCreated: {
             id: string;

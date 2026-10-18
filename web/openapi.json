@@ -7259,6 +7259,9 @@
           "html": {
             "type": "string"
           },
+          "settings": {
+            "$ref": "#/components/schemas/RecommendationsBlock"
+          },
           "shows": {
             "format": "int64",
             "type": "integer"
@@ -7267,7 +7270,8 @@
         "required": [
           "html",
           "shows",
-          "hidden"
+          "hidden",
+          "settings"
         ],
         "type": "object"
       },
@@ -21068,6 +21072,12 @@
           },
           "programId": {
             "type": "string"
+          },
+          "reward": {
+            "$ref": "#/components/schemas/RewardBlock"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/ReferralBlock"
           }
         },
         "required": [
@@ -21076,7 +21086,9 @@
           "programId",
           "listName",
           "offBy",
-          "for"
+          "for",
+          "settings",
+          "reward"
         ],
         "type": "object"
       },
@@ -32771,7 +32783,8 @@
             "enum": [
               "contact",
               "custom",
-              "system"
+              "system",
+              "referral"
             ],
             "type": "string"
           },
@@ -39869,6 +39882,49 @@
         ],
         "type": "object"
       },
+      "RecommendationsBlock": {
+        "additionalProperties": false,
+        "properties": {
+          "heading": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "intro": {
+            "maxLength": 300,
+            "type": "string"
+          },
+          "layout": {
+            "enum": [
+              "stacked",
+              "columns",
+              "compact"
+            ],
+            "type": "string"
+          },
+          "which": {
+            "enum": [
+              "all",
+              "pick"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "which",
+          "ids",
+          "layout",
+          "heading",
+          "intro"
+        ],
+        "type": "object"
+      },
       "RecommendationsView": {
         "additionalProperties": false,
         "properties": {
@@ -40054,6 +40110,71 @@
           "alias",
           "name",
           "suggested"
+        ],
+        "type": "object"
+      },
+      "ReferralBlock": {
+        "additionalProperties": false,
+        "properties": {
+          "button": {
+            "maxLength": 60,
+            "type": "string"
+          },
+          "layout": {
+            "enum": [
+              "line",
+              "progress",
+              "rewards"
+            ],
+            "type": "string"
+          },
+          "program": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "progress": {
+            "type": "boolean"
+          },
+          "share": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 4,
+            "type": "array"
+          },
+          "texts": {
+            "$ref": "#/components/schemas/ReferralBlockTexts"
+          }
+        },
+        "required": [
+          "layout",
+          "texts",
+          "button",
+          "share",
+          "progress"
+        ],
+        "type": "object"
+      },
+      "ReferralBlockTexts": {
+        "additionalProperties": false,
+        "properties": {
+          "many": {
+            "maxLength": 300,
+            "type": "string"
+          },
+          "none": {
+            "maxLength": 300,
+            "type": "string"
+          },
+          "one": {
+            "maxLength": 300,
+            "type": "string"
+          }
+        },
+        "required": [
+          "none",
+          "one",
+          "many"
         ],
         "type": "object"
       },
@@ -45222,6 +45343,35 @@
           "at",
           "by",
           "provider"
+        ],
+        "type": "object"
+      },
+      "RewardBlock": {
+        "additionalProperties": false,
+        "properties": {
+          "button": {
+            "maxLength": 80,
+            "type": "string"
+          },
+          "description": {
+            "type": "boolean"
+          },
+          "expiry": {
+            "type": "boolean"
+          },
+          "hub": {
+            "type": "boolean"
+          },
+          "image": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "button",
+          "image",
+          "description",
+          "expiry",
+          "hub"
         ],
         "type": "object"
       },

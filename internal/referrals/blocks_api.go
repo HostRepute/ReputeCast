@@ -36,6 +36,10 @@ type GrowBlockRender struct {
 	OffBy     string     `json:"offBy"`
 	// For is who the block was rendered for ("" for the sample).
 	For string `json:"for"`
+	// Settings are the block's effective settings (defaults filled in), for
+	// the composer's inspector; Reward the Reward block's.
+	Settings ReferralBlock `json:"settings"`
+	Reward   RewardBlock   `json:"reward"`
 }
 
 // GrowPreviewContact is a reader the composer previews Grow blocks as.
@@ -87,6 +91,7 @@ func (s *Service) blockProgram(ctx context.Context, ws *store.Workspace, bound s
 func (s *Service) RenderBlock(ctx context.Context, ws *store.Workspace, in GrowBlockRenderInput) (GrowBlockRender, error) {
 	out := GrowBlockRender{Hidden: "none"}
 	block := parseReferralBlock(in.Settings)
+	out.Settings, out.Reward = block, parseRewardBlock(in.Settings)
 	var milestone *store.ReferralMilestone
 	if in.Kind == "reward" {
 		mid, err := uuid.Parse(in.MilestoneID)

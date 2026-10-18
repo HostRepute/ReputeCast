@@ -18,6 +18,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 
 	osteele "github.com/osteele/liquid"
 )
@@ -32,7 +33,7 @@ const MaxRange = 1000
 type PersonalizationToken struct {
 	Key   string `json:"key" example:"first_name"`
 	Label string `json:"label" example:"First name"`
-	Kind  string `json:"kind" enum:"contact,custom,system"`
+	Kind  string `json:"kind" enum:"contact,custom,system,referral"`
 	// Fallback is the suggested default for contacts without a value.
 	Fallback string `json:"fallback,omitempty"`
 }
@@ -68,7 +69,23 @@ func Catalog(custom []CustomField) []PersonalizationToken {
 		}
 		out = append(out, f)
 	}
-	return append(out, SystemFields...)
+	out = append(out, SystemFields...)
+	tokensMu.RLock()
+	defer tokensMu.RUnlock()
+	return append(out, extraTokens...)
+}
+
+var (
+	tokensMu    sync.RWMutex
+	extraTokens []PersonalizationToken
+)
+
+// RegisterTokens adds tokens other packages provide to every email's token
+// catalog (Grow's referral.* tokens).
+func RegisterTokens(t ...PersonalizationToken) {
+	tokensMu.Lock()
+	defer tokensMu.Unlock()
+	extraTokens = append(extraTokens, t...)
 }
 
 var (
