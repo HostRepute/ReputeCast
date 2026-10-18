@@ -372,7 +372,8 @@ export const ms = defineMessages('ai.suggest', {
   characters: '{count, plural, one {# character} other {# characters}}',
 
   // ── Keys & MCP ───────────────────────────────────────────────────────
-  mcpAgents: "Agents can't use the AI assistant: AI features are for people, and agents bring their own model.",
+  mcpAgents:
+    "Agents can list digests and their issues and read poll and survey results. They can't turn on a digest, release or skip an issue, or use the AI assistant: AI features are for people, and agents bring their own model.",
 
   // ── Version history: accepted suggestions name themselves ────────────
   rewriteVersion: '{action, select, shorten {Text shortened} friendlier {Text made friendlier} formal {Text made more formal} direct {Text made more direct} other {Text rewritten}} from an AI suggestion',

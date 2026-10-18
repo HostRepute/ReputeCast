@@ -145,7 +145,7 @@ export function LeavesNote({ provider }: { provider?: string }) {
   )
 }
 
-/** Under the MCP page's matrix (SettingsMCP): agents never use the assistant. */
+/** Under the MCP page's matrix (SettingsMCP): what agents can and can't do with digests, polls and surveys, and that they never use the assistant. */
 export function McpAssistantNote() {
   const t = useT()
   return <p className="k m-0 border-t border-line-2 px-4.5 py-2.5">{t(ms.mcpAgents)}</p>
