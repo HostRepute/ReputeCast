@@ -15,6 +15,7 @@ import { EARN, EarnPage } from './EarnPage'
 import { memberEmailName } from './MemberPanel'
 import { me } from './messages'
 import { PaymentsTab } from './PaymentsTab'
+import { AttributionTab } from './revenue/AttributionTab'
 import { ms } from './settings.messages'
 
 export type SettingsTab = 'payments' | 'emails' | 'access' | 'attribution' | 'pages'
@@ -286,26 +287,6 @@ function AccessTab() {
           </ul>
         </div>
         <span className="k">{t(ms.accessNote)}</span>
-      </div>
-    </section>
-  )
-}
-
-/** Attribution (the frame; the window and click tokens come with revenue reports). */
-function AttributionTab() {
-  const t = useT()
-  return (
-    <section className="card">
-      <div className="sec">
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <h2 className="h2">{t(ms.attrTitle)}</h2>
-          <span className="k">{t(ms.attrCaption)}</span>
-        </div>
-      </div>
-      <div className="pad flex flex-col gap-2">
-        <h3 className="m-0 text-[14px] font-semibold">{t(ms.attrWindow)}</h3>
-        <span className="badge mut w-fit">{t(ms.attrDays, { days: 7 })}</span>
-        <span className="k">{t(ms.attrLater)}</span>
       </div>
     </section>
   )

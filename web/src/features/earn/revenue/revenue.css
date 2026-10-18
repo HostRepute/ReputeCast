@@ -359,6 +359,76 @@
     flex: none;
   }
 
+  /* Earn › Settings › Attribution. */
+  .er-at-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px 24px;
+    padding: 16px 18px;
+    border-top: 1px solid var(--line-2);
+  }
+  .er-sec + .er-at-row {
+    border-top: 0;
+  }
+  .er-at-text {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+    flex: 1 1 300px;
+  }
+  .er-at-ttl {
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .er-at-domains {
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px 12px;
+  }
+  .er-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 28px;
+    padding: 0 10px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--surface);
+    font-size: 12.5px;
+  }
+  .er-chip button {
+    display: inline-flex;
+    padding: 2px;
+    margin-right: -4px;
+    border-radius: 50%;
+    color: var(--ink-3);
+  }
+  .er-chip button:hover {
+    color: var(--ink);
+    background: var(--line-2);
+  }
+  .er-at-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 12px 18px;
+    border-top: 1px solid var(--line-2);
+  }
+  .er-at-key {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 16px;
+    padding: 12px 14px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+  }
+
   /* Charts: a variant per width. */
   .er-wide {
     display: block;

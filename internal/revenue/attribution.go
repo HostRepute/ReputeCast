@@ -21,14 +21,12 @@ import (
 	"github.com/hostrepute/reputecast/internal/tracking"
 )
 
-// Windows are the attribution windows offered, in days.
-var Windows = []int{1, 3, 7, 14, 30}
 
 // AttributionSettings is Earn › Settings › Attribution.
 type AttributionSettings struct {
 	// Days is the attribution window: an upgrade or a conversion is credited
 	// to the last email clicked within it.
-	Days int `json:"days" enum:"1,3,7,14,30"`
+	Days int `json:"days" minimum:"1" maximum:"30"`
 	// ClickToken adds rc_click=… to links to Domains.
 	ClickToken bool     `json:"clickToken"`
 	Domains    []string `json:"domains"`
@@ -74,7 +72,7 @@ type ConversionSummary struct {
 
 // AttributionInput changes the attribution settings.
 type AttributionInput struct {
-	Days       int      `json:"days" enum:"1,3,7,14,30"`
+	Days       int      `json:"days" doc:"The attribution window, 1 to 30 days."`
 	ClickToken bool     `json:"clickToken"`
 	Domains    []string `json:"domains" maxItems:"20" doc:"Your own domains (app.acme.io): the click token goes on links to them only."`
 }
@@ -156,7 +154,7 @@ func (s *Service) Attribution(ctx context.Context, ws *store.Workspace, p *authz
 
 // SetAttribution changes the window and the click token (audited).
 func (s *Service) SetAttribution(ctx context.Context, ws *store.Workspace, p *authz.Principal, in AttributionInput) (AttributionSettings, error) {
-	if !slices.Contains(Windows, in.Days) {
+	if in.Days < 1 || in.Days > 30 {
 		return AttributionSettings{}, invalid(ctx, "body.days", "problem.window", nil)
 	}
 	domains := []string{}

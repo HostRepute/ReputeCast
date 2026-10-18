@@ -11564,9 +11564,9 @@ export interface components {
             clickToken: boolean;
             /**
              * Format: int64
-             * @enum {integer}
+             * @description The attribution window, 1 to 30 days.
              */
-            days: 1 | 3 | 7 | 14 | 30;
+            days: number;
             /** @description Your own domains (app.acme.io): the click token goes on links to them only. */
             domains: string[];
         };
@@ -11575,11 +11575,8 @@ export interface components {
             canManage: boolean;
             clickToken: boolean;
             currency: string;
-            /**
-             * Format: int64
-             * @enum {integer}
-             */
-            days: 1 | 3 | 7 | 14 | 30;
+            /** Format: int64 */
+            days: number;
             domains: string[];
             endpoint: string;
             helpers: string[];
