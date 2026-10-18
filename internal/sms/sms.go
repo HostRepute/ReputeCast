@@ -328,6 +328,10 @@ type WebhookSetup struct {
 	// Secret signs the provider's webhooks from now on, when the provider
 	// created one for ReputeCast (Twilio's shared keys); sealed by the caller.
 	Secret string
+	// Settings are non-secret values the adapter needs from now on (the
+	// SNS topic and configuration set it created); the caller keeps them
+	// with the provider's settings.
+	Settings map[string]string
 }
 
 // WebhookRegistrar sets the receipt and inbound webhooks through the
