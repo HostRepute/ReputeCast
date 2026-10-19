@@ -64,6 +64,14 @@ func (g growReadiness) ReadinessRows(ctx context.Context, ws *store.Workspace, c
 		}
 		out = append(out, row)
 	}
+	// A referral token typed outside the block prints nothing for readers
+	// outside the program.
+	if c, err := g.a.referrals().CheckTokens(ctx, ws, html, byList, total); err == nil {
+		if title, detail, ack, ok := c.ReadinessText(); ok {
+			out = append(out, readiness.GrowRow{Key: "content.referral_tokens", Status: "warn", Title: title, Detail: detail, Label: "Referral tokens", Ack: ack,
+				Short: "empty referral tokens", Links: []readiness.GrowLink{{Label: "Open in the composer", Href: "/campaigns/" + campaign.String() + "/edit"}}})
+		}
+	}
 	if c, err := g.a.recommendations().CheckBlock(ctx, ws, html); err == nil && c.Present {
 		row := readiness.GrowRow{Key: "content.recommendations_block", Status: "pass", Label: "Recommendations block", Short: "recommendations block",
 			Links: []readiness.GrowLink{{Label: "Open recommendations", Href: "/grow/recommendations"}}}

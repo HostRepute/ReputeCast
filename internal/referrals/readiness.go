@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -63,6 +64,80 @@ func (s *Service) CheckBlock(ctx context.Context, ws *store.Workspace, html stri
 	out.OffAt, out.OffBy, out.Zone = pr.ReferralProgram.StatusAt, pr.StatusByName, ws.Timezone
 	out.Shown = byList[pr.ReferralProgram.ListID]
 	return out, nil
+}
+
+// TokenCheck is a referral token typed outside the Referral block, and how
+// many recipients it would print nothing for (ComposerGrowBlocks: "a check:
+// referral.link is empty for 16,225 recipients who aren't on Weekly
+// Digest").
+type TokenCheck struct {
+	// Token is the first one without a fallback ("referral.link"); empty
+	// when there is none.
+	Token string
+	// Empty recipients aren't on the program's list (or the program is off,
+	// Off; or there is none, None), of Total.
+	Empty, Total int64
+	ListName     string
+	Off, None    bool
+}
+
+var (
+	// blockMarkers are the blocks' markers: their tokens are the block's own.
+	blockMarkers = regexp.MustCompile(`<!--\s*rc:[a-z][a-z-]*[\s\S]*?-->`)
+	// referralToken is {{ referral.… }}, with its filters.
+	referralToken = regexp.MustCompile(`\{\{-?\s*(referral\.[a-z_][a-z0-9_.]*)\s*(\|[^}]*)?-?\}\}`)
+)
+
+// CheckTokens finds a referral token outside the Referral block and the
+// recipients it prints nothing for: those who aren't on the program's list,
+// or everyone while the program is off. A token with a fallback
+// (| default: "…") is fine.
+func (s *Service) CheckTokens(ctx context.Context, ws *store.Workspace, html string, byList map[uuid.UUID]int64, total int64) (TokenCheck, error) {
+	out := TokenCheck{Total: total}
+	if !strings.Contains(html, "referral.") {
+		return out, nil
+	}
+	for _, m := range referralToken.FindAllStringSubmatch(blockMarkers.ReplaceAllString(html, ""), -1) {
+		if !strings.Contains(m[2], "default") {
+			out.Token = m[1]
+			break
+		}
+	}
+	if out.Token == "" {
+		return out, nil
+	}
+	pr, err := s.blockProgram(ctx, ws, "")
+	if err != nil {
+		return out, err
+	}
+	switch {
+	case pr == nil:
+		out.None, out.Empty = true, total
+	case pr.ReferralProgram.Status != "on":
+		out.Off, out.Empty, out.ListName = true, total, pr.ListName
+	default:
+		out.ListName = pr.ListName
+		out.Empty = max(total-byList[pr.ReferralProgram.ListID], 0)
+	}
+	return out, nil
+}
+
+// ReadinessText is the check as Send Readiness words it; ok is false when
+// there's nothing to say.
+func (c TokenCheck) ReadinessText() (title, detail, ack string, ok bool) {
+	if c.Token == "" || c.Empty == 0 {
+		return "", "", "", false
+	}
+	switch {
+	case c.None:
+		title = c.Token + " is empty: there is no referral program"
+	case c.Off:
+		title = c.Token + " is empty while the referral program is off"
+	default:
+		title = c.Token + " is empty for " + formatCount(c.Empty) + " recipients who aren't on " + c.ListName
+	}
+	detail = "The sentence would end with nothing for them. The Referral block hides itself instead; or add a fallback such as {{ " + c.Token + ` | default: "…" }}.`
+	return title, detail, "I understand some recipients get an empty referral token.", true
 }
 
 // formatCount is "31,604".

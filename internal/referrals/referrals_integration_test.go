@@ -554,3 +554,36 @@ func TestRewardFulfilment(t *testing.T) {
 		t.Fatalf("test call: %+v %v", res, err)
 	}
 }
+
+// A referral token typed outside the Referral block prints nothing for
+// recipients who aren't on the program's list (ComposerGrowBlocks: "a
+// check"); the block's own tokens and a token with a fallback are fine.
+func TestReferralTokenCheck(t *testing.T) {
+	f := newFixture(t)
+	ctx := context.Background()
+	f.program(referrals.ReferralMilestoneInput{Count: 1, RewardName: "Sticker pack", Type: referrals.RewardManual})
+	byList := map[uuid.UUID]int64{f.list: 31988, f.other: 16225}
+	html := `<p>Share your link: <a href="{{ referral.link }}">{{ referral.link }}</a></p>`
+	c, err := f.s.CheckTokens(ctx, &f.ws, html, byList, 48213)
+	if err != nil {
+		t.Fatal(err)
+	}
+	title, _, ack, ok := c.ReadinessText()
+	if !ok || title != "referral.link is empty for 16,225 recipients who aren't on Weekly Digest" || ack == "" {
+		t.Fatalf("check: %+v %q", c, title)
+	}
+	// Everyone on the list: nothing to say.
+	if c, _ := f.s.CheckTokens(ctx, &f.ws, html, map[uuid.UUID]int64{f.list: 100}, 100); c.Empty != 0 {
+		t.Fatalf("all on the list: %+v", c)
+	}
+	// The block's own tokens and fallbacks don't count.
+	for _, src := range []string{
+		`<mj-raw><!-- rc:referral {"texts":{"many":"You referred {{ referral.count }}"}} --></mj-raw>`,
+		`<p>{{ referral.link | default: "acme.io/newsletter" }}</p>`,
+		`<p>{{ first_name }}</p>`,
+	} {
+		if c, _ := f.s.CheckTokens(ctx, &f.ws, src, byList, 48213); c.Token != "" {
+			t.Errorf("%s: %+v", src, c)
+		}
+	}
+}
