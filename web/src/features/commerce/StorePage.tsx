@@ -12,6 +12,7 @@ import { toast } from '@/components/ui/Toast'
 import { AttentionIcon, Tile } from '@/features/integrations/shared'
 import '@/features/integrations/integrations.css'
 import { T, formatList, useT, type MessageDescriptor } from '@/i18n'
+import { cn } from '@/lib/cn'
 import { ago, clock, count, dayMonthDate, longDate, pct } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
 import { useMe, useWorkspace } from '@/lib/session'
@@ -178,7 +179,8 @@ function Store({ page: p, onDialog }: { page: Page_; onDialog: (d: Dialog) => vo
             <ConsentCard page={p} platform={platform} />
           </div>
           <AttributionCard page={p} />
-          <div className="ih-two">
+          {/* A missing webhook (CommerceStates) gets the whole width, for its Register again. */}
+          <div className={cn('ih-two', state === 'webhook_missing' && 'cm-stack')}>
             {state !== 'disconnected' ? <WebhooksCard page={p} platform={platform} /> : null}
             <section className="card" aria-labelledby="cm-act">
               <div className="sec">
@@ -894,9 +896,14 @@ function AttributionCard({ page: p }: { page: Page_ }) {
         <div className="flex flex-col gap-2">
           <span className="font-semibold">{t(cm.attrLast, { days: p.numbers.days, orders: a.orders, amount: money(a.revenue, cur) })}</span>
           <div className="flex flex-col gap-2.5">
-            <div className="flex h-2.5 gap-0.5 overflow-hidden rounded-[5px]" role="img" aria-label={t(cm.attrBar, { credited: count(a.creditedRevenue / 100), other: count(other / 100) })}>
-              <span style={{ flex: a.creditedRevenue || 0.0001, background: '#0F766E' }} />
-              <span style={{ flex: other || 0.0001, background: '#C9CED6' }} />
+            <div
+              className={cn('flex h-2.5 gap-0.5 overflow-hidden rounded-[5px]', a.creditedRevenue + other === 0 && 'bg-line-2')}
+              role="img"
+              aria-label={t(cm.attrBar, { credited: count(a.creditedRevenue / 100), other: count(other / 100) })}
+            >
+              {/* No orders yet: the empty track alone. */}
+              {a.creditedRevenue > 0 ? <span style={{ flex: a.creditedRevenue, background: '#0F766E' }} /> : null}
+              {other > 0 ? <span style={{ flex: other, background: '#C9CED6' }} /> : null}
             </div>
             <div className="flex flex-wrap gap-3.5 text-[12px] text-ink-nav">
               <span className="inline-flex items-center gap-1.5">
@@ -1018,6 +1025,8 @@ function WebhooksCard({ page: p, platform }: { page: Page_; platform: string }) 
   const register = useRegister(p)
   const now = useNow()
   const missing = (s: string) => s === 'missing'
+  // A row with Register again sizes its own columns, as on the board.
+  const action = p.canManage && p.webhooks.some((w) => missing(w.status))
   const badge = (w: Schemas['CommerceWebhook'], short?: boolean) =>
     w.status === 'registered' ? (
       <Badge tone="ok">{t(cm.hookRegistered)}</Badge>
@@ -1055,12 +1064,14 @@ function WebhooksCard({ page: p, platform }: { page: Page_; platform: string }) 
       <div className="hidden sm:block">
         <div className="overflow-x-auto">
           <table className="tbl compact" aria-label={t(cm.hooksTitle, { count: p.webhooks.length })}>
-            <colgroup>
-              <col style={{ width: '39.6%' }} />
-              <col style={{ width: '27.5%' }} />
-              <col style={{ width: '26.4%' }} />
-              <col style={{ width: '6.5%' }} />
-            </colgroup>
+            {action ? null : (
+              <colgroup>
+                <col style={{ width: '39.6%' }} />
+                <col style={{ width: '27.5%' }} />
+                <col style={{ width: '26.4%' }} />
+                <col style={{ width: '6.5%' }} />
+              </colgroup>
+            )}
             <thead>
               <tr>
                 <th scope="col">{t(cm.hookTopic)}</th>

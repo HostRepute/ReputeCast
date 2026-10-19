@@ -1,7 +1,8 @@
 import { useState } from 'react'
+import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { m } from '@/features/integrations/messages'
-import type { Entry } from '@/features/integrations/shared'
+import { StatusBadge, type Entry } from '@/features/integrations/shared'
 import { useT } from '@/i18n'
 import { ago } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
@@ -40,6 +41,19 @@ export function StoreAction({ entry: e, platform, canManage }: { entry: Entry; p
       {canManage ? t(m.manage) : t(m.view)}
     </ButtonLink>
   )
+}
+
+/** The Commerce card's badge: a store still being connected says Connecting, as on its page. */
+export function StoreBadge({ entry: e }: { entry: Entry }) {
+  const t = useT()
+  if (e.status === 'waiting' && e.facts.store?.state === 'connecting') {
+    return (
+      <Badge tone="info" dot>
+        {t(cm.statusConnecting)}
+      </Badge>
+    )
+  }
+  return <StatusBadge status={e.status} />
 }
 
 /** The Commerce card's fact line: "Acme Merch · 412 orders in 30 days · last event 2 min ago". */

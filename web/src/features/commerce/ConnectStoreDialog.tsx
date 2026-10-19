@@ -1,6 +1,6 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { $api, errorMessage } from '@/api/client'
+import { $api, ApiError, errorMessage } from '@/api/client'
 import { Icon } from '@/components/icons/Icon'
 import { Button, ButtonAnchor, ButtonLink } from '@/components/ui/Button'
 import { Dialog } from '@/components/ui/Dialog'
@@ -153,13 +153,28 @@ export function ConnectStoreDialog({
       ) : current === 'app' ? (
         <App st={st} onBack={() => setView('address')} onNext={() => setView('keys')} />
       ) : current === 'keys' ? (
-        <Keys st={st} refused={errorCode === 'secret_refused'} onBack={() => setView('app')} onDone={() => setView('install')} />
+        <Keys
+          st={st}
+          refused={errorCode === 'secret_refused'}
+          onBack={() => setView('app')}
+          onDone={() => {
+            void q.refetch()
+            setView('install')
+          }}
+        />
       ) : current === 'install' ? (
         <Install st={st} problem={errorCode} onBack={() => setView('keys')} />
       ) : current === 'sync' ? (
         <Sync st={st} settings={settings} onBack={() => setView('install')} onDone={() => close(false)} />
       ) : current === 'key' || current === 'webhooks' ? (
-        <WooKey st={st} onBack={() => setView('address')} onDone={(s) => setView(viewOf(s))} />
+        <WooKey
+          st={st}
+          onBack={() => setView('address')}
+          onDone={(s) => {
+            void q.refetch()
+            setView(viewOf(s))
+          }}
+        />
       ) : (
         <Plugin st={st} onBack={() => setView('key')} onDone={() => close(false)} />
       )}
@@ -200,6 +215,14 @@ function Notice({ tone, children }: { tone: 'w' | 'b'; children: ReactNode }) {
 }
 
 /** A field's error under it, in the boards' red. */
+/**
+ * A field's own message in the server's words, as typed ("acme-merch.com
+ * doesn't answer like a Shopify store."), else the problem's sentence.
+ */
+function fieldMessage(e: unknown): string {
+  return (e instanceof ApiError && e.problem.errors?.[0]?.message) || errorMessage(e)
+}
+
 function FieldError({ id, children }: { id: string; children: ReactNode }) {
   return (
     <span className="k font-medium" id={id}>
@@ -220,7 +243,7 @@ function Address({ platform, onCancel, onDone }: { platform: Platform; onCancel:
       onSubmit={(e) => {
         e.preventDefault()
         setErr(undefined)
-        m.mutate({ params: { path: { workspace: slug } }, body: { platform, address: address.trim() } }, { onSuccess: onDone, onError: (e) => setErr(errorMessage(e)) })
+        m.mutate({ params: { path: { workspace: slug } }, body: { platform, address: address.trim() } }, { onSuccess: onDone, onError: (e) => setErr(fieldMessage(e)) })
       }}
     >
       <label className="lbl">
@@ -356,14 +379,23 @@ function Keys({ st, refused, onBack, onDone }: { st: ConnectState; refused: bool
         setErr(undefined)
         m.mutate(
           { params: { path: { workspace: slug, id: st.store.id } }, body: { clientId: clientId.trim(), clientSecret: secret.trim() } },
-          { onSuccess: onDone, onError: (e) => setErr(errorMessage(e)) },
+          { onSuccess: onDone, onError: (e) => setErr(fieldMessage(e)) },
         )
       }}
     >
       {err ? null : <span className="text-ink-nav">{t(cc.keysIntro)}</span>}
       <label className="lbl">
         {t(cc.clientId)}
-        <input className="in mono" type="text" value={clientId} onChange={(e) => setClientId(e.target.value)} autoComplete="off" spellCheck={false} />
+        {/* Keys are write-only: a saved app shows its client ID's hint, to paste again. */}
+        <input
+          className="in mono"
+          type="text"
+          value={clientId}
+          onChange={(e) => setClientId(e.target.value)}
+          placeholder={st.clientIdHint}
+          autoComplete="off"
+          spellCheck={false}
+        />
       </label>
       <label className="lbl">
         {t(cc.clientSecret)}
@@ -586,7 +618,7 @@ function WooKey({ st, onBack, onDone }: { st: ConnectState; onBack: () => void; 
       onSubmit={(e) => {
         e.preventDefault()
         setErr(undefined)
-        m.mutate({ params: { path: { workspace: slug, id: st.store.id } }, body: { key: key.trim(), secret: secret.trim() } }, { onSuccess: onDone, onError: (e) => setErr(errorMessage(e)) })
+        m.mutate({ params: { path: { workspace: slug, id: st.store.id } }, body: { key: key.trim(), secret: secret.trim() } }, { onSuccess: onDone, onError: (e) => setErr(fieldMessage(e)) })
       }}
     >
       {err ? null : <span className="text-ink-nav">{t(cc.keyIntro)}</span>}

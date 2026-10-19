@@ -12,7 +12,7 @@ import { ago } from '@/lib/format'
 import { useCan, useWorkspace } from '@/lib/session'
 import { AIGroupLink, AIGroupNote, AIModelCard, aiGroupLine } from '@/features/ai/catalog'
 import { isAIProvider } from '@/features/ai/entries'
-import { StoreAction, StoreFact } from '@/features/commerce/catalog'
+import { StoreAction, StoreBadge, StoreFact } from '@/features/commerce/catalog'
 import { ConnectDialog } from './ConnectDialog'
 import { m } from './messages'
 import {
@@ -388,7 +388,7 @@ function EntryCard({ entry: e, canManage, onConnect }: { entry: Entry; canManage
           <h3>{name}</h3>
           <span className="k">{t(invite ? m.byHostReputeOptional : maintainer[e.key])}</span>
         </div>
-        {builtIn ? null : <StatusBadge status={e.status} />}
+        {builtIn ? null : isStore(e.key) ? <StoreBadge entry={e} /> : <StatusBadge status={e.status} />}
       </div>
       <p className="ih-desc">{t(invite ? m.hostreputeInvite : entryLine[e.key])}</p>
       <div className="ih-caps">
