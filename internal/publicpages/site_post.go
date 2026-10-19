@@ -252,6 +252,11 @@ func (h *Handler) postBody(ctx context.Context, s *site, v *siteView, p store.We
 	b := postBody{Label: pv.Post.Label, Title: pv.Post.Title, Dek: pv.Post.Excerpt, Date: v.labels.FullDate(at), ISO: pv.Post.PublishedAt.UTC().Format(time.RFC3339),
 		Minutes: v.T("site.readMin", "count", pv.Minutes), HTML: template.HTML(h.mediaHTML(pv.Body))} //nolint:gosec // the renderer's sanitized HTML of the publisher's own post
 	for _, t := range pv.Post.Tags {
+		// A tag that only repeats the paid label ("Insider", next to
+		// "☆ Insider") is left to the label.
+		if b.Label.Text != "" && strings.EqualFold(strings.TrimSpace(t.Name), strings.TrimSpace(b.Label.Text)) {
+			continue
+		}
 		b.Tags = append(b.Tags, tagLinkView{Name: t.Name, Href: s.path("tag", t.Slug)})
 	}
 	name := pv.Post.Byline
