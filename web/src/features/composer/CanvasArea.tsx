@@ -11,7 +11,7 @@ import { AltTextNote, WHOLE_ZOOM, WholeIssue } from '@/features/digests/composer
 import { t as tt } from '@/i18n'
 import { RewriteActions } from '@/features/ai/composer/rewrite'
 import { useComposer, type Issue } from './context'
-import { DEVICES, type DeviceId } from './editor/grapes'
+import { DEVICES, EMAIL_DEVICES, type DeviceId } from './editor/grapes'
 import { componentLabel, mjChildren, tagOf } from './editor/labels'
 import { headCss } from './editor/mjmlDoc'
 import { componentAt, insertFooter, reveal } from './fixes'
@@ -141,7 +141,7 @@ export function DeviceSeg({ dim }: { dim?: boolean }) {
   const c = useComposer()
   return (
     <div className="seg" role="group" aria-label="Device">
-      {(Object.keys(DEVICES) as DeviceId[]).map((d) => (
+      {EMAIL_DEVICES.map((d) => (
         <button key={d} type="button" aria-pressed={c.device === d} disabled={dim} onClick={() => c.setDevice(d)}>
           {d === 'desktop' ? 'Desktop · 600' : 'Mobile · 375'}
         </button>
@@ -738,7 +738,7 @@ export function CanvasArea({
           {/* A digest's template and issues have one language: no language banner. */}
           {c.campaign.digestRole ? null : <ComposerLanguageBanner width={frameWidth} />}
           <div ref={setHost} className="relative">
-            <div ref={setContainer} role="region" aria-label={`Email canvas, ${c.device === 'mobile' ? 'mobile 375 px' : 'desktop 600 px'}`} />
+            <div ref={setContainer} role="region" aria-label={c.device === 'web' ? 'Post canvas, web 680 px' : `Email canvas, ${c.device === 'mobile' ? 'mobile 375 px' : 'desktop 600 px'}`} />
             {ed ? null : (
               // ComposerStates: "Compiling Weekly Digest #142 from MJML · Version 15 · 212 lines".
               <div className="mx-auto flex items-center justify-center gap-3 bg-surface" style={{ width: frameWidth, minHeight: 320, boxShadow: '0 1px 3px rgba(11,18,32,.12)' }} aria-busy="true" role="status">

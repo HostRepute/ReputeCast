@@ -40,7 +40,7 @@ import (
 const (
 	// AttrShowOn is a block's "Show on": "email" (Email only), "web" (Web
 	// only), or absent (email and web).
-	AttrShowOn = "rc-show-on"
+	AttrShowOn = mjml.AttrShowOn
 	// AttrPreview marks the "Free preview ends here" block (an mj-raw).
 	AttrPreview = "rc-preview"
 	// PreviewComment is the marker block's content.

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"regexp"
 	"slices"
 	"strings"
 	"time"
@@ -251,7 +252,7 @@ func (s *Service) SendAsCampaign(ctx context.Context, ws *store.Workspace, p *au
 	if post.SentAsCampaign != nil {
 		return WebsiteSentAsCampaign{}, api.Conflict(tr(ctx, "post.sentAsCampaign", nil))
 	}
-	src := strings.ReplaceAll(post.Mjml, render.PreviewComment, "")
+	src := emailWidth(strings.ReplaceAll(post.Mjml, render.PreviewComment, ""))
 	cid, err := s.Campaigns().DraftFromPost(ctx, ws, p, post.Title, post.Title, post.Excerpt, src)
 	if err != nil {
 		return WebsiteSentAsCampaign{}, err
@@ -310,4 +311,12 @@ func (s *Service) syncIssues(ctx context.Context) error {
 		}
 	}
 	return nil
+}
+
+// webBodyWidth is the post composer's body width: the site's 680 px column.
+var webBodyWidth = regexp.MustCompile(`(<mj-body\b[^>]*\bwidth=")680px(")`)
+
+// emailWidth puts a post's 680 px web column back to an email's 600 px.
+func emailWidth(src string) string {
+	return webBodyWidth.ReplaceAllString(src, "${1}600px${2}")
 }

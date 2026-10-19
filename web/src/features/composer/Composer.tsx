@@ -14,7 +14,7 @@ import { CanvasArea } from './CanvasArea'
 import { ComposerCtx, type ABTest, type Campaign, type Checks, type ComposerCtxData, type ComposerDialog, type ComposerState, type SaveStatus, type View } from './context'
 import { Dialogs } from './Dialogs'
 import { trackChanges, type ChangeTracker } from './editor/changes'
-import { createComposerEditor, type ComposerEditor, type DeviceId } from './editor/grapes'
+import { createComposerEditor, type ComposerEditor, type DeviceId, type EmailDevice } from './editor/grapes'
 import { atPath } from './editor/labels'
 import { canvasHead, isEmptyBody, joinMjml, splitMjml, withHeadMeta } from './editor/mjmlDoc'
 import { Footer, VersionLink } from './Footer'
@@ -42,7 +42,7 @@ export interface ComposerSearch {
   view?: View | 'compare'
   /** A language version (internal/languages); none is the source. */
   language?: string
-  device?: DeviceId
+  device?: EmailDevice
   variant?: string
   /** Component to select once the canvas is ready (element path from mj-body, "1-0-0"). */
   select?: string
@@ -531,7 +531,7 @@ export function Composer({
     },
     [view, onSearch, search, save],
   )
-  const setDevice = useCallback((d: DeviceId) => onSearch({ ...search, device: d === 'desktop' ? undefined : d }), [onSearch, search])
+  const setDevice = useCallback((d: DeviceId) => onSearch({ ...search, device: d === 'mobile' ? 'mobile' : undefined }), [onSearch, search])
 
   /** Switches variant; a content test swaps the canvas body. */
   const setVariant = useCallback(
