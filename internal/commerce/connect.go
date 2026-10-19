@@ -119,6 +119,17 @@ func (s *Service) Begin(ctx context.Context, ws *store.Workspace, p *authz.Princ
 		if host != sf.Domain {
 			public = host
 		}
+		// The same shop under its other address (its myshopify.com domain,
+		// or a custom one) is the same store.
+		if !found {
+			other, err := s.Q.CommerceStoreByDomain(ctx, store.CommerceStoreByDomainParams{WorkspaceID: ws.ID, Platform: Shopify, Domain: sf.Domain})
+			if err == nil {
+				if other.Status == StatusConnected || other.Status == StatusImporting {
+					return CommerceConnectState{}, api.Conflict(mStoreConnected.Text(l, i18n.Args{"name": other.Name}))
+				}
+				existing, found = other, true
+			}
+		}
 		if found && existing.ClientID != "" && len(existing.CredentialsSealed) > 0 {
 			// The app exists already: approve it again.
 			step = StepInstall

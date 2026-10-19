@@ -19,6 +19,13 @@ SELECT * FROM stores WHERE id = @id AND workspace_id = @workspace_id FOR UPDATE;
 -- name: CommerceStoreByAddress :one
 SELECT * FROM stores WHERE workspace_id = @workspace_id AND platform = @platform AND address = @address;
 
+-- name: CommerceStoreByDomain :one
+-- A workspace's store on a shop's own domain, whatever address connected it
+-- (a Shopify store's custom domain and its myshopify.com domain are one).
+SELECT * FROM stores WHERE workspace_id = @workspace_id AND platform = @platform AND domain = @domain
+ORDER BY (status IN ('connected', 'importing')) DESC, updated_at DESC
+LIMIT 1;
+
 -- name: CommerceStoreByToken :one
 SELECT * FROM stores WHERE webhook_token = @webhook_token;
 

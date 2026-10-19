@@ -171,6 +171,15 @@ func (s *shop) connect(sync commerce.CommerceSyncInput) {
 }
 
 // install pastes the app's keys and approves it.
+// The shop under its other address is the store already connected.
+func (s *shop) sameShop() {
+	s.t.Helper()
+	p := s.c.Do("POST", s.path+"/stores", map[string]any{"platform": "shopify", "address": "shop.acme.io"}).MustStatus(s.t, 409).Problem(s.t)
+	if d, _ := p["detail"].(string); !strings.Contains(d, "Acme Merch") {
+		s.t.Fatalf("the same shop: %+v", p)
+	}
+}
+
 func (s *shop) install() {
 	s.t.Helper()
 	s.c.Do("PUT", s.path+"/stores/"+s.id+"/app-keys", map[string]any{"clientId": s.fake.ClientID, "clientSecret": s.fake.ClientSecret}).MustStatus(s.t, 200)
@@ -303,6 +312,7 @@ func TestConnectAndFirstImport(t *testing.T) {
 	if p.Store.Sync.State != "connected" || p.Sync.Accepted != 1 || p.Sync.NotAdded != 2 || p.Sync.Products != 4 || len(p.Webhooks) != 11 {
 		t.Fatalf("page: %+v %+v", p.Store.Sync, p.Sync)
 	}
+	s.sameShop()
 }
 
 func TestWebhooksAreVerifiedStoredOnceAndAppliedInOrder(t *testing.T) {

@@ -3140,6 +3140,86 @@ func (q *Queries) CommerceStoreByAddress(ctx context.Context, arg CommerceStoreB
 	return i, err
 }
 
+const commerceStoreByDomain = `-- name: CommerceStoreByDomain :one
+SELECT id, workspace_id, platform, status, step, name, address, domain, public_domain, currency, api_version, app_name, client_id, credentials_sealed, key_hint, scopes, oauth_state, oauth_state_expires_at, connect_error, installed_at, webhook_token, webhook_secret_sealed, sync_products, sync_customers, sync_orders, sync_checkouts, import_months, list_id, write_back, tag_links, attribution_days, attribution_set_by, attribution_set_at, plugin_found, plugin_checked_at, plugin_skipped, last_event_at, health_checked_at, import_progress, import_started_at, import_started_by, import_finished_at, writeback_through, reconciled_at, reconcile_missed, reconcile_products, rate_limited_until, revoked_at, revoked_reason, disconnected_at, disconnected_by, notified_at, demo, connected_by, connected_at, created_by, created_at, updated_at FROM stores WHERE workspace_id = $1 AND platform = $2 AND domain = $3
+ORDER BY (status IN ('connected', 'importing')) DESC, updated_at DESC
+LIMIT 1
+`
+
+type CommerceStoreByDomainParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Platform    string    `json:"platform"`
+	Domain      string    `json:"domain"`
+}
+
+// A workspace's store on a shop's own domain, whatever address connected it
+// (a Shopify store's custom domain and its myshopify.com domain are one).
+func (q *Queries) CommerceStoreByDomain(ctx context.Context, arg CommerceStoreByDomainParams) (Store, error) {
+	row := q.db.QueryRow(ctx, commerceStoreByDomain, arg.WorkspaceID, arg.Platform, arg.Domain)
+	var i Store
+	err := row.Scan(
+		&i.ID,
+		&i.WorkspaceID,
+		&i.Platform,
+		&i.Status,
+		&i.Step,
+		&i.Name,
+		&i.Address,
+		&i.Domain,
+		&i.PublicDomain,
+		&i.Currency,
+		&i.ApiVersion,
+		&i.AppName,
+		&i.ClientID,
+		&i.CredentialsSealed,
+		&i.KeyHint,
+		&i.Scopes,
+		&i.OauthState,
+		&i.OauthStateExpiresAt,
+		&i.ConnectError,
+		&i.InstalledAt,
+		&i.WebhookToken,
+		&i.WebhookSecretSealed,
+		&i.SyncProducts,
+		&i.SyncCustomers,
+		&i.SyncOrders,
+		&i.SyncCheckouts,
+		&i.ImportMonths,
+		&i.ListID,
+		&i.WriteBack,
+		&i.TagLinks,
+		&i.AttributionDays,
+		&i.AttributionSetBy,
+		&i.AttributionSetAt,
+		&i.PluginFound,
+		&i.PluginCheckedAt,
+		&i.PluginSkipped,
+		&i.LastEventAt,
+		&i.HealthCheckedAt,
+		&i.ImportProgress,
+		&i.ImportStartedAt,
+		&i.ImportStartedBy,
+		&i.ImportFinishedAt,
+		&i.WritebackThrough,
+		&i.ReconciledAt,
+		&i.ReconcileMissed,
+		&i.ReconcileProducts,
+		&i.RateLimitedUntil,
+		&i.RevokedAt,
+		&i.RevokedReason,
+		&i.DisconnectedAt,
+		&i.DisconnectedBy,
+		&i.NotifiedAt,
+		&i.Demo,
+		&i.ConnectedBy,
+		&i.ConnectedAt,
+		&i.CreatedBy,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const commerceStoreByID = `-- name: CommerceStoreByID :one
 SELECT id, workspace_id, platform, status, step, name, address, domain, public_domain, currency, api_version, app_name, client_id, credentials_sealed, key_hint, scopes, oauth_state, oauth_state_expires_at, connect_error, installed_at, webhook_token, webhook_secret_sealed, sync_products, sync_customers, sync_orders, sync_checkouts, import_months, list_id, write_back, tag_links, attribution_days, attribution_set_by, attribution_set_at, plugin_found, plugin_checked_at, plugin_skipped, last_event_at, health_checked_at, import_progress, import_started_at, import_started_by, import_finished_at, writeback_through, reconciled_at, reconcile_missed, reconcile_products, rate_limited_until, revoked_at, revoked_reason, disconnected_at, disconnected_by, notified_at, demo, connected_by, connected_at, created_by, created_at, updated_at FROM stores WHERE id = $1
 `

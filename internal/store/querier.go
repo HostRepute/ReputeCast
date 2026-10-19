@@ -412,6 +412,9 @@ type Querier interface {
 	CommerceRevenueByEmail(ctx context.Context, arg CommerceRevenueByEmailParams) ([]CommerceRevenueByEmailRow, error)
 	CommerceStore(ctx context.Context, arg CommerceStoreParams) (Store, error)
 	CommerceStoreByAddress(ctx context.Context, arg CommerceStoreByAddressParams) (Store, error)
+	// A workspace's store on a shop's own domain, whatever address connected it
+	// (a Shopify store's custom domain and its myshopify.com domain are one).
+	CommerceStoreByDomain(ctx context.Context, arg CommerceStoreByDomainParams) (Store, error)
 	CommerceStoreByID(ctx context.Context, id uuid.UUID) (Store, error)
 	CommerceStoreByState(ctx context.Context, oauthState *string) (Store, error)
 	CommerceStoreByToken(ctx context.Context, webhookToken *string) (Store, error)
