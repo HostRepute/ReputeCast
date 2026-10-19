@@ -43,9 +43,13 @@ export function encodeUpgrade(c: UpgradeConfig): string {
   return JSON.stringify({ tier: c.tier, headline: c.headline, line: c.line, button: c.button, price: c.price })
 }
 
-/** The rule a new Upgrade block starts with: free subscribers only. */
+/**
+ * The rule a new Upgrade block starts with: free subscribers only. Its
+ * condition is marked as the Upgrade block's (field "upgrade"): the block is
+ * hidden until a live payment provider is connected.
+ */
 export function upgradeRule(id = 'upgrade'): string {
-  return JSON.stringify({ id, show: 'only', match: 'all', conditions: [{ kind: 'paid', op: 'free' }] })
+  return JSON.stringify({ id, show: 'only', match: 'all', conditions: [{ kind: 'paid', op: 'free', field: 'upgrade' }] })
 }
 
 /**

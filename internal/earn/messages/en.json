@@ -145,5 +145,6 @@
   "visibility.traitPaid": { "message": "{tier} member · {status, select, trialing {trialing} past_due {past due} complimentary {complimentary} gift {gift} other {active}}", "note": "tier: the tier's short name (Insider)" },
   "visibility.whyBelow": "{name}'s {tier} access doesn't include {needed}",
   "visibility.whyNoAccess": "{name} has no paid access",
+  "visibility.whyNotConnected": "The Upgrade block is hidden until a payment provider is connected",
   "visibility.whyPaid": "{name} has paid access ({tier})"
 }

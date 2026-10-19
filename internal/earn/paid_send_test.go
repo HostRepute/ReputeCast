@@ -239,6 +239,26 @@ func TestPaidContentAtSendTime(t *testing.T) {
 		t.Errorf("the Paid only filter lists %v", names)
 	}
 
+	// The Upgrade block shows to free subscribers while a live payment
+	// provider is connected, and to nobody without one.
+	upgrade := visibility.VisibilityRule{ID: "upg001", Show: visibility.ShowOnly, Conditions: []visibility.VisibilityCondition{{Kind: earn.KindPaid, Op: earn.OpPaidFree, Field: earn.FieldUpgradeBlock}}}
+	withUpgrade := strings.Replace(src, `<mj-section><mj-column><mj-text><a href="{{ unsubscribe_url }}">`,
+		`<mj-section rc-name="Upgrade" rc-visible="`+strings.ReplaceAll(upgrade.Encode(), `"`, "&quot;")+`"><mj-column><mj-text>Get more with Insider</mj-text></mj-column></mj-section>
+<mj-section><mj-column><mj-text><a href="{{ unsubscribe_url }}">`, 1)
+	connectedSend := p.send(p.campaign("Upgrade, connected", withUpgrade, fmt.Sprintf(`{"lists":[%q]}`, p.list)))
+	if h := connectedSend[p.readers["free"]]; strings.Contains(h, "upg001") {
+		t.Errorf("a free subscriber misses the Upgrade block while Stripe is connected: %q", h)
+	}
+	if h := connectedSend[p.readers["insider"]]; !strings.Contains(h, "upg001") {
+		t.Errorf("a paid member gets the Upgrade block: %q", h)
+	}
+	p.exec(`UPDATE payment_connections SET status = 'disconnected', disconnected_at = now() WHERE workspace_id = $1 AND mode = 'live'`, p.ws)
+	unconnected := p.send(p.campaign("Upgrade, not connected", withUpgrade, fmt.Sprintf(`{"lists":[%q]}`, p.list)))
+	if h := unconnected[p.readers["free"]]; !strings.Contains(h, "upg001") {
+		t.Errorf("the Upgrade block goes out without a payment provider: %q", h)
+	}
+	p.exec(`UPDATE payment_connections SET status = 'connected', disconnected_at = NULL WHERE workspace_id = $1 AND mode = 'live'`, p.ws)
+
 	// Paid-only campaigns stay out of the public archive; an issue to
 	// everyone is filed as the archive is read.
 	digest := p.one(`SELECT id FROM lists WHERE workspace_id = $1 AND name = 'Weekly Digest' AND deleted_at IS NULL`, p.ws)

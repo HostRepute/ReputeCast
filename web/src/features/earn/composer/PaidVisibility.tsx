@@ -83,10 +83,12 @@ export function PaidAccessChoice({ rule, disabled, onChange }: { rule: Visibilit
   const tiers = useEarnComposer().data?.tiers ?? []
   const cond = rule.conditions[0]!
   const op = (cond.op as PaidOp) || 'any'
+  // The Upgrade block's own condition keeps its mark (hidden until payments are connected).
+  const mark = cond.field ? { field: cond.field } : {}
   const set = (next: PaidOp, tierId?: string) => {
-    if (next !== 'at_least') return onChange(paidRule(rule, { kind: KIND_PAID, op: next }))
+    if (next !== 'at_least') return onChange(paidRule(rule, { kind: KIND_PAID, op: next, ...mark }))
     const tier = tiers.find((x) => x.id === tierId) ?? tiers.find((x) => x.id === cond.value) ?? tiers[0]
-    if (tier) onChange(paidRule(rule, { kind: KIND_PAID, op: next, value: tier.id, label: tierChoice(t, tier) }))
+    if (tier) onChange(paidRule(rule, { kind: KIND_PAID, op: next, value: tier.id, label: tierChoice(t, tier), ...mark }))
   }
   const current = op === 'at_least' ? tiers.find((x) => x.id === cond.value) : undefined
   const option = (value: PaidOp, label: string, extra?: ReactNode) => (

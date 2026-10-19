@@ -30,6 +30,10 @@ const (
 	OpPaidTier = "at_least"
 	// OpPaidFree shows it to free subscribers only (no paid access).
 	OpPaidFree = "free"
+	// FieldUpgradeBlock marks the Upgrade block's own condition: free
+	// subscribers only, and only while a live payment provider is connected
+	// (the block is hidden until then).
+	FieldUpgradeBlock = "upgrade"
 )
 
 func init() {
@@ -48,6 +52,8 @@ type paidFact struct {
 	Short  string
 	Status string
 	ranks  map[string]int
+	// live: a live payment provider is connected (the Upgrade block shows).
+	live bool
 }
 
 func paidOf(f *visibility.Facts) paidFact {
@@ -86,6 +92,14 @@ func loadPaid(ctx context.Context, q *store.Queries, wsID uuid.UUID, conds []vis
 	if err != nil {
 		return err
 	}
+	live := false
+	if conns, err := q.PayConnections(ctx, wsID); err == nil {
+		for _, c := range conns {
+			live = live || (c.PaymentConnection.Mode == "live" && c.PaymentConnection.Status == "connected")
+		}
+	} else {
+		return err
+	}
 	tiers, err := paidaccess.Tiers(ctx, q, wsID)
 	if err != nil {
 		return err
@@ -99,9 +113,9 @@ func loadPaid(ctx context.Context, q *store.Queries, wsID uuid.UUID, conds []vis
 		if f.Extra == nil {
 			f.Extra = map[string]any{}
 		}
-		p := paidFact{ranks: ranks}
+		p := paidFact{ranks: ranks, live: live}
 		if a, ok := access[id]; ok {
-			p = paidFact{Has: true, Rank: a.Rank, Tier: a.Tier, Short: short[a.TierID], Status: a.Status, ranks: ranks}
+			p = paidFact{Has: true, Rank: a.Rank, Tier: a.Tier, Short: short[a.TierID], Status: a.Status, ranks: ranks, live: live}
 			if p.Short == "" {
 				p.Short = a.Tier
 			}
@@ -115,6 +129,9 @@ func matchPaid(c visibility.VisibilityCondition, f *visibility.Facts) bool {
 	p := paidOf(f)
 	switch c.Op {
 	case OpPaidFree:
+		if c.Field == FieldUpgradeBlock && !p.live {
+			return false
+		}
 		return !p.Has
 	case OpPaidTier:
 		need, ok := p.ranks[c.Value]
@@ -134,15 +151,16 @@ func checkPaid(c visibility.VisibilityCondition) error {
 }
 
 var (
-	mDescPaidAny  = msgs.M("visibility.describeAny")
-	mDescPaidTier = msgs.M("visibility.describeTier")
-	mDescPaidFree = msgs.M("visibility.describeFree")
-	mWhyNoAccess  = msgs.M("visibility.whyNoAccess")
-	mWhyBelow     = msgs.M("visibility.whyBelow")
-	mWhyPaid      = msgs.M("visibility.whyPaid")
-	mTraitFree    = msgs.M("visibility.traitFree")
-	mTraitPaid    = msgs.M("visibility.traitPaid")
-	mPaidATier    = msgs.M("visibility.aTier")
+	mDescPaidAny     = msgs.M("visibility.describeAny")
+	mDescPaidTier    = msgs.M("visibility.describeTier")
+	mDescPaidFree    = msgs.M("visibility.describeFree")
+	mWhyNoAccess     = msgs.M("visibility.whyNoAccess")
+	mWhyBelow        = msgs.M("visibility.whyBelow")
+	mWhyPaid         = msgs.M("visibility.whyPaid")
+	mWhyNotConnected = msgs.M("visibility.whyNotConnected")
+	mTraitFree       = msgs.M("visibility.traitFree")
+	mTraitPaid       = msgs.M("visibility.traitPaid")
+	mPaidATier       = msgs.M("visibility.aTier")
 )
 
 // tierLabel is the tier choice a condition names, as it was picked
@@ -172,6 +190,8 @@ func describePaid(c visibility.VisibilityCondition, n *visibility.Names) string 
 func whyPaid(c visibility.VisibilityCondition, f *visibility.Facts, matched bool, n *visibility.Names) string {
 	p := paidOf(f)
 	switch {
+	case c.Op == OpPaidFree && c.Field == FieldUpgradeBlock && !p.live:
+		return mWhyNotConnected.Text(n.Lang, nil)
 	case !p.Has:
 		return mWhyNoAccess.Text(n.Lang, i18n.Args{"name": f.Name()})
 	case c.Op == OpPaidTier && !matched:
