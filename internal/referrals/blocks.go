@@ -144,21 +144,19 @@ func parseRewardBlock(raw []byte) RewardBlock {
 
 var liquidSpan = regexp.MustCompile(`\{\{[\s\S]*?\}\}|\{%[\s\S]*?%\}`)
 
-// escText escapes text for HTML and keeps its Liquid spans as they are.
-func escText(s string) string { return escTok(s, false) }
-
-// tokenChip is how the composer's canvas marks a token's value in the
+// valueChip is how the composer's canvas marks a token's value in the
 // block's text (ComposerGrowBlocks: "You've referred [2] friends").
-const tokenChip = `<span style="display:inline-block;padding:0 6px;border-radius:5px;background:#EDE9FE;color:#5B21B6;font-family:'IBM Plex Mono',monospace;font-size:.86em;font-weight:500;line-height:1.55;white-space:nowrap">`
+const valueChip = `<span style="display:inline-block;padding:0 6px;border-radius:5px;background:#EDE9FE;color:#5B21B6;font-family:'IBM Plex Mono',monospace;font-size:.86em;font-weight:500;line-height:1.55;white-space:nowrap">`
 
-// escTok is escText that, for the canvas, puts each {{ token }} in a chip.
+// escTok escapes text for HTML and keeps its Liquid spans as they are; for
+// the canvas (chips) it puts each {{ token }} in a chip.
 func escTok(s string, chips bool) string {
 	var b strings.Builder
 	last := 0
 	for _, m := range liquidSpan.FindAllStringIndex(s, -1) {
 		b.WriteString(html.EscapeString(s[last:m[0]]))
 		if chips && strings.HasPrefix(s[m[0]:m[1]], "{{") {
-			b.WriteString(tokenChip + s[m[0]:m[1]] + `</span>`)
+			b.WriteString(valueChip + s[m[0]:m[1]] + `</span>`)
 		} else {
 			b.WriteString(s[m[0]:m[1]])
 		}
