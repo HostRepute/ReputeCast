@@ -11,8 +11,8 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/authz"
-	pagesvc "github.com/hostrepute/reputecast/internal/pages"
 	"github.com/hostrepute/reputecast/internal/pagelabels"
+	pagesvc "github.com/hostrepute/reputecast/internal/pages"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -274,4 +274,3 @@ func (h *Handler) ProductPreview(ctx context.Context, ws *store.Workspace, id uu
 	}
 	return PublicPagePreview{HTML: string(out), URL: s.canonPath("products", p.Live.Slug)}, nil
 }
-
