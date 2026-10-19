@@ -73,7 +73,7 @@ export function ProviderChip({ status }: { status?: Schemas['EarnStatus'] }) {
   if (!status) return <span className="ea-chip" aria-hidden="true" />
   if (!status.mode) {
     return (
-      <span className="ea-chip" aria-label={t(me.chipNoneLabel)}>
+      <span className="ea-chip">
         <span className="dot" style={{ color: 'var(--ink-4)' }} aria-hidden="true" />
         {t(me.chipNone)}
         {status.canManage ? (
@@ -93,8 +93,9 @@ export function ProviderChip({ status }: { status?: Schemas['EarnStatus'] }) {
       params={{ workspace: slug }}
       search={{ tab: 'payments' }}
       className="ea-chip"
-      aria-label={t(me.chipLabel, { provider: status.providerName ?? 'Stripe', account: status.account ?? '', mode: status.mode })}
     >
+      {/* The name is the chip's own text (Label in Name), after this. */}
+      <span className="vh">{t(me.chipPrefix)} </span>
       <span className="dot" style={{ color }} aria-hidden="true" />
       <span>
         {status.providerName} · {status.account}
