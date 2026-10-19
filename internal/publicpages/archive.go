@@ -142,6 +142,11 @@ func (h *Handler) archive(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	if h.siteOn(r.Context(), s) {
+		// The website's archive: its posts, in the site's frame.
+		h.siteArchive(w, r, s)
+		return
+	}
 	if !s.set.Pages.Archive.Enabled {
 		h.notFound(w, r, s)
 		return
@@ -531,6 +536,16 @@ func (h *Handler) issue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	slug := chi.URLParam(r, "issue")
+	if h.Website != nil {
+		// While the website is on, an issue's address leads to its post.
+		if addr, err := h.Website.ResolveIssue(r.Context(), s.ws, slug); err != nil {
+			h.serverError(w, r, s, err)
+			return
+		} else if addr.RedirectTo != "" {
+			http.Redirect(w, r, s.sitePath(addr.RedirectTo), http.StatusMovedPermanently) //nolint:gosec // G710: a path on this site, from the post's own address
+			return
+		}
+	}
 	if err := h.Forms.SyncArchive(r.Context(), s.ws, s.set); err != nil {
 		h.log().WarnContext(r.Context(), "sync archive", "err", err)
 	}
@@ -855,6 +870,11 @@ func (h *Handler) feed(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	if h.siteOn(r.Context(), s) {
+		// The website's feed has the posts the archive's issues became.
+		http.Redirect(w, r, s.path("feed"), http.StatusMovedPermanently) //nolint:gosec // G710: the site's own feed
+		return
+	}
 	if !s.set.Pages.Archive.Enabled {
 		h.notFound(w, r, s)
 		return
@@ -908,10 +928,17 @@ func (h *Handler) sitemap(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	set := sitemapURLSet{NS: "http://www.sitemaps.org/schemas/sitemap/0.9", URLs: []sitemapURL{}}
+	on := h.siteOn(r.Context(), s)
+	if on {
+		if err := h.siteSitemap(r.Context(), s, &set); err != nil {
+			h.serverError(w, r, s, err)
+			return
+		}
+	}
 	if s.set.Pages.Subscribe.Index {
 		set.URLs = append(set.URLs, sitemapURL{Loc: s.canon.Subscribe(""), LastMod: s.set.UpdatedAt().UTC().Format("2006-01-02")})
 	}
-	if s.set.Pages.Archive.Enabled && s.set.Pages.Archive.Index {
+	if !on && s.set.Pages.Archive.Enabled && s.set.Pages.Archive.Index {
 		var newest time.Time
 		var issues []sitemapURL
 		for page := 1; page <= 100; page++ {
@@ -961,6 +988,12 @@ func (h *Handler) robots(w http.ResponseWriter, r *http.Request) {
 	b.WriteString("User-agent: *\n")
 	for _, p := range []string{"/confirm/", "/preferences", "/unsubscribe/", "/view/", "/subscribe/challenge"} {
 		b.WriteString("Disallow: " + p + "\n")
+	}
+	if h.siteOn(r.Context(), s) {
+		// The website's personal pages.
+		for _, p := range []string{"/signin", "/signout", "/account"} {
+			b.WriteString("Disallow: " + p + "\n")
+		}
 	}
 	if !s.set.Pages.Archive.Index {
 		b.WriteString("Disallow: /archive\n")

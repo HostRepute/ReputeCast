@@ -1,0 +1,25 @@
+{
+  "status": 200,
+  "body": {
+    "id": "chatcmpl-412",
+    "object": "chat.completion",
+    "created": 1760538011,
+    "model": "llama3.3:70b",
+    "system_fingerprint": "fp_ollama",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "A single transparent pixel."
+        },
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 34,
+      "completion_tokens": 7,
+      "total_tokens": 41
+    }
+  }
+}

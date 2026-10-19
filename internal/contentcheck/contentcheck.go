@@ -863,8 +863,11 @@ var (
 	repeatedPunct = regexp.MustCompile(`[!?]{2,}|\.{4,}`)
 	urgencyRe     = regexp.MustCompile(`(?i)\b(act now|urgent|hurry|last chance|limited time|today only|only|expires?|ending soon|ends (today|tonight|soon)|\d+\s+hours?|now or never|final hours|don'?t miss|before it'?s gone)\b`)
 	moneyRe       = regexp.MustCompile(`(?i)(\$\$+|\bfree\b|\b100%\s+free\b|\bguaranteed?\b|\bcash\b|\bno cost\b|\brisk[- ]free\b)`)
-	letterRe      = regexp.MustCompile(`\p{L}`)
-	upperRe       = regexp.MustCompile(`\p{Lu}`)
+	// clickbaitRe catches teaser phrases spam filters weigh, as the AI
+	// assistant's subject ideas are checked against them too.
+	clickbaitRe = regexp.MustCompile(`(?i)\b(you won'?t believe|you will not believe|can'?t believe|shocking|jaw[- ]dropping|mind[- ]blowing|what happens next|this one (weird )?trick|doctors hate)\b`)
+	letterRe    = regexp.MustCompile(`\p{L}`)
+	upperRe     = regexp.MustCompile(`\p{Lu}`)
 )
 
 // SubjectHeuristicsIn returns the heuristics a subject in a language trips:
@@ -906,7 +909,29 @@ func SubjectHeuristics(subject string) []string {
 	if moneyRe.MatchString(subject) {
 		out = append(out, "money words")
 	}
+	if clickbaitRe.MatchString(subject) {
+		out = append(out, "click-bait")
+	}
 	return out
+}
+
+// SubjectHeuristicPhrase returns the words of a subject that trip a phrase
+// heuristic ("you won't believe"), "" when only its form does (capitals,
+// punctuation).
+func SubjectHeuristicPhrase(subject, language string) string {
+	lang := strings.ToLower(strings.TrimSpace(language))
+	if i := strings.IndexAny(lang, "-_"); i >= 0 {
+		lang = lang[:i]
+	}
+	if lang != "" && lang != "en" {
+		return ""
+	}
+	for _, re := range []*regexp.Regexp{clickbaitRe, urgencyRe, moneyRe} {
+		if m := re.FindString(subject); m != "" {
+			return strings.ToLower(m)
+		}
+	}
+	return ""
 }
 
 var (

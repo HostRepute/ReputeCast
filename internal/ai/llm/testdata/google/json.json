@@ -1,0 +1,26 @@
+{
+  "status": 200,
+  "body": {
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "{\"subject\": \"A year of on-call, in numbers\"}"
+            }
+          ],
+          "role": "model"
+        },
+        "finishReason": "STOP",
+        "index": 0
+      }
+    ],
+    "usageMetadata": {
+      "promptTokenCount": 44,
+      "candidatesTokenCount": 12,
+      "totalTokenCount": 56
+    },
+    "modelVersion": "gemini-2.5-flash",
+    "responseId": "q5TvaMb8LZ2N-8YP0p-x8Q4"
+  }
+}

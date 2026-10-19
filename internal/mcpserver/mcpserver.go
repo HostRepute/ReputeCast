@@ -53,6 +53,8 @@ type Service struct {
 	Now       func() time.Time
 	// Polls reads poll and survey results (nil: unavailable).
 	Polls PollReader
+	// Website lists, reads and drafts posts (nil: unavailable).
+	Website WebsitePosts
 
 	limiters sync.Map // agent id → *limiter
 }

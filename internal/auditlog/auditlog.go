@@ -133,10 +133,14 @@ var Categories = []AuditCategory{
 	// Recurring digests (design expansion, phase 3).
 	{Key: "digests", Label: "Digests", Groups: []string{"digest"}},
 	{Key: "polls", Label: "Polls & surveys", Groups: []string{"poll", "survey"}},
+	// The AI assistant's connection, key, cap, prices and features (phase 3).
+	{Key: "ai", Label: "AI", Groups: []string{"ai"}},
 	// Earn (design expansion, phase 6).
 	{Key: "earn", Label: "Earn", Groups: []string{"payments", "earn", "paid_member"}},
 	{Key: "verification", Label: "Verification", Groups: []string{"verification"}},
 	{Key: "placement", Label: "Placement tests", Groups: []string{"placement"}},
+	// The publication website (design expansion, phase 7).
+	{Key: "website", Label: "Website", Groups: []string{"website", "post", "tag"}},
 	// Shopify and WooCommerce (design expansion, phase 7).
 	{Key: "commerce", Label: "Commerce", Groups: []string{"store"}},
 }
@@ -560,6 +564,8 @@ func link(ws, targetType, targetID, override string) (string, string) {
 		return base + "/transactional/messages", "Open messages"
 	case "transactional_category", "transactional_settings":
 		return base + "/transactional/settings", "Open settings"
+	case "ai_assistant":
+		return base + "/settings/integrations/ai", "Open AI assistant"
 	case "store":
 		if targetID != "" {
 			return base + "/settings/integrations/stores/" + targetID, "Open store"
@@ -587,6 +593,10 @@ var verbs = map[string]string{
 	"template_rolled_back": "Rolled back", "template_archived": "Archived", "template_restored": "Restored", "template_deleted": "Deleted",
 	"category_created": "Created", "category_updated": "Changed", "category_deleted": "Deleted", "content_viewed": "Viewed the content of",
 	"message_resent": "Resent", "log_exported": "Exported", "enabled": "Turned on", "disabled": "Turned off",
+	// The AI assistant.
+	"connection_created": "Connected", "connection_updated": "Changed", "connection_removed": "Disconnected", "key_replaced": "Replaced the key of",
+	"model_changed": "Changed the model of", "cap_updated": "Changed the monthly cap of", "prices_updated": "Changed the prices of",
+	"feature_enabled": "Turned on a feature of", "feature_disabled": "Turned off a feature of",
 	// Stores (phase 7).
 	"connect_started": "Started connecting", "keys_saved": "Saved the app keys of", "installed": "Installed the app on", "connected": "Connected",
 	"reconnected": "Reconnected", "disconnected": "Disconnected", "data_deleted": "Deleted the store data of", "list_updated": "Changed the list of",
@@ -618,7 +628,7 @@ func Describe(action, targetType, targetName string) string {
 }
 
 // acronyms keep their case in type names: api_key → "API key".
-var acronyms = map[string]string{"api": "API", "mcp": "MCP", "sso": "SSO", "dns": "DNS", "smtp": "SMTP", "ip": "IP", "url": "URL"}
+var acronyms = map[string]string{"api": "API", "mcp": "MCP", "sso": "SSO", "dns": "DNS", "smtp": "SMTP", "ip": "IP", "url": "URL", "ai": "AI"}
 
 // TypeLabel turns a target type into words: "routing_rule" → "routing rule"
 // ("Routing rule" with capital), "api_key" → "API key".

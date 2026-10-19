@@ -42,6 +42,9 @@ var (
 	seedEarn  = noop // payments and paid subscriptions: Stripe, tiers, paid members, the Substack import (seed_earn.go)
 	// address verification services and their uses, seed mailboxes and placement tests (seed_verification_placement.go)
 	seedVerificationPlacement = noop
+	seedAI                    = noop // AI assistant: Anthropic connected, this month's usage and activity log, a kept report summary (seed_ai.go)
+	// the publication website: news.acme.io's posts, tags, members, views and Daniel's post waiting for approval (seed_website.go)
+	seedWebsite = noop
 )
 
 func noop(context.Context, *Seeder) error { return nil }

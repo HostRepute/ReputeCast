@@ -117,7 +117,8 @@ func TestCategoryOptOuts(t *testing.T) {
 	// notifications section.
 	prefs := "/p/acme-newsletter/preferences/" + s.env.App.Links.Sign(linktoken.Claims{Kind: linktoken.Preferences, WorkspaceID: s.ws, MessageID: uuid.MustParse(r.ID)})
 	code, body = s.page(http.MethodGet, prefs, nil)
-	if code != 200 || !strings.Contains(body, "Notifications from Acme Cloud") || !strings.Contains(body, "Product updates") || strings.Contains(body, "Weekly Digest") ||
+	// (The website's header links to the Weekly Digest tag; no list is offered.)
+	if code != 200 || !strings.Contains(body, "Notifications from Acme Cloud") || !strings.Contains(body, "Product updates") || strings.Contains(body, `<span class="nm">Weekly Digest`) ||
 		strings.Contains(body, "Unsubscribe from everything") {
 		t.Fatalf("preferences %d:\n%s", code, body)
 	}

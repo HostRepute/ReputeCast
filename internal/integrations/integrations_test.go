@@ -147,12 +147,12 @@ func TestCatalogAndReadOnly(t *testing.T) {
 		keys = append(keys, g.Key)
 	}
 	// Commerce lists Shopify and WooCommerce (X20).
-	if strings.Join(keys, ",") != "automation,websites,deliverability,developer,verification,commerce" {
+	if strings.Join(keys, ",") != "automation,websites,deliverability,developer,ai,verification,commerce" {
 		t.Fatalf("groups with nothing in them aren't shown: %v", keys)
 	}
 	// Verification lists every address verification service (X14).
 	services := []string{}
-	for _, e := range cat.Groups[4].Entries {
+	for _, e := range cat.Groups[5].Entries {
 		services = append(services, e.Key)
 	}
 	if strings.Join(services, ",") != "zerobounce,neverbounce,kickbox,bouncer,emailable" {

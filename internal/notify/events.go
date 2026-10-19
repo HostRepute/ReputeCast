@@ -41,6 +41,9 @@ var Events = []EventType{
 	{Key: KindDigestPaused, Label: "Digest paused", Audience: "The owner, or everyone with campaigns:send", Short: "paused digests", DefaultEmail: true, Kinds: []string{KindDigestPaused}},
 	{Key: KindDigestFeedFailing, Label: "Digest feed failing", Audience: "The digest's owner", Short: "failing digest feeds", DefaultEmail: true, Kinds: []string{KindDigestFeedFailing}},
 	{Key: KindDigestDraftReady, Label: "Digest draft ready", Audience: "The owner and everyone with campaigns:send", Short: "digest drafts", DefaultEmail: true, Kinds: []string{KindDigestDraftReady}},
+	// AI assistant (design expansion, phase 3).
+	{Key: KindAIUsage, Label: "AI usage at 80% and cap reached", Audience: "Everyone with integrations:manage", Short: "AI usage notices", DefaultEmail: true, Kinds: []string{KindAIUsage}},
+	{Key: KindAIKeyRejected, Label: "AI key rejected by the provider", Audience: "Everyone with integrations:manage", Short: "rejected AI keys", DefaultEmail: true, Kinds: []string{KindAIKeyRejected}},
 	{Key: KindPaymentsAttention, Label: "Payments: key rejected, webhook missing or silent", Audience: "Everyone with payments:manage", Short: "payment problems", DefaultEmail: true, Kinds: []string{KindPaymentsAttention}},
 	{Key: KindUnmappedPrice, Label: "Payments: a Stripe price isn't mapped to a tier", Audience: "Everyone with payments:manage", Short: "unmapped prices", DefaultEmail: false, Kinds: []string{KindUnmappedPrice}},
 	{Key: KindPaidImportDone, Label: "Paid members import finished", Audience: "Whoever ran the import", Short: "paid-members imports", DefaultEmail: false, Kinds: []string{KindPaidImportDone}},
@@ -49,6 +52,8 @@ var Events = []EventType{
 	{Key: KindVerificationCreditsLow, Label: "Verification credits low", Audience: "Everyone with integrations:manage", Short: "low verification credits", DefaultEmail: true, Kinds: []string{KindVerificationCreditsLow}},
 	{Key: KindPlacementFinished, Label: "Placement test finished", Audience: "The person who started it", Short: "placement tests", DefaultEmail: false, Kinds: []string{KindPlacementFinished}},
 	{Key: KindSeedSignInFailed, Label: "Seed mailbox sign-in failed", Audience: "Everyone with placement:manage", Short: "seed sign-in failures", DefaultEmail: true, Kinds: []string{KindSeedSignInFailed}},
+	// The publication website (design expansion, phase 7).
+	{Key: KindWebsiteDomain, Label: "Website domain or certificate problem", Audience: "Everyone with website:manage", Short: "website domain problems", DefaultEmail: true, Kinds: []string{KindWebsiteDomain}},
 	{Key: KindStoreProblem, Label: "Store disconnected or its webhooks missing", Audience: "Everyone with integrations:manage", Short: "store problems", DefaultEmail: true, Kinds: []string{KindStoreProblem}},
 }
 
@@ -81,8 +86,12 @@ const (
 	// CategoryTransactional holds transactional mail's delivery alerts and
 	// the SMTP relay.
 	CategoryTransactional = "transactional"
+	// CategoryAI holds the AI assistant's cap and key notices.
+	CategoryAI = "ai"
 	// CategoryEarn holds payments and paid members.
 	CategoryEarn = "earn"
+	// CategoryWebsite holds the publication website's notifications.
+	CategoryWebsite = "website"
 )
 
 var categoryKinds = map[string][]string{
@@ -93,7 +102,9 @@ var categoryKinds = map[string][]string{
 	CategoryHostRepute:    {KindHostReputeAlert},
 	CategoryIntegrations:  {KindIntegrationAttention, KindPostDraftCreated, KindStoreProblem},
 	CategoryTransactional: {KindTransactionalAlert, KindSMTPRelayUnreachable},
+	CategoryAI:            {KindAIUsage, KindAIKeyRejected},
 	CategoryEarn:          {KindPaymentsAttention, KindUnmappedPrice, KindPaidImportDone, KindFailedPayments},
+	CategoryWebsite:       {KindWebsiteDomain},
 }
 
 var categoryLabels = map[string]string{
@@ -105,7 +116,9 @@ var categoryLabels = map[string]string{
 	CategoryOther:         "Other",
 	CategoryIntegrations:  "Integrations",
 	CategoryTransactional: "Transactional",
+	CategoryAI:            "AI",
 	CategoryEarn:          "Earn",
+	CategoryWebsite:       "Website",
 }
 
 // CategoryOf returns the center tab a kind is listed under.

@@ -114,7 +114,7 @@ type IntegrationGroup struct {
 // IntegrationEntry is a catalog card: its status, the reason it needs
 // attention, and the facts of its fact line.
 type IntegrationEntry struct {
-	Key string `json:"key" enum:"zapier,make,n8n,wordpress,hostrepute,api,webhooks,mcp,zerobounce,neverbounce,kickbox,bouncer,emailable,shopify,woocommerce"`
+	Key string `json:"key" enum:"zapier,make,n8n,wordpress,hostrepute,api,webhooks,mcp,anthropic,openai,google,azure,compatible,zerobounce,neverbounce,kickbox,bouncer,emailable,shopify,woocommerce"`
 	// Status: not_connected, waiting, connected, attention; none for the
 	// developer cards.
 	Status          string              `json:"status" enum:"not_connected,waiting,connected,attention,none"`
@@ -140,6 +140,8 @@ type IntegrationFacts struct {
 	Failing      int64      `json:"failing"`
 	MCPEnabled   bool       `json:"mcpEnabled"`
 	Agents       int64      `json:"agents"`
+	// AI is an AI model's card (the "AI models" group, internal/ai).
+	AI *IntegrationAIFacts `json:"ai,omitempty"`
 	// Balance is a verification service's credits and Price what a check
 	// costs on the workspace's plan, when connected.
 	Balance *int64  `json:"balance,omitempty"`
@@ -156,6 +158,23 @@ type IntegrationStoreFacts struct {
 	State       string     `json:"state" enum:"connecting,importing,connected,webhook_missing,rate_limited,no_plugin,revoked"`
 	Orders      int64      `json:"orders"`
 	LastEventAt *time.Time `json:"lastEventAt,omitempty"`
+}
+
+// IntegrationAIFacts are an AI model card's facts: the model connected, and
+// this month's use against the cap.
+type IntegrationAIFacts struct {
+	ModelName  string  `json:"modelName,omitempty"`
+	CostMicros int64   `json:"costMicros"`
+	Tokens     int64   `json:"tokens"`
+	CapKind    string  `json:"capKind,omitempty" enum:"usd,tokens,none,"`
+	CapUSD     float64 `json:"capUsd"`
+	CapTokens  int64   `json:"capTokens"`
+	Share      float64 `json:"share" doc:"Share of the cap used, 0 to 1"`
+	// Connected names the provider connected to the workspace, when it is
+	// another one: one model per workspace.
+	Connected string `json:"connected,omitempty"`
+	// KeyRejected: the provider rejected the saved key.
+	KeyRejected bool `json:"keyRejected"`
 }
 
 // IntegrationAlert is a banner: an entry and its reason.

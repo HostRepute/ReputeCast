@@ -1699,6 +1699,360 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/ai": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The AI assistant's settings: the model, the cap, this month's usage and the features
+         * @description The key is write-only: only whether one is set, and when. Settings › Integrations › AI assistant.
+         */
+        get: operations["get-ai-settings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The AI activity log: each request of the last 90 days, never its content */
+        get: operations["list-ai-activity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/alt-text": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Alt text for an image: the image at 1,024 px and the text around it */
+        post: operations["suggest-alt-text"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/cap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set the monthly cap: dollars, tokens or none */
+        put: operations["set-ai-cap"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/connection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Connect the workspace's model (one per workspace), after the test passes
+         * @description The key is sealed and never returned. Audited as ai.connection_created or ai.connection_updated.
+         */
+        put: operations["connect-ai-model"];
+        post?: never;
+        /**
+         * Disconnect the model: the key is deleted
+         * @description The model, the cap and the prices are kept for the next connection; the activity log, kept summaries and accepted text stay. Audited as ai.connection_removed.
+         */
+        delete: operations["disconnect-ai-model"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/features/{feature}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Turn a feature on or off */
+        put: operations["set-ai-feature"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Replace the key, after it passes the test */
+        put: operations["replace-ai-key"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/link-text": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Link text that says where a link goes (an accessibility fix) */
+        post: operations["suggest-link-text"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/model": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change model: another model of the same provider */
+        put: operations["change-ai-model"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/models": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * The models a provider offers the key, with ReputeCast's prices
+         * @description Without a key it lists the price list's models. Nothing about the workspace is sent.
+         */
+        post: operations["list-ai-models"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/prices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set the prices per million tokens the cap is estimated with */
+        put: operations["set-ai-prices"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/report-summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Summarize results: a plain-language summary of a report's numbers
+         * @description Sends the report's aggregate numbers only (no addresses). Needs reports:view.
+         */
+        post: operations["summarize-report"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/requests/{request}/outcome": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record what was done with a suggestion: accepted, rejected… */
+        post: operations["record-ai-outcome"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/rewrite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Shorten, friendlier, more formal, more direct, or with an instruction
+         * @description Sends the selected text and the instruction. An instruction about sender reputation isn't sent: the answer points at HostRepute's assistant.
+         */
+        post: operations["suggest-rewrite"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/segment-draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Describe the segment: draft conditions with the builder's own conditions
+         * @description Sends the description and the condition schema: field names and types, list, segment and tag names, tiers. Never values from any contact. Needs segments:edit.
+         */
+        post: operations["draft-segment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Whether the assistant is ready: the model, the features on, this month's use */
+        get: operations["get-ai-status"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/subject-ideas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Five subject lines, each with the subject checks
+         * @description Sends the subject, the preheader, the email's text without images, its language and the subject rules. Never contact data: tokens go as written.
+         */
+        post: operations["suggest-subject-ideas"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Test connection: a fixed prompt with no workspace content
+         * @description Tests the model being set up, or the saved one when the body is empty. Shows the answer and the time it took.
+         */
+        post: operations["test-ai-connection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/translate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Translate a campaign's source into one of the workspace's languages
+         * @description Sends the source's text block by block, its subject and preheader, and the target language. Tokens and links the model changed are restored.
+         */
+        post: operations["suggest-translation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/api-keys": {
         parameters: {
             query?: never;
@@ -2545,6 +2899,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/campaigns-web": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The Campaigns list's Web column: the posts of campaigns */
+        get: operations["list-campaign-web-states"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/campaigns/audience-count": {
         parameters: {
             query?: never;
@@ -2615,6 +2986,42 @@ export interface paths {
          * @description The composer calls it as you edit. The version being edited is checked with your unsaved changes, the others as saved. Nothing is saved.
          */
         post: operations["check-campaign-accessibility"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/ai-summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The summary kept on a campaign's report (never on read-only links) */
+        get: operations["get-ai-report-summary"];
+        /** Keep a summary at the top of the report */
+        put: operations["keep-ai-report-summary"];
+        post?: never;
+        /** Take the kept summary off the report */
+        delete: operations["remove-ai-report-summary"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/ai-translations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A campaign's language versions translated by AI, and whether they were reviewed */
+        get: operations["list-ai-translations"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2822,6 +3229,43 @@ export interface paths {
         post?: never;
         /** Remove a campaign's language version */
         delete: operations["remove-campaign-language"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/languages/{language}/ai-reviewed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark an AI translation reviewed */
+        post: operations["mark-ai-translation-reviewed"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/languages/{language}/ai-translation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Accept a translation, or some of its blocks, into the language version
+         * @description Adds the version when it is missing. Accepting every block marks it translated, "Translated by AI · not reviewed"; otherwise it stays a Draft. A content edit, in the version's history.
+         */
+        post: operations["accept-ai-translation"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -3562,6 +4006,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/web": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A campaign's Web tab: whether and how it goes on the website */
+        get: operations["get-campaign-web"];
+        /**
+         * Save a campaign's Web tab
+         * @description A live post's settings need website:edit too.
+         */
+        put: operations["save-campaign-web"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/web-report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The Web section of a campaign's report */
+        get: operations["get-campaign-web-report"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/campaigns/{id}/store-revenue": {
         parameters: {
             query?: never;
@@ -4130,6 +4612,43 @@ export interface paths {
         get: operations["get-contact-stores"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/contacts/{contactId}/website": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A contact's Website card: membership, sign-ins, sessions and the meter */
+        get: operations["get-contact-website"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/contacts/{contactId}/website/sign-out": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sign a member out of the website on every device
+         * @description Audited, and on the contact's timeline.
+         */
+        post: operations["sign-contact-out-everywhere"];
         delete?: never;
         options?: never;
         head?: never;
@@ -10725,6 +11244,380 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/website": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The website: its address, state, numbers and what turning it on or off does */
+        get: operations["get-website"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/website/access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Website › Access: members, sign-up, visibility defaults, the meter and the paywall */
+        get: operations["get-website-access"];
+        /** Save who can read what */
+        put: operations["save-website-access"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/website/home-nav": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Website › Home & navigation */
+        get: operations["get-website-home-nav"];
+        /** Save the home page, the navigation and the site's identity */
+        put: operations["save-website-home-nav"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/website/home-nav/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview the home page with unsaved Home & navigation settings, as a visitor sees it */
+        post: operations["preview-website-home"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/website/past-campaigns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Sent campaigns that aren't posts yet */
+        get: operations["list-website-past-campaigns"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/website/past-campaigns/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish sent campaigns as posts, at their send dates */
+        post: operations["publish-website-past-campaigns"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/website/posts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Website › Posts, with their 30-day numbers */
+        get: operations["list-website-posts"];
+        put?: never;
+        /** Start a web-only post */
+        post: operations["create-website-post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/website/posts/{post}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A post: its settings, content, web checks and whether you can publish it */
+        get: operations["get-website-post"];
+        /**
+         * Save a post's settings: title, address, excerpt, cover, byline, tags, visibility and SEO
+         * @description Changing a published post's address keeps the old one as a redirect.
+         */
+        put: operations["update-website-post"];
+        post?: never;
+        /**
+         * Delete a post
+         * @description A published post leaves the site too (its address answers 410); that needs website:publish.
+         */
+        delete: operations["delete-website-post"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/website/posts/{post}/approval": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ask for approval to publish a post as it is
+         * @description The request covers the content, the address, the visibility and the publish time; a change needs a new one. Once approved, the post goes live by itself.
+         */
+        post: operations["request-website-post-approval"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/website/posts/{post}/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Autosave or save a web-only post's content
+         * @description Another save since baseVersion is a conflict (409) unless force is set.
+         */
+        put: operations["save-website-post-content"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/website/posts/{post}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview a post on the web as a visitor, a free member or a paid member */
+        post: operations["preview-website-post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/website/posts/{post}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Publish a post now, or schedule it
+         * @description When publishing needs approval the answer is 409 approval_required with the rule and the approvers: ask for approval instead.
+         */
+        post: operations["publish-website-post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/website/posts/{post}/redirect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change where an unpublished post's address leads */
+        put: operations["set-website-post-redirect"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/website/posts/{post}/send-as-campaign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Make a campaign draft of a web-only post
+         * @description Its title becomes the subject, its excerpt the preheader and its blocks the email. Pick the audience in the composer.
+         */
+        post: operations["send-website-post-as-campaign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/website/posts/{post}/undo-publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Take back a publish within seconds (the toast's Undo) */
+        post: operations["undo-website-post-publish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/website/posts/{post}/unpublish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Take a post off the site, or unschedule it
+         * @description Its address answers 410, or redirects to redirectTo.
+         */
+        post: operations["unpublish-website-post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/website/tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The site's tags with their posts */
+        get: operations["list-website-tags"];
+        put?: never;
+        /** Add a tag */
+        post: operations["create-website-tag"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/website/tags/{tag}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Rename a tag, change its address or description */
+        put: operations["update-website-tag"];
+        post?: never;
+        /** Delete a tag (its posts stay) */
+        delete: operations["delete-website-tag"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/website/turn-off": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Turn the website off
+         * @description The archive comes back; web-only posts, sign-in, the account page and the paywall go offline. Every post and setting is kept. Type the site's address to confirm.
+         */
+        post: operations["turn-website-off"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/website/turn-on": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Turn the website on
+         * @description Archived campaigns become posts (their archive addresses redirect), archived lists become tags and the domain's root becomes the home page. It runs in the background; the website's state says how far it got.
+         */
+        post: operations["turn-website-on"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/welcome-prompt": {
         parameters: {
             query?: never;
@@ -10846,6 +11739,617 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AIAcceptedBlock: {
+            edited?: boolean;
+            /** Format: int64 */
+            index: number;
+            segments: components["schemas"]["AIAcceptedSegment"][];
+        };
+        AIAcceptedSegment: {
+            /** @enum {string} */
+            kind: "text" | "button" | "nav" | "image" | "social" | "table";
+            path: number[];
+            text: string;
+        };
+        AIActivityList: {
+            items: components["schemas"]["AIActivityRow"][];
+            members: components["schemas"]["AIActivityMember"][];
+            /** Format: int64 */
+            monthRequests: number;
+            next?: string;
+            /** Format: int64 */
+            retentionDays: number;
+        };
+        AIActivityMember: {
+            id: string;
+            name: string;
+        };
+        AIActivityRow: {
+            /** @description The rewrite's action, or the language translated to */
+            action?: string;
+            /** Format: date-time */
+            at: string;
+            /** Format: int64 */
+            costMicros: number;
+            /** @description 1 of 5, 529 overloaded */
+            detail?: string;
+            /** @enum {string} */
+            feature: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary";
+            id: string;
+            /** Format: int64 */
+            inputTokens: number;
+            member: string;
+            memberColor?: string;
+            model: string;
+            /** @description What it was about: Weekly Digest #143 */
+            on: string;
+            /** @enum {string} */
+            outcome: "pending" | "accepted" | "accepted_edits" | "kept" | "rejected" | "discarded" | "refused" | "error" | "nothing_drafted" | "cancelled";
+            /** Format: int64 */
+            outputTokens: number;
+            provider: string;
+            targetId?: string;
+            targetKind?: string;
+            /** Format: int64 */
+            tokens: number;
+            userId?: string;
+        };
+        AIAltText: {
+            /** Format: int64 */
+            characters: number;
+            fileName: string;
+            noImageOf: boolean;
+            refusal?: string;
+            requestId?: string;
+            saysWhat: boolean;
+            sent: components["schemas"]["AISent"];
+            short: boolean;
+            text: string;
+        };
+        AIAltTextInput: {
+            /** Format: uuid */
+            campaignId: string;
+            context?: string;
+            language?: string;
+            src: string;
+        };
+        AICapInput: {
+            /** @enum {string} */
+            kind: "usd" | "tokens" | "none";
+            /** Format: int64 */
+            tokens?: number;
+            /** Format: double */
+            usd?: number;
+        };
+        AICapView: {
+            /** @enum {string} */
+            kind: "usd" | "tokens" | "none";
+            /** Format: date-time */
+            setAt?: string;
+            setBy?: string;
+            /** Format: int64 */
+            tokens: number;
+            /** Format: double */
+            usd: number;
+        };
+        AIConnectInput: {
+            apiKey?: string;
+            apiVersion?: string;
+            baseUrl?: string;
+            /** @enum {string} */
+            capKind: "usd" | "tokens" | "none";
+            /** Format: int64 */
+            capTokens?: number;
+            /** Format: double */
+            capUsd?: number;
+            deployment?: string;
+            features?: string[];
+            /** Format: double */
+            inputPrice?: number;
+            label?: string;
+            model: string;
+            modelName?: string;
+            /** Format: double */
+            outputPrice?: number;
+            /** @enum {string} */
+            provider: "anthropic" | "openai" | "google" | "azure" | "compatible";
+        };
+        AIConnectionView: {
+            apiVersion?: string;
+            baseUrl?: string;
+            cap: components["schemas"]["AICapView"];
+            /** Format: date-time */
+            connectedAt: string;
+            connectedBy?: string;
+            demo: boolean;
+            deployment?: string;
+            imageInput: boolean;
+            key: components["schemas"]["AIKeyView"];
+            label?: string;
+            lastTest?: components["schemas"]["AITestView"];
+            model: string;
+            modelName: string;
+            prices: components["schemas"]["AIPricesView"];
+            privateNetwork: boolean;
+            /** @enum {string} */
+            provider: "anthropic" | "openai" | "google" | "azure" | "compatible";
+            providerName: string;
+            /** @enum {string} */
+            status: "connected" | "key_rejected";
+            /** Format: date-time */
+            statusAt?: string;
+            statusDetail?: string;
+        };
+        AIFeatureInput: {
+            on: boolean;
+        };
+        AIFeatureState: {
+            available: boolean;
+            /** @enum {string} */
+            key: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary";
+            on: boolean;
+        };
+        AIKeepSummaryInput: {
+            edited?: boolean;
+            /** Format: uuid */
+            requestId: string;
+            summary: string;
+        };
+        AIKeptSummary: {
+            hostRepute: boolean;
+            kept?: components["schemas"]["AIKeptSummaryView"];
+        };
+        AIKeptSummaryView: {
+            /** Format: date-time */
+            keptAt: string;
+            keptBy: string;
+            model: string;
+            modelName: string;
+            summary: string;
+        };
+        AIKeyInput: {
+            apiKey: string;
+        };
+        AIKeyReplaced: {
+            settings: components["schemas"]["AISettings"];
+            test: components["schemas"]["AITestResult"];
+        };
+        AIKeyView: {
+            /** Format: date-time */
+            addedAt?: string;
+            addedBy?: string;
+            set: boolean;
+        };
+        AILinkText: {
+            href: string;
+            refusal?: string;
+            requestId?: string;
+            saysWhere: boolean;
+            sent: components["schemas"]["AISent"];
+            text: string;
+        };
+        AILinkTextInput: {
+            /** Format: uuid */
+            campaignId: string;
+            context?: string;
+            href: string;
+            language?: string;
+            text: string;
+        };
+        AIMemberRole: {
+            name: string;
+            role: string;
+        };
+        AIModelInput: {
+            /** Format: double */
+            inputPrice?: number;
+            model: string;
+            modelName?: string;
+            /** Format: double */
+            outputPrice?: number;
+        };
+        AIModelList: {
+            error?: string;
+            fromProvider: boolean;
+            models: components["schemas"]["AIModelOption"][];
+        };
+        AIModelOption: {
+            id: string;
+            imageInput: boolean;
+            /**
+             * Format: double
+             * @description Dollars per million input tokens
+             */
+            input: number;
+            /** @description On ReputeCast's price list */
+            known: boolean;
+            name: string;
+            /**
+             * Format: double
+             * @description Dollars per million output tokens
+             */
+            output: number;
+        };
+        AIModelsInput: {
+            apiKey?: string;
+            apiVersion?: string;
+            baseUrl?: string;
+            deployment?: string;
+            /** @enum {string} */
+            provider: "anthropic" | "openai" | "google" | "azure" | "compatible";
+        };
+        AIOutcomeInput: {
+            detail?: string;
+            /** @enum {string} */
+            outcome: "accepted" | "accepted_edits" | "kept" | "rejected" | "discarded";
+        };
+        AIPricesInput: {
+            /**
+             * Format: double
+             * @description Dollars per million input tokens
+             */
+            input: number;
+            /**
+             * Format: double
+             * @description Dollars per million output tokens
+             */
+            output: number;
+        };
+        AIPricesView: {
+            /** Format: date-time */
+            from?: string;
+            /**
+             * Format: double
+             * @description Dollars per million input tokens
+             */
+            input: number;
+            /**
+             * Format: double
+             * @description Dollars per million output tokens
+             */
+            output: number;
+        };
+        AIProviderEntry: {
+            capabilities: ("text" | "image_input" | "structured_output" | "own_network" | "data_region")[];
+            defaultModel?: string;
+            /** @enum {string} */
+            kind: "anthropic" | "openai" | "google" | "azure" | "compatible";
+            models: components["schemas"]["AIModelOption"][];
+            name: string;
+            needsBaseUrl: boolean;
+            needsKey: boolean;
+        };
+        AIReportSummary: {
+            noCauses: boolean;
+            numbersMatch: boolean;
+            refusal?: string;
+            requestId?: string;
+            sent: components["schemas"]["AISent"];
+            summary: string;
+            unmatched: string[];
+        };
+        AIReportSummaryInput: {
+            /** Format: uuid */
+            campaignId: string;
+        };
+        AIReputation: {
+            hostRepute: boolean;
+        };
+        AIRewrite: {
+            html: string;
+            /** Format: int64 */
+            links: number;
+            /** Format: int64 */
+            linksRestored: number;
+            refusal?: string;
+            reputation?: components["schemas"]["AIReputation"];
+            requestId?: string;
+            sent: components["schemas"]["AISent"];
+            /** @description The variables of the tokens kept: first_name */
+            tokens: string[];
+            /** Format: int64 */
+            tokensRestored: number;
+            /** Format: int64 */
+            wordsAfter: number;
+            /** Format: int64 */
+            wordsBefore: number;
+        };
+        AIRewriteInput: {
+            /** @enum {string} */
+            action: "shorten" | "friendlier" | "formal" | "direct" | "instruction";
+            /** Format: uuid */
+            campaignId: string;
+            /** @enum {string} */
+            field?: "subject" | "preheader";
+            html: string;
+            instruction?: string;
+            language?: string;
+        };
+        AISegmentDraft: {
+            /** Format: int64 */
+            added: number;
+            count?: components["schemas"]["SegmentCountResult"];
+            definition: components["schemas"]["SegmentDefinition"];
+            groups: components["schemas"]["AISegmentDraftGroup"][];
+            note?: string;
+            nothing?: string;
+            refusal?: string;
+            /** Format: int64 */
+            removed: number;
+            requestId?: string;
+            sent: components["schemas"]["AISent"];
+        };
+        AISegmentDraftCondition: {
+            /** Format: int64 */
+            amount?: number;
+            field: string;
+            /** @enum {string} */
+            mark: "added" | "removed" | "kept";
+            op: string;
+            to?: string;
+            /** @enum {string} */
+            unit?: "days" | "weeks";
+            value?: string;
+        };
+        AISegmentDraftGroup: {
+            conditions: components["schemas"]["AISegmentDraftCondition"][];
+            /** @enum {string} */
+            match: "all" | "any";
+        };
+        AISegmentDraftInput: {
+            current: components["schemas"]["SegmentDefinition"];
+            description: string;
+            segmentId?: string;
+        };
+        AISent: {
+            /** Format: int64 */
+            characters: number;
+            /** Format: int64 */
+            costMicros: number;
+            /** Format: int64 */
+            inputTokens: number;
+            model: string;
+            modelName: string;
+            /** Format: int64 */
+            outputTokens: number;
+            /** @enum {string} */
+            provider: "anthropic" | "openai" | "google" | "azure" | "compatible";
+            providerName: string;
+        };
+        AISettings: {
+            aiUseRoles: string[];
+            allowPrivate: boolean;
+            byFeature: components["schemas"]["AIUsageFeature"][];
+            byMember: components["schemas"]["AIUsageMember"][];
+            canManage: boolean;
+            catalog: components["schemas"]["AIProviderEntry"][];
+            connected: boolean;
+            connection?: components["schemas"]["AIConnectionView"];
+            disconnected: boolean;
+            features: components["schemas"]["AIFeatureState"][];
+            helpers: string[];
+            instanceAdmins: string[];
+            /** Format: date-time */
+            priceListDate: string;
+            usage: components["schemas"]["AIUsageView"];
+            withoutAiUse: components["schemas"]["AIMemberRole"][];
+        };
+        AIStatus: {
+            canManage: boolean;
+            cap: components["schemas"]["AICapView"];
+            features: components["schemas"]["AIFeatureState"][];
+            helpers: string[];
+            hostRepute: boolean;
+            imageInput: boolean;
+            model?: string;
+            modelName?: string;
+            prices: components["schemas"]["AIPricesView"];
+            /** @enum {string} */
+            provider?: "anthropic" | "openai" | "google" | "azure" | "compatible" | "";
+            providerName?: string;
+            /** @enum {string} */
+            state: "ready" | "not_configured" | "key_rejected" | "cap_reached";
+            usage: components["schemas"]["AIUsageView"];
+        };
+        AISubjectIdea: {
+            /** Format: int64 */
+            characters: number;
+            heuristics: string[];
+            phrase?: string;
+            subject: string;
+            /** @enum {string} */
+            verdict: "pass" | "warn";
+        };
+        AISubjectIdeas: {
+            ideas: components["schemas"]["AISubjectIdea"][];
+            language: string;
+            refusal?: string;
+            requestId?: string;
+            sent: components["schemas"]["AISent"];
+        };
+        AISubjectIdeasInput: {
+            /** Format: uuid */
+            campaignId: string;
+            language?: string;
+            mjml: string;
+            preheader?: string;
+            subject: string;
+        };
+        AITestInput: {
+            apiKey?: string;
+            apiVersion?: string;
+            baseUrl?: string;
+            deployment?: string;
+            model?: string;
+            /** @enum {string} */
+            provider?: "anthropic" | "openai" | "google" | "azure" | "compatible";
+        };
+        AITestResult: {
+            answer?: string;
+            /** Format: date-time */
+            answeredAt: string;
+            /** @description 401 authentication_error: invalid x-api-key */
+            errorDetail?: string;
+            /** @enum {string} */
+            errorKind?: "auth" | "rate_limit" | "overloaded" | "unavailable" | "bad_request" | "timeout" | "network" | "too_large" | "invalid" | "private";
+            /** @description What it means, as a sentence */
+            errorMessage?: string;
+            /** Format: int64 */
+            errorStatus?: number;
+            /** Format: int64 */
+            inputTokens: number;
+            model?: string;
+            /** Format: int64 */
+            ms: number;
+            ok: boolean;
+            /** Format: int64 */
+            outputTokens: number;
+            privateHost?: string;
+            privateIp?: string;
+            prompt: string;
+            /** Format: date-time */
+            sentAt: string;
+        };
+        AITestView: {
+            /** Format: date-time */
+            at: string;
+            /** Format: int64 */
+            ms: number;
+            ok: boolean;
+        };
+        AITranslateInput: {
+            /** Format: uuid */
+            campaignId: string;
+            language: string;
+        };
+        AITranslation: {
+            blocks: components["schemas"]["AITranslationBlock"][];
+            language: string;
+            languageName: string;
+            /** Format: int64 */
+            links: number;
+            /** Format: int64 */
+            linksRestored: number;
+            preheader: string;
+            preheaderSuggestion: string;
+            /** Format: int64 */
+            readers?: number;
+            refusal?: string;
+            requestId?: string;
+            sent: components["schemas"]["AISent"];
+            source: string;
+            sourceName: string;
+            /** Format: int64 */
+            sourceVersion: number;
+            status: string;
+            subject: string;
+            subjectHeuristics: string[];
+            subjectSuggestion: string;
+            /** Format: int64 */
+            tokens: number;
+            /** Format: int64 */
+            tokensRestored: number;
+        };
+        AITranslationAcceptInput: {
+            blocks: components["schemas"]["AIAcceptedBlock"][];
+            edited?: boolean;
+            /** Format: int64 */
+            items: number;
+            preheader?: string;
+            /** Format: uuid */
+            requestId: string;
+            /** Format: int64 */
+            sourceVersion: number;
+            subject?: string;
+        };
+        AITranslationAccepted: {
+            /** Format: int64 */
+            accepted: number;
+            /** Format: int64 */
+            items: number;
+            language: string;
+            model: string;
+            /** @enum {string} */
+            status: "up_to_date" | "draft";
+            /** Format: int64 */
+            version: number;
+        };
+        AITranslationBlock: {
+            /** Format: int64 */
+            buttons: number;
+            /** Format: int64 */
+            index: number;
+            /** Format: int64 */
+            links: number;
+            /** Format: int64 */
+            linksRestored: number;
+            name: string;
+            segments: components["schemas"]["AITranslationSegment"][];
+            sourceText: string;
+            suggestionText: string;
+            /** Format: int64 */
+            tokens: number;
+            /** Format: int64 */
+            tokensRestored: number;
+        };
+        AITranslationMark: {
+            language: string;
+            model: string;
+            reviewed: boolean;
+        };
+        AITranslationMarks: {
+            items: components["schemas"]["AITranslationMark"][];
+        };
+        AITranslationSegment: {
+            /** @enum {string} */
+            kind: "text" | "button" | "nav" | "image" | "social" | "table";
+            path: number[];
+            source: string;
+            suggestion: string;
+        };
+        AIUsageFeature: {
+            /** Format: int64 */
+            costMicros: number;
+            /** @enum {string} */
+            feature: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary";
+            /** Format: int64 */
+            requests: number;
+            /** Format: int64 */
+            tokens: number;
+        };
+        AIUsageMember: {
+            /** Format: int64 */
+            costMicros: number;
+            name: string;
+            /** Format: int64 */
+            requests: number;
+            /** Format: int64 */
+            tokens: number;
+            userId?: string;
+        };
+        AIUsageView: {
+            /** Format: int64 */
+            costMicros: number;
+            /** Format: int64 */
+            inputTokens: number;
+            /** Format: date-time */
+            monthStart: string;
+            /** Format: int64 */
+            outputTokens: number;
+            /** Format: int64 */
+            requests: number;
+            /** Format: date-time */
+            resetsAt: string;
+            /**
+             * Format: double
+             * @description Share of the cap used, 0 to 1 (0 without a cap)
+             */
+            share: number;
+            /** @enum {string} */
+            state: "ok" | "notice" | "reached";
+            /** Format: int64 */
+            tokens: number;
+        };
         APIKeyCategoryRef: {
             id: string;
             name: string;
@@ -11719,10 +13223,11 @@ export interface components {
             /** @enum {string} */
             status: "pending" | "approved" | "changes_requested" | "rejected" | "invalidated" | "bypassed" | "sent" | "cancelled";
             /** @enum {string} */
-            subjectType: "campaign" | "automation" | "transactional_template";
+            subjectType: "campaign" | "automation" | "transactional_template" | "website_post";
             transactional?: components["schemas"]["ApprovalTransactionalSnapshot"];
             /** Format: int64 */
             version: number;
+            website?: components["schemas"]["ApprovalWebsiteSnapshot"];
         };
         ApprovalFilterOption: {
             id: string;
@@ -11764,8 +13269,10 @@ export interface components {
             /** @enum {string} */
             status: "pending" | "approved" | "changes_requested" | "rejected" | "invalidated" | "bypassed" | "sent" | "cancelled";
             /** @enum {string} */
-            subjectType: "campaign" | "automation" | "transactional_template";
+            subjectType: "campaign" | "automation" | "transactional_template" | "website_post";
             transactionalTemplateId?: string;
+            website?: components["schemas"]["ApprovalWebsiteSnapshot"];
+            websitePostId?: string;
         };
         ApprovalPendingItem: {
             /** Format: int64 */
@@ -11795,6 +13302,7 @@ export interface components {
             emergencyBypass: boolean;
             /** Format: int64 */
             newProviderDays: number;
+            postPublish: boolean;
             readyWithWarnings: boolean;
             transactionalPublish: boolean;
             warmingProvider: boolean;
@@ -11885,7 +13393,7 @@ export interface components {
             /** @enum {string} */
             status: "pending" | "approved" | "changes_requested" | "rejected" | "invalidated" | "bypassed" | "sent" | "cancelled";
             /** @enum {string} */
-            subjectType: "campaign" | "automation" | "transactional_template";
+            subjectType: "campaign" | "automation" | "transactional_template" | "website_post";
             /** Format: int64 */
             version: number;
         };
@@ -11900,7 +13408,7 @@ export interface components {
             author?: string;
             badge: string;
             /** @enum {string} */
-            key: "audience_min" | "warming_provider" | "new_provider" | "ready_with_warnings" | "author_lacks_send" | "approval_lists" | "automation_publish" | "transactional_publish";
+            key: "audience_min" | "warming_provider" | "new_provider" | "ready_with_warnings" | "author_lacks_send" | "approval_lists" | "automation_publish" | "transactional_publish" | "post_publish";
             label: string;
             role?: string;
             short: string;
@@ -11973,6 +13481,23 @@ export interface components {
         ApprovalTransactionalTestRender: {
             name: string;
             ok: boolean;
+        };
+        ApprovalWebsiteSnapshot: {
+            excerpt: string;
+            /** @enum {string} */
+            kind: "campaign" | "web";
+            path: string;
+            postId: string;
+            /** Format: date-time */
+            publishAt?: string;
+            published: boolean;
+            slug: string;
+            title: string;
+            /** @enum {string} */
+            visibility: "public" | "members" | "paid";
+            visibilityLabel: string;
+            /** @enum {string} */
+            when: "now" | "at" | "with_send";
         };
         ArchiveIssueInput: {
             /** @description Empty uses the preheader */
@@ -14773,6 +16298,7 @@ export interface components {
             scoreTo?: string;
             /** @description Segment id */
             segment?: string;
+            signedIn?: boolean;
             /** @enum {string} */
             sort?: "activity" | "score";
             source?: string;
@@ -18672,6 +20198,26 @@ export interface components {
             name: string;
             slug: string;
         };
+        IntegrationAIFacts: {
+            /** @enum {string} */
+            capKind?: "usd" | "tokens" | "none" | "";
+            /** Format: int64 */
+            capTokens: number;
+            /** Format: double */
+            capUsd: number;
+            connected?: string;
+            /** Format: int64 */
+            costMicros: number;
+            keyRejected: boolean;
+            modelName?: string;
+            /**
+             * Format: double
+             * @description Share of the cap used, 0 to 1
+             */
+            share: number;
+            /** Format: int64 */
+            tokens: number;
+        };
         IntegrationAddressCheck: {
             address: string;
             admins: string[];
@@ -18861,7 +20407,7 @@ export interface components {
             connectionId?: string;
             facts: components["schemas"]["IntegrationFacts"];
             /** @enum {string} */
-            key: "zapier" | "make" | "n8n" | "wordpress" | "hostrepute" | "api" | "webhooks" | "mcp" | "zerobounce" | "neverbounce" | "kickbox" | "bouncer" | "emailable" | "shopify" | "woocommerce";
+            key: "zapier" | "make" | "n8n" | "wordpress" | "hostrepute" | "api" | "webhooks" | "mcp" | "anthropic" | "openai" | "google" | "azure" | "compatible" | "zerobounce" | "neverbounce" | "kickbox" | "bouncer" | "emailable" | "shopify" | "woocommerce";
             reasons: components["schemas"]["IntegrationReason"][];
             /** @enum {string} */
             status: "not_connected" | "waiting" | "connected" | "attention" | "none";
@@ -18872,6 +20418,7 @@ export interface components {
             actions: number;
             /** Format: int64 */
             agents: number;
+            ai?: components["schemas"]["IntegrationAIFacts"];
             /** Format: int64 */
             balance?: number;
             /** Format: int64 */
@@ -20278,7 +21825,7 @@ export interface components {
             /** @description Full sentence for the notification center */
             body: string;
             /** @enum {string} */
-            category: "approvals" | "sending" | "providers" | "team" | "hostrepute" | "other" | "integrations" | "transactional" | "earn";
+            category: "approvals" | "sending" | "providers" | "team" | "hostrepute" | "other" | "integrations" | "transactional" | "earn" | "website";
             /** @example Approvals */
             categoryLabel: string;
             /** Format: date-time */
@@ -27765,6 +29312,810 @@ export interface components {
             total24h: number;
             url: string;
         };
+        WebsiteAbout: {
+            link: string;
+            text: string;
+            title: string;
+        };
+        WebsiteAccess: {
+            /** @enum {string} */
+            campaignVisibility: "audience" | "public" | "members" | "paid";
+            /** @enum {string} */
+            defaultVisibility: "public" | "members" | "paid";
+            /** Format: int64 */
+            linkMinutes: number;
+            lists: components["schemas"]["WebsiteAccessList"][];
+            members: components["schemas"]["WebsiteMembersFacts"];
+            /** Format: int64 */
+            membersOnlyPosts: number;
+            /** Format: int64 */
+            meterMembers: number;
+            meterMembersOn: boolean;
+            /** Format: int64 */
+            meterVisitors: number;
+            meterVisitorsOn: boolean;
+            neverFree: components["schemas"]["WebsiteNeverFreePost"][];
+            /** Format: int64 */
+            paidPosts: number;
+            payments: components["schemas"]["WebsitePayments"];
+            paywall: components["schemas"]["WebsitePaywall"];
+            senderEmail: string;
+            senderName: string;
+            /** Format: int64 */
+            sessionDays: number;
+            signinOn: boolean;
+            signupOn: boolean;
+            /** Format: date-time */
+            since: string;
+            systemProvider: string;
+            tiers: components["schemas"]["WebsiteTierOption"][];
+            /** Format: date-time */
+            updatedAt: string;
+            updatedBy?: string;
+        };
+        WebsiteAccessInput: {
+            /** @enum {string} */
+            campaignVisibility: "audience" | "public" | "members" | "paid";
+            /** @enum {string} */
+            defaultVisibility: "public" | "members" | "paid";
+            /**
+             * Format: int64
+             * @enum {integer}
+             */
+            linkMinutes: 10 | 15 | 30 | 60;
+            lists: components["schemas"]["WebsiteSignupList"][];
+            /** Format: int64 */
+            meterMembers: number;
+            meterMembersOn: boolean;
+            /** Format: int64 */
+            meterVisitors: number;
+            meterVisitorsOn: boolean;
+            neverFree: string[];
+            paywall: components["schemas"]["WebsitePaywall"];
+            /** Format: int64 */
+            sessionDays: number;
+            signinOn: boolean;
+            signupOn: boolean;
+        };
+        WebsiteAccessList: {
+            checked: boolean;
+            consent: string;
+            id: string;
+            name: string;
+            offered: boolean;
+            public: boolean;
+        };
+        WebsiteAddress: {
+            certificate: components["schemas"]["WebsiteCertificate"];
+            /** Format: date-time */
+            checkedAt?: string;
+            domain: string;
+            domainDetail: string;
+            /** @enum {string} */
+            domainStatus: "none" | "pending" | "verified" | "failed";
+            fallback: string;
+            host: string;
+            target: string;
+            url: string;
+            /** Format: date-time */
+            verifiedAt?: string;
+        };
+        WebsiteApprovalInput: {
+            note?: string;
+        };
+        WebsiteArchiveFacts: {
+            enabled: boolean;
+            feed: string;
+            index: boolean;
+            /** Format: int64 */
+            issues: number;
+            lists: components["schemas"]["WebsiteArchiveList"][];
+            /** Format: int64 */
+            since: number;
+            tags: string[];
+            url: string;
+        };
+        WebsiteArchiveList: {
+            archived: boolean;
+            id: string;
+            /** Format: int64 */
+            issues: number;
+            name: string;
+            public: boolean;
+        };
+        WebsiteByline: {
+            color?: string;
+            name: string;
+            userId?: string;
+        };
+        WebsiteCampaignReport: {
+            /** Format: date-time */
+            from: string;
+            postId: string;
+            /** Format: date-time */
+            publishedAt?: string;
+            referrers: components["schemas"]["WebsiteSource"][];
+            /** Format: int64 */
+            signups: number;
+            /** @enum {string} */
+            status: "draft" | "scheduled" | "published" | "unpublished";
+            title: string;
+            /** Format: date-time */
+            until: string;
+            /** Format: int64 */
+            upgrades: number;
+            url: string;
+            utm: components["schemas"]["WebsiteSource"][];
+            /** Format: int64 */
+            views: number;
+            /** Format: int64 */
+            viewsAllTime: number;
+        };
+        WebsiteCampaignReportView: {
+            report?: components["schemas"]["WebsiteCampaignReport"];
+        };
+        WebsiteCampaignStates: {
+            siteOn: boolean;
+            states: components["schemas"]["WebsiteCampaignWebState"][];
+        };
+        WebsiteCampaignWeb: {
+            audienceLists: string[];
+            campaignStatus: string;
+            /** @enum {string} */
+            chip: "off" | "with_send" | "scheduled" | "published" | "unpublished";
+            followsAudience: boolean;
+            host: string;
+            post: components["schemas"]["WebsitePost"];
+            /** Format: date-time */
+            scheduledAt?: string;
+            /** Format: date-time */
+            sentAt?: string;
+            siteOn: boolean;
+        };
+        WebsiteCampaignWebState: {
+            campaignId: string;
+            /** @enum {string} */
+            chip: "off" | "with_send" | "scheduled" | "published" | "unpublished";
+            featured: boolean;
+            postId?: string;
+            /** Format: date-time */
+            publishAt?: string;
+            /** Format: date-time */
+            publishedAt?: string;
+            slug?: string;
+            /** Format: date-time */
+            unpublishedAt?: string;
+            url?: string;
+            visibility?: string;
+        };
+        WebsiteCertificate: {
+            detail?: string;
+            issuer?: string;
+            /** Format: date-time */
+            renewsAt?: string;
+            /** @enum {string} */
+            status: "valid" | "failing" | "pending" | "unknown" | "none";
+        };
+        WebsiteContactCard: {
+            canSignOut: boolean;
+            events: components["schemas"]["WebsiteMemberEvent"][];
+            host: string;
+            /** @enum {string} */
+            lastMethod?: "link" | "code" | "signup" | "";
+            /** Format: date-time */
+            lastSignIn?: string;
+            member: boolean;
+            meter?: components["schemas"]["WebsiteMeterUse"];
+            paid: boolean;
+            reason?: string;
+            /** Format: date-time */
+            sessionEnds?: string;
+            /** Format: int64 */
+            sessions: number;
+            /** Format: int64 */
+            signIns: number;
+            /** Format: date-time */
+            since?: string;
+            siteOn: boolean;
+            tiers: string[];
+        };
+        WebsiteFallback: {
+            fallback: string;
+            sample: string;
+            source: string;
+            token: string;
+        };
+        WebsiteFeaturedPost: {
+            id: string;
+            /** Format: date-time */
+            publishedAt?: string;
+            status: string;
+            tag?: string;
+            tiers: string[];
+            title: string;
+            visibility: string;
+        };
+        WebsiteFeedURLs: {
+            archiveFeed: string;
+            feed: string;
+            sitemap: string;
+            tagFeed: string;
+        };
+        WebsiteFooter: {
+            archive: boolean;
+            preferences: boolean;
+            rss: boolean;
+        };
+        WebsiteHelpers: {
+            manage: string[];
+            publish: string[];
+        };
+        WebsiteHiddenBlock: {
+            condition?: string;
+            id?: string;
+            /** @enum {string} */
+            kind: "view_online" | "footer" | "referral" | "header" | "block";
+            /** Format: int64 */
+            line: number;
+            name?: string;
+            /** @enum {string} */
+            reason: "email_only" | "conditional" | "hidden";
+        };
+        WebsiteHomeNav: {
+            about: components["schemas"]["WebsiteAbout"];
+            featured: components["schemas"]["WebsiteFeaturedPost"][];
+            footer: components["schemas"]["WebsiteFooter"];
+            header: components["schemas"]["WebsiteNavItem"][];
+            identity: components["schemas"]["WebsiteIdentity"];
+            index: boolean;
+            initial: string;
+            /** @enum {string} */
+            layout: "featured" | "list" | "grid";
+            logo: string;
+            pages: components["schemas"]["WebsitePageOption"][];
+            poweredBy: boolean;
+            privacyUrl: string;
+            sections: components["schemas"]["WebsiteHomeSection"][];
+            tags: components["schemas"]["WebsiteTag"][];
+            /** Format: date-time */
+            updatedAt: string;
+            updatedBy?: string;
+            urls: components["schemas"]["WebsiteFeedURLs"];
+        };
+        WebsiteHomeNavInput: {
+            about: components["schemas"]["WebsiteAbout"];
+            featured: string[];
+            footer: components["schemas"]["WebsiteFooter"];
+            header: components["schemas"]["WebsiteNavLink"][];
+            identity: components["schemas"]["WebsiteIdentity"];
+            index: boolean;
+            /** @enum {string} */
+            layout: "featured" | "list" | "grid";
+            poweredBy: boolean;
+            privacyUrl: string;
+            sections: components["schemas"]["WebsiteHomeSection"][];
+        };
+        WebsiteHomeSection: {
+            /** Format: int64 */
+            count?: number;
+            /** @enum {string} */
+            kind: "subscribe" | "featured" | "latest" | "tag" | "about" | "tiers";
+            note?: string;
+            on: boolean;
+            tag?: string;
+            text?: string;
+        };
+        WebsiteIdentity: {
+            description: string;
+            socialImage: string;
+            tagline: string;
+            title: string;
+        };
+        WebsiteMemberEvent: {
+            actor?: string;
+            /** Format: date-time */
+            at: string;
+            detail?: string;
+            id: string;
+            /** @enum {string} */
+            kind: "signed_in" | "link_refused" | "signed_out_everywhere" | "joined" | "email_changed";
+            method?: string;
+            sameBrowser?: boolean;
+        };
+        WebsiteMembersFacts: {
+            /** Format: int64 */
+            lastWeek: number;
+            /** Format: int64 */
+            linkMinutes: number;
+            /** Format: int64 */
+            paid: number;
+            /** Format: int64 */
+            sessionDays: number;
+            /** Format: int64 */
+            signedIn: number;
+            signinOn: boolean;
+            signupLists: components["schemas"]["WebsiteAccessList"][];
+            signupOn: boolean;
+        };
+        WebsiteMeterUse: {
+            /** Format: int64 */
+            limit: number;
+            /** Format: date-time */
+            month: string;
+            /** Format: int64 */
+            used: number;
+        };
+        WebsiteNavItem: {
+            /** @enum {string} */
+            kind: "home" | "tag" | "page" | "archive" | "url";
+            label?: string;
+            name: string;
+            path: string;
+            /** Format: int64 */
+            posts: number;
+            ref?: string;
+            url?: string;
+        };
+        WebsiteNavLink: {
+            /** @enum {string} */
+            kind: "home" | "tag" | "page" | "archive" | "url";
+            label?: string;
+            ref?: string;
+            url?: string;
+        };
+        WebsiteNeverFreePost: {
+            id: string;
+            /** Format: date-time */
+            publishAt?: string;
+            /** Format: date-time */
+            publishedAt?: string;
+            status: string;
+            tiers: string[];
+            title: string;
+            visibility: string;
+        };
+        WebsiteNumbers: {
+            /** Format: date-time */
+            from: string;
+            /** Format: int64 */
+            signups: number;
+            /** Format: date-time */
+            until: string;
+            /** Format: int64 */
+            upgrades: number;
+            /** Format: int64 */
+            views: number;
+            /** Format: int64 */
+            visitors: number;
+        };
+        WebsiteOffFacts: {
+            /** Format: int64 */
+            paidMembers: number;
+            /** Format: int64 */
+            publicPages: number;
+            shop: boolean;
+            /** Format: int64 */
+            webOnly: number;
+        };
+        WebsiteOverview: {
+            address: components["schemas"]["WebsiteAddress"];
+            archive: components["schemas"]["WebsiteArchiveFacts"];
+            helpers: components["schemas"]["WebsiteHelpers"];
+            /** @enum {string} */
+            homeLayout: "featured" | "list" | "grid";
+            members: components["schemas"]["WebsiteMembersFacts"];
+            numbers: components["schemas"]["WebsiteNumbers"];
+            off: components["schemas"]["WebsiteOffFacts"];
+            posts: components["schemas"]["WebsitePostCounts"];
+            progress?: components["schemas"]["WebsiteProgress"];
+            /** @enum {string} */
+            status: "off" | "turning_on" | "on";
+            title: string;
+            /** Format: date-time */
+            turnedOnAt?: string;
+            turnedOnBy?: string;
+            /** Format: date-time */
+            updatedAt: string;
+            updatedBy?: string;
+        };
+        WebsitePageOption: {
+            slug: string;
+            title: string;
+        };
+        WebsitePastCampaign: {
+            id: string;
+            lists: string[];
+            name: string;
+            /** @enum {string} */
+            note: "archive_hidden" | "list_private" | "";
+            /** Format: int64 */
+            recipients: number;
+            /** Format: date-time */
+            sentAt: string;
+            subject: string;
+            /** @enum {string} */
+            visibility: "public" | "members" | "paid";
+        };
+        WebsitePayments: {
+            account: string;
+            connected: boolean;
+            /** @enum {string} */
+            mode: "live" | "test" | "";
+        };
+        WebsitePaywall: {
+            free: string;
+            heading: string;
+            signup: string;
+            text: string;
+            tiers: string[];
+            upgrade: string;
+        };
+        WebsitePost: {
+            approval?: components["schemas"]["WebsitePostApproval"];
+            /** Format: date-time */
+            autosavedAt?: string;
+            base: string;
+            byline: components["schemas"]["WebsiteByline"];
+            bylines: components["schemas"]["WebsiteByline"][];
+            campaign?: components["schemas"]["WebsitePostCampaign"];
+            checks: components["schemas"]["WebsiteWebCheck"][];
+            coverAlt: string;
+            coverUrl: string;
+            createdBy: string;
+            excerpt: string;
+            excerptEdited: boolean;
+            featured: boolean;
+            hasMarker: boolean;
+            id: string;
+            /** @enum {string} */
+            kind: "campaign" | "web";
+            /** Format: int64 */
+            markerAfter: number;
+            mjml: string;
+            neverFree: boolean;
+            publish: components["schemas"]["WebsitePublishState"];
+            /** Format: date-time */
+            publishAt?: string;
+            /** @enum {string} */
+            publishMode: "with_send" | "at" | "now";
+            publishTz?: string;
+            /** Format: date-time */
+            publishedAt?: string;
+            /** Format: int64 */
+            publishedVersion: number;
+            /** Format: int64 */
+            readingMinutes: number;
+            redirectTo?: string;
+            seo: components["schemas"]["WebsitePostSEO"];
+            /** Format: int64 */
+            signups: number;
+            slug: string;
+            /** @enum {string} */
+            status: "draft" | "scheduled" | "published" | "unpublished";
+            tags: components["schemas"]["WebsiteTagRef"][];
+            tiers: components["schemas"]["WebsiteTierRef"][];
+            title: string;
+            titleEdited: boolean;
+            unpublishReason?: string;
+            /** Format: date-time */
+            unpublishedAt?: string;
+            unpublishedBy?: string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: int64 */
+            upgrades: number;
+            url: string;
+            /** Format: int64 */
+            version: number;
+            /** Format: int64 */
+            views: number;
+            /** Format: int64 */
+            viewsAllTime: number;
+            /** @enum {string} */
+            visibility: "public" | "members" | "paid";
+            webOn: boolean;
+            /** Format: int64 */
+            words: number;
+        };
+        WebsitePostApproval: {
+            approvers: string[];
+            id: string;
+            note?: string;
+            /** Format: date-time */
+            requestedAt: string;
+            requestedBy: string;
+            rule: string;
+            /** @enum {string} */
+            status: "pending" | "approved" | "changes_requested" | "rejected";
+        };
+        WebsitePostCampaign: {
+            id: string;
+            name: string;
+            /** Format: date-time */
+            scheduledAt?: string;
+            /** Format: date-time */
+            sentAt?: string;
+            status: string;
+        };
+        WebsitePostContent: {
+            /** Format: int64 */
+            baseVersion: number;
+            force?: boolean;
+            label?: string;
+            mjml: string;
+            /** @enum {string} */
+            source?: "autosave" | "manual" | "import" | "template" | "restore" | "";
+        };
+        WebsitePostCounts: {
+            /** Format: int64 */
+            all: number;
+            /** Format: int64 */
+            draft: number;
+            /** Format: int64 */
+            fromCampaigns: number;
+            /** Format: int64 */
+            membersOnly: number;
+            /** Format: int64 */
+            paid: number;
+            /** Format: int64 */
+            published: number;
+            /** Format: int64 */
+            scheduled: number;
+            /** Format: int64 */
+            unpublished: number;
+            /** Format: int64 */
+            webOnly: number;
+        };
+        WebsitePostCreate: {
+            mjml?: string;
+            title?: string;
+        };
+        WebsitePostInput: {
+            bylineName?: string;
+            bylineUserId?: string;
+            coverAlt: string;
+            coverUrl: string;
+            excerpt: string;
+            featured: boolean;
+            neverFree: boolean;
+            /** Format: date-time */
+            publishAt?: string;
+            /** @enum {string} */
+            publishMode: "with_send" | "at" | "now";
+            publishTz?: string;
+            seo: components["schemas"]["WebsitePostSEO"];
+            slug: string;
+            tags: string[];
+            /** @description A paid post's tiers; empty for every paid tier */
+            tiers: string[];
+            title: string;
+            usePreheader?: boolean;
+            useSubject?: boolean;
+            /** @enum {string} */
+            visibility: "public" | "members" | "paid";
+            webOn: boolean;
+        };
+        WebsitePostList: {
+            counts: components["schemas"]["WebsitePostCounts"];
+            /** Format: date-time */
+            from: string;
+            /** Format: int64 */
+            page: number;
+            /** Format: int64 */
+            pageSize: number;
+            posts: components["schemas"]["WebsitePostRow"][];
+            /** Format: int64 */
+            total: number;
+            /** Format: date-time */
+            until: string;
+        };
+        WebsitePostPreviewInput: {
+            /**
+             * @description A visitor (first metered read, or the meter used up), a free member (or the meter used up), a paid member
+             * @enum {string}
+             */
+            as: "visitor" | "visitor_used" | "free" | "free_used" | "paid";
+            /** @description A paid member's tier (the highest by default) */
+            tier?: string;
+        };
+        WebsitePostRow: {
+            approval?: components["schemas"]["WebsitePostApproval"];
+            byline: components["schemas"]["WebsiteByline"];
+            campaign?: components["schemas"]["WebsitePostCampaign"];
+            createdBy: string;
+            excerpt: string;
+            featured: boolean;
+            hasMarker: boolean;
+            id: string;
+            /** @enum {string} */
+            kind: "campaign" | "web";
+            /** Format: int64 */
+            markerAfter: number;
+            neverFree: boolean;
+            /** Format: date-time */
+            publishAt?: string;
+            /** @enum {string} */
+            publishMode: "with_send" | "at" | "now";
+            publishTz?: string;
+            /** Format: date-time */
+            publishedAt?: string;
+            redirectTo?: string;
+            /** Format: int64 */
+            signups: number;
+            slug: string;
+            /** @enum {string} */
+            status: "draft" | "scheduled" | "published" | "unpublished";
+            tags: components["schemas"]["WebsiteTagRef"][];
+            tiers: components["schemas"]["WebsiteTierRef"][];
+            title: string;
+            unpublishReason?: string;
+            /** Format: date-time */
+            unpublishedAt?: string;
+            unpublishedBy?: string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: int64 */
+            upgrades: number;
+            url: string;
+            /** Format: int64 */
+            views: number;
+            /** Format: int64 */
+            viewsAllTime: number;
+            /** @enum {string} */
+            visibility: "public" | "members" | "paid";
+        };
+        WebsitePostSEO: {
+            canonicalUrl: string;
+            description: string;
+            hideFromSearch: boolean;
+            socialImage: string;
+            title: string;
+        };
+        WebsitePostSaved: {
+            /** Format: date-time */
+            savedAt: string;
+            /** Format: int64 */
+            version: number;
+        };
+        WebsiteProgress: {
+            /** Format: date-time */
+            finishedAt?: string;
+            /** @enum {string} */
+            pages: "waiting" | "done";
+            posts: components["schemas"]["WebsiteProgressStep"];
+            redirects: components["schemas"]["WebsiteProgressStep"];
+            /** Format: date-time */
+            startedAt?: string;
+            tags: components["schemas"]["WebsiteProgressStep"];
+        };
+        WebsiteProgressStep: {
+            /** Format: int64 */
+            done: number;
+            names?: string[];
+            /** Format: int64 */
+            total: number;
+        };
+        WebsitePublishInput: {
+            /** Format: date-time */
+            at?: string;
+            tz?: string;
+            /** @enum {string} */
+            when: "now" | "at";
+        };
+        WebsitePublishPastInput: {
+            campaigns: string[];
+            /** @enum {string} */
+            visibility: "audience" | "public" | "members";
+        };
+        WebsitePublishPastResult: {
+            /** Format: int64 */
+            published: number;
+        };
+        WebsitePublishState: {
+            approvedId?: string;
+            approvers: string[];
+            blockReason?: string;
+            blocked: boolean;
+            canPublish: boolean;
+            needsApproval: boolean;
+            pending?: components["schemas"]["WebsitePostApproval"];
+            /** @enum {string} */
+            rule?: "author_lacks_send" | "post_publish" | "";
+        };
+        WebsiteSentAsCampaign: {
+            campaignId: string;
+        };
+        WebsiteSignedOut: {
+            /** Format: int64 */
+            sessions: number;
+        };
+        WebsiteSignupList: {
+            checked: boolean;
+            consent?: string;
+            /** Format: uuid */
+            listId: string;
+        };
+        WebsiteSlugOwner: {
+            id: string;
+            /** Format: date-time */
+            since: string;
+            status: string;
+            title: string;
+        };
+        WebsiteSource: {
+            key: string;
+            label: string;
+            /** Format: int64 */
+            views: number;
+        };
+        WebsiteTag: {
+            description: string;
+            feed: string;
+            id: string;
+            inNav: boolean;
+            list?: string;
+            name: string;
+            /** Format: int64 */
+            posts: number;
+            slug: string;
+            /** Format: int64 */
+            unpublished: number;
+            url: string;
+        };
+        WebsiteTagInput: {
+            description?: string;
+            inNav: boolean;
+            name: string;
+            slug?: string;
+        };
+        WebsiteTagRef: {
+            id: string;
+            name: string;
+            slug: string;
+        };
+        WebsiteTierOption: {
+            currency: string;
+            id: string;
+            includes?: string;
+            label: string;
+            /** Format: int64 */
+            monthly: number;
+            name: string;
+            public: boolean;
+            /** Format: int64 */
+            trialDays: number;
+            /** Format: int64 */
+            yearly: number;
+        };
+        WebsiteTierRef: {
+            id: string;
+            label: string;
+            name: string;
+        };
+        WebsiteTurnOffInput: {
+            confirm: string;
+        };
+        WebsiteTurnOnInput: {
+            /** @enum {string} */
+            layout: "featured" | "list" | "grid";
+            lists?: components["schemas"]["WebsiteSignupList"][];
+            signinOn: boolean;
+        };
+        WebsiteUnpublishInput: {
+            reason?: string;
+            redirectTo?: string;
+        };
+        WebsiteWebCheck: {
+            fallbacks: components["schemas"]["WebsiteFallback"][];
+            hidden: components["schemas"]["WebsiteHiddenBlock"][];
+            /** @enum {string} */
+            key: "address" | "cover" | "tokens" | "hidden";
+            path?: string;
+            /** @enum {string} */
+            status: "pass" | "warn" | "info" | "block";
+            suggestion?: string;
+            taken?: components["schemas"]["WebsiteSlugOwner"];
+        };
         WelcomePrompt: {
             coveredLists: string[];
             draftId?: string;
@@ -31796,6 +34147,717 @@ export interface operations {
             };
         };
     };
+    "get-ai-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AISettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-ai-activity": {
+        parameters: {
+            query?: {
+                /** @description A member's id */
+                member?: string;
+                feature?: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary";
+                outcome?: "accepted" | "kept" | "rejected" | "refused" | "error" | "nothing_drafted" | "pending";
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIActivityList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "suggest-alt-text": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIAltTextInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIAltText"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-ai-cap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AICapInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AISettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "connect-ai-model": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIConnectInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AISettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "disconnect-ai-model": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AISettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-ai-feature": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                feature: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIFeatureInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AISettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "replace-ai-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIKeyInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIKeyReplaced"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "suggest-link-text": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AILinkTextInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AILinkText"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "change-ai-model": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIModelInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AISettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-ai-models": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIModelsInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIModelList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-ai-prices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIPricesInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AISettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "summarize-report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIReportSummaryInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIReportSummary"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "record-ai-outcome": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                request: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIOutcomeInput"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "suggest-rewrite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIRewriteInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIRewrite"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "draft-segment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AISegmentDraftInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AISegmentDraft"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-ai-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIStatus"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "suggest-subject-ideas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AISubjectIdeasInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AISubjectIdeas"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "test-ai-connection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AITestInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AITestResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "suggest-translation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AITranslateInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AITranslation"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "list-api-keys": {
         parameters: {
             query?: never;
@@ -32482,7 +35544,7 @@ export interface operations {
                 /** @description Action group (routing) or action (routing.updated) */
                 action?: string;
                 /** @description A group of actions, as in the action filter */
-                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "earn" | "verification" | "placement" | "commerce";
+                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "ai" | "earn" | "verification" | "placement" | "website" | "commerce";
                 result?: "allowed" | "denied" | "error";
                 range?: "24h" | "7d" | "30d" | "90d" | "all";
                 /** @description Overrides range */
@@ -32564,7 +35626,7 @@ export interface operations {
                 /** @description Action group (routing) or action (routing.updated) */
                 action?: string;
                 /** @description A group of actions, as in the action filter */
-                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "earn" | "verification" | "placement" | "commerce";
+                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "ai" | "earn" | "verification" | "placement" | "website" | "commerce";
                 result?: "allowed" | "denied" | "error";
                 range?: "24h" | "7d" | "30d" | "90d" | "all";
                 /** @description Overrides range */
@@ -33917,6 +36979,41 @@ export interface operations {
             };
         };
     };
+    "list-campaign-web-states": {
+        parameters: {
+            query?: {
+                /** @description Campaign ids, comma-separated (up to 100) */
+                ids?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebsiteCampaignStates"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "count-campaign-audience": {
         parameters: {
             query?: never;
@@ -34117,6 +37214,140 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AccessibilityReport"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-ai-report-summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIKeptSummary"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "keep-ai-report-summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIKeepSummaryInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIKeptSummary"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-ai-report-summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-ai-translations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AITranslationMarks"];
                 };
             };
             /** @description Error */
@@ -34549,6 +37780,76 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EmailLanguages"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "mark-ai-translation-reviewed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+                language: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "accept-ai-translation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+                language: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AITranslationAcceptInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AITranslationAccepted"];
                 };
             };
             /** @description Error */
@@ -36113,6 +39414,112 @@ export interface operations {
             };
         };
     };
+    "get-campaign-web": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The campaign's id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebsiteCampaignWeb"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-campaign-web": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The campaign's id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebsitePostInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebsiteCampaignWeb"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-campaign-web-report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The campaign's id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebsiteCampaignReportView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "get-campaign-store-revenue": {
         parameters: {
             query?: never;
@@ -37043,6 +40450,8 @@ export interface operations {
                 utmCampaign?: string;
                 referringDomain?: string;
                 sort?: "activity" | "score" | "";
+                /** @description Only contacts who signed in to the website */
+                signedIn?: boolean;
                 /** @description A store's id, or any */
                 storeCustomer?: string;
                 /** @description Total spent in the stores, at least */
@@ -37454,6 +40863,74 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CommerceContactStores"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-contact-website": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The contact's id */
+                contactId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebsiteContactCard"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "sign-contact-out-everywhere": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The contact's id */
+                contactId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebsiteSignedOut"];
                 };
             };
             /** @description Error */
@@ -45043,7 +48520,7 @@ export interface operations {
         parameters: {
             query?: {
                 /** @description Notification center tab */
-                filter?: "all" | "unread" | "approvals" | "sending" | "providers" | "team" | "hostrepute" | "transactional" | "earn";
+                filter?: "all" | "unread" | "approvals" | "sending" | "providers" | "team" | "hostrepute" | "transactional" | "earn" | "website";
                 /** @description Opaque cursor from a previous page */
                 cursor?: string;
                 limit?: number;
@@ -52898,6 +56375,967 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WebhookTestResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-website": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebsiteOverview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-website-access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebsiteAccess"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-website-access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebsiteAccessInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebsiteAccess"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-website-home-nav": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebsiteHomeNav"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-website-home-nav": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebsiteHomeNavInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebsiteHomeNav"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "preview-website-home": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebsiteHomeNavInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPagePreview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-website-past-campaigns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebsitePastCampaign"][];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "publish-website-past-campaigns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebsitePublishPastInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebsitePublishPastResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-website-posts": {
+        parameters: {
+            query?: {
+                /** @description A status (all by default) */
+                status?: "all" | "published" | "scheduled" | "draft" | "unpublished" | "";
+                visibility?: "public" | "members" | "paid" | "";
+                /** @description A tag's id */
+                tag?: string;
+                source?: "campaign" | "web" | "";
+                /** @description Search by title */
+                q?: string;
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebsitePostList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-website-post": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebsitePostCreate"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebsitePost"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-website-post": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The post's id */
+                post: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebsitePost"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-website-post": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The post's id */
+                post: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebsitePostInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebsitePost"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-website-post": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The post's id */
+                post: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "request-website-post-approval": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The post's id */
+                post: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebsiteApprovalInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebsitePost"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-website-post-content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The post's id */
+                post: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebsitePostContent"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebsitePostSaved"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "preview-website-post": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The post's id */
+                post: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebsitePostPreviewInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPagePreview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "publish-website-post": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The post's id */
+                post: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebsitePublishInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebsitePost"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-website-post-redirect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The post's id */
+                post: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebsiteUnpublishInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebsitePost"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "send-website-post-as-campaign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The post's id */
+                post: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebsiteSentAsCampaign"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "undo-website-post-publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The post's id */
+                post: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebsitePost"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "unpublish-website-post": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The post's id */
+                post: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebsiteUnpublishInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebsitePost"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-website-tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebsiteTag"][];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-website-tag": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebsiteTagInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebsiteTag"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-website-tag": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The tag's id */
+                tag: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebsiteTagInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebsiteTag"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-website-tag": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The tag's id */
+                tag: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "turn-website-off": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebsiteTurnOffInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebsiteOverview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "turn-website-on": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebsiteTurnOnInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebsiteOverview"];
                 };
             };
             /** @description Error */

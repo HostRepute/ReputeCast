@@ -118,6 +118,8 @@ export function LanguageSwitcher({
   onPick,
   onCompare,
   onAdd,
+  aiItems,
+  aiMarked,
 }: {
   campaignName: string
   data: Langs
@@ -126,6 +128,10 @@ export function LanguageSwitcher({
   /** Compare languages (campaigns); without it the menu leaves it out. */
   onCompare?: () => void
   onAdd: () => void
+  /** "Translate … with AI" (features/ai), for people who hold ai:use. */
+  aiItems?: (close: () => void) => ReactNode
+  /** Versions written by AI that nobody reviewed yet, and the chip that says so. */
+  aiMarked?: { languages: string[]; label: string }
 }) {
   const t = useT()
   const [open, setOpen] = useState(false)
@@ -163,7 +169,11 @@ export function LanguageSwitcher({
           >
             <Icon name="globe" size={16} />
             <span>{current.name}</span>{' '}
-            <Badge tone={chip.tone}>{onSource ? t(mz.sourceChip, { have, total: offered.length }) : chip.short}</Badge>
+            {!onSource && aiMarked?.languages.includes(current.language) ? (
+              <Badge tone="info">{aiMarked.label}</Badge>
+            ) : (
+              <Badge tone={chip.tone}>{onSource ? t(mz.sourceChip, { have, total: offered.length }) : chip.short}</Badge>
+            )}
             <Icon name="chevronDown" size={14} />
           </button>
         }
@@ -237,13 +247,7 @@ export function LanguageSwitcher({
           <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-2)' }}>{t(mz.writtenIn, { language: nameIn(data, data.source) })}</span>
           <span className="k">{t(mz.writtenInDetail)}</span>
         </div>
-        <button type="button" disabled aria-describedby="lng-ai-na">
-          <Icon name="sparkle" size={14} />
-          {t(mz.translateAi)}
-          <Badge tone="neutral" id="lng-ai-na" style={{ marginLeft: 'auto', height: 20, fontSize: 11 }}>
-            {t(mz.notYet)}
-          </Badge>
-        </button>
+        {aiItems ? aiItems(() => setOpen(false)) : null}
       </Popover>
     </div>
   )
@@ -261,6 +265,7 @@ export function AddVersionDialog({
   onOpenChange,
   onAdded,
   preselect,
+  ai,
 }: {
   owner: LanguageOwner | string
   campaignName: string
@@ -269,6 +274,8 @@ export function AddVersionDialog({
   onOpenChange: (open: boolean) => void
   onAdded: (language: string) => void
   preselect?: string
+  /** "Translate with AI" (features/ai): the version is drafted, then reviewed in the compare view. */
+  ai?: { title: string; detail: string; disabledReason?: string; onTranslate: (language: string) => void }
 }) {
   const { slug } = useWorkspace()
   const t = useT()
@@ -278,7 +285,7 @@ export function AddVersionDialog({
   const missing = data.versions.filter((v) => v.status === 'missing' && v.offered)
   const have = data.versions.filter((v) => v.status !== 'missing').map((v) => v.name)
   const [pick, setPick] = useState(preselect && missing.some((m) => m.language === preselect) ? preselect : missing[0]?.language)
-  const [start, setStart] = useState<'copy' | 'layout'>('copy')
+  const [start, setStart] = useState<'ai' | 'copy' | 'layout'>(ai && !ai.disabledReason ? 'ai' : 'copy')
   const addToCampaign = $api.useMutation('post', languagesPath)
   const addToTemplate = $api.useMutation('post', templateLanguagesPath)
   const adding = addToCampaign.isPending || addToTemplate.isPending
@@ -287,7 +294,12 @@ export function AddVersionDialog({
   const fallback = nameIn(data, data.fallback)
   const submit = () => {
     if (!chosen) return
-    const body = { language: chosen.language, start }
+    if (start === 'ai' && ai) {
+      onOpenChange(false)
+      ai.onTranslate(chosen.language)
+      return
+    }
+    const body = { language: chosen.language, start: start === 'layout' ? ('layout' as const) : ('copy' as const) }
     const done = {
       onSuccess: (out: Langs) => {
         cache.set(out)
@@ -311,7 +323,7 @@ export function AddVersionDialog({
         <>
           <Button onClick={() => onOpenChange(false)}>{t(md.cancel)}</Button>
           <Button variant="primary" disabled={!chosen} loading={adding} onClick={submit}>
-            {chosen ? t(mz.addButton, { language: chosen.name }) : t(mz.add)}
+            {start === 'ai' && ai ? ai.title : chosen ? t(mz.addButton, { language: chosen.name }) : t(mz.add)}
           </Button>
         </>
       }
@@ -342,6 +354,13 @@ export function AddVersionDialog({
             <legend className="lbl" style={{ marginBottom: 8, padding: 0 }}>
               {t(mz.startFrom)}
             </legend>
+            {ai ? (
+              <label className={`lng-rad two${start === 'ai' ? ' on' : ''}`} title={ai.disabledReason}>
+                <input type="radio" name={`${name}-start`} checked={start === 'ai'} disabled={Boolean(ai.disabledReason)} onChange={() => setStart('ai')} />
+                <span style={{ fontWeight: 600 }}>{ai.title}</span>
+                <span className="k">{ai.disabledReason ?? ai.detail}</span>
+              </label>
+            ) : null}
             <label className={`lng-rad two${start === 'copy' ? ' on' : ''}`}>
               <input type="radio" name={`${name}-start`} checked={start === 'copy'} onChange={() => setStart('copy')} />
               <span style={{ fontWeight: 600 }}>{t(mz.startCopy, { language: source })}</span>
@@ -353,12 +372,6 @@ export function AddVersionDialog({
               <span className="k">{t(mz.startLayoutDetail)}</span>
             </label>
           </fieldset>
-          <div className="row" style={{ gap: 10 }}>
-            <Button size="sm" icon="sparkle" disabledReason={t(mz.aiNotYet)}>
-              {t(mz.translateAi)}
-            </Button>
-            <span className="k">{t(mz.notYet)}</span>
-          </div>
           {chosen ? (
             <div className="note i" role="note">
               <Icon name="info" size={16} />
