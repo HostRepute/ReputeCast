@@ -217,7 +217,7 @@ export function ActivityDetails({ item: it, c }: { item: ActivityItem; c: Activi
   if (!rows.length) return null
   return (
     <div className="cm-detail">
-      <KeyValues items={rows} />
+      <KeyValues items={rows} className="cm-kv" />
     </div>
   )
 }

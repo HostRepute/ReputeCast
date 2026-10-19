@@ -8,6 +8,7 @@ import './commerce.css'
 
 type Order = Schemas['CommerceContactOrder']
 type Store = Schemas['CommerceContactStore']
+type ActivityItem = Schemas['ContactActivityItem']
 
 /**
  * A contact's store orders and what each store knows of their consent
@@ -31,7 +32,36 @@ const cp = defineMessages('commerce.profile', {
   spent: '{orders, plural, one {# order} other {# orders}} · {amount} spent in {store}',
   noOrders: "No orders yet; {store}'s customer since the sync.",
   storePage: '{store} attribution',
+  // The timeline's store events.
+  placed: 'Placed order {order} in {store} · {amount}',
+  placedNoName: 'Placed an order in {store} · {amount}',
+  abandoned: 'Left a checkout in {store} · {amount}',
+  creditedTo: 'credited to {credited}',
+  acceptedAt: 'accepted marketing at checkout',
+  notAccepted: "didn't accept marketing at checkout",
+  enteredFlow: 'entered {flow}',
 })
+
+/**
+ * The timeline's store events (types store_order and checkout_abandoned):
+ * a title and the lines under it, or null for any other event.
+ */
+export function useStoreActivity(): (it: ActivityItem) => { title: string; meta: string[] } | null {
+  const t = useT()
+  return (it) => {
+    const s = it.store
+    if (!s || (it.type !== 'store_order' && it.type !== 'checkout_abandoned')) return null
+    const amount = money(s.total, s.currency, 'always')
+    const items = s.items.length > 3 ? [...s.items.slice(0, 3), '…'].join(', ') : s.items.join(', ')
+    if (it.type === 'checkout_abandoned') {
+      return { title: t(cp.abandoned, { store: s.name, amount }), meta: [items, s.flow ? t(cp.enteredFlow, { flow: s.flow }) : ''].filter(Boolean) }
+    }
+    return {
+      title: s.order ? t(cp.placed, { order: s.order, store: s.name, amount }) : t(cp.placedNoName, { store: s.name, amount }),
+      meta: [items, s.accepted ? t(cp.acceptedAt) : t(cp.notAccepted), s.credited ? t(cp.creditedTo, { credited: s.credited }) : ''].filter(Boolean),
+    }
+  }
+}
 
 const platformName = (p: string) => (p === 'woocommerce' ? 'WooCommerce' : 'Shopify')
 

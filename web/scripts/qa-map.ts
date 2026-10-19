@@ -329,4 +329,13 @@ export const entries: Entry[] = [
   // Describe the segment (a new segment) and Summarize results (the October Product Update's report,
   // with its kept summary): each starts from a click.
   { board: 'AISegmentReport', manual: true },
+  // X20 · Shopify and WooCommerce. Acme Merch is the demo's Shopify store; the connect dialogs, the
+  // first import, a missing webhook, a revoked store, WooCommerce without the plugin and the
+  // disconnect dialog need clicks or data changes (CommerceStates), as do the product picker, a
+  // removed product, the abandoned-cart trigger panel and Sam Rivera's cards (CommerceEmails).
+  { board: 'IntegrationsShopify', path: `${ws}/settings/integrations/stores/{store:Acme Merch}`, widths: [1440] },
+  { board: 'IntegrationsShopifyTablet', path: `${ws}/settings/integrations/stores/{store:Acme Merch}`, widths: [834] },
+  { board: 'IntegrationsShopifyPhone', path: `${ws}/settings/integrations/stores/{store:Acme Merch}`, widths: [390] },
+  { board: 'CommerceStates', manual: true },
+  { board: 'CommerceEmails', manual: true },
 ]

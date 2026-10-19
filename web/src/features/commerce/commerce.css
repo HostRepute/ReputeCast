@@ -53,6 +53,11 @@
     font-weight: 600;
   }
 
+  /* The boards' key-value lists ("phase 7b"): a little more air than .kv. */
+  .kv.cm-kv {
+    gap: 7px 18px;
+  }
+
   /* Two boxes side by side: stored / never stored, works now / needs the plugin. */
   .cm-two {
     display: grid;

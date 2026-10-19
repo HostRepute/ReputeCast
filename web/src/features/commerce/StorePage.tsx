@@ -673,7 +673,7 @@ function SyncCard({ page: p }: { page: Page_ }) {
     [
       t(cm.kvProducts),
       f.collections.length ? (
-        <T msg={cm.kvProductsValue} values={{ count: count(f.products), collections: f.collections.length, names: formatList(f.collections), b: bold }} />
+        <T msg={cm.kvProductsValue} values={{ count: count(f.products), collections: f.collections.length, names: f.collections.join(', '), b: bold }} />
       ) : (
         <T msg={cm.kvProductsNone} values={{ count: count(f.products), b: bold }} />
       ),
@@ -726,7 +726,7 @@ function SyncCard({ page: p }: { page: Page_ }) {
         ) : null}
       </div>
       <div className="pad flex flex-col gap-3.5">
-        <KeyValues items={rows} />
+        <KeyValues items={rows} className="cm-kv" />
         <span className="cm-syncr">
           <span className="dot" style={{ color: syncColor(s.state) }} aria-hidden="true" />
           {st.label}
@@ -917,6 +917,13 @@ function AttributionCard({ page: p }: { page: Page_ }) {
           <div className="ih-only-wide hidden sm:block">
             <div className="overflow-x-auto">
               <table className="tbl compact" aria-label={t(cm.attrTable)}>
+                {/* The board's columns, at every width. */}
+                <colgroup>
+                  <col style={{ width: '36.8%' }} />
+                  <col style={{ width: '13.7%' }} />
+                  <col style={{ width: '15%' }} />
+                  <col style={{ width: '34.5%' }} />
+                </colgroup>
                 <thead>
                   <tr>
                     <th scope="col">{t(cm.attrTo)}</th>
@@ -1048,6 +1055,12 @@ function WebhooksCard({ page: p, platform }: { page: Page_; platform: string }) 
       <div className="hidden sm:block">
         <div className="overflow-x-auto">
           <table className="tbl compact" aria-label={t(cm.hooksTitle, { count: p.webhooks.length })}>
+            <colgroup>
+              <col style={{ width: '39.6%' }} />
+              <col style={{ width: '27.5%' }} />
+              <col style={{ width: '26.4%' }} />
+              <col style={{ width: '6.5%' }} />
+            </colgroup>
             <thead>
               <tr>
                 <th scope="col">{t(cm.hookTopic)}</th>

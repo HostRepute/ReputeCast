@@ -63,7 +63,7 @@ export function DisconnectStoreDialog({ page: p, onOpenChange }: { page: StorePa
       }
     >
       <span className="text-ink-nav">{t(cc.dcIntro, { count: hooks })}</span>
-      <dl className="kv">
+      <dl className="kv cm-kv">
         {live.length ? (
           <>
             <dt>{t(cc.dcPauses)}</dt>
