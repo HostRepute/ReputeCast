@@ -128,7 +128,20 @@ function Head({ title, caption }: { title: string; caption: string }) {
 }
 
 /** A text field that commits on Enter or when it loses focus. */
-function Draft({ value, onCommit, label, multiline, inputRef }: { value: string; onCommit: (v: string) => void; label: string; multiline?: boolean; inputRef?: React.Ref<HTMLTextAreaElement> }) {
+function Draft({
+  value,
+  onCommit,
+  label,
+  multiline,
+  onCaret,
+}: {
+  value: string
+  onCommit: (v: string) => void
+  label: string
+  multiline?: boolean
+  /** Where the caret was when the text lost focus (Insert token puts the token there). */
+  onCaret?: (start: number, end: number) => void
+}) {
   const [draft, setDraft] = useState<string | null>(null)
   const shown = draft ?? value
   const commit = () => {
@@ -136,7 +149,18 @@ function Draft({ value, onCommit, label, multiline, inputRef }: { value: string;
     setDraft(null)
   }
   return multiline ? (
-    <textarea ref={inputRef} className="in gw-cmp-text" aria-label={label} rows={3} value={shown} onFocus={() => setDraft(value)} onChange={(e) => setDraft(e.target.value)} onBlur={commit} />
+    <textarea
+      className="in gw-cmp-text"
+      aria-label={label}
+      rows={3}
+      value={shown}
+      onFocus={() => setDraft(value)}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={(e) => {
+        onCaret?.(e.target.selectionStart, e.target.selectionEnd)
+        commit()
+      }}
+    />
   ) : (
     <input
       className="in"
@@ -208,7 +232,8 @@ function ReferralInspector({ c }: { c: Component }) {
   const r = useGrowRender(c)
   const programs = $api.useQuery('get', `${GROW}/referrals`, { params: { path: { workspace: slug } } }, { enabled: canView, staleTime: 60_000 })
   const [pick, setPick] = useState<Which | null>(null)
-  const text = useRef<HTMLTextAreaElement>(null)
+  // The caret in the text, for Insert token; null until the text had focus.
+  const caret = useRef<[number, number] | null>(null)
   const data = r?.status === 'ok' ? r.referral : undefined
   const raw = growRaw(c)
   if (!data) return r?.status === 'error' ? <Note tone="warn">{t(mb.renderFailed)}</Note> : <Loading />
@@ -223,12 +248,10 @@ function ReferralInspector({ c }: { c: Component }) {
   }
   const current = rawTexts[which] || eff.texts[which]
   const insert = (token: string) => {
-    const el = text.current
     const tag = `{{ ${token} }}`
-    const at = el && document.activeElement === el ? el.selectionStart : current.length
-    const end = el && document.activeElement === el ? el.selectionEnd : current.length
-    const value = el && document.activeElement === el ? el.value : current
-    write({ texts: { ...eff.texts, ...rawTexts, [which]: value.slice(0, at) + tag + value.slice(end) } as ReferralSettings['texts'] })
+    const [at, end] = caret.current && caret.current[1] <= current.length ? caret.current : [current.length, current.length]
+    caret.current = [at + tag.length, at + tag.length]
+    write({ texts: { ...rawTexts, [which]: current.slice(0, at) + tag + current.slice(end) } as ReferralSettings['texts'] })
   }
   const list = programs.data
   const programId = String(raw.program ?? data.programId)
@@ -270,7 +293,15 @@ function ReferralInspector({ c }: { c: Component }) {
               ['many', mb.textMany],
             ] as const
           ).map(([v, label]) => (
-            <button key={v} type="button" aria-pressed={which === v} onClick={() => setPick(v)}>
+            <button
+              key={v}
+              type="button"
+              aria-pressed={which === v}
+              onClick={() => {
+                caret.current = null
+                setPick(v)
+              }}
+            >
               {t(label)}
             </button>
           ))}
@@ -278,7 +309,7 @@ function ReferralInspector({ c }: { c: Component }) {
         <Draft
           key={which}
           multiline
-          inputRef={text}
+          onCaret={(start, end) => (caret.current = [start, end])}
           label={t(mb.textLabel, { which })}
           value={current}
           onCommit={(v) => write({ texts: { ...rawTexts, [which]: v } as ReferralSettings['texts'] })}
