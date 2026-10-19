@@ -323,6 +323,7 @@ func (s *Service) Preview(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	}
 	links := map[string]string{"unsubscribe_url": "#unsubscribe", "preferences_url": "#preferences", "view_in_browser_url": "#view-in-browser"}
 	previewPollLinks(html, links)
+	links[paidaccess.UpgradeURL], links[paidaccess.ManageURL] = "#upgrade", "#manage-subscription"
 	first, last := "", ""
 	if contact != nil {
 		first, last = contactNames(contact.Name)
@@ -347,7 +348,7 @@ func (s *Service) Preview(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	out.HTML = media.Absolutize(render(html), s.URLs.Base())
 	out.Text = contentcheck.PlainText(out.HTML)
 	for _, u := range liquid.Uses(subject + "\n" + preheader + "\n" + html) {
-		tv := ComposerTokenValue{Key: u.Key, Token: tokenText(u), PerRecipient: systemLinks[u.Key] || pollVar(u.Key)}
+		tv := ComposerTokenValue{Key: u.Key, Token: tokenText(u), PerRecipient: systemLinks[u.Key] || pollVar(u.Key) || paidaccess.IsReaderLink(u.Key)}
 		if tv.PerRecipient {
 			tv.Value = "per-recipient link"
 		} else {
@@ -647,6 +648,8 @@ func (s *Service) Checks(ctx context.Context, ws *store.Workspace, id uuid.UUID,
 		// A recurring digest's template uses the feed tokens; each issue prints them.
 		fields = append(fields, "issue", "feed")
 	}
+	// Earn's personal links (the Upgrade block's button) are filled in per reader.
+	fields = append(fields, paidaccess.UpgradeURL, paidaccess.ManageURL)
 	var domains []string
 	if c.SenderEmail != "" {
 		if _, d, ok := strings.Cut(c.SenderEmail, "@"); ok {

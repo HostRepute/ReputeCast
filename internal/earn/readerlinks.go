@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/linktoken"
+	"github.com/hostrepute/reputecast/internal/paidaccess"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -25,8 +26,8 @@ type ReaderLink struct {
 
 // The paid link tokens.
 const (
-	VarUpgradeURL = "upgrade_url"
-	VarManageURL  = "manage_subscription_url"
+	VarUpgradeURL = paidaccess.UpgradeURL
+	VarManageURL  = paidaccess.ManageURL
 )
 
 // ReaderLinks are the per-reader Earn links of a workspace's campaigns.

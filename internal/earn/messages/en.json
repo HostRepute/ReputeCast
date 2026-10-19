@@ -137,6 +137,15 @@
   "welcome.soon": "soon",
   "welcome.there": "there",
 
+  "tokens.endsAt": "Access ends on",
+  "tokens.manageURL": "Manage subscription link",
+  "tokens.price": "Paid price",
+  "tokens.renewsAt": "Renews on",
+  "tokens.status": "Paid status",
+  "tokens.statusValue": { "message": "{status, select, trialing {Trialing} past_due {Past due} complimentary {Complimentary} gift {Gift} other {Active}}", "note": "the value of {{ paid.status }} in an email" },
+  "tokens.tier": "Paid tier",
+  "tokens.upgradeURL": "Upgrade link",
+
   "visibility.aTier": "a tier and above",
   "visibility.describeAny": "Paid · any paid tier",
   "visibility.describeFree": "Free subscribers only",

@@ -31,6 +31,18 @@ const (
 	Free     = "free" // free subscribers only (no paid access at all)
 )
 
+// The reader's personal Earn links: internal/earn fills them in per reader
+// at send time, like the unsubscribe link, and never through click
+// tracking; the composer's checks and preview treat them as such.
+const (
+	UpgradeURL = "upgrade_url"
+	ManageURL  = "manage_subscription_url"
+)
+
+// IsReaderLink reports whether a Liquid variable is one of the reader's
+// personal Earn links.
+func IsReaderLink(key string) bool { return key == UpgradeURL || key == ManageURL }
+
 // Audience is the paid part of campaigns.audience: who on the lists gets
 // the campaign and, for paid members, the lowest tier (empty: any).
 type Audience struct {

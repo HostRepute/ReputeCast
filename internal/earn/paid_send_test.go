@@ -279,3 +279,86 @@ func TestPaidContentAtSendTime(t *testing.T) {
 		t.Errorf("archive: the paid-only issue filed %d times, the issue to everyone %d", filed(paidIssue), filed(issue))
 	}
 }
+
+// The reader's personal links are filled in per reader: the composer's
+// checks don't take them for unknown fields and its preview says so. The
+// paid values read each reader's paid access, empty for free subscribers.
+func TestPaidTokens(t *testing.T) {
+	p := newPaidSend(t)
+	src := `<mjml><mj-body><mj-section><mj-column><mj-text><a href="{{ upgrade_url }}">Upgrade</a> · <a href="{{ manage_subscription_url }}">Manage</a> · <a href="{{ unsubscribe_url }}">Unsubscribe</a></mj-text></mj-column></mj-section></mj-body></mjml>`
+	id := p.campaign("Paid tokens", src, fmt.Sprintf(`{"lists":[%q]}`, p.list))
+	html := mjml.Compile(src).HTML
+	c := p.env.Client()
+	c.SignInDemo("linh@acme.io")
+	var checks struct {
+		Issues []struct{ ID, Title string }
+	}
+	c.Do("POST", "/workspaces/acme-newsletter/campaigns/"+id.String()+"/checks", map[string]any{"subject": "Paid tokens", "mjml": src, "html": html}).MustStatus(t, 200).JSON(t, &checks)
+	for _, i := range checks.Issues {
+		if strings.HasPrefix(i.ID, "personalization.") {
+			t.Errorf("checks: %s %q", i.ID, i.Title)
+		}
+	}
+	var preview struct {
+		HTML   string
+		Tokens []struct {
+			Key          string
+			PerRecipient bool
+		}
+	}
+	c.Do("POST", "/workspaces/acme-newsletter/campaigns/"+id.String()+"/preview", map[string]any{"contactId": p.readers["insider"].String(), "html": html}).MustStatus(t, 200).JSON(t, &preview)
+	per := map[string]bool{}
+	for _, tv := range preview.Tokens {
+		per[tv.Key] = tv.PerRecipient
+	}
+	if !per["upgrade_url"] || !per["manage_subscription_url"] || !strings.Contains(preview.HTML, `href="#upgrade"`) {
+		t.Errorf("preview: %v", per)
+	}
+
+	ids := []uuid.UUID{}
+	for _, id := range p.readers {
+		ids = append(ids, id)
+	}
+	vars, err := p.env.App.Earn().PaidVars(p.ctx, p.ws, ids)
+	if err != nil {
+		t.Fatal(err)
+	}
+	paid := func(k string) map[string]any {
+		v, _ := vars[p.readers[k]][earn.RootPaid].(map[string]any)
+		return v
+	}
+	if v := paid("insider"); v["tier"] != "Weekly Digest Insider" || v["status"] != "Active" || v["renews_at"] == "" || v["ends_at"] != "" ||
+		(v["price"] != "$8/month" && v["price"] != "$80/year") {
+		t.Errorf("insider: %v", v)
+	}
+	if v := paid("trialing"); v["status"] != "Trialing" || v["renews_at"] == "" {
+		t.Errorf("trialing: %v", v)
+	}
+	if v := paid("pastDue"); v["status"] != "Past due" {
+		t.Errorf("past due: %v", v)
+	}
+	if v := paid("comp"); v["status"] != "Complimentary" || v["price"] != "" || v["renews_at"] != "" {
+		t.Errorf("complimentary: %v", v)
+	}
+	for _, k := range []string{"free", "ended", "test"} {
+		for f, v := range paid(k) {
+			if v != "" {
+				t.Errorf("%s: paid.%s = %q, want empty", k, f, v)
+			}
+		}
+	}
+	// Sam Rivera, as the composer's token menu shows him: Insider yearly.
+	sam := p.one(`SELECT id FROM contacts WHERE workspace_id = $1 AND email = 'sam.rivera@outlook.com'`, p.ws)
+	got, err := p.env.App.Earn().PaidVars(p.ctx, p.ws, []uuid.UUID{sam})
+	if err != nil {
+		t.Fatal(err)
+	}
+	v, _ := got[sam][earn.RootPaid].(map[string]any)
+	next := fmt.Sprint(time.Now().Year() + 1)
+	if v["tier"] != "Weekly Digest Insider" || v["status"] != "Active" || v["price"] != "$80/year" || !strings.HasSuffix(fmt.Sprint(v["renews_at"]), next) || v["ends_at"] != "" {
+		t.Errorf("Sam Rivera: %v", v)
+	}
+	if tokens := earn.Tokens(); len(tokens) != 7 || tokens[0].Key != "paid.tier" || tokens[5].Key != "upgrade_url" || tokens[6].Label != "Manage subscription link" {
+		t.Errorf("tokens: %+v", tokens)
+	}
+}
