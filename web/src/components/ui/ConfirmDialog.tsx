@@ -71,6 +71,8 @@ export interface ConfirmDialogProps {
   tone?: Tone
   /** The action in two or three words: "Delete list", "Revoke API key". */
   badge: ReactNode
+  /** Plain text shown in place of the badge, where the board has a line instead ("news.acme.io · needs website:manage, audited"). */
+  eyebrow?: ReactNode
   title: ReactNode
   /** The consequences, in numbers. */
   description: ReactNode
@@ -97,6 +99,7 @@ export function ConfirmDialog({
   onOpenChange,
   tone = 'bad',
   badge,
+  eyebrow,
   title,
   description,
   children,
@@ -155,7 +158,7 @@ export function ConfirmDialog({
       layout="confirm"
       // A destructive step is never taken by a stray click outside.
       dismissible={tone !== 'bad' && !busy}
-      eyebrow={<Badge tone={tone}>{badge}</Badge>}
+      eyebrow={eyebrow ? <span className="k">{eyebrow}</span> : <Badge tone={tone}>{badge}</Badge>}
       title={title}
       description={description}
       footer={

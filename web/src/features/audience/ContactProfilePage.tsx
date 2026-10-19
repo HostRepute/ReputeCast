@@ -26,6 +26,7 @@ import { ProfileScoreCard } from '@/features/scoring/ProfileScoreCard'
 import { FieldSourceNote, useAnswerActivity, useFieldSources } from '@/features/polls/contact'
 import { AddressCheckRow } from '@/features/verification/AddressCheck'
 import './audience.css'
+import { ContactWebsiteCard } from '@/features/website/elsewhere'
 
 type Profile = Schemas['ContactProfile']
 type Item = Schemas['ContactActivityItem']
@@ -136,6 +137,8 @@ export function ContactProfilePage({ contactId }: { contactId: string }) {
             <div className="flex min-w-0 flex-[1_1_380px] flex-col gap-5">
               <FieldsCard p={p} />
               <ConsentCard p={p} />
+              {/* The website's Website card (features/website), while it's on. */}
+              <ContactWebsiteCard contactId={p.id} name={[p.firstName, p.lastName].filter(Boolean).join(' ') || p.email} />
             </div>
             <ActivityCard contactId={contactId} total={p.activityTotal} />
           </div>

@@ -21,6 +21,7 @@ import { DraftBanner, DraftFooter, DraftMark, DraftSqlNote, draftCountLabels, us
 import { DeleteSegmentButton, SegmentUsageCard } from '@/features/conditional/usage'
 import { useT } from '@/i18n'
 import './audience.css'
+import { SignedInWhen } from '@/features/website/elsewhere'
 
 type Catalog = Schemas['SegmentCatalog']
 type CatalogField = Schemas['SegmentCatalogField']
@@ -62,7 +63,9 @@ let nextKey = 1
 const k = () => nextKey++
 
 function blankCond(f: CatalogField | undefined): Cond {
-  return { key: k(), field: f?.key ?? 'mailbox_provider', op: f?.ops[0]?.key ?? 'is', value: f?.options[0]?.value ?? '', to: '', amount: 30, unit: 'days' }
+  // "Signed in to the website" (X18) starts at seven days ago.
+  const value = f?.key === 'signed_in' ? '7d' : (f?.options[0]?.value ?? '')
+  return { key: k(), field: f?.key ?? 'mailbox_provider', op: f?.ops[0]?.key ?? 'is', value, to: '', amount: 30, unit: 'days' }
 }
 
 function fromDetail(d: Schemas['SegmentDetail']): Draft {
@@ -493,7 +496,7 @@ function Condition({
   mark?: 'added' | 'removed'
 }) {
   const f = catalog.fields.find((x) => x.key === c.field)
-  const noValue = ['never', 'is_empty', 'is_not_empty', 'is_true', 'is_false'].includes(c.op)
+  const noValue = ['never', 'ever', 'is_empty', 'is_not_empty', 'is_true', 'is_false'].includes(c.op)
   if (mark === 'removed') {
     return (
       <fieldset disabled className="scond ai-removed m-0 min-w-0">
@@ -542,7 +545,9 @@ function Condition({
           </option>
         ))}
       </select>
-      {noValue ? null : f?.kind === 'period' ? (
+      {noValue ? null : c.field === 'signed_in' ? (
+        <SignedInWhen value={c.value} onChange={(value) => onChange({ value })} />
+      ) : f?.kind === 'period' ? (
         <>
           <input className="in w-[70px]" inputMode="numeric" aria-label={c.unit === 'weeks' ? 'Weeks' : 'Days'} value={c.amount} onChange={(e) => onChange({ amount: Number(e.target.value.replace(/\D/g, '')) || 0 })} />
           <select aria-label="Time unit" className="in" value={c.unit} onChange={(e) => onChange({ unit: e.target.value as Cond['unit'] })}>

@@ -33,6 +33,7 @@ import { DigestModeProvider, digestLeftPanel } from '@/features/digests/composer
 import { AssistRight } from '@/features/ai/composer/panel'
 import { ComposerAssistScope, useComposerAssistState } from '@/features/ai/composer/state'
 import { AITranslateFooter, AITranslateView } from '@/features/ai/composer/translate'
+import { WebCanvasView, WebModeProvider } from '@/features/website/composer/campaign'
 import './composer.css'
 
 // CodeMirror loads with the code view only.
@@ -46,7 +47,7 @@ export interface ComposerSearch {
   variant?: string
   /** Component to select once the canvas is ready (element path from mj-body, "1-0-0"). */
   select?: string
-  panel?: 'style' | 'settings' | 'deliverability' | 'accessibility'
+  panel?: 'style' | 'settings' | 'deliverability' | 'accessibility' | 'web'
   left?: 'blocks' | 'layers' | 'templates'
 }
 
@@ -116,7 +117,7 @@ export function Composer({
   const [checks, setChecks] = useState<Checks>()
   const [checksPending, setChecksPending] = useState(false)
   const [checksNonce, setChecksNonce] = useState(0)
-  const [rightTab, setRightTab] = useState<'style' | 'settings' | 'deliverability' | 'accessibility'>(search.panel ?? 'style')
+  const [rightTab, setRightTab] = useState<'style' | 'settings' | 'deliverability' | 'accessibility' | 'web'>(search.panel ?? 'style')
   const [leftTab, setLeftTab] = useState<'blocks' | 'layers' | 'templates'>(search.left ?? 'blocks')
   // A deep link selects its component once the canvas is ready.
   const deepLink = useRef(search.select)
@@ -655,6 +656,7 @@ export function Composer({
 
   return (
     <ComposerCtx.Provider value={state}>
+      <WebModeProvider campaign={campaign}>
       <ComposerAssistScope value={assist}>
       <AccessibilityProvider>
       <DigestModeProvider>
@@ -680,6 +682,8 @@ export function Composer({
               aria-hidden={view !== 'visual' || comparing || Boolean(missingLanguage) || undefined}
             >
               <CanvasArea containerRef={containerRef} savedCard={savedCard} onCloseSaved={() => setSavedCard(null)} onReview={goReview} />
+              {/* The website's Web view of the canvas (features/website). */}
+              <WebCanvasView />
             </div>
             {view === 'mjml' || view === 'html' ? (
               <Suspense fallback={<div className="cmp-main" style={{ alignItems: 'center', justifyContent: 'center' }} aria-busy="true"><span className="spin" aria-hidden="true" /></div>}>
@@ -713,6 +717,7 @@ export function Composer({
       </DigestModeProvider>
       </AccessibilityProvider>
       </ComposerAssistScope>
+      </WebModeProvider>
     </ComposerCtx.Provider>
   )
 }

@@ -22,6 +22,7 @@ import { fileName, saveBlob } from './download'
 import { consentFilterLabel, consentLabel, consentTone, mailboxColor, mailboxes, mailboxLabel, tierClass, tierColor, tierLabel, tiers, type Consent, type Mailbox, type Tier } from './labels'
 import { LanguageFilter } from '@/features/page-languages/contacts'
 import './audience.css'
+import { MembersChips } from '@/features/website/elsewhere'
 
 export interface ContactsSearch {
   q?: string
@@ -46,6 +47,8 @@ export interface ContactsSearch {
   sort?: 'activity' | 'score'
   /** The latest address check (X14). */
   check?: 'valid' | 'invalid' | 'risky' | 'unknown' | 'never'
+  /** Members of the website: contacts who signed in to it (X18). */
+  signedIn?: boolean
   page?: number
   size?: number
 }
@@ -76,14 +79,16 @@ const filterKeys = [
   'sort',
   // The latest address check (X14).
   'check',
+  // Members of the website (X18).
+  'signedIn',
 ] as const
 
 /** The filter part of the search params, without empty values. */
 export function filterOf(s: ContactsSearch): Filter {
-  const f: Record<string, string> = {}
+  const f: Record<string, string | boolean> = {}
   for (const k of filterKeys) {
     const v = s[k]
-    if (v) f[k] = String(v)
+    if (v) f[k] = typeof v === 'boolean' ? v : String(v)
   }
   return f as Filter
 }
@@ -168,6 +173,8 @@ export function ContactsPage({ search }: { search: ContactsSearch }) {
       ) : (
         <>
           <SavedViews views={views.data} filter={filter} onPick={(f) => go({ ...f, size: search.size })} onSave={() => setSaving(true)} />
+          {/* The website's members (features/website), while it's on. */}
+          <MembersChips signedIn={Boolean(search.signedIn)} onSignedIn={(on) => setFilter({ signedIn: on || undefined })} />
           <Filters search={search} total={list.data?.total} lists={summary.data?.lists ?? []} onChange={setFilter} />
           {result ? <BulkResultPanel result={result} onDismiss={() => setResult(null)} /> : null}
           {ids.length > 0 ? (

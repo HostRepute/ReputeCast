@@ -35,6 +35,8 @@ const search = z.object({
   sort: z.enum(['activity', 'score']).optional().catch(undefined),
   /** The latest address check's result (X14). */
   check: z.enum(['valid', 'invalid', 'risky', 'unknown', 'never']).optional().catch(undefined),
+  /** Members of the website: contacts who signed in to it (X18). */
+  signedIn: z.boolean().optional().catch(undefined),
   page: z.coerce.number().int().min(1).optional().catch(undefined),
   size: z.coerce.number().int().min(1).max(100).optional().catch(undefined),
 })

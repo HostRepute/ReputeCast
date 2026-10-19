@@ -20,6 +20,8 @@ import { NewCampaignDialog } from '@/features/digests/TypePicker'
 import { DigestBadgeLink, RecurringTable, useDigestCount } from '@/features/digests/RecurringTable'
 import { IssueStatusBadge } from '@/features/digests/shared'
 import { m as dm } from '@/features/digests/messages'
+import { useCampaignWebStates, WebCell } from '@/features/website/elsewhere'
+import { me } from '@/features/website/elsewhere.messages'
 
 export type CampaignFilter = 'all' | 'drafts' | 'scheduled' | 'sending' | 'sent' | 'recurring'
 
@@ -237,18 +239,26 @@ function CampaignTable({ data, page, status, q }: { data: Schemas['CampaignList'
   const from = (page - 1) * data.pageSize
   const shown = from + data.items.length
   const params = (id: string) => ({ workspace: slug, campaignId: id })
+  // The website's Web column (features/website), while it's on.
+  const web = useCampaignWebStates(data.items.map((c) => c.id))
   return (
     <section className="card" aria-label={t(m.title)}>
       {/* The board's key and provider cells wrap; a long audience ("Weekly Digest + Product
           Updates") wraps too, so the actions stay in view at 1440 as on the board. */}
       <Table
         phoneWrap
-        className="[&_td:first-child]:min-w-[200px] [&_td:first-child]:whitespace-normal [&_td:nth-child(3)]:min-w-[86px] [&_td:nth-child(3)]:whitespace-normal [&_td:nth-child(8)]:min-w-[120px] [&_td:nth-child(8)]:whitespace-normal [&_td:nth-child(8)_.badge]:my-px [&_td]:whitespace-nowrap"
+        className={
+          web
+            ? // With the Web column the cells sit a little closer and two headers wrap, so the actions stay in view at 1440.
+              '[&_td:first-child]:min-w-[200px] [&_td:first-child]:whitespace-normal [&_td:nth-child(3)]:min-w-[92px] [&_td:nth-child(3)]:whitespace-normal [&_td:nth-child(4)]:min-w-[86px] [&_td:nth-child(4)]:whitespace-normal [&_td:nth-child(9)]:min-w-[104px] [&_td:nth-child(9)]:whitespace-normal [&_td:nth-child(9)_.badge]:my-px [&_td]:whitespace-nowrap [&_td]:!px-[9px] [&_th]:!px-[9px] [&_th:nth-child(7)]:!whitespace-normal [&_th:nth-child(9)]:!whitespace-normal'
+            : '[&_td:first-child]:min-w-[200px] [&_td:first-child]:whitespace-normal [&_td:nth-child(3)]:min-w-[86px] [&_td:nth-child(3)]:whitespace-normal [&_td:nth-child(8)]:min-w-[120px] [&_td:nth-child(8)]:whitespace-normal [&_td:nth-child(8)_.badge]:my-px [&_td]:whitespace-nowrap'
+        }
       >
         <thead>
           <tr>
             <Th>{t(m.campaign)}</Th>
             <Th>{t(m.status)}</Th>
+            {web ? <Th>{t(me.colWeb)}</Th> : null}
             <Th>{t(m.audience)}</Th>
             <Th align="right">{t(m.recipients)}</Th>
             <Th align="right">{t(m.delivered)}</Th>
@@ -297,6 +307,11 @@ function CampaignTable({ data, page, status, q }: { data: Schemas['CampaignList'
                     <CampaignStatusBadge status={c.status} blocked={c.blocked} />
                   )}
                 </Td>
+                {web ? (
+                  <Td>
+                    <WebCell state={web.get(c.id)} status={c.status} />
+                  </Td>
+                ) : null}
                 <Td className={c.audience ? undefined : 'k'}>{c.audience || t(m.notSet)}</Td>
                 <Td align="right" num={c.recipients != null} className={c.recipients == null ? 'k' : undefined}>
                   {c.recipients != null ? count(c.recipients) : '–'}

@@ -23,6 +23,7 @@ import { AccessibilityOverlays } from '@/features/accessibility/composer/Overlay
 import { ConditionalOverlays, ConditionalToggle } from '@/features/conditional/Canvas'
 import { VersionsPanel } from '@/features/conditional/Versions'
 import { SurveyLinkChoices } from '@/features/surveys/LinkChoices'
+import { EmailWebToggle, WebOverlays } from '@/features/website/composer/campaign'
 
 interface Box {
   top: number
@@ -191,6 +192,7 @@ function Toolbar({ zoom }: { zoom: number }) {
     <div className="cmp-tools">
       <DeviceSeg />
       <ViewSeg />
+      <EmailWebToggle />
       {digest ? <DigestPreviewWith /> : <CanvasPreviewAs />}
       <ConditionalToggle />
       {digest?.preview === 'six' ? (
@@ -754,6 +756,7 @@ export function CanvasArea({
             <WarningOverlays host={host} tick={tick} />
             <AccessibilityOverlays host={host} tick={tick} boxOf={boxOf} />
             <ConditionalOverlays host={host} tick={tick} boxOf={boxOf} />
+            <WebOverlays host={host} tick={tick} boxOf={boxOf} />
             <LanguageTags host={host} tick={tick} />
             <SelectionOverlay host={host} tick={tick} />
             <RteToolbar host={host} tick={tick} />

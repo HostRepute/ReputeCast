@@ -329,4 +329,22 @@ export const entries: Entry[] = [
   // Describe the segment (a new segment) and Summarize results (the October Product Update's report,
   // with its kept summary): each starts from a click.
   { board: 'AISegmentReport', manual: true },
+  // X18 · the publication website. The demo's website is on at news.acme.io. WebsiteStates holds
+  // the off and turning-on pages, address problems, read-only views and the elsewhere-in-the-app
+  // frames: reproduce them by hand (turn the website off in a dev database, sign in as aisha@acme.io).
+  { board: 'WebsitePosts', path: `${ws}/forms/website`, widths: [1440] },
+  { board: 'WebsitePostsTablet', path: `${ws}/forms/website`, widths: [834] },
+  { board: 'WebsitePostsPhone', path: `${ws}/forms/website`, widths: [390] },
+  { board: 'WebsiteHomeNav', path: `${ws}/forms/website/home`, widths: [1440] },
+  { board: 'WebsiteAccess', path: `${ws}/forms/website/access`, widths: [1440] },
+  { board: 'WebsiteStates', manual: true },
+  // Post mode (the runbook, with its free preview marker) and campaign mode (#142's Web tab).
+  { board: 'ComposerPublishToWeb', path: `${ws}/forms/website/posts/{post:Inside our Postgres migration: the runbook}`, widths: [1440], viewportOnly: true, height: 1000 },
+  { board: 'ComposerPublishToWebPhone', path: `${ws}/forms/website/posts/{post:Inside our Postgres migration: the runbook}`, widths: [390], viewportOnly: true, height: 1000 },
+  // The public site renders from the server: PublicHome, PublicPost, PublicAccount and
+  // PublicSiteStates are compared with the site at /p/acme-newsletter (720 and 390), by hand.
+  { board: 'PublicHome', manual: true },
+  { board: 'PublicPost', manual: true },
+  { board: 'PublicAccount', manual: true },
+  { board: 'PublicSiteStates', manual: true },
 ]
