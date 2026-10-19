@@ -189,9 +189,6 @@ func (h *Handler) servePost(w http.ResponseWriter, r *http.Request, problem *sig
 		v.private = true
 	}
 	h.postMeta(s, v, p, pv)
-	if len(pv.Post.Tags) > 0 {
-		v.mark("tag:"+pv.Post.Tags[0].Slug, v.Frame)
-	}
 	if problem == nil && r.Method == http.MethodGet {
 		h.Website.CountView(ctx, s.ws, r, website.PagePost, p.ID)
 	}

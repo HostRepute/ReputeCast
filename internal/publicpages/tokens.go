@@ -227,6 +227,29 @@ type preferencesBody struct {
 	Note          string
 	// Paid is "Your paid subscription" (Earn), nil when there's nothing to show.
 	Paid *earn.PreferencesPaid
+	// Account links a member signed in on the website to their account page.
+	Account *prefsAccount
+}
+
+// prefsAccount is the preference center's line for a reader signed in on
+// the website as the contact the link is for.
+type prefsAccount struct{ Text, Link, Href string }
+
+func (h *Handler) prefsAccountFor(r *http.Request, s *site, contact uuid.UUID, pl pageLang) *prefsAccount {
+	if h.Website == nil || s.preview || !h.siteOn(r.Context(), s) {
+		return nil
+	}
+	sess := h.session(r, s)
+	if sess == nil || sess.ContactID != contact {
+		return nil
+	}
+	sv, err := h.siteViewIn(r.Context(), s, pl)
+	if err != nil {
+		h.log().WarnContext(r.Context(), "preference center account link", "err", err)
+		return nil
+	}
+	host := strings.TrimPrefix(strings.TrimPrefix(strings.TrimSuffix(s.canonPath(), "/"), "https://"), "http://")
+	return &prefsAccount{Text: sv.T("site.prefsSignedIn", "host", host), Link: sv.T("site.prefsAccount"), Href: sv.Href.Account}
 }
 
 func (h *Handler) preferencesPage(w http.ResponseWriter, r *http.Request) {
@@ -269,6 +292,7 @@ func (h *Handler) preferencesPage(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Query().Get("saved") == "1" {
 		body.Saved = pl.Labels.Text("prefs.saved", nil)
 	}
+	body.Account = h.prefsAccountFor(r, s, pc.ID, pl)
 	v := h.view(s, pageTitle(pl, s, "prefs.heading"), body)
 	h.setLang(v, r, s, pl, nil)
 	h.render(w, r, s, "preferences", http.StatusOK, v, csp{}, true)
@@ -445,6 +469,7 @@ func (h *Handler) preferencesPost(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		body.Alert = fieldProblem(fe, pl.Labels)
+		body.Account = h.prefsAccountFor(r, s, pc.ID, pl)
 		v := h.view(s, pageTitle(pl, s, "prefs.heading"), body)
 		h.setLang(v, r, s, pl, nil)
 		h.render(w, r, s, "preferences", http.StatusUnprocessableEntity, v, csp{}, true)

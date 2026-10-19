@@ -1,9 +1,11 @@
 package website
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"net/http"
+	"slices"
 	"strings"
 	"unicode/utf8"
 
@@ -59,9 +61,11 @@ func (s *Service) tagViews(ctx context.Context, q *store.Queries, ws *store.Work
 		return nil, err
 	}
 	inNav := map[string]bool{}
-	for _, l := range c.Header {
+	navAt := map[string]int{}
+	for i, l := range c.Header {
 		if l.Kind == NavTag {
 			inNav[l.Ref] = true
+			navAt[l.Ref] = i
 		}
 	}
 	out := make([]WebsiteTag, 0, len(rows))
@@ -73,6 +77,23 @@ func (s *Service) tagViews(ctx context.Context, q *store.Queries, ws *store.Work
 		}
 		out = append(out, v)
 	}
+	// The header's tags first, in the header's order; then the most used.
+	slices.SortStableFunc(out, func(a, b WebsiteTag) int {
+		ai, aNav := navAt[a.ID]
+		bi, bNav := navAt[b.ID]
+		switch {
+		case aNav && bNav:
+			return cmp.Compare(ai, bi)
+		case aNav != bNav:
+			if aNav {
+				return -1
+			}
+			return 1
+		case a.Posts != b.Posts:
+			return cmp.Compare(b.Posts, a.Posts)
+		}
+		return cmp.Compare(strings.ToLower(a.Name), strings.ToLower(b.Name))
+	})
 	return out, nil
 }
 
