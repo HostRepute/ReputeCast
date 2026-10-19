@@ -166,6 +166,12 @@ func (s *Service) Deliver(ctx context.Context, linkID uuid.UUID) error {
 		"amount":            moneyText(o.AmountCents, o.Currency),
 		"file":              fileText(summary(fs)),
 	}
+	links := s.siteLinks(ctx, &ws)
+	site := strings.TrimSuffix(strings.TrimPrefix(strings.TrimPrefix(links.base, "https://"), "http://"), "/")
+	data["site"] = site
+	if s.SiteOn != nil && s.SiteOn(ctx, &ws) {
+		data["account_url"] = site + "/account"
+	}
 	if first != "" {
 		data["first_name"] = first
 	}

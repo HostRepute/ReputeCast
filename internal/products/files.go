@@ -98,6 +98,30 @@ func (st Store) put(wsID uuid.UUID, part string, sum []byte) (string, error) {
 	return key, nil
 }
 
+// PutBytes stores a file's bytes under the workspace (the demo's sample
+// files) and returns their key and checksum.
+func (st Store) PutBytes(wsID uuid.UUID, data []byte) (string, []byte, error) {
+	sum := sha256.Sum256(data)
+	if err := os.MkdirAll(st.uploadDir(), 0o750); err != nil {
+		return "", nil, err
+	}
+	tmp, err := os.CreateTemp(st.uploadDir(), "put-*.part")
+	if err != nil {
+		return "", nil, err
+	}
+	if _, err := tmp.Write(data); err != nil {
+		_ = tmp.Close()
+		_ = os.Remove(tmp.Name())
+		return "", nil, err
+	}
+	if err := tmp.Close(); err != nil {
+		_ = os.Remove(tmp.Name())
+		return "", nil, err
+	}
+	key, err := st.put(wsID, tmp.Name(), sum[:])
+	return key, sum[:], err
+}
+
 // Upload is a file arriving in chunks.
 type Upload struct {
 	ID          string    `json:"id"`

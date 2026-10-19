@@ -254,6 +254,23 @@
 .pg-video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
 .pg-empty { padding: 16px; border-radius: 12px; border: 1px dashed #c9ced6; color: #5b6472; font-size: 14px; text-align: center; }
 
+/* Notes over a page, the shop and the product page's heading, the
+   registered page's session line */
+.pg-noteband { background: var(--pub-ground); padding-top: 24px; }
+.pg-noteband + .sp-hero, .pg-noteband + .lp-band, .pg-noteband + section { padding-top: 24px; }
+.st .pg-noteband .pnote { margin: 0; }
+.pnote b { font-weight: 700; }
+.sp-h1 { margin: 0; font-size: 44px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.1; color: #0b1220; }
+.pg-shop .sec-head { gap: 16px; }
+.pg-prod .sp-in { display: flex; flex-direction: column; gap: 24px; }
+.pg-ev { display: flex; flex-direction: column; gap: 4px; font-size: 15px; color: #1f2937; }
+.pg-ev b { color: #0b1220; }
+.pg-ev span { font-size: 15px; color: #374151; }
+.st .st-btn svg { flex: none; }
+.st a.st-btn.lg.full, .st .filer .st-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.st .dlc svg { flex: none; }
+.hp { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+
 @container (max-width: 1079px) {
   .sp-in { padding-left: 32px; padding-right: 32px; }
 }

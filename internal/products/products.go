@@ -105,6 +105,9 @@ type Service struct {
 	Flows Flows
 	// Media keeps cover images in the image library.
 	Media *media.Service
+	// SiteOn says whether the publication website is on: buyers can sign in
+	// to its account page for a new link (nil: off).
+	SiteOn func(ctx context.Context, ws *store.Workspace) bool
 }
 
 func (s *Service) now() time.Time {

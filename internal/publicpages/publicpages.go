@@ -46,7 +46,9 @@ import (
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/linktoken"
 	"github.com/hostrepute/reputecast/internal/pagelabels"
+	pagesvc "github.com/hostrepute/reputecast/internal/pages"
 	"github.com/hostrepute/reputecast/internal/polls"
+	"github.com/hostrepute/reputecast/internal/products"
 	"github.com/hostrepute/reputecast/internal/publicurl"
 	"github.com/hostrepute/reputecast/internal/server"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -86,6 +88,10 @@ type Handler struct {
 	// Earn serves the upgrade page, its welcome page and the billing
 	// links, and the paid parts of the preference center (nil: none).
 	Earn *earn.Service
+	// Pages and Products serve landing and sales pages, the shop, checkout
+	// and downloads (design expansion phase 7, sell*.go; nil: none).
+	Pages    *pagesvc.Service
+	Products *products.Service
 
 	tmpl     map[string]*template.Template
 	version  string
@@ -170,6 +176,10 @@ func (h *Handler) Routes(r chi.Router) {
 	for _, p := range siteRootPaths {
 		r.Handle(p, custom)
 	}
+	// Landing and sales pages, the shop, checkout and downloads (sell.go).
+	for _, p := range sellRootPaths {
+		r.Handle(p, custom)
+	}
 }
 
 func (h *Handler) pageRoutes(r chi.Router) {
@@ -214,6 +224,8 @@ func (h *Handler) pageRoutes(r chi.Router) {
 	r.Head("/s/{slug}", h.headOnly)
 	r.Post("/s/{slug}", h.surveyPost)
 	h.earnRoutes(r)
+	// Landing and sales pages, the shop, checkout and downloads (sell.go).
+	h.sellRoutes(r)
 }
 
 // Browser gives emails shown in the browser (view online, the archive)
@@ -609,6 +621,12 @@ func (h *Handler) static(w http.ResponseWriter, r *http.Request) {
 		ctype = "text/javascript; charset=utf-8"
 	case "poll.js":
 		data, _ = fs.ReadFile(staticFS, "static/poll.js")
+		ctype = "text/javascript; charset=utf-8"
+	case "pages.css":
+		data, _ = fs.ReadFile(staticFS, "static/pages.css")
+		ctype = "text/css; charset=utf-8"
+	case "pages.js":
+		data, _ = fs.ReadFile(staticFS, "static/pages.js")
 		ctype = "text/javascript; charset=utf-8"
 	default:
 		http.NotFound(w, r)

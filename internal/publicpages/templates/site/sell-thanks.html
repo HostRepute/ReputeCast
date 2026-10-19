@@ -1,0 +1,24 @@
+{{/* Back from Stripe: the thank-you page with "Download now" and where
+     the link was emailed. */}}
+{{define "site-main"}}{{with .Body}}<main id="main" class="pg-main">
+<div class="pg-center lav"><div class="pcard7">
+{{- if .Unknown}}
+<h1>{{$.S "thanks.unknown"}}</h1>
+<p class="ptxt">{{$.S "thanks.unknownText"}}</p>
+{{- else if .Waiting}}
+<div class="hrow"><span class="spin7" aria-hidden="true"></span><h1>{{$.S "thanks.waiting"}}</h1></div>
+<p class="ptxt">{{$.S "thanks.waitingText"}}</p>
+<div class="pg-acts"><a href="{{.Refresh}}" class="st-btn2" data-refresh="5">{{$.S "thanks.refresh"}}</a></div>
+{{- else}}
+{{with .Test}}<p class="pnote t" role="note"><span>{{.}}</span></p>{{end}}
+<div class="hrow"><span class="okc" aria-hidden="true">{{template "site-check"}}</span><h1>{{$.S "thanks.title"}}</h1></div>
+<div class="files"><div class="filer"><span class="fi" aria-hidden="true">{{template "sell-file-icon"}}</span><span class="ft"><b>{{.Name}}</b>{{with .Files}}<span>{{.}}</span>{{end}}</span></div></div>
+<a href="{{.Download}}" class="st-btn lg full">{{template "sell-down-icon"}}{{$.S "thanks.download"}}</a>
+<p class="ptxt">{{.Emailed}}</p>
+{{with .Offer}}<p class="lav-note">{{.}}</p>{{end}}
+<p class="ptxt k">{{.Receipt}}</p>
+{{- end}}
+</div></div>
+</main>{{end}}{{end}}
+{{define "sell-file-icon"}}<svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 1.8h5.2L12.5 5v9.2H4z"></path><path d="M9 1.8V5.2h3.4"></path></svg>{{end}}
+{{define "sell-down-icon"}}<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2.5v8M4.5 7 8 10.5 11.5 7M3 13.5h10"></path></svg>{{end}}

@@ -1,0 +1,20 @@
+{{/* A product's default page (/products/{slug}): used when it has no
+     sales page. */}}
+{{define "site-main"}}{{with .Body}}<main id="main" class="pg-main{{if .BuyBar}} has-buybar{{end}}">
+{{- with .Notice}}<div class="pg-noteband"><div class="sp-in"><p class="pnote n" role="status"><span>{{.}}</span></p></div></div>{{end}}
+<section class="sp-sec lav pg-prod"><div class="sp-in nar">
+<nav class="crumb7" aria-label="Breadcrumb"><a href="{{.ShopHref}}" class="st-lnk">{{.ShopText}}</a><span aria-hidden="true">/</span><span aria-current="page">{{.Name}}</span></nav>
+<div class="pp-grid">
+<div class="pp-art">{{.Cover}}</div>
+<div class="pp-copy">
+<h1>{{.Name}}</h1>
+{{with .Short}}<p class="sp-lead sm">{{.}}</p>{{end}}
+{{range .Long}}<p class="long">{{.}}</p>{{end}}
+{{with .Meta}}<p class="meta">{{.}}</p>{{end}}
+</div>
+</div>
+{{.Box}}
+</div></section>
+</main>
+{{- with .BuyBar}}<div class="buybar"><span class="bt"><b>{{.Name}}</b><span>{{.Sub}}</span></span><a class="st-btn" href="{{.Href}}">{{.Button}}</a></div>{{end}}
+{{- end}}{{end}}

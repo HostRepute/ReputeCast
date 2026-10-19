@@ -243,6 +243,25 @@ func (s *Service) thanksView(ctx context.Context, ws *store.Workspace, o store.P
 	return v, true, nil
 }
 
+// ThanksFor reads the order of a Checkout session, whichever product it
+// bought (a page's thank-you page).
+func (s *Service) ThanksFor(ctx context.Context, ws *store.Workspace, sessionID string) (ThanksView, bool, error) {
+	if sessionID == "" || len(sessionID) > 200 {
+		return ThanksView{}, false, nil
+	}
+	if o, err := s.Q.ProductOrderBySession(ctx, sessionID); err == nil {
+		if o.WorkspaceID != ws.ID {
+			return ThanksView{}, false, nil
+		}
+		return s.thanksView(ctx, ws, o)
+	}
+	co, err := s.Q.ProductCheckoutBySession(ctx, sessionID)
+	if err != nil || co.WorkspaceID != ws.ID {
+		return ThanksView{}, false, nil
+	}
+	return s.Thanks(ctx, ws, co.ProductID, sessionID)
+}
+
 // MaskEmail shows an address without giving it away ("a•••@example.com").
 func MaskEmail(email string) string {
 	at := strings.LastIndexByte(email, '@')

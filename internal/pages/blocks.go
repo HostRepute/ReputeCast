@@ -114,9 +114,34 @@ func httpsURL(v string) (string, bool) {
 	return v, true
 }
 
-func blockRef(v string) (string, bool) {
-	v = strings.ToLower(strings.TrimSpace(v))
-	return v, v == "" || idRe.MatchString(v)
+// blockRefs are the blocks a countdown reveals or hides: ids, comma-separated.
+func blockRefs(v string) (string, bool) {
+	var out []string
+	for _, p := range strings.Split(strings.ToLower(v), ",") {
+		p = strings.TrimSpace(p)
+		if p == "" {
+			continue
+		}
+		if !idRe.MatchString(p) {
+			return "", false
+		}
+		out = append(out, p)
+	}
+	if len(out) > 8 {
+		out = out[:8]
+	}
+	return strings.Join(out, ","), true
+}
+
+// BlockRefs splits a countdown's reveal or hide list.
+func BlockRefs(v string) []string {
+	var out []string
+	for _, p := range strings.Split(v, ",") {
+		if p = strings.TrimSpace(p); p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
 }
 
 var blockSpecs = map[string]blockSpec{
@@ -130,7 +155,7 @@ var blockSpecs = map[string]blockSpec{
 			}
 			return v, v != ""
 		},
-		"end": oneOf("hide", "message", "reveal"), "message": text(200), "reveal": blockRef, "hide": blockRef, "label": text(80)},
+		"end": oneOf("hide", "message", "reveal"), "message": text(200), "reveal": blockRefs, "hide": blockRefs, "label": text(80)},
 	ElEvent: {"date": func(v string) (string, bool) { return v, dateRe.MatchString(v) }, "start": func(v string) (string, bool) { return v, clockRe.MatchString(v) },
 		"end": func(v string) (string, bool) { return v, v == "" || clockRe.MatchString(v) }, "tz": timezone, "local": flag,
 		"where": oneOf("online", "venue"), "platform": text(40), "venue": text(200), "link": httpsURL, "calendar": flag, "title": text(160),

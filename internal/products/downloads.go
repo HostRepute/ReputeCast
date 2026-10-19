@@ -134,8 +134,9 @@ func (s *Service) linkState(link store.ProductOrderLink, o store.ProductOrder) s
 }
 
 // OpenFile counts a download and opens the file to send. The caller
-// closes it.
-func (s *Service) OpenFile(ctx context.Context, ws *store.Workspace, token string, fileID uuid.UUID, ip string) (store.DownloadFile, *os.File, string, error) {
+// closes it. A download resumed from the middle (a Range request) doesn't
+// count again: count is false for it.
+func (s *Service) OpenFile(ctx context.Context, ws *store.Workspace, token string, fileID uuid.UUID, ip string, count bool) (store.DownloadFile, *os.File, string, error) {
 	link, o, err := s.resolve(ctx, ws, token)
 	if err != nil {
 		return store.DownloadFile{}, nil, "", err
@@ -151,7 +152,16 @@ func (s *Service) OpenFile(ctx context.Context, ws *store.Workspace, token strin
 		if err != nil {
 			return err
 		}
-		if state = s.linkState(l, o); state != DownloadOK {
+		state = s.linkState(l, o)
+		if !count && state == DownloadUsedUp {
+			// The rest of a download already counted.
+			state = DownloadOK
+			return nil
+		}
+		if state != DownloadOK {
+			return nil
+		}
+		if !count {
 			return nil
 		}
 		if err := q.ProductOrderLinkUse(ctx, l.ID); err != nil {
@@ -218,6 +228,38 @@ func (s *Service) BuyerNewLink(ctx context.Context, ws *store.Workspace, token s
 		return "", err
 	}
 	return MaskEmail(o.BuyerEmail), nil
+}
+
+// AccountNewLink sends a new link for an order of a signed-in member (the
+// account page's "Send me a new link"), to the address on the order.
+func (s *Service) AccountNewLink(ctx context.Context, ws *store.Workspace, contactID uuid.UUID, _ string, orderID uuid.UUID) error {
+	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+		q := store.New(tx)
+		cur, err := q.ProductOrderLock(ctx, store.ProductOrderLockParams{WorkspaceID: ws.ID, ID: orderID})
+		if err != nil {
+			return ErrNoDownload
+		}
+		if cur.ContactID == nil || *cur.ContactID != contactID || cur.AccessRevokedAt != nil {
+			return ErrNoDownload
+		}
+		links, err := q.ProductOrderLinks(ctx, cur.ID)
+		if err != nil {
+			return err
+		}
+		recent := 0
+		for _, l := range links {
+			if (l.ProductOrderLink.Reason == "buyer" || l.ProductOrderLink.Reason == "account") && s.now().Sub(l.ProductOrderLink.CreatedAt) < 24*time.Hour {
+				recent++
+			}
+		}
+		if recent >= 3 {
+			return ErrTooManyLinks
+		}
+		if _, err := s.newLink(ctx, tx, ws, cur, "account", nil); err != nil {
+			return err
+		}
+		return s.event(ctx, q, cur.ID, "buyer_asked", s.now(), nil, map[string]any{"email": MaskEmail(cur.BuyerEmail), "from": "account"})
+	})
 }
 
 // tokenOf re-signs a link's token (the thank-you page's Download now).

@@ -60,4 +60,10 @@ func init() {
 	jobRegistrars = append(jobRegistrars, func(a *App) {
 		pages.RegisterJobs(a.JobReg, pagesService(a))
 	})
+	// The public site draws the pages, the shop, checkout and downloads.
+	startHooks = append(startHooks, func(a *App) error {
+		h := a.publicPages()
+		h.Pages, h.Products = pagesService(a), productsService(a)
+		return nil
+	})
 }

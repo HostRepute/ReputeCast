@@ -47,6 +47,10 @@ func productsService(a *App) *products.Service {
 		Jobs:          func() *jobs.Client { return a.Jobs },
 		Flows:         productFlows{},
 		Media:         &media.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit},
+		SiteOn: func(ctx context.Context, ws *store.Workspace) bool {
+			on, _ := websiteService(a).IsOn(ctx, ws)
+			return on
+		},
 	}
 	v, _ := productsServices.LoadOrStore(a, s)
 	return v.(*products.Service)
