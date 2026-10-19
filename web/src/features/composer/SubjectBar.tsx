@@ -7,6 +7,7 @@ import { useVersionName } from '@/features/languages/composerParts'
 import { mz } from '@/features/languages/messages'
 import { FeedTokensMenu, SubjectPreviews, useDigestMode } from '@/features/digests/composer/DigestMode'
 import { dc } from '@/features/digests/composer/messages'
+import { IdeasButton } from '@/features/ai/composer/ideas'
 
 /** Subject of the variant being edited (A is the campaign itself). */
 export function useVariantSubject(): [string, (v: string) => void] {
@@ -54,16 +55,19 @@ export function SubjectBar() {
           {subjectLabel}
           {digest && c.canEdit ? <FeedTokensMenu onInsert={(token) => setSubject(`${subject}${subject && !subject.endsWith(' ') ? ' ' : ''}${token}`)} /> : null}
         </span>
-        <input
-          className={digest ? 'in mono' : 'in'}
-          value={subject}
-          placeholder="What is this email about?"
-          onChange={(e) => setSubject(e.target.value.replace(/[\r\n]+/g, ' '))}
-          readOnly={!c.canEdit}
-          maxLength={998}
-          aria-invalid={spam || undefined}
-          style={spam ? { borderColor: '#F59E0B', background: '#FFFBEB' } : digest ? { fontSize: 12 } : undefined}
-        />
+        <span className="flex gap-2">
+          <input
+            className={digest ? 'in mono min-w-0 flex-1' : 'in min-w-0 flex-1'}
+            value={subject}
+            placeholder="What is this email about?"
+            onChange={(e) => setSubject(e.target.value.replace(/[\r\n]+/g, ' '))}
+            readOnly={!c.canEdit}
+            maxLength={998}
+            aria-invalid={spam || undefined}
+            style={spam ? { borderColor: '#F59E0B', background: '#FFFBEB' } : digest ? { fontSize: 12 } : undefined}
+          />
+          {digest ? null : <IdeasButton />}
+        </span>
       </label>
       <label style={{ flex: digest ? '2 1 260px' : '2 1 320px' }}>
         <span className="k">{language ? t(mz.preheaderIn, { language }) : 'Preheader'}</span>

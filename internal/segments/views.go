@@ -15,9 +15,9 @@ var views = []struct{ name, body string }{
 	{"contacts", `SELECT c.id, c.workspace_id, c.email, c.first_name, c.last_name, c.company, c.country, c.timezone,
            c.language, c.mailbox_provider, c.tier, c.consent, c.source, c.status, c.tags, c.attributes AS fields,
            c.role_address, c.created_at, c.last_open_at, c.last_human_open_at, c.last_click_at,
-           s.created_at AS suppressed_at,` + scoringColumns + `
+           s.created_at AS suppressed_at,` + scoringColumns + websiteColumns + `
     FROM public.contacts c
-    LEFT JOIN public.suppressions s ON s.workspace_id = c.workspace_id AND s.email = c.email` + scoringJoins + `
+    LEFT JOIN public.suppressions s ON s.workspace_id = c.workspace_id AND s.email = c.email` + scoringJoins + websiteJoins + `
     WHERE c.workspace_id = {ws} AND c.erased_at IS NULL`},
 	{"list_members", `SELECT lm.contact_id, lm.list_id, l.name AS list, lm.status, lm.subscribed_at, lm.unsubscribed_at
     FROM public.list_memberships lm

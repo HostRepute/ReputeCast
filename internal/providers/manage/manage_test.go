@@ -171,7 +171,9 @@ func TestProvidersOverview(t *testing.T) {
 		}
 	}
 	r.JSON(t, &o)
-	if o.Summary.Connected != 3 || o.Summary.Suppressions != 1875 || o.Summary.SentThisMonth == 0 { // with billing@northwind.example's role entry
+	// With billing@northwind.example's role entry and the Sunset tier's 287
+	// invalid addresses and spam traps from its verification (X14).
+	if o.Summary.Connected != 3 || o.Summary.Suppressions != 2162 || o.Summary.SentThisMonth == 0 {
 		t.Fatalf("summary %+v", o.Summary)
 	}
 	rates := map[string][2]float64{"ses": {0.6, 0.04}, "postmark": {0.2, 0.01}, "postal": {0.9, 0.05}}
@@ -568,7 +570,7 @@ func TestSuppressionSyncAndTracking(t *testing.T) {
 		}
 	}
 	owner.Do("GET", ws+"/suppression-sync", nil).MustStatus(t, 200).JSON(t, &st)
-	if st.Total != 1875 || len(st.Rows) != 4 {
+	if st.Total != 2162 || len(st.Rows) != 4 { // with the Sunset tier's 287 (X14)
 		t.Fatalf("sync status %+v", st)
 	}
 	for _, r := range st.Rows {

@@ -360,7 +360,7 @@ function EventRow({ it, selected, search }: { it: Item; selected: boolean; searc
   )
 }
 
-const ACRONYMS: Record<string, string> = { api: 'API', mcp: 'MCP', sso: 'SSO', dns: 'DNS', smtp: 'SMTP', ip: 'IP', url: 'URL' }
+const ACRONYMS: Record<string, string> = { api: 'API', mcp: 'MCP', sso: 'SSO', dns: 'DNS', smtp: 'SMTP', ip: 'IP', url: 'URL', ai: 'AI' }
 
 /** "routing_rule" → "Routing rule", "api_key" → "API key" */
 function typeLabel(t: string) {

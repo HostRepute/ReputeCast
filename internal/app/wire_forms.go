@@ -52,6 +52,7 @@ func (a *App) formsService() *forms.Service {
 		Mail:   func() mailer.Sender { return a.Mail },
 		Tokens: a.Links, URLs: a.URLs, DNS: resolver,
 		Turnstile: &forms.Turnstile{Client: guard.Client(10 * time.Second)},
+		Addresses: formAddressChecks{a: a},
 	}
 	formsServices[a] = s
 	return s
@@ -64,6 +65,9 @@ var publicNotifications = func(*App) publicpages.Notifications { return nil }
 func (a *App) publicPages() *publicpages.Handler {
 	fs := a.formsService()
 	pl := a.polls()
+	// The publication website (X18), built before the lock: it reads the
+	// forms service too.
+	site := websiteService(a)
 	formsMu.Lock()
 	defer formsMu.Unlock()
 	if h, ok := formsPages[a]; ok {
@@ -80,6 +84,8 @@ func (a *App) publicPages() *publicpages.Handler {
 		Browser: browserContent{a},
 		// The upgrade page, its welcome page and the billing links (X16).
 		Earn: earnService(a),
+		// The publication website's pages (X18).
+		Website: site,
 	}
 	formsPages[a] = h
 	return h

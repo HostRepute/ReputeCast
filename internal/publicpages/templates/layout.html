@@ -27,6 +27,7 @@
 {{end}}</head>
 <body{{if .Preview}} class="preview" inert{{end}}>
 <a href="#main" class="skip">{{.T "page.skip"}}</a>
+{{with .SiteBar}}<header class="sitebar"><div class="sitebar-in"><a href="{{.Home}}" class="sitebar-brand" aria-label="{{.HomeLabel}}">{{if .Logo}}<span class="mark logo"><img src="{{.Logo}}" alt="" width="34" height="34"></span>{{else}}<span class="mark" aria-hidden="true">{{.Initial}}</span>{{end}}<span>{{.Title}}</span></a>{{if .Nav}}<nav class="sitebar-nav" aria-label="{{.NavLabel}}">{{range .Nav}}<a href="{{.Href}}">{{.Label}}</a>{{end}}</nav>{{end}}<div class="sitebar-act">{{if .Member}}<a href="{{.Account}}" class="sitebar-me" aria-label="{{.AccountLabel}}"><span class="sitebar-av" aria-hidden="true">{{.Member.Initials}}</span><span>{{.Member.First}}</span></a>{{else}}{{with .Signin}}<a href="{{.}}" class="sitebar-btn">{{$.SiteBar.SigninText}}</a>{{end}}{{end}}</div></div></header>{{end}}
 <div class="page">
 {{template "content" .}}
 {{template "foot" .}}
@@ -34,7 +35,7 @@
 </div>
 </body>
 </html>
-{{define "brand"}}<div class="brand">{{if .Brand.Logo}}<span class="mark logo"><img src="{{.Brand.Logo}}" alt="" width="40" height="40"></span>{{else}}<span class="mark" aria-hidden="true">{{.Brand.Initial}}</span>{{end}}<span class="brand-name">{{.Brand.Name}}</span></div>{{end}}
+{{define "brand"}}{{if not .SiteBar}}<div class="brand">{{if .Brand.Logo}}<span class="mark logo"><img src="{{.Brand.Logo}}" alt="" width="40" height="40"></span>{{else}}<span class="mark" aria-hidden="true">{{.Brand.Initial}}</span>{{end}}<span class="brand-name">{{.Brand.Name}}</span></div>{{end}}{{end}}
 {{define "rc"}}{{if .PoweredBy}}<a href="{{.Landing}}" class="rc"><svg width="14" height="14" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>{{.T "page.poweredBy"}}</a>{{end}}{{end}}
 {{define "rcplain"}}{{if .PoweredBy}}<a href="{{.Landing}}">{{.T "page.poweredBy"}}</a>{{end}}{{end}}
 {{define "sep"}}<span aria-hidden="true">·</span>{{end}}

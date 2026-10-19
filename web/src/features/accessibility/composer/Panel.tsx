@@ -7,7 +7,8 @@ import { Segmented } from '@/components/ui/Tabs'
 import { formatList, useT } from '@/i18n'
 import { useComposer } from '@/features/composer/context'
 import { pathOf } from '@/features/composer/editor/labels'
-import { reveal } from '@/features/composer/fixes'
+import { componentAt, reveal } from '@/features/composer/fixes'
+import { AltTextAssist, LinkTextAssist } from '@/features/ai/composer/fixes'
 import { clock, dayMonthYear, shortDate } from '@/lib/format'
 import { useMe, useWorkspace } from '@/lib/session'
 import { CodeText } from '../review'
@@ -252,6 +253,7 @@ function TargetIcon() {
 /** The fix of one issue: words, a color, or one click. */
 function Fixes({ issue, report, lang }: { issue: Issue; report: Report; lang: string }) {
   const a = useAccessibility()!
+  const c = useComposer()
   const t = useT()
   const [text, setText] = useState('')
   const [own, setOwn] = useState(false)
@@ -263,6 +265,15 @@ function Fixes({ issue, report, lang }: { issue: Issue; report: Report; lang: st
       const name = imageName(issue)
       return (
         <div className="a11y-fix">
+          <AltTextAssist
+            component={componentAt(c, issue.path)}
+            src={issue.element.src ?? ''}
+            onAccept={(value) => a.fix(issue, { kind: 'alt_text', path: issue.path, index: issue.element.index, value }, t(m.fixedAlt, { name }))}
+            onEdit={(value) => {
+              setText(value)
+              window.setTimeout(() => document.getElementById(`alt-${issue.id}`)?.focus(), 30)
+            }}
+          />
           <form
             className="flex flex-col gap-1.5"
             onSubmit={(e) => {
@@ -331,6 +342,12 @@ function Fixes({ issue, report, lang }: { issue: Issue; report: Report; lang: st
       return (
         <div className="a11y-fix">
           <div className="flex flex-wrap gap-1.5">
+            <LinkTextAssist
+              component={componentAt(c, issue.path)}
+              text={version?.text ?? issue.element.label ?? ''}
+              href={issue.element.href ?? links[0]?.href ?? ''}
+              onAccept={(value) => apply(value)}
+            />
             {version?.suggestion ? (
               <Button size="sm" onClick={() => void apply(version.suggestion!)}>
                 {t(m.useTitle, { title: version.suggestion })}

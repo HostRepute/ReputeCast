@@ -51,6 +51,12 @@ type Service struct {
 	// Conditional gives the Conditional content group and the poll checks;
 	// nil leaves them out.
 	Conditional ConditionalChecker
+	// Verification gives the address checks in Audience quality; nil
+	// leaves them out.
+	Verification VerificationChecker
+	// Website gives the web checks of a campaign that publishes to the
+	// website; nil leaves them out.
+	Website WebsiteChecker
 }
 
 func (s *Service) now() time.Time {

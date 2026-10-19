@@ -13,6 +13,8 @@ import { DigestBadge, DigestHeaderActions, isDigestTemplate } from '@/features/d
 import { IssueHeaderLabel, IssueHeaderStatus, isDigestIssue } from '@/features/digests/composer/IssueMode'
 import { dc } from '@/features/digests/composer/messages'
 import { useT } from '@/i18n'
+import { useAssistBanner } from '@/features/ai/composer/panel'
+import { AssistMenu } from '@/features/ai/composer/assistMenu'
 
 const routeColors: Record<string, string> = { ses: 'var(--chart-ses)', postal: 'var(--chart-postal)', postmark: 'var(--chart-postmark)' }
 
@@ -182,6 +184,7 @@ export function Header({ onReview }: { onReview: () => void }) {
           </>
         ) : (
           <>
+            <AssistMenu />
             <button type="button" className="btn" disabled={empty} style={empty ? { opacity: 0.5 } : undefined} onClick={() => c.setView('preview')}>
               Preview
             </button>
@@ -215,6 +218,8 @@ export function PermissionBanner() {
   const { campaign, slug } = useComposer()
   const { me } = useWorkspace()
   const { data } = useMe()
+  // With the assistant (AIComposer): "You can edit this campaign and use the assistant."
+  const assisted = useAssistBanner()
   const user = data?.user
   if (!user) return null
   const helpers = campaign.access.sendHelpers
@@ -226,10 +231,16 @@ export function PermissionBanner() {
     <div role="status" className="cmp-perm">
       <Avatar name={user.name || user.email} color={user.avatarColor} size={24} />
       <span id="perm-hint" style={{ flex: '1 1 480px', minWidth: 0 }}>
-        <b>
-          {user.name || user.email} · {me.workspace.roleName}.
-        </b>{' '}
-        You can edit this campaign and request approval. Sending needs the <span className="mono">campaigns:send</span> permission{ask}. {list} are hidden for your role.
+        {assisted ? (
+          assisted({ name: user.name || user.email, role: me.workspace.roleName, helpers })
+        ) : (
+          <>
+            <b>
+              {user.name || user.email} · {me.workspace.roleName}.
+            </b>{' '}
+            You can edit this campaign and request approval. Sending needs the <span className="mono">campaigns:send</span> permission{ask}. {list} are hidden for your role.
+          </>
+        )}
       </span>
       <Link
         to="/w/$workspace/campaigns/$campaignId/review"

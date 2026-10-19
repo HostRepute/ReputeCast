@@ -60,6 +60,8 @@ type Snapshot struct {
 	// request covers (one draft of the template).
 	DraftHash     string                         `json:"draft_hash,omitempty"`
 	Transactional *ApprovalTransactionalSnapshot `json:"transactional,omitempty"`
+	// Website: what a post publish request covers (DraftHash is the post's hash).
+	Website *ApprovalWebsiteSnapshot `json:"website,omitempty"`
 }
 
 // SnapshotShare is one provider of the route at request time.

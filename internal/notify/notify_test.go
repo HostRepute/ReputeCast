@@ -182,16 +182,25 @@ func TestSummarize(t *testing.T) {
 		p.Events = append(p.Events, notify.NotificationEventPreference{Type: e.Key, InApp: true, Email: e.DefaultEmail})
 	}
 	s := notify.Summarize(p)
-	if s.InApp != "All events" || s.Email != "Approvals, auto-pauses, provider down, integration problems, post drafts, transactional delivery alerts, SMTP relay outages, held digest issues, paused digests, failing digest feeds, digest drafts, payment problems, sponsor creatives" ||
+	if s.InApp != "All events" || s.Email != "Approvals, auto-pauses, provider down, integration problems, post drafts, transactional delivery alerts, SMTP relay outages, held digest issues, paused digests, failing digest feeds, digest drafts, AI usage notices, rejected AI keys, payment problems, sponsor creatives, verification jobs, low verification credits, seed sign-in failures, website domain problems" ||
 		s.QuietHours != "22:00–07:00 America/New_York, email only" {
 		t.Fatalf("summary: %+v", s)
 	}
-
-	// In the member's app language, starting with a capital in any script.
-	// (The recurring digests' events aren't translated yet: they're off here.)
+	// (The AI assistant's events aren't translated yet: they're off here.)
 	for i := range p.Events {
 		switch p.Events[i].Type {
-		case notify.KindDigestIssueHeld, notify.KindDigestPaused, notify.KindDigestFeedFailing, notify.KindDigestDraftReady:
+		case notify.KindAIUsage, notify.KindAIKeyRejected:
+			p.Events[i].Email = false
+		}
+	}
+
+	// In the member's app language, starting with a capital in any script.
+	// (The recurring digests', verification, placement and website events aren't translated yet: they're off here.)
+	for i := range p.Events {
+		switch p.Events[i].Type {
+		case notify.KindDigestIssueHeld, notify.KindDigestPaused, notify.KindDigestFeedFailing, notify.KindDigestDraftReady,
+			notify.KindVerificationEnded, notify.KindVerificationCreditsLow, notify.KindPlacementFinished, notify.KindSeedSignInFailed,
+			notify.KindWebsiteDomain:
 			p.Events[i].Email = false
 		}
 	}

@@ -1,0 +1,25 @@
+{
+  "status": 200,
+  "body": {
+    "id": "chatcmpl-412",
+    "object": "chat.completion",
+    "created": 1760538011,
+    "model": "llama3.3:70b",
+    "system_fingerprint": "fp_ollama",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "Hi there, this week we're sharing a lot of"
+        },
+        "finish_reason": "length"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 31,
+      "completion_tokens": 64,
+      "total_tokens": 95
+    }
+  }
+}

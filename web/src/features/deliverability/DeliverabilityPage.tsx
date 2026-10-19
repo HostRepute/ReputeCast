@@ -9,6 +9,7 @@ import { toast } from '@/components/ui/Toast'
 import { andList, clock, count, monthDay } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
 import { useCan, usePermissionReason, useWorkspace } from '@/lib/session'
+import { DeliverabilityTabs } from '@/features/placement/shared'
 import { AssetGrid, SkeletonGrid, StaleGrid } from './AssetCards'
 import { BlocklistCard } from './BlocklistCard'
 import { DmarcCard, DmarcEmptyCard } from './DmarcCard'
@@ -31,7 +32,17 @@ export function DeliverabilityPage() {
   const o = q.data
   useFinishedToast(o)
   return (
-    <Page title="Deliverability" badges={o ? <HeaderStatus o={o} /> : null} actions={<Actions o={o} />}>
+    <Page
+      title="Deliverability"
+      badges={
+        <>
+          {/* Health · Placement tests (X14). */}
+          <DeliverabilityTabs />
+          {o ? <HeaderStatus o={o} /> : null}
+        </>
+      }
+      actions={<Actions o={o} />}
+    >
       {q.isError ? (
         <ErrorPanel title="Couldn't load Deliverability" actions={<Button onClick={() => q.refetch()}>Retry</Button>}>
           {errorMessage(q.error)} Nothing was changed; the checks keep running in the background.

@@ -1,0 +1,1028 @@
+/*
+ * The AI assistant (AISettings, AIComposer, AISegmentReport, AIStates):
+ * the boards' own classes, value for value, prefixed `ai-` so they never
+ * collide with the shared vocabulary in app.css.
+ */
+@layer components {
+  /* The catalog card's thin usage bar. */
+  .ai-meter {
+    height: 6px;
+    border-radius: 3px;
+    background: var(--accent-glow);
+    overflow: hidden;
+  }
+  .ai-meter > span {
+    display: block;
+    height: 100%;
+    background: var(--accent);
+    border-radius: 3px;
+  }
+
+  /* The settings header: tile, title, the connection's facts. */
+  .ai-head {
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .ai-head.ai-bad {
+    border-color: var(--bad-line);
+  }
+  .ai-head > .ai-head-main {
+    flex: none;
+  }
+  .ai-head-row {
+    display: flex;
+    gap: 16px 24px;
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+  .ai-head-main {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    flex: 1 1 440px;
+    min-width: 0;
+  }
+  .ai-head-text {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .ai-head-text > p {
+    margin: 0;
+    color: var(--ink-nav);
+    font-size: 13.5px;
+    max-width: 640px;
+    line-height: 1.5;
+  }
+  .ai-head-sub {
+    font-size: 13px;
+    color: var(--ink-2);
+  }
+  .ai-kvp {
+    flex: 1 1 360px;
+    min-width: 0;
+    max-width: 520px;
+    padding: 12px 14px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #fbfbfc;
+    box-sizing: border-box;
+  }
+  .ai-kvp .kv {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 7px 18px;
+    font-size: 13px;
+    margin: 0;
+  }
+  .ai-kvp .kv dt {
+    color: var(--ink-3);
+    font-weight: 500;
+    margin: 0;
+  }
+  .ai-kvp .kv dd {
+    margin: 0;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .ai-mask {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 12.5px;
+    color: var(--ink-2);
+    white-space: nowrap;
+  }
+  .ai-mask svg {
+    flex: none;
+  }
+
+  /* Cards with a header row and a body. */
+  .ai-card {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .ai-ch {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px 12px;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--line-2);
+    flex-wrap: wrap;
+  }
+  .ai-ch > div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .ai-ch h2 {
+    margin: 0;
+  }
+  .ai-cb {
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .ai-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 12px 18px;
+    border-top: 1px solid var(--line-2);
+    margin-top: auto;
+  }
+  .ai-grid3 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr));
+    gap: 16px;
+    align-items: stretch;
+  }
+  .ai-two {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr));
+    gap: 16px;
+    align-items: start;
+  }
+  .ai-col {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+  }
+
+  /* Usage: the big number, the bar with the 80% notice mark, the rows. */
+  .ai-big {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+  }
+  .ai-track {
+    position: relative;
+    height: 10px;
+    border-radius: 5px;
+    background: var(--line-2);
+  }
+  .ai-track > .ai-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    background: var(--accent);
+    border-radius: 5px;
+  }
+  .ai-track.ai-notice > .ai-fill {
+    background: var(--warn-bar);
+  }
+  .ai-track.ai-reached > .ai-fill {
+    background: var(--bad-strong);
+  }
+  .ai-track > .ai-mark {
+    position: absolute;
+    left: 80%;
+    top: -4px;
+    bottom: -4px;
+    width: 2px;
+    background: var(--ink-2);
+    border-radius: 1px;
+  }
+  .ai-scale {
+    position: relative;
+    height: 16px;
+  }
+  .ai-scale > span {
+    position: absolute;
+    white-space: nowrap;
+  }
+  .ai-rows > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    align-items: center;
+    padding: 9px 0;
+    border-top: 1px solid var(--line-2);
+  }
+  .ai-rows > div > span {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+  }
+  .ai-rows b {
+    font-weight: 600;
+  }
+  .ai-share {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .ai-share > div {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .ai-share > div > div:first-child {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 13px;
+  }
+  .ai-share .num {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .ai-share .bar > i {
+    background: var(--accent);
+  }
+
+  /* Features: a row each, with what it sends and its switch. */
+  .ai-frow {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 12px 18px;
+    border-top: 1px solid var(--line-2);
+  }
+  .ai-frow:first-child {
+    border-top: 0;
+  }
+  .ai-frow .ai-fl {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+    flex: 1;
+  }
+  .ai-frow .ai-fl > span:first-child {
+    font-weight: 600;
+    font-size: 13.5px;
+  }
+  .ai-frow .ai-fl .k {
+    color: var(--ink-2);
+    line-height: 1.45;
+  }
+  .ai-frow .ai-fl .k b {
+    font-weight: 600;
+    color: var(--ink-nav);
+  }
+  .ai-frow .ai-warn {
+    display: inline-flex;
+    gap: 6px;
+    align-items: flex-start;
+    color: #b45309;
+    font-weight: 600;
+    font-size: 12.5px;
+  }
+  .ai-leaves {
+    margin: 4px 18px 16px;
+  }
+  .ai-leaves ul {
+    margin: 0;
+    padding-left: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  /* The activity log. */
+  .ai-filters {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--line-2);
+  }
+  .ai-filters > div {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .ai-filters select {
+    width: auto;
+    min-width: 0;
+  }
+  .ai-who {
+    display: inline-flex;
+    gap: 8px;
+    align-items: center;
+    white-space: nowrap;
+  }
+  .ai-loglist {
+    display: flex;
+    flex-direction: column;
+  }
+  .ai-loglist > div {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px 18px;
+    border-top: 1px solid var(--line-2);
+  }
+  .ai-loglist > div:first-child {
+    border-top: 0;
+  }
+  .ai-loglist .ai-lt {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  /* The danger card at the end, and the disconnect dialog's two boxes. */
+  .ai-dz {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    padding: 16px 18px;
+    border-color: var(--bad-line);
+  }
+  .ai-dz > div {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+    flex: 1 1 320px;
+  }
+  .ai-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .ai-chips > span {
+    display: inline-flex;
+    align-items: center;
+    height: 24px;
+    padding: 0 8px;
+    border-radius: 12px;
+    background: var(--neutral-bg);
+    color: var(--ink-nav);
+    font-size: 12.5px;
+    font-weight: 600;
+  }
+  .ai-boxes {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+    gap: 12px;
+  }
+  .ai-boxes > div {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 12px 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 13px;
+  }
+  .ai-boxes > div > b {
+    font-weight: 600;
+  }
+
+  /* The connect dialog: the form, and "When you connect" beside it. */
+  .dlg.ai-dlg {
+    max-width: 1060px;
+  }
+  .dlg.ai-dlg-md {
+    max-width: 720px;
+  }
+  .ai-cgrid {
+    display: flex;
+    gap: 16px 24px;
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+  .ai-cmain {
+    flex: 2 1 560px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .ai-cside {
+    flex: 1 1 280px;
+    min-width: 0;
+    padding: 16px 18px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    box-sizing: border-box;
+  }
+  .ai-cside h3 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .ai-cside ol {
+    margin: 0;
+    padding-left: 20px;
+    list-style: decimal;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--ink-nav);
+    line-height: 1.5;
+  }
+  .ai-pair {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
+    gap: 12px 16px;
+    align-items: start;
+  }
+  .ai-trio {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
+    gap: 12px 16px;
+    align-items: start;
+  }
+  .ai-dollar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .ai-dollar > span {
+    color: var(--ink-3);
+    font-size: 13px;
+  }
+  .ai-dollar > .in {
+    flex: 1;
+    min-width: 0;
+  }
+  .ai-checks {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
+    gap: 8px 16px;
+    border: 0;
+    margin: 0;
+    padding: 0;
+    min-width: 0;
+  }
+  .ai-checks > legend {
+    padding: 0;
+    margin-bottom: 8px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .ai-checks label {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    font-size: 13.5px;
+  }
+  .ai-pass {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    padding: 10px 12px;
+    border: 1px solid var(--ok-line);
+    background: var(--ok-tint);
+    border-radius: 8px;
+    color: var(--ok-fg);
+    font-size: 13px;
+  }
+  .ai-pass > span {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    min-width: 0;
+    flex: 1 1 320px;
+  }
+  .ai-pass b {
+    font-weight: 600;
+  }
+  .ai-test {
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .ai-test.ai-bad {
+    border-color: var(--bad-line);
+  }
+  .ai-test > header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+  }
+  .ai-test > header h2 {
+    margin: 0;
+  }
+
+  /* Every suggestion card (AIComposer, AISegmentReport, AIStates). */
+  .ai-sug {
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    border: 1px solid var(--line-strong);
+    border-radius: 10px;
+    min-width: 0;
+    overflow: hidden;
+    box-sizing: border-box;
+  }
+  .ai-sug-float {
+    box-shadow: 0 12px 32px rgba(11, 18, 32, 0.16);
+  }
+  .ai-sug.ai-sug-bad {
+    border-color: var(--bad-line);
+  }
+  .ai-sug.ai-sug-warn {
+    border-color: #fcd34d;
+  }
+  .ai-sug-h {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 8px 9px 14px;
+    border-bottom: 1px solid var(--line-2);
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+  .ai-sug-t {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--ink);
+  }
+  .ai-sug-m {
+    font-size: 12px;
+    color: var(--ink-3);
+    font-weight: 500;
+  }
+  .ai-sug-x {
+    margin-left: auto;
+    width: 28px;
+    height: 28px;
+    border: 0;
+    border-radius: 6px;
+    background: none;
+    color: var(--ink-3);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .ai-sug-x:hover {
+    background: var(--ground);
+    color: var(--ink);
+  }
+  .ai-sug-b {
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    font-size: 13px;
+    line-height: 1.55;
+    color: #1f2937;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .ai-sug-c {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    padding: 9px 14px;
+    border-top: 1px solid var(--line-2);
+    background: var(--ground-3);
+    font-size: 12px;
+    color: var(--ink-nav);
+    line-height: 1.45;
+  }
+  .ai-sug-c > span {
+    display: inline-flex;
+    gap: 6px;
+    align-items: flex-start;
+    min-width: 0;
+  }
+  .ai-sug-c > span > svg {
+    flex: none;
+    margin-top: 2px;
+    color: var(--ok-bar);
+  }
+  .ai-sug-c > span.ai-no > svg {
+    color: var(--warn-bar);
+  }
+  .ai-sug-c .mono {
+    font-size: 11.5px;
+  }
+  .ai-sug-a {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px 14px;
+    border-top: 1px solid var(--line-2);
+    align-items: center;
+  }
+  .ai-sug-f {
+    padding: 9px 14px;
+    border-top: 1px solid var(--line-2);
+    font-size: 12px;
+    color: var(--ink-3);
+    background: #fbfbfc;
+    line-height: 1.45;
+  }
+  .ai-sug-b > .ai-sug-a,
+  .ai-sug-b + .ai-sug-a:first-child {
+    border-top: 0;
+  }
+  .ai-skel {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .ai-skel > span {
+    display: block;
+    height: 10px;
+    border-radius: 5px;
+    background: #e9ecf0;
+  }
+  .ai-del {
+    background: #fee2e2;
+    color: #991b1b;
+    text-decoration: line-through;
+    text-decoration-thickness: 1px;
+    border-radius: 3px;
+    padding: 0 2px;
+  }
+  .ai-ins {
+    background: #dcfce7;
+    color: #166534;
+    text-decoration: none;
+    border-radius: 3px;
+    padding: 0 2px;
+  }
+
+  /* The assist button and its menu. */
+  .ai-assist {
+    border-color: var(--accent-line);
+    color: var(--ink);
+  }
+  .ai-menu {
+    width: 340px;
+    max-width: calc(100vw - 24px);
+    padding: 6px;
+  }
+  .ai-menu .ai-mi {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1px;
+    width: 100%;
+    padding: 8px 10px;
+    border: 0;
+    border-radius: 8px;
+    background: none;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    color: var(--ink);
+  }
+  .ai-menu .ai-mi:hover:not(:disabled),
+  .ai-menu .ai-mi:focus-visible {
+    background: var(--ground);
+  }
+  .ai-menu .ai-mi > span:first-child {
+    font-weight: 600;
+    font-size: 13px;
+  }
+  .ai-menu .ai-mi:disabled {
+    cursor: not-allowed;
+  }
+  .ai-menu .ai-mi:disabled > span:first-child {
+    color: var(--ink-3);
+  }
+  .ai-menu .ai-mf {
+    border-top: 1px solid var(--line-2);
+    margin-top: 4px;
+    padding: 10px 10px 6px;
+    font-size: 12px;
+    color: var(--ink-3);
+    line-height: 1.45;
+  }
+  .ai-pop {
+    width: 360px;
+    max-width: calc(100vw - 24px);
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .ai-pop h3 {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  /* Subject ideas, in the composer's right column. */
+  .ai-panel {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow-y: auto;
+  }
+  .ai-panel-h {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 8px 12px 14px;
+    border-bottom: 1px solid var(--line-2);
+  }
+  .ai-now {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--line-2);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 13px;
+  }
+  .ai-now > b {
+    font-weight: 600;
+  }
+  .ai-ideas {
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .ai-idea {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .ai-idea.ai-warn-card {
+    border-color: #fcd34d;
+    background: #fffbeb;
+  }
+  .ai-idea > b {
+    font-weight: 600;
+    font-size: 13.5px;
+    line-height: 1.4;
+  }
+  .ai-idea-r {
+    display: flex;
+    align-items: center;
+    gap: 6px 10px;
+    flex-wrap: wrap;
+    font-size: 12.5px;
+  }
+  .ai-idea-r > .btn {
+    margin-left: auto;
+  }
+  .ai-idea-r .ai-phrase {
+    color: #92400e;
+    font-weight: 600;
+  }
+  .ai-panel-a {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 12px 14px;
+    border-top: 1px solid var(--line-2);
+  }
+  .ai-panel-f {
+    padding: 12px 14px;
+    border-top: 1px solid var(--line-2);
+    font-size: 12px;
+    color: var(--ink-3);
+    line-height: 1.45;
+    background: #fbfbfc;
+  }
+  .ai-ideas-btn {
+    align-self: flex-end;
+    flex: none;
+  }
+
+  /* The composer's other AI parts: the toolbar, the language menu, the AI compare view. */
+  .rte .ai-rte-off {
+    color: #9ca3af;
+    cursor: not-allowed;
+  }
+  .ai-panel-card {
+    padding: 12px;
+    gap: 12px;
+    background: var(--ground-3);
+  }
+  .ai-tr-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    width: 100%;
+    text-align: left;
+  }
+  .ai-tr-item:disabled {
+    cursor: not-allowed;
+    color: var(--ink-3);
+  }
+  .ai-trby {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+  }
+  .ai-trchecks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--line);
+    background: var(--ground-3);
+    font-size: 12.5px;
+    color: var(--ink-nav);
+  }
+  .ai-trchecks > span {
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+  }
+  .ai-trchecks > span > svg {
+    color: var(--ok-bar);
+    flex: none;
+  }
+  .ai-trchecks > span.ai-no > svg {
+    color: var(--warn-bar);
+  }
+  .ai-trmore {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--line);
+    font-size: 13px;
+    color: var(--ink-nav);
+  }
+  .ai-sugbox {
+    border: 1px solid #86efac;
+    background: #f0fdf4;
+    border-radius: 8px;
+    padding: 8px 10px;
+    color: #14532d;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  .ai-sugedit {
+    height: auto;
+    min-height: 36px;
+    padding: 8px 10px;
+    line-height: 1.5;
+    resize: vertical;
+  }
+  .ai-review {
+    margin-top: 8px;
+  }
+  .ai-deco {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  /* Describe the segment, and the draft in the builder. */
+  .ai-describe {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px 18px;
+  }
+  .ai-describe-invite {
+    border-style: dashed;
+  }
+  .ai-describe-in {
+    flex: 1;
+    min-width: 0;
+    height: auto;
+    min-height: 58px;
+    padding: 8px 10px;
+    line-height: 1.5;
+    resize: vertical;
+  }
+  .ai-draft-strip {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px 8px 14px;
+    border: 1px solid var(--accent-line);
+    background: var(--accent-tint);
+    border-radius: 8px;
+    font-size: 13px;
+  }
+  .scond.ai-added {
+    border-color: #86efac;
+    border-left: 4px solid #16a34a;
+    background: #f0fdf4;
+  }
+  .scond.ai-removed {
+    border-color: var(--bad-line);
+    border-left: 4px solid var(--bad-strong);
+    background: var(--bad-tint);
+  }
+  .scond.ai-removed .in {
+    text-decoration: line-through;
+    color: var(--bad-fg);
+  }
+  .ai-dmark {
+    display: inline-flex;
+    align-items: center;
+    height: 22px;
+    padding: 0 8px;
+    border-radius: 11px;
+    font-size: 11.5px;
+    font-weight: 700;
+  }
+  .ai-dmark-added {
+    background: var(--ok-bg);
+    color: var(--ok-fg);
+  }
+  .ai-dmark-removed {
+    background: var(--bad-bg);
+    color: var(--bad-fg);
+  }
+  /* The summary kept at the top of a report. */
+  .ai-kept {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px 18px;
+    border-color: var(--accent-line);
+    background: var(--accent-tint);
+  }
+  .ai-kept-h {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+  }
+  .ai-kept-f {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+  }
+  .ai-kept-hr {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+  }
+  /* Small screens: the header's facts under the title, actions full width. */
+  @media (max-width: 640px) {
+    .ai-head,
+    .ai-cb {
+      padding: 14px 14px;
+    }
+    .ai-ch,
+    .ai-frow,
+    .ai-filters,
+    .ai-foot,
+    .ai-loglist > div {
+      padding-left: 14px;
+      padding-right: 14px;
+    }
+    .ai-leaves {
+      margin: 4px 14px 14px;
+    }
+    .ai-kvp .kv {
+      grid-template-columns: 1fr;
+      gap: 2px 0;
+    }
+    .ai-kvp .kv dd {
+      margin-bottom: 6px;
+    }
+    .ai-head-main .ih-tile.lg {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      font-size: 13px;
+    }
+  }
+}

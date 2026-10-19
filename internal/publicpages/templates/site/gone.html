@@ -1,0 +1,7 @@
+{{/* An unpublished post (410) or a missing page (404): a heading, a line
+     and the latest posts. */}}
+{{define "site-main"}}{{with .Body}}<main id="main">
+<div class="st-w st-sec"><div class="st-gone"><h1>{{.Heading}}</h1><p class="lead">{{.Text}}</p></div>
+{{- if .Cards}}<div class="st-list st-gonel">{{range .Cards}}<a href="{{.Href}}" class="st-row"><div class="tx">{{template "site-meta" .Meta}}<h3>{{.Title}}</h3>{{with .Excerpt}}<p class="ex">{{.}}</p>{{end}}</div><div class="th">{{template "site-cover" .Cover}}</div></a>{{end}}</div>{{end}}
+<div class="st-acts">{{range .Actions}}<a href="{{.Href}}" class="{{if .Primary}}st-btn{{else}}st-btn2{{end}}">{{.Label}}</a>{{end}}</div></div>
+</main>{{end}}{{end}}
