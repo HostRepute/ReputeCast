@@ -45,6 +45,8 @@ const lists: Record<string, (v: string) => [string, string, (i: Item) => boolean
   form: (name) => ['forms', 'forms', (f) => f.name === name],
   digest: (name) => ['digests', 'items', (d) => d.name === name],
   survey: (name) => ['surveys', 'items', (s) => s.name === name],
+  placement: (name) => ['placement/tests', 'tests', (t) => t.name === name],
+  verification: (label) => ['verification/services', 'uses', (u) => u.label === label && u.kind !== 'realtime'],
 }
 
 /** Looks up the ids behind {campaign:Name}, {sso:Name} and the kinds in `lists` in a path. */

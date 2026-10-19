@@ -60,6 +60,8 @@ type Snapshot struct {
 	// request covers (one draft of the template).
 	DraftHash     string                         `json:"draft_hash,omitempty"`
 	Transactional *ApprovalTransactionalSnapshot `json:"transactional,omitempty"`
+	// Website: what a post publish request covers (DraftHash is the post's hash).
+	Website *ApprovalWebsiteSnapshot `json:"website,omitempty"`
 
 	// Channel campaigns (SMS; push and WhatsApp later) cover their text and
 	// a schedule written for people, compared as they are.

@@ -196,6 +196,7 @@ func (s *Service) computeAudience(ctx context.Context, q *store.Queries, wsID uu
 		switch {
 		case r.Suppressed:
 			out.Suppressed++
+			out.SuppressedEmails = append(out.SuppressedEmails, r.Email)
 			continue
 		case r.RoleAddress || emailaddr.IsRole(r.Email):
 			out.Role++

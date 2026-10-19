@@ -292,4 +292,41 @@ export const entries: Entry[] = [
   { board: 'PublicPollPhone', manual: true, widths: [390] },
   { board: 'PollResults', path: `${ws}/campaigns/{campaign:Weekly Digest #141}/report`, widths: [1440] },
   { board: 'SurveyBuilder', path: `${ws}/forms/surveys/{survey:Beta feedback · October 2026}?q=q3`, widths: [1440] },
+  // X14 · address verification and placement tests. VerificationRun's job page is the Sunset tier's
+  // check; its dialog opens from List health's tier cards. PlacementRun's first frame opens from
+  // Review & send through the URL an entry point builds; its other frames (composer, warm-up planner,
+  // template editor, a provider that is down, no verified sender) and the …States boards need clicks
+  // or data changes.
+  { board: 'VerificationServices', path: `${ws}/settings/integrations/verification`, widths: [1440] },
+  { board: 'VerificationRun', path: `${ws}/audience/verification/{verification:Sunset}`, widths: [1440] },
+  { board: 'VerificationStates', manual: true },
+  { board: 'PlacementTests', path: `${ws}/deliverability/placement`, widths: [1440] },
+  {
+    board: 'PlacementRun',
+    path: `${ws}/deliverability/placement?run=review&kind=campaign&content={campaign:Weekly Digest #142}&through=compare&from=Weekly%20Digest%20%23142`,
+    widths: [1440],
+    viewportOnly: true,
+    height: 1000,
+  },
+  { board: 'PlacementResult', path: `${ws}/deliverability/placement/{placement:Weekly Digest #142 · SES vs Postal}`, widths: [1440] },
+  { board: 'PlacementResultTablet', path: `${ws}/deliverability/placement/{placement:Weekly Digest #142 · SES vs Postal}`, widths: [834] },
+  { board: 'PlacementResultPhone', path: `${ws}/deliverability/placement/{placement:Weekly Digest #142 · SES vs Postal}`, widths: [390] },
+  { board: 'PlacementSeeds', path: `${ws}/deliverability/placement/seeds`, widths: [1440] },
+  { board: 'PlacementStates', manual: true },
+  { board: 'PlacementSeedStates', manual: true },
+  // X12 · the AI assistant. Acme Newsletter has the demo's sample Anthropic connection (answers from
+  // recordings in development); Acme Engineering Blog has none, for the invitation and the connect
+  // dialog (?connect=anthropic). The board's other frames (test results, a private server allowed or
+  // refused, read-only, disconnect) and AIStates' cap and key states need clicks or data changes.
+  { board: 'AISettings', path: `${ws}/settings/integrations/ai`, widths: [1440] },
+  { board: 'AIStates', manual: true },
+  // The composer with the assistant: Weekly Digest #143, the draft. Its frames (Ideas, a rewrite
+  // shown inline, alt text, the accessibility fixes, a translation's blocks) open from the Assist
+  // menu and the selection's toolbar, so the sweep compares the composer around them.
+  { board: 'AIComposer', path: `${ws}/campaigns/{campaign:Weekly Digest #143}/edit`, widths: [1440], viewportOnly: true, height: 1000 },
+  { board: 'AIComposerTablet', path: `${ws}/campaigns/{campaign:Weekly Digest #143}/edit`, widths: [834], viewportOnly: true, height: 1000 },
+  { board: 'AIComposerPhone', path: `${ws}/campaigns/{campaign:Weekly Digest #143}/edit`, widths: [390], viewportOnly: true, height: 1000 },
+  // Describe the segment (a new segment) and Summarize results (the October Product Update's report,
+  // with its kept summary): each starts from a click.
+  { board: 'AISegmentReport', manual: true },
 ]

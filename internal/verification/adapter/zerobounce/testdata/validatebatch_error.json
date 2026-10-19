@@ -1,0 +1,9 @@
+{
+  "email_batch": [],
+  "errors": [
+    {
+      "error": "Invalid API Key or your account ran out of credits",
+      "email_address": "all"
+    }
+  ]
+}

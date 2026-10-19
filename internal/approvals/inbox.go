@@ -24,12 +24,16 @@ import (
 // ApprovalListItem is one row of the approval inbox.
 type ApprovalListItem struct {
 	ID          string `json:"id"`
-	SubjectType string `json:"subjectType" enum:"campaign,automation,transactional_template"`
+	SubjectType string `json:"subjectType" enum:"campaign,automation,transactional_template,website_post"`
 	CampaignID  string `json:"campaignId,omitempty"`
 	// AutomationID is set for automation publish requests.
 	AutomationID string `json:"automationId,omitempty"`
 	// TransactionalTemplateID is set for transactional template publish requests.
 	TransactionalTemplateID string `json:"transactionalTemplateId,omitempty"`
+	// WebsitePostID is set for post publish requests; Website says what
+	// they cover (the inbox's "Post · Members").
+	WebsitePostID string                   `json:"websitePostId,omitempty"`
+	Website       *ApprovalWebsiteSnapshot `json:"website,omitempty"`
 	// Channel is a campaign's channel (the row's icon): email, sms, push or
 	// whatsapp.
 	Channel string `json:"channel" enum:"email,sms,push,whatsapp"`
@@ -174,6 +178,13 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, p *authz.Princi
 		}
 		if r.TransactionalTemplateID != nil {
 			it.TransactionalTemplateID = r.TransactionalTemplateID.String()
+		}
+		if r.WebsitePostID != nil {
+			it.WebsitePostID = r.WebsitePostID.String()
+			var w ApprovalWebsiteSnapshot
+			if json.Unmarshal(r.Website, &w) == nil && w.PostID != "" {
+				it.Website = &w
+			}
 		}
 		if t, err := time.Parse(time.RFC3339, sched.At); err == nil && sched.Mode != "now" {
 			it.ScheduleAt = &t
@@ -339,6 +350,8 @@ type ApprovalDetail struct {
 	Automation *ApprovalAutomationSnapshot `json:"automation,omitempty"`
 	// Transactional is what a transactional template publish request covers.
 	Transactional *ApprovalTransactionalSnapshot `json:"transactional,omitempty"`
+	// Website is what a post publish request covers.
+	Website *ApprovalWebsiteSnapshot `json:"website,omitempty"`
 	// Channel is a campaign's channel; SMS is what an SMS campaign's request
 	// covers (the text, segments, senders and cost per country).
 	Channel string               `json:"channel" enum:"email,sms,push,whatsapp"`
@@ -379,14 +392,14 @@ func (s *Service) Detail(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		RequestedAt: r.RequestedAt, Note: r.Note, Status: r.Status, MatchedRules: r.MatchedRules, ApprovalsRequired: r.ApprovalsRequired, Snapshot: r.Snapshot,
 		InvalidatedAt: r.InvalidatedAt, InvalidatedReason: r.InvalidatedReason, Changes: r.Changes, BypassReason: r.BypassReason, DecidedAt: r.DecidedAt,
 		CampaignVersion: r.CampaignVersion, ReadinessRunID: r.ReadinessRunID, DecidedBy: r.DecidedBy, InvalidatedBy: r.InvalidatedBy, RemindedAt: r.RemindedAt,
-		PreviousID: r.PreviousID, InvalidatedFrom: r.InvalidatedFrom}
+		PreviousID: r.PreviousID, InvalidatedFrom: r.InvalidatedFrom, TransactionalTemplateID: r.TransactionalTemplateID, WebsitePostID: r.WebsitePostID}
 	view, err := s.requestView(ctx, ws, base, ms)
 	if err != nil {
 		return ApprovalDetail{}, err
 	}
 	snap := ParseSnapshot(r.Snapshot)
 	out := ApprovalDetail{ApprovalRequestView: view, Name: r.SubjectName, Author: view.RequestedBy, Approvers: []ApprovalPerson{}, ChangesSince: []ApprovalChange{},
-		Comments: []ApprovalCommentView{}, Automation: snap.Automation, Transactional: snap.Transactional, Channel: r.CampaignChannel, SMS: snap.SMS}
+		Comments: []ApprovalCommentView{}, Automation: snap.Automation, Transactional: snap.Transactional, Website: snap.Website, Channel: r.CampaignChannel, SMS: snap.SMS}
 	out.Author.Role = firstNonEmptyStr(snap.AuthorRole, out.Author.Role)
 	for _, a := range approversOf(ms) {
 		out.Approvers = append(out.Approvers, s.person(a))
@@ -552,6 +565,15 @@ func (s *Service) PreviewIn(ctx context.Context, ws *store.Workspace, p *authz.P
 	r, err := s.Q.ApprovalGet(ctx, store.ApprovalGetParams{WorkspaceID: ws.ID, ID: id})
 	if err != nil {
 		return ApprovalPreview{}, api.MapError(err, "Approval request")
+	}
+	if canSee(p, r.RequestedBy) && r.WebsitePostID != nil && s.WebsitePreview != nil {
+		// A post's web preview, in the site's theme.
+		snap := ParseSnapshot(r.Snapshot)
+		html, err := s.WebsitePreview(ctx, ws, *r.WebsitePostID)
+		if err != nil {
+			return ApprovalPreview{}, err
+		}
+		return ApprovalPreview{Subject: snap.Subject, Preheader: snap.Preheader, HTML: html, Languages: []ApprovalPreviewLanguage{}}, nil
 	}
 	if !canSee(p, r.RequestedBy) || r.CampaignID == nil {
 		return ApprovalPreview{}, api.NotFound("Approval request")

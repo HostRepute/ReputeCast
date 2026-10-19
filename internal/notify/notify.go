@@ -46,11 +46,21 @@ const (
 	KindDigestPaused      = "digest_paused"       // a digest paused (by a person, its owner's permissions, the feed)
 	KindDigestFeedFailing = "digest_feed_failing" // a digest's feed failed at preparation, then the issue was skipped
 	KindDigestDraftReady  = "digest_draft_ready"  // draft mode: an issue is a draft to send through Review & send
+	// AI assistant (design expansion, phase 3).
+	KindAIUsage       = "ai_usage"        // this month's AI use reached 80% of the cap, or the cap
+	KindAIKeyRejected = "ai_key_rejected" // the model provider rejected the workspace's key
 	// Earn (design expansion, phase 6).
 	KindPaymentsAttention = "payments_attention"      // a payment provider's key rejected, webhook missing or silent
 	KindUnmappedPrice     = "payments_unmapped_price" // a Stripe price isn't mapped to a tier
 	KindPaidImportDone    = "paid_import_finished"    // a paid-members import finished
 	KindFailedPayments    = "failed_payments_daily"   // the daily summary of failed payments (off by default)
+	// Address verification and placement tests (design expansion, phase 4).
+	KindVerificationEnded      = "verification_ended"       // a verification job finished or stopped
+	KindVerificationCreditsLow = "verification_credits_low" // a service's balance runs low
+	KindPlacementFinished      = "placement_finished"       // a placement test finished
+	KindSeedSignInFailed       = "seed_signin_failed"       // a seed mailbox's sign-in failed or expired
+	// The publication website (design expansion, phase 7).
+	KindWebsiteDomain = "website_domain" // the website's custom domain stopped checking out, or its certificate is failing
 	// SMS (design expansion, phase 8).
 	KindSMSBudget       = "sms_budget"        // the month's SMS budget reached its alert level or ran out
 	KindSMSRegistration = "sms_registration"  // a sender's registration was approved or rejected

@@ -34,6 +34,10 @@ type Facts struct {
 	// polls and surveys (design expansion, X11).
 	Conditional ConditionalFacts
 	Polls       PollFacts
+	// Verification is the audience's address-check results (verification.go).
+	Verification VerificationFacts
+	// Web is the campaign's post on the website (design expansion, X18).
+	Web WebFacts
 	// MailboxRates are the per-mailbox-provider throttles (messages per
 	// second, 0 = full rate).
 	MailboxRates map[string]float64
@@ -98,6 +102,9 @@ type AudienceFacts struct {
 	Empty bool
 	// SegmentsSkipped is true when segments couldn't be counted.
 	SegmentsSkipped bool
+	// SuppressedEmails are the suppressed contacts' addresses, for the
+	// address checks' count of invalid ones (verification.go).
+	SuppressedEmails []string `json:"-"`
 }
 
 // LanguagesFacts are the email's language versions and who gets which.

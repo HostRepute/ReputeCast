@@ -13,6 +13,9 @@ import { stepPath, useImportDetail, WizardHeading, type Detail } from './ImportF
 import { NotRead, StepFrame } from './FieldsStep'
 import { downloadImportFile } from './SourceStep'
 import { ReadingSource } from './states'
+import { FoundBy, ImportVerifyCard, serviceInvalidLabel, useCheckedNotes } from '@/features/verification/ImportCheck'
+import { m as vm } from '@/features/verification/messages'
+import { useT } from '@/i18n'
 
 type Preview = Schemas['ImportPreview']
 type Options = Schemas['ImportOptions']
@@ -60,6 +63,10 @@ function Result({ d, p, refreshing }: { d: Detail; p: Preview; refreshing: boole
   const start = $api.useMutation('post', '/api/v1/workspaces/{workspace}/imports/{id}/start')
   const reason = usePermissionReason('subscribers:import')
   const [err, setErr] = useState<string | null>(null)
+  // The optional check with a verification service (X14).
+  const t = useT()
+  const checked = useCheckedNotes(p)
+  const [noVerify, setNoVerify] = useState(false)
   const refetch = () => qc.invalidateQueries({ predicate: (x) => String((x.queryKey as unknown[])[1] ?? '').includes('/imports/') })
   const change = async (patch: Partial<Options>) => {
     setErr(null)
@@ -81,11 +88,11 @@ function Result({ d, p, refreshing }: { d: Detail; p: Preview; refreshing: boole
     }
   }
   const tiles: [string, number, string, string?][] = [
-    ['Will be imported', p.willImport, 'new contacts, subscribed', '#86EFAC'],
+    ['Will be imported', p.willImport, checked?.willImport ?? 'new contacts, subscribed', '#86EFAC'],
     ['Merged with existing', p.merged, 'already in ReputeCast'],
     ['Suppressed', p.suppressed, 'unsubscribed, bounced, complained', '#FCA5A5'],
-    ['Invalid, skipped', p.invalid, 'not an email address'],
-    ['Risky, your call', p.risky, 'role, disposable, typo, trap-like', '#FCD34D'],
+    ['Invalid, skipped', p.invalid, checked?.invalid ?? 'not an email address'],
+    ['Risky, your call', p.risky, checked?.risky ?? 'role, disposable, typo, trap-like', '#FCD34D'],
   ]
   if (p.notImported > 0) tiles.push(['Not imported', p.notImported, 'statuses set to Skip'])
   return (
@@ -100,11 +107,12 @@ function Result({ d, p, refreshing }: { d: Detail; p: Preview; refreshing: boole
         ))}
       </div>
       {err ? <Note tone="bad">{err}</Note> : null}
+      {p.verification || noVerify ? null : <ImportVerifyCard importId={d.id} rows={p.rows} onSkip={() => setNoVerify(true)} />}
       {p.riskyGroups.length > 0 ? (
         <section className="card flex flex-col">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line-2 px-5 py-3.5">
-            <h3 className="h2">Risky addresses · {count(p.risky)}</h3>
-            <span className="k">imported addresses that bounce or hit traps hurt every provider's reputation</span>
+            <h3 className="h2">{p.verification ? t(vm.importRiskyAfter, { count: p.risky }) : `Risky addresses · ${count(p.risky)}`}</h3>
+            <span className="k">{checked?.header ?? "imported addresses that bounce or hit traps hurt every provider's reputation"}</span>
           </div>
           <TableScroll label="Risky addresses">
             <table className="tbl mpre">
@@ -114,8 +122,14 @@ function Result({ d, p, refreshing }: { d: Detail; p: Preview; refreshing: boole
                   <th scope="col" className="r">
                     Rows
                   </th>
-                  <th scope="col">Why it's risky</th>
-                  <th scope="col">Examples</th>
+                  {p.verification ? (
+                    <th scope="col">{t(vm.colFoundBy)}</th>
+                  ) : (
+                    <>
+                      <th scope="col">Why it's risky</th>
+                      <th scope="col">Examples</th>
+                    </>
+                  )}
                   <th scope="col" className="w-[260px]">
                     Action
                   </th>
@@ -126,8 +140,16 @@ function Result({ d, p, refreshing }: { d: Detail; p: Preview; refreshing: boole
                   <tr key={g.key}>
                     <td className="font-semibold">{g.label}</td>
                     <td className="r n">{count(g.rows)}</td>
-                    <td className="k">{g.why}</td>
-                    <td className="mono k">{g.examples}</td>
+                    {p.verification ? (
+                      <td>
+                        <FoundBy g={g} service={p.verification.serviceName} />
+                      </td>
+                    ) : (
+                      <>
+                        <td className="k">{g.why}</td>
+                        <td className="mono k">{g.examples}</td>
+                      </>
+                    )}
                     <td>
                       <select
                         aria-label={`Action for ${g.label}`}
@@ -154,10 +176,10 @@ function Result({ d, p, refreshing }: { d: Detail; p: Preview; refreshing: boole
         <section className="card flex flex-col">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line-2 px-5 py-3.5">
             <h3 className="h2">Duplicates · {count(p.merged)} already in ReputeCast</h3>
-            <label className="k flex items-center gap-2">
-              On conflict
+            <label className="k flex items-center gap-2 max-sm:w-full">
+              <span className="whitespace-nowrap">On conflict</span>
               <select
-                className="in"
+                className="in max-sm:min-w-0 max-sm:flex-1"
                 value={p.onConflict}
                 disabled={update.isPending}
                 onChange={(e) => void change({ onConflict: e.target.value as Options['onConflict'] })}
@@ -205,7 +227,9 @@ function Result({ d, p, refreshing }: { d: Detail; p: Preview; refreshing: boole
           <div className="k flex flex-wrap gap-4 px-5 py-3">
             {p.invalidGroups.map((g) => (
               <span key={g.problem} className="mono">
-                {g.example ? `${g.example} (${g.problem})` : g.problem === 'no MX record' ? 'domain has no MX record' : g.problem} · {count(g.rows)}
+                {g.service
+                  ? serviceInvalidLabel(t, g.service, g.rows)
+                  : `${g.example ? `${g.example} (${g.problem})` : g.problem === 'no MX record' ? 'domain has no MX record' : g.problem} · ${count(g.rows)}`}
               </span>
             ))}
           </div>

@@ -10,6 +10,8 @@ import { settingsTabs } from '@/features/settings/SettingsTabs'
 import { T, useT, type MessageDescriptor } from '@/i18n'
 import { ago } from '@/lib/format'
 import { useCan, useWorkspace } from '@/lib/session'
+import { AIGroupLink, AIGroupNote, AIModelCard, aiGroupLine } from '@/features/ai/catalog'
+import { isAIProvider } from '@/features/ai/entries'
 import { ConnectDialog } from './ConnectDialog'
 import { m } from './messages'
 import {
@@ -20,6 +22,7 @@ import {
   entryName,
   helpersText,
   isPlatform,
+  isVerification,
   maintainer,
   reasonWhy,
   ReasonSentence,
@@ -220,16 +223,24 @@ function Catalog({
         <div className="ih-page">
           {groups.map((g) => {
             const full = !narrowGroups.includes(g.key)
-            const cards = g.entries.map((e) => <EntryCard key={e.key} entry={e} canManage={hub.canManage} onConnect={onConnect} />)
+            const cards = g.entries.map((e) =>
+              g.key === 'ai' && isAIProvider(e.key) ? (
+                <AIModelCard key={e.key} provider={e.key} status={e.status} facts={e.facts.ai} canManage={hub.canManage} />
+              ) : (
+                <EntryCard key={e.key} entry={e} canManage={hub.canManage} onConnect={onConnect} />
+              ),
+            )
             return (
               <section key={g.key} className={`ih-group${full ? ' ih-full' : ''}`} aria-labelledby={`g-${g.key}`}>
                 <div className="ih-gh">
                   <div className="ih-gt">
                     <h2 id={`g-${g.key}`}>{t(groupName[g.key])}</h2>
-                    <span className="k">{t(groupLine[g.key])}</span>
+                    <span className="k">{t(g.key === 'ai' ? aiGroupLine(g.entries, groupLine.ai) : groupLine[g.key])}</span>
                   </div>
+                  {g.key === 'ai' ? <AIGroupLink /> : null}
                 </div>
                 {full ? <div className="ih-grid">{cards}</div> : cards}
+                {g.key === 'ai' ? <AIGroupNote entries={g.entries} /> : null}
               </section>
             )
           })}
@@ -348,6 +359,20 @@ function EntryCard({ entry: e, canManage, onConnect }: { entry: Entry; canManage
         {e.facts.mcpEnabled || e.facts.agents ? t(m.manage) : t(m.setUp)}
       </ButtonLink>
     )
+  } else if (isVerification(e.key)) {
+    // Address verification services live on their own page (X14).
+    action =
+      e.status === 'not_connected' ? (
+        canManage ? (
+          <ButtonLink size="sm" to="/w/$workspace/settings/integrations/verification" params={params} search={{ service: e.key, connect: true }}>
+            {t(m.connect)}
+          </ButtonLink>
+        ) : null
+      ) : (
+        <ButtonLink size="sm" to="/w/$workspace/settings/integrations/verification" params={params} search={{ service: e.key }}>
+          {canManage ? t(m.manage) : t(m.view)}
+        </ButtonLink>
+      )
   }
 
   return (
@@ -412,6 +437,11 @@ function Fact({ entry: e }: { entry: Entry }) {
     case 'mcp':
       if (!f.mcpEnabled) return <>{t(m.factMcpOff)}</>
       return f.agents ? <>{t(m.factMcpOn, { count: f.agents })}</> : <>{t(m.factMcpOnNone)}</>
+  }
+  if (isVerification(e.key)) {
+    const price = `$${(f.price ?? 0).toFixed(3)}`
+    if (e.status === 'not_connected') return <>{t(m.factPayPerCheck)}</>
+    return f.balance != null ? <>{t(m.factCredits, { credits: f.balance, price })}</> : <>{t(m.factCheckPrice, { price })}</>
   }
   return null
 }

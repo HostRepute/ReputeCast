@@ -40,6 +40,11 @@ var (
 	// conditional content of #143, the NPS poll of #141, the survey and its check-in campaign (seed_polls.go)
 	seedPolls = noop
 	seedEarn  = noop // payments and paid subscriptions: Stripe, tiers, paid members, the Substack import (seed_earn.go)
+	// address verification services and their uses, seed mailboxes and placement tests (seed_verification_placement.go)
+	seedVerificationPlacement = noop
+	seedAI                    = noop // AI assistant: Anthropic connected, this month's usage and activity log, a kept report summary (seed_ai.go)
+	// the publication website: news.acme.io's posts, tags, members, views and Daniel's post waiting for approval (seed_website.go)
+	seedWebsite = noop
 	// SMS: Twilio and Vonage, routes and rules, Acme Summit 2026's registrants and texts (seed_sms.go)
 	seedSMS = noop
 )

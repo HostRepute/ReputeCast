@@ -33,6 +33,10 @@ type ContactFilter struct {
 	Language string `json:"language,omitempty" maxLength:"16"`
 	// Score, band and growth source (scoregrowth.go).
 	ScoreGrowthFilter
+	// Check is the latest address check's result, or never checked.
+	Check string `json:"check,omitempty" enum:"valid,invalid,risky,unknown,never"`
+	// Members of the website (website.go).
+	WebsiteFilter
 }
 
 // Empty reports whether the filter matches everyone.
@@ -102,12 +106,20 @@ func (s *Service) applyFilter(ctx context.Context, wsID uuid.UUID, out *filterSQ
 		}
 		out.add("c.created_at >= ?", d)
 	}
+	switch f.Check {
+	case "":
+	case "never":
+		out.add("NOT EXISTS (SELECT 1 FROM contact_address_checks ac WHERE ac.contact_id = c.id)")
+	default:
+		out.add("EXISTS (SELECT 1 FROM contact_address_checks ac WHERE ac.contact_id = c.id AND ac.result = ?)", f.Check)
+	}
 	if err := s.scoreGrowthFilter(ctx, wsID, out, f.ScoreGrowthFilter); err != nil {
 		return err
 	}
 	if err := s.languageFilter(ctx, wsID, out, f.Language); err != nil {
 		return err
 	}
+	websiteFilter(out, f.WebsiteFilter)
 	if f.Segment != "" {
 		id, err := uuid.Parse(f.Segment)
 		if err != nil {

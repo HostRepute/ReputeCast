@@ -1,0 +1,15 @@
+{
+  "result": "risky",
+  "reason": "low_quality",
+  "role": false,
+  "free": false,
+  "disposable": true,
+  "accept_all": false,
+  "did_you_mean": null,
+  "sendex": 0.2,
+  "email": "disposable@contract.test",
+  "user": "disposable",
+  "domain": "contract.test",
+  "success": true,
+  "message": null
+}

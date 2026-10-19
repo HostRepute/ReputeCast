@@ -9,6 +9,7 @@ import { DigestCanvasCards } from '@/features/digests/composer/IssueMode'
 import { dc } from '@/features/digests/composer/messages'
 import { AltTextNote, WHOLE_ZOOM, WholeIssue } from '@/features/digests/composer/WholeIssue'
 import { t as tt } from '@/i18n'
+import { RewriteActions } from '@/features/ai/composer/rewrite'
 import { useComposer, type Issue } from './context'
 import { DEVICES, type DeviceId } from './editor/grapes'
 import { componentLabel, mjChildren, tagOf } from './editor/labels'
@@ -591,6 +592,7 @@ function RteToolbar({ host, tick }: { host: HTMLElement | null; tick: number }) 
           </div>
         </MouseShield>
       </Popover>
+      <RewriteActions />
     </div>
   )
 }

@@ -1,0 +1,15 @@
+{
+  "result": "undeliverable",
+  "reason": "rejected_email",
+  "role": false,
+  "free": false,
+  "disposable": false,
+  "accept_all": false,
+  "did_you_mean": null,
+  "sendex": 0.2,
+  "email": "invalid@contract.test",
+  "user": "invalid",
+  "domain": "contract.test",
+  "success": true,
+  "message": null
+}

@@ -56,6 +56,77 @@ type AdapterRuntime struct {
 	UpdatedAt          time.Time  `json:"updatedAt"`
 }
 
+type AiConnection struct {
+	WorkspaceID    uuid.UUID  `json:"workspaceId"`
+	Provider       string     `json:"provider"`
+	Label          string     `json:"label"`
+	BaseUrl        string     `json:"baseUrl"`
+	Deployment     string     `json:"deployment"`
+	ApiVersion     string     `json:"apiVersion"`
+	Model          string     `json:"model"`
+	ModelName      string     `json:"modelName"`
+	ImageInput     bool       `json:"imageInput"`
+	KeySealed      []byte     `json:"keySealed"`
+	KeyAddedBy     *uuid.UUID `json:"keyAddedBy"`
+	KeyAddedAt     *time.Time `json:"keyAddedAt"`
+	ConnectedBy    *uuid.UUID `json:"connectedBy"`
+	ConnectedAt    time.Time  `json:"connectedAt"`
+	DisconnectedBy *uuid.UUID `json:"disconnectedBy"`
+	DisconnectedAt *time.Time `json:"disconnectedAt"`
+	Status         string     `json:"status"`
+	StatusDetail   string     `json:"statusDetail"`
+	StatusAt       *time.Time `json:"statusAt"`
+	LastTestAt     *time.Time `json:"lastTestAt"`
+	LastTestOk     *bool      `json:"lastTestOk"`
+	LastTestMs     *int32     `json:"lastTestMs"`
+	CapKind        string     `json:"capKind"`
+	CapUsd         float64    `json:"capUsd"`
+	CapTokens      int64      `json:"capTokens"`
+	CapSetBy       *uuid.UUID `json:"capSetBy"`
+	CapSetAt       *time.Time `json:"capSetAt"`
+	InputPrice     float64    `json:"inputPrice"`
+	OutputPrice    float64    `json:"outputPrice"`
+	PricesFrom     *time.Time `json:"pricesFrom"`
+	FeaturesOff    []string   `json:"featuresOff"`
+	NoticeMonth    string     `json:"noticeMonth"`
+	CapNoticeMonth string     `json:"capNoticeMonth"`
+	Demo           bool       `json:"demo"`
+	UpdatedBy      *uuid.UUID `json:"updatedBy"`
+	UpdatedAt      time.Time  `json:"updatedAt"`
+}
+
+type AiReportSummary struct {
+	CampaignID  uuid.UUID  `json:"campaignId"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	Summary     string     `json:"summary"`
+	Model       string     `json:"model"`
+	ModelName   string     `json:"modelName"`
+	RequestID   *uuid.UUID `json:"requestId"`
+	KeptBy      *uuid.UUID `json:"keptBy"`
+	KeptAt      time.Time  `json:"keptAt"`
+}
+
+type AiRequest struct {
+	ID            uuid.UUID  `json:"id"`
+	WorkspaceID   uuid.UUID  `json:"workspaceId"`
+	UserID        *uuid.UUID `json:"userId"`
+	Feature       string     `json:"feature"`
+	Action        string     `json:"action"`
+	TargetKind    string     `json:"targetKind"`
+	TargetID      *uuid.UUID `json:"targetId"`
+	TargetLabel   string     `json:"targetLabel"`
+	Provider      string     `json:"provider"`
+	Model         string     `json:"model"`
+	InputTokens   int32      `json:"inputTokens"`
+	OutputTokens  int32      `json:"outputTokens"`
+	CostMicros    int64      `json:"costMicros"`
+	Outcome       string     `json:"outcome"`
+	OutcomeDetail string     `json:"outcomeDetail"`
+	DurationMs    int32      `json:"durationMs"`
+	CreatedAt     time.Time  `json:"createdAt"`
+	DecidedAt     *time.Time `json:"decidedAt"`
+}
+
 type ApiKey struct {
 	ID             uuid.UUID       `json:"id"`
 	WorkspaceID    uuid.UUID       `json:"workspaceId"`
@@ -139,6 +210,7 @@ type ApprovalRequest struct {
 	PreviousID              *uuid.UUID      `json:"previousId"`
 	InvalidatedFrom         string          `json:"invalidatedFrom"`
 	TransactionalTemplateID *uuid.UUID      `json:"transactionalTemplateId"`
+	WebsitePostID           *uuid.UUID      `json:"websitePostId"`
 }
 
 type ArchiveIssue struct {
@@ -716,6 +788,17 @@ type Contact struct {
 	PhoneSetAt          *time.Time      `json:"phoneSetAt"`
 }
 
+type ContactAddressCheck struct {
+	ContactID   uuid.UUID  `json:"contactId"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	Result      string     `json:"result"`
+	Reason      string     `json:"reason"`
+	Code        string     `json:"code"`
+	Service     string     `json:"service"`
+	JobID       *uuid.UUID `json:"jobId"`
+	CheckedAt   time.Time  `json:"checkedAt"`
+}
+
 type ContactGrowth struct {
 	ContactID      uuid.UUID  `json:"contactId"`
 	WorkspaceID    uuid.UUID  `json:"workspaceId"`
@@ -796,6 +879,10 @@ type ContentTranslation struct {
 	UpdatedBy      *uuid.UUID      `json:"updatedBy"`
 	UpdatedAt      time.Time       `json:"updatedAt"`
 	AutosavedAt    *time.Time      `json:"autosavedAt"`
+	AiModel        string          `json:"aiModel"`
+	AiVersion      int32           `json:"aiVersion"`
+	AiReviewedBy   *uuid.UUID      `json:"aiReviewedBy"`
+	AiReviewedAt   *time.Time      `json:"aiReviewedAt"`
 }
 
 type ContentTranslationVersion struct {
@@ -1811,6 +1898,123 @@ type PaymentEvent struct {
 	Attempts        int32           `json:"attempts"`
 	Error           string          `json:"error"`
 	AppliedAt       *time.Time      `json:"appliedAt"`
+}
+
+type PlacementCopy struct {
+	ID                uuid.UUID       `json:"id"`
+	TestID            uuid.UUID       `json:"testId"`
+	WorkspaceID       uuid.UUID       `json:"workspaceId"`
+	SeedID            *uuid.UUID      `json:"seedId"`
+	SeedEmail         string          `json:"seedEmail"`
+	SeedProvider      string          `json:"seedProvider"`
+	Position          int32           `json:"position"`
+	ProviderID        *uuid.UUID      `json:"providerId"`
+	ProviderName      string          `json:"providerName"`
+	Token             string          `json:"token"`
+	Round             int32           `json:"round"`
+	SendAt            time.Time       `json:"sendAt"`
+	Status            string          `json:"status"`
+	Folder            string          `json:"folder"`
+	FolderName        string          `json:"folderName"`
+	Tab               string          `json:"tab"`
+	Late              bool            `json:"late"`
+	HandedAt          *time.Time      `json:"handedAt"`
+	ReceivedAt        *time.Time      `json:"receivedAt"`
+	FoundAt           *time.Time      `json:"foundAt"`
+	ProviderMessageID string          `json:"providerMessageId"`
+	Error             string          `json:"error"`
+	Auth              json.RawMessage `json:"auth"`
+	Hop               json.RawMessage `json:"hop"`
+	Headers           string          `json:"headers"`
+	Ref               json.RawMessage `json:"ref"`
+	NotChecked        string          `json:"notChecked"`
+	DeletedAt         *time.Time      `json:"deletedAt"`
+}
+
+type PlacementOauthState struct {
+	StateHash   []byte     `json:"stateHash"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	UserID      uuid.UUID  `json:"userId"`
+	Kind        string     `json:"kind"`
+	Provider    string     `json:"provider"`
+	SeedID      *uuid.UUID `json:"seedId"`
+	VerifierEnc []byte     `json:"verifierEnc"`
+	CreatedAt   time.Time  `json:"createdAt"`
+	ExpiresAt   time.Time  `json:"expiresAt"`
+}
+
+type PlacementSeed struct {
+	ID             uuid.UUID       `json:"id"`
+	WorkspaceID    uuid.UUID       `json:"workspaceId"`
+	Email          string          `json:"email"`
+	Provider       string          `json:"provider"`
+	Auth           string          `json:"auth"`
+	ImapHost       string          `json:"imapHost"`
+	ImapPort       int32           `json:"imapPort"`
+	Username       string          `json:"username"`
+	CredentialsEnc []byte          `json:"credentialsEnc"`
+	Status         string          `json:"status"`
+	StatusAt       *time.Time      `json:"statusAt"`
+	StatusDetail   string          `json:"statusDetail"`
+	Folders        json.RawMessage `json:"folders"`
+	CheckedAt      *time.Time      `json:"checkedAt"`
+	LastUsedAt     *time.Time      `json:"lastUsedAt"`
+	LastTestID     *uuid.UUID      `json:"lastTestId"`
+	LastTestLabel  string          `json:"lastTestLabel"`
+	AddedBy        *uuid.UUID      `json:"addedBy"`
+	AddedAt        time.Time       `json:"addedAt"`
+}
+
+type PlacementSetting struct {
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	DeleteAfter string     `json:"deleteAfter"`
+	UpdatedBy   *uuid.UUID `json:"updatedBy"`
+	UpdatedAt   time.Time  `json:"updatedAt"`
+}
+
+type PlacementTest struct {
+	ID                 uuid.UUID       `json:"id"`
+	WorkspaceID        uuid.UUID       `json:"workspaceId"`
+	Name               string          `json:"name"`
+	ContentKind        string          `json:"contentKind"`
+	ContentID          *uuid.UUID      `json:"contentId"`
+	ContentName        string          `json:"contentName"`
+	ContentNote        string          `json:"contentNote"`
+	ContentKey         string          `json:"contentKey"`
+	ContentVersion     int32           `json:"contentVersion"`
+	ContentAt          *time.Time      `json:"contentAt"`
+	Variant            string          `json:"variant"`
+	Language           string          `json:"language"`
+	Personalization    string          `json:"personalization"`
+	Through            string          `json:"through"`
+	Stream             string          `json:"stream"`
+	ProviderIds        []uuid.UUID     `json:"providerIds"`
+	SenderID           *uuid.UUID      `json:"senderId"`
+	FromName           string          `json:"fromName"`
+	FromEmail          string          `json:"fromEmail"`
+	Origin             string          `json:"origin"`
+	Status             string          `json:"status"`
+	Subject            string          `json:"subject"`
+	Html               string          `json:"html"`
+	TextBody           string          `json:"textBody"`
+	Links              json.RawMessage `json:"links"`
+	TrackOpens         bool            `json:"trackOpens"`
+	TrackClicks        bool            `json:"trackClicks"`
+	Providers          json.RawMessage `json:"providers"`
+	StartedBy          *uuid.UUID      `json:"startedBy"`
+	StartedAt          time.Time       `json:"startedAt"`
+	LastSentAt         *time.Time      `json:"lastSentAt"`
+	WaitUntil          *time.Time      `json:"waitUntil"`
+	LateUntil          *time.Time      `json:"lateUntil"`
+	FinishedAt         *time.Time      `json:"finishedAt"`
+	StoppedBy          *uuid.UUID      `json:"stoppedBy"`
+	StoppedAt          *time.Time      `json:"stoppedAt"`
+	DeleteAfter        string          `json:"deleteAfter"`
+	DeleteAt           *time.Time      `json:"deleteAt"`
+	CopiesDeletedAt    *time.Time      `json:"copiesDeletedAt"`
+	CopiesDeletedBy    *uuid.UUID      `json:"copiesDeletedBy"`
+	ConditionalVersion int32           `json:"conditionalVersion"`
+	ConditionalShows   string          `json:"conditionalShows"`
 }
 
 type Poll struct {
@@ -3030,6 +3234,114 @@ type UserRecoveryCode struct {
 	CreatedAt time.Time  `json:"createdAt"`
 }
 
+type VerificationFormCheck struct {
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	FormKey     string     `json:"formKey"`
+	Enabled     bool       `json:"enabled"`
+	UpdatedBy   *uuid.UUID `json:"updatedBy"`
+	UpdatedAt   time.Time  `json:"updatedAt"`
+}
+
+type VerificationJob struct {
+	ID            uuid.UUID       `json:"id"`
+	WorkspaceID   uuid.UUID       `json:"workspaceId"`
+	ServiceID     *uuid.UUID      `json:"serviceId"`
+	Service       string          `json:"service"`
+	Kind          string          `json:"kind"`
+	Target        json.RawMessage `json:"target"`
+	Label         string          `json:"label"`
+	Origin        string          `json:"origin"`
+	CampaignID    *uuid.UUID      `json:"campaignId"`
+	ImportID      *uuid.UUID      `json:"importId"`
+	Status        string          `json:"status"`
+	StopReason    string          `json:"stopReason"`
+	SkipRecent    bool            `json:"skipRecent"`
+	Total         int32           `json:"total"`
+	Skipped       int32           `json:"skipped"`
+	Checked       int32           `json:"checked"`
+	Valid         int32           `json:"valid"`
+	Invalid       int32           `json:"invalid"`
+	Risky         int32           `json:"risky"`
+	Unknown       int32           `json:"unknown"`
+	Suppressed    int32           `json:"suppressed"`
+	Reasons       json.RawMessage `json:"reasons"`
+	PriceMicros   int64           `json:"priceMicros"`
+	BalanceBefore *int64          `json:"balanceBefore"`
+	BalanceAfter  *int64          `json:"balanceAfter"`
+	StartedBy     *uuid.UUID      `json:"startedBy"`
+	CreatedAt     time.Time       `json:"createdAt"`
+	StartedAt     *time.Time      `json:"startedAt"`
+	FinishedAt    *time.Time      `json:"finishedAt"`
+	StoppedBy     *uuid.UUID      `json:"stoppedBy"`
+	ErrorSince    *time.Time      `json:"errorSince"`
+	NextTryAt     *time.Time      `json:"nextTryAt"`
+	RetryUntil    *time.Time      `json:"retryUntil"`
+	LastError     string          `json:"lastError"`
+	ClaimedUntil  *time.Time      `json:"claimedUntil"`
+}
+
+type VerificationJobItem struct {
+	JobID     uuid.UUID  `json:"jobId"`
+	Email     string     `json:"email"`
+	ContactID *uuid.UUID `json:"contactId"`
+	Position  int32      `json:"position"`
+	Done      bool       `json:"done"`
+	Result    string     `json:"result"`
+	Reason    string     `json:"reason"`
+	Code      string     `json:"code"`
+	CheckedAt *time.Time `json:"checkedAt"`
+}
+
+type VerificationRealtimeDaily struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Service     string    `json:"service"`
+	FormKey     string    `json:"formKey"`
+	Day         time.Time `json:"day"`
+	Checks      int32     `json:"checks"`
+	Valid       int32     `json:"valid"`
+	Invalid     int32     `json:"invalid"`
+	Risky       int32     `json:"risky"`
+	Unknown     int32     `json:"unknown"`
+	NoAnswer    int32     `json:"noAnswer"`
+}
+
+type VerificationRealtimePending struct {
+	ID          uuid.UUID `json:"id"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Email       string    `json:"email"`
+	FormKey     string    `json:"formKey"`
+	CreatedAt   time.Time `json:"createdAt"`
+	Tries       int32     `json:"tries"`
+}
+
+type VerificationService struct {
+	ID              uuid.UUID  `json:"id"`
+	WorkspaceID     uuid.UUID  `json:"workspaceId"`
+	Service         string     `json:"service"`
+	Region          string     `json:"region"`
+	CredentialsEnc  []byte     `json:"credentialsEnc"`
+	PriceMicros     int64      `json:"priceMicros"`
+	DefaultBulk     bool       `json:"defaultBulk"`
+	DefaultForms    bool       `json:"defaultForms"`
+	Balance         *int64     `json:"balance"`
+	BalanceAt       *time.Time `json:"balanceAt"`
+	LastUsedAt      *time.Time `json:"lastUsedAt"`
+	LastUsedBy      *uuid.UUID `json:"lastUsedBy"`
+	LastUsedWhat    string     `json:"lastUsedWhat"`
+	LastError       string     `json:"lastError"`
+	LastErrorAt     *time.Time `json:"lastErrorAt"`
+	LastErrorSince  *time.Time `json:"lastErrorSince"`
+	LastSuccessAt   *time.Time `json:"lastSuccessAt"`
+	LastSuccessWhat string     `json:"lastSuccessWhat"`
+	TestedAt        *time.Time `json:"testedAt"`
+	TestOk          *bool      `json:"testOk"`
+	LowNotifiedAt   *time.Time `json:"lowNotifiedAt"`
+	ConnectedBy     *uuid.UUID `json:"connectedBy"`
+	ConnectedAt     time.Time  `json:"connectedAt"`
+	UpdatedBy       *uuid.UUID `json:"updatedBy"`
+	UpdatedAt       time.Time  `json:"updatedAt"`
+}
+
 type VisibilityCount struct {
 	CampaignID   uuid.UUID       `json:"campaignId"`
 	WorkspaceID  uuid.UUID       `json:"workspaceId"`
@@ -3121,6 +3433,240 @@ type WebhookDelivery struct {
 	EnqueuedAt    *time.Time      `json:"enqueuedAt"`
 	LastAttemptAt *time.Time      `json:"lastAttemptAt"`
 	DeliveredAt   *time.Time      `json:"deliveredAt"`
+}
+
+type WebsiteMember struct {
+	ContactID     uuid.UUID `json:"contactId"`
+	WorkspaceID   uuid.UUID `json:"workspaceId"`
+	FirstSignedIn time.Time `json:"firstSignedIn"`
+	LastSignedIn  time.Time `json:"lastSignedIn"`
+	LastMethod    string    `json:"lastMethod"`
+	SignIns       int32     `json:"signIns"`
+}
+
+type WebsiteMemberEvent struct {
+	ID          uuid.UUID  `json:"id"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	ContactID   uuid.UUID  `json:"contactId"`
+	Kind        string     `json:"kind"`
+	Method      string     `json:"method"`
+	SameBrowser *bool      `json:"sameBrowser"`
+	ActorID     *uuid.UUID `json:"actorId"`
+	Detail      string     `json:"detail"`
+	OccurredAt  time.Time  `json:"occurredAt"`
+}
+
+type WebsiteMeterRead struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Month       time.Time `json:"month"`
+	Reader      string    `json:"reader"`
+	PostID      uuid.UUID `json:"postId"`
+	Rule        string    `json:"rule"`
+	ReadAt      time.Time `json:"readAt"`
+}
+
+type WebsitePost struct {
+	ID               uuid.UUID       `json:"id"`
+	WorkspaceID      uuid.UUID       `json:"workspaceId"`
+	Kind             string          `json:"kind"`
+	CampaignID       *uuid.UUID      `json:"campaignId"`
+	WebOn            bool            `json:"webOn"`
+	Status           string          `json:"status"`
+	PublishMode      string          `json:"publishMode"`
+	PublishAt        *time.Time      `json:"publishAt"`
+	PublishTz        string          `json:"publishTz"`
+	Title            string          `json:"title"`
+	TitleEdited      bool            `json:"titleEdited"`
+	Slug             string          `json:"slug"`
+	Excerpt          string          `json:"excerpt"`
+	ExcerptEdited    bool            `json:"excerptEdited"`
+	CoverUrl         string          `json:"coverUrl"`
+	CoverAlt         string          `json:"coverAlt"`
+	BylineUserID     *uuid.UUID      `json:"bylineUserId"`
+	BylineName       string          `json:"bylineName"`
+	Visibility       string          `json:"visibility"`
+	Tiers            []uuid.UUID     `json:"tiers"`
+	NeverFree        bool            `json:"neverFree"`
+	SeoTitle         string          `json:"seoTitle"`
+	SeoDescription   string          `json:"seoDescription"`
+	SocialImage      string          `json:"socialImage"`
+	CanonicalUrl     string          `json:"canonicalUrl"`
+	HideFromSearch   bool            `json:"hideFromSearch"`
+	Mjml             string          `json:"mjml"`
+	Version          int32           `json:"version"`
+	AutosavedAt      *time.Time      `json:"autosavedAt"`
+	BodyHtml         string          `json:"bodyHtml"`
+	PreviewHtml      string          `json:"previewHtml"`
+	HasMarker        bool            `json:"hasMarker"`
+	MarkerAfter      int32           `json:"markerAfter"`
+	BodyText         string          `json:"bodyText"`
+	PreviewText      string          `json:"previewText"`
+	Words            int32           `json:"words"`
+	RenderNotes      json.RawMessage `json:"renderNotes"`
+	RenderedHash     string          `json:"renderedHash"`
+	PublishedAt      *time.Time      `json:"publishedAt"`
+	PublishedBy      *uuid.UUID      `json:"publishedBy"`
+	FirstPublishedAt *time.Time      `json:"firstPublishedAt"`
+	UnpublishedAt    *time.Time      `json:"unpublishedAt"`
+	UnpublishedBy    *uuid.UUID      `json:"unpublishedBy"`
+	UnpublishReason  string          `json:"unpublishReason"`
+	RedirectTo       string          `json:"redirectTo"`
+	SentAsCampaign   *uuid.UUID      `json:"sentAsCampaign"`
+	CreatedBy        *uuid.UUID      `json:"createdBy"`
+	CreatedAt        time.Time       `json:"createdAt"`
+	UpdatedBy        *uuid.UUID      `json:"updatedBy"`
+	UpdatedAt        time.Time       `json:"updatedAt"`
+	DeletedAt        *time.Time      `json:"deletedAt"`
+	PublishedMjml    string          `json:"publishedMjml"`
+	PublishedVersion int32           `json:"publishedVersion"`
+	PaidBlocks       json.RawMessage `json:"paidBlocks"`
+}
+
+type WebsitePostConversion struct {
+	ID          uuid.UUID  `json:"id"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	PostID      uuid.UUID  `json:"postId"`
+	Kind        string     `json:"kind"`
+	ContactID   *uuid.UUID `json:"contactId"`
+	OccurredAt  time.Time  `json:"occurredAt"`
+}
+
+type WebsitePostTag struct {
+	PostID   uuid.UUID `json:"postId"`
+	TagID    uuid.UUID `json:"tagId"`
+	Position int16     `json:"position"`
+}
+
+type WebsitePostVersion struct {
+	PostID  uuid.UUID  `json:"postId"`
+	Version int32      `json:"version"`
+	Title   string     `json:"title"`
+	Mjml    string     `json:"mjml"`
+	SavedBy *uuid.UUID `json:"savedBy"`
+	SavedAt time.Time  `json:"savedAt"`
+	Label   string     `json:"label"`
+}
+
+type WebsiteRedirect struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Path        string    `json:"path"`
+	PostID      uuid.UUID `json:"postId"`
+	CreatedAt   time.Time `json:"createdAt"`
+}
+
+type WebsiteSession struct {
+	ID          uuid.UUID  `json:"id"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	ContactID   uuid.UUID  `json:"contactId"`
+	TokenHash   []byte     `json:"tokenHash"`
+	Method      string     `json:"method"`
+	CreatedAt   time.Time  `json:"createdAt"`
+	LastSeenAt  time.Time  `json:"lastSeenAt"`
+	ExpiresAt   time.Time  `json:"expiresAt"`
+	EndedAt     *time.Time `json:"endedAt"`
+	EndReason   string     `json:"endReason"`
+}
+
+type WebsiteSetting struct {
+	WorkspaceID        uuid.UUID       `json:"workspaceId"`
+	Status             string          `json:"status"`
+	TurnedOnAt         *time.Time      `json:"turnedOnAt"`
+	TurnedOnBy         *uuid.UUID      `json:"turnedOnBy"`
+	TurnedOffAt        *time.Time      `json:"turnedOffAt"`
+	TurnedOffBy        *uuid.UUID      `json:"turnedOffBy"`
+	Progress           json.RawMessage `json:"progress"`
+	Title              string          `json:"title"`
+	Tagline            string          `json:"tagline"`
+	Description        string          `json:"description"`
+	SocialImage        string          `json:"socialImage"`
+	IndexSite          bool            `json:"indexSite"`
+	HomeLayout         string          `json:"homeLayout"`
+	Featured           []uuid.UUID     `json:"featured"`
+	Sections           json.RawMessage `json:"sections"`
+	AboutTitle         string          `json:"aboutTitle"`
+	AboutText          string          `json:"aboutText"`
+	AboutLink          string          `json:"aboutLink"`
+	HeaderLinks        json.RawMessage `json:"headerLinks"`
+	Footer             json.RawMessage `json:"footer"`
+	SigninOn           bool            `json:"signinOn"`
+	LinkMinutes        int32           `json:"linkMinutes"`
+	SessionDays        int32           `json:"sessionDays"`
+	SignupOn           bool            `json:"signupOn"`
+	SignupLists        json.RawMessage `json:"signupLists"`
+	DefaultVisibility  string          `json:"defaultVisibility"`
+	CampaignVisibility string          `json:"campaignVisibility"`
+	MeterVisitorsOn    bool            `json:"meterVisitorsOn"`
+	MeterVisitors      int32           `json:"meterVisitors"`
+	MeterMembersOn     bool            `json:"meterMembersOn"`
+	MeterMembers       int32           `json:"meterMembers"`
+	Paywall            json.RawMessage `json:"paywall"`
+	DomainNotified     string          `json:"domainNotified"`
+	UpdatedAt          time.Time       `json:"updatedAt"`
+	UpdatedBy          *uuid.UUID      `json:"updatedBy"`
+}
+
+type WebsiteSigninLink struct {
+	ID              uuid.UUID   `json:"id"`
+	WorkspaceID     uuid.UUID   `json:"workspaceId"`
+	ContactID       uuid.UUID   `json:"contactId"`
+	Purpose         string      `json:"purpose"`
+	TokenHash       []byte      `json:"tokenHash"`
+	CodeHash        []byte      `json:"codeHash"`
+	BrowserHash     []byte      `json:"browserHash"`
+	ReturnTo        string      `json:"returnTo"`
+	NewEmail        string      `json:"newEmail"`
+	Lists           []uuid.UUID `json:"lists"`
+	CreatedAt       time.Time   `json:"createdAt"`
+	ExpiresAt       time.Time   `json:"expiresAt"`
+	UsedAt          *time.Time  `json:"usedAt"`
+	UsedSameBrowser *bool       `json:"usedSameBrowser"`
+	ReplacedAt      *time.Time  `json:"replacedAt"`
+	CodeTries       int32       `json:"codeTries"`
+}
+
+type WebsiteTag struct {
+	ID          uuid.UUID  `json:"id"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	Name        string     `json:"name"`
+	Slug        string     `json:"slug"`
+	Description string     `json:"description"`
+	ListID      *uuid.UUID `json:"listId"`
+	CreatedBy   *uuid.UUID `json:"createdBy"`
+	CreatedAt   time.Time  `json:"createdAt"`
+	UpdatedAt   time.Time  `json:"updatedAt"`
+}
+
+type WebsiteViewDay struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Day         time.Time `json:"day"`
+	PageKind    string    `json:"pageKind"`
+	PageID      uuid.UUID `json:"pageId"`
+	Views       int64     `json:"views"`
+}
+
+type WebsiteViewSalt struct {
+	Day  time.Time `json:"day"`
+	Salt []byte    `json:"salt"`
+}
+
+type WebsiteViewSeen struct {
+	Day  time.Time `json:"day"`
+	Hash []byte    `json:"hash"`
+}
+
+type WebsiteViewSource struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	PostID      uuid.UUID `json:"postId"`
+	Day         time.Time `json:"day"`
+	Dim         string    `json:"dim"`
+	Key         string    `json:"key"`
+	Views       int64     `json:"views"`
+}
+
+type WebsiteVisitorDay struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Day         time.Time `json:"day"`
+	Visitors    int64     `json:"visitors"`
 }
 
 type WelcomePromptDismissal struct {

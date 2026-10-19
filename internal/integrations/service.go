@@ -49,6 +49,9 @@ type Service struct {
 	// Languages turns a post's translations into its draft's language
 	// versions (WordPress plugin 1.3.0).
 	Languages DraftLanguages
+	// Sources fill catalog groups from other domains (AI models from
+	// internal/ai, Verification from internal/verification), keyed by group.
+	Sources map[string]GroupSource
 	// HTTP overrides the client of "Check now" and the release check (tests).
 	HTTP *http.Client
 	// CheckTimeout overrides how long "Check now" waits (10 s).

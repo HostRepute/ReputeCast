@@ -45,6 +45,11 @@ type Service struct {
 	// TransactionalTemplates describes what publishing a transactional
 	// template would change, for its approval request.
 	TransactionalTemplates TransactionalTemplates
+	// Website publishes a post once its approval is granted, and
+	// WebsitePreview draws its web preview for the review (nil without the
+	// website).
+	Website        func() WebsitePosts
+	WebsitePreview func(ctx context.Context, ws *store.Workspace, postID uuid.UUID) (string, error)
 	// Channels describe campaigns on channels other than email, by channel
 	// ("sms"): their facts and snapshots (channels.go).
 	Channels map[string]ChannelCampaigns

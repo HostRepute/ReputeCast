@@ -1,0 +1,24 @@
+{
+  "email": "valid@contract.test",
+  "status": "deliverable",
+  "reason": "accepted_email",
+  "domain": {
+    "name": "contract.test",
+    "acceptAll": "no",
+    "disposable": "no",
+    "free": "no"
+  },
+  "account": {
+    "role": "no",
+    "disabled": "no",
+    "fullMailbox": "no"
+  },
+  "dns": {
+    "type": "MX",
+    "record": "mx1.contract.test."
+  },
+  "provider": "contract.test",
+  "score": 100,
+  "toxic": "no",
+  "toxicity": 0
+}
