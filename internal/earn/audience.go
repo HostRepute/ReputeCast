@@ -2,12 +2,14 @@ package earn
 
 import (
 	"context"
+	"strings"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/paidaccess"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -69,7 +71,38 @@ type audienceInput struct {
 	Tier string `query:"tier" doc:"The lowest tier of paid members; empty for any paid tier"`
 }
 
+// EarnComposerTier is a tier as the composer shows it: its name, how
+// readers name it, and the price line the Upgrade block reads.
+type EarnComposerTier struct {
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	Short string `json:"short"`
+	Top   bool   `json:"top"`
+	// PriceLine is "$8/month or $80/year · 14 days free"; empty without a
+	// price.
+	PriceLine string `json:"priceLine"`
+	TrialDays int32  `json:"trialDays"`
+	// Includes names the lower tiers whose paid content it includes.
+	Includes []string `json:"includes"`
+}
+
+// EarnComposer is what the composer's paid content needs: the tiers, the
+// connection and the upgrade page.
+type EarnComposer struct {
+	// Connected is true once a live payment provider is connected: until
+	// then, the Upgrade block is hidden.
+	Connected  bool               `json:"connected"`
+	Tiers      []EarnComposerTier `json:"tiers"`
+	UpgradeURL string             `json:"upgradeUrl"`
+}
+
 func registerAudience(h huma.API, s *Service, tags []string, base string) {
+	api.Get(h, api.Op{ID: "get-earn-composer", Path: base + "/composer", Summary: "The composer's paid content: tiers with their prices, the connection and the upgrade page",
+		Description: "Needs campaigns:edit, like any draft: a Content Writer adds Upgrade blocks and paid-only sections without earn:view.", Tags: tags, Access: api.Workspace(authz.CampaignsEdit)},
+		func(ctx context.Context, in *api.WorkspaceInput) (*api.Body[EarnComposer], error) {
+			out, err := s.Composer(ctx, api.WorkspaceFrom(ctx))
+			return api.OK(out), err
+		})
 	api.Get(h, api.Op{ID: "get-earn-audience", Path: base + "/audience", Summary: "Who on a list a paid-only campaign reaches: everyone, paid members only or free subscribers only",
 		Description: "Counts only. Drafting a paid-only campaign needs campaigns:edit, like any draft.", Tags: tags, Access: api.Workspace(authz.CampaignsEdit)},
 		func(ctx context.Context, in *audienceInput) (*api.Body[EarnAudience], error) {
@@ -136,6 +169,54 @@ func (s *Service) Audience(ctx context.Context, ws *store.Workspace, list, tier 
 				out.Gift++
 			}
 		}
+	}
+	return out, nil
+}
+
+// Composer is the composer's paid content data.
+func (s *Service) Composer(ctx context.Context, ws *store.Workspace) (EarnComposer, error) {
+	out := EarnComposer{Tiers: []EarnComposerTier{}, UpgradeURL: s.pageURL(ctx, ws, "upgrade")}
+	conns, err := s.connections(ctx, ws.ID)
+	if err != nil {
+		return out, err
+	}
+	_, out.Connected = connected(conns, "live")
+	tiers, err := paidaccess.Tiers(ctx, s.Q, ws.ID)
+	if err != nil {
+		return out, err
+	}
+	prices, err := s.Q.EarnPrices(ctx, ws.ID)
+	if err != nil {
+		return out, err
+	}
+	all, err := s.Q.EarnTiers(ctx, ws.ID)
+	if err != nil {
+		return out, err
+	}
+	trial := map[uuid.UUID]int32{}
+	for _, t := range all {
+		trial[t.ID] = t.TrialDays
+	}
+	for _, t := range tiers {
+		ct := EarnComposerTier{ID: t.ID.String(), Name: t.Name, Short: t.Short, Top: t.Top, TrialDays: trial[t.ID], Includes: []string{}}
+		var parts []string
+		for _, period := range []string{"month", "year"} {
+			for _, p := range prices {
+				if p.TierID == t.ID && p.Status == "current" && p.Period == period {
+					parts = append(parts, priceText(p.AmountCents, p.Currency, p.Period))
+				}
+			}
+		}
+		ct.PriceLine = strings.Join(parts, " or ")
+		if ct.PriceLine != "" && ct.TrialDays > 0 {
+			ct.PriceLine += " · " + msgs.M("page.trialDays").Text(defaultLang, i18n.Args{"count": ct.TrialDays})
+		}
+		for _, lower := range tiers {
+			if lower.Rank < t.Rank {
+				ct.Includes = append(ct.Includes, lower.Short)
+			}
+		}
+		out.Tiers = append(out.Tiers, ct)
 	}
 	return out, nil
 }

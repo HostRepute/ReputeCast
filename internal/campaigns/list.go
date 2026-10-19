@@ -144,6 +144,8 @@ type CampaignStatusCounts struct {
 	Scheduled int64 `json:"scheduled"`
 	Sending   int64 `json:"sending"`
 	Sent      int64 `json:"sent"`
+	// PaidOnly counts the campaigns for paid members only (Earn).
+	PaidOnly int64 `json:"paidOnly"`
 }
 
 // CampaignList is one page of campaigns.
@@ -286,6 +288,11 @@ func (s *Service) counts(ctx context.Context, wsID uuid.UUID) (CampaignStatusCou
 			c.Sent += r.N
 		}
 	}
+	paid, err := s.Q.CountCampaigns(ctx, store.CountCampaignsParams{WorkspaceID: wsID, StatusGroup: "all", PaidOnly: true})
+	if err != nil {
+		return CampaignStatusCounts{}, err
+	}
+	c.PaidOnly = paid
 	return c, nil
 }
 

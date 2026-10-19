@@ -296,7 +296,7 @@ function PanelBody({ m, onClose }: { m: Member; onClose: () => void }) {
   )
 }
 
-function StatusLine({ m }: { m: Member }) {
+export function StatusLine({ m }: { m: Member }) {
   const t = useT()
   const ended = m.status === 'canceled' ? m.timeline.find((x) => x.kind === 'access_ended') : undefined
   return (
@@ -357,7 +357,7 @@ function StatusSentence({ m }: { m: Member }) {
 }
 
 /** Where the paid member came from: the email (a link to its report) and the click, or the import. */
-function SourceValue({ m }: { m: Member }) {
+export function SourceValue({ m }: { m: Member }) {
   const t = useT()
   const { slug } = useWorkspace()
   const label = sourceLine(t, m)
@@ -398,7 +398,7 @@ export function memberEmailName(t: ReturnType<typeof useT>, email: string, tier:
   return email
 }
 
-function TimelineRow({ it, m }: { it: Item; m: Member }) {
+export function TimelineRow({ it, m }: { it: Item; m: Member }) {
   const t = useT()
   const d = it.data as Record<string, unknown>
   const s = (k: string) => (typeof d[k] === 'string' ? (d[k] as string) : '')
@@ -576,7 +576,7 @@ function TimelineRow({ it, m }: { it: Item; m: Member }) {
   )
 }
 
-function CancelDialog({ m, onClose }: { m: Member; onClose: () => void }) {
+export function CancelDialog({ m, onClose }: { m: Member; onClose: () => void }) {
   const t = useT()
   const { slug } = useWorkspace()
   const qc = useQueryClient()
@@ -663,7 +663,7 @@ function CancelDialog({ m, onClose }: { m: Member; onClose: () => void }) {
   )
 }
 
-function ResendDialog({ m, email: preset, onClose }: { m: Member; email?: string; onClose: () => void }) {
+export function ResendDialog({ m, email: preset, onClose }: { m: Member; email?: string; onClose: () => void }) {
   const t = useT()
   const { slug } = useWorkspace()
   const qc = useQueryClient()

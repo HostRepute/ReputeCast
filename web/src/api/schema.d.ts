@@ -5297,6 +5297,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/earn/composer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The composer's paid content: tiers with their prices, the connection and the upgrade page
+         * @description Needs campaigns:edit, like any draft: a Content Writer adds Upgrade blocks and paid-only sections without earn:view.
+         */
+        get: operations["get-earn-composer"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/earn/connections": {
         parameters: {
             query?: never;
@@ -13127,10 +13147,17 @@ export interface components {
             /** Format: int64 */
             subscribed: number;
         };
+        AudiencePaidTier: {
+            id: string;
+            name: string;
+            short: string;
+            top: boolean;
+        };
         AudienceSummary: {
             /** Format: int64 */
             contacts: number;
             lists: components["schemas"]["AudienceListSummary"][];
+            paidTiers: components["schemas"]["AudiencePaidTier"][];
             /** Format: int64 */
             segments: number;
             /** Format: int64 */
@@ -14094,6 +14121,8 @@ export interface components {
             all: number;
             /** Format: int64 */
             drafts: number;
+            /** Format: int64 */
+            paidOnly: number;
             /** Format: int64 */
             scheduled: number;
             /** Format: int64 */
@@ -15224,6 +15253,10 @@ export interface components {
             list?: string;
             /** @enum {string} */
             mailbox?: "gmail" | "outlook" | "yahoo" | "icloud" | "other";
+            /** @enum {string} */
+            paid?: "with_access" | "trialing" | "past_due" | "complimentary" | "gift" | "ended" | "free";
+            /** @description With paid=with_access: a tier's id, for that tier and above */
+            paidTier?: string;
             /** @description Email, name or tag */
             q?: string;
             referringDomain?: string;
@@ -15313,6 +15346,7 @@ export interface components {
             mailboxLabel: string;
             mailboxProvider: string;
             name: string;
+            paid?: components["schemas"]["ContactPaid"];
             /** Format: int64 */
             score?: number;
             /** @enum {string} */
@@ -15328,6 +15362,15 @@ export interface components {
             name: string;
             /** @enum {string} */
             status: "subscribed" | "pending";
+        };
+        ContactPaid: {
+            /** Format: date-time */
+            endedAt?: string;
+            memberId: string;
+            /** @enum {string} */
+            status: "trialing" | "active" | "past_due" | "complimentary" | "gift" | "ended";
+            /** @description The tier's short name (Insider) */
+            tier: string;
         };
         ContactProfile: {
             /** Format: int64 */
@@ -16842,6 +16885,21 @@ export interface components {
             tierId: string;
             /** @description YYYY-MM-DD; empty for no end date */
             until?: string;
+        };
+        EarnComposer: {
+            connected: boolean;
+            tiers: components["schemas"]["EarnComposerTier"][];
+            upgradeUrl: string;
+        };
+        EarnComposerTier: {
+            id: string;
+            includes: string[];
+            name: string;
+            priceLine: string;
+            short: string;
+            top: boolean;
+            /** Format: int32 */
+            trialDays: number;
         };
         EarnConnectInput: {
             /** @description A restricted key (rk_live_… or rk_test_…). Write-only: it's sealed and never returned. */
@@ -19383,7 +19441,7 @@ export interface components {
             connectionId?: string;
             facts: components["schemas"]["IntegrationFacts"];
             /** @enum {string} */
-            key: "zapier" | "make" | "n8n" | "wordpress" | "hostrepute" | "api" | "webhooks" | "mcp" | "anthropic" | "openai" | "google" | "azure" | "compatible" | "zerobounce" | "neverbounce" | "kickbox" | "bouncer" | "emailable";
+            key: "zapier" | "make" | "n8n" | "wordpress" | "hostrepute" | "api" | "webhooks" | "mcp" | "anthropic" | "openai" | "google" | "azure" | "compatible" | "zerobounce" | "neverbounce" | "kickbox" | "bouncer" | "emailable" | "stripe" | "paddle" | "lemonsqueezy";
             reasons: components["schemas"]["IntegrationReason"][];
             /** @enum {string} */
             status: "not_connected" | "waiting" | "connected" | "attention" | "none";
@@ -19408,6 +19466,7 @@ export interface components {
             /** Format: date-time */
             lastSyncAt?: string;
             mcpEnabled: boolean;
+            payment?: components["schemas"]["IntegrationPaymentFacts"];
             /** Format: double */
             price?: number;
             /** Format: int64 */
@@ -19686,6 +19745,12 @@ export interface components {
         IntegrationOwnedList: {
             canManage: boolean;
             items: components["schemas"]["IntegrationOwned"][];
+        };
+        IntegrationPaymentFacts: {
+            account?: string;
+            available: boolean;
+            /** @enum {string} */
+            mode?: "live" | "test" | "";
         };
         IntegrationPerson: {
             avatarColor?: string;
@@ -39202,6 +39267,9 @@ export interface operations {
                 sort?: "activity" | "score" | "";
                 /** @description Only contacts who signed in to the website */
                 signedIn?: boolean;
+                paid?: "with_access" | "trialing" | "past_due" | "complimentary" | "gift" | "ended" | "free" | "";
+                /** @description With paid=with_access: a tier's id, for that tier and above */
+                paidTier?: string;
                 page?: number;
                 pageSize?: number;
             };
@@ -41337,6 +41405,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EarnCheckoutSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-earn-composer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnComposer"];
                 };
             };
             /** @description Error */

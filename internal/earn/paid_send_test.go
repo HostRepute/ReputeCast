@@ -212,6 +212,13 @@ func TestPaidContentAtSendTime(t *testing.T) {
 	if a.Everyone != int64(len(everyone)) || a.Paid != int64(len(paid)) || a.Free != int64(len(free)) || a.PastDue != 1 || a.Trialing != 1 || a.Complimentary != 1 {
 		t.Errorf("popover: %+v (sent to %d, %d paid, %d free)", a, len(everyone), len(paid), len(free))
 	}
+	// The composer's tiers carry the Upgrade block's price line.
+	var comp earn.EarnComposer
+	c.Do("GET", "/workspaces/acme-newsletter/earn/composer", nil).MustStatus(t, 200).JSON(t, &comp)
+	if !comp.Connected || len(comp.Tiers) != 2 || comp.Tiers[0].PriceLine != "$8/month or $80/year · 14 days free" || !comp.Tiers[1].Top ||
+		len(comp.Tiers[1].Includes) != 1 || comp.Tiers[1].Includes[0] != "Insider" {
+		t.Errorf("composer: %+v", comp)
+	}
 	var list struct {
 		Items []struct {
 			Name     string
@@ -238,6 +245,8 @@ func TestPaidContentAtSendTime(t *testing.T) {
 	paidIssue := p.campaign("Insider: the Q4 roadmap call, annotated", src, fmt.Sprintf(`{"lists":[%q],"paid":"paid"}`, digest))
 	issue := p.campaign("Weekly Digest #199", src, fmt.Sprintf(`{"lists":[%q]}`, digest))
 	p.exec(`UPDATE campaigns SET status = 'sent', started_at = now(), completed_at = now() WHERE id = ANY ($1)`, []uuid.UUID{paidIssue, issue})
+	// The archive-only public pages (the demo's website off) file new issues as the archive is read.
+	p.exec(`UPDATE website_settings SET status = 'off' WHERE workspace_id = $1`, p.ws)
 	c.Do("GET", "/p/acme-newsletter/archive", nil).MustStatus(t, 200)
 	filed := func(id uuid.UUID) int {
 		var n int

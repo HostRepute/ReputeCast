@@ -1335,4 +1335,34 @@
     background: var(--color-ground);
     color: var(--color-ink-2);
   }
+
+  /* The tier chip next to a paid member's name in Contacts (EarnInAudience). */
+  .ea-tierchip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 20px;
+    margin-left: 6px;
+    padding: 0 8px;
+    border: 1px solid var(--color-line-strong);
+    border-radius: 999px;
+    background: var(--color-surface);
+    color: var(--color-ink-2);
+    font-size: 11.5px;
+    font-weight: 600;
+    white-space: nowrap;
+    vertical-align: 1px;
+  }
+
+  /* Import contacts › Source: paid members import in Earn (EarnImportStates). */
+  .ea-hintrow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border: 1px solid var(--color-line);
+    border-radius: 8px;
+    background: var(--color-ground);
+    font-size: 13px;
+  }
 }

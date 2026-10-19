@@ -141,12 +141,21 @@ func seedEarnImpl(ctx context.Context, s *Seeder) error {
 		e.marcus = &u.ID
 	}
 	for _, step := range []func(context.Context) error{e.settings, e.connections, e.tiers, e.memberEmails, e.people, e.importRun, e.members,
-		e.write, e.eventLog, e.checkouts, e.visits, e.audit} {
+		e.write, e.eventLog, e.checkouts, e.visits, e.audit, e.savedView} {
 		if err := step(ctx); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+// savedView is the Contacts view "Paid members" (EarnInAudience): every
+// paid tier with access, after the engagement tiers' views.
+func (e *earnSeed) savedView(ctx context.Context) error {
+	f, _ := json.Marshal(map[string]string{"paid": "with_access"})
+	_, err := e.s.Tx.Exec(ctx, `INSERT INTO saved_views (id, workspace_id, user_id, name, filters, columns, position, created_at, show_in_health)
+		VALUES ($1, $2, NULL, 'Paid members', $3, '{}', 4, $4, false)`, ID(), e.ws.ID, f, e.s.earnDay(2026, 9, 18, 12, 0))
+	return err
 }
 
 // settings: USD, Stripe Tax at checkout with prices before tax, every
