@@ -166,6 +166,7 @@ func TestVisitorLanguage(t *testing.T) {
 
 func TestArchiveLanguages(t *testing.T) {
 	env, ids := demo(t)
+	websiteOff(t, env, ids.ws)
 	page := func(path string, h hdr) resp {
 		t.Helper()
 		return do(t, env, http.MethodGet, path, nil, h)

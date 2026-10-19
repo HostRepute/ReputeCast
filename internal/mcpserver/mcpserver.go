@@ -53,6 +53,8 @@ type Service struct {
 	Now       func() time.Time
 	// Polls reads poll and survey results (nil: unavailable).
 	Polls PollReader
+	// Website lists, reads and drafts posts (nil: unavailable).
+	Website WebsitePosts
 	// Grow and Recommendations read Grow's referrals and recommendations
 	// (nil: unavailable).
 	Grow            GrowReader

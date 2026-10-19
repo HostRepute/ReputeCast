@@ -1,0 +1,23 @@
+{
+  "status": 200,
+  "body": {
+    "id": "msg_01XFDUDYJgAACzvnptvVoYEL",
+    "type": "message",
+    "role": "assistant",
+    "model": "claude-sonnet-5-5",
+    "content": [
+      {
+        "type": "text",
+        "text": "I can't write a subject that pretends to be a reply to an email the reader never sent."
+      }
+    ],
+    "stop_reason": "refusal",
+    "stop_sequence": null,
+    "usage": {
+      "input_tokens": 31,
+      "output_tokens": 21,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0
+    }
+  }
+}

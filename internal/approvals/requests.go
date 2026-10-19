@@ -372,6 +372,9 @@ func (s *Service) Decide(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		if locked.SubjectType == "transactional_template" && locked.TransactionalTemplateID != nil {
 			targetType, targetID, action = transactionalDecisionAudit(*locked.TransactionalTemplateID, in.Decision)
 		}
+		if locked.SubjectType == "website_post" && locked.WebsitePostID != nil {
+			targetType, targetID, action = websiteDecisionAudit(*locked.WebsitePostID, in.Decision)
+		}
 		if err := s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: action, TargetType: targetType, TargetID: targetID, TargetName: name,
 			Before: map[string]any{"status": "pending"}, After: map[string]any{"status": status, "comment": comment},
 			Metadata: map[string]any{"request_id": requestID.String(), "approvals": fmt.Sprintf("%d of %d", min(given+1, int(locked.ApprovalsRequired)), locked.ApprovalsRequired), "permission": "campaigns:approve"}}); err != nil {
@@ -411,9 +414,22 @@ func (s *Service) Decide(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		if locked.TransactionalTemplateID != nil {
 			link, summary, body = transactionalDecisionNote(ws, *locked.TransactionalTemplateID, ParseSnapshot(locked.Snapshot), status, summary, body)
 		}
+		if locked.WebsitePostID != nil {
+			link, summary, body = websiteDecisionNote(ws, *locked.WebsitePostID, ParseSnapshot(locked.Snapshot), status, summary, body)
+		}
 		if err := notify.ToUser(ctx, tx, *locked.RequestedBy, notify.Notification{WorkspaceID: &ws.ID, Kind: notify.KindApprovalDecided, Severity: sev, Title: title,
 			Summary: summary, Body: body, Link: link, Data: map[string]any{"request_id": requestID.String(), "decision": in.Decision}}); err != nil {
 			return err
+		}
+		if status == "approved" && locked.SubjectType == "website_post" && locked.WebsitePostID != nil && s.Website != nil {
+			post, approverName := *locked.WebsitePostID, approver.Name
+			notifyAfter = func() {
+				if w := s.Website(); w != nil {
+					if err := w.PublishApproved(context.WithoutCancel(ctx), ws, post, requestID.String(), approverName); err != nil && s.Log != nil {
+						s.Log.WarnContext(ctx, "publish the approved post", "post", post, "err", err)
+					}
+				}
+			}
 		}
 		if status == "approved" && locked.SubjectType == "automation" && locked.AutomationID != nil {
 			auto, version, migration, by := *locked.AutomationID, ParseSnapshot(locked.Snapshot).Automation, "", *locked.RequestedBy

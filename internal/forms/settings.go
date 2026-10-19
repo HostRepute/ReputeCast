@@ -347,6 +347,16 @@ func (s *Settings) CustomDomain() string {
 	return ""
 }
 
+// DomainDates are when the custom domain's DNS was last checked and when it
+// was verified (the publication website, design expansion phase 7).
+func (s *Settings) DomainDates() (checkedAt, verifiedAt *time.Time) {
+	return s.row.DomainCheckedAt, s.row.DomainVerifiedAt
+}
+
+// Path is an address on the pages' host: "/posts/x" on a custom domain,
+// "/p/<workspace>/posts/x" on the instance (the publication website).
+func (l PageLinks) Path(parts ...string) string { return l.page(parts...) }
+
 // TurnstileSiteKey is the public site key when Turnstile can be used.
 func (s *Settings) TurnstileSiteKey() string {
 	if s.row.TurnstileSiteKey != "" && len(s.row.TurnstileSecretEnc) > 0 && s.row.TurnstileStatus == "ok" {

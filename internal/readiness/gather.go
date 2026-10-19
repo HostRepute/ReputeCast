@@ -158,6 +158,9 @@ func (s *Service) gather(ctx context.Context, ws *store.Workspace, c store.Readi
 	if s.Conditional != nil {
 		f.Polls = s.Conditional.PollFacts(ctx, ws, c.ID, c.Mjml)
 	}
+	if s.Website != nil {
+		f.Web = s.Website.WebFacts(ctx, ws, c.ID)
+	}
 	done(stageContent, f)
 
 	// Languages: who gets which version, and the content checks of every

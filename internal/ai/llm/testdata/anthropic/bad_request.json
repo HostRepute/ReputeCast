@@ -1,0 +1,11 @@
+{
+  "status": 404,
+  "body": {
+    "type": "error",
+    "error": {
+      "type": "not_found_error",
+      "message": "model: claude-sonnet-9"
+    },
+    "request_id": "req_011CU8oGzUMw5Ebr3m4S8h2Q"
+  }
+}

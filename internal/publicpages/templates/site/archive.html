@@ -1,0 +1,9 @@
+{{/* The archive while the website is on: every post, a search over what
+     visitors may read, the tags. */}}
+{{define "site-main"}}{{with .Body}}<main id="main">
+<div class="st-w st-sec st-archead"><div class="st-arch"><h1 class="st-h2 st-hx">{{.Heading}}</h1><p class="st-mut">{{.Text}}</p>
+<form class="st-searchf" method="get" action="{{.SearchAction}}" role="search">{{with .Tag}}<input type="hidden" name="tag" value="{{.}}">{{end}}<label class="st-search">{{template "site-search"}}<span class="vh">{{.SearchLabel}}</span><input type="search" name="q" value="{{.Query}}" maxlength="100"></label></form>
+{{- if .Chips}}<nav class="st-chipr" aria-label="{{$.T "site.tags"}}">{{range .Chips}}<a href="{{.Href}}" class="st-chip{{if .Primary}} on{{end}}"{{if .Primary}} aria-current="page"{{end}}>{{.Label}}</a>{{end}}</nav>{{end}}
+{{- with .Result}}<p class="st-k" role="status">{{.}}</p>{{end}}</div></div>
+<div class="st-w st-listw">{{template "site-rows" .}}</div>
+</main>{{end}}{{end}}

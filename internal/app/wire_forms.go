@@ -80,6 +80,9 @@ var publicNotifications = func(*App) publicpages.Notifications { return nil }
 func (a *App) publicPages() *publicpages.Handler {
 	fs := a.formsService()
 	pl := a.polls()
+	// The publication website (X18), built before the lock: it reads the
+	// forms service too.
+	site := websiteService(a)
 	formsMu.Lock()
 	defer formsMu.Unlock()
 	if h, ok := formsPages[a]; ok {
@@ -101,6 +104,8 @@ func (a *App) publicPages() *publicpages.Handler {
 		// and the recommendations page.
 		Referrals:       a.referrals,
 		Recommendations: a.recommendations,
+		// The publication website's pages (X18).
+		Website: site,
 	}
 	formsPages[a] = h
 	return h

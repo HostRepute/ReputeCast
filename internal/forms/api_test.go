@@ -513,6 +513,12 @@ func TestPublicPagePreviewAPI(t *testing.T) {
 func TestArchiveIssuesAPI(t *testing.T) {
 	env := apptest.New(t)
 	env.SeedDemo()
+	// The archive on its own: the demo's website is on, and then issue
+	// addresses lead to posts.
+	if _, err := env.App.Pool.Exec(context.Background(), `UPDATE website_settings SET status = 'off'
+		WHERE workspace_id = (SELECT id FROM workspaces WHERE slug = 'acme-newsletter')`); err != nil {
+		t.Fatal(err)
+	}
 	c := signedIn(env, "linh@acme.io")
 	type issue struct {
 		CampaignID, Slug, Title, ListID, Label string

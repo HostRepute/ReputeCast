@@ -46,6 +46,7 @@ import { Route as WWorkspaceAppEarnIndexRouteImport } from './routes/w/$workspac
 import { Route as WWorkspaceAppFormsIndexRouteImport } from './routes/w/$workspace/_app/forms/index'
 import { Route as WWorkspaceAppFormsArchiveRouteImport } from './routes/w/$workspace/_app/forms/archive'
 import { Route as WWorkspaceAppFormsBrandingRouteImport } from './routes/w/$workspace/_app/forms/branding'
+import { Route as WWorkspaceAppFormsPagesRouteImport } from './routes/w/$workspace/_app/forms/pages'
 import { Route as WWorkspaceAppFormsPreferencesRouteImport } from './routes/w/$workspace/_app/forms/preferences'
 import { Route as WWorkspaceAppFormsSubscribeRouteImport } from './routes/w/$workspace/_app/forms/subscribe'
 import { Route as WWorkspaceAppFormsUnsubscribeRouteImport } from './routes/w/$workspace/_app/forms/unsubscribe'
@@ -101,6 +102,7 @@ import { Route as WWorkspaceAppEarnProductsIndexRouteImport } from './routes/w/$
 import { Route as WWorkspaceAppEarnSettingsIndexRouteImport } from './routes/w/$workspace/_app/earn/settings/index'
 import { Route as WWorkspaceAppEarnSponsorsIndexRouteImport } from './routes/w/$workspace/_app/earn/sponsors/index'
 import { Route as WWorkspaceAppFormsSurveysSurveyIdRouteImport } from './routes/w/$workspace/_app/forms/surveys.$surveyId'
+import { Route as WWorkspaceAppFormsWebsiteIndexRouteImport } from './routes/w/$workspace/_app/forms/website.index'
 import { Route as WWorkspaceAppGrowReferralsIndexRouteImport } from './routes/w/$workspace/_app/grow/referrals/index'
 import { Route as WWorkspaceAppGrowReferralsMilestonesRouteImport } from './routes/w/$workspace/_app/grow/referrals/milestones'
 import { Route as WWorkspaceAppGrowReferralsReferrersRouteImport } from './routes/w/$workspace/_app/grow/referrals/referrers'
@@ -108,6 +110,7 @@ import { Route as WWorkspaceAppGrowReferralsReviewRouteImport } from './routes/w
 import { Route as WWorkspaceAppGrowReferralsSettingsRouteImport } from './routes/w/$workspace/_app/grow/referrals/settings'
 import { Route as WWorkspaceAppSettingsIntegrationsIndexRouteImport } from './routes/w/$workspace/_app/settings/integrations/index'
 import { Route as WWorkspaceAppSettingsIntegrationsKindRouteImport } from './routes/w/$workspace/_app/settings/integrations/$kind'
+import { Route as WWorkspaceAppSettingsIntegrationsAiRouteImport } from './routes/w/$workspace/_app/settings/integrations/ai'
 import { Route as WWorkspaceAppSettingsIntegrationsHostreputeRouteImport } from './routes/w/$workspace/_app/settings/integrations/hostrepute'
 import { Route as WWorkspaceAppSettingsIntegrationsVerificationRouteImport } from './routes/w/$workspace/_app/settings/integrations/verification'
 import { Route as WWorkspaceAppSettingsIntegrationsWordpressRouteImport } from './routes/w/$workspace/_app/settings/integrations/wordpress'
@@ -328,6 +331,11 @@ const WWorkspaceAppFormsBrandingRoute =
     path: '/forms/branding',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
+const WWorkspaceAppFormsPagesRoute = WWorkspaceAppFormsPagesRouteImport.update({
+  id: '/forms/pages',
+  path: '/forms/pages',
+  getParentRoute: () => WWorkspaceAppRouteRoute,
+} as any)
 const WWorkspaceAppFormsPreferencesRoute =
   WWorkspaceAppFormsPreferencesRouteImport.update({
     id: '/forms/preferences',
@@ -657,6 +665,12 @@ const WWorkspaceAppFormsSurveysSurveyIdRoute =
     path: '/forms/surveys/$surveyId',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
+const WWorkspaceAppFormsWebsiteIndexRoute =
+  WWorkspaceAppFormsWebsiteIndexRouteImport.update({
+    id: '/forms/website/',
+    path: '/forms/website/',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
 const WWorkspaceAppGrowReferralsIndexRoute =
   WWorkspaceAppGrowReferralsIndexRouteImport.update({
     id: '/grow/referrals/',
@@ -697,6 +711,12 @@ const WWorkspaceAppSettingsIntegrationsKindRoute =
   WWorkspaceAppSettingsIntegrationsKindRouteImport.update({
     id: '/settings/integrations/$kind',
     path: '/settings/integrations/$kind',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppSettingsIntegrationsAiRoute =
+  WWorkspaceAppSettingsIntegrationsAiRouteImport.update({
+    id: '/settings/integrations/ai',
+    path: '/settings/integrations/ai',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
 const WWorkspaceAppSettingsIntegrationsHostreputeRoute =
@@ -826,6 +846,7 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/deliverability/connect': typeof WWorkspaceAppDeliverabilityConnectRoute
   '/w/$workspace/forms/archive': typeof WWorkspaceAppFormsArchiveRoute
   '/w/$workspace/forms/branding': typeof WWorkspaceAppFormsBrandingRoute
+  '/w/$workspace/forms/pages': typeof WWorkspaceAppFormsPagesRoute
   '/w/$workspace/forms/preferences': typeof WWorkspaceAppFormsPreferencesRoute
   '/w/$workspace/forms/subscribe': typeof WWorkspaceAppFormsSubscribeRoute
   '/w/$workspace/forms/unsubscribe': typeof WWorkspaceAppFormsUnsubscribeRoute
@@ -884,6 +905,7 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/grow/referrals/review': typeof WWorkspaceAppGrowReferralsReviewRoute
   '/w/$workspace/grow/referrals/settings': typeof WWorkspaceAppGrowReferralsSettingsRoute
   '/w/$workspace/settings/integrations/$kind': typeof WWorkspaceAppSettingsIntegrationsKindRoute
+  '/w/$workspace/settings/integrations/ai': typeof WWorkspaceAppSettingsIntegrationsAiRoute
   '/w/$workspace/settings/integrations/hostrepute': typeof WWorkspaceAppSettingsIntegrationsHostreputeRoute
   '/w/$workspace/settings/integrations/verification': typeof WWorkspaceAppSettingsIntegrationsVerificationRoute
   '/w/$workspace/settings/integrations/wordpress': typeof WWorkspaceAppSettingsIntegrationsWordpressRoute
@@ -901,6 +923,7 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/earn/products/': typeof WWorkspaceAppEarnProductsIndexRoute
   '/w/$workspace/earn/settings/': typeof WWorkspaceAppEarnSettingsIndexRoute
   '/w/$workspace/earn/sponsors/': typeof WWorkspaceAppEarnSponsorsIndexRoute
+  '/w/$workspace/forms/website/': typeof WWorkspaceAppFormsWebsiteIndexRoute
   '/w/$workspace/grow/referrals/': typeof WWorkspaceAppGrowReferralsIndexRoute
   '/w/$workspace/settings/integrations/': typeof WWorkspaceAppSettingsIntegrationsIndexRoute
   '/w/$workspace/settings/roles/': typeof WWorkspaceAppSettingsRolesIndexRoute
@@ -941,6 +964,7 @@ export interface FileRoutesByTo {
   '/w/$workspace/deliverability/connect': typeof WWorkspaceAppDeliverabilityConnectRoute
   '/w/$workspace/forms/archive': typeof WWorkspaceAppFormsArchiveRoute
   '/w/$workspace/forms/branding': typeof WWorkspaceAppFormsBrandingRoute
+  '/w/$workspace/forms/pages': typeof WWorkspaceAppFormsPagesRoute
   '/w/$workspace/forms/preferences': typeof WWorkspaceAppFormsPreferencesRoute
   '/w/$workspace/forms/subscribe': typeof WWorkspaceAppFormsSubscribeRoute
   '/w/$workspace/forms/unsubscribe': typeof WWorkspaceAppFormsUnsubscribeRoute
@@ -999,6 +1023,7 @@ export interface FileRoutesByTo {
   '/w/$workspace/grow/referrals/review': typeof WWorkspaceAppGrowReferralsReviewRoute
   '/w/$workspace/grow/referrals/settings': typeof WWorkspaceAppGrowReferralsSettingsRoute
   '/w/$workspace/settings/integrations/$kind': typeof WWorkspaceAppSettingsIntegrationsKindRoute
+  '/w/$workspace/settings/integrations/ai': typeof WWorkspaceAppSettingsIntegrationsAiRoute
   '/w/$workspace/settings/integrations/hostrepute': typeof WWorkspaceAppSettingsIntegrationsHostreputeRoute
   '/w/$workspace/settings/integrations/verification': typeof WWorkspaceAppSettingsIntegrationsVerificationRoute
   '/w/$workspace/settings/integrations/wordpress': typeof WWorkspaceAppSettingsIntegrationsWordpressRoute
@@ -1016,6 +1041,7 @@ export interface FileRoutesByTo {
   '/w/$workspace/earn/products': typeof WWorkspaceAppEarnProductsIndexRoute
   '/w/$workspace/earn/settings': typeof WWorkspaceAppEarnSettingsIndexRoute
   '/w/$workspace/earn/sponsors': typeof WWorkspaceAppEarnSponsorsIndexRoute
+  '/w/$workspace/forms/website': typeof WWorkspaceAppFormsWebsiteIndexRoute
   '/w/$workspace/grow/referrals': typeof WWorkspaceAppGrowReferralsIndexRoute
   '/w/$workspace/settings/integrations': typeof WWorkspaceAppSettingsIntegrationsIndexRoute
   '/w/$workspace/settings/roles': typeof WWorkspaceAppSettingsRolesIndexRoute
@@ -1059,6 +1085,7 @@ export interface FileRoutesById {
   '/w/$workspace/_app/deliverability/connect': typeof WWorkspaceAppDeliverabilityConnectRoute
   '/w/$workspace/_app/forms/archive': typeof WWorkspaceAppFormsArchiveRoute
   '/w/$workspace/_app/forms/branding': typeof WWorkspaceAppFormsBrandingRoute
+  '/w/$workspace/_app/forms/pages': typeof WWorkspaceAppFormsPagesRoute
   '/w/$workspace/_app/forms/preferences': typeof WWorkspaceAppFormsPreferencesRoute
   '/w/$workspace/_app/forms/subscribe': typeof WWorkspaceAppFormsSubscribeRoute
   '/w/$workspace/_app/forms/unsubscribe': typeof WWorkspaceAppFormsUnsubscribeRoute
@@ -1117,6 +1144,7 @@ export interface FileRoutesById {
   '/w/$workspace/_app/grow/referrals/review': typeof WWorkspaceAppGrowReferralsReviewRoute
   '/w/$workspace/_app/grow/referrals/settings': typeof WWorkspaceAppGrowReferralsSettingsRoute
   '/w/$workspace/_app/settings/integrations/$kind': typeof WWorkspaceAppSettingsIntegrationsKindRoute
+  '/w/$workspace/_app/settings/integrations/ai': typeof WWorkspaceAppSettingsIntegrationsAiRoute
   '/w/$workspace/_app/settings/integrations/hostrepute': typeof WWorkspaceAppSettingsIntegrationsHostreputeRoute
   '/w/$workspace/_app/settings/integrations/verification': typeof WWorkspaceAppSettingsIntegrationsVerificationRoute
   '/w/$workspace/_app/settings/integrations/wordpress': typeof WWorkspaceAppSettingsIntegrationsWordpressRoute
@@ -1134,6 +1162,7 @@ export interface FileRoutesById {
   '/w/$workspace/_app/earn/products/': typeof WWorkspaceAppEarnProductsIndexRoute
   '/w/$workspace/_app/earn/settings/': typeof WWorkspaceAppEarnSettingsIndexRoute
   '/w/$workspace/_app/earn/sponsors/': typeof WWorkspaceAppEarnSponsorsIndexRoute
+  '/w/$workspace/_app/forms/website/': typeof WWorkspaceAppFormsWebsiteIndexRoute
   '/w/$workspace/_app/grow/referrals/': typeof WWorkspaceAppGrowReferralsIndexRoute
   '/w/$workspace/_app/settings/integrations/': typeof WWorkspaceAppSettingsIntegrationsIndexRoute
   '/w/$workspace/_app/settings/roles/': typeof WWorkspaceAppSettingsRolesIndexRoute
@@ -1177,6 +1206,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/deliverability/connect'
     | '/w/$workspace/forms/archive'
     | '/w/$workspace/forms/branding'
+    | '/w/$workspace/forms/pages'
     | '/w/$workspace/forms/preferences'
     | '/w/$workspace/forms/subscribe'
     | '/w/$workspace/forms/unsubscribe'
@@ -1235,6 +1265,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/grow/referrals/review'
     | '/w/$workspace/grow/referrals/settings'
     | '/w/$workspace/settings/integrations/$kind'
+    | '/w/$workspace/settings/integrations/ai'
     | '/w/$workspace/settings/integrations/hostrepute'
     | '/w/$workspace/settings/integrations/verification'
     | '/w/$workspace/settings/integrations/wordpress'
@@ -1252,6 +1283,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/earn/products/'
     | '/w/$workspace/earn/settings/'
     | '/w/$workspace/earn/sponsors/'
+    | '/w/$workspace/forms/website/'
     | '/w/$workspace/grow/referrals/'
     | '/w/$workspace/settings/integrations/'
     | '/w/$workspace/settings/roles/'
@@ -1292,6 +1324,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/deliverability/connect'
     | '/w/$workspace/forms/archive'
     | '/w/$workspace/forms/branding'
+    | '/w/$workspace/forms/pages'
     | '/w/$workspace/forms/preferences'
     | '/w/$workspace/forms/subscribe'
     | '/w/$workspace/forms/unsubscribe'
@@ -1350,6 +1383,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/grow/referrals/review'
     | '/w/$workspace/grow/referrals/settings'
     | '/w/$workspace/settings/integrations/$kind'
+    | '/w/$workspace/settings/integrations/ai'
     | '/w/$workspace/settings/integrations/hostrepute'
     | '/w/$workspace/settings/integrations/verification'
     | '/w/$workspace/settings/integrations/wordpress'
@@ -1367,6 +1401,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/earn/products'
     | '/w/$workspace/earn/settings'
     | '/w/$workspace/earn/sponsors'
+    | '/w/$workspace/forms/website'
     | '/w/$workspace/grow/referrals'
     | '/w/$workspace/settings/integrations'
     | '/w/$workspace/settings/roles'
@@ -1409,6 +1444,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/_app/deliverability/connect'
     | '/w/$workspace/_app/forms/archive'
     | '/w/$workspace/_app/forms/branding'
+    | '/w/$workspace/_app/forms/pages'
     | '/w/$workspace/_app/forms/preferences'
     | '/w/$workspace/_app/forms/subscribe'
     | '/w/$workspace/_app/forms/unsubscribe'
@@ -1467,6 +1503,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/_app/grow/referrals/review'
     | '/w/$workspace/_app/grow/referrals/settings'
     | '/w/$workspace/_app/settings/integrations/$kind'
+    | '/w/$workspace/_app/settings/integrations/ai'
     | '/w/$workspace/_app/settings/integrations/hostrepute'
     | '/w/$workspace/_app/settings/integrations/verification'
     | '/w/$workspace/_app/settings/integrations/wordpress'
@@ -1484,6 +1521,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/_app/earn/products/'
     | '/w/$workspace/_app/earn/settings/'
     | '/w/$workspace/_app/earn/sponsors/'
+    | '/w/$workspace/_app/forms/website/'
     | '/w/$workspace/_app/grow/referrals/'
     | '/w/$workspace/_app/settings/integrations/'
     | '/w/$workspace/_app/settings/roles/'
@@ -1766,6 +1804,13 @@ declare module '@tanstack/react-router' {
       path: '/forms/branding'
       fullPath: '/w/$workspace/forms/branding'
       preLoaderRoute: typeof WWorkspaceAppFormsBrandingRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/forms/pages': {
+      id: '/w/$workspace/_app/forms/pages'
+      path: '/forms/pages'
+      fullPath: '/w/$workspace/forms/pages'
+      preLoaderRoute: typeof WWorkspaceAppFormsPagesRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
     '/w/$workspace/_app/forms/preferences': {
@@ -2153,6 +2198,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceAppFormsSurveysSurveyIdRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
+    '/w/$workspace/_app/forms/website/': {
+      id: '/w/$workspace/_app/forms/website/'
+      path: '/forms/website'
+      fullPath: '/w/$workspace/forms/website/'
+      preLoaderRoute: typeof WWorkspaceAppFormsWebsiteIndexRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
     '/w/$workspace/_app/grow/referrals/': {
       id: '/w/$workspace/_app/grow/referrals/'
       path: '/grow/referrals'
@@ -2200,6 +2252,13 @@ declare module '@tanstack/react-router' {
       path: '/settings/integrations/$kind'
       fullPath: '/w/$workspace/settings/integrations/$kind'
       preLoaderRoute: typeof WWorkspaceAppSettingsIntegrationsKindRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/settings/integrations/ai': {
+      id: '/w/$workspace/_app/settings/integrations/ai'
+      path: '/settings/integrations/ai'
+      fullPath: '/w/$workspace/settings/integrations/ai'
+      preLoaderRoute: typeof WWorkspaceAppSettingsIntegrationsAiRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
     '/w/$workspace/_app/settings/integrations/hostrepute': {
@@ -2346,6 +2405,7 @@ interface WWorkspaceAppRouteRouteChildren {
   WWorkspaceAppDeliverabilityConnectRoute: typeof WWorkspaceAppDeliverabilityConnectRoute
   WWorkspaceAppFormsArchiveRoute: typeof WWorkspaceAppFormsArchiveRoute
   WWorkspaceAppFormsBrandingRoute: typeof WWorkspaceAppFormsBrandingRoute
+  WWorkspaceAppFormsPagesRoute: typeof WWorkspaceAppFormsPagesRoute
   WWorkspaceAppFormsPreferencesRoute: typeof WWorkspaceAppFormsPreferencesRoute
   WWorkspaceAppFormsSubscribeRoute: typeof WWorkspaceAppFormsSubscribeRoute
   WWorkspaceAppFormsUnsubscribeRoute: typeof WWorkspaceAppFormsUnsubscribeRoute
@@ -2390,6 +2450,7 @@ interface WWorkspaceAppRouteRouteChildren {
   WWorkspaceAppGrowReferralsReviewRoute: typeof WWorkspaceAppGrowReferralsReviewRoute
   WWorkspaceAppGrowReferralsSettingsRoute: typeof WWorkspaceAppGrowReferralsSettingsRoute
   WWorkspaceAppSettingsIntegrationsKindRoute: typeof WWorkspaceAppSettingsIntegrationsKindRoute
+  WWorkspaceAppSettingsIntegrationsAiRoute: typeof WWorkspaceAppSettingsIntegrationsAiRoute
   WWorkspaceAppSettingsIntegrationsHostreputeRoute: typeof WWorkspaceAppSettingsIntegrationsHostreputeRoute
   WWorkspaceAppSettingsIntegrationsVerificationRoute: typeof WWorkspaceAppSettingsIntegrationsVerificationRoute
   WWorkspaceAppSettingsIntegrationsWordpressRoute: typeof WWorkspaceAppSettingsIntegrationsWordpressRoute
@@ -2406,6 +2467,7 @@ interface WWorkspaceAppRouteRouteChildren {
   WWorkspaceAppEarnProductsIndexRoute: typeof WWorkspaceAppEarnProductsIndexRoute
   WWorkspaceAppEarnSettingsIndexRoute: typeof WWorkspaceAppEarnSettingsIndexRoute
   WWorkspaceAppEarnSponsorsIndexRoute: typeof WWorkspaceAppEarnSponsorsIndexRoute
+  WWorkspaceAppFormsWebsiteIndexRoute: typeof WWorkspaceAppFormsWebsiteIndexRoute
   WWorkspaceAppGrowReferralsIndexRoute: typeof WWorkspaceAppGrowReferralsIndexRoute
   WWorkspaceAppSettingsIntegrationsIndexRoute: typeof WWorkspaceAppSettingsIntegrationsIndexRoute
   WWorkspaceAppSettingsRolesIndexRoute: typeof WWorkspaceAppSettingsRolesIndexRoute
@@ -2437,6 +2499,7 @@ const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
     WWorkspaceAppDeliverabilityConnectRoute,
   WWorkspaceAppFormsArchiveRoute: WWorkspaceAppFormsArchiveRoute,
   WWorkspaceAppFormsBrandingRoute: WWorkspaceAppFormsBrandingRoute,
+  WWorkspaceAppFormsPagesRoute: WWorkspaceAppFormsPagesRoute,
   WWorkspaceAppFormsPreferencesRoute: WWorkspaceAppFormsPreferencesRoute,
   WWorkspaceAppFormsSubscribeRoute: WWorkspaceAppFormsSubscribeRoute,
   WWorkspaceAppFormsUnsubscribeRoute: WWorkspaceAppFormsUnsubscribeRoute,
@@ -2496,6 +2559,8 @@ const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
     WWorkspaceAppGrowReferralsSettingsRoute,
   WWorkspaceAppSettingsIntegrationsKindRoute:
     WWorkspaceAppSettingsIntegrationsKindRoute,
+  WWorkspaceAppSettingsIntegrationsAiRoute:
+    WWorkspaceAppSettingsIntegrationsAiRoute,
   WWorkspaceAppSettingsIntegrationsHostreputeRoute:
     WWorkspaceAppSettingsIntegrationsHostreputeRoute,
   WWorkspaceAppSettingsIntegrationsVerificationRoute:
@@ -2520,6 +2585,7 @@ const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
   WWorkspaceAppEarnProductsIndexRoute: WWorkspaceAppEarnProductsIndexRoute,
   WWorkspaceAppEarnSettingsIndexRoute: WWorkspaceAppEarnSettingsIndexRoute,
   WWorkspaceAppEarnSponsorsIndexRoute: WWorkspaceAppEarnSponsorsIndexRoute,
+  WWorkspaceAppFormsWebsiteIndexRoute: WWorkspaceAppFormsWebsiteIndexRoute,
   WWorkspaceAppGrowReferralsIndexRoute: WWorkspaceAppGrowReferralsIndexRoute,
   WWorkspaceAppSettingsIntegrationsIndexRoute:
     WWorkspaceAppSettingsIntegrationsIndexRoute,

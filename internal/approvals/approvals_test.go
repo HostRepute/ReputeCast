@@ -179,18 +179,23 @@ func TestReviewAndApprovals(t *testing.T) {
 	}
 	marcus.Do("GET", ws+"/approvals?status=all", nil).MustStatus(t, 200).JSON(t, &inbox)
 	// Approved: the board's three and the recurring digest's issues #1 and #2.
-	if inbox.Counts.Pending != 1 || inbox.Counts.Approved != 5 || inbox.Counts.ChangesRequested != 1 || inbox.Counts.Invalidated != 1 || inbox.Counts.All != 8 {
+	// Pending: November and Daniel's post "Q4 roadmap deep dive" (WebsiteStates).
+	if inbox.Counts.Pending != 2 || inbox.Counts.Approved != 5 || inbox.Counts.ChangesRequested != 1 || inbox.Counts.Invalidated != 1 || inbox.Counts.All != 9 {
 		t.Fatalf("inbox counts: %+v", inbox.Counts)
 	}
 	if inbox.Policy.MedianWaitMinutes == nil || *inbox.Policy.MedianWaitMinutes != 160 {
 		t.Fatalf("median wait: %v", inbox.Policy.MedianWaitMinutes)
 	}
 	daniel.Do("GET", ws+"/approvals?status=all", nil).MustStatus(t, 200).JSON(t, &inbox)
-	if inbox.Counts.All != 3 {
+	if inbox.Counts.All != 4 {
 		t.Fatalf("Daniel sees his own requests: %+v", inbox.Items)
 	}
 	marcus.Do("GET", ws+"/approvals?status=pending", nil).MustStatus(t, 200).JSON(t, &inbox)
-	if len(inbox.Items) != 1 || inbox.Items[0].Name != "November Product Update" {
+	pending := []string{}
+	for _, it := range inbox.Items {
+		pending = append(pending, it.Name)
+	}
+	if len(pending) != 2 || !slices.Contains(pending, "November Product Update") || !slices.Contains(pending, "Q4 roadmap deep dive") {
 		t.Fatalf("pending tab: %+v", inbox.Items)
 	}
 

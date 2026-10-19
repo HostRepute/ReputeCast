@@ -807,14 +807,14 @@ func (w *growWorld) seedVisits() error {
 			if at.After(w.now) {
 				at = w.now.Add(-time.Hour)
 			}
-			d := dayOf(at)
+			d := growDayOf(at)
 			v := agg[key{r.link, d, pool[pos]}]
 			v[0]++
 			agg[key{r.link, d, pool[pos]}] = v
 			pos++
 		}
 		for _, ref := range r.refs {
-			d := dayOf(ref.signed)
+			d := growDayOf(ref.signed)
 			v := agg[key{r.link, d, ref.via}]
 			v[1]++
 			agg[key{r.link, d, ref.via}] = v
@@ -832,7 +832,7 @@ func (w *growWorld) seedVisits() error {
 	return err
 }
 
-func dayOf(t time.Time) time.Time {
+func growDayOf(t time.Time) time.Time {
 	loc, err := time.LoadLocation("America/New_York")
 	if err != nil {
 		loc = time.UTC
