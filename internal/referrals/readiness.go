@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"regexp"
 	"strconv"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -22,6 +23,11 @@ type BlockCheck struct {
 	ListName  string
 	Off       bool
 	None      bool
+	// OffAt and OffBy say when and by whom it was turned off; Zone is the
+	// workspace's timezone for the time.
+	OffAt *time.Time
+	OffBy string
+	Zone  string
 	// Shown recipients are on the program's list, of Total.
 	Shown, Total int64
 }
@@ -54,6 +60,7 @@ func (s *Service) CheckBlock(ctx context.Context, ws *store.Workspace, html stri
 	}
 	out.ProgramID, out.ListName = pr.ReferralProgram.ID.String(), pr.ListName
 	out.Off = pr.ReferralProgram.Status != "on"
+	out.OffAt, out.OffBy, out.Zone = pr.ReferralProgram.StatusAt, pr.StatusByName, ws.Timezone
 	out.Shown = byList[pr.ReferralProgram.ListID]
 	return out, nil
 }
@@ -81,14 +88,26 @@ func (c BlockCheck) ReadinessText() (status, title, detail, ack string) {
 		return "warn", "The Referral block has no referral program to show. It will be hidden.", "Set up a referral program in Grow, or remove the block.",
 			"I understand the Referral block won't show."
 	case c.Off:
-		return "warn", "The referral program is off. The Referral block will be hidden.", "Links lead to the normal subscribe page while the program is off.",
-			"I understand the Referral block won't show."
+		detail = "Remove the block, or turn the program on before sending."
+		if c.OffAt != nil {
+			at := c.OffAt.UTC()
+			if loc, err := time.LoadLocation(c.Zone); err == nil && c.Zone != "" {
+				at = c.OffAt.In(loc)
+			}
+			when := at.Format("2 Jan, 15:04")
+			if c.OffBy != "" {
+				detail = "Turned off on " + when + " by " + c.OffBy + ". " + detail
+			} else {
+				detail = "Turned off on " + when + ". " + detail
+			}
+		}
+		return "warn", "The referral program is off. The Referral block will be hidden.", detail, "I understand the Referral block won't show."
 	}
 	title = "Referral block: shown to " + formatCount(c.Shown) + " of " + formatCount(c.Total) + " recipients"
 	if c.Shown < c.Total {
-		detail = "Hidden for recipients who aren't on " + c.ListName + "."
+		detail = "Hidden for the " + formatCount(c.Total-c.Shown) + " recipients who aren't on " + c.ListName + ". Each reader on it gets their own link and progress."
 	} else {
-		detail = "Every recipient is on " + c.ListName + "."
+		detail = "Everyone in this audience is on " + c.ListName + ". Each reader gets their own link and progress."
 	}
 	return "pass", title, detail, ""
 }

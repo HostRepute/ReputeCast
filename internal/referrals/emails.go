@@ -300,7 +300,7 @@ func (s *Service) sampleReward(ctx context.Context, ws *store.Workspace, m store
 	case RewardCoupon:
 		v["claim_url"], v["code"] = "#claim", "SAMPLE"
 	}
-	return v
+	return dropEmpty(v)
 }
 
 // ReferralEmailTest sends a milestone email's draft to the member, or to

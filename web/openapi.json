@@ -9535,6 +9535,46 @@
         },
         "type": "object"
       },
+      "BlockOption": {
+        "additionalProperties": false,
+        "properties": {
+          "hidden": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "initials": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "link",
+              "partner"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "showBlock": {
+            "type": "boolean"
+          },
+          "state": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "initials",
+          "kind",
+          "state",
+          "showBlock",
+          "hidden"
+        ],
+        "type": "object"
+      },
       "BlockRender": {
         "additionalProperties": false,
         "properties": {
@@ -9545,6 +9585,15 @@
             "type": "array"
           },
           "html": {
+            "type": "string"
+          },
+          "options": {
+            "items": {
+              "$ref": "#/components/schemas/BlockOption"
+            },
+            "type": "array"
+          },
+          "pageUrl": {
             "type": "string"
           },
           "settings": {
@@ -9559,7 +9608,9 @@
           "html",
           "shows",
           "hidden",
-          "settings"
+          "settings",
+          "options",
+          "pageUrl"
         ],
         "type": "object"
       },
@@ -23336,6 +23387,10 @@
       "GrowBlockRender": {
         "additionalProperties": false,
         "properties": {
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
           "for": {
             "type": "string"
           },
@@ -23378,6 +23433,7 @@
           "listName",
           "offBy",
           "for",
+          "count",
           "settings",
           "reward"
         ],

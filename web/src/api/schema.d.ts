@@ -15026,9 +15026,21 @@ export interface components {
             index?: number;
             key?: string;
         };
+        BlockOption: {
+            hidden: boolean;
+            id: string;
+            initials: string;
+            /** @enum {string} */
+            kind: "link" | "partner";
+            name: string;
+            showBlock: boolean;
+            state: string;
+        };
         BlockRender: {
             hidden: components["schemas"]["BlockHiddenRec"][];
             html: string;
+            options: components["schemas"]["BlockOption"][];
+            pageUrl: string;
             settings: components["schemas"]["RecommendationsBlock"];
             /** Format: int64 */
             shows: number;
@@ -18859,6 +18871,8 @@ export interface components {
             items: components["schemas"]["FieldSource"][];
         };
         GrowBlockRender: {
+            /** Format: int64 */
+            count: number;
             for: string;
             /** @enum {string} */
             hidden: "none" | "not_on_list" | "program_off" | "no_program";

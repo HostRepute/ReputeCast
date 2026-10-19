@@ -11,6 +11,8 @@ import { AccessibilityPanel } from '@/features/accessibility/composer/Panel'
 import { useAccessibility } from '@/features/accessibility/composer/state'
 import { accessibilityTab } from '@/features/accessibility/composer/Status'
 import { FeedItemsInspector, isFeedItems, useDigestMode } from '@/features/digests/composer/DigestMode'
+import { isGrowBlock } from '@/features/grow/composer/blocks'
+import { GrowBlockInspector, GrowStyleNote } from '@/features/grow/composer/Panel'
 import { dc } from '@/features/digests/composer/messages'
 import { t as tt } from '@/i18n'
 
@@ -222,7 +224,7 @@ export function RightPanel() {
   }
   const sel = c.selected && tagOf(c.selected) ? c.selected : null
   // The Feed items block has its own checks (the posts it draws are not in the template).
-  const footer = sel && isFeedItems(sel) ? null : c.device === 'mobile' ? <MobileChecks selected={sel} /> : <SectionHealth selected={sel} />
+  const footer = sel && (isFeedItems(sel) || isGrowBlock(sel)) ? null : c.device === 'mobile' ? <MobileChecks selected={sel} /> : <SectionHealth selected={sel} />
   const items: { value: 'style' | 'settings' | 'deliverability' | 'accessibility'; label: string }[] = [
     { value: 'style', label: 'Style' },
     { value: 'settings', label: 'Settings' },
@@ -240,6 +242,8 @@ export function RightPanel() {
             <div className="k" style={{ padding: '14px 12px' }}>
               {tt(dc.styleNote)}
             </div>
+          ) : sel && isGrowBlock(sel) ? (
+            <GrowStyleNote />
           ) : sel ? (
             <>
               <InspectorHead c={sel} tab="style" />
@@ -256,6 +260,10 @@ export function RightPanel() {
           {sel && isFeedItems(sel) ? (
             <fieldset disabled={!c.canEdit} className="contents">
               <FeedItemsInspector key={sel.cid} c={sel} />
+            </fieldset>
+          ) : sel && isGrowBlock(sel) ? (
+            <fieldset disabled={!c.canEdit} className="contents">
+              <GrowBlockInspector key={sel.cid} c={sel} />
             </fieldset>
           ) : sel ? (
             <>

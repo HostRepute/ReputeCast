@@ -12,6 +12,9 @@ import { Thumb } from './Thumb'
 import { isDigestTemplate } from '@/features/digests/composer/DigestMode'
 import { LayerMark, LayersNote } from '@/features/conditional/Canvas'
 import { PollBlockHint } from '@/features/polls/Block'
+import { GrowBlocksNote, OpenGrowLink } from '@/features/grow/composer/Panel'
+import { mb as growMessages } from '@/features/grow/composer/messages'
+import { t as tt } from '@/i18n'
 
 type BlocksAPI = { startDrag(b: unknown, ev?: Event): void; endDrag(cancel?: boolean): void; get(id: string): unknown; add(id: string, p: Record<string, unknown>): unknown }
 
@@ -57,7 +60,7 @@ function BlockTile({ def, flagged, onSaved }: { def: BlockDef | { id: string; la
   return (
     <button
       type="button"
-      className={`blk${def.group === 'reputecast' ? ' rc' : ''}${flagged ? ' flagged' : ''}`}
+      className={`blk${def.group === 'reputecast' || def.group === 'grow' ? ' rc' : ''}${flagged ? ' flagged' : ''}`}
       draggable={!disabled && !isSaved}
       aria-disabled={disabled || undefined}
       onDragStart={(e) => {
@@ -106,17 +109,20 @@ function BlocksTab({ onShowSections, blocks, note, reputecastFirst }: { onShowSe
         { key: 'reputecast', label: 'ReputeCast blocks' },
         { key: 'content', label: 'Content · MJML' },
         { key: 'layout', label: 'Layout · MJML' },
+        { key: 'grow', label: tt(growMessages.group) },
       ]
     : reputecastFirst
       ? [
           { key: 'reputecast', label: 'ReputeCast blocks' },
           { key: 'layout', label: 'Layout · MJML' },
           { key: 'content', label: 'Content · MJML' },
+          { key: 'grow', label: tt(growMessages.group) },
         ]
       : [
           { key: 'layout', label: 'Layout · MJML' },
           { key: 'content', label: 'Content · MJML' },
           { key: 'reputecast', label: 'ReputeCast blocks' },
+          { key: 'grow', label: tt(growMessages.group) },
         ]
   return (
     <>
@@ -131,8 +137,11 @@ function BlocksTab({ onShowSections, blocks, note, reputecastFirst }: { onShowSe
         return (
           <Fragment key={g.key}>
             <div>
-              <div className="grp">{g.label}</div>
-              <div className="blk-grid">
+              <div className="grp">
+                {g.label}
+                {g.key === 'grow' ? <OpenGrowLink /> : null}
+              </div>
+              <div className={g.key === 'grow' ? 'blk-grid gw-cmp-grid' : 'blk-grid'}>
                 {items.map((d) => (
                   <BlockTile key={d.id} def={d} flagged={footerMissing && d.id === 'rc-footer'} />
                 ))}
@@ -141,6 +150,7 @@ function BlocksTab({ onShowSections, blocks, note, reputecastFirst }: { onShowSe
                 ) : null}
               </div>
               {pollHint ? <PollBlockHint /> : null}
+              {g.key === 'grow' ? <GrowBlocksNote milestone={items.some((d) => d.id === 'rc-reward')} /> : null}
             </div>
             {reputecastFirst && g.key === 'reputecast' ? note : null}
           </Fragment>

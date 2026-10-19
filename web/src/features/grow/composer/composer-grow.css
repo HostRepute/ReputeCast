@@ -1,0 +1,133 @@
+/*
+ * Grow's blocks in the composer (design expansion phase 5,
+ * ComposerGrowBlocks): the Blocks panel's Grow group, the toolbar's
+ * "Preview as" and the blocks' settings.
+ */
+
+/* Blocks panel: "Open Grow" in the group's heading, two tiles a row, the note. */
+.grp:has(.gw-cmp-open) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.gw-cmp-open {
+  color: var(--ink-3);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.gw-cmp-open:hover {
+  color: var(--ink);
+  text-decoration: underline;
+}
+.blk-grid.gw-cmp-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding-bottom: 10px;
+}
+.gw-cmp-note {
+  margin: 2px 12px 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--ground-3);
+  color: var(--ink-2);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+/* The canvas toolbar's "Preview as". */
+.gw-pvas {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-nav);
+}
+.gw-pvas > span {
+  white-space: nowrap;
+}
+.gw-pvas select {
+  height: 30px;
+  max-width: 250px;
+}
+@media (max-width: 767px) {
+  .gw-pvas {
+    flex: 1 1 100%;
+  }
+  .gw-pvas select {
+    flex: 1 1 0;
+    width: 0;
+    max-width: none;
+  }
+}
+
+/* Settings. */
+.gw-cmp-seg {
+  align-self: flex-start;
+  max-width: 100%;
+}
+.gw-cmp-text {
+  height: auto;
+  min-height: 76px;
+  padding: 7px 9px;
+  line-height: 1.5;
+  resize: vertical;
+}
+.gw-cmp-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 500;
+}
+.gw-cmp-check input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+.gw-cmp-why {
+  color: var(--warn-fg);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+.gw-cmp-recs {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.gw-cmp-rec {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  font-size: 12.5px;
+  line-height: 1.35;
+}
+.gw-cmp-rec input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  flex: none;
+  accent-color: var(--accent);
+}
+.gw-cmp-tok {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 6px;
+  border-radius: 5px;
+  background: var(--purple-bg);
+  color: var(--purple-fg);
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 11.5px;
+  line-height: 1.7;
+  white-space: nowrap;
+}

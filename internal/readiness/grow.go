@@ -22,9 +22,13 @@ type GrowRow struct {
 	Label  string
 	Short  string
 	Ack    string
-	// Link opens Grow ("Referral settings", "Open recommendations").
-	LinkLabel, LinkHref string
+	// Links open the campaign or Grow ("Remove the block", "Referral
+	// settings", "Open recommendations"), as workspace paths.
+	Links []GrowLink
 }
+
+// GrowLink is one of a row's links.
+type GrowLink struct{ Label, Href string }
 
 // GrowChecker reads what Grow's blocks do in a campaign: the campaign's
 // HTML, its recipients per list and how many there are.
@@ -37,8 +41,8 @@ func (b *builder) grow() {
 	for _, r := range b.f.Grow {
 		c := ReadinessCheck{Key: r.Key, Group: GroupContent, Status: r.Status, Title: r.Title, Detail: r.Detail, Label: r.Label, Short: r.Short, Ack: r.Ack,
 			Fixes: []ReadinessFix{}}
-		if r.LinkHref != "" {
-			c.Fixes = append(c.Fixes, link(r.LinkLabel, b.href(r.LinkHref)))
+		for _, l := range r.Links {
+			c.Fixes = append(c.Fixes, link(l.Label, b.href(l.Href)))
 		}
 		b.add(c)
 	}

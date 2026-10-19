@@ -97,8 +97,10 @@ var (
 // Prepare decodes HTML entities inside Liquid delimiters and rewrites the
 // short fallback form, so Liquid embedded in compiled HTML parses. Blocks
 // that render per reader are expanded first (ExpandBlocks).
-func Prepare(src string) string {
-	src = ExpandBlocks(src)
+func Prepare(src string) string { return prepareSpans(ExpandBlocks(src)) }
+
+// prepareSpans is Prepare without expanding blocks.
+func prepareSpans(src string) string {
 	if !strings.Contains(src, "{{") && !strings.Contains(src, "{%") {
 		return src
 	}
@@ -308,10 +310,12 @@ type Use struct {
 }
 
 // Uses lists the variables printed with {{ … }}, in order of first use.
+// Blocks (ExpandBlocks) aren't expanded: their Liquid is ReputeCast's own,
+// and what a person typed in their settings stays in the marker.
 func Uses(src string) []Use {
 	out := []Use{}
 	idx := map[string]int{}
-	for _, span := range spanRe.FindAllString(Prepare(src), -1) {
+	for _, span := range spanRe.FindAllString(prepareSpans(src), -1) {
 		if !strings.HasPrefix(span, "{{") {
 			continue
 		}

@@ -1,6 +1,7 @@
 package recommendations_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/hostrepute/reputecast/internal/apptest"
@@ -133,9 +134,83 @@ func TestGrowOverview(t *testing.T) {
 	}
 	c.Do("GET", ws+"/grow/partner-links/"+recs.Items[0].LinkID+"/requests", nil).MustStatus(t, 200)
 
+	// The composer's Grow blocks (ComposerGrowBlocks): the readers to preview
+	// as (a reward still ahead first, then readers the block hides for), the
+	// Referral block as one of them, as a reader outside the program and as
+	// the sample, and the Recommendations block with what it shows and what
+	// it can't.
+	var pv struct {
+		ListName string
+		Items    []struct {
+			ID, Name string
+			OnList   bool
+			Counted  int64
+		}
+	}
+	c.Do("GET", ws+"/grow/blocks/preview-contacts", nil).MustStatus(t, 200).JSON(t, &pv)
+	if pv.ListName != "Weekly Digest" || len(pv.Items) < 2 || !pv.Items[0].OnList || pv.Items[0].Counted >= 10 || pv.Items[len(pv.Items)-1].OnList {
+		t.Fatalf("preview contacts: %+v", pv)
+	}
+	type blockRender struct {
+		HTML, Hidden, For, ListName string
+		Count                       int64
+		Settings                    struct {
+			Layout, Button string
+			Progress       bool
+			Share          []string
+		}
+	}
+	var as blockRender
+	c.Do("POST", ws+"/grow/blocks/render", map[string]any{"kind": "referral", "contactId": pv.Items[0].ID, "settings": map[string]any{"layout": "progress", "progress": true}}).
+		MustStatus(t, 200).JSON(t, &as)
+	if as.Hidden != "none" || as.For != pv.Items[0].Name || as.Count != pv.Items[0].Counted || !strings.Contains(as.HTML, "more and you get") ||
+		!strings.Contains(as.HTML, "#5B21B6") || as.Settings.Button != "Share your link" || len(as.Settings.Share) != 4 || !as.Settings.Progress {
+		t.Fatalf("the Referral block as %s: %+v", pv.Items[0].Name, as)
+	}
+	var outside blockRender
+	c.Do("POST", ws+"/grow/blocks/render", map[string]any{"kind": "referral", "contactId": pv.Items[len(pv.Items)-1].ID}).MustStatus(t, 200).JSON(t, &outside)
+	if outside.Hidden != "not_on_list" || outside.ListName != "Weekly Digest" || strings.TrimSpace(outside.HTML) != "" {
+		t.Fatalf("the Referral block outside the program: %+v", outside)
+	}
+	var sample blockRender
+	c.Do("POST", ws+"/grow/blocks/render", map[string]any{"kind": "referral", "settings": map[string]any{"layout": "line"}}).MustStatus(t, 200).JSON(t, &sample)
+	if sample.Hidden != "none" || sample.For != "" || sample.Count != 0 || !strings.Contains(sample.HTML, "Know someone who") || sample.Settings.Layout != "line" {
+		t.Fatalf("the sample: %+v", sample)
+	}
+	var rb struct {
+		Shows   int
+		PageURL string
+		Hidden  []struct{ Name, State string }
+		Options []struct {
+			Name      string
+			ShowBlock bool
+		}
+		Settings struct{ Which, Layout string }
+	}
+	c.Do("POST", ws+"/grow/blocks/recommendations", map[string]any{"settings": map[string]any{"which": "all", "layout": "columns"}}).MustStatus(t, 200).JSON(t, &rb)
+	if rb.Shows != 2 || len(rb.Options) != 3 || !strings.HasSuffix(rb.PageURL, "/recommends") || rb.Settings.Layout != "columns" {
+		t.Fatalf("the Recommendations block: %+v", rb)
+	}
+	var invalid bool
+	for _, h := range rb.Hidden {
+		invalid = invalid || (h.Name == "The Deliverability Desk" && h.State == "invalid")
+	}
+	if !invalid {
+		t.Fatalf("the hidden recommendations: %+v", rb.Hidden)
+	}
+
 	// Aisha (Viewer) reads the overview; she can't decide or edit.
 	v := env.Client()
 	v.SignInDemo("aisha@acme.io")
 	v.Do("GET", ws+"/grow/overview", nil).MustStatus(t, 200)
 	v.Do("POST", ws+"/grow/referrals/"+o.ProgramID+"/off", nil).MustStatus(t, 403)
+
+	// With the program off, the Referral block draws the sample with the
+	// reason, and Send Readiness's words say it will be hidden.
+	c.Do("POST", ws+"/grow/referrals/"+o.ProgramID+"/off", nil).MustStatus(t, 200)
+	var off struct{ HTML, Hidden, OffBy string }
+	c.Do("POST", ws+"/grow/blocks/render", map[string]any{"kind": "referral", "contactId": pv.Items[0].ID}).MustStatus(t, 200).JSON(t, &off)
+	if off.Hidden != "program_off" || off.OffBy != "Linh Nguyen" || !strings.Contains(off.HTML, "Share the") {
+		t.Fatalf("the Referral block while the program is off: %+v", off)
+	}
 }

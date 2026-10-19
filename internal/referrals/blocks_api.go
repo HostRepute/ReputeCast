@@ -20,7 +20,8 @@ type GrowBlockRenderInput struct {
 	Settings json.RawMessage `json:"settings,omitempty"`
 	// ContactID previews the block as a reader; without it, a sample.
 	ContactID string `json:"contactId,omitempty" format:"uuid"`
-	// MilestoneID is the milestone email a Reward block is in.
+	// MilestoneID is the milestone email the block is in: a Reward block
+	// shows its reward, and the sample is a reader who just reached it.
 	MilestoneID string `json:"milestoneId,omitempty" format:"uuid"`
 }
 
@@ -34,8 +35,10 @@ type GrowBlockRender struct {
 	ListName  string     `json:"listName"`
 	OffAt     *time.Time `json:"offAt,omitempty"`
 	OffBy     string     `json:"offBy"`
-	// For is who the block was rendered for ("" for the sample).
-	For string `json:"for"`
+	// For is who the block was rendered for ("" for the sample); Count
+	// their counted referrals (the text the block shows: none, one, many).
+	For   string `json:"for"`
+	Count int64  `json:"count"`
 	// Settings are the block's effective settings (defaults filled in), for
 	// the composer's inspector; Reward the Reward block's.
 	Settings ReferralBlock `json:"settings"`
@@ -87,23 +90,24 @@ func (s *Service) blockProgram(ctx context.Context, ws *store.Workspace, bound s
 }
 
 // RenderBlock renders a Referral or Reward block for the canvas, as a
-// reader ("Preview as") or as the sample: 2 counted, 1 counting soon.
+// reader ("Preview as") or as the sample: a reader with no referrals yet
+// (in a milestone email, one who just reached it).
 func (s *Service) RenderBlock(ctx context.Context, ws *store.Workspace, in GrowBlockRenderInput) (GrowBlockRender, error) {
 	out := GrowBlockRender{Hidden: "none"}
 	block := parseReferralBlock(in.Settings)
 	out.Settings, out.Reward = block, parseRewardBlock(in.Settings)
 	var milestone *store.ReferralMilestone
-	if in.Kind == "reward" {
-		mid, err := uuid.Parse(in.MilestoneID)
-		if err != nil {
-			return out, api.Invalid("body.milestoneId", "A Reward block belongs to a milestone email.")
-		}
+	if mid, err := uuid.Parse(in.MilestoneID); err == nil {
 		m, err := s.Q.ReferralMilestoneByID(ctx, mid)
 		if err != nil || m.WorkspaceID != ws.ID || m.DeletedAt != nil {
 			return out, api.NotFound("Milestone")
 		}
 		milestone = &m
-		block.Program = m.ProgramID.String()
+		if in.Kind == "reward" || block.Program == "" {
+			block.Program = m.ProgramID.String()
+		}
+	} else if in.Kind == "reward" {
+		return out, api.Invalid("body.milestoneId", "A Reward block belongs to a milestone email.")
 	}
 	pr, err := s.blockProgram(ctx, ws, block.Program)
 	if err != nil {
@@ -145,7 +149,7 @@ func (s *Service) RenderBlock(ctx context.Context, ws *store.Workspace, in GrowB
 		if v, _ := vars["referral"].(map[string]any); v["show"] != true && out.Hidden == "none" {
 			out.Hidden = "not_on_list"
 		}
-		if milestone != nil {
+		if milestone != nil && in.Kind == "reward" {
 			vars["reward"] = s.sampleReward(ctx, ws, *milestone)
 			var rid uuid.UUID
 			if err := s.Pool.QueryRow(ctx, `SELECT id FROM referral_rewards WHERE milestone_id = $1 AND contact_id = $2`, milestone.ID, cid).Scan(&rid); err == nil {
@@ -156,7 +160,7 @@ func (s *Service) RenderBlock(ctx context.Context, ws *store.Workspace, in GrowB
 		}
 	} else {
 		vars = liquid.Vars("reader@example.com", "Sam", "", nil, links)
-		counted, soon := int64(2), int64(1)
+		counted, soon := int64(0), int64(0)
 		if milestone != nil {
 			counted, soon = int64(milestone.Count), 0
 		}
@@ -180,7 +184,10 @@ func (s *Service) RenderBlock(ctx context.Context, ws *store.Workspace, in GrowB
 			vars["referral"] = ref
 		}
 	}
-	src := ExpandReferral(block)
+	if v, ok := vars["referral"].(map[string]any); ok {
+		out.Count, _ = v["count"].(int64)
+	}
+	src := expandReferral(block, true)
 	if in.Kind == "reward" {
 		src = ExpandReward(parseRewardBlock(in.Settings))
 	}
@@ -211,24 +218,36 @@ func (s *Service) PreviewContacts(ctx context.Context, ws *store.Workspace, prog
 		JOIN list_memberships lm ON lm.list_id = $2 AND lm.contact_id = c.id AND lm.status = 'subscribed'
 		LEFT JOIN referrals r ON r.link_id = rl.id
 		WHERE rl.program_id = $1 AND rl.status = 'active'
-		GROUP BY c.id ORDER BY counted DESC, c.email LIMIT 6`, p.ID, p.ListID)
+		GROUP BY c.id ORDER BY counted DESC, c.email LIMIT 12`, p.ID, p.ListID)
 	if err != nil {
 		return out, err
 	}
+	// Readers on their way to a reward first: their block shows progress.
+	var last int64
+	_ = s.Pool.QueryRow(ctx, `SELECT coalesce(max(count), 0) FROM referral_milestones WHERE program_id = $1 AND deleted_at IS NULL`, p.ID).Scan(&last)
+	var done []GrowPreviewContact
 	for rows.Next() {
 		var id uuid.UUID
-		var first, last, email string
+		var first, lastName, email string
 		var counted int64
-		if err := rows.Scan(&id, &first, &last, &email, &counted); err != nil {
+		if err := rows.Scan(&id, &first, &lastName, &email, &counted); err != nil {
 			rows.Close()
 			return out, err
 		}
-		out.Items = append(out.Items, GrowPreviewContact{ID: id.String(), Name: displayName(first, last, email), Email: email, OnList: true, Counted: counted,
-			Lists: []string{pr.ListName}})
+		item := GrowPreviewContact{ID: id.String(), Name: displayName(first, lastName, email), Email: email, OnList: true, Counted: counted, Lists: []string{pr.ListName}}
+		if counted >= last {
+			done = append(done, item)
+			continue
+		}
+		out.Items = append(out.Items, item)
 	}
 	rows.Close()
 	if err := rows.Err(); err != nil {
 		return out, err
+	}
+	out.Items = append(out.Items, done...)
+	if len(out.Items) > 6 {
+		out.Items = out.Items[:6]
 	}
 	others, err := s.Pool.Query(ctx, `SELECT c.id, c.first_name, c.last_name, c.email, array_agg(l.name ORDER BY l.name)
 		FROM contacts c

@@ -206,6 +206,12 @@ func trackable(href string) bool {
 	if strings.Contains(href, "rc_poll_") || strings.Contains(href, "rc_survey_") {
 		return false
 	}
+	// The Recommendations block's buttons open the hosted recommendations
+	// page, which counts them (internal/recommendations); they sit in a
+	// loop, so one tracked link couldn't tell the newsletters apart.
+	if strings.Contains(href, "rc_rec_") {
+		return false
+	}
 	// Only absolute web links (possibly personalized) are redirected.
 	return strings.HasPrefix(lower, "http://") || strings.HasPrefix(lower, "https://") || strings.HasPrefix(href, "{{")
 }

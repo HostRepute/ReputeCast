@@ -23,7 +23,7 @@ func init() {
 		if id, ok := strings.CutPrefix(consentSource, "partner:"); ok {
 			return "partner", id, true
 		}
-		if strings.HasPrefix(contactSource, "referral:") {
+		if contactSource == "referral" || strings.HasPrefix(contactSource, "referral:") {
 			return "referral", "", true
 		}
 		return "", "", false
@@ -49,20 +49,24 @@ func init() {
 type growReadiness struct{ a *App }
 
 // ReadinessRows implements readiness.GrowChecker.
-func (g growReadiness) ReadinessRows(ctx context.Context, ws *store.Workspace, _ uuid.UUID, html string, byList map[uuid.UUID]int64, total int64) []readiness.GrowRow {
+func (g growReadiness) ReadinessRows(ctx context.Context, ws *store.Workspace, campaign uuid.UUID, html string, byList map[uuid.UUID]int64, total int64) []readiness.GrowRow {
 	var out []readiness.GrowRow
 	if c, err := g.a.referrals().CheckBlock(ctx, ws, html, byList, total); err == nil && c.Present {
 		status, title, detail, ack := c.ReadinessText()
 		row := readiness.GrowRow{Key: "content.referral_block", Status: status, Title: title, Detail: detail, Label: "Referral block", Ack: ack,
 			Short: "referral block"}
-		if status != "pass" {
-			row.LinkLabel, row.LinkHref = "Referral settings", "/grow/referrals/settings"
+		switch {
+		case c.Off:
+			row.Links = []readiness.GrowLink{{Label: "Remove the block", Href: "/campaigns/" + campaign.String() + "/edit"},
+				{Label: "Referral settings", Href: "/grow/referrals/settings?program=" + c.ProgramID}}
+		case status != "pass":
+			row.Links = []readiness.GrowLink{{Label: "Set up referrals", Href: "/grow/referrals"}}
 		}
 		out = append(out, row)
 	}
 	if c, err := g.a.recommendations().CheckBlock(ctx, ws, html); err == nil && c.Present {
 		row := readiness.GrowRow{Key: "content.recommendations_block", Status: "pass", Label: "Recommendations block", Short: "recommendations block",
-			LinkLabel: "Open recommendations", LinkHref: "/grow/recommendations"}
+			Links: []readiness.GrowLink{{Label: "Open recommendations", Href: "/grow/recommendations"}}}
 		if c.Shows == 0 {
 			row.Status = "warn"
 			row.Title = "No recommendation can show right now. The Recommendations block will be hidden."

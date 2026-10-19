@@ -36,11 +36,14 @@ func init() {
 	// outside a program (the block hides itself; the checks say so).
 	liquid.RegisterTokens(
 		liquid.PersonalizationToken{Key: "referral.link", Label: "Referral link", Kind: "referral"},
-		liquid.PersonalizationToken{Key: "referral.count", Label: "Counted referrals", Kind: "referral"},
-		liquid.PersonalizationToken{Key: "referral.to_next", Label: "Referrals to the next reward", Kind: "referral"},
-		liquid.PersonalizationToken{Key: "referral.next_milestone.reward", Label: "Next reward", Kind: "referral"},
-		liquid.PersonalizationToken{Key: "referral.hub_url", Label: "Referral hub link", Kind: "referral"},
 		liquid.PersonalizationToken{Key: "referral.code", Label: "Referral code", Kind: "referral"},
+		liquid.PersonalizationToken{Key: "referral.hub_url", Label: "Rewards page link", Kind: "referral"},
+		liquid.PersonalizationToken{Key: "referral.count", Label: "Counted referrals", Kind: "referral"},
+		liquid.PersonalizationToken{Key: "referral.pending", Label: "Referrals not counted yet", Kind: "referral"},
+		liquid.PersonalizationToken{Key: "referral.next_milestone.count", Label: "Next milestone", Kind: "referral"},
+		liquid.PersonalizationToken{Key: "referral.next_milestone.reward", Label: "Next reward", Kind: "referral"},
+		liquid.PersonalizationToken{Key: "referral.to_next", Label: "Referrals to the next reward", Kind: "referral"},
+		liquid.PersonalizationToken{Key: "referral.rewards", Label: "Rewards earned", Kind: "referral"},
 	)
 }
 
@@ -142,12 +145,23 @@ func parseRewardBlock(raw []byte) RewardBlock {
 var liquidSpan = regexp.MustCompile(`\{\{[\s\S]*?\}\}|\{%[\s\S]*?%\}`)
 
 // escText escapes text for HTML and keeps its Liquid spans as they are.
-func escText(s string) string {
+func escText(s string) string { return escTok(s, false) }
+
+// tokenChip is how the composer's canvas marks a token's value in the
+// block's text (ComposerGrowBlocks: "You've referred [2] friends").
+const tokenChip = `<span style="display:inline-block;padding:0 6px;border-radius:5px;background:#EDE9FE;color:#5B21B6;font-family:'IBM Plex Mono',monospace;font-size:.86em;font-weight:500;line-height:1.55;white-space:nowrap">`
+
+// escTok is escText that, for the canvas, puts each {{ token }} in a chip.
+func escTok(s string, chips bool) string {
 	var b strings.Builder
 	last := 0
 	for _, m := range liquidSpan.FindAllStringIndex(s, -1) {
 		b.WriteString(html.EscapeString(s[last:m[0]]))
-		b.WriteString(s[m[0]:m[1]])
+		if chips && strings.HasPrefix(s[m[0]:m[1]], "{{") {
+			b.WriteString(tokenChip + s[m[0]:m[1]] + `</span>`)
+		} else {
+			b.WriteString(s[m[0]:m[1]])
+		}
 		last = m[1]
 	}
 	b.WriteString(html.EscapeString(s[last:]))
@@ -177,26 +191,35 @@ func shareLine(share []string) string {
 		` &nbsp;&nbsp;|&nbsp;&nbsp; ` + hub + `</p>`
 }
 
-func headline(t ReferralBlockTexts, size string) string {
-	return `<p style="margin:0 0 14px;` + font + `font-size:` + size + `;line-height:1.35;font-weight:700;color:#0B1220">` +
-		`{% if referral.next_milestone %}{% if referral.count == 0 %}` + escText(t.None) + `{% elsif referral.count == 1 %}` + escText(t.One) +
-		`{% else %}` + escText(t.Many) + `{% endif %}{% else %}You've referred {{ referral.count }} {% if referral.count == 1 %}friend{% else %}friends{% endif %} and earned every reward. Thank you for sharing.{% endif %}</p>`
+// texts is the block's sentence for the reader's count: the text for none,
+// one or several referrals, or, past the last milestone, a thank-you.
+func texts(t ReferralBlockTexts, chips bool) string {
+	return `{% if referral.next_milestone %}{% if referral.count == 0 %}` + escTok(t.None, chips) + `{% elsif referral.count == 1 %}` + escTok(t.One, chips) +
+		`{% else %}` + escTok(t.Many, chips) + `{% endif %}{% else %}You've referred {{ referral.count }} {% if referral.count == 1 %}friend{% else %}friends{% endif %} and earned every reward. Thank you for sharing.{% endif %}`
+}
+
+func headline(t ReferralBlockTexts, size string, chips bool) string {
+	return `<p style="margin:0 0 14px;` + font + `font-size:` + size + `;line-height:1.35;font-weight:700;color:#0B1220">` + texts(t, chips) + `</p>`
 }
 
 // ExpandReferral is the Referral block as Liquid.
-func ExpandReferral(b ReferralBlock) string {
+func ExpandReferral(b ReferralBlock) string { return expandReferral(b, false) }
+
+// expandReferral is the block as Liquid; chips marks the tokens' values for
+// the composer's canvas.
+func expandReferral(b ReferralBlock, chips bool) string {
 	var out strings.Builder
 	out.WriteString(`{% if referral.show %}`)
 	out.WriteString(`<div class="rc-referral" style="padding:16px 24px">`)
 	switch b.Layout {
 	case "line":
 		out.WriteString(`<p style="margin:0;` + font + `font-size:15px;line-height:1.6;color:#0B1220">`)
-		out.WriteString(`{% if referral.count == 0 %}` + escText(b.Texts.None) + `{% elsif referral.count == 1 %}` + escText(b.Texts.One) + `{% else %}` + escText(b.Texts.Many) + `{% endif %}`)
+		out.WriteString(texts(b.Texts, chips))
 		out.WriteString(` Your link: <a href="{{ referral.link }}" style="color:` + accent + `;font-weight:600">{{ referral.display }}</a></p>`)
 	default:
 		out.WriteString(`<div style="padding:20px;border:1px solid #E3E6EB;border-radius:8px;background:#F9FAFB">`)
 		out.WriteString(`<p style="margin:0 0 6px;` + font + `font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#5B6472">Share the {{ referral.list }}</p>`)
-		out.WriteString(headline(b.Texts, "18px"))
+		out.WriteString(headline(b.Texts, "18px", chips))
 		if b.Layout == "rewards" {
 			out.WriteString(`{% if referral.upcoming.size > 0 %}<table role="presentation" style="width:100%;border-collapse:collapse;margin:0 0 14px">`)
 			out.WriteString(`{% for m in referral.upcoming %}<tr><td style="padding:6px 0;` + font + `font-size:13px;color:#374151;border-top:1px solid #E3E6EB">` +
@@ -214,8 +237,8 @@ func ExpandReferral(b ReferralBlock) string {
 		}
 		out.WriteString(`<table role="presentation" style="width:100%;border-collapse:collapse;margin:0 0 12px"><tr>`)
 		out.WriteString(`<td style="padding:0;vertical-align:middle"><span style="display:block;` + font + `font-size:11.5px;color:#5B6472;font-weight:600">Your link</span>`)
-		out.WriteString(`<a href="{{ referral.link }}" style="` + font + `font-size:14px;font-weight:600;color:#0B1220">{{ referral.display }}</a></td>`)
-		out.WriteString(`<td style="padding:0;text-align:right;vertical-align:middle"><a href="{{ referral.hub_url }}" style="display:inline-block;padding:9px 14px;border-radius:6px;background:` + accent + `;color:#fff;` + font + `font-size:13px;font-weight:600;white-space:nowrap">` + html.EscapeString(b.Button) + `</a></td>`)
+		out.WriteString(`<a href="{{ referral.link }}" style="` + font + `font-size:14px;font-weight:600;color:#0B1220;text-decoration:none">{{ referral.display }}</a></td>`)
+		out.WriteString(`<td style="padding:0;text-align:right;vertical-align:middle"><a href="{{ referral.hub_url }}" style="display:inline-block;padding:9px 14px;border-radius:6px;background:` + accent + `;color:#fff;` + font + `font-size:13px;font-weight:600;white-space:nowrap;text-decoration:none">` + html.EscapeString(b.Button) + `</a></td>`)
 		out.WriteString(`</tr></table>`)
 		out.WriteString(shareLine(b.Share))
 		out.WriteString(`</div>`)
@@ -240,7 +263,7 @@ func ExpandReward(b RewardBlock) string {
 	}
 	out.WriteString(`{% if reward.code %}<p style="margin:0 0 14px;` + font + `font-size:13px;color:#374151">Your code: <b style="font-family:'IBM Plex Mono',monospace;font-size:15px;color:#0B1220">{{ reward.code }}</b></p>{% endif %}`)
 	out.WriteString(`{% if reward.note %}<p style="margin:0 0 14px;` + font + `font-size:13px;color:#374151">{{ reward.note }}</p>{% endif %}`)
-	out.WriteString(`{% if reward.url %}<a href="{{ reward.url }}" style="display:inline-block;padding:9px 14px;border-radius:6px;background:` + accent + `;color:#fff;` + font + `font-size:13px;font-weight:600;white-space:nowrap">` + html.EscapeString(b.Button) + `</a>{% endif %}`)
+	out.WriteString(`{% if reward.url %}<a href="{{ reward.url }}" style="display:inline-block;padding:9px 14px;border-radius:6px;background:` + accent + `;color:#fff;` + font + `font-size:13px;font-weight:600;white-space:nowrap;text-decoration:none">` + html.EscapeString(b.Button) + `</a>{% endif %}`)
 	if b.Expiry || b.Hub {
 		out.WriteString(`<p style="margin:10px 0 0;` + font + `font-size:12.5px;color:#5B6472;line-height:1.5">`)
 		if b.Expiry {
@@ -528,6 +551,18 @@ func (s *Service) rewardMap(ctx context.Context, ws *store.Workspace, pages inte
 	}
 	if rw.ExpiresAt != nil {
 		v["expires_at"] = rw.ExpiresAt.Format("2 Jan 2006")
+	}
+	return dropEmpty(v)
+}
+
+// dropEmpty leaves out a reward's empty fields: Liquid takes "" as true, so
+// {% if reward.code %} would show an empty code. Printed, a missing field is
+// still empty.
+func dropEmpty(v map[string]any) map[string]any {
+	for k, x := range v {
+		if s, ok := x.(string); ok && s == "" {
+			delete(v, k)
+		}
 	}
 	return v
 }

@@ -1,4 +1,5 @@
 import { Link } from '@tanstack/react-router'
+import type { Component } from 'grapesjs'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { $api, ApiError, errorMessage, http, type Schemas } from '@/api/client'
 import { LogoMark } from '@/components/icons/Icon'
@@ -15,12 +16,16 @@ import { T, useT } from '@/i18n'
 import { clock, dayMonthDate } from '@/lib/format'
 import { useDocumentTitle } from '@/lib/hooks'
 import { useCan, useMe, useWorkspace } from '@/lib/session'
+import { BlockIcon } from '@/features/composer/icons'
 import { createComposerEditor, type ComposerEditor } from '@/features/composer/editor/grapes'
 import { canvasHead, joinMjml, splitMjml, withHeadMeta } from '@/features/composer/editor/mjmlDoc'
+import { growBlockDefs, isGrowBlock, setGrowPreview } from './composer/blocks'
+import { GrowBlockInspector, GrowBlocksNote } from './composer/Panel'
 import { typeLabel } from './MilestonesPage'
 import { me } from './email.messages'
 import { GROW, fileKind, fileSize, mono } from './shared'
 import '@/features/composer/composer.css'
+import '@/features/connect/connect.css'
 import './grow.css'
 
 type Detail = Schemas['ReferralMilestoneEmailDetail']
@@ -83,7 +88,14 @@ function Editor({ d }: { d: Detail }) {
   const container = useRef<HTMLDivElement>(null)
   const geRef = useRef<ComposerEditor | null>(null)
   const [ge, setGe] = useState<ComposerEditor | null>(null)
+  const [selected, setSelected] = useState<Component | null>(null)
   const dirty = status.kind === 'dirty'
+
+  // The canvas draws Grow's blocks for this milestone and the "Preview as" reader.
+  useEffect(() => {
+    setGrowPreview({ slug, milestoneId: d.milestoneId, contactId: contact })
+  }, [slug, d.milestoneId, contact])
+  useEffect(() => () => setGrowPreview({ milestoneId: '', contactId: null }), [])
 
   useEffect(() => {
     if (!container.current) return
@@ -106,7 +118,12 @@ function Editor({ d }: { d: Detail }) {
         }
         inst.editor.on('update', mark)
         inst.editor.on('component:input', mark)
+        inst.editor.on('component:selected component:deselected', () => setSelected(inst.editor.getSelected() ?? null))
         if (!canEdit) inst.editor.getWrapper()?.onAll((c) => c.set({ draggable: false, droppable: false, editable: false, removable: false, copyable: false }))
+        // GrapesJS's frame has no title of its own: screen readers announce the canvas by it.
+        const title = () => inst.editor.Canvas.getFrameEl()?.setAttribute('title', t(me.canvasLabel))
+        title()
+        inst.editor.on('canvas:frame:load', title)
         setGe(inst)
       })
       .catch((e: unknown) => toast({ kind: 'error', title: t(me.editorFailed), detail: e instanceof Error ? e.message : String(e) }))
@@ -314,7 +331,7 @@ function Editor({ d }: { d: Detail }) {
             </Note>
           ) : null}
           <div className="card overflow-hidden" style={{ display: view === 'visual' ? undefined : 'none' }}>
-            <div ref={container} className="cmp-canvas" aria-label={t(me.canvasLabel)} style={{ minHeight: 520 }} />
+            <div ref={container} className="cmp-canvas" role="region" aria-label={t(me.canvasLabel)} style={{ minHeight: 520 }} />
             {!ge ? <Skeleton h={520} /> : null}
           </div>
           {view === 'code' ? (
@@ -368,6 +385,7 @@ function Editor({ d }: { d: Detail }) {
               {t(me.tokens)}: <span className="mono">reward.name · reward.description · reward.download_url · reward.code · reward.claim_url · reward.expires_at</span>
             </span>
           </section>
+          {view === 'visual' && ge ? <BlocksCard ge={ge} selected={selected} canEdit={canEdit} /> : null}
           <PreviewCard d={d} compile={compile} contact={contact} setContact={setContact} rev={rev} subject={subject} preheader={preheader} />
           {d.versions.length ? (
             <section className="card flex flex-col gap-1.5 p-4">
@@ -384,6 +402,48 @@ function Editor({ d }: { d: Detail }) {
       {testing ? <TestDialog d={d} compile={compile} subject={subject} preheader={preheader} contact={contact} onClose={() => setTesting(false)} /> : null}
       <UnsavedChangesGuard dirty={dirty} description={t(me.leave)} />
     </div>
+  )
+}
+
+/**
+ * Grow's blocks for this email (ComposerGrowBlocks frame 2): Reward,
+ * Referral and Recommendations to add, and the selected block's settings.
+ */
+function BlocksCard({ ge, selected, canEdit }: { ge: ComposerEditor; selected: Component | null; canEdit: boolean }) {
+  const t = useT()
+  const add = (content: string) => {
+    const body = ge.editor.getWrapper()?.findType('mj-body')[0]
+    if (!body) return
+    // Before the footer, the last section.
+    const at = Math.max(0, body.components().length - 1)
+    const added = body.append(content, { at })
+    const first = (Array.isArray(added) ? added : [added])[0]
+    if (first) ge.editor.select(first as Component)
+  }
+  return (
+    <section className="card flex flex-col p-0">
+      <h2 className="gw-hd3" style={{ padding: '14px 16px 4px' }}>
+        {t(me.blocks)}
+      </h2>
+      <div className="blk-grid gw-cmp-grid">
+        {growBlockDefs(true).map((b) => (
+          <button key={b.id} type="button" className="blk rc" disabled={!canEdit} onClick={() => add(b.content)}>
+            <BlockIcon name={b.icon} />
+            {b.label}
+          </button>
+        ))}
+      </div>
+      <GrowBlocksNote milestone />
+      {selected && isGrowBlock(selected) ? (
+        <fieldset disabled={!canEdit} className="flex flex-col border-t border-line-2">
+          <GrowBlockInspector key={selected.cid} c={selected} />
+        </fieldset>
+      ) : (
+        <p className="k border-t border-line-2" style={{ margin: 0, padding: '12px 16px' }}>
+          {t(me.selectBlock)}
+        </p>
+      )}
+    </section>
   )
 }
 
@@ -434,7 +494,7 @@ function PreviewCard({
       </Field>
       {q.data ? (
         <>
-          <span className="k">{t(me.inboxPreview, { name: q.data.for })}</span>
+          <span className="k">{q.data.for ? t(me.inboxPreview, { name: q.data.for }) : t(me.inboxPreviewSample, { count: d.count })}</span>
           <span className="font-semibold">{q.data.subject}</span>
           <div className="overflow-hidden rounded-[10px] border border-line">
             <iframe title={t(me.previewFrame)} srcDoc={q.data.html} sandbox="allow-same-origin" className="block w-full border-0" style={{ height: 520 }} />

@@ -89,7 +89,7 @@ func ExpandRecommendations(b RecommendationsBlock) string {
 	// The picks, for the shown counts (Vars reads them back).
 	out.WriteString(`{% comment %}rc-recs:` + pick + `{% endcomment %}`)
 	out.WriteString(`{% assign rc_rec_ids = "` + pick + `" | split: "," %}{% assign rc_rec_n = 0 %}`)
-	out.WriteString(`{% for r in recommendations.items %}{% if rc_rec_ids contains "all" or rc_rec_ids contains r.id %}{% assign rc_rec_n = rc_rec_n | plus: 1 %}{% endif %}{% endfor %}`)
+	out.WriteString(`{% for rc_rec_item in recommendations.items %}{% if rc_rec_ids contains "all" or rc_rec_ids contains rc_rec_item.id %}{% assign rc_rec_n = rc_rec_n | plus: 1 %}{% endif %}{% endfor %}`)
 	out.WriteString(`{% if rc_rec_n > 0 %}<div class="rc-recommendations" style="padding:16px 24px">`)
 	out.WriteString(`<p style="margin:0 0 4px;` + font + `font-size:17px;font-weight:700;color:#0B1220">` + html.EscapeString(b.Heading) + `</p>`)
 	if strings.TrimSpace(b.Intro) != "" {
@@ -99,21 +99,21 @@ func ExpandRecommendations(b RecommendationsBlock) string {
 	if cols {
 		out.WriteString(`<table role="presentation" style="width:100%;border-collapse:separate;border-spacing:8px 0;table-layout:fixed"><tr>`)
 	}
-	out.WriteString(`{% assign rc_rec_i = 0 %}{% for r in recommendations.items %}{% if rc_rec_ids contains "all" or rc_rec_ids contains r.id %}`)
+	out.WriteString(`{% assign rc_rec_i = 0 %}{% for rc_rec_item in recommendations.items %}{% if rc_rec_ids contains "all" or rc_rec_ids contains rc_rec_item.id %}`)
 	if cols {
 		out.WriteString(`{% assign rc_rec_m = rc_rec_i | modulo: 2 %}{% if rc_rec_i > 0 and rc_rec_m == 0 %}</tr><tr>{% endif %}<td style="vertical-align:top;padding:0 0 8px">`)
 	}
 	switch b.Layout {
 	case "compact":
-		out.WriteString(`<p style="margin:0 0 8px;` + font + `font-size:14px;line-height:1.5;color:#0B1220"><b>{{ r.name }}</b> · {{ r.description }} ` +
-			`<a href="{{ r.url }}" style="color:` + accent + `;font-weight:600">{{ r.button }}</a></p>`)
+		out.WriteString(`<p style="margin:0 0 8px;` + font + `font-size:14px;line-height:1.5;color:#0B1220"><b>{{ rc_rec_item.name }}</b> · {{ rc_rec_item.description }} ` +
+			`<a href="{{ rc_rec_item.url }}" style="color:` + accent + `;font-weight:600">{{ rc_rec_item.button }}</a></p>`)
 	default:
 		out.WriteString(`<table role="presentation" style="width:100%;border-collapse:separate;border:1px solid #E3E6EB;border-radius:8px;margin:0 0 8px"><tr>`)
-		out.WriteString(`<td style="width:44px;padding:14px 0 14px 14px;vertical-align:top">{% if r.logo_url %}<img src="{{ r.logo_url }}" width="36" height="36" alt="" style="display:block;width:36px;height:36px;border-radius:8px">` +
-			`{% else %}<div style="width:36px;height:36px;border-radius:8px;background:#F0FDFA;color:` + accent + `;` + font + `font-size:13px;font-weight:700;line-height:36px;text-align:center">{{ r.initials }}</div>{% endif %}</td>`)
-		out.WriteString(`<td style="padding:14px;vertical-align:top"><p style="margin:0;` + font + `font-size:14px;font-weight:700;color:#0B1220">{{ r.name }}</p>` +
-			`<p style="margin:2px 0 10px;` + font + `font-size:13px;line-height:1.45;color:#374151">{{ r.description }}</p>` +
-			`<a href="{{ r.url }}" style="display:inline-block;padding:7px 12px;border-radius:6px;background:` + accent + `;color:#fff;` + font + `font-size:13px;font-weight:600">{{ r.button }}</a></td>`)
+		out.WriteString(`<td style="width:44px;padding:14px 0 14px 14px;vertical-align:top">{% if rc_rec_item.logo_url %}<img src="{{ rc_rec_item.logo_url }}" width="36" height="36" alt="" style="display:block;width:36px;height:36px;border-radius:8px">` +
+			`{% else %}<div style="width:36px;height:36px;border-radius:8px;background:#F0FDFA;color:` + accent + `;` + font + `font-size:13px;font-weight:700;line-height:36px;text-align:center">{{ rc_rec_item.initials }}</div>{% endif %}</td>`)
+		out.WriteString(`<td style="padding:14px;vertical-align:top"><p style="margin:0;` + font + `font-size:14px;font-weight:700;color:#0B1220">{{ rc_rec_item.name }}</p>` +
+			`<p style="margin:2px 0 10px;` + font + `font-size:13px;line-height:1.45;color:#374151">{{ rc_rec_item.description }}</p>` +
+			`<a href="{{ rc_rec_item.url }}" style="display:inline-block;padding:7px 12px;border-radius:6px;background:` + accent + `;color:#fff;` + font + `font-size:13px;font-weight:600;text-decoration:none">{{ rc_rec_item.button }}</a></td>`)
 		out.WriteString(`</tr></table>`)
 	}
 	if cols {
@@ -172,8 +172,13 @@ func (s *Service) Vars(ctx context.Context, wsID uuid.UUID, recipients []liquid.
 		if r.Kind == KindPartner {
 			button = "Subscribe"
 		}
-		items = append(items, item{id: r.ID, data: map[string]any{"id": r.ID.String(), "name": r.Name, "description": r.Description, "kind": r.Kind,
-			"initials": pr.Initials, "logo_url": pr.LogoURL, "host": pr.Host, "button": button}})
+		data := map[string]any{"id": r.ID.String(), "name": r.Name, "description": r.Description, "kind": r.Kind,
+			"initials": pr.Initials, "host": pr.Host, "button": button}
+		// Liquid takes "" as true: without a logo, the block draws the initials.
+		if pr.LogoURL != "" {
+			data["logo_url"] = pr.LogoURL
+		}
+		items = append(items, item{id: r.ID, data: data})
 	}
 	for _, rc := range recipients {
 		page := pages.Recommends("")
@@ -239,6 +244,23 @@ type BlockRender struct {
 	Hidden []BlockHiddenRec `json:"hidden"`
 	// Settings are the block's effective settings, for the inspector.
 	Settings RecommendationsBlock `json:"settings"`
+	// Options are the recommendations the inspector picks from, in order;
+	// PageURL the hosted page the buttons open ("news.acme.io/recommends").
+	Options []BlockOption `json:"options"`
+	PageURL string        `json:"pageUrl"`
+}
+
+// BlockOption is a recommendation the block can show.
+type BlockOption struct {
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	Initials string `json:"initials"`
+	Kind     string `json:"kind" enum:"link,partner"`
+	State    string `json:"state"`
+	// ShowBlock: it shows in emails (not only on the confirmation page);
+	// Hidden: it can't show now (State says why).
+	ShowBlock bool `json:"showBlock"`
+	Hidden    bool `json:"hidden"`
 }
 
 // BlockHiddenRec is a recommendation the block can't show now.
@@ -266,7 +288,7 @@ func (s *Service) RenderBlock(ctx context.Context, ws *store.Workspace, in Block
 		return BlockRender{}, err
 	}
 	v := liquid.Merge(liquid.Vars("", "", "", nil, nil), vars[uuid.Nil])
-	out := BlockRender{Hidden: []BlockHiddenRec{}, Settings: b}
+	out := BlockRender{Hidden: []BlockHiddenRec{}, Settings: b, Options: []BlockOption{}}
 	if items, ok := v["recommendations"].(map[string]any)["items"].([]map[string]any); ok {
 		for _, it := range items {
 			if b.Which == "all" || containsStr(b.IDs, it["id"].(string)) {
@@ -282,6 +304,7 @@ func (s *Service) RenderBlock(ctx context.Context, ws *store.Workspace, in Block
 		return out, err
 	}
 	for _, it := range items {
+		out.Options = append(out.Options, BlockOption{ID: it.ID, Name: it.Name, Initials: it.Initials, Kind: it.Kind, State: it.State, ShowBlock: it.ShowBlock, Hidden: it.Hidden})
 		if b.Which == "pick" && !containsStr(b.IDs, it.ID) {
 			continue
 		}
@@ -296,6 +319,11 @@ func (s *Service) RenderBlock(ctx context.Context, ws *store.Workspace, in Block
 			out.Hidden = append(out.Hidden, BlockHiddenRec{ID: it.ID, Name: it.Name, Initials: it.Initials, State: state, PausedBy: it.PausedBy})
 		}
 	}
+	pages, err := s.pages(ctx, ws)
+	if err != nil {
+		return out, err
+	}
+	out.PageURL = strings.TrimPrefix(strings.TrimPrefix(pages.Recommends(""), "https://"), "http://")
 	return out, nil
 }
 
