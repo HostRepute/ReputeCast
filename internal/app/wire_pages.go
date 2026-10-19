@@ -8,6 +8,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/demo"
 	"github.com/hostrepute/reputecast/internal/pages"
+	"github.com/hostrepute/reputecast/internal/publicpages"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -56,6 +57,8 @@ var pageApprovals = func(*App) pages.Approvals { return nil }
 func init() {
 	apiRegistrars = append(apiRegistrars, func(a *App, h huma.API) {
 		pages.Register(h, pagesService(a))
+		// The page builder's canvas and previews, drawn by the public site.
+		publicpages.RegisterSellAPI(h, a.publicPages())
 	})
 	jobRegistrars = append(jobRegistrars, func(a *App) {
 		pages.RegisterJobs(a.JobReg, pagesService(a))

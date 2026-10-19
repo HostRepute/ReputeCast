@@ -8003,6 +8003,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/pages/{page}/canvas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The site's stylesheets, header and footer for the page builder's canvas */
+        get: operations["get-page-canvas"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/pages/{page}/content": {
         parameters: {
             query?: never;
@@ -8040,6 +8057,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/pages/{page}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview a page in the site's frame: the draft, the blocks being edited, or what's live */
+        post: operations["preview-page"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/pages/{page}/publish": {
         parameters: {
             query?: never;
@@ -8054,6 +8088,23 @@ export interface paths {
          * @description Blocked until every blocking check passes. When publishing needs approval the answer is 409 approval_required with the rule and the approvers.
          */
         post: operations["publish-page"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/pages/{page}/render": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Draw live blocks (products, forms, countdowns, events) as readers see them, inert */
+        post: operations["render-page-blocks"];
         delete?: never;
         options?: never;
         head?: never;
@@ -8727,6 +8778,23 @@ export interface paths {
         post?: never;
         /** Remove a file from a product */
         delete: operations["remove-product-file"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/products/{product}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Preview a product's default page (used when it has no sales page) */
+        get: operations["preview-product-page"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -21467,6 +21535,14 @@ export interface components {
         PageApprovalInput: {
             note?: string;
         };
+        PageCanvas: {
+            dir: string;
+            focusHeader: string;
+            footer: string;
+            header: string;
+            lang: string;
+            styles: string[];
+        };
         PageCheck: {
             account?: string;
             /** Format: date-time */
@@ -21634,6 +21710,12 @@ export interface components {
             initials: string;
             name: string;
         };
+        PagePreviewInput: {
+            hideHeader?: boolean;
+            html?: string;
+            live?: boolean;
+            name?: string;
+        };
         PagePublishInput: {
             /** Format: date-time */
             at?: string;
@@ -21652,6 +21734,14 @@ export interface components {
             publishers: string[];
             reason?: string;
             rule?: string;
+        };
+        PageRenderInput: {
+            blocks?: string[];
+            html?: string;
+        };
+        PageRendered: {
+            blocks: string[];
+            html?: string;
         };
         PageResult: {
             /** Format: int64 */
@@ -49075,6 +49165,40 @@ export interface operations {
             };
         };
     };
+    "get-page-canvas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The page's id */
+                page: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageCanvas"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "save-page-content": {
         parameters: {
             query?: never;
@@ -49147,6 +49271,44 @@ export interface operations {
             };
         };
     };
+    "preview-page": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The page's id */
+                page: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PagePreviewInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPagePreview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "publish-page": {
         parameters: {
             query?: never;
@@ -49172,6 +49334,44 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PageDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "render-page-blocks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The page's id */
+                page: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PageRenderInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageRendered"];
                 };
             };
             /** @description Error */
@@ -50681,6 +50881,39 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "preview-product-page": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                product: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPagePreview"];
+                };
             };
             /** @description Error */
             default: {

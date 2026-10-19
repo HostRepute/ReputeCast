@@ -34065,6 +34065,41 @@
         },
         "type": "object"
       },
+      "PageCanvas": {
+        "additionalProperties": false,
+        "properties": {
+          "dir": {
+            "type": "string"
+          },
+          "focusHeader": {
+            "type": "string"
+          },
+          "footer": {
+            "type": "string"
+          },
+          "header": {
+            "type": "string"
+          },
+          "lang": {
+            "type": "string"
+          },
+          "styles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "styles",
+          "header",
+          "focusHeader",
+          "footer",
+          "lang",
+          "dir"
+        ],
+        "type": "object"
+      },
       "PageCheck": {
         "additionalProperties": false,
         "properties": {
@@ -34660,6 +34695,26 @@
         ],
         "type": "object"
       },
+      "PagePreviewInput": {
+        "additionalProperties": false,
+        "properties": {
+          "hideHeader": {
+            "type": "boolean"
+          },
+          "html": {
+            "maxLength": 2097152,
+            "type": "string"
+          },
+          "live": {
+            "type": "boolean"
+          },
+          "name": {
+            "maxLength": 120,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "PagePublishInput": {
         "additionalProperties": false,
         "properties": {
@@ -34729,6 +34784,41 @@
           "publishers",
           "needsApproval",
           "approvers"
+        ],
+        "type": "object"
+      },
+      "PageRenderInput": {
+        "additionalProperties": false,
+        "properties": {
+          "blocks": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "type": "array"
+          },
+          "html": {
+            "maxLength": 2097152,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "PageRendered": {
+        "additionalProperties": false,
+        "properties": {
+          "blocks": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "html": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "blocks"
         ],
         "type": "object"
       },
@@ -102332,6 +102422,74 @@
         "x-permission": "website:edit"
       }
     },
+    "/api/v1/workspaces/{workspace}/pages/{page}/canvas": {
+      "get": {
+        "operationId": "get-page-canvas",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The page's id",
+            "in": "path",
+            "name": "page",
+            "required": true,
+            "schema": {
+              "description": "The page's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageCanvas"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The site's stylesheets, header and footer for the page builder's canvas",
+        "tags": [
+          "Pages"
+        ],
+        "x-access": "workspace",
+        "x-permission": "website:view"
+      }
+    },
     "/api/v1/workspaces/{workspace}/pages/{page}/content": {
       "put": {
         "description": "A newer version saved meanwhile by someone else answers 409 version_conflict with who saved it; send force to keep yours on top.",
@@ -102479,6 +102637,84 @@
         "x-permission": "website:view"
       }
     },
+    "/api/v1/workspaces/{workspace}/pages/{page}/preview": {
+      "post": {
+        "operationId": "preview-page",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The page's id",
+            "in": "path",
+            "name": "page",
+            "required": true,
+            "schema": {
+              "description": "The page's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PagePreviewInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicPagePreview"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Preview a page in the site's frame: the draft, the blocks being edited, or what's live",
+        "tags": [
+          "Pages"
+        ],
+        "x-access": "workspace",
+        "x-permission": "website:view"
+      }
+    },
     "/api/v1/workspaces/{workspace}/pages/{page}/publish": {
       "post": {
         "description": "Blocked until every blocking check passes. When publishing needs approval the answer is 409 approval_required with the rule and the approvers.",
@@ -102556,6 +102792,84 @@
         ],
         "x-access": "workspace",
         "x-permission": "website:publish"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/pages/{page}/render": {
+      "post": {
+        "operationId": "render-page-blocks",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The page's id",
+            "in": "path",
+            "name": "page",
+            "required": true,
+            "schema": {
+              "description": "The page's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PageRenderInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageRendered"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Draw live blocks (products, forms, countdowns, events) as readers see them, inert",
+        "tags": [
+          "Pages"
+        ],
+        "x-access": "workspace",
+        "x-permission": "website:view"
       }
     },
     "/api/v1/workspaces/{workspace}/pages/{page}/settings": {
@@ -105698,6 +106012,72 @@
         ],
         "x-access": "workspace",
         "x-permission": "products:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/products/{product}/preview": {
+      "get": {
+        "operationId": "preview-product-page",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "product",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicPagePreview"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Preview a product's default page (used when it has no sales page)",
+        "tags": [
+          "Products"
+        ],
+        "x-access": "workspace",
+        "x-permission": "products:view"
       }
     },
     "/api/v1/workspaces/{workspace}/products/{product}/publish": {
