@@ -13,6 +13,7 @@ import { toast } from '@/components/ui/Toast'
 import { T, formatList, useT } from '@/i18n'
 import { ago, clock, dayMonthDate } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
+import { WooBadge, WooSection } from '@/features/commerce/wordpress'
 import { ConnectDialog, Footer } from './ConnectDialog'
 import { DisconnectDialog, RotateDialog, TakeOverDialog } from './KeyDialogs'
 import { m } from './messages'
@@ -208,6 +209,8 @@ function SiteCard({ data, site: s, defaultOpen, onDialog }: { data: Data; site: 
               <StatusBadge status={s.status} />
             )}
             {s.updateAvailable ? <Badge tone="info">{t(m.statusUpdate)}</Badge> : null}
+            {/* WooCommerce on the site (X20). */}
+            <WooBadge woo={s.woocommerce} />
           </div>
           <div className="ih-facts">
             {facts.map(([k, v]) => (
@@ -274,6 +277,7 @@ function SiteCard({ data, site: s, defaultOpen, onDialog }: { data: Data; site: 
                   <span className="k">{t(m.noFeed)}</span>
                 )}
               </div>
+              <WooSection woo={s.woocommerce} canManage={data.canManage} />
               {s.key ? (
                 <div className="ih-sect">
                   <h3>{t(m.key)}</h3>

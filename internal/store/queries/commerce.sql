@@ -490,11 +490,6 @@ ON CONFLICT DO NOTHING;
 -- An automation's abandoned-checkout numbers since it went live.
 SELECT outcome, count(*)::bigint AS n FROM store_checkout_entries WHERE automation_id = @automation_id GROUP BY outcome;
 
--- name: CommerceCheckoutStats :one
--- The store's abandoned checkouts since a time: all, with an email.
-SELECT count(*)::bigint AS abandoned, count(*) FILTER (WHERE has_email)::bigint AS with_email
-FROM store_checkouts WHERE store_id = @store_id AND completed_at IS NULL AND created_at_store >= @since AND updated_at_store <= @before;
-
 -- name: CommerceAbandonedCartEmailedSince :one
 -- The skip rule: the contact got an email from an abandoned-cart flow
 -- (one started by abandoned checkouts) since a time.

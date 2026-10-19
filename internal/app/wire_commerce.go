@@ -137,6 +137,9 @@ func init() {
 	automationStoreRevenue = func(a *App) func(context.Context, uuid.UUID, []uuid.UUID, time.Time) map[uuid.UUID]automations.AutomationRevenue {
 		return commerceService(a).AutomationRevenue
 	}
+	automationStoreEmail = func(a *App) func(context.Context, uuid.UUID, uuid.UUID, string) (automations.EmailContent, bool) {
+		return commerceService(a).StarterEmail
+	}
 	integrationCommerce = commerceCatalog
 	contentExtras = func(a *App) []contentcheck.Extra { return []contentcheck.Extra{commerceService(a).RemovedProducts} }
 

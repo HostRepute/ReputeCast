@@ -34,6 +34,12 @@ var automationStoreRevenue = func(*App) func(context.Context, uuid.UUID, []uuid.
 	return nil
 }
 
+// automationStoreEmail writes a store starter's emails in the store's
+// voice (the Abandoned cart starter); the commerce domain sets it.
+var automationStoreEmail = func(*App) func(context.Context, uuid.UUID, uuid.UUID, string) (automations.EmailContent, bool) {
+	return nil
+}
+
 func newAutomations(a *App) *automations.Service {
 	return &automations.Service{
 		Pool: a.Pool, Q: a.Q, Audit: a.Audit, Box: a.Secrets, Log: a.Log,
@@ -48,6 +54,7 @@ func newAutomations(a *App) *automations.Service {
 		Accessibility: automationAccessibility(a),
 		Languages:     automationLanguages(a),
 		StoreRevenue:  automationStoreRevenue(a),
+		StoreEmail:    automationStoreEmail(a),
 	}
 }
 

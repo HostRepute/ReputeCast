@@ -35,6 +35,22 @@ const search = z.object({
   sort: z.enum(['activity', 'score']).optional().catch(undefined),
   /** The latest address check's result (X14). */
   check: z.enum(['valid', 'invalid', 'risky', 'unknown', 'never']).optional().catch(undefined),
+  /** Store customers and what they spent in the stores (X20). */
+  storeCustomer: z
+    .string()
+    .regex(/^(any|[0-9a-f-]{36})$/)
+    .optional()
+    .catch(undefined),
+  spentFrom: z
+    .string()
+    .regex(/^\d{1,9}(\.\d{1,2})?$/)
+    .optional()
+    .catch(undefined),
+  spentTo: z
+    .string()
+    .regex(/^\d{1,9}(\.\d{1,2})?$/)
+    .optional()
+    .catch(undefined),
   page: z.coerce.number().int().min(1).optional().catch(undefined),
   size: z.coerce.number().int().min(1).max(100).optional().catch(undefined),
 })

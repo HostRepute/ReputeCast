@@ -39,8 +39,9 @@ type versionInput struct {
 
 type automationCreateBody struct {
 	Name     string `json:"name,omitempty" maxLength:"120"`
-	Template string `json:"template,omitempty" enum:"welcome-series,re-engagement,onboarding" doc:"Starter template; omit for a blank canvas"`
+	Template string `json:"template,omitempty" enum:"welcome-series,re-engagement,onboarding,abandoned-cart" doc:"Starter template; omit for a blank canvas"`
 	List     string `json:"list,omitempty" format:"uuid" doc:"For a template that starts on a list (welcome-series): the list; otherwise the workspace's first list"`
+	Store    string `json:"store,omitempty" format:"uuid" doc:"For a template that starts on a store's events (abandoned-cart): the connected store; otherwise the workspace's first"`
 }
 
 type createInput struct {
@@ -223,7 +224,7 @@ func Register(h huma.API, s *Service) {
 		})
 	api.Get(h, api.Op{ID: "list-automation-templates", Path: "/workspaces/{workspace}/automations/templates", Summary: "List starter templates", Tags: tags, Access: view},
 		func(ctx context.Context, _ *api.WorkspaceInput) (*api.Body[AutomationTemplates], error) {
-			return api.OK(AutomationTemplates{Templates: Templates()}), nil
+			return api.OK(AutomationTemplates{Templates: templatesFor(s.hasStore(ctx, api.WorkspaceFrom(ctx).ID))}), nil
 		})
 	api.Get(h, api.Op{ID: "automation-options", Path: "/workspaces/{workspace}/automations/options", Summary: "Lists, forms, fields, emails, providers, tags and events steps can use", Tags: tags, Access: view},
 		func(ctx context.Context, _ *api.WorkspaceInput) (*api.Body[AutomationOptions], error) {
@@ -232,7 +233,7 @@ func Register(h huma.API, s *Service) {
 		})
 	api.Post(h, api.Op{ID: "create-automation", Path: "/workspaces/{workspace}/automations", Summary: "Create a draft automation from a starter template or a blank canvas", Tags: tags, Access: edit, Status: http.StatusCreated},
 		func(ctx context.Context, in *createInput) (*api.Body[AutomationCreated], error) {
-			id, err := s.Create(ctx, api.WorkspaceFrom(ctx), actor(ctx), CreateParams{Name: in.Body.Name, Template: in.Body.Template, ListID: in.Body.List})
+			id, err := s.Create(ctx, api.WorkspaceFrom(ctx), actor(ctx), CreateParams{Name: in.Body.Name, Template: in.Body.Template, ListID: in.Body.List, StoreID: in.Body.Store})
 			if err != nil {
 				return nil, err
 			}

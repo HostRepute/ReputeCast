@@ -132,6 +132,8 @@ func (s *Service) draw(ctx context.Context, st store.Store, b CommerceBlock, mod
 		p      CommerceProduct
 		hidden bool
 		sold   bool
+		// flag marks a removed product on the composer's canvas.
+		flag bool
 	}
 	var items []shown
 	for _, r := range rows {
@@ -141,7 +143,7 @@ func (s *Service) draw(ctx context.Context, st store.Store, b CommerceBlock, mod
 			if mode == drawSend {
 				continue
 			}
-			items = append(items, shown{p: p, hidden: mode == drawStable})
+			items = append(items, shown{p: p, hidden: mode == drawStable, flag: mode == drawCanvas})
 			continue
 		}
 		if !p.Available {
@@ -178,7 +180,7 @@ func (s *Service) draw(ctx context.Context, st store.Store, b CommerceBlock, mod
 	}
 	if visible > 0 || mode == drawCanvas {
 		if b.Mode == "card" && len(items) > 0 {
-			sb.WriteString(cardHTML(items[0].p, b, button, items[0].sold, items[0].hidden))
+			sb.WriteString(cardHTML(items[0].p, b, button, items[0].sold, items[0].hidden, items[0].flag))
 		} else {
 			sb.WriteString(`<div style="padding:22px 28px 22px 28px;font-family:'IBM Plex Sans',Helvetica,Arial,sans-serif">`)
 			if h := strings.TrimSpace(b.Heading); h != "" {
@@ -188,7 +190,7 @@ func (s *Service) draw(ctx context.Context, st store.Store, b CommerceBlock, mod
 			}
 			sb.WriteString(`<div style="font-size:0;line-height:0;text-align:left">`)
 			for i, it := range items {
-				sb.WriteString(gridCellHTML(it.p, b, button, it.sold, it.hidden, i%3 == 2))
+				sb.WriteString(gridCellHTML(it.p, b, button, it.sold, it.hidden, it.flag, i%3 == 2))
 			}
 			sb.WriteString(`</div></div>`)
 		}
@@ -237,7 +239,11 @@ func imageHTML(p CommerceProduct, width int) string {
 		html.EscapeString(p.ImageURL), html.EscapeString(p.ImageAlt), width, width)
 }
 
-func gridCellHTML(p CommerceProduct, b CommerceBlock, button string, sold, hidden, last bool) string {
+// removedFlag is the canvas's chip over a product the store removed.
+const removedFlag = `<span style="position:absolute;top:-30px;left:-8px;display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 8px;border-radius:6px;` +
+	`background:#B91C1C;color:#ffffff;font-family:` + sans + `;font-size:11px;font-weight:600;line-height:22px;white-space:nowrap">No longer in the store</span>`
+
+func gridCellHTML(p CommerceProduct, b CommerceBlock, button string, sold, hidden, flag, last bool) string {
 	margin := "0 14px 18px 0"
 	if last {
 		margin = "0 0 18px 0"
@@ -246,8 +252,14 @@ func gridCellHTML(p CommerceProduct, b CommerceBlock, button string, sold, hidde
 	if hidden {
 		style += hideStyle
 	}
+	if flag {
+		style += "position:relative;outline:2px solid #DC2626;outline-offset:6px;border-radius:8px;"
+	}
 	var sb strings.Builder
-	sb.WriteString(`<div class="rc-product" style="` + style + `">`)
+	sb.WriteString(`<div class="rc-product" data-rc-product="` + html.EscapeString(p.ID) + `" style="` + style + `">`)
+	if flag {
+		sb.WriteString(removedFlag)
+	}
 	link := html.EscapeString(p.URL)
 	if link != "" {
 		sb.WriteString(`<a href="` + link + `" style="text-decoration:none">` + imageHTML(p, 162) + `</a>`)
@@ -266,14 +278,21 @@ func gridCellHTML(p CommerceProduct, b CommerceBlock, button string, sold, hidde
 
 // cardHTML is the Product card's drawing: the image beside the name, the
 // price and the button.
-func cardHTML(p CommerceProduct, b CommerceBlock, button string, sold, hidden bool) string {
+func cardHTML(p CommerceProduct, b CommerceBlock, button string, sold, hidden, flag bool) string {
 	style := "padding:16px 24px;font-family:" + sans + ";"
 	if hidden {
 		style += hideStyle
 	}
+	if flag {
+		style += "position:relative;outline:2px solid #DC2626;outline-offset:-6px;border-radius:8px;"
+	}
 	link := html.EscapeString(p.URL)
 	var sb strings.Builder
-	sb.WriteString(`<div class="rc-product" style="` + style + `"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse"><tr>`)
+	sb.WriteString(`<div class="rc-product" data-rc-product="` + html.EscapeString(p.ID) + `" style="` + style + `">`)
+	if flag {
+		sb.WriteString(strings.Replace(removedFlag, "top:-30px;left:-8px", "top:-11px;left:16px", 1))
+	}
+	sb.WriteString(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse"><tr>`)
 	sb.WriteString(`<td width="40%" style="vertical-align:top;padding:0 16px 0 0">`)
 	if link != "" {
 		sb.WriteString(`<a href="` + link + `">` + imageHTML(p, 168) + `</a>`)

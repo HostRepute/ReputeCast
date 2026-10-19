@@ -620,30 +620,6 @@ func (q *Queries) CommerceCheckoutEntry(ctx context.Context, arg CommerceCheckou
 	return err
 }
 
-const commerceCheckoutStats = `-- name: CommerceCheckoutStats :one
-SELECT count(*)::bigint AS abandoned, count(*) FILTER (WHERE has_email)::bigint AS with_email
-FROM store_checkouts WHERE store_id = $1 AND completed_at IS NULL AND created_at_store >= $2 AND updated_at_store <= $3
-`
-
-type CommerceCheckoutStatsParams struct {
-	StoreID uuid.UUID `json:"storeId"`
-	Since   time.Time `json:"since"`
-	Before  time.Time `json:"before"`
-}
-
-type CommerceCheckoutStatsRow struct {
-	Abandoned int64 `json:"abandoned"`
-	WithEmail int64 `json:"withEmail"`
-}
-
-// The store's abandoned checkouts since a time: all, with an email.
-func (q *Queries) CommerceCheckoutStats(ctx context.Context, arg CommerceCheckoutStatsParams) (CommerceCheckoutStatsRow, error) {
-	row := q.db.QueryRow(ctx, commerceCheckoutStats, arg.StoreID, arg.Since, arg.Before)
-	var i CommerceCheckoutStatsRow
-	err := row.Scan(&i.Abandoned, &i.WithEmail)
-	return i, err
-}
-
 const commerceCheckoutUpsert = `-- name: CommerceCheckoutUpsert :one
 
 INSERT INTO store_checkouts (id, store_id, workspace_id, external_id, contact_id, customer_external_id, has_email, accepted_marketing, items,

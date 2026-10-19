@@ -61,6 +61,9 @@ type AudienceListSummary struct {
 	Subscribed int64     `json:"subscribed"`
 	Pending    int64     `json:"pending"`
 	CreatedAt  time.Time `json:"createdAt"`
+	// Origin is what fills the list: "store" for a connected store's
+	// customers who accepted marketing (X20), empty otherwise.
+	Origin string `json:"origin,omitempty"`
 }
 
 // AudienceSummary feeds the Audience tab counts and the filter selects.
@@ -94,7 +97,8 @@ func (s *Service) Summary(ctx context.Context, ws *store.Workspace) (AudienceSum
 		return out, err
 	}
 	for _, l := range lists {
-		out.Lists = append(out.Lists, AudienceListSummary{ID: l.ID.String(), Name: l.Name, Description: l.Description, DoubleOptIn: l.DoubleOptIn, Subscribed: l.Subscribed, Pending: l.Pending, CreatedAt: l.CreatedAt})
+		out.Lists = append(out.Lists, AudienceListSummary{ID: l.ID.String(), Name: l.Name, Description: l.Description, DoubleOptIn: l.DoubleOptIn, Subscribed: l.Subscribed, Pending: l.Pending,
+			CreatedAt: l.CreatedAt, Origin: l.Origin})
 	}
 	return out, nil
 }

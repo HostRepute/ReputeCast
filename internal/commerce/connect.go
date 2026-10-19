@@ -199,6 +199,11 @@ func (s *Service) connectState(ctx context.Context, ws *store.Workspace, st stor
 	if out.Granted == nil {
 		out.Granted = []string{}
 	}
+	out.Syncs = CommerceSyncChoice{Products: st.SyncProducts, Customers: st.SyncCustomers, Orders: st.SyncOrders, Checkouts: st.SyncCheckouts,
+		WriteBack: st.WriteBack}
+	if st.ListID != nil {
+		out.Syncs.ListID = st.ListID.String()
+	}
 	if st.ClientID != "" {
 		out.ClientIDHint = hint(st.ClientID)
 	}
@@ -648,15 +653,16 @@ func (s *Service) pluginState(ctx context.Context, st store.Store) *CommercePlug
 	return out
 }
 
-// Reconnect starts connecting a disconnected store again: Shopify asks for
-// approval again (or the app's keys, when a person disconnected it),
-// WooCommerce for a key.
+// Reconnect starts connecting a store again: Shopify asks for approval
+// again (or the app's keys, when a person disconnected it), WooCommerce for
+// a key. A connected store keeps syncing meanwhile: approving the app again
+// is how write_customers is granted later.
 func (s *Service) Reconnect(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID) (CommerceConnectState, error) {
 	st, err := s.load(ctx, ws, id)
 	if err != nil {
 		return CommerceConnectState{}, err
 	}
-	if st.Status != StatusDisconnected {
+	if st.Status != StatusDisconnected && (st.Status != StatusConnected || st.ImportFinishedAt == nil) {
 		return CommerceConnectState{}, s.wrongStep(ctx, st)
 	}
 	step := StepKey
@@ -697,7 +703,11 @@ func (s *Service) reconnected(ctx context.Context, st store.Store, by *uuid.UUID
 			TargetName: st.Name, Actor: s.actor(ctx, by)}); err != nil {
 			return err
 		}
-		if err := s.activity(ctx, q, st, activity{Kind: "reconnected", Tone: "ok", By: s.userName(ctx, by)}); err != nil {
+		a := activity{Kind: "reconnected", Tone: "ok", By: s.userName(ctx, by)}
+		if st.Status != StatusDisconnected {
+			a.Reason = "approved" // the app approved again on a connected store
+		}
+		if err := s.activity(ctx, q, st, a); err != nil {
 			return err
 		}
 		if jc := s.jobs(); jc != nil {

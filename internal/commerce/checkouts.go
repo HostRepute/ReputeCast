@@ -209,36 +209,37 @@ func (s *Service) TriggerStats(ctx context.Context, ws *store.Workspace, automat
 	if err != nil {
 		return out, err
 	}
+	out.Currency = "USD"
 	for _, f := range flows {
 		if f.ID != automationID || f.WorkspaceID != ws.ID {
 			continue
 		}
-		var t StoreTrigger
-		_ = json.Unmarshal(f.Trigger, &t)
-		storeID, err := uuid.Parse(t.Store)
-		if err != nil {
-			return out, nil //nolint:nilerr // a trigger without its store has no numbers
+		var trig struct {
+			Store string `json:"store"`
 		}
-		var since time.Time
-		if f.LiveVersion != nil {
-			if at, err := s.Q.CommerceFlowLiveSince(ctx, store.CommerceFlowLiveSinceParams{AutomationID: f.ID, Version: *f.LiveVersion}); err == nil && at != nil {
-				since = *at
+		if json.Unmarshal(f.Trigger, &trig) == nil {
+			if id, err := uuid.Parse(trig.Store); err == nil {
+				if st, err := s.Q.CommerceStore(ctx, store.CommerceStoreParams{ID: id, WorkspaceID: ws.ID}); err == nil && st.Currency != "" {
+					out.Currency = st.Currency
+				}
 			}
 		}
-		if !since.IsZero() {
-			out.Since = &since
-		}
-		stats, err := s.Q.CommerceCheckoutStats(ctx, store.CommerceCheckoutStatsParams{StoreID: storeID, Since: since,
-			Before: s.now().Add(-time.Duration(t.Hours()) * time.Hour)})
-		if err == nil {
-			out.Abandoned, out.WithEmail = stats.Abandoned, stats.WithEmail
+		if f.LiveVersion != nil {
+			if at, err := s.Q.CommerceFlowLiveSince(ctx, store.CommerceFlowLiveSinceParams{AutomationID: f.ID, Version: *f.LiveVersion}); err == nil && at != nil {
+				since := *at
+				out.Since = &since
+			}
 		}
 	}
+	// Every checkout abandoned since the flow went live has an entry, with
+	// what it did: entered, or why not (an order placed later doesn't make
+	// it any less abandoned).
 	rows, err := s.Q.CommerceCheckoutEntries(ctx, automationID)
 	if err != nil {
 		return out, err
 	}
 	for _, r := range rows {
+		out.Abandoned += r.N
 		switch r.Outcome {
 		case EntryEntered:
 			out.Entered = r.N
@@ -246,6 +247,9 @@ func (s *Service) TriggerStats(ctx context.Context, ws *store.Workspace, automat
 			out.NoConsent = r.N
 		case EntrySkipRule:
 			out.Skipped = r.N
+		}
+		if r.Outcome != EntryNoEmail {
+			out.WithEmail += r.N
 		}
 	}
 	since := time.Time{}

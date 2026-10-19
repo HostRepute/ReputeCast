@@ -61,6 +61,10 @@ type Service struct {
 	// StoreRevenue is the store orders credited to flows since a time
 	// (internal/commerce; the list's revenue column). Nil without stores.
 	StoreRevenue func(ctx context.Context, wsID uuid.UUID, ids []uuid.UUID, since time.Time) map[uuid.UUID]AutomationRevenue
+	// StoreEmail is a store-triggered starter's email in the store's
+	// voice, with its checkout items or product grid (internal/commerce).
+	// Nil without stores: the starter's plain email.
+	StoreEmail func(ctx context.Context, wsID, storeID uuid.UUID, key string) (EmailContent, bool)
 }
 
 func (s *Service) now() time.Time {

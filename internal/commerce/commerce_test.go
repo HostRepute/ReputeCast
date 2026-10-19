@@ -132,7 +132,8 @@ func one[T any](t *testing.T, s *shop, sql string, args ...any) T {
 }
 
 // get fetches a browser navigation without following its redirect.
-func (s *shop) get(target string) *http.Response {
+// get follows nothing: it answers the status and where it redirects.
+func (s *shop) get(target string) (int, string) {
 	s.t.Helper()
 	cl := &http.Client{CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
 	resp, err := cl.Get(target)
@@ -140,12 +141,12 @@ func (s *shop) get(target string) *http.Response {
 		s.t.Fatal(err)
 	}
 	_ = resp.Body.Close()
-	return resp
+	return resp.StatusCode, resp.Header.Get("Location")
 }
 
 // approve installs the app: the install call, Shopify's approval page and
-// the redirect back.
-func (s *shop) approve() *http.Response {
+// the redirect back (its status and where it sends the browser).
+func (s *shop) approve() (int, string) {
 	s.t.Helper()
 	var in commerce.CommerceInstall
 	s.c.Do("POST", s.path+"/stores/"+s.id+"/install", nil).MustStatus(s.t, 200).JSON(s.t, &in)
@@ -173,8 +174,8 @@ func (s *shop) connect(sync commerce.CommerceSyncInput) {
 func (s *shop) install() {
 	s.t.Helper()
 	s.c.Do("PUT", s.path+"/stores/"+s.id+"/app-keys", map[string]any{"clientId": s.fake.ClientID, "clientSecret": s.fake.ClientSecret}).MustStatus(s.t, 200)
-	if resp := s.approve(); resp.StatusCode != http.StatusSeeOther || strings.Contains(resp.Header.Get("Location"), "error=") {
-		s.t.Fatalf("approval: %d %s", resp.StatusCode, resp.Header.Get("Location"))
+	if status, to := s.approve(); status != http.StatusSeeOther || strings.Contains(to, "error=") {
+		s.t.Fatalf("approval: %d %s", status, to)
 	}
 }
 
@@ -247,8 +248,8 @@ func TestConnectAndFirstImport(t *testing.T) {
 	s.id = st.Store.ID
 	s.c.Do("PUT", s.path+"/stores/"+s.id+"/app-keys", map[string]any{"clientId": s.fake.ClientID, "clientSecret": "not-a-secret"}).MustStatus(t, 422)
 	s.c.Do("PUT", s.path+"/stores/"+s.id+"/app-keys", map[string]any{"clientId": s.fake.ClientID, "clientSecret": "shpss_wrong0000"}).MustStatus(t, 200)
-	if resp := s.approve(); !strings.Contains(resp.Header.Get("Location"), "error=secret_refused") {
-		t.Fatalf("a wrong secret: %s", resp.Header.Get("Location"))
+	if _, to := s.approve(); !strings.Contains(to, "error=secret_refused") {
+		t.Fatalf("a wrong secret: %s", to)
 	}
 	s.c.Do("GET", s.path+"/stores/"+s.id+"/connect", nil).MustStatus(t, 200).JSON(t, &st)
 	if st.Step != commerce.StepKeys || st.Error != "secret_refused" {
@@ -527,10 +528,10 @@ func TestAbandonedCheckouts(t *testing.T) {
 		return o
 	}
 	now := s.clk.now()
-	checkout("1", grace, "7001", true, now.Add(-90*time.Minute))   // after the hour: enters
-	checkout("2", theo, "7002", false, now.Add(-90*time.Minute))   // didn't accept marketing
-	checkout("3", "", "", false, now.Add(-90*time.Minute))         // no email
-	checkout("4", grace, "7001", true, now.Add(-20*time.Minute))   // too early
+	checkout("1", grace, "7001", true, now.Add(-90*time.Minute))    // after the hour: enters
+	checkout("2", theo, "7002", false, now.Add(-90*time.Minute))    // didn't accept marketing
+	checkout("3", "", "", false, now.Add(-90*time.Minute))          // no email
+	checkout("4", grace, "7001", true, now.Add(-20*time.Minute))    // too early
 	checkout("5", "x@example.com", "", true, now.Add(-2*time.Hour)) // ordered before the delay ran
 	s.deliver(s.order(&shopifytest.Order{ID: "5900000005", Number: 5005, Email: "x@example.com", CheckoutToken: "tok5", CreatedAt: now.Add(-100 * time.Minute),
 		UpdatedAt: now.Add(-100 * time.Minute), Subtotal: "76.0", Total: "76.0"}))
@@ -706,6 +707,78 @@ func TestBlocksReadTheStoreAtSendTime(t *testing.T) {
 	if got := s.svc.RemovedProducts(ctx, contentcheck.Input{WorkspaceID: other.ID, HTML: email}); len(got) != 0 {
 		t.Fatal("another workspace read the store")
 	}
+}
+
+// The Abandoned cart starter (CommerceEmails): offered once a store is
+// connected, it starts on the store's abandoned checkouts after an hour,
+// with the 7-day skip rule, the goal "Placed an order" and two emails in
+// the store's voice, the first with the Checkout items block.
+func TestAbandonedCartStarter(t *testing.T) {
+	s := newShop(t)
+	var tpl struct{ Templates []struct{ Key string } }
+	keys := func() string {
+		s.c.Do("GET", s.path+"/automations/templates", nil).MustStatus(t, 200).JSON(t, &tpl)
+		var k []string
+		for _, x := range tpl.Templates {
+			k = append(k, x.Key)
+		}
+		return strings.Join(k, ",")
+	}
+	if got := keys(); got != "welcome-series,re-engagement,onboarding" {
+		t.Fatalf("templates without a store: %s", got)
+	}
+	p := s.c.Do("POST", s.path+"/automations", map[string]any{"template": "abandoned-cart"}).MustStatus(t, 422).Problem(t)
+	if d, _ := p["detail"].(string); !strings.Contains(d, "Connect a store first") {
+		t.Fatalf("no store: %+v", p)
+	}
+	s.connect(fullSync)
+	if got := keys(); got != "welcome-series,re-engagement,onboarding,abandoned-cart" {
+		t.Fatalf("templates: %s", got)
+	}
+	var created struct{ ID string }
+	s.c.Do("POST", s.path+"/automations", map[string]any{"template": "abandoned-cart"}).MustStatus(t, 201).JSON(t, &created)
+	var g struct {
+		Nodes []struct {
+			Type string
+			Data struct {
+				Trigger *struct {
+					Kind, Store string
+					AfterHours  int
+					SkipDays    *int
+				}
+				Condition *struct{ Kind, Store string }
+				Email     *struct{ EmailID string }
+			}
+		}
+	}
+	if err := json.Unmarshal(one[[]byte](t, s, `SELECT graph FROM automation_versions WHERE automation_id = $1`, created.ID), &g); err != nil {
+		t.Fatal(err)
+	}
+	var kinds []string
+	for _, n := range g.Nodes {
+		kinds = append(kinds, n.Type)
+	}
+	if strings.Join(kinds, ",") != "trigger,email,delay,goal,email,exit" {
+		t.Fatalf("steps: %v", kinds)
+	}
+	tr, goal := g.Nodes[0].Data.Trigger, g.Nodes[3].Data.Condition
+	if tr == nil || tr.Kind != "abandoned_checkout" || tr.Store != s.id || tr.AfterHours != 1 || tr.SkipDays == nil || *tr.SkipDays != 7 {
+		t.Fatalf("trigger: %+v", tr)
+	}
+	if goal == nil || goal.Kind != "placed_order" || goal.Store != s.id {
+		t.Fatalf("goal: %+v", goal)
+	}
+	first := one[string](t, s, `SELECT v.mjml FROM automation_email_versions v WHERE v.email_id = $1`, g.Nodes[1].Data.Email.EmailID)
+	second := one[string](t, s, `SELECT v.mjml FROM automation_email_versions v WHERE v.email_id = $1`, g.Nodes[4].Data.Email.EmailID)
+	if !strings.Contains(first, `rc-name="Checkout items"`) || !strings.Contains(first, "<!--rc:checkout-items-->") || !strings.Contains(first, "{{ checkout_url }}") ||
+		!strings.Contains(first, "agreed to emails from Acme Merch") {
+		t.Fatalf("first email: %s", first)
+	}
+	if !strings.Contains(second, `rc-name="Product grid"`) || !strings.Contains(second, "<!--rc:store-items ") {
+		t.Fatalf("second email: %s", second)
+	}
+	// The draft publishes: its references check out.
+	s.c.Do("POST", s.path+"/automations/"+created.ID+"/publish", map[string]any{"version": 1, "migration": "finish"}).MustStatus(t, 200)
 }
 
 func mustJSON(v any) []byte {

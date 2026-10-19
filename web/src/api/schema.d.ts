@@ -13564,6 +13564,7 @@ export interface components {
             doubleOptIn: boolean;
             id: string;
             name: string;
+            origin?: string;
             /** Format: int64 */
             pending: number;
             /** Format: int64 */
@@ -13796,10 +13797,15 @@ export interface components {
             list?: string;
             name?: string;
             /**
+             * Format: uuid
+             * @description For a template that starts on a store's events (abandoned-cart): the connected store; otherwise the workspace's first
+             */
+            store?: string;
+            /**
              * @description Starter template; omit for a blank canvas
              * @enum {string}
              */
-            template?: "welcome-series" | "re-engagement" | "onboarding";
+            template?: "welcome-series" | "re-engagement" | "onboarding" | "abandoned-cart";
         };
         AutomationCreated: {
             id: string;
@@ -14227,7 +14233,7 @@ export interface components {
         };
         AutomationStarterTemplate: {
             /** @enum {string} */
-            key: "welcome-series" | "re-engagement" | "onboarding";
+            key: "welcome-series" | "re-engagement" | "onboarding" | "abandoned-cart";
             name: string;
             outline: string;
             preview: string[];
@@ -14787,6 +14793,7 @@ export interface components {
             /** @enum {string} */
             step: "address" | "app" | "keys" | "install" | "sync" | "key" | "webhooks" | "plugin" | "done";
             store: components["schemas"]["CommerceStoreSummary"];
+            syncs: components["schemas"]["CommerceSyncChoice"];
             /** Format: int64 */
             webhooks: number;
             writeGranted: boolean;
@@ -15058,6 +15065,14 @@ export interface components {
             step: string;
             sync: components["schemas"]["CommerceSyncState"];
         };
+        CommerceSyncChoice: {
+            checkouts: boolean;
+            customers: boolean;
+            listId?: string;
+            orders: boolean;
+            products: boolean;
+            writeBack: boolean;
+        };
         CommerceSyncFacts: {
             /** Format: int64 */
             accepted: number;
@@ -15125,6 +15140,7 @@ export interface components {
         CommerceTriggerStats: {
             /** Format: int64 */
             abandoned: number;
+            currency: string;
             /** Format: int64 */
             entered: number;
             /** Format: int64 */

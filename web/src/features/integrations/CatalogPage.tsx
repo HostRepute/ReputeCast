@@ -12,6 +12,7 @@ import { ago } from '@/lib/format'
 import { useCan, useWorkspace } from '@/lib/session'
 import { AIGroupLink, AIGroupNote, AIModelCard, aiGroupLine } from '@/features/ai/catalog'
 import { isAIProvider } from '@/features/ai/entries'
+import { StoreAction, StoreFact } from '@/features/commerce/catalog'
 import { ConnectDialog } from './ConnectDialog'
 import { m } from './messages'
 import {
@@ -22,6 +23,7 @@ import {
   entryName,
   helpersText,
   isPlatform,
+  isStore,
   isVerification,
   maintainer,
   reasonWhy,
@@ -359,6 +361,9 @@ function EntryCard({ entry: e, canManage, onConnect }: { entry: Entry; canManage
         {e.facts.mcpEnabled || e.facts.agents ? t(m.manage) : t(m.setUp)}
       </ButtonLink>
     )
+  } else if (isStore(e.key)) {
+    // Shopify and WooCommerce (X20): Connect opens the store's dialog, Manage its page.
+    action = <StoreAction entry={e} platform={e.key} canManage={canManage} />
   } else if (isVerification(e.key)) {
     // Address verification services live on their own page (X14).
     action =
@@ -438,6 +443,7 @@ function Fact({ entry: e }: { entry: Entry }) {
       if (!f.mcpEnabled) return <>{t(m.factMcpOff)}</>
       return f.agents ? <>{t(m.factMcpOn, { count: f.agents })}</> : <>{t(m.factMcpOnNone)}</>
   }
+  if (isStore(e.key)) return <StoreFact entry={e} platform={e.key} />
   if (isVerification(e.key)) {
     const price = `$${(f.price ?? 0).toFixed(3)}`
     if (e.status === 'not_connected') return <>{t(m.factPayPerCheck)}</>

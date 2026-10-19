@@ -23,6 +23,7 @@ import { useI18n, useT } from '@/i18n'
 import { NotificationsRow, TransactionalActivityRow, transactionalCount, useContactTransactional, withTransactional } from '@/features/transactional/ContactActivity'
 import { JoinLine } from '@/features/growth/JoinLine'
 import { ProfileScoreCard } from '@/features/scoring/ProfileScoreCard'
+import { StoreOrdersCard } from '@/features/commerce/profile'
 import { FieldSourceNote, useAnswerActivity, useFieldSources } from '@/features/polls/contact'
 import { AddressCheckRow } from '@/features/verification/AddressCheck'
 import './audience.css'
@@ -136,6 +137,8 @@ export function ContactProfilePage({ contactId }: { contactId: string }) {
             <div className="flex min-w-0 flex-[1_1_380px] flex-col gap-5">
               <FieldsCard p={p} />
               <ConsentCard p={p} />
+              {/* A connected store's orders and consent (X20). */}
+              <StoreOrdersCard contactId={p.id} />
             </div>
             <ActivityCard contactId={contactId} total={p.activityTotal} />
           </div>

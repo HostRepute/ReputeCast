@@ -330,6 +330,18 @@ type CommerceConnectState struct {
 	Webhooks int                  `json:"webhooks"`
 	Plugin   *CommercePluginState `json:"plugin,omitempty"`
 	Demo     bool                 `json:"demo"`
+	// Syncs is what syncs now, for "Change what syncs" on a connected store.
+	Syncs CommerceSyncChoice `json:"syncs"`
+}
+
+// CommerceSyncChoice is what a store syncs and the list customers join.
+type CommerceSyncChoice struct {
+	Products  bool   `json:"products"`
+	Customers bool   `json:"customers"`
+	Orders    bool   `json:"orders"`
+	Checkouts bool   `json:"checkouts"`
+	WriteBack bool   `json:"writeBack"`
+	ListID    string `json:"listId,omitempty"`
 }
 
 // CommerceInstall is where to approve the app.
@@ -522,6 +534,7 @@ type CommerceTriggerStats struct {
 	NoConsent int64      `json:"noConsent"`
 	Skipped   int64      `json:"skipped"`
 	// Recovered orders credited to the automation, and their revenue.
-	Orders  int64 `json:"orders"`
-	Revenue int64 `json:"revenue"`
+	Orders   int64  `json:"orders"`
+	Revenue  int64  `json:"revenue"`
+	Currency string `json:"currency"`
 }

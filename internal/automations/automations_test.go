@@ -69,13 +69,14 @@ func TestListAndSummaryMatchTheBoard(t *testing.T) {
 	_, c := signedIn(t, "linh@acme.io")
 	var l list
 	c.Do("GET", wsPath, nil).MustStatus(t, 200).JSON(t, &l)
-	// Contact scoring (X13) adds the live "Sales-ready handoff".
-	if l.Counts.All != 6 || l.Counts.Live != 4 || l.Counts.Paused != 1 || l.Counts.Drafts != 1 {
+	// Contact scoring (X13) adds the live "Sales-ready handoff", the Acme
+	// Merch store (X20) the live "Abandoned cart".
+	if l.Counts.All != 7 || l.Counts.Live != 5 || l.Counts.Paused != 1 || l.Counts.Drafts != 1 {
 		t.Fatalf("counts %+v", l.Counts)
 	}
 	var got []string
 	for _, it := range l.Items {
-		if it.Name != "Sales-ready handoff" {
+		if it.Name != "Sales-ready handoff" && it.Name != "Abandoned cart" {
 			got = append(got, it.Name)
 		}
 	}
@@ -129,7 +130,8 @@ func TestListAndSummaryMatchTheBoard(t *testing.T) {
 		}
 	}
 	c.Do("GET", wsPath+"/summary", nil).MustStatus(t, 200).JSON(t, &sum)
-	if sum.InFlow != 1932 || sum.LiveCount != 4 || sum.Goals != 604 || len(sum.GoalsBy) != 3 || sum.GoalsBy[0].Name != "welcome" || sum.GoalsBy[0].Count != 312 {
+	// Abandoned cart (X20) adds 6 in flow and 6 goals in the 30 days.
+	if sum.InFlow != 1938 || sum.LiveCount != 5 || sum.Goals != 610 || len(sum.GoalsBy) != 4 || sum.GoalsBy[0].Name != "welcome" || sum.GoalsBy[0].Count != 312 {
 		t.Fatalf("summary %+v", sum)
 	}
 	if len(sum.SentBy) == 0 || sum.SentBy[0].Short != "SES" {
@@ -510,7 +512,8 @@ func TestTemplatesAndOptions(t *testing.T) {
 		}
 	}
 	c.Do("GET", wsPath+"/templates", nil).MustStatus(t, 200).JSON(t, &tpl)
-	if len(tpl.Templates) != 3 || tpl.Templates[0].Key != "welcome-series" || tpl.Templates[0].Steps != 7 {
+	// The Abandoned cart starter joins them once a store is connected (X20).
+	if len(tpl.Templates) != 4 || tpl.Templates[3].Key != "abandoned-cart" || tpl.Templates[0].Key != "welcome-series" || tpl.Templates[0].Steps != 7 {
 		t.Fatalf("templates %+v", tpl)
 	}
 	var opts struct {
@@ -519,7 +522,7 @@ func TestTemplatesAndOptions(t *testing.T) {
 		Providers []struct{ Short string }
 	}
 	c.Do("GET", wsPath+"/options", nil).MustStatus(t, 200).JSON(t, &opts)
-	if len(opts.Lists) != 3 || len(opts.Emails) < 5 || len(opts.Providers) != 3 {
+	if len(opts.Lists) != 4 || len(opts.Emails) < 5 || len(opts.Providers) != 3 {
 		t.Fatalf("options %+v", opts)
 	}
 }

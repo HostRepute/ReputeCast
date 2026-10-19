@@ -84,7 +84,8 @@ func TestDeleteAndRestoreList(t *testing.T) {
 		if im.Name != "Product Updates" || im.Members != 14110 || im.Elsewhere <= 0 || im.Elsewhere >= im.Members {
 			t.Fatalf("impact %+v", im)
 		}
-		if im.OtherListCount != 2 || !slices.Contains(im.OtherLists, "Weekly Digest") {
+		// Weekly Digest, Beta Program and the Acme Merch store's list (X20).
+		if im.OtherListCount != 3 || !slices.Contains(im.OtherLists, "Weekly Digest") {
 			t.Errorf("other lists %v (%d)", im.OtherLists, im.OtherListCount)
 		}
 		one := func(what string, items []struct{ Name string }, want string) {

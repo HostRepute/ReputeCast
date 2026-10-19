@@ -1224,7 +1224,7 @@ func (q *Queries) ListImpactOtherLists(ctx context.Context, id uuid.UUID) ([]Lis
 }
 
 const listListsWithCounts = `-- name: ListListsWithCounts :many
-SELECT l.id, l.name, l.description, l.double_opt_in, l.created_at,
+SELECT l.id, l.name, l.description, l.double_opt_in, l.created_at, l.origin,
        coalesce(m.subscribed, 0)::bigint AS subscribed,
        coalesce(m.pending, 0)::bigint AS pending
 FROM lists l
@@ -1243,6 +1243,7 @@ type ListListsWithCountsRow struct {
 	Description string    `json:"description"`
 	DoubleOptIn bool      `json:"doubleOptIn"`
 	CreatedAt   time.Time `json:"createdAt"`
+	Origin      string    `json:"origin"`
 	Subscribed  int64     `json:"subscribed"`
 	Pending     int64     `json:"pending"`
 }
@@ -1262,6 +1263,7 @@ func (q *Queries) ListListsWithCounts(ctx context.Context, workspaceID uuid.UUID
 			&i.Description,
 			&i.DoubleOptIn,
 			&i.CreatedAt,
+			&i.Origin,
 			&i.Subscribed,
 			&i.Pending,
 		); err != nil {

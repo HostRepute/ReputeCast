@@ -299,8 +299,6 @@ type Querier interface {
 	// An automation's abandoned-checkout numbers since it went live.
 	CommerceCheckoutEntries(ctx context.Context, automationID uuid.UUID) ([]CommerceCheckoutEntriesRow, error)
 	CommerceCheckoutEntry(ctx context.Context, arg CommerceCheckoutEntryParams) error
-	// The store's abandoned checkouts since a time: all, with an email.
-	CommerceCheckoutStats(ctx context.Context, arg CommerceCheckoutStatsParams) (CommerceCheckoutStatsRow, error)
 	// ── Checkouts ───────────────────────────────────────────────────────────
 	CommerceCheckoutUpsert(ctx context.Context, arg CommerceCheckoutUpsertParams) (StoreCheckout, error)
 	// Checkouts of a store with no order after the delay, created since a
@@ -1602,6 +1600,7 @@ type Querier interface {
 	// Joins and departures across the workspace's lists in each 24-hour step
 	// since a time, counted the way List health counts a list's net growth
 	// (ListGrowthSince): joins of members still subscribed, and departures.
+	// The lists a connected store fills aren't the newsletter's (X20).
 	OverviewListChanges(ctx context.Context, arg OverviewListChangesParams) ([]OverviewListChangesRow, error)
 	// Overview (spec 7.1).
 	OverviewNextScheduled(ctx context.Context, arg OverviewNextScheduledParams) (OverviewNextScheduledRow, error)

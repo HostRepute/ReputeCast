@@ -12,6 +12,7 @@ import { Thumb } from './Thumb'
 import { isDigestTemplate } from '@/features/digests/composer/DigestMode'
 import { LayerMark, LayersNote } from '@/features/conditional/Canvas'
 import { PollBlockHint } from '@/features/polls/Block'
+import { useStoreBlockDefs } from '@/features/commerce/composer'
 
 type BlocksAPI = { startDrag(b: unknown, ev?: Event): void; endDrag(cancel?: boolean): void; get(id: string): unknown; add(id: string, p: Record<string, unknown>): unknown }
 
@@ -89,7 +90,9 @@ function BlocksTab({ onShowSections, blocks, note, reputecastFirst }: { onShowSe
   const c = useComposer()
   const [q, setQ] = useState('')
   const sections = $api.useQuery('get', '/api/v1/workspaces/{workspace}/templates', { params: { path: { workspace: c.slug } } }, { staleTime: 60_000 })
-  const defs = useMemo(() => blocks ?? blockDefs(c.context.postalAddress), [blocks, c.context.postalAddress])
+  // The Product grid joins the ReputeCast blocks once a store is connected (X20).
+  const storeDefs = useStoreBlockDefs(!blocks && c.kind !== 'transactional')
+  const defs = useMemo(() => [...(blocks ?? blockDefs(c.context.postalAddress)), ...storeDefs], [blocks, c.context.postalAddress, storeDefs])
   useEffect(() => {
     if (!c.editor) return
     const api = blocksApi(c.editor)

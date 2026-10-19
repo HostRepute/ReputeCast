@@ -32,6 +32,7 @@ import { StepLanguages } from '@/features/languages/automation'
 import { ScoreTriggerFields, scoreTriggerDefaults } from '@/features/scoring/ScoreTrigger'
 import { isOneOfLabel, scoreTriggerName } from '@/features/scoring/triggerText'
 import { PollTriggerProps } from '@/features/polls/trigger'
+import { isStoreTrigger, PlacedOrderFields, StoreTriggerFields, storeTriggerDefaults, useStoreTriggerOptions } from '@/features/commerce/automation'
 
 type Options = Schemas['AutomationOptions']
 
@@ -58,6 +59,10 @@ const triggerItems: { kind: TriggerConfig['kind']; label: string }[] = [
   },
   // Design expansion, X11.
   { kind: 'poll_answered', label: 'Answered a poll or survey' },
+  // Shopify and WooCommerce (design expansion, X20).
+  { kind: 'order_placed', label: 'Order placed' },
+  { kind: 'first_order', label: 'First order' },
+  { kind: 'abandoned_checkout', label: 'Abandoned checkout' },
 ]
 
 const stepItems: { type: StepType; label: string }[] = [
@@ -248,6 +253,8 @@ function ConditionEditor({ graph, node, value, onChange, refs, options, disabled
     { value: 'list', label: 'Is in a list' },
     { value: 'event', label: 'Sent an API event' },
     { value: 'field', label: 'A contact field' },
+    // Shopify and WooCommerce (design expansion, X20).
+    { value: 'placed_order', label: 'Placed an order' },
   ]
   const set = (patch: Partial<FlowCondition>) => onChange({ ...(c ?? { kind: 'opened' }), ...patch } as FlowCondition)
   return (
@@ -306,6 +313,7 @@ function ConditionEditor({ graph, node, value, onChange, refs, options, disabled
         </select>
       ) : null}
       {c?.kind === 'event' ? <input className="in mono" aria-label="Event" list="fe-events" placeholder="teammate.invited" disabled={disabled} value={c.event ?? ''} onChange={(e) => set({ event: e.target.value })} /> : null}
+      {c?.kind === 'placed_order' ? <PlacedOrderFields c={c} set={set} disabled={disabled} /> : null}
       {c?.kind === 'field' ? (
         <>
           <input className="in" aria-label="Field" placeholder="Field, e.g. plan" disabled={disabled} value={c.field ?? ''} onChange={(e) => set({ field: e.target.value })} />
@@ -575,16 +583,17 @@ function SkipRules({ node, options, editable, onChange }: StepPanelProps) {
   )
 }
 
-function TriggerProps({ node, options, editable, onChange, stats, hasStats }: StepPanelProps) {
+function TriggerProps({ graph, node, options, editable, onChange, stats, hasStats }: StepPanelProps) {
   const t: TriggerConfig = node.data.trigger ?? { kind: 'joined_list' }
   const disabled = !editable
   const set = (patch: Partial<TriggerConfig>) => onChange({ ...node.data, trigger: { ...t, ...patch } })
+  const stores = useStoreTriggerOptions().data?.stores
   return (
     <>
       <Prop title="Starts when" id="p-kind">
         <select aria-labelledby="p-kind" className="in" disabled={disabled} value={t.kind} onChange={(e) => {
             const kind = e.target.value as TriggerConfig['kind']
-            onChange({ ...node.data, trigger: { ...(kind === 'score_crosses' ? scoreTriggerDefaults(options?.scoreBands) : {}), kind, reentry: t.reentry } })
+            onChange({ ...node.data, trigger: { reentry: t.reentry, ...(kind === 'score_crosses' ? scoreTriggerDefaults(options?.scoreBands) : {}), ...storeTriggerDefaults(kind, stores), kind } })
           }}
         >
           {Object.entries(triggerKindLabels).map(([k, label]) => (
@@ -624,6 +633,8 @@ function TriggerProps({ node, options, editable, onChange, stats, hasStats }: St
         {t.kind === 'tag_added' ? <input className="in" aria-label="Tag" list="fe-tags" placeholder="Tag, e.g. sunset-entered" disabled={disabled} value={t.tag ?? ''} onChange={(e) => set({ tag: e.target.value })} /> : null}
         {/* Answered a poll or survey (design expansion, X11). */}
         {t.kind === 'poll_answered' ? <PollTriggerProps t={t} disabled={disabled} set={set} /> : null}
+        {/* Order placed, First order and Abandoned checkout (design expansion, X20). */}
+        {isStoreTrigger(t.kind) ? <StoreTriggerFields t={t} set={set} disabled={disabled} graph={graph} /> : null}
         {t.kind === 'api_event' ? (
           <>
             <input className="in mono" aria-label="Event name" list="fe-events" placeholder="workspace.created" disabled={disabled} value={t.event ?? ''} onChange={(e) => set({ event: e.target.value })} />

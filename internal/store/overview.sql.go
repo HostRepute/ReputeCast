@@ -93,12 +93,12 @@ SELECT floor(extract(epoch FROM (x.at - $1::timestamptz)) / 86400)::int AS step,
 FROM (
     SELECT lm.subscribed_at AS at, true AS joined
     FROM list_memberships lm
-    JOIN lists l ON l.id = lm.list_id AND l.workspace_id = $2 AND l.deleted_at IS NULL
+    JOIN lists l ON l.id = lm.list_id AND l.workspace_id = $2 AND l.deleted_at IS NULL AND l.origin <> 'store'
     WHERE lm.status = 'subscribed' AND lm.subscribed_at >= $1::timestamptz
     UNION ALL
     SELECT lm.unsubscribed_at, false
     FROM list_memberships lm
-    JOIN lists l ON l.id = lm.list_id AND l.workspace_id = $2 AND l.deleted_at IS NULL
+    JOIN lists l ON l.id = lm.list_id AND l.workspace_id = $2 AND l.deleted_at IS NULL AND l.origin <> 'store'
     WHERE lm.unsubscribed_at >= $1::timestamptz
 ) x
 GROUP BY 1
@@ -119,6 +119,7 @@ type OverviewListChangesRow struct {
 // Joins and departures across the workspace's lists in each 24-hour step
 // since a time, counted the way List health counts a list's net growth
 // (ListGrowthSince): joins of members still subscribed, and departures.
+// The lists a connected store fills aren't the newsletter's (X20).
 func (q *Queries) OverviewListChanges(ctx context.Context, arg OverviewListChangesParams) ([]OverviewListChangesRow, error) {
 	rows, err := q.db.Query(ctx, overviewListChanges, arg.Since, arg.WorkspaceID)
 	if err != nil {

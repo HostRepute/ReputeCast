@@ -265,6 +265,9 @@ export function goalTitle(c: FlowCondition | undefined, refs: Refs): string {
       return `Sent ${c.event ?? ''}`
     case 'field':
       return capFirst(conditionPhrase({ nodes: [], edges: [] }, c, refs))
+    // Shopify and WooCommerce (X20).
+    case 'placed_order':
+      return 'Placed an order'
   }
   return 'Goal'
 }
@@ -275,6 +278,11 @@ export function nodeTitle(g: FlowGraph, n: FlowNode, refs: Refs): string {
   switch (n.type) {
     case 'trigger': {
       if (!d.trigger?.kind) return 'Pick a trigger'
+      // "Acme Merch · after 1 hour" (X20).
+      if (d.trigger.kind === 'abandoned_checkout') {
+        const h = d.trigger.afterHours || 1
+        return `${triggerRef(d.trigger, refs)} · after ${h} hour${h === 1 ? '' : 's'}`
+      }
       return triggerRef(d.trigger, refs) || triggerKindLabels[d.trigger.kind]
     }
     case 'delay':

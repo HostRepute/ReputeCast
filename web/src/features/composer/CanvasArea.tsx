@@ -324,7 +324,7 @@ function SelectionOverlay({ host, tick }: { host: HTMLElement | null; tick: numb
   )
 }
 
-const TAGGED = new Set(['content.alt_text', 'links.blocklist', 'links.shortener', 'links.broken', 'links.empty', 'personalization.unknown', 'content.raw_html'])
+const TAGGED = new Set(['content.alt_text', 'links.blocklist', 'links.shortener', 'links.broken', 'links.empty', 'personalization.unknown', 'content.raw_html', 'store.product_removed'])
 
 function WarningOverlays({ host, tick }: { host: HTMLElement | null; tick: number }) {
   const c = useComposer()

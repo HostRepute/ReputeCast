@@ -6569,6 +6569,9 @@
           "name": {
             "type": "string"
           },
+          "origin": {
+            "type": "string"
+          },
           "pending": {
             "format": "int64",
             "type": "integer"
@@ -7407,12 +7410,18 @@
             "maxLength": 120,
             "type": "string"
           },
+          "store": {
+            "description": "For a template that starts on a store's events (abandoned-cart): the connected store; otherwise the workspace's first",
+            "format": "uuid",
+            "type": "string"
+          },
           "template": {
             "description": "Starter template; omit for a blank canvas",
             "enum": [
               "welcome-series",
               "re-engagement",
-              "onboarding"
+              "onboarding",
+              "abandoned-cart"
             ],
             "type": "string"
           }
@@ -8881,7 +8890,8 @@
             "enum": [
               "welcome-series",
               "re-engagement",
-              "onboarding"
+              "onboarding",
+              "abandoned-cart"
             ],
             "type": "string"
           },
@@ -10790,6 +10800,9 @@
           "store": {
             "$ref": "#/components/schemas/CommerceStoreSummary"
           },
+          "syncs": {
+            "$ref": "#/components/schemas/CommerceSyncChoice"
+          },
           "webhooks": {
             "format": "int64",
             "type": "integer"
@@ -10813,7 +10826,8 @@
           "newListName",
           "months",
           "webhooks",
-          "demo"
+          "demo",
+          "syncs"
         ],
         "type": "object"
       },
@@ -11761,6 +11775,37 @@
         ],
         "type": "object"
       },
+      "CommerceSyncChoice": {
+        "additionalProperties": false,
+        "properties": {
+          "checkouts": {
+            "type": "boolean"
+          },
+          "customers": {
+            "type": "boolean"
+          },
+          "listId": {
+            "type": "string"
+          },
+          "orders": {
+            "type": "boolean"
+          },
+          "products": {
+            "type": "boolean"
+          },
+          "writeBack": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "products",
+          "customers",
+          "orders",
+          "checkouts",
+          "writeBack"
+        ],
+        "type": "object"
+      },
       "CommerceSyncFacts": {
         "additionalProperties": false,
         "properties": {
@@ -11961,6 +12006,9 @@
             "format": "int64",
             "type": "integer"
           },
+          "currency": {
+            "type": "string"
+          },
           "entered": {
             "format": "int64",
             "type": "integer"
@@ -11997,7 +12045,8 @@
           "noConsent",
           "skipped",
           "orders",
-          "revenue"
+          "revenue",
+          "currency"
         ],
         "type": "object"
       },
