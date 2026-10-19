@@ -37,8 +37,9 @@ import (
 
 // KnownPluginVersion is the WordPress plugin release this version of
 // ReputeCast knows. With the update check off, "Update available" compares
-// with it.
-const KnownPluginVersion = "1.3.0"
+// with it. 1.4.0 adds WooCommerce: the checkout's consent, the click token
+// on orders and abandoned checkouts (internal/commerce).
+const KnownPluginVersion = "1.4.0"
 
 // SiteSilentAfter is when a site that hasn't reported in needs attention.
 const SiteSilentAfter = 24 * time.Hour

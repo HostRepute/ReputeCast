@@ -156,6 +156,24 @@ final class Client {
 	}
 
 	/**
+	 * Abandoned and completed checkouts of the site's WooCommerce store.
+	 *
+	 * @param string                           $site_url  The site's address.
+	 * @param array<int, array<string, mixed>> $checkouts The checkouts (WooCommerce::pending()).
+	 * @return array<string, mixed>|WP_Error
+	 */
+	public function woo_checkouts( string $site_url, array $checkouts ) {
+		return $this->request(
+			'POST',
+			$this->ws( '/woocommerce/checkouts' ),
+			array(
+				'siteUrl'   => $site_url,
+				'checkouts' => $checkouts,
+			)
+		);
+	}
+
+	/**
 	 * A workspace path.
 	 *
 	 * @param string $path The path under the workspace.

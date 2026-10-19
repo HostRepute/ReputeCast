@@ -226,7 +226,11 @@ function SiteCard({ data, site: s, defaultOpen, onDialog }: { data: Data; site: 
       </div>
       {open ? (
         <div className="pad flex flex-col gap-[18px]">
-          {s.updateAvailable ? <Note tone="info">{latest === '1.3.0' ? t(m.updateNote130, { version: latest }) : t(m.updateNote, { version: latest })}</Note> : null}
+          {s.updateAvailable ? (
+            <Note tone="info">
+              {latest === '1.3.0' ? t(m.updateNote130, { version: latest }) : latest === '1.4.0' ? t(m.updateNote140, { version: latest }) : t(m.updateNote, { version: latest })}
+            </Note>
+          ) : null}
           {silent?.since ? (
             <Note tone="warn">
               <span className="font-semibold">{t(m.silentTitle, { since: stamp(silent.since) })}</span>

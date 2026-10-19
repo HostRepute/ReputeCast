@@ -204,6 +204,11 @@ func (g *storeSeedState) month(m time.Month, d, hour, minute int) time.Time {
 
 func seedStoresImpl(ctx context.Context, s *Seeder) error {
 	ws := s.WS()
+	// The plugin's 1.4.0 (WooCommerce) ships with this release: the staging
+	// site runs the latest, as the WordPress boards show it.
+	if _, err := s.Tx.Exec(ctx, `UPDATE wordpress_sites SET plugin_version = '1.4.0' WHERE workspace_id = $1 AND address = 'staging.acme.io'`, ws.ID); err != nil {
+		return err
+	}
 	marcus := s.Users["marcus@acme.io"]
 	if marcus.ID == uuid.Nil || ws.ID == uuid.Nil {
 		return nil

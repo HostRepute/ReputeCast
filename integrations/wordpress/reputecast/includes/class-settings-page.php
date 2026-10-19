@@ -581,6 +581,10 @@ final class Settings_Page {
 	/** What leaves the site, and where to. */
 	private static function render_privacy(): void {
 		echo '<h2>' . esc_html__( 'What the plugin sends', 'reputecast' ) . '</h2>';
+		if ( WooCommerce::active() && WooCommerce::checkouts_enabled() ) {
+			echo '<p>' . esc_html__( 'The plugin talks only to the ReputeCast address above. It sends the site’s address and name, the plugin, WordPress and PHP versions, the feed URL, the post categories and where signup forms are used; and, for each post you publish, its title, excerpt, link, featured image, categories and language. With WooCommerce, every 15 minutes, it sends the checkouts changed since: the email and name typed, whether the marketing checkbox was ticked, the cart and its totals, and the link that restores it. It never sends addresses, phone numbers or payment details. Signup forms load from ReputeCast in the visitor’s browser, as its embed code does.', 'reputecast' ) . '</p>';
+			return;
+		}
 		echo '<p>' . esc_html__( 'The plugin talks only to the ReputeCast address above. It sends the site’s address and name, the plugin, WordPress and PHP versions, the feed URL, the post categories and where signup forms are used; and, for each post you publish, its title, excerpt, link, featured image, categories and language. It sends nothing about visitors or users. Signup forms load from ReputeCast in the visitor’s browser, as its embed code does.', 'reputecast' ) . '</p>';
 	}
 }
