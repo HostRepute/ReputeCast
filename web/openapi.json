@@ -34196,6 +34196,679 @@
         ],
         "type": "object"
       },
+      "Offer": {
+        "additionalProperties": false,
+        "properties": {
+          "amountOffCents": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "applies": {
+            "items": {
+              "$ref": "#/components/schemas/OfferApplies"
+            },
+            "type": "array"
+          },
+          "byCode": {
+            "type": "boolean"
+          },
+          "byLink": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "codeDays": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "discountType": {
+            "enum": [
+              "percent",
+              "amount"
+            ],
+            "type": "string"
+          },
+          "duration": {
+            "enum": [
+              "once",
+              "months",
+              "forever"
+            ],
+            "type": "string"
+          },
+          "endedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "endedBy": {
+            "type": "string"
+          },
+          "endedReason": {
+            "enum": [
+              "date",
+              "limit",
+              "early"
+            ],
+            "type": "string"
+          },
+          "endsAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "signup",
+              "retention",
+              "referral"
+            ],
+            "type": "string"
+          },
+          "limit": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "link": {
+            "type": "string"
+          },
+          "linkHost": {
+            "type": "string"
+          },
+          "minPaidMonths": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "months": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "newOnly": {
+            "type": "boolean"
+          },
+          "percentOff": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "results": {
+            "$ref": "#/components/schemas/OfferResults"
+          },
+          "startedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "startedBy": {
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "live",
+              "limit",
+              "ended",
+              "missing",
+              "draft"
+            ],
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "live",
+              "ended"
+            ],
+            "type": "string"
+          },
+          "stripe": {
+            "$ref": "#/components/schemas/OfferStripe"
+          },
+          "sync": {
+            "enum": [
+              "draft",
+              "synced",
+              "failed"
+            ],
+            "type": "string"
+          },
+          "syncError": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "discountType",
+          "currency",
+          "duration",
+          "applies",
+          "byCode",
+          "code",
+          "byLink",
+          "newOnly",
+          "minPaidMonths",
+          "codeDays",
+          "status",
+          "state",
+          "startedAt",
+          "sync",
+          "stripe",
+          "results"
+        ],
+        "type": "object"
+      },
+      "OfferApplies": {
+        "additionalProperties": false,
+        "properties": {
+          "currency": {
+            "type": "string"
+          },
+          "period": {
+            "enum": [
+              "month",
+              "year"
+            ],
+            "type": "string"
+          },
+          "priceCents": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "short": {
+            "type": "string"
+          },
+          "tier": {
+            "type": "string"
+          },
+          "tierId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "tierId",
+          "tier",
+          "short",
+          "period",
+          "priceCents",
+          "currency"
+        ],
+        "type": "object"
+      },
+      "OfferAppliesInput": {
+        "additionalProperties": false,
+        "properties": {
+          "period": {
+            "enum": [
+              "month",
+              "year"
+            ],
+            "type": "string"
+          },
+          "tierId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tierId",
+          "period"
+        ],
+        "type": "object"
+      },
+      "OfferCode": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "issuedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "issuedTo": {
+            "type": "string"
+          },
+          "redeemedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "not_redeemed",
+              "redeemed",
+              "expired"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "issuedTo",
+          "issuedAt",
+          "expiresAt",
+          "status"
+        ],
+        "type": "object"
+      },
+      "OfferDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "account": {
+            "type": "string"
+          },
+          "amountOffCents": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "applies": {
+            "items": {
+              "$ref": "#/components/schemas/OfferApplies"
+            },
+            "type": "array"
+          },
+          "byCode": {
+            "type": "boolean"
+          },
+          "byLink": {
+            "type": "boolean"
+          },
+          "canEdit": {
+            "type": "boolean"
+          },
+          "choices": {
+            "items": {
+              "$ref": "#/components/schemas/OfferApplies"
+            },
+            "type": "array"
+          },
+          "code": {
+            "type": "string"
+          },
+          "codeDays": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "codes": {
+            "items": {
+              "$ref": "#/components/schemas/OfferCode"
+            },
+            "type": "array"
+          },
+          "connected": {
+            "type": "boolean"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "discountType": {
+            "enum": [
+              "percent",
+              "amount"
+            ],
+            "type": "string"
+          },
+          "duration": {
+            "enum": [
+              "once",
+              "months",
+              "forever"
+            ],
+            "type": "string"
+          },
+          "endedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "endedBy": {
+            "type": "string"
+          },
+          "endedReason": {
+            "enum": [
+              "date",
+              "limit",
+              "early"
+            ],
+            "type": "string"
+          },
+          "endsAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "helpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "signup",
+              "retention",
+              "referral"
+            ],
+            "type": "string"
+          },
+          "limit": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "link": {
+            "type": "string"
+          },
+          "linkHost": {
+            "type": "string"
+          },
+          "minPaidMonths": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "months": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "newOnly": {
+            "type": "boolean"
+          },
+          "percentOff": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "results": {
+            "$ref": "#/components/schemas/OfferResults"
+          },
+          "startedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "startedBy": {
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "live",
+              "limit",
+              "ended",
+              "missing",
+              "draft"
+            ],
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "live",
+              "ended"
+            ],
+            "type": "string"
+          },
+          "stripe": {
+            "$ref": "#/components/schemas/OfferStripe"
+          },
+          "sync": {
+            "enum": [
+              "draft",
+              "synced",
+              "failed"
+            ],
+            "type": "string"
+          },
+          "syncError": {
+            "type": "string"
+          },
+          "upgradeHost": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "codes",
+          "choices",
+          "account",
+          "provider",
+          "connected",
+          "canEdit",
+          "helpers",
+          "upgradeHost",
+          "id",
+          "name",
+          "kind",
+          "discountType",
+          "currency",
+          "duration",
+          "applies",
+          "byCode",
+          "code",
+          "byLink",
+          "newOnly",
+          "minPaidMonths",
+          "codeDays",
+          "status",
+          "state",
+          "startedAt",
+          "sync",
+          "stripe",
+          "results"
+        ],
+        "type": "object"
+      },
+      "OfferInput": {
+        "additionalProperties": false,
+        "properties": {
+          "amountOffCents": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "applies": {
+            "items": {
+              "$ref": "#/components/schemas/OfferAppliesInput"
+            },
+            "maxItems": 40,
+            "type": "array"
+          },
+          "byCode": {
+            "type": "boolean"
+          },
+          "byLink": {
+            "type": "boolean"
+          },
+          "code": {
+            "maxLength": 40,
+            "type": "string"
+          },
+          "codeDays": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "discountType": {
+            "enum": [
+              "percent",
+              "amount"
+            ],
+            "type": "string"
+          },
+          "duration": {
+            "enum": [
+              "once",
+              "months",
+              "forever"
+            ],
+            "type": "string"
+          },
+          "endsOn": {
+            "description": "YYYY-MM-DD",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "signup",
+              "retention",
+              "referral"
+            ],
+            "type": "string"
+          },
+          "limit": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "minPaidMonths": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "months": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 80,
+            "type": "string"
+          },
+          "newOnly": {
+            "type": "boolean"
+          },
+          "percentOff": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "kind",
+          "discountType",
+          "duration",
+          "applies",
+          "byCode",
+          "byLink",
+          "newOnly",
+          "minPaidMonths"
+        ],
+        "type": "object"
+      },
+      "OfferList": {
+        "additionalProperties": false,
+        "properties": {
+          "account": {
+            "type": "string"
+          },
+          "canEdit": {
+            "type": "boolean"
+          },
+          "connected": {
+            "type": "boolean"
+          },
+          "helpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Offer"
+            },
+            "type": "array"
+          },
+          "provider": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "items",
+          "account",
+          "provider",
+          "connected",
+          "canEdit",
+          "helpers"
+        ],
+        "type": "object"
+      },
+      "OfferResults": {
+        "additionalProperties": false,
+        "properties": {
+          "acceptRate": {
+            "format": "double",
+            "type": "number"
+          },
+          "accepted": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "codesIssued": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "codesRedeemed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "mrrCents": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "newMembers": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "redemptions": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "shown": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "redemptions",
+          "newMembers",
+          "mrrCents",
+          "shown",
+          "accepted",
+          "codesIssued",
+          "codesRedeemed"
+        ],
+        "type": "object"
+      },
+      "OfferStripe": {
+        "additionalProperties": false,
+        "properties": {
+          "coupon": {
+            "type": "string"
+          },
+          "couponUrl": {
+            "type": "string"
+          },
+          "missing": {
+            "type": "boolean"
+          },
+          "mode": {
+            "type": "string"
+          },
+          "promotionCode": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "missing"
+        ],
+        "type": "object"
+      },
       "Operator": {
         "additionalProperties": false,
         "properties": {
@@ -92459,6 +93132,467 @@
         ],
         "x-access": "workspace",
         "x-permission": "earn:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/earn/offers": {
+      "get": {
+        "operationId": "list-offers",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfferList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Plans \u0026 offers: the offers and what they did",
+        "tags": [
+          "Offers"
+        ],
+        "x-access": "workspace",
+        "x-permission": "earn:view"
+      },
+      "post": {
+        "description": "Without a connected provider the offer is saved as a draft and created there once one is connected and it's saved again.",
+        "operationId": "create-offer",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OfferInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfferDetail"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create an offer, and its coupon and codes in the payment provider",
+        "tags": [
+          "Offers"
+        ],
+        "x-access": "workspace",
+        "x-permission": "earn:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/earn/offers/new": {
+      "get": {
+        "operationId": "new-offer",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfferDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A new offer's editor: the tiers and periods it can apply to",
+        "tags": [
+          "Offers"
+        ],
+        "x-access": "workspace",
+        "x-permission": "earn:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/earn/offers/{id}": {
+      "get": {
+        "operationId": "get-offer",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The offer's id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "The offer's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfferDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "An offer: its rules, results, codes and its coupon in the provider",
+        "tags": [
+          "Offers"
+        ],
+        "x-access": "workspace",
+        "x-permission": "earn:view"
+      },
+      "put": {
+        "description": "Changing the discount creates a new coupon; codes already used keep theirs. Raising the limit or moving the date of an offer that ended by them brings it back.",
+        "operationId": "update-offer",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The offer's id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "The offer's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OfferInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfferDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change an offer",
+        "tags": [
+          "Offers"
+        ],
+        "x-access": "workspace",
+        "x-permission": "earn:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/earn/offers/{id}/end": {
+      "post": {
+        "operationId": "end-offer",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The offer's id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "The offer's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfferDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "End an offer now: its code stops working; paid members who used it keep their discount",
+        "tags": [
+          "Offers"
+        ],
+        "x-access": "workspace",
+        "x-permission": "earn:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/earn/offers/{id}/recreate": {
+      "post": {
+        "operationId": "recreate-offer",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The offer's id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "The offer's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfferDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create the offer's coupon again after it was deleted in the provider",
+        "tags": [
+          "Offers"
+        ],
+        "x-access": "workspace",
+        "x-permission": "earn:edit"
       }
     },
     "/api/v1/workspaces/{workspace}/earn/payments": {

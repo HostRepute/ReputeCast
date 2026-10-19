@@ -45,6 +45,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/forms"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/linktoken"
+	"github.com/hostrepute/reputecast/internal/offers"
 	"github.com/hostrepute/reputecast/internal/pagelabels"
 	"github.com/hostrepute/reputecast/internal/polls"
 	"github.com/hostrepute/reputecast/internal/publicurl"
@@ -86,6 +87,9 @@ type Handler struct {
 	// Earn serves the upgrade page, its welcome page and the billing
 	// links, and the paid parts of the preference center (nil: none).
 	Earn *earn.Service
+	// Offers serves the hosted cancel page with its retention offer (X17;
+	// nil: the cancel link opens the portal's cancel step).
+	Offers *offers.Service
 
 	tmpl     map[string]*template.Template
 	version  string
@@ -107,7 +111,8 @@ func (h *Handler) log() *slog.Logger {
 }
 
 // pages are the templates, each rendered inside layout.html.
-var pages = []string{"subscribe", "confirm", "preferences", "request", "unsubscribe", "done", "message", "archive", "challenge", "category", "poll", "survey", "upgrade", "welcome"}
+var pages = []string{"subscribe", "confirm", "preferences", "request", "unsubscribe", "done", "message", "archive", "challenge", "category", "poll", "survey", "upgrade", "welcome",
+	"cancel"}
 
 // Init parses the templates; Routes calls it.
 func (h *Handler) Init() error {

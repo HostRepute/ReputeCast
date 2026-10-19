@@ -84,6 +84,8 @@ func (a *App) publicPages() *publicpages.Handler {
 		Browser: browserContent{a},
 		// The upgrade page, its welcome page and the billing links (X16).
 		Earn: earnService(a),
+		// The hosted cancel page and its retention offer (X17).
+		Offers: offerService(a),
 		// The publication website's pages (X18).
 		Website: site,
 	}

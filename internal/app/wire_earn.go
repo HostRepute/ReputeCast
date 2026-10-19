@@ -57,6 +57,8 @@ func earnService(a *App) *earn.Service {
 	if a.Cfg != nil {
 		s.AllowPrivate = a.Cfg.Providers.AllowPrivateNetworks
 	}
+	// Offers and gifts hook into the upgrade page, checkout and payments (X17).
+	wireEarnX17(a, s)
 	v, _ := earnServices.LoadOrStore(a, s)
 	return v.(*earn.Service)
 }

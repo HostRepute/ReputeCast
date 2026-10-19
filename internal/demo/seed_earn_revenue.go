@@ -68,32 +68,20 @@ func (e *earnMore) offersSeed(ctx context.Context) error {
 			return fmt.Errorf("offer %s: %w", o.name, err)
 		}
 	}
-	// Grow issued two referral reward codes; neither is redeemed yet.
-	var referrers []uuid.UUID
-	rows, err := s.Tx.Query(ctx, `SELECT id FROM contacts WHERE workspace_id = $1 AND erased_at IS NULL ORDER BY email LIMIT 2 OFFSET 40`, e.ws.ID)
-	if err != nil {
-		return err
-	}
-	for rows.Next() {
-		var id uuid.UUID
-		if err := rows.Scan(&id); err != nil {
-			rows.Close()
-			return err
-		}
-		referrers = append(referrers, id)
-	}
-	rows.Close()
-	for i, c := range []struct {
-		code string
-		at   time.Time
-	}{{"INSIDER-7KQ2", s.earnDay(2026, 10, 3, 18, 12)}, {"INSIDER-M4XD", s.earnDay(2026, 10, 10, 8, 47)}} {
+	// Grow issued two referral reward codes, to Omar Haddad on 9 Oct and
+	// Kenji Watanabe on 13 Oct; neither is redeemed yet.
+	for _, c := range []struct {
+		code, email, name string
+		at                time.Time
+	}{{"INS-OH7K2Q", "omar.haddad@gmail.com", "Omar Haddad", s.earnDay(2026, 10, 9, 18, 12)}, {"INS-KW4M9X", "kenji.w@icloud.com", "Kenji Watanabe", s.earnDay(2026, 10, 13, 8, 47)}} {
 		var contact *uuid.UUID
-		if i < len(referrers) {
-			contact = &referrers[i]
+		var id uuid.UUID
+		if err := s.Tx.QueryRow(ctx, `SELECT id FROM contacts WHERE workspace_id = $1 AND email = $2`, e.ws.ID, c.email).Scan(&id); err == nil {
+			contact = &id
 		}
 		if _, err := s.Tx.Exec(ctx, `INSERT INTO earn_offer_codes (id, workspace_id, offer_id, code, contact_id, issued_to, issued_at, expires_at, stripe, source)
-			VALUES ($1, $2, $3, $4, $5, 'referral milestone · 10 referrals', $6, $7, $8, 'referral')`,
-			ID(), e.ws.ID, e.referral, c.code, contact, c.at, c.at.AddDate(0, 0, 60), []byte(`{"live":{"promo":"promo_`+c.code+`"}}`)); err != nil {
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'referral')`,
+			ID(), e.ws.ID, e.referral, c.code, contact, c.name, c.at, c.at.AddDate(0, 0, 60), []byte(`{"live":{"promo":"promo_`+c.code+`"}}`)); err != nil {
 			return err
 		}
 	}

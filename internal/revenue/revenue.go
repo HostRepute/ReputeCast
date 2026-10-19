@@ -131,8 +131,15 @@ func pct(part, whole int64) *float64 {
 // helpers names the people who can change Earn (Admins and Owners first),
 // leaving out the person asking.
 func (s *Service) helpers(ctx context.Context, wsID uuid.UUID, exclude uuid.UUID, most int, perms ...authz.Permission) []string {
+	return Helpers(ctx, s.Q, wsID, exclude, most, perms...)
+}
+
+// Helpers names up to most team members who hold one of perms, Admins
+// first, then Owners: "Ask Marcus Chen or Linh Nguyen". Offers and gifts
+// use it too.
+func Helpers(ctx context.Context, q *store.Queries, wsID uuid.UUID, exclude uuid.UUID, most int, perms ...authz.Permission) []string {
 	out := []string{}
-	rows, err := s.Q.EarnTeam(ctx, wsID)
+	rows, err := q.EarnTeam(ctx, wsID)
 	if err != nil {
 		return out
 	}

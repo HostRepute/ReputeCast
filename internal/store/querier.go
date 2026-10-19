@@ -259,6 +259,13 @@ type Querier interface {
 	BumpNotificationEmailAttempts(ctx context.Context, arg BumpNotificationEmailAttemptsParams) error
 	CampaignCostSince(ctx context.Context, arg CampaignCostSinceParams) ([]CampaignCostSinceRow, error)
 	CampaignTotalsSince(ctx context.Context, arg CampaignTotalsSinceParams) (CampaignTotalsSinceRow, error)
+	// The reason given on the cancel page, for the paid member's timeline.
+	CancelSetReason(ctx context.Context, arg CancelSetReasonParams) error
+	CancelVisitDecide(ctx context.Context, arg CancelVisitDecideParams) error
+	CancelVisitGet(ctx context.Context, arg CancelVisitGetParams) (EarnCancelVisit, error)
+	CancelVisitInsert(ctx context.Context, arg CancelVisitInsertParams) error
+	// A reader's undecided visit of the last half hour: a reload counts once.
+	CancelVisitRecent(ctx context.Context, arg CancelVisitRecentParams) (EarnCancelVisit, error)
 	ClaimAutomationEvents(ctx context.Context, lim int32) ([]ClaimAutomationEventsRow, error)
 	// Runs ready to move on, in flows that are live (paused flows hold their runs).
 	ClaimDueAutomationRuns(ctx context.Context, arg ClaimDueAutomationRunsParams) ([]ClaimDueAutomationRunsRow, error)
@@ -1373,6 +1380,38 @@ type Querier interface {
 	McpSendingDomains(ctx context.Context, workspaceID uuid.UUID) ([]McpSendingDomainsRow, error)
 	McpSetRoutingSplits(ctx context.Context, arg McpSetRoutingSplitsParams) error
 	McpUpdateDraft(ctx context.Context, arg McpUpdateDraftParams) (McpUpdateDraftRow, error)
+	// A live signup offer by its code or link (case-insensitive).
+	OfferByCode(ctx context.Context, arg OfferByCodeParams) (EarnOffer, error)
+	OfferCodeInsert(ctx context.Context, arg OfferCodeInsertParams) error
+	OfferCodeTaken(ctx context.Context, arg OfferCodeTakenParams) (bool, error)
+	OfferCodes(ctx context.Context, offerID uuid.UUID) ([]OfferCodesRow, error)
+	OfferEnd(ctx context.Context, arg OfferEndParams) error
+	OfferGet(ctx context.Context, arg OfferGetParams) (OfferGetRow, error)
+	OfferInsert(ctx context.Context, arg OfferInsertParams) error
+	// Offers (X17): signup offers by code or link, the retention offer of the
+	// cancel page and referral rewards, with their coupons in the provider.
+	OfferList(ctx context.Context, workspaceID uuid.UUID) ([]OfferListRow, error)
+	// Paid members who took a signup offer: by its coupons, or the code it
+	// carries; new ones started at or after the offer; and the MRR they bring
+	// after the discount.
+	OfferRedemptions(ctx context.Context, arg OfferRedemptionsParams) (OfferRedemptionsRow, error)
+	// Raising the limit or moving the date of an offer that ended by them
+	// brings it back.
+	OfferReopen(ctx context.Context, arg OfferReopenParams) error
+	// The workspace's live retention offer (one at most).
+	OfferRetentionOf(ctx context.Context, workspaceID uuid.UUID) (EarnOffer, error)
+	// The retention offer on the cancel page: shown, and kept with it.
+	OfferRetentionResults(ctx context.Context, arg OfferRetentionResultsParams) (OfferRetentionResultsRow, error)
+	// Whether a paid member took a retention offer since a moment (one in 12
+	// months).
+	OfferRetentionUsedSince(ctx context.Context, arg OfferRetentionUsedSinceParams) (bool, error)
+	OfferSetStripe(ctx context.Context, arg OfferSetStripeParams) error
+	// The tiers and their current prices, for an offer's lines.
+	OfferTierPrices(ctx context.Context, workspaceID uuid.UUID) ([]OfferTierPricesRow, error)
+	OfferUpdate(ctx context.Context, arg OfferUpdateParams) error
+	OfferUseInsert(ctx context.Context, arg OfferUseInsertParams) error
+	// Live offers, for the job that ends them at their date or limit.
+	OffersLive(ctx context.Context) ([]EarnOffer, error)
 	// Records a failure: opens the alert or adds to the open one.
 	OpenAutomationAlert(ctx context.Context, arg OpenAutomationAlertParams) error
 	OverviewCampaignRoutes(ctx context.Context, campaignID uuid.UUID) ([]OverviewCampaignRoutesRow, error)

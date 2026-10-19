@@ -5856,6 +5856,99 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/earn/offers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Plans & offers: the offers and what they did */
+        get: operations["list-offers"];
+        put?: never;
+        /**
+         * Create an offer, and its coupon and codes in the payment provider
+         * @description Without a connected provider the offer is saved as a draft and created there once one is connected and it's saved again.
+         */
+        post: operations["create-offer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/offers/new": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A new offer's editor: the tiers and periods it can apply to */
+        get: operations["new-offer"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/offers/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** An offer: its rules, results, codes and its coupon in the provider */
+        get: operations["get-offer"];
+        /**
+         * Change an offer
+         * @description Changing the discount creates a new coupon; codes already used keep theirs. Raising the limit or moving the date of an offer that ended by them brings it back.
+         */
+        put: operations["update-offer"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/offers/{id}/end": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** End an offer now: its code stops working; paid members who used it keep their discount */
+        post: operations["end-offer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/offers/{id}/recreate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create the offer's coupon again after it was deleted in the provider */
+        post: operations["recreate-offer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/earn/payments": {
         parameters: {
             query?: never;
@@ -21549,6 +21642,201 @@ export interface components {
         NotificationsMarked: {
             /** Format: int64 */
             marked: number;
+        };
+        Offer: {
+            /** Format: int64 */
+            amountOffCents?: number;
+            applies: components["schemas"]["OfferApplies"][];
+            byCode: boolean;
+            byLink: boolean;
+            code: string;
+            /** Format: int64 */
+            codeDays: number;
+            currency: string;
+            /** @enum {string} */
+            discountType: "percent" | "amount";
+            /** @enum {string} */
+            duration: "once" | "months" | "forever";
+            /** Format: date-time */
+            endedAt?: string;
+            endedBy?: string;
+            /** @enum {string} */
+            endedReason?: "date" | "limit" | "early";
+            /** Format: date-time */
+            endsAt?: string;
+            id: string;
+            /** @enum {string} */
+            kind: "signup" | "retention" | "referral";
+            /** Format: int64 */
+            limit?: number;
+            link?: string;
+            linkHost?: string;
+            /** Format: int64 */
+            minPaidMonths: number;
+            /** Format: int64 */
+            months?: number;
+            name: string;
+            newOnly: boolean;
+            /** Format: int64 */
+            percentOff?: number;
+            results: components["schemas"]["OfferResults"];
+            /** Format: date-time */
+            startedAt: string;
+            startedBy?: string;
+            /** @enum {string} */
+            state: "live" | "limit" | "ended" | "missing" | "draft";
+            /** @enum {string} */
+            status: "live" | "ended";
+            stripe: components["schemas"]["OfferStripe"];
+            /** @enum {string} */
+            sync: "draft" | "synced" | "failed";
+            syncError?: string;
+        };
+        OfferApplies: {
+            currency: string;
+            /** @enum {string} */
+            period: "month" | "year";
+            /** Format: int64 */
+            priceCents: number;
+            short: string;
+            tier: string;
+            tierId: string;
+        };
+        OfferAppliesInput: {
+            /** @enum {string} */
+            period: "month" | "year";
+            /** Format: uuid */
+            tierId: string;
+        };
+        OfferCode: {
+            code: string;
+            /** Format: date-time */
+            expiresAt: string;
+            /** Format: date-time */
+            issuedAt: string;
+            issuedTo: string;
+            /** Format: date-time */
+            redeemedAt?: string;
+            /** @enum {string} */
+            status: "not_redeemed" | "redeemed" | "expired";
+        };
+        OfferDetail: {
+            account: string;
+            /** Format: int64 */
+            amountOffCents?: number;
+            applies: components["schemas"]["OfferApplies"][];
+            byCode: boolean;
+            byLink: boolean;
+            canEdit: boolean;
+            choices: components["schemas"]["OfferApplies"][];
+            code: string;
+            /** Format: int64 */
+            codeDays: number;
+            codes: components["schemas"]["OfferCode"][];
+            connected: boolean;
+            currency: string;
+            /** @enum {string} */
+            discountType: "percent" | "amount";
+            /** @enum {string} */
+            duration: "once" | "months" | "forever";
+            /** Format: date-time */
+            endedAt?: string;
+            endedBy?: string;
+            /** @enum {string} */
+            endedReason?: "date" | "limit" | "early";
+            /** Format: date-time */
+            endsAt?: string;
+            helpers: string[];
+            id: string;
+            /** @enum {string} */
+            kind: "signup" | "retention" | "referral";
+            /** Format: int64 */
+            limit?: number;
+            link?: string;
+            linkHost?: string;
+            /** Format: int64 */
+            minPaidMonths: number;
+            /** Format: int64 */
+            months?: number;
+            name: string;
+            newOnly: boolean;
+            /** Format: int64 */
+            percentOff?: number;
+            provider: string;
+            results: components["schemas"]["OfferResults"];
+            /** Format: date-time */
+            startedAt: string;
+            startedBy?: string;
+            /** @enum {string} */
+            state: "live" | "limit" | "ended" | "missing" | "draft";
+            /** @enum {string} */
+            status: "live" | "ended";
+            stripe: components["schemas"]["OfferStripe"];
+            /** @enum {string} */
+            sync: "draft" | "synced" | "failed";
+            syncError?: string;
+            upgradeHost: string;
+        };
+        OfferInput: {
+            /** Format: int64 */
+            amountOffCents?: number;
+            applies: components["schemas"]["OfferAppliesInput"][];
+            byCode: boolean;
+            byLink: boolean;
+            code?: string;
+            /** Format: int64 */
+            codeDays?: number;
+            /** @enum {string} */
+            discountType: "percent" | "amount";
+            /** @enum {string} */
+            duration: "once" | "months" | "forever";
+            /** @description YYYY-MM-DD */
+            endsOn?: string;
+            /** @enum {string} */
+            kind: "signup" | "retention" | "referral";
+            /** Format: int64 */
+            limit?: number;
+            /** Format: int64 */
+            minPaidMonths: number;
+            /** Format: int64 */
+            months?: number;
+            name: string;
+            newOnly: boolean;
+            /** Format: int64 */
+            percentOff?: number;
+        };
+        OfferList: {
+            account: string;
+            canEdit: boolean;
+            connected: boolean;
+            helpers: string[];
+            items: components["schemas"]["Offer"][];
+            provider: string;
+        };
+        OfferResults: {
+            /** Format: double */
+            acceptRate?: number;
+            /** Format: int64 */
+            accepted: number;
+            /** Format: int64 */
+            codesIssued: number;
+            /** Format: int64 */
+            codesRedeemed: number;
+            /** Format: int64 */
+            mrrCents: number;
+            /** Format: int64 */
+            newMembers: number;
+            /** Format: int64 */
+            redemptions: number;
+            /** Format: int64 */
+            shown: number;
+        };
+        OfferStripe: {
+            coupon?: string;
+            couponUrl?: string;
+            missing: boolean;
+            mode?: string;
+            promotionCode?: string;
         };
         Operator: {
             key: string;
@@ -44055,6 +44343,246 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EarnResent"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-offers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-offer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OfferInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "new-offer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-offer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The offer's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-offer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The offer's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OfferInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "end-offer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The offer's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "recreate-offer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The offer's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferDetail"];
                 };
             };
             /** @description Error */

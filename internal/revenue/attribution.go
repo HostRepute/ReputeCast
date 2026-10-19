@@ -21,7 +21,6 @@ import (
 	"github.com/hostrepute/reputecast/internal/tracking"
 )
 
-
 // AttributionSettings is Earn › Settings › Attribution.
 type AttributionSettings struct {
 	// Days is the attribution window: an upgrade or a conversion is credited

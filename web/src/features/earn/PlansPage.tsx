@@ -15,6 +15,7 @@ import { useWorkspace } from '@/lib/session'
 import { EARN, EarnPage, copyText } from './EarnPage'
 import { money, pricePer } from './format'
 import { me } from './messages'
+import { OffersSection } from './offers/OffersSection'
 import { mp } from './plans.messages'
 
 type Plans = Schemas['EarnPlans']
@@ -123,6 +124,7 @@ function PlansBody({ plans, unmapped }: { plans: Plans; unmapped: Schemas['EarnU
         </div>
       )}
       {/* Offers (X17) render after the tiers. */}
+      <OffersSection />
       {mapping ? <MapPriceDialog price={mapping} tiers={plans.tiers} onClose={() => setMapping(undefined)} /> : null}
     </div>
   )
