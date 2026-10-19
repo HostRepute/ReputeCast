@@ -136,6 +136,7 @@ func seedGrowImpl(ctx context.Context, s *Seeder) error {
 		{"visits", w.seedVisits},
 		{"leaderboard", w.seedLeaderboard},
 		{"recommendations", w.seedRecommendations},
+		{"sources", w.seedSources},
 		{"audit", w.seedGrowAudit},
 		{"blocks", w.seedBlocks},
 	}
@@ -905,6 +906,19 @@ func (w *growWorld) seedGrowAudit() error {
 		}
 	}
 	return nil
+}
+
+// seedSources gives referred readers and partner signups their source, as
+// a signup through an invite page or a partner request records it: the
+// Contacts list's "Referral · Sam Rivera" and "Partner · Ops Weekly". Their
+// growth sources stay as the audience sample set them.
+func (w *growWorld) seedSources() error {
+	if err := w.exec(`UPDATE contacts c SET source = 'referral' FROM referrals r
+		WHERE r.workspace_id = $1 AND r.contact_id = c.id`, w.ws.ID); err != nil {
+		return err
+	}
+	return w.exec(`UPDATE contacts c SET source = 'partner:' || r.link_id::text FROM partner_requests_in r
+		WHERE r.workspace_id = $1 AND r.contact_id = c.id`, w.ws.ID)
 }
 
 // seedBlocks puts the Referral block in Weekly Digest #139 (which announced

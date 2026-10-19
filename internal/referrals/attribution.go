@@ -177,7 +177,7 @@ func (s *Service) recordSignup(ctx context.Context, tx pgx.Tx, ws *store.Workspa
 	// A contact this signup created came through the link: the contacts
 	// list reads "Referral · Sam Rivera".
 	if e.Created {
-		if _, err := tx.Exec(ctx, `UPDATE contacts SET source = $2 WHERE id = $1`, e.ContactID, "referral:"+linkID.String()); err != nil {
+		if _, err := tx.Exec(ctx, `UPDATE contacts SET source = 'referral' WHERE id = $1`, e.ContactID); err != nil {
 			return err
 		}
 	}

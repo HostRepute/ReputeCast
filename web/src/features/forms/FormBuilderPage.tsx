@@ -35,6 +35,7 @@ import { FormPreview } from './FormPreview'
 import { BlockedOriginAlert, FormsEmpty, FormsLoading, TurnstileAlert } from './FormsStates'
 import { CopyByLanguage, FormLanguagesView, useFormCopy } from '@/features/page-languages/FormLanguagesView'
 import { useWorkspaceLanguages } from '@/features/page-languages/contacts'
+import { FormRefNote } from '@/features/grow/FormRefNote'
 
 type Kind = Schemas['SignupFormSummary']['kind']
 
@@ -669,6 +670,8 @@ function EmbedSection({ form }: { form: SignupForm }) {
           Copy plain HTML form
         </Button>
       </div>
+      {/* Grow (design expansion, X15): referral codes on the form's page count. */}
+      <FormRefNote />
     </div>
   )
 }
