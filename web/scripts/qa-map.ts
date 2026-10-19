@@ -341,10 +341,14 @@ export const entries: Entry[] = [
   // Post mode (the runbook, with its free preview marker) and campaign mode (#142's Web tab).
   { board: 'ComposerPublishToWeb', path: `${ws}/forms/website/posts/{post:Inside our Postgres migration: the runbook}`, widths: [1440], viewportOnly: true, height: 1000 },
   { board: 'ComposerPublishToWebPhone', path: `${ws}/forms/website/posts/{post:Inside our Postgres migration: the runbook}`, widths: [390], viewportOnly: true, height: 1000 },
-  // The public site renders from the server: PublicHome, PublicPost, PublicAccount and
-  // PublicSiteStates are compared with the site at /p/acme-newsletter (720 and 390), by hand.
-  { board: 'PublicHome', manual: true },
-  { board: 'PublicPost', manual: true },
+  // The public site at /p/acme-newsletter, signed out (the runbook stops at the paywall). The
+  // account needs a member's session (sign in on the site with a link from Mailpit) and the site
+  // states need data changes: both by hand.
+  { board: 'PublicHome', path: '/p/acme-newsletter/', user: 'anon', widths: [720] },
+  { board: 'PublicHomePhone', path: '/p/acme-newsletter/', user: 'anon', widths: [390] },
+  { board: 'PublicPost', path: '/p/acme-newsletter/posts/postgres-migration-runbook', user: 'anon', widths: [720] },
+  { board: 'PublicPostPhone', path: '/p/acme-newsletter/posts/postgres-migration-runbook', user: 'anon', widths: [390] },
   { board: 'PublicAccount', manual: true },
+  { board: 'PublicAccountPhone', manual: true },
   { board: 'PublicSiteStates', manual: true },
 ]

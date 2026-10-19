@@ -699,7 +699,7 @@ function PaywallPreview({ data, draft, as, tiersOK }: { data: Access; draft: Acc
             const x = draft.lists.find((y) => y.listId === l.id)
             return (
               <span key={l.id} className="cb">
-                <input type="checkbox" checked={Boolean(x?.checked)} readOnly tabIndex={-1} aria-hidden="true" />
+                <span className={`box${x?.checked ? ' on' : ''}`} aria-hidden="true" />
                 {x?.consent || l.consent}
               </span>
             )

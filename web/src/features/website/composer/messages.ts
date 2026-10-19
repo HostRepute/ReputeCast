@@ -218,7 +218,7 @@ export const mc = defineMessages('website.composer', {
   settingsSaved: 'Saved',
 
   // The Web chip (campaign mode)
-  chipLabel: 'Web: {state}. Opens the Web tab',
+  chipOpens: 'opens the Web tab',
   chipWithSend: 'Publishes with the send',
   chipScheduled: 'Scheduled · {date}',
   chipPublished: 'Published',

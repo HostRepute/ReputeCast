@@ -370,6 +370,7 @@ function SectionsCard({ draft, set, ro, tags, featured }: { draft: HomeNavInput;
             )
             let text: ReactNode
             let extra: ReactNode = null
+            let after: ReactNode = null
             let label = t(mh.showSection, { name: name(s) })
             switch (s.kind) {
               case 'subscribe':
@@ -399,7 +400,7 @@ function SectionsCard({ draft, set, ro, tags, featured }: { draft: HomeNavInput;
               case 'tag':
                 text = t(mh.secTagText, { count: s.count ?? 3, tag: tag?.name ?? '' })
                 label = t(mh.showTheRow, { tag: tag?.name ?? '' })
-                extra = <Remove name={t(mh.removeRow, { tag: tag?.name ?? '' })} disabled={ro} onClick={() => set({ sections: sections.filter((x) => key(x) !== k) })} />
+                after = <Remove name={t(mh.removeRow, { tag: tag?.name ?? '' })} disabled={ro} onClick={() => set({ sections: sections.filter((x) => key(x) !== k) })} />
                 break
               case 'about':
                 text = (
@@ -423,6 +424,7 @@ function SectionsCard({ draft, set, ro, tags, featured }: { draft: HomeNavInput;
                 <span className="ct">
                   {extra}
                   {toggle(label)}
+                  {after}
                 </span>
               </>
             )
@@ -715,7 +717,7 @@ function LivePreview({ draft, host }: { draft: HomeNavInput; host: string }) {
   const phoneH = size === 'both' ? 820 : 1200
   return (
     <section className="card" aria-labelledby="hn-prev">
-      <div className="ws-sec">
+      <div className="ws-sec" style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
         <div className="tx">
           <h2 className="ws-h2" id="hn-prev">
             {t(mh.previewTitle)}

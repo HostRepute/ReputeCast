@@ -86,13 +86,14 @@ export function WebChip() {
   else state = t(mc.chipWithSend)
   const open = c.rightTab === 'web'
   return (
-    <button type="button" className={`wchip${open ? ' on' : ''}`} aria-label={t(mc.chipLabel, { state })} aria-pressed={open} onClick={() => c.setRightTab('web')}>
+    <button type="button" className={`wchip${open ? ' on' : ''}`} aria-pressed={open} onClick={() => c.setRightTab('web')}>
       <Icon name="globe" size={14} />
       {t(mc.web)}
       <span className="wcs">
         <span className="dot" aria-hidden="true" style={{ color: d.webOn ? (p.status === 'published' ? 'var(--ok-bar)' : 'var(--info-fg)') : 'var(--ink-4)' }} />
         {state}
       </span>
+      <span className="vh"> · {t(mc.chipOpens)}</span>
     </button>
   )
 }

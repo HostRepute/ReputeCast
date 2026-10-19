@@ -475,7 +475,8 @@ function StatusCell({ post: p, onState }: { post: PostRow; onState: (id: string)
   )
   if (!hasState(p)) return body
   return (
-    <button type="button" className="ws-stbtn" onClick={() => onState(p.id)} aria-label={`${t(mp.details)}: ${p.title}`}>
+    <button type="button" className="ws-stbtn" onClick={() => onState(p.id)}>
+      <span className="vh">{`${t(mp.details)}: ${p.title} · `}</span>
       {body}
     </button>
   )
