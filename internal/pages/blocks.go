@@ -204,6 +204,10 @@ type Usage struct {
 	Stores       int
 	Tiers        int
 	Videos       int
+	// EmptyProducts and EmptyForms are product and signup blocks with
+	// nothing picked yet.
+	EmptyProducts int
+	EmptyForms    int
 }
 
 // Moment is a countdown's end or an event's start, in its time zone.
@@ -261,6 +265,9 @@ func Analyze(src string) Usage {
 		switch n.Data {
 		case ElProduct:
 			u.BuyButtons++
+			if attr(n, "product") == "" {
+				u.EmptyProducts++
+			}
 			addProduct(attr(n, "product"))
 		case ElProducts:
 			if attr(n, "source") != "store" {
@@ -278,6 +285,9 @@ func Analyze(src string) Usage {
 		case ElVideo:
 			u.Videos++
 		case ElForm:
+			if attr(n, "form") == "" {
+				u.EmptyForms++
+			}
 			if id, err := uuid.Parse(attr(n, "form")); err == nil && !seenForm[id] {
 				seenForm[id] = true
 				u.Forms = append(u.Forms, id)

@@ -34034,6 +34034,1041 @@
         ],
         "type": "object"
       },
+      "PageApproval": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "requestedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "requestedBy": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "requestedBy",
+          "requestedAt"
+        ],
+        "type": "object"
+      },
+      "PageApprovalInput": {
+        "additionalProperties": false,
+        "properties": {
+          "note": {
+            "maxLength": 1000,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "PageCheck": {
+        "additionalProperties": false,
+        "properties": {
+          "account": {
+            "type": "string"
+          },
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "by": {
+            "type": "string"
+          },
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "httpStatus": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "key": {
+            "enum": [
+              "address",
+              "heading",
+              "moments",
+              "product",
+              "stripe",
+              "form",
+              "images",
+              "links",
+              "visibility",
+              "store_blocks"
+            ],
+            "type": "string"
+          },
+          "mode": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "problem": {
+            "type": "string"
+          },
+          "pwyw": {
+            "type": "boolean"
+          },
+          "ref": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "pass",
+              "warn",
+              "block"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "status"
+        ],
+        "type": "object"
+      },
+      "PageContentInput": {
+        "additionalProperties": false,
+        "properties": {
+          "baseVersion": {
+            "format": "int32",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "force": {
+            "type": "boolean"
+          },
+          "html": {
+            "maxLength": 2097152,
+            "type": "string"
+          },
+          "manual": {
+            "type": "boolean"
+          },
+          "project": {}
+        },
+        "required": [
+          "html",
+          "baseVersion"
+        ],
+        "type": "object"
+      },
+      "PageCounts": {
+        "additionalProperties": false,
+        "properties": {
+          "blocks": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "images": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "imagesWithAlt": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "links": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "blocks",
+          "images",
+          "imagesWithAlt",
+          "links"
+        ],
+        "type": "object"
+      },
+      "PageCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "slug": {
+            "maxLength": 80,
+            "type": "string"
+          },
+          "template": {
+            "enum": [
+              "about",
+              "lead_magnet",
+              "launch",
+              "webinar",
+              "sales",
+              "blank"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "template",
+          "name"
+        ],
+        "type": "object"
+      },
+      "PageDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "changes": {
+            "type": "boolean"
+          },
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/PageCheck"
+            },
+            "type": "array"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/PageCounts"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "draft": {
+            "$ref": "#/components/schemas/PageDraft"
+          },
+          "host": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "live": {
+            "$ref": "#/components/schemas/PageLive"
+          },
+          "name": {
+            "type": "string"
+          },
+          "navFull": {
+            "type": "boolean"
+          },
+          "numbers": {
+            "$ref": "#/components/schemas/PageNumbers"
+          },
+          "path": {
+            "type": "string"
+          },
+          "publish": {
+            "$ref": "#/components/schemas/PagePublishState"
+          },
+          "publishAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "publishTz": {
+            "type": "string"
+          },
+          "redirectTo": {
+            "type": "string"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/PageSettings"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "draft",
+              "scheduled",
+              "published",
+              "unpublished"
+            ],
+            "type": "string"
+          },
+          "template": {
+            "enum": [
+              "about",
+              "lead_magnet",
+              "launch",
+              "webinar",
+              "sales",
+              "blank"
+            ],
+            "type": "string"
+          },
+          "unpublishReason": {
+            "type": "string"
+          },
+          "unpublishedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "versions": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "websiteOn": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "template",
+          "status",
+          "changes",
+          "host",
+          "path",
+          "url",
+          "settings",
+          "draft",
+          "checks",
+          "counts",
+          "versions",
+          "publish",
+          "numbers",
+          "createdAt",
+          "navFull",
+          "websiteOn"
+        ],
+        "type": "object"
+      },
+      "PageDiff": {
+        "additionalProperties": false,
+        "properties": {
+          "blocks": {
+            "items": {
+              "$ref": "#/components/schemas/PageDiffBlock"
+            },
+            "type": "array"
+          },
+          "first": {
+            "type": "boolean"
+          },
+          "publishedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "publishedBy": {
+            "type": "string"
+          },
+          "settings": {
+            "items": {
+              "$ref": "#/components/schemas/PageDiffSetting"
+            },
+            "type": "array"
+          },
+          "since": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "version": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "first",
+          "since",
+          "version",
+          "blocks",
+          "settings"
+        ],
+        "type": "object"
+      },
+      "PageDiffBlock": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "changed",
+              "added",
+              "removed",
+              "moved"
+            ],
+            "type": "string"
+          },
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/PageDiffLine"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "lines"
+        ],
+        "type": "object"
+      },
+      "PageDiffLine": {
+        "additionalProperties": false,
+        "properties": {
+          "op": {
+            "enum": [
+              "-",
+              "+",
+              " "
+            ],
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "op",
+          "text"
+        ],
+        "type": "object"
+      },
+      "PageDiffSetting": {
+        "additionalProperties": false,
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "before": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "before",
+          "after"
+        ],
+        "type": "object"
+      },
+      "PageDraft": {
+        "additionalProperties": false,
+        "properties": {
+          "autosaved": {
+            "type": "boolean"
+          },
+          "html": {
+            "type": "string"
+          },
+          "project": {},
+          "savedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "savedBy": {
+            "$ref": "#/components/schemas/PagePerson"
+          },
+          "version": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "html",
+          "project",
+          "savedAt",
+          "autosaved"
+        ],
+        "type": "object"
+      },
+      "PageListItem": {
+        "additionalProperties": false,
+        "properties": {
+          "changes": {
+            "type": "boolean"
+          },
+          "countdownEnded": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "editedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "editedBy": {
+            "$ref": "#/components/schemas/PagePerson"
+          },
+          "firstPublishedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "publishAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "publishedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "result": {
+            "$ref": "#/components/schemas/PageResult"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "draft",
+              "scheduled",
+              "published",
+              "unpublished"
+            ],
+            "type": "string"
+          },
+          "template": {
+            "enum": [
+              "about",
+              "lead_magnet",
+              "launch",
+              "webinar",
+              "sales",
+              "blank"
+            ],
+            "type": "string"
+          },
+          "unpublishedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "views": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "visibility": {
+            "enum": [
+              "public",
+              "members",
+              "paid"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "path",
+          "url",
+          "template",
+          "status",
+          "changes",
+          "visibility",
+          "views",
+          "result",
+          "editedAt"
+        ],
+        "type": "object"
+      },
+      "PageLive": {
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "publishedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "publishedBy": {
+            "$ref": "#/components/schemas/PagePerson"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "version": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "slug",
+          "path",
+          "url"
+        ],
+        "type": "object"
+      },
+      "PageNumbers": {
+        "additionalProperties": false,
+        "properties": {
+          "result": {
+            "$ref": "#/components/schemas/PageResult"
+          },
+          "views": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "views",
+          "result"
+        ],
+        "type": "object"
+      },
+      "PagePerson": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "initials": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "initials"
+        ],
+        "type": "object"
+      },
+      "PagePublishInput": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "tz": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "when": {
+            "enum": [
+              "now",
+              "at"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "when"
+        ],
+        "type": "object"
+      },
+      "PagePublishState": {
+        "additionalProperties": false,
+        "properties": {
+          "approvers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "canEdit": {
+            "type": "boolean"
+          },
+          "canManage": {
+            "description": "Navigation, visibility and the paywall (website:manage)",
+            "type": "boolean"
+          },
+          "canPublish": {
+            "type": "boolean"
+          },
+          "needsApproval": {
+            "type": "boolean"
+          },
+          "pending": {
+            "$ref": "#/components/schemas/PageApproval"
+          },
+          "publishers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "rule": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "canEdit",
+          "canPublish",
+          "canManage",
+          "publishers",
+          "needsApproval",
+          "approvers"
+        ],
+        "type": "object"
+      },
+      "PageResult": {
+        "additionalProperties": false,
+        "properties": {
+          "amountCents": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "conversion": {
+            "format": "double",
+            "type": "number"
+          },
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "signups",
+              "registrations",
+              "sales",
+              "none"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "count",
+          "amountCents",
+          "currency",
+          "conversion"
+        ],
+        "type": "object"
+      },
+      "PageSaved": {
+        "additionalProperties": false,
+        "properties": {
+          "changes": {
+            "type": "boolean"
+          },
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/PageCheck"
+            },
+            "type": "array"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/PageCounts"
+          },
+          "savedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "savedBy": {
+            "$ref": "#/components/schemas/PagePerson"
+          },
+          "version": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "savedAt",
+          "changes",
+          "checks",
+          "counts"
+        ],
+        "type": "object"
+      },
+      "PageSettings": {
+        "additionalProperties": false,
+        "properties": {
+          "hideHeader": {
+            "description": "Focused landing pages: the site header shows the logo only",
+            "type": "boolean"
+          },
+          "navLabel": {
+            "type": "string"
+          },
+          "seoDescription": {
+            "type": "string"
+          },
+          "seoTitle": {
+            "type": "string"
+          },
+          "showInNav": {
+            "type": "boolean"
+          },
+          "socialImage": {
+            "type": "string"
+          },
+          "tiers": {
+            "description": "Paid pages: the tiers that may read it (empty: every paid tier)",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "visibility": {
+            "enum": [
+              "public",
+              "members",
+              "paid"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "seoTitle",
+          "seoDescription",
+          "socialImage",
+          "visibility",
+          "tiers",
+          "hideHeader",
+          "showInNav",
+          "navLabel"
+        ],
+        "type": "object"
+      },
+      "PageSettingsInput": {
+        "additionalProperties": false,
+        "properties": {
+          "hideHeader": {
+            "type": "boolean"
+          },
+          "name": {
+            "maxLength": 120,
+            "minLength": 1,
+            "type": "string"
+          },
+          "navLabel": {
+            "maxLength": 40,
+            "type": "string"
+          },
+          "seoDescription": {
+            "maxLength": 300,
+            "type": "string"
+          },
+          "seoTitle": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "showInNav": {
+            "type": "boolean"
+          },
+          "slug": {
+            "maxLength": 80,
+            "minLength": 1,
+            "type": "string"
+          },
+          "socialImage": {
+            "maxLength": 1000,
+            "type": "string"
+          },
+          "tiers": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "visibility": {
+            "enum": [
+              "public",
+              "members",
+              "paid"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "slug",
+          "seoTitle",
+          "seoDescription",
+          "socialImage",
+          "visibility",
+          "hideHeader",
+          "showInNav",
+          "navLabel"
+        ],
+        "type": "object"
+      },
+      "PageTemplateCount": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "template": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "template",
+          "count"
+        ],
+        "type": "object"
+      },
+      "PageUnpublishInput": {
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "maxLength": 300,
+            "type": "string"
+          },
+          "redirectTo": {
+            "maxLength": 300,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "PageVersionDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "current": {
+            "type": "boolean"
+          },
+          "html": {
+            "type": "string"
+          },
+          "label": {
+            "description": "created, autosave, saved, settings, kept, restored, published",
+            "type": "string"
+          },
+          "live": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "project": {},
+          "publishedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "publishedBy": {
+            "type": "string"
+          },
+          "savedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "savedBy": {
+            "$ref": "#/components/schemas/PagePerson"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/PageSettings"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "version": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "slug",
+          "html",
+          "project",
+          "settings",
+          "version",
+          "name",
+          "label",
+          "savedAt",
+          "live",
+          "current"
+        ],
+        "type": "object"
+      },
+      "PageVersionItem": {
+        "additionalProperties": false,
+        "properties": {
+          "current": {
+            "type": "boolean"
+          },
+          "label": {
+            "description": "created, autosave, saved, settings, kept, restored, published",
+            "type": "string"
+          },
+          "live": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "publishedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "publishedBy": {
+            "type": "string"
+          },
+          "savedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "savedBy": {
+            "$ref": "#/components/schemas/PagePerson"
+          },
+          "version": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "name",
+          "label",
+          "savedAt",
+          "live",
+          "current"
+        ],
+        "type": "object"
+      },
+      "PageVersionList": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PageVersionItem"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
       "Pages": {
         "additionalProperties": false,
         "properties": {
@@ -34063,6 +35098,210 @@
           "unsubscribe",
           "archive",
           "previewEmail"
+        ],
+        "type": "object"
+      },
+      "PagesOverview": {
+        "additionalProperties": false,
+        "properties": {
+          "canEdit": {
+            "type": "boolean"
+          },
+          "canPublish": {
+            "type": "boolean"
+          },
+          "editors": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "from": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "host": {
+            "type": "string"
+          },
+          "pages": {
+            "items": {
+              "$ref": "#/components/schemas/PageListItem"
+            },
+            "type": "array"
+          },
+          "period": {
+            "type": "string"
+          },
+          "publishers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "shop": {
+            "$ref": "#/components/schemas/PagesShop"
+          },
+          "stats": {
+            "$ref": "#/components/schemas/PagesStats"
+          },
+          "templates": {
+            "items": {
+              "$ref": "#/components/schemas/PageTemplateCount"
+            },
+            "type": "array"
+          },
+          "theme": {
+            "$ref": "#/components/schemas/PagesTheme"
+          },
+          "until": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "websiteOn": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "period",
+          "from",
+          "until",
+          "stats",
+          "pages",
+          "templates",
+          "shop",
+          "host",
+          "theme",
+          "websiteOn",
+          "editors",
+          "publishers",
+          "canEdit",
+          "canPublish"
+        ],
+        "type": "object"
+      },
+      "PagesShop": {
+        "additionalProperties": false,
+        "properties": {
+          "canToggle": {
+            "type": "boolean"
+          },
+          "on": {
+            "type": "boolean"
+          },
+          "path": {
+            "type": "string"
+          },
+          "products": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "on",
+          "products",
+          "path",
+          "url",
+          "canToggle"
+        ],
+        "type": "object"
+      },
+      "PagesStats": {
+        "additionalProperties": false,
+        "properties": {
+          "currency": {
+            "type": "string"
+          },
+          "registrationPages": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "registrations": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "sales": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "salesCents": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "salesPages": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "shopSales": {
+            "type": "boolean"
+          },
+          "shopViewed": {
+            "type": "boolean"
+          },
+          "signupPages": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "signups": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "viewedPages": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "views": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "views",
+          "viewedPages",
+          "shopViewed",
+          "signups",
+          "signupPages",
+          "registrations",
+          "registrationPages",
+          "sales",
+          "salesCents",
+          "currency",
+          "salesPages",
+          "shopSales"
+        ],
+        "type": "object"
+      },
+      "PagesTheme": {
+        "additionalProperties": false,
+        "properties": {
+          "accent": {
+            "type": "string"
+          },
+          "font": {
+            "type": "string"
+          },
+          "ground": {
+            "type": "string"
+          },
+          "logo": {
+            "type": "boolean"
+          },
+          "publisher": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "publisher",
+          "logo",
+          "accent",
+          "ground",
+          "font"
         ],
         "type": "object"
       },
@@ -50093,6 +51332,18 @@
         "required": [
           "status",
           "teamName"
+        ],
+        "type": "object"
+      },
+      "ShopInput": {
+        "additionalProperties": false,
+        "properties": {
+          "on": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "on"
         ],
         "type": "object"
       },
@@ -100674,6 +101925,1086 @@
         ],
         "x-access": "workspace",
         "x-permission": "deliverability:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/pages": {
+      "get": {
+        "operationId": "list-pages",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "period",
+            "schema": {
+              "default": "30d",
+              "enum": [
+                "7d",
+                "30d",
+                "90d"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagesOverview"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Your pages with their numbers, the shop's switch and the theme",
+        "tags": [
+          "Pages"
+        ],
+        "x-access": "workspace",
+        "x-permission": "website:view"
+      },
+      "post": {
+        "operationId": "create-page",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PageCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageDetail"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Start a page from a template, as a draft",
+        "tags": [
+          "Pages"
+        ],
+        "x-access": "workspace",
+        "x-permission": "website:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/pages/shop": {
+      "put": {
+        "operationId": "set-shop",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ShopInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagesShop"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Turn the shop (/products) on or off",
+        "tags": [
+          "Pages"
+        ],
+        "x-access": "workspace",
+        "x-permission": "products:publish"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/pages/{page}": {
+      "delete": {
+        "operationId": "delete-page",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The page's id",
+            "in": "path",
+            "name": "page",
+            "required": true,
+            "schema": {
+              "description": "The page's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a page (a published one answers 410 at its address)",
+        "tags": [
+          "Pages"
+        ],
+        "x-access": "workspace",
+        "x-permission": "website:edit"
+      },
+      "get": {
+        "operationId": "get-page",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The page's id",
+            "in": "path",
+            "name": "page",
+            "required": true,
+            "schema": {
+              "description": "The page's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A page: its draft, what's live, the publish checks and its numbers",
+        "tags": [
+          "Pages"
+        ],
+        "x-access": "workspace",
+        "x-permission": "website:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/pages/{page}/approval": {
+      "post": {
+        "operationId": "request-page-approval",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The page's id",
+            "in": "path",
+            "name": "page",
+            "required": true,
+            "schema": {
+              "description": "The page's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PageApprovalInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageDetail"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Ask for approval to publish a page as it is",
+        "tags": [
+          "Pages"
+        ],
+        "x-access": "workspace",
+        "x-permission": "website:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/pages/{page}/content": {
+      "put": {
+        "description": "A newer version saved meanwhile by someone else answers 409 version_conflict with who saved it; send force to keep yours on top.",
+        "operationId": "save-page-content",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The page's id",
+            "in": "path",
+            "name": "page",
+            "required": true,
+            "schema": {
+              "description": "The page's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PageContentInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageSaved"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Save the draft's blocks (autosave or Save): a new version; the live page changes only when published",
+        "tags": [
+          "Pages"
+        ],
+        "x-access": "workspace",
+        "x-permission": "website:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/pages/{page}/diff": {
+      "get": {
+        "operationId": "get-page-diff",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The page's id",
+            "in": "path",
+            "name": "page",
+            "required": true,
+            "schema": {
+              "description": "The page's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageDiff"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What publishing would change since the live version",
+        "tags": [
+          "Pages"
+        ],
+        "x-access": "workspace",
+        "x-permission": "website:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/pages/{page}/publish": {
+      "post": {
+        "description": "Blocked until every blocking check passes. When publishing needs approval the answer is 409 approval_required with the rule and the approvers.",
+        "operationId": "publish-page",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The page's id",
+            "in": "path",
+            "name": "page",
+            "required": true,
+            "schema": {
+              "description": "The page's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PagePublishInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Publish a page now, or schedule it",
+        "tags": [
+          "Pages"
+        ],
+        "x-access": "workspace",
+        "x-permission": "website:publish"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/pages/{page}/settings": {
+      "put": {
+        "description": "Visibility and navigation need website:manage.",
+        "operationId": "save-page-settings",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The page's id",
+            "in": "path",
+            "name": "page",
+            "required": true,
+            "schema": {
+              "description": "The page's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PageSettingsInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Save the Page tab: title, address, visibility, header and navigation, SEO",
+        "tags": [
+          "Pages"
+        ],
+        "x-access": "workspace",
+        "x-permission": "website:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/pages/{page}/undo-publish": {
+      "post": {
+        "operationId": "undo-page-publish",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The page's id",
+            "in": "path",
+            "name": "page",
+            "required": true,
+            "schema": {
+              "description": "The page's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Take back a publish within seconds (the toast's Undo)",
+        "tags": [
+          "Pages"
+        ],
+        "x-access": "workspace",
+        "x-permission": "website:publish"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/pages/{page}/unpublish": {
+      "post": {
+        "operationId": "unpublish-page",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The page's id",
+            "in": "path",
+            "name": "page",
+            "required": true,
+            "schema": {
+              "description": "The page's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PageUnpublishInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Take a page off the site, or unschedule it",
+        "tags": [
+          "Pages"
+        ],
+        "x-access": "workspace",
+        "x-permission": "website:publish"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/pages/{page}/versions": {
+      "get": {
+        "operationId": "list-page-versions",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The page's id",
+            "in": "path",
+            "name": "page",
+            "required": true,
+            "schema": {
+              "description": "The page's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageVersionList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Version history: every saved and published version",
+        "tags": [
+          "Pages"
+        ],
+        "x-access": "workspace",
+        "x-permission": "website:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/pages/{page}/versions/{version}": {
+      "get": {
+        "operationId": "get-page-version",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The page's id",
+            "in": "path",
+            "name": "page",
+            "required": true,
+            "schema": {
+              "description": "The page's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "version",
+            "required": true,
+            "schema": {
+              "format": "int32",
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageVersionDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One version's blocks and settings",
+        "tags": [
+          "Pages"
+        ],
+        "x-access": "workspace",
+        "x-permission": "website:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/pages/{page}/versions/{version}/restore": {
+      "post": {
+        "operationId": "restore-page-version",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The page's id",
+            "in": "path",
+            "name": "page",
+            "required": true,
+            "schema": {
+              "description": "The page's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "version",
+            "required": true,
+            "schema": {
+              "format": "int32",
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Make an earlier version the draft again, as a new version",
+        "tags": [
+          "Pages"
+        ],
+        "x-access": "workspace",
+        "x-permission": "website:edit"
       }
     },
     "/api/v1/workspaces/{workspace}/placement/content": {

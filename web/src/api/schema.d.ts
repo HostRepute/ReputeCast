@@ -7933,6 +7933,238 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/pages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your pages with their numbers, the shop's switch and the theme */
+        get: operations["list-pages"];
+        put?: never;
+        /** Start a page from a template, as a draft */
+        post: operations["create-page"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/pages/shop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Turn the shop (/products) on or off */
+        put: operations["set-shop"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/pages/{page}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A page: its draft, what's live, the publish checks and its numbers */
+        get: operations["get-page"];
+        put?: never;
+        post?: never;
+        /** Delete a page (a published one answers 410 at its address) */
+        delete: operations["delete-page"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/pages/{page}/approval": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ask for approval to publish a page as it is */
+        post: operations["request-page-approval"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/pages/{page}/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Save the draft's blocks (autosave or Save): a new version; the live page changes only when published
+         * @description A newer version saved meanwhile by someone else answers 409 version_conflict with who saved it; send force to keep yours on top.
+         */
+        put: operations["save-page-content"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/pages/{page}/diff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What publishing would change since the live version */
+        get: operations["get-page-diff"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/pages/{page}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Publish a page now, or schedule it
+         * @description Blocked until every blocking check passes. When publishing needs approval the answer is 409 approval_required with the rule and the approvers.
+         */
+        post: operations["publish-page"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/pages/{page}/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Save the Page tab: title, address, visibility, header and navigation, SEO
+         * @description Visibility and navigation need website:manage.
+         */
+        put: operations["save-page-settings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/pages/{page}/undo-publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Take back a publish within seconds (the toast's Undo) */
+        post: operations["undo-page-publish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/pages/{page}/unpublish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Take a page off the site, or unschedule it */
+        post: operations["unpublish-page"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/pages/{page}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Version history: every saved and published version */
+        get: operations["list-page-versions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/pages/{page}/versions/{version}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One version's blocks and settings */
+        get: operations["get-page-version"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/pages/{page}/versions/{version}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Make an earlier version the draft again, as a new version */
+        post: operations["restore-page-version"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/placement/content": {
         parameters: {
             query?: never;
@@ -21226,6 +21458,294 @@ export interface components {
             /** @enum {string} */
             tier: "active" | "cooling" | "at_risk" | "sunset";
         };
+        PageApproval: {
+            id: string;
+            /** Format: date-time */
+            requestedAt: string;
+            requestedBy: string;
+        };
+        PageApprovalInput: {
+            note?: string;
+        };
+        PageCheck: {
+            account?: string;
+            /** Format: date-time */
+            at?: string;
+            by?: string;
+            /** Format: int64 */
+            count?: number;
+            detail?: string;
+            /** Format: int64 */
+            httpStatus?: number;
+            /** @enum {string} */
+            key: "address" | "heading" | "moments" | "product" | "stripe" | "form" | "images" | "links" | "visibility" | "store_blocks";
+            mode?: string;
+            name?: string;
+            path?: string;
+            problem?: string;
+            pwyw?: boolean;
+            ref?: string;
+            /** @enum {string} */
+            status: "pass" | "warn" | "block";
+        };
+        PageContentInput: {
+            /** Format: int32 */
+            baseVersion: number;
+            force?: boolean;
+            html: string;
+            manual?: boolean;
+            project?: unknown;
+        };
+        PageCounts: {
+            /** Format: int64 */
+            blocks: number;
+            /** Format: int64 */
+            images: number;
+            /** Format: int64 */
+            imagesWithAlt: number;
+            /** Format: int64 */
+            links: number;
+        };
+        PageCreate: {
+            name: string;
+            slug?: string;
+            /** @enum {string} */
+            template: "about" | "lead_magnet" | "launch" | "webinar" | "sales" | "blank";
+        };
+        PageDetail: {
+            changes: boolean;
+            checks: components["schemas"]["PageCheck"][];
+            counts: components["schemas"]["PageCounts"];
+            /** Format: date-time */
+            createdAt: string;
+            draft: components["schemas"]["PageDraft"];
+            host: string;
+            id: string;
+            live?: components["schemas"]["PageLive"];
+            name: string;
+            navFull: boolean;
+            numbers: components["schemas"]["PageNumbers"];
+            path: string;
+            publish: components["schemas"]["PagePublishState"];
+            /** Format: date-time */
+            publishAt?: string;
+            publishTz?: string;
+            redirectTo?: string;
+            settings: components["schemas"]["PageSettings"];
+            slug: string;
+            /** @enum {string} */
+            status: "draft" | "scheduled" | "published" | "unpublished";
+            /** @enum {string} */
+            template: "about" | "lead_magnet" | "launch" | "webinar" | "sales" | "blank";
+            unpublishReason?: string;
+            /** Format: date-time */
+            unpublishedAt?: string;
+            url: string;
+            /** Format: int64 */
+            versions: number;
+            websiteOn: boolean;
+        };
+        PageDiff: {
+            blocks: components["schemas"]["PageDiffBlock"][];
+            first: boolean;
+            /** Format: date-time */
+            publishedAt?: string;
+            publishedBy?: string;
+            settings: components["schemas"]["PageDiffSetting"][];
+            /** Format: int32 */
+            since: number;
+            /** Format: int32 */
+            version: number;
+        };
+        PageDiffBlock: {
+            id: string;
+            /** @enum {string} */
+            kind: "changed" | "added" | "removed" | "moved";
+            lines: components["schemas"]["PageDiffLine"][];
+            name: string;
+        };
+        PageDiffLine: {
+            /** @enum {string} */
+            op: "-" | "+" | " ";
+            text: string;
+        };
+        PageDiffSetting: {
+            after: string;
+            before: string;
+            key: string;
+        };
+        PageDraft: {
+            autosaved: boolean;
+            html: string;
+            project: unknown;
+            /** Format: date-time */
+            savedAt: string;
+            savedBy?: components["schemas"]["PagePerson"];
+            /** Format: int32 */
+            version: number;
+        };
+        PageListItem: {
+            changes: boolean;
+            /** Format: date-time */
+            countdownEnded?: string;
+            /** Format: date-time */
+            editedAt: string;
+            editedBy?: components["schemas"]["PagePerson"];
+            /** Format: date-time */
+            firstPublishedAt?: string;
+            id: string;
+            name: string;
+            path: string;
+            /** Format: date-time */
+            publishAt?: string;
+            /** Format: date-time */
+            publishedAt?: string;
+            result: components["schemas"]["PageResult"];
+            slug: string;
+            /** @enum {string} */
+            status: "draft" | "scheduled" | "published" | "unpublished";
+            /** @enum {string} */
+            template: "about" | "lead_magnet" | "launch" | "webinar" | "sales" | "blank";
+            /** Format: date-time */
+            unpublishedAt?: string;
+            url: string;
+            /** Format: int64 */
+            views: number;
+            /** @enum {string} */
+            visibility: "public" | "members" | "paid";
+        };
+        PageLive: {
+            path: string;
+            /** Format: date-time */
+            publishedAt?: string;
+            publishedBy?: components["schemas"]["PagePerson"];
+            slug: string;
+            url: string;
+            /** Format: int32 */
+            version: number;
+        };
+        PageNumbers: {
+            result: components["schemas"]["PageResult"];
+            /** Format: int64 */
+            views: number;
+        };
+        PagePerson: {
+            id: string;
+            initials: string;
+            name: string;
+        };
+        PagePublishInput: {
+            /** Format: date-time */
+            at?: string;
+            tz?: string;
+            /** @enum {string} */
+            when: "now" | "at";
+        };
+        PagePublishState: {
+            approvers: string[];
+            canEdit: boolean;
+            /** @description Navigation, visibility and the paywall (website:manage) */
+            canManage: boolean;
+            canPublish: boolean;
+            needsApproval: boolean;
+            pending?: components["schemas"]["PageApproval"];
+            publishers: string[];
+            reason?: string;
+            rule?: string;
+        };
+        PageResult: {
+            /** Format: int64 */
+            amountCents: number;
+            /** Format: double */
+            conversion: number;
+            /** Format: int64 */
+            count: number;
+            currency: string;
+            /** @enum {string} */
+            kind: "signups" | "registrations" | "sales" | "none";
+        };
+        PageSaved: {
+            changes: boolean;
+            checks: components["schemas"]["PageCheck"][];
+            counts: components["schemas"]["PageCounts"];
+            /** Format: date-time */
+            savedAt: string;
+            savedBy?: components["schemas"]["PagePerson"];
+            /** Format: int32 */
+            version: number;
+        };
+        PageSettings: {
+            /** @description Focused landing pages: the site header shows the logo only */
+            hideHeader: boolean;
+            navLabel: string;
+            seoDescription: string;
+            seoTitle: string;
+            showInNav: boolean;
+            socialImage: string;
+            /** @description Paid pages: the tiers that may read it (empty: every paid tier) */
+            tiers: string[];
+            /** @enum {string} */
+            visibility: "public" | "members" | "paid";
+        };
+        PageSettingsInput: {
+            hideHeader: boolean;
+            name: string;
+            navLabel: string;
+            seoDescription: string;
+            seoTitle: string;
+            showInNav: boolean;
+            slug: string;
+            socialImage: string;
+            tiers?: string[];
+            /** @enum {string} */
+            visibility: "public" | "members" | "paid";
+        };
+        PageTemplateCount: {
+            /** Format: int64 */
+            count: number;
+            template: string;
+        };
+        PageUnpublishInput: {
+            reason?: string;
+            redirectTo?: string;
+        };
+        PageVersionDetail: {
+            current: boolean;
+            html: string;
+            /** @description created, autosave, saved, settings, kept, restored, published */
+            label: string;
+            live: boolean;
+            name: string;
+            project: unknown;
+            /** Format: date-time */
+            publishedAt?: string;
+            publishedBy?: string;
+            /** Format: date-time */
+            savedAt: string;
+            savedBy?: components["schemas"]["PagePerson"];
+            settings: components["schemas"]["PageSettings"];
+            slug: string;
+            /** Format: int32 */
+            version: number;
+        };
+        PageVersionItem: {
+            current: boolean;
+            /** @description created, autosave, saved, settings, kept, restored, published */
+            label: string;
+            live: boolean;
+            name: string;
+            /** Format: date-time */
+            publishedAt?: string;
+            publishedBy?: string;
+            /** Format: date-time */
+            savedAt: string;
+            savedBy?: components["schemas"]["PagePerson"];
+            /** Format: int32 */
+            version: number;
+        };
+        PageVersionList: {
+            items: components["schemas"]["PageVersionItem"][];
+        };
         Pages: {
             archive: components["schemas"]["ArchivePage"];
             confirm: components["schemas"]["ConfirmPage"];
@@ -21233,6 +21753,60 @@ export interface components {
             previewEmail: string;
             subscribe: components["schemas"]["SubscribePage"];
             unsubscribe: components["schemas"]["UnsubscribePage"];
+        };
+        PagesOverview: {
+            canEdit: boolean;
+            canPublish: boolean;
+            editors: string[];
+            /** Format: date-time */
+            from: string;
+            host: string;
+            pages: components["schemas"]["PageListItem"][];
+            period: string;
+            publishers: string[];
+            shop: components["schemas"]["PagesShop"];
+            stats: components["schemas"]["PagesStats"];
+            templates: components["schemas"]["PageTemplateCount"][];
+            theme: components["schemas"]["PagesTheme"];
+            /** Format: date-time */
+            until: string;
+            websiteOn: boolean;
+        };
+        PagesShop: {
+            canToggle: boolean;
+            on: boolean;
+            path: string;
+            /** Format: int64 */
+            products: number;
+            url: string;
+        };
+        PagesStats: {
+            currency: string;
+            registrationPages: string[];
+            /** Format: int64 */
+            registrations: number;
+            /** Format: int64 */
+            sales: number;
+            /** Format: int64 */
+            salesCents: number;
+            /** Format: int64 */
+            salesPages: number;
+            shopSales: boolean;
+            shopViewed: boolean;
+            signupPages: string[];
+            /** Format: int64 */
+            signups: number;
+            /** Format: int64 */
+            viewedPages: number;
+            /** Format: int64 */
+            views: number;
+        };
+        PagesTheme: {
+            accent: string;
+            font: string;
+            ground: string;
+            logo: boolean;
+            publisher: string;
         };
         "Passkey-registerRequest": {
             challenge: string;
@@ -25812,6 +26386,9 @@ export interface components {
             /** @enum {string} */
             status: "connected" | "revoked" | "expired" | "limit_reached" | "error";
             teamName: string;
+        };
+        ShopInput: {
+            on: boolean;
         };
         SignInResult: {
             challenge?: string;
@@ -48275,6 +48852,540 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OverviewSenderHealth"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-pages": {
+        parameters: {
+            query?: {
+                period?: "7d" | "30d" | "90d";
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagesOverview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-page": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PageCreate"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-shop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShopInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagesShop"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-page": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The page's id */
+                page: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-page": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The page's id */
+                page: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "request-page-approval": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The page's id */
+                page: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PageApprovalInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-page-content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The page's id */
+                page: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PageContentInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageSaved"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-page-diff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The page's id */
+                page: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageDiff"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "publish-page": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The page's id */
+                page: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PagePublishInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-page-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The page's id */
+                page: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PageSettingsInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "undo-page-publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The page's id */
+                page: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "unpublish-page": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The page's id */
+                page: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PageUnpublishInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-page-versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The page's id */
+                page: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageVersionList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-page-version": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The page's id */
+                page: string;
+                version: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageVersionDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "restore-page-version": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The page's id */
+                page: string;
+                version: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageDetail"];
                 };
             };
             /** @description Error */
