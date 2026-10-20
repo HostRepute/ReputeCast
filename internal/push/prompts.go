@@ -57,11 +57,11 @@ type PushPromptWhen struct {
 type PushPromptConfig struct {
 	Style string `json:"style" enum:"bar,dialog,bell"`
 	// Corner is where a bell button sits.
-	Corner  string `json:"corner,omitempty" enum:"bottom_right,bottom_left,"`
-	Title   string `json:"title" maxLength:"60"`
-	Message string `json:"message" maxLength:"160"`
-	Allow   string `json:"allow" maxLength:"30"`
-	NotNow  string `json:"notNow" maxLength:"30"`
+	Corner  string         `json:"corner,omitempty" enum:"bottom_right,bottom_left,"`
+	Title   string         `json:"title" maxLength:"60"`
+	Message string         `json:"message" maxLength:"160"`
+	Allow   string         `json:"allow" maxLength:"30"`
+	NotNow  string         `json:"notNow" maxLength:"30"`
 	When    PushPromptWhen `json:"when"`
 	// Pages: every page except Paths ("all_except"), or only Paths.
 	Pages string   `json:"pages" enum:"all_except,only"`
@@ -170,15 +170,15 @@ func (c *PushPromptConfig) check() error {
 type PushPromptStats struct {
 	// Since is where the period starts: 30 days ago, or the day the site's
 	// snippet was installed when that's later.
-	Since       time.Time `json:"since"`
-	SinceSnippet bool     `json:"sinceSnippet"`
-	Shown       int64     `json:"shown"`
-	Allowed     int64     `json:"allowed"`
-	Granted     int64     `json:"granted"`
-	NotNow      int64     `json:"notNow"`
-	Closed      int64     `json:"closed"`
-	BellClicked int64     `json:"bellClicked"`
-	Blocked     int64     `json:"blocked"`
+	Since        time.Time `json:"since"`
+	SinceSnippet bool      `json:"sinceSnippet"`
+	Shown        int64     `json:"shown"`
+	Allowed      int64     `json:"allowed"`
+	Granted      int64     `json:"granted"`
+	NotNow       int64     `json:"notNow"`
+	Closed       int64     `json:"closed"`
+	BellClicked  int64     `json:"bellClicked"`
+	Blocked      int64     `json:"blocked"`
 	// AllowedPct, NotNowPct and ClosedPct are shares of the times it was
 	// shown (bell clicks for a bell); GrantedPct is a share of Allow.
 	AllowedPct float64 `json:"allowedPct"`

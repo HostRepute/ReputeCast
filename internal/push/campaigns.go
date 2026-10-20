@@ -114,19 +114,19 @@ type PushCampaign struct {
 	UpdatedBy   string     `json:"updatedBy"`
 	CreatedBy   string     `json:"createdBy"`
 
-	Title      string            `json:"title"`
-	Message    string            `json:"message"`
-	Link       string            `json:"link"`
-	UTM        string            `json:"utm"`
-	Image      *PushImage        `json:"image,omitempty"`
-	Buttons    []PushButton      `json:"buttons"`
-	TTLMinutes int               `json:"ttlMinutes"`
-	Tag        string            `json:"tag"`
-	ReplaceTag bool              `json:"replaceTag"`
+	Title      string             `json:"title"`
+	Message    string             `json:"message"`
+	Link       string             `json:"link"`
+	UTM        string             `json:"utm"`
+	Image      *PushImage         `json:"image,omitempty"`
+	Buttons    []PushButton       `json:"buttons"`
+	TTLMinutes int                `json:"ttlMinutes"`
+	Tag        string             `json:"tag"`
+	ReplaceTag bool               `json:"replaceTag"`
 	Sites      []PushAudienceSite `json:"sites"`
-	Lists      []PushAudienceRef `json:"lists"`
-	Segments   []PushAudienceRef `json:"segments"`
-	Audience   PushAudience      `json:"audience"`
+	Lists      []PushAudienceRef  `json:"lists"`
+	Segments   []PushAudienceRef  `json:"segments"`
+	Audience   PushAudience       `json:"audience"`
 	// IconURL is the first chosen site's icon; Host its address (the
 	// previews show both).
 	IconURL string `json:"iconUrl"`
@@ -200,18 +200,18 @@ type PushCampaignCreate struct {
 
 // PushCampaignUpdate is an autosave from the composer.
 type PushCampaignUpdate struct {
-	Name        string       `json:"name" minLength:"1" maxLength:"200"`
-	Title       string       `json:"title" maxLength:"200"`
-	Message     string       `json:"message" maxLength:"500"`
-	Link        string       `json:"link" maxLength:"2000"`
-	ImageMediaID string      `json:"imageMediaId,omitempty" maxLength:"40"`
-	Buttons     []PushButton `json:"buttons" maxItems:"2"`
-	TTLMinutes  int          `json:"ttlMinutes" minimum:"5" maximum:"40320"`
-	Tag         string       `json:"tag" maxLength:"64"`
-	ReplaceTag  bool         `json:"replaceTag"`
-	SiteIDs     []string     `json:"siteIds" maxItems:"20"`
-	Lists       []string     `json:"lists" maxItems:"50"`
-	Segments    []string     `json:"segments" maxItems:"50"`
+	Name         string       `json:"name" minLength:"1" maxLength:"200"`
+	Title        string       `json:"title" maxLength:"200"`
+	Message      string       `json:"message" maxLength:"500"`
+	Link         string       `json:"link" maxLength:"2000"`
+	ImageMediaID string       `json:"imageMediaId,omitempty" maxLength:"40"`
+	Buttons      []PushButton `json:"buttons" maxItems:"2"`
+	TTLMinutes   int          `json:"ttlMinutes" minimum:"5" maximum:"40320"`
+	Tag          string       `json:"tag" maxLength:"64"`
+	ReplaceTag   bool         `json:"replaceTag"`
+	SiteIDs      []string     `json:"siteIds" maxItems:"20"`
+	Lists        []string     `json:"lists" maxItems:"50"`
+	Segments     []string     `json:"segments" maxItems:"50"`
 	// Version is the version the composer edited; a save from an older one
 	// is refused.
 	Version int `json:"version" minimum:"0"`

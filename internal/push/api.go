@@ -167,7 +167,7 @@ func Register(h huma.API, s *Service) {
 		func(ctx context.Context, in *struct {
 			api.WorkspaceInput
 			Before time.Time `query:"before" doc:"Events before this time"`
-			Limit  int        `query:"limit" minimum:"0" maximum:"200"`
+			Limit  int       `query:"limit" minimum:"0" maximum:"200"`
 		}) (*api.Body[PushEventList], error) {
 			var before *time.Time
 			if !in.Before.IsZero() {

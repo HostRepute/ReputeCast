@@ -75,25 +75,25 @@ type PushSnippet struct {
 
 // PushMonth is this month's sending.
 type PushMonth struct {
-	Sent      int64   `json:"sent"`
-	Campaigns int64   `json:"campaigns"`
-	ShownPct  float64 `json:"shownPct"`
+	Sent      int64     `json:"sent"`
+	Campaigns int64     `json:"campaigns"`
+	ShownPct  float64   `json:"shownPct"`
 	Month     time.Time `json:"month"`
 }
 
 // PushSetup is Sending providers › Push › Setup.
 type PushSetup struct {
-	On          bool              `json:"on"`
-	Keys        *PushKeysView     `json:"keys,omitempty"`
-	Cap         int               `json:"cap"`
-	Quiet       bool              `json:"quiet"`
-	Window      string            `json:"window"`
-	Sites       []PushSite        `json:"sites"`
-	CheckedAt   *time.Time        `json:"checkedAt,omitempty"`
-	Subscribers PushSubscribers   `json:"subscribers"`
-	Month       PushMonth         `json:"month"`
-	Prompts     []PushPromptCard  `json:"prompts"`
-	Snippet     PushSnippet       `json:"snippet"`
+	On          bool             `json:"on"`
+	Keys        *PushKeysView    `json:"keys,omitempty"`
+	Cap         int              `json:"cap"`
+	Quiet       bool             `json:"quiet"`
+	Window      string           `json:"window"`
+	Sites       []PushSite       `json:"sites"`
+	CheckedAt   *time.Time       `json:"checkedAt,omitempty"`
+	Subscribers PushSubscribers  `json:"subscribers"`
+	Month       PushMonth        `json:"month"`
+	Prompts     []PushPromptCard `json:"prompts"`
+	Snippet     PushSnippet      `json:"snippet"`
 	// Website is the publication website's address when it isn't a push
 	// site yet: one click adds it.
 	Website   string   `json:"website,omitempty"`

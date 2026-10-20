@@ -343,7 +343,6 @@ type PushPublicConfig struct {
 	Text map[string]string `json:"text"`
 }
 
-
 func (s *Service) serveConfig(w http.ResponseWriter, r *http.Request, ws *store.Workspace) {
 	if !publicLimits.allow("config:"+ipKey(r), 120) {
 		w.WriteHeader(http.StatusTooManyRequests)
