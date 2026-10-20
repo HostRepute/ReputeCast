@@ -232,10 +232,11 @@ func priceHTML(p CommerceProduct, b CommerceBlock, sold bool) string {
 
 func imageHTML(p CommerceProduct, width int) string {
 	if p.ImageURL == "" {
-		return fmt.Sprintf(`<div style="width:100%%;max-width:%dpx;height:%dpx;border-radius:6px;background:#F3F4F6" role="img" aria-label="%s"></div>`,
+		// A product without a picture keeps its place: the boards' grey tile.
+		return fmt.Sprintf(`<div style="width:100%%;max-width:%dpx;height:%dpx;box-sizing:border-box;border:1px solid #E3E6EB;border-radius:8px;background:#F3F4F6" role="img" aria-label="%s"></div>`,
 			width, width*7/10, html.EscapeString(p.ImageAlt))
 	}
-	return fmt.Sprintf(`<img src="%s" alt="%s" width="%d" style="display:block;width:100%%;max-width:%dpx;height:auto;border:0;border-radius:6px;background:#F3F4F6">`,
+	return fmt.Sprintf(`<img src="%s" alt="%s" width="%d" style="display:block;width:100%%;max-width:%dpx;height:auto;border:0;border-radius:8px;background:#F3F4F6">`,
 		html.EscapeString(p.ImageURL), html.EscapeString(p.ImageAlt), width, width)
 }
 

@@ -44,12 +44,13 @@ const search = z.object({
     .regex(/^(any|[0-9a-f-]{36})$/)
     .optional()
     .catch(undefined),
-  spentFrom: z
+  // A typed or shared ?spentFrom=50 arrives as a number.
+  spentFrom: z.coerce
     .string()
     .regex(/^\d{1,9}(\.\d{1,2})?$/)
     .optional()
     .catch(undefined),
-  spentTo: z
+  spentTo: z.coerce
     .string()
     .regex(/^\d{1,9}(\.\d{1,2})?$/)
     .optional()

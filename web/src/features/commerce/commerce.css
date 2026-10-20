@@ -329,6 +329,13 @@
   }
 
   @media (max-width: 767px) {
+    /* The boards' phone key-value lists: each value close under its label. */
+    .kv.cm-kv {
+      gap: 2px 0;
+    }
+    .kv.cm-kv dd {
+      margin-bottom: 8px;
+    }
     .cm-ichips {
       flex-wrap: nowrap;
       overflow-x: auto;

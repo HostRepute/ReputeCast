@@ -425,7 +425,8 @@ function MoreFilters({ search, n, onChange }: { search: ContactsSearch; n: numbe
       onOpenChange={toggle}
       align="start"
       label="More filters"
-      className="w-[360px] gap-3 p-3.5"
+      // With the store fields (X20) it outgrows a laptop screen: it scrolls within what's left of it.
+      className="max-h-(--radix-popover-content-available-height) w-[360px] gap-3 overflow-y-auto p-3.5"
       trigger={<button className="btn">{n ? `More filters · ${n}` : 'More filters'}</button>}
     >
       <Field label="Source">

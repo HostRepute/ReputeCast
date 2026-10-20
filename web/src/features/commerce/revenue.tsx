@@ -29,7 +29,7 @@ const cr = defineMessages('commerce.revenue', {
   attribution: '{store} attribution',
   cardTitle: 'Store revenue from email',
   cardValue: '{amount} of {total}',
-  cardSub: '{share} of {stores, plural, one {the store} other {the stores}}’ revenue · {orders, plural, one {# order} other {# orders}} in {days} days',
+  cardSub: '{share} of {stores, plural, one {the store’s} other {the stores’}} revenue · {orders, plural, one {# order} other {# orders}} in {days} days',
   cardNone: 'No store order was credited to an email in the last {days} days.',
 })
 
