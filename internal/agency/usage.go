@@ -602,13 +602,13 @@ func rateText(r AgencyRate) string {
 // AgencyClientDetails is what the agency keeps about a client: its
 // contact, rate, origin, providers, people and the last months' rebill.
 type AgencyClientDetails struct {
-	Workspace      AgencyWorkspaceRef `json:"workspace"`
-	AccountManager *AgencyPersonRef   `json:"accountManager,omitempty"`
-	Rate           *AgencyRate        `json:"rate,omitempty"`
-	RateSince      *time.Time         `json:"rateSince,omitempty"`
-	ClientSince    time.Time          `json:"clientSince"`
-	Template       string             `json:"template,omitempty"`
-	Providers      []string           `json:"providers"`
+	Workspace      AgencyWorkspaceRef   `json:"workspace"`
+	AccountManager *AgencyPersonRef     `json:"accountManager,omitempty"`
+	Rate           *AgencyRate          `json:"rate,omitempty"`
+	RateSince      *time.Time           `json:"rateSince,omitempty"`
+	ClientSince    time.Time            `json:"clientSince"`
+	Template       string               `json:"template,omitempty"`
+	Providers      []string             `json:"providers"`
 	People         []AgencyClientPerson `json:"people"`
 	Billed         []AgencyBilledMonth  `json:"billed"`
 	CanSeeCosts    bool                 `json:"canSeeCosts"`

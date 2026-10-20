@@ -60,6 +60,9 @@ type InvitationView struct {
 	// Language is the invitation's (the instance default when it has none):
 	// the page reads in it unless the visitor picks another.
 	Language string `json:"language,omitempty" example:"en"`
+	// Agency is set when the workspace is a client of the instance's
+	// agency: the page's client variant (invite_agency.go).
+	Agency *InvitationAgency `json:"agency,omitempty"`
 }
 
 // InvitationPasswordPolicy is the password policy shown while creating a password.
@@ -161,6 +164,7 @@ func (s *Service) Invitation(ctx context.Context, token string) (InvitationView,
 		}
 	}
 	v.TwoFactor = inviteTwoFactor(l, st, perms)
+	v.Agency = s.invitationAgency(ctx, inv.WorkspaceID, inv.RoleKey)
 	return v, nil
 }
 
@@ -198,6 +202,10 @@ func (s *Service) scopeOf(ctx context.Context, workspaceID uuid.UUID, raw []byte
 type InvitationAcceptInput struct {
 	Name     string `json:"name,omitempty" maxLength:"80"`
 	Password string `json:"password,omitempty" maxLength:"1024"`
+	// Passkey joins without a password: the account is created and signed
+	// in, and the browser adds a passkey next (POST /me/passkeys). Until it
+	// has one, a password reset link is the way back in.
+	Passkey bool `json:"passkey,omitempty"`
 }
 
 // InvitationAccepted is returned after joining.
@@ -269,30 +277,34 @@ func (s *Service) AcceptInvitation(ctx context.Context, token string, in Invitat
 		if p, _ := s.enforcingProvider(ctx, inv.Email); p != nil {
 			return InvitationAccepted{}, nil, api.Err(http.StatusForbidden, "sso_required", say(ctx, mSSORequiredJoin, "domain", emailDomain(inv.Email), "provider", p.Name))
 		}
-		if !methodAllowed(st, "password") {
+		if in.Passkey && !methodAllowed(st, "passkey") || !in.Passkey && !methodAllowed(st, "password") {
 			return InvitationAccepted{}, nil, api.Err(http.StatusForbidden, "method_disabled", say(ctx, mPasswordOffJoin))
 		}
 		name := strings.TrimSpace(in.Name)
 		if name == "" {
 			return InvitationAccepted{}, nil, api.Invalid("body.name", say(ctx, mInviteName))
 		}
-		if p := authn.PasswordProblem(in.Password, int(st.PasswordMinLength)); p != "" {
-			return InvitationAccepted{}, nil, api.Invalid("body.password", p)
-		}
-		if st.BreachedCheck {
-			if hit, err := s.Breach.Breached(ctx, in.Password); err == nil && hit {
-				return InvitationAccepted{}, nil, api.Invalid("body.password", say(ctx, mBreached))
+		var hashed *string
+		if !in.Passkey {
+			if p := authn.PasswordProblem(in.Password, int(st.PasswordMinLength)); p != "" {
+				return InvitationAccepted{}, nil, api.Invalid("body.password", p)
 			}
-		}
-		hash, err := authn.HashPassword(in.Password)
-		if err != nil {
-			return InvitationAccepted{}, nil, err
+			if st.BreachedCheck {
+				if hit, err := s.Breach.Breached(ctx, in.Password); err == nil && hit {
+					return InvitationAccepted{}, nil, api.Invalid("body.password", say(ctx, mBreached))
+				}
+			}
+			hash, err := authn.HashPassword(in.Password)
+			if err != nil {
+				return InvitationAccepted{}, nil, err
+			}
+			hashed = &hash
 		}
 		tz := st.DefaultTimezone
 		if tz == "" {
 			tz = "UTC"
 		}
-		user = store.User{ID: uuid.Must(uuid.NewV7()), Email: inv.Email, Name: name, Timezone: tz, PasswordHash: &hash}
+		user = store.User{ID: uuid.Must(uuid.NewV7()), Email: inv.Email, Name: name, Timezone: tz, PasswordHash: hashed}
 		out.NewAccount = true
 	}
 	if m, err := s.Q.GetMembership(ctx, store.GetMembershipParams{WorkspaceID: inv.WorkspaceID, UserID: user.ID}); err == nil {
@@ -306,8 +318,12 @@ func (s *Service) AcceptInvitation(ctx context.Context, token string, in Invitat
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		if out.NewAccount {
+			var setAt *time.Time
+			if user.PasswordHash != nil {
+				setAt = &now
+			}
 			created, err := q.CreateUser(ctx, store.CreateUserParams{
-				ID: user.ID, Email: user.Email, Name: user.Name, Timezone: user.Timezone, PasswordHash: user.PasswordHash, PasswordSetAt: &now,
+				ID: user.ID, Email: user.Email, Name: user.Name, Timezone: user.Timezone, PasswordHash: user.PasswordHash, PasswordSetAt: setAt,
 				AvatarColor: avatarColorFor(user.Email),
 			})
 			if err != nil {

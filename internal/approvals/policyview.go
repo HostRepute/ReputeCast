@@ -48,6 +48,9 @@ type ApprovalPolicyView struct {
 	Pending     []ApprovalPendingItem `json:"pending"`
 	CanManage   bool                  `json:"canManage"`
 	Reason      string                `json:"reason,omitempty"`
+	// ClientSignoff describes the client sign-off rule; set in an agency's
+	// client workspaces, where the rule is offered (clientsignoff.go).
+	ClientSignoff *ApprovalClientSignoffInfo `json:"clientSignoff,omitempty"`
 }
 
 // PolicyView returns the approval policy with what it matches today.
@@ -59,6 +62,9 @@ func (s *Service) PolicyView(ctx context.Context, ws *store.Workspace, p *authz.
 	}
 	ms, err := s.members(ctx, s.Q, ws.ID)
 	if err != nil {
+		return out, err
+	}
+	if out.ClientSignoff, err = s.signoffInfo(ctx, ws, ms); err != nil {
 		return out, err
 	}
 	roles := map[string]bool{}
@@ -139,6 +145,9 @@ func (s *Service) SavePolicy(ctx context.Context, ws *store.Workspace, p *authz.
 	}
 	if in.AudienceMin.N <= 0 {
 		in.AudienceMin.N = 10000
+	}
+	if err := s.checkSignoff(ctx, ws, in); err != nil {
+		return ApprovalPolicyView{}, err
 	}
 	before := ParsePolicy(ws.ApprovalPolicy)
 	if before == in {

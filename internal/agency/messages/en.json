@@ -34,5 +34,21 @@
   "pickStaff": "Pick someone on the agency's staff.",
   "notAgencyWorkspace": "{workspace} isn't one of the agency's workspaces. An instance admin adds it in Instance admin › Instance & updates › Agency.",
   "templateName": "Name the template, like Retail starter.",
-  "templateNameTaken": "A workspace template named “{name}” already exists. Choose another name."
+  "templateNameTaken": "A workspace template named “{name}” already exists. Choose another name.",
+  "copyNeeds": "Copying into {workspace} needs {permission} there.",
+  "copyNeedsHere": "Using a copy needs {permission} here.",
+  "smsFromComposer": "SMS texts are used from the SMS composer's “Insert from library”.",
+  "flowNotInPlace": "A flow can't be replaced in place. Use the library item again for a fresh draft.",
+  "kindMismatch": "That item is a different kind of content.",
+  "libraryNameTaken": "The library has an item named “{name}” already. Choose another name, or save it as a new version of that item.",
+  "emptyItem": "This library item has nothing to copy.",
+  "copyGone": "The copy in {workspace} was deleted. Copy the item again instead.",
+  "clientName": "Name the client, like Wide World Importers.",
+  "slugInvalid": "Use 2 to 63 lowercase letters, digits and hyphens, starting with a letter or digit.",
+  "slugTaken": "The address {slug} is taken. Choose another.",
+  "timezone": "Use a time zone like America/Chicago.",
+  "ownerManager": "Pick an agency manager as the Owner.",
+  "firstPersonRole": "The client's first person is a Client approver or a Client viewer.",
+  "agencyWorkspaceDelete": "The agency's own workspace isn't a client. Delete it from Instance admin › Workspaces.",
+  "searchShort": "Type at least 2 characters."
 }

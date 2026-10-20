@@ -482,7 +482,7 @@ func (s *Service) AddStaff(ctx context.Context, in AgencyStaffInput) (AgencyStaf
 			return err
 		}
 		if err := s.Audit.LogWith(ctx, q, audit.Event{Action: "agency.staff_added", TargetType: "agency_staff", TargetID: id.String(), TargetName: email,
-			After: map[string]any{"level": in.Level, "title": strings.TrimSpace(in.Title), "invited": target == nil},
+			After:    map[string]any{"level": in.Level, "title": strings.TrimSpace(in.Title), "invited": target == nil},
 			Metadata: map[string]any{"permission": string(authz.AgencyManage), "summary": levelName(in.Level) + clientCount(len(specs))}}); err != nil {
 			return err
 		}

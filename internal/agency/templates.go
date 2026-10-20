@@ -447,7 +447,7 @@ func (s *Service) SaveAsTemplate(ctx context.Context, ws *store.Workspace, in Ag
 		}
 		sum := summarize(c)
 		return s.Audit.LogWith(ctx, q, audit.Event{Action: "agency.template_created", TargetType: "agency_template", TargetID: id.String(), TargetName: name,
-			After: map[string]any{"from": ws.Name, "lists": sum.Lists, "automations": sum.Automations, "sections": sum.Sections, "templates": sum.Templates},
+			After:    map[string]any{"from": ws.Name, "lists": sum.Lists, "automations": sum.Automations, "sections": sum.Sections, "templates": sum.Templates},
 			Metadata: map[string]any{"permission": string(authz.AgencyLibrary), "workspace": ws.Name}})
 	})
 	return AgencyTemplateRef{ID: id.String(), Name: name}, err
@@ -559,22 +559,22 @@ func (s *Service) DeleteTemplate(ctx context.Context, id string) error {
 // AgencyTemplatePlan is what applying a template to a client adds, and
 // what it renames because the client has something with that name.
 type AgencyTemplatePlan struct {
-	Template  AgencyTemplateRef  `json:"template"`
-	Workspace AgencyWorkspaceRef `json:"workspace"`
-	Lists       AgencyPlanPart `json:"lists"`
-	Automations AgencyPlanPart `json:"automations"`
-	Sections    AgencyPlanPart `json:"sections"`
-	Templates   AgencyPlanPart `json:"templates"`
-	SMSTexts    AgencyPlanPart `json:"smsTexts"`
-	Forms       AgencyPlanPart `json:"forms"`
-	Roles       AgencyPlanPart `json:"roles"`
+	Template    AgencyTemplateRef  `json:"template"`
+	Workspace   AgencyWorkspaceRef `json:"workspace"`
+	Lists       AgencyPlanPart     `json:"lists"`
+	Automations AgencyPlanPart     `json:"automations"`
+	Sections    AgencyPlanPart     `json:"sections"`
+	Templates   AgencyPlanPart     `json:"templates"`
+	SMSTexts    AgencyPlanPart     `json:"smsTexts"`
+	Forms       AgencyPlanPart     `json:"forms"`
+	Roles       AgencyPlanPart     `json:"roles"`
 	// ClientSignoff: on (turned on), already (already on), off (not in the
 	// template) or skipped (you can't change the policy there).
 	ClientSignoff string `json:"clientSignoff" enum:"on,already,off,skipped"`
 	// ClientRoles: added or already there.
-	ClientRoles string `json:"clientRoles" enum:"added,already"`
-	Branding    bool   `json:"branding"`
-	Senders     bool   `json:"senders"`
+	ClientRoles string   `json:"clientRoles" enum:"added,already"`
+	Branding    bool     `json:"branding"`
+	Senders     bool     `json:"senders"`
 	NextSteps   []string `json:"nextSteps"`
 	// Skipped names the parts you can't add there, with the permission.
 	Skipped []AgencyPlanSkip `json:"skipped"`

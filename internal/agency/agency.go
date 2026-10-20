@@ -22,8 +22,8 @@ package agency
 import (
 	"context"
 	"embed"
+	"errors"
 	"net/http"
-	"slices"
 	"strings"
 	"time"
 
@@ -304,7 +304,7 @@ func clientIDs(rows []store.AgencyWorkspacesRow) []uuid.UUID {
 	return out
 }
 
-func isNoRows(err error) bool { return err != nil && (err == pgx.ErrNoRows || strings.Contains(err.Error(), "no rows in result set")) }
+func isNoRows(err error) bool { return errors.Is(err, pgx.ErrNoRows) }
 
 func displayName(name, email string) string {
 	if strings.TrimSpace(name) != "" {
@@ -362,8 +362,4 @@ func tileColor(kind, color string) string {
 		return tileColors[len(tileColors)-1]
 	}
 	return color
-}
-
-func sortByName(rows []store.AgencyWorkspacesRow) {
-	slices.SortStableFunc(rows, func(a, b store.AgencyWorkspacesRow) int { return strings.Compare(strings.ToLower(a.Name), strings.ToLower(b.Name)) })
 }

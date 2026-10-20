@@ -27,7 +27,9 @@ func (g AutomationGate) Check(ctx context.Context, tx pgx.Tx, req automations.Pu
 		return automations.GateDecision{}, err
 	}
 	policy := ParsePolicy(ws.ApprovalPolicy)
-	if !policy.AutomationPublish {
+	// Client sign-off can cover publishing automations too (agencies).
+	signoff := policy.ClientSignoff.Enabled && policy.ClientSignoff.Automations
+	if !policy.AutomationPublish && !signoff {
 		return automations.GateDecision{}, nil
 	}
 	ms, err := g.S.members(ctx, q, ws.ID)
@@ -45,6 +47,18 @@ func (g AutomationGate) Check(ctx context.Context, tx pgx.Tx, req automations.Pu
 	if len(approvers) == 0 {
 		return automations.GateDecision{}, fmt.Errorf("publishing needs approval and nobody else holds campaigns:approve")
 	}
+	rules := []ApprovalRuleMatch{}
+	if policy.AutomationPublish {
+		rules = append(rules, ApprovalRuleMatch{Key: RuleAutomationPublish, Label: "Publishing an automation requires approval", Short: "automation publish", Badge: "Automation publish"})
+	}
+	if signoff {
+		rules = append(rules, clientSignoffMatch())
+		if clients, err := clientApprovers(ctx, q, approvers); err != nil {
+			return automations.GateDecision{}, err
+		} else if len(clients) == 0 {
+			return automations.GateDecision{}, fmt.Errorf("publishing needs client sign-off and nobody at %s can give it yet: invite the client's approver with the Client approver role", ws.Name)
+		}
+	}
 	who := strings.Join(names, " or ")
 	if len(names) > 2 {
 		who = strings.Join(names[:len(names)-1], ", ") + " or " + names[len(names)-1]
@@ -60,7 +74,7 @@ func (g AutomationGate) Check(ctx context.Context, tx pgx.Tx, req automations.Pu
 			changes = append(changes, it.Kind+": "+it.Title)
 		}
 	}
-	snap := Snapshot{Version: req.Version, Rules: []ApprovalRuleMatch{{Key: RuleAutomationPublish, Label: "Publishing an automation requires approval", Short: "automation publish", Badge: "Automation publish"}},
+	snap := Snapshot{Version: req.Version, Rules: rules,
 		Automation: &ApprovalAutomationSnapshot{Version: req.Version, Migration: req.Migration, Changes: changes}}
 	if m := memberByID(ms, &req.By); m != nil {
 		snap.AuthorRole = m.RoleName
@@ -69,14 +83,14 @@ func (g AutomationGate) Check(ctx context.Context, tx pgx.Tx, req automations.Pu
 	id := uuid.Must(uuid.NewV7())
 	by := req.By
 	if err := q.ApprovalInsertRequest(ctx, store.ApprovalInsertRequestParams{ID: id, WorkspaceID: ws.ID, SubjectType: "automation", AutomationID: &auto, RequestedBy: &by,
-		RequestedAt: g.S.now(), Status: "pending", MatchedRules: []string{RuleAutomationPublish}, ApprovalsRequired: int32(policy.ApprovalsRequired), Snapshot: sb}); err != nil {
+		RequestedAt: g.S.now(), Status: "pending", MatchedRules: ruleKeys(rules), ApprovalsRequired: int32(requiredFor(policy, rules)), Snapshot: sb}); err != nil {
 		return automations.GateDecision{}, err
 	}
 	author := ""
 	if m := memberByID(ms, &req.By); m != nil {
 		author = m.Name
 	}
-	if err := emitRequested(ctx, tx, &ws, id, "automation", auto, req.Name, author, []string{RuleAutomationPublish}, 0); err != nil {
+	if err := emitRequested(ctx, tx, &ws, id, "automation", auto, req.Name, author, ruleKeys(rules), 0); err != nil {
 		return automations.GateDecision{}, err
 	}
 	n := notify.Notification{WorkspaceID: &ws.ID, Kind: notify.KindApprovalRequested, Severity: "warn", Title: "Approval requested",

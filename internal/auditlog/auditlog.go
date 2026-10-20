@@ -141,6 +141,8 @@ var Categories = []AuditCategory{
 	{Key: "placement", Label: "Placement tests", Groups: []string{"placement"}},
 	// The publication website (design expansion, phase 7).
 	{Key: "website", Label: "Website", Groups: []string{"website", "post", "tag"}},
+	// Agency accounts (design expansion, phase 8).
+	{Key: "agency", Label: "Agency", Groups: []string{"agency"}},
 }
 
 // Filter narrows the log.

@@ -210,3 +210,67 @@ func (s *Service) needClientApprover(ctx context.Context, ws *store.Workspace, r
 	}
 	return api.Err(http.StatusConflict, "no_client_approver", fmt.Sprintf("This send needs client sign-off, and nobody at %s can give it yet. Invite the client's approver in Settings › Team with the Client approver role.", ws.Name))
 }
+
+// ApprovalClientSignoffInfo is the client sign-off rule on Settings ›
+// Approvals: the agency, and the client's people who can give it.
+type ApprovalClientSignoffInfo struct {
+	Agency string `json:"agency"`
+	// Approvers are the client's people with campaigns:approve.
+	Approvers []string `json:"approvers"`
+	// Staff are the agency's people among the approvers; their approvals
+	// don't count toward it.
+	Staff []string `json:"staff"`
+}
+
+// signoffInfo is set in an agency's client workspaces.
+func (s *Service) signoffInfo(ctx context.Context, ws *store.Workspace, ms []member) (*ApprovalClientSignoffInfo, error) {
+	client, err := s.Q.AgencyIsClientWorkspace(ctx, ws.ID)
+	if err != nil || !client {
+		return nil, err
+	}
+	st, err := s.Q.AgencySettings(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := &ApprovalClientSignoffInfo{Agency: st.Name, Approvers: []string{}, Staff: []string{}}
+	if out.Agency == "" {
+		out.Agency = st.InstanceName
+	}
+	approvers := approversOf(ms)
+	ids := make([]uuid.UUID, 0, len(approvers))
+	for _, a := range approvers {
+		ids = append(ids, a.ID)
+	}
+	staff, err := staffAmong(ctx, s.Q, ids)
+	if err != nil {
+		return nil, err
+	}
+	for _, a := range approvers {
+		if staff[a.ID] {
+			out.Staff = append(out.Staff, a.Name)
+		} else {
+			out.Approvers = append(out.Approvers, a.Name)
+		}
+	}
+	return out, nil
+}
+
+// checkSignoff keeps client sign-off to client workspaces: elsewhere it
+// can't be turned on.
+func (s *Service) checkSignoff(ctx context.Context, ws *store.Workspace, in ApprovalPolicy) error {
+	if !in.ClientSignoff.Enabled && !in.ClientSignoff.Automations {
+		return nil
+	}
+	if before := ParsePolicy(ws.ApprovalPolicy); before.ClientSignoff == in.ClientSignoff {
+		return nil
+	}
+	client, err := s.Q.AgencyIsClientWorkspace(ctx, ws.ID)
+	if err != nil {
+		return err
+	}
+	if !client {
+		return api.Invalid("body.clientSignoff", "Client sign-off is for the client workspaces of an agency. Turn agency mode on in Instance admin › Instance & updates first.")
+	}
+	return nil
+}
+

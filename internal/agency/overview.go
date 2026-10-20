@@ -240,9 +240,9 @@ func (s *Service) healthOf(ctx context.Context, rows []store.AgencyWorkspacesRow
 
 // AgencySetup is a new client's setup: the steps its template asked for.
 type AgencySetup struct {
-	Done  int                `json:"done"`
-	Total int                `json:"total"`
-	Steps []AgencySetupStep  `json:"steps"`
+	Done  int               `json:"done"`
+	Total int               `json:"total"`
+	Steps []AgencySetupStep `json:"steps"`
 }
 
 // AgencySetupStep is one step: provider, domain, invite or shopify.
@@ -320,10 +320,10 @@ type AgencyCounts struct {
 
 // AgencyApproval is a send waiting for approval in a client.
 type AgencyApproval struct {
-	ID        string             `json:"id"`
-	Workspace AgencyWorkspaceRef `json:"workspace"`
-	Campaign  string             `json:"campaign"`
-	CampaignID string            `json:"campaignId"`
+	ID         string             `json:"id"`
+	Workspace  AgencyWorkspaceRef `json:"workspace"`
+	Campaign   string             `json:"campaign"`
+	CampaignID string             `json:"campaignId"`
 	// WaitingFor are the people whose approval it waits for: the client's
 	// approvers under client sign-off.
 	WaitingFor  []string   `json:"waitingFor"`

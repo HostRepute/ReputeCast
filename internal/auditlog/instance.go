@@ -50,7 +50,7 @@ func (s *Service) instanceParams(ctx context.Context, f InstanceFilter) (store.I
 		return store.InstanceAuditListParams{}, err
 	}
 	p := store.InstanceAuditListParams{ActorType: base.ActorType, Result: base.Result, Since: base.Since, Until: base.Until, Search: base.Search,
-		CursorAt: base.CursorAt, CursorID: base.CursorID, Lim: base.Lim}
+		CursorAt: base.CursorAt, CursorID: base.CursorID, Lim: base.Lim, Actions: base.Actions}
 	switch f.Workspace {
 	case "":
 	case InstanceScope:
@@ -722,10 +722,13 @@ type InstanceAuditFilterInput struct {
 	Range     string    `query:"range" enum:"24h,7d,30d,90d,all" default:"30d"`
 	Since     time.Time `query:"since" doc:"Overrides range"`
 	Until     time.Time `query:"until"`
+	// Category narrows to a group of actions, as in the workspace view
+	// (agency: the agency's actions across the instance).
+	Category string `query:"category" enum:"sending,routing,audience,team,settings,integrations,transactional,scoring,digests,polls,ai,earn,verification,placement,website,agency"`
 }
 
 func (in *InstanceAuditFilterInput) filter() InstanceFilter {
-	f := InstanceFilter{Filter: Filter{Search: in.Search, ActorType: in.ActorType, Result: in.Result, Range: in.Range}, Workspace: in.Workspace}
+	f := InstanceFilter{Filter: Filter{Search: in.Search, ActorType: in.ActorType, Result: in.Result, Range: in.Range, Category: in.Category}, Workspace: in.Workspace}
 	if !in.Since.IsZero() {
 		since := in.Since
 		f.Since = &since
