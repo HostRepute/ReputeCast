@@ -38,6 +38,8 @@ type ContactListItem struct {
 	// Score is null while the workspace has no scoring; ScoreBand is its band.
 	Score     *int   `json:"score,omitempty"`
 	ScoreBand string `json:"scoreBand,omitempty" enum:"cold,warm,hot"`
+	// Paid is the contact's paid status (Earn), for callers with earn:view.
+	Paid *ContactPaid `json:"paid,omitempty"`
 }
 
 // ContactList is one page of contacts.
@@ -117,6 +119,13 @@ func (s *Service) ListContacts(ctx context.Context, ws *store.Workspace, f Conta
 			out.Items[i].Lists = l
 		}
 	}
+	paid, err := s.contactPaid(ctx, ws.ID, ids)
+	if err != nil {
+		return out, err
+	}
+	for i, id := range ids {
+		out.Items[i].Paid = paid[id]
+	}
 	return out, nil
 }
 
@@ -157,6 +166,10 @@ func (s *Service) Views(ctx context.Context, ws *store.Workspace) (ContactSavedV
 	for _, v := range views {
 		var f ContactFilter
 		_ = json.Unmarshal(v.Filters, &f)
+		// A view by paid status shows only to members who can see it.
+		if f.Paid != "" && !canSeePaid(ctx) {
+			continue
+		}
 		out.Items = append(out.Items, ContactSavedView{ID: v.ID.String(), Name: v.Name, Filters: f, Shared: v.UserID == nil})
 		sub := filterSQL{where: "true", args: base.args}
 		if err := s.applyFilter(ctx, ws.ID, &sub, f); err != nil {

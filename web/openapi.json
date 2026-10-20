@@ -6592,6 +6592,30 @@
         ],
         "type": "object"
       },
+      "AudiencePaidTier": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "short": {
+            "type": "string"
+          },
+          "top": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "short",
+          "top"
+        ],
+        "type": "object"
+      },
       "AudienceSummary": {
         "additionalProperties": false,
         "properties": {
@@ -6602,6 +6626,12 @@
           "lists": {
             "items": {
               "$ref": "#/components/schemas/AudienceListSummary"
+            },
+            "type": "array"
+          },
+          "paidTiers": {
+            "items": {
+              "$ref": "#/components/schemas/AudiencePaidTier"
             },
             "type": "array"
           },
@@ -6626,7 +6656,8 @@
           "segments",
           "suppressions",
           "tiers",
-          "lists"
+          "lists",
+          "paidTiers"
         ],
         "type": "object"
       },
@@ -9574,6 +9605,38 @@
         ],
         "type": "object"
       },
+      "Brand": {
+        "additionalProperties": false,
+        "properties": {
+          "accent": {
+            "type": "string"
+          },
+          "ground": {
+            "type": "string"
+          },
+          "onAccent": {
+            "type": "string"
+          },
+          "publisher": {
+            "type": "string"
+          },
+          "soft": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "publisher",
+          "accent",
+          "ground",
+          "soft",
+          "text",
+          "onAccent"
+        ],
+        "type": "object"
+      },
       "CallTarget": {
         "additionalProperties": false,
         "properties": {
@@ -9736,6 +9799,9 @@
           "origin": {
             "type": "string"
           },
+          "paidOnly": {
+            "type": "boolean"
+          },
           "readiness": {
             "$ref": "#/components/schemas/ReadinessSummary"
           },
@@ -9792,7 +9858,8 @@
           "updatedAt",
           "updatedBy",
           "routes",
-          "notes"
+          "notes",
+          "paidOnly"
         ],
         "type": "object"
       },
@@ -9926,6 +9993,10 @@
             "format": "int64",
             "type": "integer"
           },
+          "paidOnly": {
+            "format": "int64",
+            "type": "integer"
+          },
           "scheduled": {
             "format": "int64",
             "type": "integer"
@@ -9944,7 +10015,8 @@
           "drafts",
           "scheduled",
           "sending",
-          "sent"
+          "sent",
+          "paidOnly"
         ],
         "type": "object"
       },
@@ -12625,6 +12697,17 @@
             },
             "type": "array"
           },
+          "paid": {
+            "enum": [
+              "paid",
+              "free",
+              ""
+            ],
+            "type": "string"
+          },
+          "paidTier": {
+            "type": "string"
+          },
           "segments": {
             "items": {
               "type": "string"
@@ -12680,6 +12763,19 @@
             },
             "maxItems": 100,
             "type": "array"
+          },
+          "paid": {
+            "description": "paid: paid members only; free: free subscribers only; empty: everyone on the lists",
+            "enum": [
+              "paid",
+              "free",
+              ""
+            ],
+            "type": "string"
+          },
+          "paidTier": {
+            "description": "With paid: the lowest tier (the tier and above); empty for any paid tier",
+            "type": "string"
           },
           "segments": {
             "items": {
@@ -16347,6 +16443,22 @@
             ],
             "type": "string"
           },
+          "paid": {
+            "enum": [
+              "with_access",
+              "trialing",
+              "past_due",
+              "complimentary",
+              "gift",
+              "ended",
+              "free"
+            ],
+            "type": "string"
+          },
+          "paidTier": {
+            "description": "With paid=with_access: a tier's id, for that tier and above",
+            "type": "string"
+          },
           "q": {
             "description": "Email, name or tag",
             "maxLength": 200,
@@ -16678,6 +16790,9 @@
           "name": {
             "type": "string"
           },
+          "paid": {
+            "$ref": "#/components/schemas/ContactPaid"
+          },
           "score": {
             "format": "int64",
             "type": "integer"
@@ -16747,6 +16862,39 @@
           "id",
           "name",
           "status"
+        ],
+        "type": "object"
+      },
+      "ContactPaid": {
+        "additionalProperties": false,
+        "properties": {
+          "endedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "memberId": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "trialing",
+              "active",
+              "past_due",
+              "complimentary",
+              "gift",
+              "ended"
+            ],
+            "type": "string"
+          },
+          "tier": {
+            "description": "The tier's short name (Insider)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tier",
+          "status",
+          "memberId"
         ],
         "type": "object"
       },
@@ -21787,6 +21935,121 @@
         ],
         "type": "object"
       },
+      "EarnAudience": {
+        "additionalProperties": false,
+        "properties": {
+          "complimentary": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "connected": {
+            "type": "boolean"
+          },
+          "everyone": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "free": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "gift": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "leftOut": {
+            "$ref": "#/components/schemas/EarnAudienceLeftOut"
+          },
+          "paid": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "pastDue": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "tiers": {
+            "items": {
+              "$ref": "#/components/schemas/EarnAudienceTier"
+            },
+            "type": "array"
+          },
+          "trialing": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "withAccess": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "everyone",
+          "paid",
+          "free",
+          "withAccess",
+          "leftOut",
+          "pastDue",
+          "trialing",
+          "complimentary",
+          "gift",
+          "tiers",
+          "connected"
+        ],
+        "type": "object"
+      },
+      "EarnAudienceLeftOut": {
+        "additionalProperties": false,
+        "properties": {
+          "inactive": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "notOnList": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "suppressed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "unsubscribed": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "notOnList",
+          "unsubscribed",
+          "suppressed",
+          "inactive"
+        ],
+        "type": "object"
+      },
+      "EarnAudienceTier": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "short": {
+            "type": "string"
+          },
+          "top": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "short",
+          "top"
+        ],
+        "type": "object"
+      },
       "EarnCancelInput": {
         "additionalProperties": false,
         "properties": {
@@ -22011,6 +22274,69 @@
           "tierId",
           "reason",
           "sendWelcome"
+        ],
+        "type": "object"
+      },
+      "EarnComposer": {
+        "additionalProperties": false,
+        "properties": {
+          "connected": {
+            "type": "boolean"
+          },
+          "tiers": {
+            "items": {
+              "$ref": "#/components/schemas/EarnComposerTier"
+            },
+            "type": "array"
+          },
+          "upgradeUrl": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "connected",
+          "tiers",
+          "upgradeUrl"
+        ],
+        "type": "object"
+      },
+      "EarnComposerTier": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "includes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          },
+          "priceLine": {
+            "type": "string"
+          },
+          "short": {
+            "type": "string"
+          },
+          "top": {
+            "type": "boolean"
+          },
+          "trialDays": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "short",
+          "top",
+          "priceLine",
+          "trialDays",
+          "includes"
         ],
         "type": "object"
       },
@@ -23106,6 +23432,12 @@
           "link": {
             "type": "string"
           },
+          "lists": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "ltvCents": {
             "format": "int64",
             "type": "integer"
@@ -23178,6 +23510,9 @@
           "subscriptionUrl": {
             "type": "string"
           },
+          "taxAdded": {
+            "type": "boolean"
+          },
           "test": {
             "type": "boolean"
           },
@@ -23208,6 +23543,8 @@
           "helpers",
           "emails",
           "link",
+          "lists",
+          "taxAdded",
           "id",
           "contactId",
           "name",
@@ -23953,6 +24290,9 @@
       "EarnPlans": {
         "additionalProperties": false,
         "properties": {
+          "brand": {
+            "$ref": "#/components/schemas/Brand"
+          },
           "canEdit": {
             "type": "boolean"
           },
@@ -23995,7 +24335,8 @@
           "connected",
           "canEdit",
           "helpers",
-          "lists"
+          "lists",
+          "brand"
         ],
         "type": "object"
       },
@@ -24083,6 +24424,12 @@
             "format": "int64",
             "type": "integer"
           },
+          "offers": {
+            "items": {
+              "$ref": "#/components/schemas/EarnPriceOffer"
+            },
+            "type": "array"
+          },
           "origin": {
             "enum": [
               "tier",
@@ -24130,7 +24477,25 @@
           "origin",
           "members",
           "paying",
-          "discounted"
+          "discounted",
+          "offers"
+        ],
+        "type": "object"
+      },
+      "EarnPriceOffer": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "label": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "count"
         ],
         "type": "object"
       },
@@ -24284,12 +24649,16 @@
           },
           "testOnly": {
             "type": "boolean"
+          },
+          "upgradeUrl": {
+            "type": "string"
           }
         },
         "required": [
           "mode",
           "testOnly",
-          "canManage"
+          "canManage",
+          "upgradeUrl"
         ],
         "type": "object"
       },
@@ -24419,6 +24788,13 @@
             "type": "string"
           },
           "id": {
+            "type": "string"
+          },
+          "importedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "importedFrom": {
             "type": "string"
           },
           "includes": {
@@ -30753,6 +31129,9 @@
               "kickbox",
               "bouncer",
               "emailable",
+              "stripe",
+              "paddle",
+              "lemonsqueezy",
               "shopify",
               "woocommerce"
             ],
@@ -30827,6 +31206,9 @@
           },
           "mcpEnabled": {
             "type": "boolean"
+          },
+          "payment": {
+            "$ref": "#/components/schemas/IntegrationPaymentFacts"
           },
           "price": {
             "format": "double",
@@ -31759,6 +32141,29 @@
         "required": [
           "items",
           "canManage"
+        ],
+        "type": "object"
+      },
+      "IntegrationPaymentFacts": {
+        "additionalProperties": false,
+        "properties": {
+          "account": {
+            "type": "string"
+          },
+          "available": {
+            "type": "boolean"
+          },
+          "mode": {
+            "enum": [
+              "live",
+              "test",
+              ""
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "available"
         ],
         "type": "object"
       },
@@ -60556,6 +60961,15 @@
             },
             "type": "array"
           },
+          "options": {
+            "additionalProperties": {
+              "items": {
+                "$ref": "#/components/schemas/VisibilityOption"
+              },
+              "type": "array"
+            },
+            "type": "object"
+          },
           "score": {
             "$ref": "#/components/schemas/VisibilityCatalogScore"
           },
@@ -60588,7 +61002,8 @@
           "languages",
           "tiers",
           "bands",
-          "score"
+          "score",
+          "options"
         ],
         "type": "object"
       },
@@ -77639,6 +78054,16 @@
             }
           },
           {
+            "description": "Only campaigns sent to paid members only",
+            "explode": false,
+            "in": "query",
+            "name": "paidOnly",
+            "schema": {
+              "description": "Only campaigns sent to paid members only",
+              "type": "boolean"
+            }
+          },
+          {
             "explode": false,
             "in": "query",
             "name": "page",
@@ -85087,6 +85512,34 @@
             }
           },
           {
+            "explode": false,
+            "in": "query",
+            "name": "paid",
+            "schema": {
+              "enum": [
+                "with_access",
+                "trialing",
+                "past_due",
+                "complimentary",
+                "gift",
+                "ended",
+                "free",
+                ""
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "With paid=with_access: a tier's id, for that tier and above",
+            "explode": false,
+            "in": "query",
+            "name": "paidTier",
+            "schema": {
+              "description": "With paid=with_access: a tier's id, for that tier and above",
+              "type": "string"
+            }
+          },
+          {
             "description": "A store's id, or any",
             "explode": false,
             "in": "query",
@@ -89256,6 +89709,85 @@
         "x-permission": "domains:manage"
       }
     },
+    "/api/v1/workspaces/{workspace}/earn/audience": {
+      "get": {
+        "description": "Counts only. Drafting a paid-only campaign needs campaigns:edit, like any draft.",
+        "operationId": "get-earn-audience",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The campaign's list",
+            "explode": false,
+            "in": "query",
+            "name": "list",
+            "schema": {
+              "description": "The campaign's list",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The lowest tier of paid members; empty for any paid tier",
+            "explode": false,
+            "in": "query",
+            "name": "tier",
+            "schema": {
+              "description": "The lowest tier of paid members; empty for any paid tier",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EarnAudience"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Who on a list a paid-only campaign reaches: everyone, paid members only or free subscribers only",
+        "tags": [
+          "Earn"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
+      }
+    },
     "/api/v1/workspaces/{workspace}/earn/checklist": {
       "get": {
         "operationId": "get-earn-checklist",
@@ -89375,6 +89907,64 @@
         ],
         "x-access": "workspace",
         "x-permission": "payments:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/earn/composer": {
+      "get": {
+        "description": "Needs campaigns:edit, like any draft: a Content Writer adds Upgrade blocks and paid-only sections without earn:view.",
+        "operationId": "get-earn-composer",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EarnComposer"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The composer's paid content: tiers with their prices, the connection and the upgrade page",
+        "tags": [
+          "Earn"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
       }
     },
     "/api/v1/workspaces/{workspace}/earn/connections": {

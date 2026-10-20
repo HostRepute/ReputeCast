@@ -7,6 +7,7 @@ import { T, useT, formatList, type MessageDescriptor } from '@/i18n'
 import { clock, dayMonthDate, dayMonthYear } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { aiCatalogCapabilities, aiEntryLine, aiEntryName, aiMaintainer } from '@/features/ai/entries'
+import { paymentCapabilities, paymentEntryLine, paymentEntryName, paymentLetters, paymentMaintainer } from '@/features/earn/entries'
 import { cm } from '@/features/commerce/messages'
 import { m } from './messages'
 import './integrations.css'
@@ -81,6 +82,7 @@ export const entryName: Record<EntryKey, MessageDescriptor> = {
   kickbox: m.kickbox,
   bouncer: m.bouncer,
   emailable: m.emailable,
+  ...paymentEntryName,
   shopify: cm.shopify,
   woocommerce: cm.woocommerce,
 }
@@ -100,6 +102,7 @@ export const maintainer: Record<EntryKey, MessageDescriptor> = {
   kickbox: m.byOwnAccount,
   bouncer: m.byOwnAccount,
   emailable: m.byOwnAccount,
+  ...paymentMaintainer,
   shopify: cm.byShopify,
   woocommerce: cm.byWoo,
 }
@@ -119,6 +122,7 @@ export const entryLine: Record<EntryKey, MessageDescriptor> = {
   kickbox: m.kickboxLine,
   bouncer: m.bouncerLine,
   emailable: m.emailableLine,
+  ...paymentEntryLine,
   shopify: cm.shopifyLine,
   woocommerce: cm.wooLine,
 }
@@ -138,6 +142,7 @@ export const capabilities: Record<EntryKey, MessageDescriptor[]> = {
   kickbox: [m.capBulkLists, m.capRealtime, m.capCreditBalance],
   bouncer: [m.capBulkLists, m.capRealtime, m.capCreditBalance],
   emailable: [m.capBulkLists, m.capRealtime, m.capCreditBalance],
+  ...paymentCapabilities,
   shopify: [cm.capOrders, cm.capProducts, cm.capCustomers, cm.capCheckouts, cm.capWriteBack, cm.capAttribution],
   woocommerce: [cm.capOrders, cm.capProducts, cm.capCustomers, cm.capCheckouts, cm.capAttribution],
 }
@@ -170,6 +175,7 @@ export function Tile({ k, size }: { k: EntryKey; size?: 'sm' | 'lg' }) {
     kickbox: 'K',
     bouncer: 'B',
     emailable: 'E',
+    ...paymentLetters,
     shopify: 'Sh',
     woocommerce: 'Woo',
   }

@@ -329,6 +329,35 @@ export const entries: Entry[] = [
   // Describe the segment (a new segment) and Summarize results (the October Product Update's report,
   // with its kept summary): each starts from a click.
   { board: 'AISegmentReport', manual: true },
+  // X16 · payments and paid subscriptions. Acme Newsletter has Stripe connected (live and test keys) and
+  // 1,252 paid members; Acme Engineering Blog has no payment provider (the wizard's start, the first-run
+  // checklist, no paid members). The editors, the member panel and the tabs of Settings open from the
+  // pages; the public pages carry personal links (preferences) or need a checkout session.
+  { board: 'EarnConnect', path: '/w/acme-engineering-blog/earn/connect', widths: [1440] },
+  { board: 'EarnConnectStates', manual: true },
+  { board: 'EarnSettings', path: `${ws}/earn/settings`, widths: [1440] },
+  { board: 'EarnSettingsTabs', path: `${ws}/earn/settings?tab=emails`, widths: [1440] },
+  { board: 'EarnSettingsStates', manual: true },
+  { board: 'EarnPlans', path: `${ws}/earn/plans`, widths: [1440] },
+  { board: 'EarnPlansTablet', path: `${ws}/earn/plans`, widths: [834] },
+  { board: 'EarnPlansPhone', path: `${ws}/earn/plans`, widths: [390] },
+  { board: 'EarnPlansStates', manual: true },
+  { board: 'EarnPlanEditors', manual: true },
+  { board: 'EarnUpgradeEditor', path: `${ws}/earn/plans/upgrade-page`, widths: [1440] },
+  { board: 'EarnMembers', path: `${ws}/earn/members`, widths: [1440] },
+  { board: 'EarnMembersTablet', path: `${ws}/earn/members`, widths: [834] },
+  { board: 'EarnMembersPhone', path: `${ws}/earn/members`, widths: [390] },
+  { board: 'EarnMembersStates', manual: true },
+  { board: 'EarnMemberPanel', manual: true },
+  { board: 'EarnMemberPanelStates', manual: true },
+  { board: 'EarnImport', path: `${ws}/earn/members?import=new`, widths: [1440] },
+  { board: 'EarnImportStates', manual: true },
+  { board: 'EarnInAudience', path: `${ws}/audience?paid=with_access`, widths: [1440] },
+  { board: 'ComposerEarnBlocks', manual: true },
+  { board: 'PublicUpgrade', path: '/p/acme-newsletter/upgrade', user: 'anon', widths: [1440, 720] },
+  { board: 'PublicUpgradePhone', path: '/p/acme-newsletter/upgrade', user: 'anon', widths: [390] },
+  { board: 'PublicPreferencesPaid', manual: true },
+  { board: 'PublicEarnStates', manual: true },
   // X20 · Shopify and WooCommerce. Acme Merch is the demo's Shopify store; the connect dialogs, the
   // first import, a missing webhook, a revoked store, WooCommerce without the plugin and the
   // disconnect dialog need clicks or data changes (CommerceStates), as do the product picker, a

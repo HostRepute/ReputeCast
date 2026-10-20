@@ -93,6 +93,14 @@ const blocks: Record<string, ReactNode> = {
       <rect x="7" y="15.5" width="7" height="2" rx="1" />
     </>
   ),
+  // The Upgrade block (Earn): a card with its price line and button.
+  rcUpgrade: (
+    <>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <path d="M8 9h8M9.5 12h5" />
+      <rect x="8" y="15" width="8" height="2.5" rx="1.25" />
+    </>
+  ),
   // The Product grid (X20): three products side by side.
   rcGrid: (
     <>

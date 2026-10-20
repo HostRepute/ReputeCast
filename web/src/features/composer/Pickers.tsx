@@ -6,12 +6,13 @@ import { toast } from '@/components/ui/Toast'
 import { count } from '@/lib/format'
 import { useComposer, type Campaign } from './context'
 import { ToolIcon } from './icons'
+import { WhoOnList, type Who } from '@/features/earn/composer/WhoOnList'
 
 function useUpdateCampaign() {
   const { slug, campaign } = useComposer()
   const qc = useQueryClient()
   const m = $api.useMutation('patch', '/api/v1/workspaces/{workspace}/campaigns/{campaignId}')
-  return (body: { audience?: { lists: string[]; segments: string[]; excludeLists: string[] }; senderId?: string }, done?: () => void) =>
+  return (body: { audience?: { lists: string[]; segments: string[]; excludeLists: string[]; paid?: Who; paidTier?: string }; senderId?: string }, done?: () => void) =>
     m.mutate(
       { params: { path: { workspace: slug, campaignId: campaign.id } }, body },
       {
@@ -32,6 +33,9 @@ export function AudiencePicker() {
   const [lists, setLists] = useState<string[]>(campaign.audience.lists)
   const [segments, setSegments] = useState<string[]>(campaign.audience.segments)
   const [exclude, setExclude] = useState<string[]>(campaign.audience.excludeLists)
+  // Who on the lists (Earn): everyone, paid members only or free subscribers only.
+  const [who, setWho] = useState<Who>(campaign.audience.paid ?? '')
+  const [paidTier, setPaidTier] = useState(campaign.audience.paidTier ?? '')
   const [live, setLive] = useState<{ count: number; approximate: boolean } | null>(null)
   const update = useUpdateCampaign()
 
@@ -40,6 +44,8 @@ export function AudiencePicker() {
       setLists(campaign.audience.lists)
       setSegments(campaign.audience.segments)
       setExclude(campaign.audience.excludeLists)
+      setWho(campaign.audience.paid ?? '')
+      setPaidTier(campaign.audience.paidTier ?? '')
     }
     setOpen(o)
   }
@@ -49,12 +55,12 @@ export function AudiencePicker() {
     if (!open || nothing) return
     const h = window.setTimeout(() => {
       void http
-        .POST('/api/v1/workspaces/{workspace}/campaigns/audience-count', { params: { path: { workspace: slug } }, body: { lists, segments, excludeLists: exclude } })
+        .POST('/api/v1/workspaces/{workspace}/campaigns/audience-count', { params: { path: { workspace: slug } }, body: { lists, segments, excludeLists: exclude, paid: who, paidTier: who === 'paid' ? paidTier : '' } })
         .then(({ data }) => data && setLive({ count: data.count, approximate: data.approximate }))
         .catch(() => setLive(null))
     }, 250)
     return () => window.clearTimeout(h)
-  }, [open, nothing, lists, segments, exclude, slug])
+  }, [open, nothing, lists, segments, exclude, who, paidTier, slug])
 
   const label = campaign.audienceLabel ? `${campaign.audienceLabel} · ${count(campaign.audienceCount ?? 0)}` : 'Choose audience'
   const toggle = (arr: string[], id: string) => (arr.includes(id) ? arr.filter((x) => x !== id) : [...arr, id])
@@ -99,6 +105,15 @@ export function AudiencePicker() {
                 </label>
               ))
           : null}
+        <WhoOnList
+          lists={lists}
+          who={who}
+          tier={paidTier}
+          onChange={(w, tier) => {
+            setWho(w)
+            setPaidTier(tier)
+          }}
+        />
         <div className="mt-1 flex items-center gap-2 border-t border-line-2 px-2.5 pt-2.5 pb-1">
           <span className="k flex-1" role="status" aria-live="polite">
             {nothing ? 'Pick a list or a segment' : live ? `${live.approximate ? 'About ' : ''}${count(live.count)} recipients after suppressions` : 'Counting…'}
@@ -106,7 +121,7 @@ export function AudiencePicker() {
           <button
             type="button"
             className="btn pri sm"
-            onClick={() => update({ audience: { lists, segments, excludeLists: exclude } }, () => setOpen(false))}
+            onClick={() => update({ audience: { lists, segments, excludeLists: exclude, paid: who, paidTier: who === 'paid' ? paidTier : '' } }, () => setOpen(false))}
             disabled={!lists.length && !segments.length}
           >
             Apply

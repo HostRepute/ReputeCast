@@ -33,6 +33,7 @@ import { NameInLayers, VersionsWithBlock, VisibilitySection } from '@/features/c
 import { m as cm } from '@/features/conditional/messages'
 import { useConditional } from '@/features/conditional/state'
 import { PollSettings } from '@/features/polls/Inspector'
+import { UpgradeSettings } from '@/features/earn/composer/UpgradeSettings'
 import { FillFromStore, StoreBlockStyle, storeSectionOf } from '@/features/commerce/composer'
 import { useT } from '@/i18n'
 
@@ -783,8 +784,9 @@ export function SettingsFields({ c }: { c: Component }) {
   const tag = tagOf(c)
   const head = useHead()
   const rows: ReactNode[] = []
-  // A Poll block's settings, and who sees the block (design expansion, X11).
-  rows.push(<PollSettings key="poll" c={c} />, <VisibilitySection key="who" c={c} />)
+  // A Poll block's settings, and who sees the block (design expansion, X11);
+  // the Upgrade block's (Earn, X16).
+  rows.push(<UpgradeSettings key="upgrade" c={c} />, <PollSettings key="poll" c={c} />, <VisibilitySection key="who" c={c} />)
   switch (tag) {
     case 'mj-image':
       rows.push(<ImageSourceProp key="src" c={c} />, <AltProp key="alt" c={c} />, <LinkProp key="href" c={c} title="Link URL (optional)" />)

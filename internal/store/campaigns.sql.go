@@ -629,16 +629,23 @@ WHERE c.workspace_id = $1 AND c.deleted_at IS NULL
        OR ($2 = 'sending' AND c.status IN ('sending', 'paused'))
        OR ($2 = 'sent' AND c.status IN ('sent', 'cancelled', 'failed')))
   AND ($3::text = '' OR c.name ILIKE '%' || $3::text || '%')
+  AND (NOT $4::boolean OR c.audience ->> 'paid' = 'paid')
 `
 
 type CountCampaignsParams struct {
 	WorkspaceID uuid.UUID `json:"workspaceId"`
 	StatusGroup string    `json:"statusGroup"`
 	Query       string    `json:"query"`
+	PaidOnly    bool      `json:"paidOnly"`
 }
 
 func (q *Queries) CountCampaigns(ctx context.Context, arg CountCampaignsParams) (int64, error) {
-	row := q.db.QueryRow(ctx, countCampaigns, arg.WorkspaceID, arg.StatusGroup, arg.Query)
+	row := q.db.QueryRow(ctx, countCampaigns,
+		arg.WorkspaceID,
+		arg.StatusGroup,
+		arg.Query,
+		arg.PaidOnly,
+	)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -1070,17 +1077,19 @@ WHERE c.workspace_id = $1 AND c.deleted_at IS NULL
        OR ($2 = 'sending' AND c.status IN ('sending', 'paused'))
        OR ($2 = 'sent' AND c.status IN ('sent', 'cancelled', 'failed')))
   AND ($3::text = '' OR c.name ILIKE '%' || $3::text || '%')
+  AND (NOT $4::boolean OR c.audience ->> 'paid' = 'paid')
 ORDER BY CASE c.status WHEN 'sending' THEN 0 WHEN 'paused' THEN 0 WHEN 'scheduled' THEN 1 WHEN 'approval' THEN 2 WHEN 'approved' THEN 2 WHEN 'draft' THEN 3 ELSE 4 END,
          CASE WHEN c.status = 'scheduled' THEN c.scheduled_at END ASC,
          coalesce(c.started_at, c.updated_at) DESC,
          c.id DESC
-LIMIT $5 OFFSET $4
+LIMIT $6 OFFSET $5
 `
 
 type ListCampaignsParams struct {
 	WorkspaceID uuid.UUID `json:"workspaceId"`
 	StatusGroup string    `json:"statusGroup"`
 	Query       string    `json:"query"`
+	PaidOnly    bool      `json:"paidOnly"`
 	Off         int32     `json:"off"`
 	Lim         int32     `json:"lim"`
 }
@@ -1124,6 +1133,7 @@ func (q *Queries) ListCampaigns(ctx context.Context, arg ListCampaignsParams) ([
 		arg.WorkspaceID,
 		arg.StatusGroup,
 		arg.Query,
+		arg.PaidOnly,
 		arg.Off,
 		arg.Lim,
 	)

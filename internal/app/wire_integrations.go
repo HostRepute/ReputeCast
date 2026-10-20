@@ -27,7 +27,8 @@ func (a *App) integrations() *integrations.Service {
 		AllowPrivate: func() bool { return cfg.Webhooks.AllowPrivateNetworks },
 		Languages:    draftLanguages{languagesService(a)},
 		PostReported: integrationPostReported(a),
-		Sources:      map[string]integrations.GroupSource{"ai": aiCatalog(a), "verification": verificationCatalog(a), "commerce": integrationCommerce(a)},
+		Sources: map[string]integrations.GroupSource{"ai": aiCatalog(a), "verification": verificationCatalog(a), "payments": paymentsCatalog(a),
+			"commerce": integrationCommerce(a)},
 	}
 }
 

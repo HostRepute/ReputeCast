@@ -35,6 +35,9 @@ const search = z.object({
   sort: z.enum(['activity', 'score']).optional().catch(undefined),
   /** The latest address check's result (X14). */
   check: z.enum(['valid', 'invalid', 'risky', 'unknown', 'never']).optional().catch(undefined),
+  /** Paid status (Earn, X16). */
+  paid: z.enum(['with_access', 'trialing', 'past_due', 'complimentary', 'gift', 'ended', 'free']).optional().catch(undefined),
+  paidTier: z.string().uuid().optional().catch(undefined),
   /** Store customers and what they spent in the stores (X20). */
   storeCustomer: z
     .string()

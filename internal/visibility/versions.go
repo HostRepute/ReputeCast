@@ -13,6 +13,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/contentcheck"
 	"github.com/hostrepute/reputecast/internal/emailaddr"
+	"github.com/hostrepute/reputecast/internal/paidaccess"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -32,12 +33,15 @@ type Audience struct {
 	ExcludeTiers2   []string `json:"excludeTiers"`
 	IncludeSunset   bool     `json:"include_sunset"`
 	IncludeSunset2  bool     `json:"includeSunset"`
+	// Paid is who on the lists gets a paid-only campaign (Earn).
+	Paid paidaccess.Audience `json:"-"`
 }
 
 // ParseAudience reads campaigns.audience (both key styles).
 func ParseAudience(raw json.RawMessage) Audience {
 	var a Audience
 	_ = json.Unmarshal(raw, &a)
+	a.Paid = paidaccess.Parse(raw)
 	a.ExcludeLists = append(a.ExcludeLists, a.ExcludeLists2...)
 	a.ExcludeSegments = append(a.ExcludeSegments, a.ExcludeSegs2...)
 	a.ExcludeTiers = append(a.ExcludeTiers, a.ExcludeTiers2...)
@@ -60,6 +64,9 @@ func (a Audience) hash() string {
 		strings.Join(sorted(a.ExcludeSegments), ","), strings.Join(sorted(a.ExcludeTiers), ",")}
 	if a.IncludeSunset {
 		parts = append(parts, "sunset")
+	}
+	if a.Paid.Set() {
+		parts = append(parts, "paid:"+a.Paid.Who+":"+a.Paid.Tier)
 	}
 	sum := sha256.Sum256([]byte(strings.Join(parts, "|")))
 	return hex.EncodeToString(sum[:12])
@@ -114,10 +121,19 @@ func FinalRecipients(ctx context.Context, q *store.Queries, segs SegmentResolver
 	if err != nil {
 		return nil, err
 	}
+	// A paid-only campaign goes to the paid members on its lists, or to
+	// the free subscribers.
+	keep, err := paidaccess.Load(ctx, q, wsID, a.Paid)
+	if err != nil {
+		return nil, err
+	}
 	seen := make(map[string]bool, len(rows))
 	excludeSunset := slices.Contains(a.ExcludeTiers, "sunset")
 	res := make([]*Facts, 0, len(rows))
 	for _, r := range rows {
+		if !keep.Keeps(r.ID) {
+			continue
+		}
 		if r.Suppressed || r.RoleAddress || emailaddr.IsRole(r.Email) {
 			continue
 		}

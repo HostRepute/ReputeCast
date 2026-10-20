@@ -37,6 +37,8 @@ type ContactFilter struct {
 	Check string `json:"check,omitempty" enum:"valid,invalid,risky,unknown,never"`
 	// Members of the website (website.go).
 	WebsiteFilter
+	// Paid status (Earn, paid.go).
+	PaidFilter
 	// Store customers and what they spent (storefilter.go).
 	StoreFilter
 }
@@ -122,6 +124,9 @@ func (s *Service) applyFilter(ctx context.Context, wsID uuid.UUID, out *filterSQ
 		return err
 	}
 	websiteFilter(out, f.WebsiteFilter)
+	if err := s.paidFilter(ctx, wsID, out, f.PaidFilter); err != nil {
+		return err
+	}
 	if err := s.storeFilter(out, f.StoreFilter); err != nil {
 		return err
 	}

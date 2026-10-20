@@ -74,6 +74,9 @@ type AudienceSummary struct {
 	Tiers           AudienceTierCounts    `json:"tiers"`
 	TiersComputedAt *time.Time            `json:"tiersComputedAt,omitempty"`
 	Lists           []AudienceListSummary `json:"lists"`
+	// PaidTiers are the Earn tiers of the Paid status filter, lowest first;
+	// empty without tiers or without earn:view (no Paid filter or column).
+	PaidTiers []AudiencePaidTier `json:"paidTiers"`
 }
 
 // Summary returns the counts shown in the Audience header.
@@ -99,6 +102,9 @@ func (s *Service) Summary(ctx context.Context, ws *store.Workspace) (AudienceSum
 	for _, l := range lists {
 		out.Lists = append(out.Lists, AudienceListSummary{ID: l.ID.String(), Name: l.Name, Description: l.Description, DoubleOptIn: l.DoubleOptIn, Subscribed: l.Subscribed, Pending: l.Pending,
 			CreatedAt: l.CreatedAt, Origin: l.Origin})
+	}
+	if out.PaidTiers, err = s.paidTiers(ctx, s.Q, ws.ID); err != nil {
+		return out, err
 	}
 	return out, nil
 }
