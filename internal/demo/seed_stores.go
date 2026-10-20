@@ -238,13 +238,21 @@ func seedStoresImpl(ctx context.Context, s *Seeder) error {
 		g.flows[name] = id
 	}
 	rows.Close()
+	// The sample's joins and renames are history, not changes to announce:
+	// the contact events they queue for the workspace's webhooks (the
+	// Product backend listens to contact.subscribed) are dropped.
+	var queued int64
+	if err := s.Tx.QueryRow(ctx, `SELECT coalesce(max(id), 0) FROM webhook_contact_events`).Scan(&queued); err != nil {
+		return err
+	}
 	steps := []func() error{g.store, g.catalog, g.list, g.customers, g.flow, g.ordersAndCheckouts, g.blocks, g.history}
 	for _, step := range steps {
 		if err := step(); err != nil {
 			return err
 		}
 	}
-	return nil
+	_, err = s.Tx.Exec(ctx, `DELETE FROM webhook_contact_events WHERE workspace_id = $1 AND id > $2`, ws.ID, queued)
+	return err
 }
 
 // store inserts Acme Merch, connected on 6 Oct at 16:04 by Marcus Chen.
@@ -262,7 +270,7 @@ func (g *storeSeedState) store() error {
 	}
 	s.Lists["Acme Merch"] = g.listID
 	progress, _ := json.Marshal(map[string]any{"phase": "done", "months": 12, "by": "Marcus Chen",
-		"products": map[string]int{"done": 39, "total": 39}, "collections": len(storeCollections),
+		"products": map[string]int{"done": 38, "total": 38}, "collections": len(storeCollections),
 		"customers": map[string]int{"done": storeCustomers, "total": storeCustomers}, "accepted": storeAccepted, "known": storeKnown, "notAdded": storeNotAdded,
 		"orders": map[string]int{"done": storeImported, "total": storeImported}, "matching": map[string]int{"done": 4120, "total": 4120},
 		"since": g.month(10, 6, 16, 4).AddDate(-1, 0, 0)})
@@ -483,15 +491,17 @@ func (g *storeSeedState) flow() error {
 		storeGridSection(g.storeID, grid.HTML))
 	skip := 7
 	window := &automations.AutomationSendWindow{Enabled: false}
+	// 44 px between the steps as drawn with their stats (the trigger's
+	// store line makes it the tallest).
 	graph := automations.AutomationGraph{
 		Nodes: []automations.AutomationNode{
 			autoNode("n1", automations.NodeTrigger, 300, 24, autoFlowData{Trigger: &automations.AutomationTrigger{Kind: automations.TriggerAbandonedCheckout,
 				Store: g.storeID.String(), AfterHours: 1, SkipDays: &skip, Reentry: "always"}}),
-			autoNode("n2", automations.NodeEmail, 300, 160, autoFlowData{Email: &automations.AutomationEmailStep{EmailID: one.String(), EmailVersion: 1, Subject: cartEmailOne, SendWindow: window}}),
-			autoNode("n3", automations.NodeDelay, 300, 330, autoFlowData{Delay: autoDur(23, "hours")}),
-			autoNode("n4", automations.NodeGoal, 300, 430, autoFlowData{Label: "Placed an order", Condition: &automations.AutomationCondition{Kind: automations.ConditionPlacedOrder, Store: g.storeID.String()}}),
-			autoNode("n5", automations.NodeEmail, 300, 560, autoFlowData{Email: &automations.AutomationEmailStep{EmailID: two.String(), EmailVersion: 1, Subject: cartEmailTwo, SendWindow: window}}),
-			autoNode("n6", automations.NodeExit, 300, 730, autoFlowData{Label: "Leave the flow"}),
+			autoNode("n2", automations.NodeEmail, 300, 200, autoFlowData{Email: &automations.AutomationEmailStep{EmailID: one.String(), EmailVersion: 1, Subject: cartEmailOne, SendWindow: window}}),
+			autoNode("n3", automations.NodeDelay, 300, 336, autoFlowData{Delay: autoDur(23, "hours")}),
+			autoNode("n4", automations.NodeGoal, 300, 450, autoFlowData{Label: "Placed an order", Condition: &automations.AutomationCondition{Kind: automations.ConditionPlacedOrder, Store: g.storeID.String()}}),
+			autoNode("n5", automations.NodeEmail, 300, 566, autoFlowData{Email: &automations.AutomationEmailStep{EmailID: two.String(), EmailVersion: 1, Subject: cartEmailTwo, SendWindow: window}}),
+			autoNode("n6", automations.NodeExit, 300, 686, autoFlowData{Label: "Leave the flow"}),
 		},
 		Edges: []automations.AutomationEdge{autoEdge("n1", "n2", ""), autoEdge("n2", "n3", ""), autoEdge("n3", "n4", ""), autoEdge("n4", "n5", ""), autoEdge("n5", "n6", "")},
 	}
