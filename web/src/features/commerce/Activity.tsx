@@ -178,7 +178,8 @@ export function ActivityEntry({ item, c, open, onToggle }: { item: ActivityItem;
   if (!onToggle) return <div className="ih-ev">{body}</div>
   return (
     <>
-      <button type="button" className="ih-ev w-full cursor-pointer border-x-0 border-b-0 bg-transparent p-0 py-3 text-left font-[inherit] text-[inherit]" aria-expanded={open} onClick={onToggle} aria-label={t(ca.expandedMetaPlain, { date: dayMonthDate(item.at), time: clock(item.at) }) + ' · ' + d.title}>
+      {/* Its name is what it shows (WCAG 2.5.3, label in name). */}
+      <button type="button" className="ih-ev w-full cursor-pointer border-x-0 border-b-0 bg-transparent p-0 py-3 text-left font-[inherit] text-[inherit]" aria-expanded={open} onClick={onToggle}>
         {body}
       </button>
       {open ? <ActivityDetails item={item} c={c} /> : null}
