@@ -3,6 +3,7 @@ package push
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"strings"
 	"time"
 
@@ -71,10 +72,12 @@ func (st Step) Send(ctx context.Context, tx pgx.Tx, in automations.ChannelSend) 
 	if err != nil {
 		return automations.ChannelSent{}, err
 	}
-	if _, err := s.liveKey(ctx, q, &ws); err != nil {
+	if _, err := s.liveKey(ctx, q, &ws); errors.Is(err, errNoKeys) {
 		return automations.ChannelSent{Skipped: "push_off"}, nil
+	} else if err != nil {
+		return automations.ChannelSent{}, err
 	}
-	rows, err := tx.Query(ctx, `SELECT s.id, s.site_id, s.browser, s.time_zone, s.contact_id, s.demo FROM push_subscriptions s
+	rows, err := tx.Query(ctx, `SELECT s.id, s.site_id, s.browser, s.time_zone, s.contact_id, s.demo, `+workerMissingSQL+` FROM push_subscriptions s
 		JOIN push_sites st ON st.id = s.site_id AND st.removed_at IS NULL
 		WHERE s.workspace_id = $1 AND s.contact_id = $2 AND s.removed_at IS NULL ORDER BY s.created_at`, in.WorkspaceID, in.ContactID)
 	if err != nil {
@@ -83,7 +86,7 @@ func (st Step) Send(ctx context.Context, tx pgx.Tx, in automations.ChannelSend) 
 	list := []recipient{}
 	for rows.Next() {
 		var r recipient
-		if err := rows.Scan(&r.ID, &r.SiteID, &r.Browser, &r.TimeZone, &r.Contact, &r.Demo); err != nil {
+		if err := rows.Scan(&r.ID, &r.SiteID, &r.Browser, &r.TimeZone, &r.Contact, &r.Demo, &r.WorkerMissing); err != nil {
 			rows.Close()
 			return automations.ChannelSent{}, err
 		}
@@ -121,7 +124,12 @@ func (st Step) Send(ctx context.Context, tx pgx.Tx, in automations.ChannelSend) 
 		if counts[r.ID] >= g.Cap {
 			continue
 		}
-		queue = append(queue, queued{id: uuid.Must(uuid.NewV7()), r: r, status: "queued", after: &in.Now, contact: r.Contact, timeZone: r.TimeZone, token: token()})
+		m := queued{id: uuid.Must(uuid.NewV7()), r: r, status: "queued", after: &in.Now, contact: r.Contact, timeZone: r.TimeZone, token: token()}
+		if r.WorkerMissing {
+			// Held until the site's service worker is back.
+			m.status, m.reason = "held", reasonWorkerMissing
+		}
+		queue = append(queue, m)
 		if _, ok := icons[r.SiteID]; !ok {
 			if site, err := q.PushSiteAny(ctx, r.SiteID); err == nil {
 				icons[r.SiteID] = s.iconURL(ctx, &ws, site)

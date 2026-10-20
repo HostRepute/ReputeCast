@@ -53,12 +53,21 @@ type Service struct {
 	keys     map[string]*ecdh.PrivateKey
 	auth     map[string][]byte
 	answers  map[string]int
+	pages    map[string]Page
 	received []Received
+}
+
+// Page is what the service answers a GET with, as the web server of a
+// site would: a site's hosted service worker, the page a link opens.
+type Page struct {
+	Status int
+	Header http.Header
+	Body   []byte
 }
 
 // New makes an empty push service.
 func New() *Service {
-	return &Service{keys: map[string]*ecdh.PrivateKey{}, auth: map[string][]byte{}, answers: map[string]int{}}
+	return &Service{keys: map[string]*ecdh.PrivateKey{}, auth: map[string][]byte{}, answers: map[string]int{}, pages: map[string]Page{}}
 }
 
 func (s *Service) now() time.Time {
@@ -99,6 +108,14 @@ func (s *Service) Answer(endpoint string, status int) {
 	s.mu.Unlock()
 }
 
+// Serve makes GET requests for u answer p (any other GET answers 404), so
+// tests check sites and links without the network.
+func (s *Service) Serve(u string, p Page) {
+	s.mu.Lock()
+	s.pages[u] = p
+	s.mu.Unlock()
+}
+
 // Received returns what the service got, oldest first.
 func (s *Service) Received() []Received {
 	s.mu.Lock()
@@ -132,7 +149,10 @@ func (t transport) RoundTrip(r *http.Request) (*http.Response, error) {
 // Location, 400 without aes128gcm, 403 for a token that doesn't verify,
 // 413 over 4096 bytes, or the status set with Answer.
 func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	body, _ := io.ReadAll(io.LimitReader(r.Body, 1<<16))
+	var body []byte
+	if r.Body != nil { // a client's GET has none
+		body, _ = io.ReadAll(io.LimitReader(r.Body, 1<<16))
+	}
 	endpoint := r.URL.String()
 	rec := Received{At: s.now(), Endpoint: endpoint, Header: r.Header.Clone(), Body: body}
 	answer := func(status int, msg string) {
@@ -147,6 +167,23 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if msg != "" {
 			_, _ = w.Write([]byte(`{"reason":"` + msg + `"}`))
 		}
+	}
+	if r.Method == http.MethodGet || r.Method == http.MethodHead {
+		s.mu.Lock()
+		p, ok := s.pages[endpoint]
+		s.mu.Unlock()
+		if !ok {
+			http.NotFound(w, r)
+			return
+		}
+		for k, vs := range p.Header {
+			w.Header()[k] = vs
+		}
+		w.WriteHeader(p.Status)
+		if r.Method == http.MethodGet {
+			_, _ = w.Write(p.Body)
+		}
+		return
 	}
 	if r.Method != http.MethodPost {
 		answer(http.StatusMethodNotAllowed, "MethodNotAllowed")

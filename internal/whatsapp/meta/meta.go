@@ -158,7 +158,7 @@ func (c *Client) call(ctx context.Context, method, path string, query url.Values
 	if err != nil {
 		return &Error{Message: "Meta's Graph API didn't answer: " + clip(err.Error(), 160)}
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	b, err := io.ReadAll(io.LimitReader(resp.Body, 4<<20))
 	if err != nil {
 		return &Error{Status: resp.StatusCode, Message: "the answer was cut off"}

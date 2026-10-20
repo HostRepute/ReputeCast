@@ -80,13 +80,12 @@ func (s *Service) Report(ctx context.Context, ws *store.Workspace, id uuid.UUID,
 	})
 }
 
-// Click records a click on a notification (action 0) or one of its buttons
-// (1, 2) and returns where it goes, with UTM parameters. Only the
-// notification's own links are ever a target.
-func (s *Service) Click(ctx context.Context, id uuid.UUID, tok string, action int, userAgent string) (string, error) {
+// clickTarget is where a notification's click (action 0) or button goes,
+// with UTM parameters. Only the notification's own links are a target.
+func (s *Service) clickTarget(ctx context.Context, id uuid.UUID, tok string, action int) (store.PushMessageRow, string, error) {
 	m, err := s.message(ctx, id, tok)
 	if err != nil {
-		return "", err
+		return m, "", err
 	}
 	var c Content
 	if m.Body != nil {
@@ -102,18 +101,37 @@ func (s *Service) Click(ctx context.Context, id uuid.UUID, tok string, action in
 	target := c.Link
 	if action > 0 {
 		if action > len(c.Buttons) {
-			return "", ErrUnknownNotification
+			return m, "", ErrUnknownNotification
 		}
 		target = c.Buttons[action-1].URL
 	}
 	if target == "" {
-		return "", ErrUnknownNotification
+		return m, "", ErrUnknownNotification
 	}
-	target = withUTM(target, c.UTM)
+	return m, withUTM(target, c.UTM), nil
+}
+
+// ClickTarget is where a click goes, without counting it: link previews
+// and HEAD requests aren't readers.
+func (s *Service) ClickTarget(ctx context.Context, id uuid.UUID, tok string, action int) (string, error) {
+	_, target, err := s.clickTarget(ctx, id, tok, action)
+	return target, err
+}
+
+// Click records a click on a notification (action 0) or one of its buttons
+// (1, 2) and returns where it goes, with UTM parameters. Only the
+// notification's own links are ever a target.
+func (s *Service) Click(ctx context.Context, id uuid.UUID, tok string, action int, userAgent string) (string, error) {
+	m, target, err := s.clickTarget(ctx, id, tok, action)
+	if err != nil {
+		return "", err
+	}
 	now := s.now()
 	ws, err := s.Q.GetWorkspace(ctx, m.WorkspaceID)
 	if err != nil {
-		return target, nil
+		// The reader still gets the page; the click isn't counted.
+		s.log().WarnContext(ctx, "push click workspace", "err", err)
+		return target, nil //nolint:nilerr // see above
 	}
 	err = s.tx(ctx, func(q *store.Queries, tx pgx.Tx) error {
 		if err := q.PushClickInsert(ctx, store.PushClickInsertParams{ID: uuid.Must(uuid.NewV7()), WorkspaceID: m.WorkspaceID, MessageID: id, Action: int32(action),
@@ -194,7 +212,7 @@ func (s *Service) SendTest(ctx context.Context, ws *store.Workspace, p *authz.Pr
 		return PushTestResult{}, err
 	}
 	key, err := s.liveKey(ctx, s.Q, ws)
-	if err == errNoKeys {
+	if errors.Is(err, errNoKeys) {
 		return PushTestResult{}, api.Conflict("Turn push on first: the test is signed with the workspace's keys.")
 	}
 	if err != nil {

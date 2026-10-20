@@ -30,6 +30,39 @@ var systemActor = &audit.Actor{Type: authz.ActorSystem, Name: "System"}
 // maxAttempts is how often a notification is tried before it fails.
 const maxAttempts = 5
 
+// reasonWorkerMissing holds a notification while its site's service worker
+// is missing (board PushStates: "Notifications to acme.io's 1,318
+// subscribers are held … until the file is back").
+const reasonWorkerMissing = "worker_missing"
+
+// holdSite holds a site's queued notifications: its worker went missing.
+func holdSite(ctx context.Context, tx pgx.Tx, siteID uuid.UUID, now time.Time) error {
+	_, err := tx.Exec(ctx, `UPDATE channel_messages m SET status = 'held', reason = $2, updated_at = $3
+		FROM push_messages p WHERE p.message_id = m.id AND p.site_id = $1 AND m.status = 'queued' AND m.kind <> 'test'`, siteID, reasonWorkerMissing, now)
+	return err
+}
+
+// releaseSite puts a site's held notifications back in the queue: its
+// worker is back. Those waiting for quiet hours keep their time.
+func releaseSite(ctx context.Context, tx pgx.Tx, siteID uuid.UUID, now time.Time) (int64, error) {
+	tag, err := tx.Exec(ctx, `UPDATE channel_messages m SET status = 'queued',
+			reason = CASE WHEN m.send_after > $3 THEN 'quiet_hours' ELSE '' END, updated_at = $3
+		FROM push_messages p WHERE p.message_id = m.id AND p.site_id = $1 AND m.status = 'held' AND m.reason = $2`, siteID, reasonWorkerMissing, now)
+	if err != nil {
+		return 0, err
+	}
+	return tag.RowsAffected(), nil
+}
+
+// expireHeld skips the held notifications whose time to live ran out
+// before their site's worker came back.
+func (s *Service) expireHeld(ctx context.Context, now time.Time) error {
+	_, err := s.Pool.Exec(ctx, `UPDATE channel_messages SET status = 'skipped', updated_at = $2
+		WHERE channel = 'push' AND status = 'held' AND reason = $1
+		  AND created_at + make_interval(mins => coalesce((body::jsonb ->> 'ttl')::int, 240)) < $2`, reasonWorkerMissing, now)
+	return err
+}
+
 // Content is a notification's content, kept with the message until it
 // goes.
 type Content struct {
@@ -125,7 +158,6 @@ type queued struct {
 	reason   string
 	after    *time.Time
 	contact  *uuid.UUID
-	country  string
 	timeZone string
 	token    string
 }
@@ -165,21 +197,29 @@ func (s *Service) plan(ctx context.Context, ws *store.Workspace, g Guards, list 
 	for _, r := range list {
 		q := queued{id: uuid.Must(uuid.NewV7()), r: r, status: "queued", contact: r.Contact, timeZone: r.TimeZone, token: token()}
 		loc, _ := zoneOf(r, ws)
+		inside := !g.Quiet || g.Window.Inside(now, loc)
 		switch {
 		case counts[r.ID] >= g.Cap:
 			q.status, q.reason = "skipped", "frequency_cap"
 			left["frequency_cap"]++
-		case g.Quiet && !g.Window.Inside(now, loc):
-			if outside == "skip" {
-				q.status, q.reason = "skipped", "quiet_hours"
-				left["quiet_hours"]++
-			} else {
-				at := g.Window.NextOpen(now, loc)
-				q.after, q.reason = &at, "quiet_hours"
+		case !inside && outside == "skip":
+			q.status, q.reason = "skipped", "quiet_hours"
+			left["quiet_hours"]++
+		default:
+			at := now
+			if !inside {
+				at, q.reason = g.Window.NextOpen(now, loc), "quiet_hours"
+			}
+			q.after = &at
+			switch {
+			case r.WorkerMissing:
+				// The site's service worker is missing: held until it's back
+				// (or until the notification expires).
+				q.status, q.reason = "held", reasonWorkerMissing
+				left[reasonWorkerMissing]++
+			case !inside:
 				left["held"]++
 			}
-		default:
-			q.after = &now
 		}
 		out = append(out, q)
 	}
@@ -188,6 +228,9 @@ func (s *Service) plan(ctx context.Context, ws *store.Workspace, g Guards, list 
 
 // StartDue starts the sends whose time has come.
 func (s *Service) StartDue(ctx context.Context) error {
+	if err := s.expireHeld(ctx, s.now()); err != nil {
+		return err
+	}
 	due, err := s.Q.PushSendsDue(ctx, s.now())
 	if err != nil {
 		return err
@@ -274,23 +317,22 @@ func jsonOf(v any) json.RawMessage {
 
 // due is a notification picked for sending.
 type due struct {
-	id          uuid.UUID
-	ws          uuid.UUID
-	kind        string
-	campaign    *uuid.UUID
-	body        []byte
-	attempts    int32
-	token       string
-	sub         uuid.UUID
-	endpoint    string
-	p256dh      []byte
-	auth        []byte
-	demo        bool
-	removed     bool
-	keyID       uuid.UUID
-	contact     *uuid.UUID
-	automation  *uuid.UUID
-	subscribers bool
+	id         uuid.UUID
+	ws         uuid.UUID
+	kind       string
+	campaign   *uuid.UUID
+	body       []byte
+	attempts   int32
+	token      string
+	sub        uuid.UUID
+	endpoint   string
+	p256dh     []byte
+	auth       []byte
+	demo       bool
+	removed    bool
+	keyID      uuid.UUID
+	contact    *uuid.UUID
+	automation *uuid.UUID
 }
 
 // pick claims a batch of due notifications.
@@ -564,18 +606,18 @@ func (s *Service) deliver(ctx context.Context, ws *store.Workspace, d due, snd *
 // notifications are shown a moment after the push service accepts them,
 // and some are clicked.
 func (s *Service) demoBrowser(ws *store.Workspace, d due) {
-	if rand.IntN(100) >= 96 {
+	if rand.IntN(100) >= 96 { //nolint:gosec // G404: the demo's simulated browser, not a secret
 		return
 	}
 	wsCopy := *ws
-	time.AfterFunc(time.Duration(1500+rand.IntN(3000))*time.Millisecond, func() {
+	time.AfterFunc(time.Duration(1500+rand.IntN(3000))*time.Millisecond, func() { //nolint:gosec // G404: as above
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 		defer cancel()
 		if err := s.Report(ctx, &wsCopy, d.id, d.token, "shown"); err != nil {
 			s.log().WarnContext(ctx, "push demo shown", "err", err)
 		}
-		if rand.IntN(100) < 15 {
-			time.Sleep(time.Duration(2+rand.IntN(6)) * time.Second)
+		if rand.IntN(100) < 15 { //nolint:gosec // G404: as above
+			time.Sleep(time.Duration(2+rand.IntN(6)) * time.Second) //nolint:gosec // G404: as above
 			if _, err := s.Click(ctx, d.id, d.token, 0, "Demo browser"); err != nil {
 				s.log().WarnContext(ctx, "push demo click", "err", err)
 			}
@@ -586,7 +628,7 @@ func (s *Service) demoBrowser(ws *store.Workspace, d due) {
 // finishSends completes the sends with nothing left to send.
 func (s *Service) finishSends(ctx context.Context) error {
 	rows, err := s.Pool.Query(ctx, `SELECT s.campaign_id FROM push_sends s WHERE s.phase = 'sending'
-		AND NOT EXISTS (SELECT 1 FROM channel_messages m WHERE m.campaign_id = s.campaign_id AND m.status IN ('queued','sending'))`)
+		AND NOT EXISTS (SELECT 1 FROM channel_messages m WHERE m.campaign_id = s.campaign_id AND m.status IN ('queued','sending','held'))`)
 	if err != nil {
 		return err
 	}

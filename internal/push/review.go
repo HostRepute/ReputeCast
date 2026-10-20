@@ -310,10 +310,10 @@ func (s *Service) buildReview(ctx context.Context, ws *store.Workspace, p *authz
 	}
 	// Keys.
 	key, kerr := s.liveKey(ctx, s.Q, ws)
-	if kerr != nil && kerr != errNoKeys {
+	if kerr != nil && !errors.Is(kerr, errNoKeys) {
 		return nil, kerr
 	}
-	if kerr == errNoKeys {
+	if errors.Is(kerr, errNoKeys) {
 		add(PushCheck{Key: "keys", Status: Block})
 	} else {
 		add(PushCheck{Key: "keys", Status: Pass, KeysCreatedAt: &key.CreatedAt, KeysAcceptedAt: key.LastAcceptedAt})
@@ -810,6 +810,3 @@ func (s *Service) Cancel(ctx context.Context, ws *store.Workspace, id uuid.UUID)
 			Before: map[string]any{"status": c.Status}, After: map[string]any{"status": "cancelled"}, Metadata: map[string]any{"channel": "push"}})
 	})
 }
-
-// errNoSubscription is a test without a browser subscription.
-var errNoSubscription = errors.New("push: no test subscription")

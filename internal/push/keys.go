@@ -2,6 +2,7 @@ package push
 
 import (
 	"context"
+	"errors"
 	"net/mail"
 	"net/url"
 	"strconv"
@@ -112,7 +113,7 @@ func (s *Service) vapid(k store.PushKey) (*webpush.VAPIDKey, error) {
 func (s *Service) Enable(ctx context.Context, ws *store.Workspace, p *authz.Principal, in PushEnableInput) error {
 	if _, err := s.liveKey(ctx, s.Q, ws); err == nil {
 		return api.Conflict("Push is already on for this workspace.")
-	} else if err != errNoKeys {
+	} else if !errors.Is(err, errNoKeys) {
 		return err
 	}
 	contact := in.Contact
@@ -169,7 +170,7 @@ type PushContactInput struct {
 // SetContact changes the contact address.
 func (s *Service) SetContact(ctx context.Context, ws *store.Workspace, in PushContactInput) error {
 	k, err := s.liveKey(ctx, s.Q, ws)
-	if err == errNoKeys {
+	if errors.Is(err, errNoKeys) {
 		return api.Conflict("Turn push on first: the contact goes with the keys.")
 	}
 	if err != nil {
@@ -261,7 +262,7 @@ type PushRotateInput struct {
 // readers have to allow notifications again.
 func (s *Service) Rotate(ctx context.Context, ws *store.Workspace, p *authz.Principal, in PushRotateInput) (PushRotation, error) {
 	old, err := s.liveKey(ctx, s.Q, ws)
-	if err == errNoKeys {
+	if errors.Is(err, errNoKeys) {
 		return PushRotation{}, api.Conflict("Push isn't on: there are no keys to rotate.")
 	}
 	if err != nil {

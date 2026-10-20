@@ -10,7 +10,6 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -116,7 +115,7 @@ func (s *Service) CampaignReport(ctx context.Context, ws *store.Workspace, id uu
 		case status == "skipped":
 			out.Skipped[reason] += n
 			continue
-		case status == "queued" && reason == "quiet_hours":
+		case status == "queued" && reason == "quiet_hours", status == "held":
 			out.Held += n
 		case status == "queued" || status == "sending":
 			out.Queued += n
@@ -238,6 +237,3 @@ func (s *Service) ReportCSV(ctx context.Context, ws *store.Workspace, id uuid.UU
 	name := utmCampaign(r.Name) + "-push-report.csv"
 	return buf.Bytes(), name, nil
 }
-
-// errNotPush is a campaign of another channel.
-var errNotPush = api.NotFound("Push campaign")

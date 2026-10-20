@@ -3,6 +3,7 @@ package push
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"regexp"
 	"slices"
@@ -127,7 +128,7 @@ func (c *PushPromptConfig) check() error {
 	if c.Style != StyleBell {
 		c.Corner = ""
 		w := c.When
-		if !(w.Seconds.On && w.Seconds.N >= 0) && !(w.Scroll.On && w.Scroll.N > 0) && !(w.Posts.On && w.Posts.N > 0) && !w.Button {
+		if (!w.Seconds.On || w.Seconds.N < 0) && (!w.Scroll.On || w.Scroll.N <= 0) && (!w.Posts.On || w.Posts.N <= 0) && !w.Button {
 			return api.Invalid("body.when", "Check at least one rule for when the prompt shows.")
 		}
 		if w.Scroll.On && (w.Scroll.N < 1 || w.Scroll.N > 100) {
@@ -516,7 +517,7 @@ func (s *Service) Publish(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	if err != nil {
 		return PushPrompt{}, err
 	}
-	if _, err := s.liveKey(ctx, s.Q, ws); err == errNoKeys {
+	if _, err := s.liveKey(ctx, s.Q, ws); errors.Is(err, errNoKeys) {
 		return PushPrompt{}, api.Err(409, "push_off", "Turn push on in Sending providers › Push first: the prompt subscribes readers with the workspace's keys.")
 	} else if err != nil {
 		return PushPrompt{}, err

@@ -201,7 +201,7 @@ func (s *Sender) Send(ctx context.Context, sub Subscription, m Message) (Result,
 	if err != nil {
 		return Result{Outcome: Unavailable, Detail: shorten(err.Error())}, nil
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	return Classify(resp), nil
 }
 

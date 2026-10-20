@@ -159,7 +159,7 @@ func (s *Service) readerOf(ws *store.Workspace, token string) uuid.UUID {
 // consent record, linked to a contact when ReputeCast knows who it is.
 func (s *Service) Subscribe(ctx context.Context, ws *store.Workspace, in SubscribeRequest) (Subscribed, error) {
 	key, err := s.liveKey(ctx, s.Q, ws)
-	if err == errNoKeys {
+	if errors.Is(err, errNoKeys) {
 		return Subscribed{}, ErrPushOff
 	}
 	if err != nil {

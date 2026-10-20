@@ -3,8 +3,8 @@ package push
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"html"
 	"time"
 
 	"github.com/google/uuid"
@@ -119,7 +119,7 @@ func (s *Service) Setup(ctx context.Context, ws *store.Workspace, p *authz.Princ
 	}
 	out.Cap, out.Quiet, out.Window = g.Cap, g.Quiet, g.Window.String()
 	key, err := s.liveKey(ctx, s.Q, ws)
-	if err != nil && err != errNoKeys {
+	if err != nil && !errors.Is(err, errNoKeys) {
 		return out, err
 	}
 	if err == nil {
@@ -291,10 +291,4 @@ func (s *Service) Events(ctx context.Context, ws *store.Workspace, before *time.
 	_ = s.Pool.QueryRow(ctx, `SELECT count(*) FROM push_subscriptions WHERE workspace_id = $1 AND removed_reason = 'gone' AND removed_at >= $2`,
 		ws.ID, s.now().AddDate(0, 0, -30)).Scan(&out.Removed)
 	return out, rows.Err()
-}
-
-// snippetHTML is the snippet a site adds to every page.
-func (s *Service) snippetHTML(ws *store.Workspace, host string) string {
-	return fmt.Sprintf("<script async src=%q\n  data-workspace=%q\n  data-site=%q></script>", s.origin()+"/push/v1/prompt.js",
-		html.EscapeString(ws.Slug), html.EscapeString(host))
 }

@@ -189,7 +189,14 @@ func (s *Service) serveClick(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
-	target, err := s.Click(ctx, id, tok, action, r.UserAgent())
+	var target string
+	var err error
+	if r.Method == http.MethodHead {
+		// Link checkers and previews aren't readers: nothing is counted.
+		target, err = s.ClickTarget(ctx, id, tok, action)
+	} else {
+		target, err = s.Click(ctx, id, tok, action, r.UserAgent())
+	}
 	if err != nil || target == "" {
 		gone(w)
 		return
@@ -344,7 +351,7 @@ type PushPublicConfig struct {
 }
 
 func (s *Service) serveConfig(w http.ResponseWriter, r *http.Request, ws *store.Workspace) {
-	if !publicLimits.allow("config:"+ipKey(r), 120) {
+	if !publicLimits.allow("config:"+ws.ID.String()+":"+ipKey(r), 120) {
 		w.WriteHeader(http.StatusTooManyRequests)
 		return
 	}
@@ -433,7 +440,7 @@ func readBody(r *http.Request, v any, limit int64) error {
 }
 
 func (s *Service) serveSubscribe(w http.ResponseWriter, r *http.Request, ws *store.Workspace) {
-	if !publicLimits.allow("subscribe:"+ipKey(r), 20) {
+	if !publicLimits.allow("subscribe:"+ws.ID.String()+":"+ipKey(r), 20) {
 		writeJSON(w, http.StatusTooManyRequests, map[string]string{"status": "slow_down"})
 		return
 	}
@@ -473,7 +480,7 @@ func (s *Service) serveSubscribe(w http.ResponseWriter, r *http.Request, ws *sto
 }
 
 func (s *Service) serveUnsubscribe(w http.ResponseWriter, r *http.Request, ws *store.Workspace) {
-	if !publicLimits.allow("unsubscribe:"+ipKey(r), 30) {
+	if !publicLimits.allow("unsubscribe:"+ws.ID.String()+":"+ipKey(r), 30) {
 		writeJSON(w, http.StatusTooManyRequests, map[string]string{"status": "slow_down"})
 		return
 	}
@@ -513,7 +520,7 @@ type eventBody struct {
 }
 
 func (s *Service) serveEvents(w http.ResponseWriter, r *http.Request, ws *store.Workspace) {
-	if !publicLimits.allow("events:"+ipKey(r), 240) {
+	if !publicLimits.allow("events:"+ws.ID.String()+":"+ipKey(r), 240) {
 		w.WriteHeader(http.StatusTooManyRequests)
 		return
 	}

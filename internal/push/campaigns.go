@@ -305,9 +305,13 @@ func (s *Service) CreateCampaign(ctx context.Context, ws *store.Workspace, p *au
 			return PushCampaign{}, api.Invalid("body.siteIds", "Pick sites of this workspace's push setup.")
 		}
 	}
+	link, ok := normalizeLink(in.Link)
+	if !ok {
+		return PushCampaign{}, api.Invalid("body.link", "Enter the address the notification opens, like news.acme.io/p/feature-flags.")
+	}
 	id := uuid.Must(uuid.NewV7())
 	now := s.now()
-	row := store.PushCampaignRow{Title: strings.TrimSpace(in.Title), Message: strings.TrimSpace(in.Message), Link: strings.TrimSpace(in.Link),
+	row := store.PushCampaignRow{Title: strings.TrimSpace(in.Title), Message: strings.TrimSpace(in.Message), Link: link,
 		Buttons: json.RawMessage(`[]`), TtlMinutes: DefaultTTL, ReplaceTag: true}
 	err = s.tx(ctx, func(q *store.Queries, _ pgx.Tx) error {
 		if err := q.PushCampaignInsert(ctx, store.PushCampaignInsertParams{ID: id, WorkspaceID: ws.ID, Name: name, Audience: audienceJSON(sites, nil, nil),
@@ -433,7 +437,13 @@ type recipient struct {
 	TimeZone string
 	Contact  *uuid.UUID
 	Demo     bool
+	// WorkerMissing is a snippet site whose service worker the last check
+	// didn't find: its notifications are held until the file is back.
+	WorkerMissing bool
 }
+
+// workerMissingSQL is true for a site whose service worker is missing.
+const workerMissingSQL = `(st.kind = 'snippet' AND st.check_status IN ('missing','unreachable','not_a_worker'))`
 
 // audienceSet is a campaign's audience before the guards.
 type audienceSet struct {
@@ -493,7 +503,7 @@ func (s *Service) audience(ctx context.Context, ws *store.Workspace, sites, list
 			contacts = append(contacts, id)
 		}
 	}
-	rows, err := s.Pool.Query(ctx, `SELECT s.id, s.site_id, s.browser, s.time_zone, s.contact_id, s.demo FROM push_subscriptions s
+	rows, err := s.Pool.Query(ctx, `SELECT s.id, s.site_id, s.browser, s.time_zone, s.contact_id, s.demo, `+workerMissingSQL+` FROM push_subscriptions s
 		JOIN push_sites st ON st.id = s.site_id AND st.removed_at IS NULL
 		WHERE s.workspace_id = $1 AND s.removed_at IS NULL AND s.site_id = ANY($2)
 		  AND (NOT $3::boolean OR s.contact_id = ANY($4::uuid[]))
@@ -504,7 +514,7 @@ func (s *Service) audience(ctx context.Context, ws *store.Workspace, sites, list
 	defer rows.Close()
 	for rows.Next() {
 		var r recipient
-		if err := rows.Scan(&r.ID, &r.SiteID, &r.Browser, &r.TimeZone, &r.Contact, &r.Demo); err != nil {
+		if err := rows.Scan(&r.ID, &r.SiteID, &r.Browser, &r.TimeZone, &r.Contact, &r.Demo, &r.WorkerMissing); err != nil {
 			return out, err
 		}
 		out.list = append(out.list, r)
@@ -521,7 +531,8 @@ func (s *Service) todayCounts(ctx context.Context, ws *store.Workspace, now time
 		WHERE m.workspace_id = $1 AND m.channel = 'push' AND m.kind IN ('campaign','automation') AND m.status IN ('queued','sending','sent','delivered')
 		  AND coalesce(m.sent_at, m.send_after, m.created_at) >= (date_trunc('day', $2::timestamptz AT TIME ZONE coalesce(nullif(s.time_zone, ''), $3))
 		      AT TIME ZONE coalesce(nullif(s.time_zone, ''), $3))
-		  AND coalesce(m.sent_at, m.send_after, m.created_at) <= $2::timestamptz + interval '1 day'
+		  AND coalesce(m.sent_at, m.send_after, m.created_at) < ((date_trunc('day', $2::timestamptz AT TIME ZONE coalesce(nullif(s.time_zone, ''), $3))
+		      + interval '1 day') AT TIME ZONE coalesce(nullif(s.time_zone, ''), $3))
 		GROUP BY 1`, ws.ID, now, tzName(ws))
 	if err != nil {
 		return nil, err

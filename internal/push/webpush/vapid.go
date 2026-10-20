@@ -134,7 +134,7 @@ func VerifyToken(token string, pub []byte) (Claims, error) {
 	}
 	key, err := ecdsa.ParseUncompressedPublicKey(elliptic.P256(), pub)
 	if err != nil {
-		return Claims{}, fmt.Errorf("%w: %v", ErrSignature, err)
+		return Claims{}, fmt.Errorf("%w: %w", ErrSignature, err)
 	}
 	der, err := asn1.Marshal(struct{ R, S *big.Int }{new(big.Int).SetBytes(rs[:32]), new(big.Int).SetBytes(rs[32:])})
 	if err != nil {

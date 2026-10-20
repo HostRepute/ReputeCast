@@ -181,7 +181,7 @@ func (s *Service) AddSite(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	if !ok {
 		return PushSite{}, api.Invalid("body.address", "Enter the site's address, like help.acme.io. Browsers allow notifications only from https sites.")
 	}
-	if _, err := s.liveKey(ctx, s.Q, ws); err == errNoKeys {
+	if _, err := s.liveKey(ctx, s.Q, ws); errors.Is(err, errNoKeys) {
 		return PushSite{}, api.Conflict("Turn push on first: sites use the workspace's keys.")
 	} else if err != nil {
 		return PushSite{}, err
@@ -365,7 +365,7 @@ func FetchWorker(ctx context.Context, client *http.Client, u, mode string) Check
 	if err != nil {
 		return CheckResult{Status: WorkerUnreach, Detail: clip(netguard.Describe(ctx, err), 200)}
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	code := resp.StatusCode
 	res := CheckResult{HTTPStatus: &code}
 	switch {
@@ -466,13 +466,28 @@ func (s *Service) check(ctx context.Context, ws *store.Workspace, st store.PushS
 	}
 	wasBad := st.CheckStatus == WorkerMissing || st.CheckStatus == WorkerUnreach || st.CheckStatus == WorkerNotAWorker
 	isBad := res.Status == WorkerMissing || res.Status == WorkerUnreach || res.Status == WorkerNotAWorker
+	var released int64
+	defer func() {
+		if released > 0 {
+			s.kick(ctx)
+		}
+	}()
 	return s.tx(ctx, func(q *store.Queries, tx pgx.Tx) error {
 		if err := q.PushSiteSetCheck(ctx, store.PushSiteSetCheckParams{ID: st.ID, CheckStatus: res.Status, CheckVersion: version, CheckScope: res.Scope,
 			CheckHttpStatus: code, CheckDetail: res.Detail, CheckedAt: &now}); err != nil {
 			return err
 		}
+		if wasBad && !isBad {
+			// The file is back: what was held goes.
+			var err error
+			released, err = releaseSite(ctx, tx, st.ID, now)
+			return err
+		}
 		if !isBad || wasBad {
 			return nil
+		}
+		if err := holdSite(ctx, tx, st.ID, now); err != nil {
+			return err
 		}
 		var subs int64
 		_ = tx.QueryRow(ctx, `SELECT count(*) FROM push_subscriptions WHERE site_id = $1 AND removed_at IS NULL`, st.ID).Scan(&subs)
