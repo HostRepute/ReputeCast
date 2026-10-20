@@ -3,12 +3,14 @@
 
 -- name: ArchiveMissingIssues :many
 -- Sent campaigns of the archived lists without an archive row yet, oldest
--- first so slugs are handed out in publishing order.
+-- first so slugs are handed out in publishing order. Campaigns for paid
+-- members only (Earn) are never archived.
 SELECT c.id, c.name, c.subject, c.audience,
        coalesce(c.started_at, c.completed_at, c.created_at)::timestamptz AS sent_at
 FROM campaigns c
 LEFT JOIN archive_issues ai ON ai.campaign_id = c.id
 WHERE c.workspace_id = @workspace_id AND c.status = 'sent' AND c.deleted_at IS NULL AND ai.campaign_id IS NULL AND c.channel = 'email'
+  AND coalesce(c.audience ->> 'paid', '') <> 'paid'
   AND EXISTS (SELECT 1 FROM jsonb_array_elements_text(CASE WHEN jsonb_typeof(c.audience -> 'lists') = 'array' THEN c.audience -> 'lists' ELSE '[]'::jsonb END) AS l(id)
               WHERE l.id = ANY (@lists::text[]))
 ORDER BY sent_at, c.id;

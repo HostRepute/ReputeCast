@@ -114,7 +114,7 @@ type IntegrationGroup struct {
 // IntegrationEntry is a catalog card: its status, the reason it needs
 // attention, and the facts of its fact line.
 type IntegrationEntry struct {
-	Key string `json:"key" enum:"zapier,make,n8n,wordpress,hostrepute,api,webhooks,mcp,anthropic,openai,google,azure,compatible,zerobounce,neverbounce,kickbox,bouncer,emailable"`
+	Key string `json:"key" enum:"zapier,make,n8n,wordpress,hostrepute,api,webhooks,mcp,anthropic,openai,google,azure,compatible,zerobounce,neverbounce,kickbox,bouncer,emailable,stripe,paddle,lemonsqueezy"`
 	// Status: not_connected, waiting, connected, attention; none for the
 	// developer cards.
 	Status          string              `json:"status" enum:"not_connected,waiting,connected,attention,none"`
@@ -142,10 +142,21 @@ type IntegrationFacts struct {
 	Agents       int64      `json:"agents"`
 	// AI is an AI model's card (the "AI models" group, internal/ai).
 	AI *IntegrationAIFacts `json:"ai,omitempty"`
+	// Payment is a payment provider's card (the Payments group, Earn).
+	Payment *IntegrationPaymentFacts `json:"payment,omitempty"`
 	// Balance is a verification service's credits and Price what a check
 	// costs on the workspace's plan, when connected.
 	Balance *int64  `json:"balance,omitempty"`
 	Price   float64 `json:"price,omitempty"`
+}
+
+// IntegrationPaymentFacts are a payment provider card's facts: whether it
+// is available yet, and the account and mode once connected ("Acme Media ·
+// Live").
+type IntegrationPaymentFacts struct {
+	Available bool   `json:"available"`
+	Account   string `json:"account,omitempty"`
+	Mode      string `json:"mode,omitempty" enum:"live,test,"`
 }
 
 // IntegrationAIFacts are an AI model card's facts: the model connected, and

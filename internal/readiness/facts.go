@@ -105,6 +105,9 @@ type AudienceFacts struct {
 	// SuppressedEmails are the suppressed contacts' addresses, for the
 	// address checks' count of invalid ones (verification.go).
 	SuppressedEmails []string `json:"-"`
+	// Paid describes a paid-only campaign's recipients (paid.go); nil for
+	// everyone on the lists.
+	Paid *PaidAudienceFacts `json:"-"`
 }
 
 // LanguagesFacts are the email's language versions and who gets which.

@@ -44,6 +44,7 @@ WHERE c.workspace_id = @workspace_id AND c.deleted_at IS NULL
   AND (@query::text = '' OR c.name ILIKE '%' || @query::text || '%')
   -- The channel filter: All, Email, SMS, Push, WhatsApp (design expansion phase 8).
   AND (@channel::text = '' OR c.channel = @channel::text)
+  AND (NOT @paid_only::boolean OR c.audience ->> 'paid' = 'paid')
 ORDER BY CASE c.status WHEN 'sending' THEN 0 WHEN 'paused' THEN 0 WHEN 'scheduled' THEN 1 WHEN 'approval' THEN 2 WHEN 'approved' THEN 2 WHEN 'draft' THEN 3 ELSE 4 END,
          CASE WHEN c.status = 'scheduled' THEN c.scheduled_at END ASC,
          coalesce(c.started_at, c.updated_at) DESC,
@@ -61,7 +62,8 @@ WHERE c.workspace_id = @workspace_id AND c.deleted_at IS NULL
        OR (@status_group = 'sent' AND c.status IN ('sent', 'cancelled', 'failed')))
   AND (@query::text = '' OR c.name ILIKE '%' || @query::text || '%')
   -- The channel filter: All, Email, SMS, Push, WhatsApp (design expansion phase 8).
-  AND (@channel::text = '' OR c.channel = @channel::text);
+  AND (@channel::text = '' OR c.channel = @channel::text)
+  AND (NOT @paid_only::boolean OR c.audience ->> 'paid' = 'paid');
 
 -- name: CountCampaignsByStatus :many
 SELECT status, count(*)::bigint AS n FROM campaigns

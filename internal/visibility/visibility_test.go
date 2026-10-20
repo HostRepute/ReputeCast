@@ -19,9 +19,13 @@ func TestRegistry(t *testing.T) {
 		keys = append(keys, k.Key)
 		groups[k.Key] = k.Group
 	}
-	if got := strings.Join(keys, ","); got != "segment,list,tag,field,language,tier,score,score_band" {
+	// The built-in kinds come first; the test binary also links phases that
+	// register their own (Earn's paid access).
+	builtin := "segment,list,tag,field,language,tier,score,score_band"
+	if got := strings.Join(keys, ","); got != builtin && !strings.HasPrefix(got, builtin+",") {
 		t.Fatalf("kinds in the picker's order: %s", got)
 	}
+	registered := strings.Join(keys, ",")
 	if groups["segment"] != GroupLists || groups["tag"] != GroupLists || groups["field"] != GroupContact || groups["language"] != GroupContact || groups["tier"] != GroupEngagement ||
 		groups["score"] != GroupEngagement || groups["score_band"] != GroupEngagement {
 		t.Fatalf("groups: %v", groups)
@@ -44,7 +48,7 @@ func TestRegistry(t *testing.T) {
 	for _, k := range Kinds() {
 		keys = append(keys, k.Key)
 	}
-	if got := strings.Join(keys, ","); got != "segment,list,tag,field,language,tier,score,score_band,paid_tier" {
+	if got := strings.Join(keys, ","); got != registered+",paid_tier" {
 		t.Fatalf("after registering paid_tier twice: %s", got)
 	}
 	if k, ok := Lookup("paid_tier"); !ok || len(k.Ops) != 2 || k.Group != "paid" {

@@ -17,6 +17,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/contentcheck"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/mailer"
+	"github.com/hostrepute/reputecast/internal/paidaccess"
 	"github.com/hostrepute/reputecast/internal/publicurl"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/templates"
@@ -127,6 +128,9 @@ type CampaignListItem struct {
 	// Digest is set for an issue of a recurring digest: the Digest badge
 	// links to it, and the issue's status reads in place of the campaign's.
 	Digest *CampaignDigestRef `json:"digest,omitempty"`
+	// PaidOnly is a campaign for paid members only (Earn): its "Paid only"
+	// badge.
+	PaidOnly bool `json:"paidOnly"`
 }
 
 // CampaignDigestRef is the digest an issue belongs to (internal/digests).
@@ -158,6 +162,8 @@ type CampaignStatusCounts struct {
 	Scheduled int64 `json:"scheduled"`
 	Sending   int64 `json:"sending"`
 	Sent      int64 `json:"sent"`
+	// PaidOnly counts the campaigns for paid members only (Earn).
+	PaidOnly int64 `json:"paidOnly"`
 }
 
 // CampaignList is one page of campaigns.
@@ -175,6 +181,7 @@ type ListParams struct {
 	Query  string
 	// Channel filters by channel; empty is every channel.
 	Channel  string
+	PaidOnly bool
 	Page     int
 	PageSize int
 }
@@ -192,12 +199,12 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, p ListParams) (
 	}
 	q := strings.TrimSpace(p.Query)
 	rows, err := s.Q.ListCampaigns(ctx, store.ListCampaignsParams{
-		WorkspaceID: ws.ID, StatusGroup: p.Status, Query: q, Channel: p.Channel, Lim: int32(p.PageSize), Off: int32((p.Page - 1) * p.PageSize),
+		WorkspaceID: ws.ID, StatusGroup: p.Status, Query: q, Channel: p.Channel, PaidOnly: p.PaidOnly, Lim: int32(p.PageSize), Off: int32((p.Page - 1) * p.PageSize),
 	})
 	if err != nil {
 		return CampaignList{}, err
 	}
-	total, err := s.Q.CountCampaigns(ctx, store.CountCampaignsParams{WorkspaceID: ws.ID, StatusGroup: p.Status, Query: q, Channel: p.Channel})
+	total, err := s.Q.CountCampaigns(ctx, store.CountCampaignsParams{WorkspaceID: ws.ID, StatusGroup: p.Status, Query: q, Channel: p.Channel, PaidOnly: p.PaidOnly})
 	if err != nil {
 		return CampaignList{}, err
 	}
@@ -233,6 +240,7 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, p ListParams) (
 	for _, r := range rows {
 		it := CampaignListItem{
 			ID: r.ID.String(), Name: r.Name, Channel: r.Channel, Status: r.Status, Audience: labels(r.Audience), Recipients: r.AudienceCount,
+			PaidOnly:  paidaccess.Parse(r.Audience).Who == paidaccess.Paid,
 			CreatedAt: r.CreatedAt, UpdatedAt: r.UpdatedAt, UpdatedBy: r.UpdatedByName, ScheduledAt: r.ScheduledAt, StartedAt: r.StartedAt,
 			Origin: r.Origin, Notes: []string{}, Routes: routes[r.ID],
 		}
@@ -304,6 +312,11 @@ func (s *Service) counts(ctx context.Context, wsID uuid.UUID) (CampaignStatusCou
 			c.Sent += r.N
 		}
 	}
+	paid, err := s.Q.CountCampaigns(ctx, store.CountCampaignsParams{WorkspaceID: wsID, StatusGroup: "all", PaidOnly: true})
+	if err != nil {
+		return CampaignStatusCounts{}, err
+	}
+	c.PaidOnly = paid
 	return c, nil
 }
 
@@ -344,7 +357,11 @@ func (s *Service) audienceLabeler(ctx context.Context, wsID uuid.UUID) (func(jso
 		if len(a.Segments) > 0 {
 			parts = append(parts, mAudienceSegments.Text(l, i18n.Args{"count": len(a.Segments)}))
 		}
-		return strings.Join(parts, " + ")
+		label := strings.Join(parts, " + ")
+		if p := paidaccess.Parse(raw); p.Set() {
+			label += " · " + mAudiencePaid.Text(l, i18n.Args{"who": p.Who})
+		}
+		return label
 	}, nil
 }
 

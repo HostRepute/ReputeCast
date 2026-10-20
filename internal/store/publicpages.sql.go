@@ -418,6 +418,7 @@ SELECT c.id, c.name, c.subject, c.audience,
 FROM campaigns c
 LEFT JOIN archive_issues ai ON ai.campaign_id = c.id
 WHERE c.workspace_id = $1 AND c.status = 'sent' AND c.deleted_at IS NULL AND ai.campaign_id IS NULL AND c.channel = 'email'
+  AND coalesce(c.audience ->> 'paid', '') <> 'paid'
   AND EXISTS (SELECT 1 FROM jsonb_array_elements_text(CASE WHEN jsonb_typeof(c.audience -> 'lists') = 'array' THEN c.audience -> 'lists' ELSE '[]'::jsonb END) AS l(id)
               WHERE l.id = ANY ($2::text[]))
 ORDER BY sent_at, c.id
@@ -439,7 +440,8 @@ type ArchiveMissingIssuesRow struct {
 // Public pages (spec 7.12): the archive, view online and what an
 // unsubscribe records about the email it came from.
 // Sent campaigns of the archived lists without an archive row yet, oldest
-// first so slugs are handed out in publishing order.
+// first so slugs are handed out in publishing order. Campaigns for paid
+// members only (Earn) are never archived.
 func (q *Queries) ArchiveMissingIssues(ctx context.Context, arg ArchiveMissingIssuesParams) ([]ArchiveMissingIssuesRow, error) {
 	rows, err := q.db.Query(ctx, archiveMissingIssues, arg.WorkspaceID, arg.Lists)
 	if err != nil {

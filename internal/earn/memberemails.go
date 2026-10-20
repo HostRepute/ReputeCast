@@ -12,6 +12,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/linktoken"
+	"github.com/hostrepute/reputecast/internal/paidaccess"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/templates"
 )
@@ -238,15 +239,7 @@ func sampleData(st starter) map[string]any {
 
 // shortTier is how readers name a tier: its name without the list it
 // belongs to ("Weekly Digest Insider" on Weekly Digest is "Insider").
-func shortTier(name string, lists []string) string {
-	for _, l := range lists {
-		l = strings.TrimSpace(l)
-		if l != "" && strings.HasPrefix(name, l+" ") && len(name) > len(l)+1 {
-			return strings.TrimSpace(name[len(l)+1:])
-		}
-	}
-	return name
-}
+func shortTier(name string, lists []string) string { return paidaccess.ShortName(name, lists) }
 
 // tierShortName loads a tier's short name.
 func (s *Service) tierShortName(ctx context.Context, q *store.Queries, wsID uuid.UUID, id *uuid.UUID) string {

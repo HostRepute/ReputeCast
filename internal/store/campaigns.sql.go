@@ -631,6 +631,7 @@ WHERE c.workspace_id = $1 AND c.deleted_at IS NULL
   AND ($3::text = '' OR c.name ILIKE '%' || $3::text || '%')
   -- The channel filter: All, Email, SMS, Push, WhatsApp (design expansion phase 8).
   AND ($4::text = '' OR c.channel = $4::text)
+  AND (NOT $5::boolean OR c.audience ->> 'paid' = 'paid')
 `
 
 type CountCampaignsParams struct {
@@ -638,6 +639,7 @@ type CountCampaignsParams struct {
 	StatusGroup string    `json:"statusGroup"`
 	Query       string    `json:"query"`
 	Channel     string    `json:"channel"`
+	PaidOnly    bool      `json:"paidOnly"`
 }
 
 func (q *Queries) CountCampaigns(ctx context.Context, arg CountCampaignsParams) (int64, error) {
@@ -646,6 +648,7 @@ func (q *Queries) CountCampaigns(ctx context.Context, arg CountCampaignsParams) 
 		arg.StatusGroup,
 		arg.Query,
 		arg.Channel,
+		arg.PaidOnly,
 	)
 	var count int64
 	err := row.Scan(&count)
@@ -1080,11 +1083,12 @@ WHERE c.workspace_id = $1 AND c.deleted_at IS NULL
   AND ($3::text = '' OR c.name ILIKE '%' || $3::text || '%')
   -- The channel filter: All, Email, SMS, Push, WhatsApp (design expansion phase 8).
   AND ($4::text = '' OR c.channel = $4::text)
+  AND (NOT $5::boolean OR c.audience ->> 'paid' = 'paid')
 ORDER BY CASE c.status WHEN 'sending' THEN 0 WHEN 'paused' THEN 0 WHEN 'scheduled' THEN 1 WHEN 'approval' THEN 2 WHEN 'approved' THEN 2 WHEN 'draft' THEN 3 ELSE 4 END,
          CASE WHEN c.status = 'scheduled' THEN c.scheduled_at END ASC,
          coalesce(c.started_at, c.updated_at) DESC,
          c.id DESC
-LIMIT $6 OFFSET $5
+LIMIT $7 OFFSET $6
 `
 
 type ListCampaignsParams struct {
@@ -1092,6 +1096,7 @@ type ListCampaignsParams struct {
 	StatusGroup string    `json:"statusGroup"`
 	Query       string    `json:"query"`
 	Channel     string    `json:"channel"`
+	PaidOnly    bool      `json:"paidOnly"`
 	Off         int32     `json:"off"`
 	Lim         int32     `json:"lim"`
 }
@@ -1137,6 +1142,7 @@ func (q *Queries) ListCampaigns(ctx context.Context, arg ListCampaignsParams) ([
 		arg.StatusGroup,
 		arg.Query,
 		arg.Channel,
+		arg.PaidOnly,
 		arg.Off,
 		arg.Lim,
 	)

@@ -56,6 +56,15 @@ type EarnPrice struct {
 	Members    int64 `json:"members"`
 	Paying     int64 `json:"paying"`
 	Discounted int64 `json:"discounted"`
+	// Offers are the paying members with an offer, by the offer's label
+	// ("45 with FALL26"), most first.
+	Offers []EarnPriceOffer `json:"offers"`
+}
+
+// EarnPriceOffer is how many paying members of a price have an offer.
+type EarnPriceOffer struct {
+	Label string `json:"label"`
+	Count int64  `json:"count"`
 }
 
 // EarnSyncStep is one step of saving a tier in the provider.
@@ -101,17 +110,21 @@ type EarnTier struct {
 	// IncludesBelow names the tiers of lower rank whose paid content it includes.
 	Includes []string `json:"includes"`
 	// The product in the provider (in the mode public pages use).
-	ProductID        string         `json:"productId,omitempty"`
-	ProductURL       string         `json:"productUrl,omitempty"`
-	SyncStatus       string         `json:"syncStatus" enum:"draft,synced,failed"`
-	SyncSteps        []EarnSyncStep `json:"syncSteps"`
-	SyncedAt         *time.Time     `json:"syncedAt,omitempty"`
-	Origin           string         `json:"origin,omitempty"`
-	HiddenLink       string         `json:"hiddenLink"`
-	CreatedAt        time.Time      `json:"createdAt"`
-	ArchivedAt       *time.Time     `json:"archivedAt,omitempty"`
-	CanDelete        bool           `json:"canDelete"`
-	DiscountedYearly int64          `json:"discountedYearly"`
+	ProductID  string         `json:"productId,omitempty"`
+	ProductURL string         `json:"productUrl,omitempty"`
+	SyncStatus string         `json:"syncStatus" enum:"draft,synced,failed"`
+	SyncSteps  []EarnSyncStep `json:"syncSteps"`
+	SyncedAt   *time.Time     `json:"syncedAt,omitempty"`
+	// Origin is "import" for a tier whose product was mapped when paid
+	// members were imported: from ImportedFrom ("substack") on ImportedAt.
+	Origin           string     `json:"origin,omitempty"`
+	ImportedFrom     string     `json:"importedFrom,omitempty"`
+	ImportedAt       *time.Time `json:"importedAt,omitempty"`
+	HiddenLink       string     `json:"hiddenLink"`
+	CreatedAt        time.Time  `json:"createdAt"`
+	ArchivedAt       *time.Time `json:"archivedAt,omitempty"`
+	CanDelete        bool       `json:"canDelete"`
+	DiscountedYearly int64      `json:"discountedYearly"`
 }
 
 // tierFacts are the prices and paying members of every tier.
@@ -119,6 +132,7 @@ type tierFacts struct {
 	prices map[uuid.UUID][]store.EarnPrice
 	counts map[uuid.UUID]map[string]int64 // price → status → n
 	disc   map[uuid.UUID]int64
+	offers map[uuid.UUID][]EarnPriceOffer
 	lists  map[uuid.UUID]string
 	mrr    map[uuid.UUID]int64
 	mode   string
@@ -126,7 +140,7 @@ type tierFacts struct {
 
 func (s *Service) loadFacts(ctx context.Context, ws *store.Workspace, mode string) (tierFacts, error) {
 	f := tierFacts{prices: map[uuid.UUID][]store.EarnPrice{}, counts: map[uuid.UUID]map[string]int64{}, disc: map[uuid.UUID]int64{}, lists: map[uuid.UUID]string{},
-		mrr: map[uuid.UUID]int64{}, mode: mode}
+		mrr: map[uuid.UUID]int64{}, offers: map[uuid.UUID][]EarnPriceOffer{}, mode: mode}
 	prices, err := s.Q.EarnPrices(ctx, ws.ID)
 	if err != nil {
 		return f, err
@@ -174,7 +188,26 @@ func (s *Service) loadFacts(ctx context.Context, ws *store.Workspace, mode strin
 		}
 		f.mrr[id] = n
 	}
-	return f, rows.Err()
+	if err := rows.Err(); err != nil {
+		return f, err
+	}
+	rows.Close()
+	offers, err := s.Pool.Query(ctx, `SELECT price_id, discount->>'label', count(*) FROM paid_subscriptions
+		WHERE workspace_id = $1 AND mode = $2 AND kind = 'stripe' AND ended_at IS NULL AND status IN ('active','past_due') AND price_id IS NOT NULL
+		AND coalesce(discount->>'label', '') <> '' GROUP BY 1, 2 ORDER BY 3 DESC, 2`, ws.ID, mode)
+	if err != nil {
+		return f, err
+	}
+	defer offers.Close()
+	for offers.Next() {
+		var id uuid.UUID
+		var o EarnPriceOffer
+		if err := offers.Scan(&id, &o.Label, &o.Count); err != nil {
+			return f, err
+		}
+		f.offers[id] = append(f.offers[id], o)
+	}
+	return f, offers.Err()
 }
 
 func (s *Service) tierView(ctx context.Context, ws *store.Workspace, t store.EarnTier, f tierFacts, page UpgradePage, all []store.EarnTier) EarnTier {
@@ -211,7 +244,10 @@ func (s *Service) tierView(ctx context.Context, ws *store.Workspace, t store.Ear
 	for _, p := range f.prices[t.ID] {
 		c := f.counts[p.ID]
 		ep := EarnPrice{ID: p.ID.String(), Period: p.Period, AmountCents: p.AmountCents, Currency: p.Currency, Status: p.Status, StripeLiveID: p.StripeLiveID,
-			StripeTestID: p.StripeTestID, Origin: p.Origin, Paying: c[StatusActive] + c[StatusPastDue], Discounted: f.disc[p.ID]}
+			StripeTestID: p.StripeTestID, Origin: p.Origin, Paying: c[StatusActive] + c[StatusPastDue], Discounted: f.disc[p.ID], Offers: f.offers[p.ID]}
+		if ep.Offers == nil {
+			ep.Offers = []EarnPriceOffer{}
+		}
 		ep.Members = ep.Paying + c[StatusTrialing]
 		ep.StripeID = p.StripeLiveID
 		if mode == payments.Test {
@@ -286,6 +322,8 @@ type EarnPlans struct {
 	CanEdit     bool            `json:"canEdit"`
 	Helpers     []string        `json:"helpers"`
 	Lists       []EarnListRef   `json:"lists"`
+	// Brand colours the tier editor's preview as readers see the card.
+	Brand Brand `json:"brand"`
 }
 
 // Plans is Plans & offers.
@@ -334,6 +372,7 @@ func (s *Service) Plans(ctx context.Context, ws *store.Workspace, p *authz.Princ
 		card.CheckoutsStarted, card.Completed, card.Trials = c.Started, c.Completed, c.Trials
 		card.PaidAtOnce = c.Completed - c.Trials
 	}
+	out.Brand = s.brand(ctx, ws)
 	out.UpgradePage = card
 	out.Free = EarnFreeCard{Line: page.FreeLine, Text: page.FreeText}
 	if id, err := uuid.Parse(page.FreeList); err == nil {
@@ -376,6 +415,13 @@ func (s *Service) TierDetail(ctx context.Context, ws *store.Workspace, id string
 		return EarnTier{}, err
 	}
 	out := s.tierView(ctx, ws, t, f, page, all)
+	if t.Origin == "import" {
+		var at time.Time
+		if err := s.Pool.QueryRow(ctx, `SELECT source, created_at FROM earn_imports WHERE workspace_id = $1 AND status = 'done' ORDER BY created_at LIMIT 1`, ws.ID).
+			Scan(&out.ImportedFrom, &at); err == nil {
+			out.ImportedAt = &at
+		}
+	}
 	n, _ := s.Q.EarnTierSubscriptions(ctx, &t.ID)
 	out.CanDelete = n == 0
 	return out, nil

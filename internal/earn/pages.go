@@ -85,7 +85,7 @@ func (s *Service) PreferencesPaid(ctx context.Context, ws *store.Workspace, cont
 	loc := location(ws)
 	switch acc.Kind {
 	case "complimentary":
-		out.Heading = s.t(l, "prefs.compHeading", i18n.Args{"tier": short, "publisher": ws.Name, "until": dateOrNone(acc.GrantUntil, loc)})
+		out.Heading = s.t(l, "prefs.compHeading", i18n.Args{"tier": short, "publisher": s.publisher(ctx, ws), "until": dateOrNone(acc.GrantUntil, loc)})
 		out.Line = s.t(l, "prefs.compLine", i18n.Args{"tier": short})
 	case "gift":
 		var d struct {
@@ -194,7 +194,8 @@ func (s *Service) UnsubscribePaid(ctx context.Context, ws *store.Workspace, cont
 type EarnChecklist struct {
 	Steps []EarnChecklistStep `json:"steps"`
 	Done  int                 `json:"done"`
-	// Launched: every step is done (the Overview shows revenue instead).
+	// Launched: every step is done, or readers pay through the live key
+	// (the Overview shows revenue instead).
 	Launched bool `json:"launched"`
 	// TestCheckouts are the test paid members, left out of every number.
 	TestCheckouts []EarnMemberRow `json:"testCheckouts"`
@@ -316,7 +317,13 @@ func (s *Service) Checklist(ctx context.Context, ws *store.Workspace, p *authz.P
 			out.Done++
 		}
 	}
+	// Earn is live once every step is done, or once readers pay through the
+	// live key (a step left undone later, such as a member email added since,
+	// doesn't take the revenue overview away).
 	out.Launched = out.Done == len(out.Steps)
+	if !out.Launched && hasLive {
+		_ = s.Pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM paid_subscriptions WHERE workspace_id = $1 AND mode = 'live' AND kind = 'stripe' AND status <> 'incomplete')`, ws.ID).Scan(&out.Launched)
+	}
 	if hasTest {
 		out.TestCheckout = s.TestCheckoutURL(ctx, ws)
 		list, err := s.Members(ctx, ws, p, EarnMemberFilter{Status: FilterWithAccess, Test: true, PageSize: 20, Page: 1})

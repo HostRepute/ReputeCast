@@ -229,6 +229,8 @@ type EarnStatus struct {
 	CanManage bool `json:"canManage"`
 	// Setup is a connect wizard in progress, to resume.
 	Setup string `json:"setup,omitempty"`
+	// UpgradeURL is the upgrade page ("Open upgrade page").
+	UpgradeURL string `json:"upgradeUrl"`
 }
 
 // connRow is a connection with the name of who connected it.
@@ -425,7 +427,7 @@ func (s *Service) Status(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	if err != nil {
 		return EarnStatus{}, err
 	}
-	out := EarnStatus{CanManage: p.Can(authz.PaymentsManage)}
+	out := EarnStatus{CanManage: p.Can(authz.PaymentsManage), UpgradeURL: s.pageURL(ctx, ws, "upgrade")}
 	for _, c := range conns {
 		if c.Status == "setup" && out.Setup == "" {
 			out.Setup = c.ID.String()
