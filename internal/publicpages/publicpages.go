@@ -86,6 +86,8 @@ type Handler struct {
 	// Earn serves the upgrade page, its welcome page and the billing
 	// links, and the paid parts of the preference center (nil: none).
 	Earn *earn.Service
+	// TextTerms writes the text message terms page (nil: it answers 404).
+	TextTerms TextTerms
 
 	tmpl     map[string]*template.Template
 	version  string
@@ -107,7 +109,7 @@ func (h *Handler) log() *slog.Logger {
 }
 
 // pages are the templates, each rendered inside layout.html.
-var pages = []string{"subscribe", "confirm", "preferences", "request", "unsubscribe", "done", "message", "archive", "challenge", "category", "poll", "survey", "upgrade", "welcome"}
+var pages = []string{"subscribe", "confirm", "preferences", "request", "unsubscribe", "done", "message", "archive", "challenge", "category", "poll", "survey", "upgrade", "welcome", "smsterms"}
 
 // Init parses the templates; Routes calls it.
 func (h *Handler) Init() error {
@@ -159,7 +161,7 @@ func (h *Handler) Routes(r chi.Router) {
 		root.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), hostKey{}, slug)))
 	})
 	for _, p := range []string{"/", "/robots.txt", "/subscribe", "/subscribe/*", "/confirm/*", "/preferences", "/preferences/*",
-		"/unsubscribe/*", "/view/*", "/archive", "/archive/*", "/archive.rss", "/sitemap.xml", "/poll/*", "/s/*"} {
+		"/unsubscribe/*", "/view/*", "/archive", "/archive/*", "/archive.rss", "/sitemap.xml", "/poll/*", "/s/*", "/sms-terms"} {
 		r.Handle(p, custom)
 	}
 	// The upgrade page (earn.go).
@@ -198,6 +200,7 @@ func (h *Handler) pageRoutes(r chi.Router) {
 	r.Get("/archive/{issue}", h.issue)
 	r.Get("/archive/{issue}/{lang}", h.issue)
 	r.Get("/sitemap.xml", h.sitemap)
+	r.Get("/sms-terms", h.smsTerms)
 	r.Get("/forms/{script}", h.formScript)
 	r.Get("/forms/{id}/session", h.formSession)
 	r.Options("/forms/{id}/session", h.formPreflight)

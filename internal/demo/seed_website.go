@@ -138,13 +138,13 @@ func (w *siteSeed) settings(ctx context.Context) error {
 	pw, _ := json.Marshal(paywall)
 	footer, _ := json.Marshal(website.WebsiteFooter{Archive: true, RSS: true, Preferences: true})
 	_, err = s.Tx.Exec(ctx, `INSERT INTO website_settings (workspace_id, status, turned_on_at, turned_on_by, progress, title, tagline, description, index_site,
-		home_layout, sections, about_title, about_text, header_links, footer, signin_on, link_minutes, session_days, signup_on, signup_lists,
+		home_layout, sections, about_title, about_text, about_link, header_links, footer, signin_on, link_minutes, session_days, signup_on, signup_lists,
 		default_visibility, campaign_visibility, meter_visitors_on, meter_visitors, meter_members_on, meter_members, paywall, updated_at, updated_by)
 		VALUES ($1,'on',$2,$3,$4,'The Acme newsletter','What shipped, what''s next and the occasional deep dive.',
 		'News from the team that builds Acme: what shipped, what''s next, and deep dives for paid members.', true,
 		'featured', '[]', 'About the newsletter',
 		'Acme builds feature flags, audit logs and deploy tooling for software teams. The newsletter is written by the people who build it: Sofia Rossi edits, Marcus Chen answers the deliverability questions, and Linh Nguyen hosts the monthly AMA.',
-		'[]', $5, true, 30, 90, true, $6, 'public', 'audience', true, 2, true, 1, $7, $8, $3)
+		'/about', '[]', $5, true, 30, 90, true, $6, 'public', 'audience', true, 2, true, 1, $7, $8, $3)
 		ON CONFLICT (workspace_id) DO NOTHING`, w.ws.ID, w.live, linh.ID, progress, footer, signup, pw, w.live.Add(40*time.Minute))
 	return err
 }

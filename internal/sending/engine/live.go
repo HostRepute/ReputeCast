@@ -821,16 +821,18 @@ func (e *Engine) audienceLabel(ctx context.Context, ws uuid.UUID, raw json.RawMe
 	def := parseAudience(raw)
 	lists, _ := e.Q.SendingListNames(ctx, ws)
 	names := map[uuid.UUID]string{}
-	// "All subscribers" is every list but the ones a store fills (X20).
-	every := []uuid.UUID{}
+	var public []uuid.UUID
 	for _, l := range lists {
 		names[l.ID] = l.Name
-		if l.Origin != "store" {
-			every = append(every, l.ID)
+		// A store's list (X20) isn't one readers sign up for either.
+		if l.Public && l.Origin != "store" {
+			public = append(public, l.ID)
 		}
 	}
 	var parts []string
-	if len(def.Segments) == 0 && len(every) > 1 && !slices.ContainsFunc(every, func(id uuid.UUID) bool { return !slices.Contains(def.Lists, id) }) {
+	// "All subscribers": every public list (a private one, such as an
+	// event's registrants, isn't one readers sign up for).
+	if len(def.Segments) == 0 && len(public) > 1 && !slices.ContainsFunc(public, func(id uuid.UUID) bool { return !slices.Contains(def.Lists, id) }) {
 		parts = append(parts, "All subscribers")
 	} else {
 		for _, id := range def.Lists {

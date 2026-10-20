@@ -87,10 +87,9 @@ func mailboxKey(email string) string {
 type audienceNames struct {
 	lists    map[string]string
 	segments map[string]string
-	allLists int
-	// every is the lists "All subscribers" covers: all but the ones a
-	// store fills (X20).
-	every []string
+	// public are the lists readers can sign up for, but the ones a store
+	// fills (X20): an audience with all of them is "All subscribers".
+	public []string
 }
 
 func (s *Service) names(ctx context.Context, q *store.Queries, wsID uuid.UUID) (audienceNames, error) {
@@ -101,11 +100,10 @@ func (s *Service) names(ctx context.Context, q *store.Queries, wsID uuid.UUID) (
 	}
 	for _, l := range lists {
 		n.lists[l.ID.String()] = l.Name
-		if l.Origin != "store" {
-			n.every = append(n.every, l.ID.String())
+		if l.Public && l.Origin != "store" {
+			n.public = append(n.public, l.ID.String())
 		}
 	}
-	n.allLists = len(lists)
 	segs, err := q.ReadinessSegmentNames(ctx, wsID)
 	if err != nil {
 		return n, err
@@ -131,7 +129,7 @@ func (n audienceNames) labels(a AudienceDef) (base, group string, names []string
 		}
 	}
 	switch {
-	case len(a.Segments) == 0 && len(a.ExcludeLists) == 0 && len(n.every) > 1 && !slices.ContainsFunc(n.every, func(id string) bool { return !slices.Contains(a.Lists, id) }):
+	case len(a.Segments) == 0 && len(a.ExcludeLists) == 0 && len(n.public) > 1 && !slices.ContainsFunc(n.public, func(id string) bool { return !slices.Contains(a.Lists, id) }):
 		return "All subscribers", "All subscribers", names
 	case len(names) == 1 && len(a.Lists) == 1:
 		return names[0] + " list", names[0], names

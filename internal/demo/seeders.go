@@ -45,6 +45,8 @@ var (
 	seedAI                    = noop // AI assistant: Anthropic connected, this month's usage and activity log, a kept report summary (seed_ai.go)
 	// the publication website: news.acme.io's posts, tags, members, views and Daniel's post waiting for approval (seed_website.go)
 	seedWebsite = noop
+	// SMS: Twilio and Vonage, routes and rules, Acme Summit 2026's registrants and texts (seed_sms.go)
+	seedSMS = noop
 	// Shopify: Acme Merch, its catalog, customers, orders, checkouts and the Abandoned cart flow (seed_stores.go)
 	seedStores = noop
 )

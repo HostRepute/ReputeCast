@@ -2,7 +2,7 @@
 -- One page of the campaigns list. Status groups: drafts = draft, approval,
 -- approved; sending = sending, paused; sent = sent, cancelled, failed.
 SELECT c.id, c.name, c.status, c.audience, c.audience_count, c.ab_test, c.scheduled_at, c.schedule,
-       c.created_at, c.updated_at, c.started_at, c.completed_at, c.origin, c.note,
+       c.created_at, c.updated_at, c.started_at, c.completed_at, c.origin, c.note, c.channel,
        coalesce(u.name, '')::text AS updated_by_name,
        coalesce(t.sent, 0)::bigint AS sent,
        coalesce(t.delivered, 0)::bigint AS delivered,
@@ -42,6 +42,8 @@ WHERE c.workspace_id = @workspace_id AND c.deleted_at IS NULL
        OR (@status_group = 'sending' AND c.status IN ('sending', 'paused'))
        OR (@status_group = 'sent' AND c.status IN ('sent', 'cancelled', 'failed')))
   AND (@query::text = '' OR c.name ILIKE '%' || @query::text || '%')
+  -- The channel filter: All, Email, SMS, Push, WhatsApp (design expansion phase 8).
+  AND (@channel::text = '' OR c.channel = @channel::text)
   AND (NOT @paid_only::boolean OR c.audience ->> 'paid' = 'paid')
 ORDER BY CASE c.status WHEN 'sending' THEN 0 WHEN 'paused' THEN 0 WHEN 'scheduled' THEN 1 WHEN 'approval' THEN 2 WHEN 'approved' THEN 2 WHEN 'draft' THEN 3 ELSE 4 END,
          CASE WHEN c.status = 'scheduled' THEN c.scheduled_at END ASC,
@@ -59,6 +61,8 @@ WHERE c.workspace_id = @workspace_id AND c.deleted_at IS NULL
        OR (@status_group = 'sending' AND c.status IN ('sending', 'paused'))
        OR (@status_group = 'sent' AND c.status IN ('sent', 'cancelled', 'failed')))
   AND (@query::text = '' OR c.name ILIKE '%' || @query::text || '%')
+  -- The channel filter: All, Email, SMS, Push, WhatsApp (design expansion phase 8).
+  AND (@channel::text = '' OR c.channel = @channel::text)
   AND (NOT @paid_only::boolean OR c.audience ->> 'paid' = 'paid');
 
 -- name: CountCampaignsByStatus :many
@@ -103,7 +107,7 @@ GROUP BY p.name, p.adapter
 ORDER BY cost_micros DESC, p.name;
 
 -- name: ListWorkspaceLists :many
-SELECT id, name, origin FROM lists WHERE workspace_id = @workspace_id AND deleted_at IS NULL ORDER BY created_at;
+SELECT id, name, public, origin FROM lists WHERE workspace_id = @workspace_id AND deleted_at IS NULL ORDER BY created_at;
 
 -- name: BroadcastDefaultSplit :one
 SELECT splits FROM routing_rules

@@ -341,3 +341,22 @@ fieldset.qb > legend { display: contents; }
   .sitebar-nav { display: none; }
   .sitebar-me span:last-child { display: none; }
 }
+
+/* The text message terms page (SMS, X21). */
+.terms-card { max-width: none; gap: 18px; }
+.tag.start { align-self: flex-start; }
+.terms-lead { color: var(--ink-nav); font-size: 16px; line-height: 1.55; }
+.terms { display: grid; grid-template-columns: 150px minmax(0, 1fr); margin: 0; border-top: 1px solid var(--line-2); }
+.terms dt { font-weight: 700; font-size: 14px; padding: 14px 0; border-bottom: 1px solid var(--line-2); color: #1f2937; }
+.terms dd { margin: 0; padding: 14px 0; border-bottom: 1px solid var(--line-2); font-size: 15px; line-height: 1.55; color: #374151; }
+.terms a { color: var(--pub-hover); text-decoration: underline; text-underline-offset: 2px; }
+.terms .nw { white-space: nowrap; }
+.terms-box { display: flex; flex-direction: column; gap: 12px; padding: 16px; border: 1px solid var(--pub-soft); border-radius: 12px; background: var(--pub-ground); }
+.terms-box-h { font-weight: 600; }
+.terms-box-t { color: #374151; font-size: 14px; }
+.terms-foot { margin: 0; font-size: 13px; line-height: 1.5; }
+@media (max-width: 767px) {
+  .terms { grid-template-columns: 1fr; }
+  .terms dt { border-bottom: 0; padding: 14px 0 2px; }
+  .terms dd { padding: 0 0 14px; }
+}

@@ -28,11 +28,17 @@ func init() {
 			Translations: campaignTranslations(a),
 			// Test emails get their poll links and the contact's version.
 			Extras: campaignExtras(a),
+			// SMS rows of the list (wire_texting.go).
+			Channels: campaignChannelRows(a),
 		}
 		campaigns.Register(h, s)
 		campaigns.RegisterComposer(h, s)
 	})
 }
+
+// campaignChannelRows fills in the list's rows of other channels'
+// campaigns; set from wire_texting.go.
+var campaignChannelRows = func(*App) campaigns.ChannelRows { return nil }
 
 // contentExtras are content checks other domains add (a store block naming
 // a removed product); the commerce domain sets it from its wire file.

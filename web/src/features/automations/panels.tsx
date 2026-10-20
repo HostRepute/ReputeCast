@@ -187,6 +187,7 @@ const subs: Record<StepType, string> = {
   list: 'Changes lists or tags',
   goal: 'Ends the flow when reached',
   exit: 'Ends the flow',
+  sms: 'Texts through your SMS routes',
 }
 
 export function Prop({ title, children, id }: { title: string; children: ReactNode; id?: string }) {

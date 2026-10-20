@@ -358,6 +358,28 @@ export const entries: Entry[] = [
   { board: 'PublicUpgradePhone', path: '/p/acme-newsletter/upgrade', user: 'anon', widths: [390] },
   { board: 'PublicPreferencesPaid', manual: true },
   { board: 'PublicEarnStates', manual: true },
+  // X18 · the publication website. The demo's website is on at news.acme.io. WebsiteStates holds
+  // the off and turning-on pages, address problems, read-only views and the elsewhere-in-the-app
+  // frames: reproduce them by hand (turn the website off in a dev database, sign in as aisha@acme.io).
+  { board: 'WebsitePosts', path: `${ws}/forms/website`, widths: [1440] },
+  { board: 'WebsitePostsTablet', path: `${ws}/forms/website`, widths: [834] },
+  { board: 'WebsitePostsPhone', path: `${ws}/forms/website`, widths: [390] },
+  { board: 'WebsiteHomeNav', path: `${ws}/forms/website/home`, widths: [1440] },
+  { board: 'WebsiteAccess', path: `${ws}/forms/website/access`, widths: [1440] },
+  { board: 'WebsiteStates', manual: true },
+  // Post mode (the runbook, with its free preview marker) and campaign mode (#142's Web tab).
+  { board: 'ComposerPublishToWeb', path: `${ws}/forms/website/posts/{post:Inside our Postgres migration: the runbook}`, widths: [1440], viewportOnly: true, height: 1000 },
+  { board: 'ComposerPublishToWebPhone', path: `${ws}/forms/website/posts/{post:Inside our Postgres migration: the runbook}`, widths: [390], viewportOnly: true, height: 1000 },
+  // The public site at /p/acme-newsletter, signed out (the runbook stops at the paywall). The
+  // account needs a member's session (sign in on the site with a link from Mailpit) and the site
+  // states need data changes: both by hand.
+  { board: 'PublicHome', path: '/p/acme-newsletter/', user: 'anon', widths: [720] },
+  { board: 'PublicHomePhone', path: '/p/acme-newsletter/', user: 'anon', widths: [390] },
+  { board: 'PublicPost', path: '/p/acme-newsletter/posts/postgres-migration-runbook', user: 'anon', widths: [720] },
+  { board: 'PublicPostPhone', path: '/p/acme-newsletter/posts/postgres-migration-runbook', user: 'anon', widths: [390] },
+  { board: 'PublicAccount', manual: true },
+  { board: 'PublicAccountPhone', manual: true },
+  { board: 'PublicSiteStates', manual: true },
   // X20 · Shopify and WooCommerce. Acme Merch is the demo's Shopify store; the connect dialogs, the
   // first import, a missing webhook, a revoked store, WooCommerce without the plugin and the
   // disconnect dialog need clicks or data changes (CommerceStates), as do the product picker, a

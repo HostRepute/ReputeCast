@@ -104,3 +104,35 @@ func TestSafeReturn(t *testing.T) {
 		}
 	}
 }
+
+// A post's 680 px column goes back to an email's 600 px when the post is
+// sent as a campaign; other widths stay.
+func TestEmailWidth(t *testing.T) {
+	for in, want := range map[string]string{
+		`<mjml><mj-body width="680px"><mj-section></mj-section></mj-body></mjml>`:                                   `<mjml><mj-body width="600px"><mj-section></mj-section></mj-body></mjml>`,
+		`<mjml><mj-body background-color="#fff" width="680px"></mj-body></mjml>`:                                    `<mjml><mj-body background-color="#fff" width="600px"></mj-body></mjml>`,
+		`<mjml><mj-body width="640px"></mj-body></mjml>`:                                                            `<mjml><mj-body width="640px"></mj-body></mjml>`,
+		`<mjml><mj-body><mj-section><mj-column><mj-image width="680px"/></mj-column></mj-section></mj-body></mjml>`: `<mjml><mj-body><mj-section><mj-column><mj-image width="680px"/></mj-column></mj-section></mj-body></mjml>`,
+	} {
+		if got := emailWidth(in); got != want {
+			t.Errorf("emailWidth(%q) = %q", in, got)
+		}
+	}
+}
+
+// A post's default cover is the email's first real image: not its logo.
+func TestFirstImage(t *testing.T) {
+	doc := `<mjml><mj-body>
+  <mj-section><mj-column><mj-image src="/media/starters/logo.png" alt="Acme" width="96px"></mj-image></mj-column></mj-section>
+  <mj-section><mj-column><mj-image src="https://cdn.example/hero.png" alt="Rows of switches" width="552px"></mj-image></mj-column></mj-section>
+</mj-body></mjml>`
+	if src, alt := firstImage(doc); src != "https://cdn.example/hero.png" || alt != "Rows of switches" {
+		t.Fatalf("cover: %q %q", src, alt)
+	}
+	if src, _ := firstImage(`<mjml><mj-body><mj-section><mj-column><mj-image src="/media/a.png"></mj-image></mj-column></mj-section></mj-body></mjml>`); src != "/media/a.png" {
+		t.Fatalf("an image without a width: %q", src)
+	}
+	if src, _ := firstImage(`<mjml><mj-body><mj-section><mj-column><mj-image src="/media/icon.png" width="40px"></mj-image></mj-column></mj-section></mj-body></mjml>`); src != "" {
+		t.Fatalf("an icon: %q", src)
+	}
+}

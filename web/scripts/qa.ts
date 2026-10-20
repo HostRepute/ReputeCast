@@ -125,6 +125,8 @@ const resolvers: Record<string, (ctx: BrowserContext, value: string) => Promise<
   // verification job by its label ({verification:Sunset}).
   placement: (ctx, name) => lookup(ctx, 'placement/tests', 'tests', (t) => t.name === name, `no placement test named ${name}`),
   verification: (ctx, label) => lookup(ctx, 'verification/services', 'uses', (u) => u.label === label && u.kind !== 'realtime', `no verification job ${label}`),
+  // A website post by its title ({post:Inside our Postgres migration: the runbook}).
+  post: (ctx, title) => lookup(ctx, `website/posts?pageSize=100&q=${encodeURIComponent(title)}`, 'posts', (p) => p.title === title, `no post titled ${title}`),
   // A connected store by its name ({store:Acme Merch}).
   store: (ctx, name) => lookup(ctx, 'stores', 'stores', (s) => s.name === name, `no store named ${name}`),
 }

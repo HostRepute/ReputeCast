@@ -528,7 +528,7 @@ func (q *Queries) SendingBumpCounters(ctx context.Context, arg SendingBumpCounte
 }
 
 const sendingCampaign = `-- name: SendingCampaign :one
-SELECT id, workspace_id, name, status, subject, preheader, sender_id, reply_to, audience, audience_count, editor_mode, mjml, html, plain_text, version, ab_test, schedule, thresholds, route_override, tracking, created_by, updated_by, created_at, updated_at, autosaved_at, scheduled_at, started_by, started_at, completed_at, deleted_at, origin, note, content_hash, content_settings, digest_id, digest_role FROM campaigns WHERE id = $1 AND deleted_at IS NULL
+SELECT id, workspace_id, name, status, subject, preheader, sender_id, reply_to, audience, audience_count, editor_mode, mjml, html, plain_text, version, ab_test, schedule, thresholds, route_override, tracking, created_by, updated_by, created_at, updated_at, autosaved_at, scheduled_at, started_by, started_at, completed_at, deleted_at, origin, note, content_hash, content_settings, digest_id, digest_role, channel FROM campaigns WHERE id = $1 AND deleted_at IS NULL
 `
 
 func (q *Queries) SendingCampaign(ctx context.Context, id uuid.UUID) (Campaign, error) {
@@ -571,6 +571,7 @@ func (q *Queries) SendingCampaign(ctx context.Context, id uuid.UUID) (Campaign, 
 		&i.ContentSettings,
 		&i.DigestID,
 		&i.DigestRole,
+		&i.Channel,
 	)
 	return i, err
 }
@@ -666,7 +667,7 @@ func (q *Queries) SendingCampaignContext(ctx context.Context, id uuid.UUID) (Sen
 
 const sendingCampaignForUpdate = `-- name: SendingCampaignForUpdate :one
 
-SELECT id, workspace_id, name, status, subject, preheader, sender_id, reply_to, audience, audience_count, editor_mode, mjml, html, plain_text, version, ab_test, schedule, thresholds, route_override, tracking, created_by, updated_by, created_at, updated_at, autosaved_at, scheduled_at, started_by, started_at, completed_at, deleted_at, origin, note, content_hash, content_settings, digest_id, digest_role FROM campaigns WHERE id = $1 AND deleted_at IS NULL FOR UPDATE
+SELECT id, workspace_id, name, status, subject, preheader, sender_id, reply_to, audience, audience_count, editor_mode, mjml, html, plain_text, version, ab_test, schedule, thresholds, route_override, tracking, created_by, updated_by, created_at, updated_at, autosaved_at, scheduled_at, started_by, started_at, completed_at, deleted_at, origin, note, content_hash, content_settings, digest_id, digest_role, channel FROM campaigns WHERE id = $1 AND deleted_at IS NULL FOR UPDATE
 `
 
 // Sending engine and live monitor (spec 5.3, 7.6).
@@ -710,12 +711,13 @@ func (q *Queries) SendingCampaignForUpdate(ctx context.Context, id uuid.UUID) (C
 		&i.ContentSettings,
 		&i.DigestID,
 		&i.DigestRole,
+		&i.Channel,
 	)
 	return i, err
 }
 
 const sendingCampaignInWorkspace = `-- name: SendingCampaignInWorkspace :one
-SELECT id, workspace_id, name, status, subject, preheader, sender_id, reply_to, audience, audience_count, editor_mode, mjml, html, plain_text, version, ab_test, schedule, thresholds, route_override, tracking, created_by, updated_by, created_at, updated_at, autosaved_at, scheduled_at, started_by, started_at, completed_at, deleted_at, origin, note, content_hash, content_settings, digest_id, digest_role FROM campaigns WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL
+SELECT id, workspace_id, name, status, subject, preheader, sender_id, reply_to, audience, audience_count, editor_mode, mjml, html, plain_text, version, ab_test, schedule, thresholds, route_override, tracking, created_by, updated_by, created_at, updated_at, autosaved_at, scheduled_at, started_by, started_at, completed_at, deleted_at, origin, note, content_hash, content_settings, digest_id, digest_role, channel FROM campaigns WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL
 `
 
 type SendingCampaignInWorkspaceParams struct {
@@ -763,6 +765,7 @@ func (q *Queries) SendingCampaignInWorkspace(ctx context.Context, arg SendingCam
 		&i.ContentSettings,
 		&i.DigestID,
 		&i.DigestRole,
+		&i.Channel,
 	)
 	return i, err
 }
@@ -1158,6 +1161,8 @@ func (q *Queries) SendingDeleteSimEvents(ctx context.Context, ids []int64) error
 const sendingDueScheduled = `-- name: SendingDueScheduled :many
 SELECT c.id FROM campaigns c
 WHERE c.status = 'scheduled' AND c.scheduled_at <= $1 AND c.deleted_at IS NULL
+  -- SMS campaigns start from their own dispatcher (internal/texting).
+  AND c.channel = 'email'
   AND NOT EXISTS (SELECT 1 FROM campaign_incidents i WHERE i.campaign_id = c.id AND i.kind = 'recheck_blocked' AND i.resolved_at IS NULL)
   -- A recurring digest starts its own issues (internal/digests).
   AND NOT EXISTS (SELECT 1 FROM digest_issues di WHERE di.campaign_id = c.id AND di.mode = 'auto')
@@ -1733,12 +1738,13 @@ func (q *Queries) SendingInsertSend(ctx context.Context, arg SendingInsertSendPa
 }
 
 const sendingListNames = `-- name: SendingListNames :many
-SELECT id, name, origin FROM lists WHERE workspace_id = $1 AND deleted_at IS NULL ORDER BY created_at
+SELECT id, name, public, origin FROM lists WHERE workspace_id = $1 AND deleted_at IS NULL ORDER BY created_at
 `
 
 type SendingListNamesRow struct {
 	ID     uuid.UUID `json:"id"`
 	Name   string    `json:"name"`
+	Public bool      `json:"public"`
 	Origin string    `json:"origin"`
 }
 
@@ -1751,7 +1757,12 @@ func (q *Queries) SendingListNames(ctx context.Context, workspaceID uuid.UUID) (
 	items := []SendingListNamesRow{}
 	for rows.Next() {
 		var i SendingListNamesRow
-		if err := rows.Scan(&i.ID, &i.Name, &i.Origin); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Public,
+			&i.Origin,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

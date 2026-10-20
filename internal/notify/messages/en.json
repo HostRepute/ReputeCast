@@ -31,5 +31,9 @@
   "short.placement_finished": "placement tests",
   "short.seed_signin_failed": "seed sign-in failures",
   "short.website_domain": "website domain problems",
+  "short.sms_budget": "SMS budget alerts",
+  "short.sms_registration": "sender registrations",
+  "short.sms_provider_down": "SMS provider problems",
+  "short.sms_send_paused": "SMS auto-pauses",
   "short.store_problem": "store problems"
 }

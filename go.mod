@@ -6,6 +6,7 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.47.3
 	github.com/aws/aws-sdk-go-v2/config v1.33.9
 	github.com/aws/aws-sdk-go-v2/credentials v1.20.9
+	github.com/aws/aws-sdk-go-v2/service/pinpointsmsvoicev2 v1.42.0
 	github.com/aws/aws-sdk-go-v2/service/sesv2 v1.79.1
 	github.com/aws/aws-sdk-go-v2/service/sns v1.47.5
 	github.com/aws/aws-sdk-go-v2/service/sts v1.51.4
@@ -31,6 +32,7 @@ require (
 	github.com/knadh/koanf/v2 v2.3.8
 	github.com/miekg/dns v1.1.73
 	github.com/modelcontextprotocol/go-sdk v1.8.0
+	github.com/nyaruka/phonenumbers v1.8.1
 	github.com/osteele/liquid v1.9.2
 	github.com/pquerna/otp v1.5.0
 	github.com/preslavrachev/gomjml v0.13.0

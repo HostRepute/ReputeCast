@@ -46,13 +46,15 @@ func TestScoringGrowthSample(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	spread := []int64{18406, 10784, 6912, 4401, 2894, 1966, 1207, 806, 497, 340}
+	// SMS (X21) adds 338 Acme Summit registrants who weren't contacts yet:
+	// active, with no score (0 to 9, Cold).
+	spread := []int64{18406 + 338, 10784, 6912, 4401, 2894, 1966, 1207, 806, 497, 340}
 	for i, b := range page.Spread {
 		if b.Contacts != spread[i] {
 			t.Errorf("bucket %d–%d: %d, want %d", b.From, b.To, b.Contacts, spread[i])
 		}
 	}
-	tiers := map[string][3]int64{"active": {4702, 12960, 11750}, "cooling": {114, 1198, 8572}, "at_risk": {0, 49, 5253}, "sunset": {0, 0, 3615}}
+	tiers := map[string][3]int64{"active": {4702, 12960, 11750 + 338}, "cooling": {114, 1198, 8572}, "at_risk": {0, 49, 5253}, "sunset": {0, 0, 3615}}
 	for _, r := range page.ByTier {
 		if w := tiers[r.Tier]; r.Hot != w[0] || r.Warm != w[1] || r.Cold != w[2] {
 			t.Errorf("tier %s: %d / %d / %d, want %v", r.Tier, r.Hot, r.Warm, r.Cold, w)
@@ -64,7 +66,7 @@ func TestScoringGrowthSample(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if imp.Changed != 1312 || imp.BandsAfter != (scoring.ScoringBandCounts{Cold: 28986, Warm: 13303, Hot: 5924}) {
+	if imp.Changed != 1312 || imp.BandsAfter != (scoring.ScoringBandCounts{Cold: 28986 + 338, Warm: 13303, Hot: 5924}) {
 		t.Errorf("rule 3 at +25: %d change band, %+v", imp.Changed, imp.BandsAfter)
 	}
 	if len(imp.Flows) != 1 || imp.Flows[0].Crossed != 1108 || imp.Flows[0].Name != "Sales-ready handoff" {

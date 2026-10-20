@@ -28,6 +28,7 @@ import { FieldSourceNote, useAnswerActivity, useFieldSources } from '@/features/
 import { ContactPaidCard, ContactTierChip, PaidActivity, useHasPaidActivity } from '@/features/earn/ContactPaidCard'
 import { AddressCheckRow } from '@/features/verification/AddressCheck'
 import './audience.css'
+import { ContactWebsiteCard } from '@/features/website/elsewhere'
 
 type Profile = Schemas['ContactProfile']
 type Item = Schemas['ContactActivityItem']
@@ -139,6 +140,8 @@ export function ContactProfilePage({ contactId }: { contactId: string }) {
               <ContactPaidCard contactId={p.id} />
               <FieldsCard p={p} />
               <ConsentCard p={p} />
+              {/* The website's Website card (features/website), while it's on. */}
+              <ContactWebsiteCard contactId={p.id} name={[p.firstName, p.lastName].filter(Boolean).join(' ') || p.email} />
               {/* A connected store's orders and consent (X20). */}
               <StoreOrdersCard contactId={p.id} />
             </div>

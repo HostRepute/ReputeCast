@@ -85,8 +85,9 @@ export interface ComposerState {
 
   checks: Checks | undefined
   checksPending: boolean
-  rightTab: 'style' | 'settings' | 'deliverability' | 'accessibility'
-  setRightTab(t: 'style' | 'settings' | 'deliverability' | 'accessibility'): void
+  /** The inspector's tab; Web is the website's (features/website/composer), while it's on. */
+  rightTab: 'style' | 'settings' | 'deliverability' | 'accessibility' | 'web'
+  setRightTab(t: 'style' | 'settings' | 'deliverability' | 'accessibility' | 'web'): void
   leftTab: 'blocks' | 'layers' | 'templates'
   setLeftTab(t: 'blocks' | 'layers' | 'templates'): void
   openDialog(d: ComposerDialog): void

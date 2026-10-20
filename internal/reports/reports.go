@@ -237,7 +237,8 @@ func scheduleTZ(raw json.RawMessage) string {
 }
 
 // audienceLabel turns an audience definition into "Weekly Digest" or
-// "All subscribers" (every list of the workspace), as the campaigns list does.
+// "All subscribers" (every public list of the workspace), as the campaigns
+// list does.
 func (s *Service) audienceLabel(ctx context.Context, wsID uuid.UUID, raw json.RawMessage) (string, error) {
 	var a struct {
 		Lists    []uuid.UUID `json:"lists"`
@@ -252,14 +253,14 @@ func (s *Service) audienceLabel(ctx context.Context, wsID uuid.UUID, raw json.Ra
 	if err != nil {
 		return "", err
 	}
-	// "All subscribers" is every list but the ones a store fills (X20).
-	every := []uuid.UUID{}
+	var public []uuid.UUID
 	for _, l := range lists {
-		if l.Origin != "store" {
-			every = append(every, l.ID)
+		// "All subscribers" is every public list but the ones a store fills (X20).
+		if l.Public && l.Origin != "store" {
+			public = append(public, l.ID)
 		}
 	}
-	if len(a.Segments) == 0 && len(every) > 1 && !slices.ContainsFunc(every, func(id uuid.UUID) bool { return !slices.Contains(a.Lists, id) }) {
+	if len(a.Segments) == 0 && len(public) > 1 && !slices.ContainsFunc(public, func(id uuid.UUID) bool { return !slices.Contains(a.Lists, id) }) {
 		return "All subscribers", nil
 	}
 	names := make(map[uuid.UUID]string, len(lists))

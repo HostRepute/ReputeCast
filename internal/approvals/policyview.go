@@ -140,6 +140,9 @@ func (s *Service) SavePolicy(ctx context.Context, ws *store.Workspace, p *authz.
 	if in.AudienceMin.N <= 0 {
 		in.AudienceMin.N = 10000
 	}
+	if in.ChannelCost.Amount <= 0 {
+		in.ChannelCost.Amount = ParsePolicy(ws.ApprovalPolicy).ChannelCost.Amount
+	}
 	before := ParsePolicy(ws.ApprovalPolicy)
 	if before == in {
 		return s.PolicyView(ctx, ws, p)

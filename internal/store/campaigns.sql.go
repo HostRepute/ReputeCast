@@ -629,13 +629,16 @@ WHERE c.workspace_id = $1 AND c.deleted_at IS NULL
        OR ($2 = 'sending' AND c.status IN ('sending', 'paused'))
        OR ($2 = 'sent' AND c.status IN ('sent', 'cancelled', 'failed')))
   AND ($3::text = '' OR c.name ILIKE '%' || $3::text || '%')
-  AND (NOT $4::boolean OR c.audience ->> 'paid' = 'paid')
+  -- The channel filter: All, Email, SMS, Push, WhatsApp (design expansion phase 8).
+  AND ($4::text = '' OR c.channel = $4::text)
+  AND (NOT $5::boolean OR c.audience ->> 'paid' = 'paid')
 `
 
 type CountCampaignsParams struct {
 	WorkspaceID uuid.UUID `json:"workspaceId"`
 	StatusGroup string    `json:"statusGroup"`
 	Query       string    `json:"query"`
+	Channel     string    `json:"channel"`
 	PaidOnly    bool      `json:"paidOnly"`
 }
 
@@ -644,6 +647,7 @@ func (q *Queries) CountCampaigns(ctx context.Context, arg CountCampaignsParams) 
 		arg.WorkspaceID,
 		arg.StatusGroup,
 		arg.Query,
+		arg.Channel,
 		arg.PaidOnly,
 	)
 	var count int64
@@ -1037,7 +1041,7 @@ func (q *Queries) ListCampaignRouteShares(ctx context.Context, campaignIds []uui
 
 const listCampaigns = `-- name: ListCampaigns :many
 SELECT c.id, c.name, c.status, c.audience, c.audience_count, c.ab_test, c.scheduled_at, c.schedule,
-       c.created_at, c.updated_at, c.started_at, c.completed_at, c.origin, c.note,
+       c.created_at, c.updated_at, c.started_at, c.completed_at, c.origin, c.note, c.channel,
        coalesce(u.name, '')::text AS updated_by_name,
        coalesce(t.sent, 0)::bigint AS sent,
        coalesce(t.delivered, 0)::bigint AS delivered,
@@ -1077,18 +1081,21 @@ WHERE c.workspace_id = $1 AND c.deleted_at IS NULL
        OR ($2 = 'sending' AND c.status IN ('sending', 'paused'))
        OR ($2 = 'sent' AND c.status IN ('sent', 'cancelled', 'failed')))
   AND ($3::text = '' OR c.name ILIKE '%' || $3::text || '%')
-  AND (NOT $4::boolean OR c.audience ->> 'paid' = 'paid')
+  -- The channel filter: All, Email, SMS, Push, WhatsApp (design expansion phase 8).
+  AND ($4::text = '' OR c.channel = $4::text)
+  AND (NOT $5::boolean OR c.audience ->> 'paid' = 'paid')
 ORDER BY CASE c.status WHEN 'sending' THEN 0 WHEN 'paused' THEN 0 WHEN 'scheduled' THEN 1 WHEN 'approval' THEN 2 WHEN 'approved' THEN 2 WHEN 'draft' THEN 3 ELSE 4 END,
          CASE WHEN c.status = 'scheduled' THEN c.scheduled_at END ASC,
          coalesce(c.started_at, c.updated_at) DESC,
          c.id DESC
-LIMIT $6 OFFSET $5
+LIMIT $7 OFFSET $6
 `
 
 type ListCampaignsParams struct {
 	WorkspaceID uuid.UUID `json:"workspaceId"`
 	StatusGroup string    `json:"statusGroup"`
 	Query       string    `json:"query"`
+	Channel     string    `json:"channel"`
 	PaidOnly    bool      `json:"paidOnly"`
 	Off         int32     `json:"off"`
 	Lim         int32     `json:"lim"`
@@ -1109,6 +1116,7 @@ type ListCampaignsRow struct {
 	CompletedAt          *time.Time      `json:"completedAt"`
 	Origin               string          `json:"origin"`
 	Note                 string          `json:"note"`
+	Channel              string          `json:"channel"`
 	UpdatedByName        string          `json:"updatedByName"`
 	Sent                 int64           `json:"sent"`
 	Delivered            int64           `json:"delivered"`
@@ -1133,6 +1141,7 @@ func (q *Queries) ListCampaigns(ctx context.Context, arg ListCampaignsParams) ([
 		arg.WorkspaceID,
 		arg.StatusGroup,
 		arg.Query,
+		arg.Channel,
 		arg.PaidOnly,
 		arg.Off,
 		arg.Lim,
@@ -1159,6 +1168,7 @@ func (q *Queries) ListCampaigns(ctx context.Context, arg ListCampaignsParams) ([
 			&i.CompletedAt,
 			&i.Origin,
 			&i.Note,
+			&i.Channel,
 			&i.UpdatedByName,
 			&i.Sent,
 			&i.Delivered,
@@ -1280,12 +1290,13 @@ func (q *Queries) ListComposerVersions(ctx context.Context, arg ListComposerVers
 }
 
 const listWorkspaceLists = `-- name: ListWorkspaceLists :many
-SELECT id, name, origin FROM lists WHERE workspace_id = $1 AND deleted_at IS NULL ORDER BY created_at
+SELECT id, name, public, origin FROM lists WHERE workspace_id = $1 AND deleted_at IS NULL ORDER BY created_at
 `
 
 type ListWorkspaceListsRow struct {
 	ID     uuid.UUID `json:"id"`
 	Name   string    `json:"name"`
+	Public bool      `json:"public"`
 	Origin string    `json:"origin"`
 }
 
@@ -1298,7 +1309,12 @@ func (q *Queries) ListWorkspaceLists(ctx context.Context, workspaceID uuid.UUID)
 	items := []ListWorkspaceListsRow{}
 	for rows.Next() {
 		var i ListWorkspaceListsRow
-		if err := rows.Scan(&i.ID, &i.Name, &i.Origin); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Public,
+			&i.Origin,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

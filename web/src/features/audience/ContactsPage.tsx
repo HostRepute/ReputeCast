@@ -24,6 +24,7 @@ import { LanguageFilter } from '@/features/page-languages/contacts'
 import { PaidStatusCell, PaidStatusSelect, PaidTierChip } from '@/features/earn/ContactsPaid'
 import { StoreChips, StoreContactFields, storeMoreKeys, type StoreDraft } from '@/features/commerce/contacts'
 import './audience.css'
+import { MembersChips } from '@/features/website/elsewhere'
 
 export interface ContactsSearch {
   q?: string
@@ -51,6 +52,8 @@ export interface ContactsSearch {
   /** Paid status (Earn, X16): a status, or with_access at paidTier and above. */
   paid?: 'with_access' | 'trialing' | 'past_due' | 'complimentary' | 'gift' | 'ended' | 'free'
   paidTier?: string
+  /** Members of the website: contacts who signed in to it (X18). */
+  signedIn?: boolean
   /** Store customers and what they spent (X20). */
   storeCustomer?: string
   spentFrom?: string
@@ -88,6 +91,8 @@ const filterKeys = [
   // Paid status (Earn, X16).
   'paid',
   'paidTier',
+  // Members of the website (X18).
+  'signedIn',
   // Store customers and what they spent (X20).
   'storeCustomer',
   'spentFrom',
@@ -96,10 +101,10 @@ const filterKeys = [
 
 /** The filter part of the search params, without empty values. */
 export function filterOf(s: ContactsSearch): Filter {
-  const f: Record<string, string> = {}
+  const f: Record<string, string | boolean> = {}
   for (const k of filterKeys) {
     const v = s[k]
-    if (v) f[k] = String(v)
+    if (v) f[k] = typeof v === 'boolean' ? v : String(v)
   }
   return f as Filter
 }
@@ -184,6 +189,13 @@ export function ContactsPage({ search }: { search: ContactsSearch }) {
       ) : (
         <>
           <SavedViews views={views.data} filter={filter} onPick={(f) => go({ ...f, size: search.size })} onSave={() => setSaving(true)} />
+          {/* The website's members (features/website), while it's on. */}
+          <MembersChips
+            signedIn={Boolean(search.signedIn)}
+            onSignedIn={(on) => setFilter({ signedIn: on || undefined })}
+            paid={search.paid === 'with_access' && !search.paidTier}
+            onPaid={(on) => setFilter({ paid: on ? 'with_access' : undefined, paidTier: undefined })}
+          />
           <Filters search={search} total={list.data?.total} lists={summary.data?.lists ?? []} paidTiers={summary.data?.paidTiers ?? []} onChange={setFilter} />
           {result ? <BulkResultPanel result={result} onDismiss={() => setResult(null)} /> : null}
           {ids.length > 0 ? (

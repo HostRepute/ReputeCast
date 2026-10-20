@@ -1,0 +1,25 @@
+{{define "content"}}{{with .Body}}<main class="wide" id="main">
+  {{template "brand" $}}
+  <article class="card terms-card">
+    <div class="col4">
+      <span class="tag start">{{.Version}}</span>
+      <h1 class="h30">{{.Title}}</h1>
+      {{with .Intro}}<p class="terms-lead">{{.}}</p>{{end}}
+    </div>
+    <dl class="terms">
+      {{range .Sections}}<dt>{{.Heading}}</dt>
+      <dd>{{.HTML}}</dd>
+      {{end}}
+    </dl>
+    {{if or .ClosingHeading .Actions}}<div class="terms-box">
+      {{with .ClosingHeading}}<span class="terms-box-h">{{.}}</span>{{end}}
+      {{with .ClosingText}}<span class="terms-box-t">{{.}}</span>{{end}}
+      {{if .Actions}}<div class="btns">
+        {{range .Actions}}<a class="btn-ghost" href="{{.Href}}">{{.Label}}</a>
+        {{end}}
+      </div>{{end}}
+    </div>{{end}}
+    {{with .Footer}}<p class="muted terms-foot">{{.}}</p>{{end}}
+  </article>
+</main>{{end}}{{end}}
+{{define "foot"}}<footer class="foot">{{template "rcplain" .}}</footer>{{end}}
