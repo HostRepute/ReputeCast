@@ -251,6 +251,19 @@ func (s *shop) order(o *shopifytest.Order) shopifytest.Delivery {
 
 func TestConnectAndFirstImport(t *testing.T) {
 	s := newShop(t)
+	// An address that doesn't answer like a Shopify store stays on the
+	// address step, with the address as it was typed.
+	s.fake.SetOutage(true)
+	refused := s.c.Do("POST", s.path+"/stores", map[string]any{"platform": "shopify", "address": "acme-merch.com"}).MustStatus(t, 422).Problem(t)
+	s.fake.SetOutage(false)
+	errs, _ := refused["errors"].([]any)
+	if len(errs) != 1 {
+		t.Fatalf("not a Shopify store: %+v", refused)
+	}
+	if e, _ := errs[0].(map[string]any); e["location"] != "body.address" ||
+		e["message"] != "acme-merch.com doesn't answer like a Shopify store. Use its myshopify.com address, from Shopify › Settings › Domains." {
+		t.Fatalf("not a Shopify store: %+v", e)
+	}
 	// A secret Shopify doesn't sign with is caught on the way back.
 	var st commerce.CommerceConnectState
 	s.c.Do("POST", s.path+"/stores", map[string]any{"platform": "shopify", "address": "acme-merch.myshopify.com"}).MustStatus(t, 200).JSON(t, &st)
