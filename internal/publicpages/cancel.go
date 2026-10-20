@@ -57,7 +57,11 @@ func (h *Handler) cancelPage(w http.ResponseWriter, r *http.Request) {
 	}
 	token := chi.URLParam(r, "token")
 	v, err := h.Offers.CancelPage(r.Context(), s.ws, token, r.URL.Query().Get("done") == "1")
-	if err != nil {
+	switch {
+	case errors.Is(err, earn.ErrLinkInvalid):
+		h.notFound(w, r, s)
+		return
+	case err != nil:
 		h.serverError(w, r, s, err)
 		return
 	}
@@ -82,6 +86,9 @@ func (h *Handler) cancelPost(w http.ResponseWriter, r *http.Request) {
 	back := h.Earn.PageURL(r.Context(), s.ws, "cancel/"+token+"?done=1")
 	res, err := h.Offers.CancelDecide(r.Context(), s.ws, token, f.Get("visit"), f.Get("reason"), f.Get("decision"), back)
 	switch {
+	case errors.Is(err, earn.ErrLinkInvalid):
+		h.notFound(w, r, s)
+		return
 	case errors.Is(err, earn.ErrUnavailable):
 		h.earnMessage(w, r, s, http.StatusServiceUnavailable, earn.Text("page.unavailableTitle", nil), earn.Text("portal.unavailableText", nil))
 		return

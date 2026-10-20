@@ -95,6 +95,8 @@ func (s *Service) CancelPage(ctx context.Context, ws *store.Workspace, token str
 	v := CancelView{Words: words()}
 	t, err := s.Earn.CancelTargetOf(ctx, ws, token)
 	switch {
+	case errors.Is(err, earn.ErrLinkInvalid):
+		return v, err
 	case errors.Is(err, earn.ErrLinkExpired):
 		v.State, v.Heading, v.Text = "expired", page("cancel.expiredTitle", nil), page("cancel.expiredText", nil)
 		return v, nil

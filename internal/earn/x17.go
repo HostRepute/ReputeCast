@@ -14,6 +14,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/hostrepute/reputecast/internal/linktoken"
 	"github.com/hostrepute/reputecast/internal/liquid"
 	"github.com/hostrepute/reputecast/internal/payments"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -139,19 +140,28 @@ type CancelTarget struct {
 	Lists   []string
 }
 
-// ErrLinkExpired means a personal link no longer verifies.
+// ErrLinkExpired means a personal link no longer verifies: its signature
+// doesn't match (an earlier instance key) or its reader is gone.
 var ErrLinkExpired = errors.New("earn: the personal link expired")
 
-// CancelTargetOf reads a cancel link (TokenCancel): ErrLinkExpired when it
-// doesn't verify, ErrNoSubscription when the reader has no subscription to
-// cancel (complimentary and gift access end on their own).
+// ErrLinkInvalid means a personal link isn't one: malformed, another kind of
+// link, or another workspace's.
+var ErrLinkInvalid = errors.New("earn: not a personal link")
+
+// CancelTargetOf reads a cancel link (TokenCancel): ErrLinkInvalid when it
+// isn't one, ErrLinkExpired when it no longer verifies, ErrNoSubscription
+// when the reader has no subscription to cancel (complimentary and gift
+// access end on their own).
 func (s *Service) CancelTargetOf(ctx context.Context, ws *store.Workspace, token string) (*CancelTarget, error) {
 	if token == "" || s.Links == nil || len(token) > 200 {
-		return nil, ErrLinkExpired
+		return nil, ErrLinkInvalid
 	}
 	c, err := s.Links.Verify(token, TokenCancel)
-	if err != nil || c.WorkspaceID != ws.ID || c.ContactID == uuid.Nil {
+	switch {
+	case errors.Is(err, linktoken.ErrSignature):
 		return nil, ErrLinkExpired
+	case err != nil || c.WorkspaceID != ws.ID || c.ContactID == uuid.Nil:
+		return nil, ErrLinkInvalid
 	}
 	ct, err := s.Q.EarnContactBrief(ctx, store.EarnContactBriefParams{ID: c.ContactID, WorkspaceID: ws.ID})
 	if err != nil {

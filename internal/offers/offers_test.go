@@ -14,6 +14,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/apptest"
 	"github.com/hostrepute/reputecast/internal/demo"
 	"github.com/hostrepute/reputecast/internal/earn"
+	"github.com/hostrepute/reputecast/internal/linktoken"
 	"github.com/hostrepute/reputecast/internal/offers"
 	"github.com/hostrepute/reputecast/internal/payments"
 	"github.com/hostrepute/reputecast/internal/payments/stripe/stripetest"
@@ -269,10 +270,22 @@ func TestOneRetentionOfferIn12Months(t *testing.T) {
 	if err := s.env.App.Pool.QueryRow(ctx, `SELECT cancel_reason FROM paid_subscriptions WHERE id = $1`, sub.ID).Scan(&why); err != nil || why != "not_reading" {
 		t.Errorf("cancel reason: %q %v", why, err)
 	}
-	// A link that doesn't verify has expired.
-	gone := reader.Do(http.MethodGet, "/p/acme-newsletter/cancel/not-a-token", nil)
-	if gone.Status != http.StatusGone || !strings.Contains(string(gone.Body), "This link has expired") {
+	// A link whose signature no longer matches (signed with an earlier
+	// instance key) has expired and offers a new one; a malformed link isn't
+	// one at all.
+	other, err := linktoken.NewSigner([]byte(strings.Repeat("k", 32)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	old := other.Sign(linktoken.Claims{Kind: earn.TokenCancel, WorkspaceID: s.ws.ID, ContactID: contact})
+	gone := reader.Do(http.MethodGet, "/p/acme-newsletter/cancel/"+old, nil)
+	if gone.Status != http.StatusGone || !strings.Contains(string(gone.Body), "This link has expired") || !strings.Contains(string(gone.Body), "Email me my link") {
 		t.Fatalf("expired: %d", gone.Status)
+	}
+	reader.Do(http.MethodGet, "/p/acme-newsletter/cancel/not-a-token", nil).MustStatus(t, http.StatusNotFound)
+	form = url.Values{"decision": {"continue"}}
+	if res := reader.DoRaw(http.MethodPost, "/p/acme-newsletter/cancel/not-a-token", "application/x-www-form-urlencoded", strings.NewReader(form.Encode())); res.Status != http.StatusNotFound {
+		t.Errorf("malformed link, posted: %d", res.Status)
 	}
 }
 
