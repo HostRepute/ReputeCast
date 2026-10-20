@@ -127,11 +127,20 @@
 
 /* Landing pages: the band, the hero and the body */
 .lp-band { background: var(--pub-ground); border-bottom: 1px solid var(--pub-tint); }
+/* The ground picked for a hero or a band in the builder: after the bases, so it wins. */
+.sp-hero.wht, .lp-band.wht, .wht { background: #ffffff; }
+.sp-hero.lav, .lp-band.lav { background: var(--pub-ground); }
+.sp-hero.ind, .lp-band.ind { background: var(--pub-accent); color: var(--pub-on); }
+.sp-hero.ink, .lp-band.ink { background: #0b1220; color: #ffffff; }
+.ind .ticks, .ink .ticks { color: inherit; }
+.ind .ticks li::before, .ink .ticks li::before { background: currentColor; }
 .lp-hero { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 32px; align-items: center; padding: 44px 0 40px; }
 .lp-hero h1, .lp-copy h1 { margin: 0; font-size: 40px; font-weight: 700; letter-spacing: -0.025em; line-height: 1.1; color: #0b1220; text-wrap: balance; }
 .lp-copy { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .lp-copy.solo { padding: 44px 0 40px; }
 .lp-body { display: flex; flex-direction: column; gap: 24px; padding: 32px 0 44px; }
+/* A landing page's body block right under its hero: the block keeps the bottom space. */
+.sp-sec .lp-body { padding-bottom: 0; }
 .lp-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 40px; align-items: start; }
 .lp-art { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
 
@@ -266,6 +275,10 @@
 .pg-ev { display: flex; flex-direction: column; gap: 4px; font-size: 15px; color: #1f2937; }
 .pg-ev b { color: #0b1220; }
 .pg-ev span { font-size: 15px; color: #374151; }
+/* The joining link, right after registering. */
+.pg-join { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 12px 14px; border: 1px solid #e3e6eb; border-radius: 10px; font-size: 14px; }
+.pg-join .k { font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: #5b6472; }
+.pg-join a { color: var(--pub-text, #4338ca); font-weight: 600; overflow-wrap: anywhere; }
 .st .st-btn svg { flex: none; }
 .st a.st-btn.lg.full, .st .filer .st-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
 .st .dlc svg { flex: none; }

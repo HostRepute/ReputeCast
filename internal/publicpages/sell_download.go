@@ -104,10 +104,7 @@ func (h *Handler) serveDownload(w http.ResponseWriter, r *http.Request, notice s
 		b.Text = v.S("dl.expiredText", "days", dv.LinkDays, "product", dv.ProductName, "date", v.shortDate(dv.ExpiresAt.In(loc)))
 	case products.DownloadUsedUp:
 		b.Heading = v.S("dl.usedTitle", "count", dv.Allowed)
-		b.Text = v.S("dl.usedText", "product", "the "+dv.ProductName, "count", dv.Allowed)
-		if strings.HasPrefix(strings.ToLower(dv.ProductName), "the ") {
-			b.Text = v.S("dl.usedText", "product", dv.ProductName, "count", dv.Allowed)
-		}
+		b.Text = v.S("dl.usedText", "product", dv.ProductName, "count", dv.Allowed)
 	case products.DownloadReplaced:
 		b.Heading = v.S("dl.replacedTitle")
 		b.Text = v.S("dl.replacedText", "product", dv.ProductName)
@@ -129,6 +126,7 @@ func (h *Handler) serveDownload(w http.ResponseWriter, r *http.Request, notice s
 	if b.Heading != "" {
 		v.Title = v.T("site.title", "page", b.Heading, "site", v.Frame.Title)
 	}
+	v.Body = b
 	h.renderSite(w, r, s, "sell-download", http.StatusOK, v)
 }
 

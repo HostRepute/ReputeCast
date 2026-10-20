@@ -252,35 +252,47 @@ func (q *Queries) DownloadFilesSize(ctx context.Context, arg DownloadFilesSizePa
 }
 
 const formDownloadGet = `-- name: FormDownloadGet :one
-SELECT f.download_file_id, f.download_days FROM forms f WHERE f.id = $1
+SELECT f.download_file_id, f.download_days, f.name FROM forms f WHERE f.id = $1 AND f.workspace_id = $2
 `
+
+type FormDownloadGetParams struct {
+	ID          uuid.UUID `json:"id"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+}
 
 type FormDownloadGetRow struct {
 	DownloadFileID *uuid.UUID `json:"downloadFileId"`
 	DownloadDays   int32      `json:"downloadDays"`
+	Name           string     `json:"name"`
 }
 
-func (q *Queries) FormDownloadGet(ctx context.Context, id uuid.UUID) (FormDownloadGetRow, error) {
-	row := q.db.QueryRow(ctx, formDownloadGet, id)
+func (q *Queries) FormDownloadGet(ctx context.Context, arg FormDownloadGetParams) (FormDownloadGetRow, error) {
+	row := q.db.QueryRow(ctx, formDownloadGet, arg.ID, arg.WorkspaceID)
 	var i FormDownloadGetRow
-	err := row.Scan(&i.DownloadFileID, &i.DownloadDays)
+	err := row.Scan(&i.DownloadFileID, &i.DownloadDays, &i.Name)
 	return i, err
 }
 
 const formDownloadSet = `-- name: FormDownloadSet :exec
 
-UPDATE forms SET download_file_id = $1, download_days = $2 WHERE id = $3
+UPDATE forms SET download_file_id = $1, download_days = $2 WHERE id = $3 AND workspace_id = $4
 `
 
 type FormDownloadSetParams struct {
-	FileID *uuid.UUID `json:"fileId"`
-	Days   int32      `json:"days"`
-	ID     uuid.UUID  `json:"id"`
+	FileID      *uuid.UUID `json:"fileId"`
+	Days        int32      `json:"days"`
+	ID          uuid.UUID  `json:"id"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
 }
 
 // Lead magnets
 func (q *Queries) FormDownloadSet(ctx context.Context, arg FormDownloadSetParams) error {
-	_, err := q.db.Exec(ctx, formDownloadSet, arg.FileID, arg.Days, arg.ID)
+	_, err := q.db.Exec(ctx, formDownloadSet,
+		arg.FileID,
+		arg.Days,
+		arg.ID,
+		arg.WorkspaceID,
+	)
 	return err
 }
 
@@ -478,6 +490,26 @@ func (q *Queries) ProductBuyerByEmail(ctx context.Context, arg ProductBuyerByEma
 		&i.Status,
 	)
 	return i, err
+}
+
+const productBuyerConfirmed = `-- name: ProductBuyerConfirmed :one
+SELECT occurred_at FROM consent_events
+WHERE contact_id = $1 AND list_id = $2 AND action = 'confirmed' AND source LIKE 'product_checkout:%'
+ORDER BY occurred_at DESC
+LIMIT 1
+`
+
+type ProductBuyerConfirmedParams struct {
+	ContactID uuid.UUID  `json:"contactId"`
+	ListID    *uuid.UUID `json:"listId"`
+}
+
+// When a buyer who joined at checkout confirmed the list offer's list.
+func (q *Queries) ProductBuyerConfirmed(ctx context.Context, arg ProductBuyerConfirmedParams) (time.Time, error) {
+	row := q.db.QueryRow(ctx, productBuyerConfirmed, arg.ContactID, arg.ListID)
+	var occurred_at time.Time
+	err := row.Scan(&occurred_at)
+	return occurred_at, err
 }
 
 const productBuyerContact = `-- name: ProductBuyerContact :one
@@ -1770,7 +1802,7 @@ const productOrderLinks = `-- name: ProductOrderLinks :many
 SELECT l.id, l.order_id, l.reason, l.created_by, l.created_at, l.expires_at, l.downloads_allowed, l.downloads_used, l.message_id, l.delivery, l.delivery_error, l.superseded_at, coalesce(u.name, '')::text AS created_by_name
 FROM product_order_links l LEFT JOIN users u ON u.id = l.created_by
 WHERE l.order_id = $1
-ORDER BY l.created_at DESC
+ORDER BY l.created_at DESC, l.id DESC
 `
 
 type ProductOrderLinksRow struct {
@@ -2135,12 +2167,60 @@ func (q *Queries) ProductOrdersByCampaign(ctx context.Context, arg ProductOrders
 	return i, err
 }
 
+const productOrdersByCampaignProducts = `-- name: ProductOrdersByCampaignProducts :many
+SELECT o.product_id, coalesce(p.name, max(o.product_name))::text AS name, count(*)::bigint AS orders,
+       coalesce(sum(o.amount_cents - o.refunded_cents), 0)::bigint AS revenue
+FROM product_orders o
+LEFT JOIN products p ON p.id = o.product_id
+WHERE o.workspace_id = $1 AND o.campaign_id = $2 AND o.mode = 'live'
+GROUP BY o.product_id, p.name
+ORDER BY revenue DESC, name
+`
+
+type ProductOrdersByCampaignProductsParams struct {
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	CampaignID  *uuid.UUID `json:"campaignId"`
+}
+
+type ProductOrdersByCampaignProductsRow struct {
+	ProductID uuid.UUID `json:"productId"`
+	Name      string    `json:"name"`
+	Orders    int64     `json:"orders"`
+	Revenue   int64     `json:"revenue"`
+}
+
+// The same sales, product by product.
+func (q *Queries) ProductOrdersByCampaignProducts(ctx context.Context, arg ProductOrdersByCampaignProductsParams) ([]ProductOrdersByCampaignProductsRow, error) {
+	rows, err := q.db.Query(ctx, productOrdersByCampaignProducts, arg.WorkspaceID, arg.CampaignID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ProductOrdersByCampaignProductsRow{}
+	for rows.Next() {
+		var i ProductOrdersByCampaignProductsRow
+		if err := rows.Scan(
+			&i.ProductID,
+			&i.Name,
+			&i.Orders,
+			&i.Revenue,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const productOrdersCount = `-- name: ProductOrdersCount :one
 SELECT count(*)::bigint FROM product_orders o
 WHERE o.workspace_id = $1
   AND ($2::text = '' OR o.number::text = $2 OR lower(o.buyer_email) LIKE '%' || lower($2) || '%')
   AND ($3::uuid IS NULL OR o.product_id = $3)
-  AND ($4::text = '' OR ($4 = 'test' AND o.mode = 'test') OR ($4 <> 'test' AND o.status = $4 AND o.mode = 'live'))
+  AND ($4::text = '' OR ($4 = 'test' AND o.mode = 'test') OR ($4 = 'live' AND o.mode = 'live') OR ($4 NOT IN ('test', 'live') AND o.status = $4 AND o.mode = 'live'))
   AND o.paid_at >= $5
 `
 
@@ -2172,7 +2252,7 @@ LEFT JOIN products p ON p.id = o.product_id
 WHERE o.workspace_id = $1
   AND ($2::text = '' OR o.number::text = $2 OR lower(o.buyer_email) LIKE '%' || lower($2) || '%')
   AND ($3::uuid IS NULL OR o.product_id = $3)
-  AND ($4::text = '' OR ($4 = 'test' AND o.mode = 'test') OR ($4 <> 'test' AND o.status = $4 AND o.mode = 'live'))
+  AND ($4::text = '' OR ($4 = 'test' AND o.mode = 'test') OR ($4 = 'live' AND o.mode = 'live') OR ($4 NOT IN ('test', 'live') AND o.status = $4 AND o.mode = 'live'))
   AND o.paid_at >= $5
 ORDER BY o.paid_at DESC, o.number DESC
 LIMIT 100000
@@ -2268,7 +2348,7 @@ LEFT JOIN products p ON p.id = o.product_id
 WHERE o.workspace_id = $1
   AND ($2::text = '' OR o.number::text = $2 OR lower(o.buyer_email) LIKE '%' || lower($2) || '%')
   AND ($3::uuid IS NULL OR o.product_id = $3)
-  AND ($4::text = '' OR ($4 = 'test' AND o.mode = 'test') OR ($4 <> 'test' AND o.status = $4 AND o.mode = 'live'))
+  AND ($4::text = '' OR ($4 = 'test' AND o.mode = 'test') OR ($4 = 'live' AND o.mode = 'live') OR ($4 NOT IN ('test', 'live') AND o.status = $4 AND o.mode = 'live'))
   AND o.paid_at >= $5
 ORDER BY o.paid_at DESC, o.number DESC
 LIMIT $7 OFFSET $6
@@ -2693,6 +2773,40 @@ func (q *Queries) ProductTemplateExists(ctx context.Context, arg ProductTemplate
 	return i, err
 }
 
+const productTemplateUses = `-- name: ProductTemplateUses :many
+SELECT delivery_template_id::uuid AS template_id, count(*)::bigint AS products
+FROM products
+WHERE workspace_id = $1 AND deleted_at IS NULL AND status = 'published' AND delivery_template_id IS NOT NULL
+GROUP BY delivery_template_id
+`
+
+type ProductTemplateUsesRow struct {
+	TemplateID uuid.UUID `json:"templateId"`
+	Products   int64     `json:"products"`
+}
+
+// How many published products send each delivery template (Transactional's
+// "Used by 2 products").
+func (q *Queries) ProductTemplateUses(ctx context.Context, workspaceID uuid.UUID) ([]ProductTemplateUsesRow, error) {
+	rows, err := q.db.Query(ctx, productTemplateUses, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ProductTemplateUsesRow{}
+	for rows.Next() {
+		var i ProductTemplateUsesRow
+		if err := rows.Scan(&i.TemplateID, &i.Products); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const productUnarchive = `-- name: ProductUnarchive :exec
 UPDATE products SET status = 'published', archived_at = NULL, archived_by = NULL, updated_at = $1, updated_by = $2 WHERE id = $3
 `
@@ -3036,6 +3150,40 @@ func (q *Queries) ProductsUsingTemplate(ctx context.Context, arg ProductsUsingTe
 	items := []ProductsUsingTemplateRow{}
 	for rows.Next() {
 		var i ProductsUsingTemplateRow
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const segmentProductOptions = `-- name: SegmentProductOptions :many
+SELECT p.id, p.name FROM products p
+WHERE p.workspace_id = $1 AND p.deleted_at IS NULL
+  AND (p.status = 'published' OR EXISTS (SELECT 1 FROM product_orders o WHERE o.product_id = p.id))
+ORDER BY CASE p.status WHEN 'published' THEN 0 ELSE 1 END, p.created_at
+`
+
+type SegmentProductOptionsRow struct {
+	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
+}
+
+// The products the segment builder offers: published first, then the rest
+// that ever sold.
+func (q *Queries) SegmentProductOptions(ctx context.Context, workspaceID uuid.UUID) ([]SegmentProductOptionsRow, error) {
+	rows, err := q.db.Query(ctx, segmentProductOptions, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SegmentProductOptionsRow{}
+	for rows.Next() {
+		var i SegmentProductOptionsRow
 		if err := rows.Scan(&i.ID, &i.Name); err != nil {
 			return nil, err
 		}

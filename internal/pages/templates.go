@@ -58,7 +58,7 @@ func TemplateHTML(template string, o TemplateOptions) string {
 				`<div class="sp-in"><div class="lp-hero"><div class="lp-copy" data-pb-name="Heading and text"><span class="eyebrow">Free checklist · PDF</span><h1>`+name+`</h1>`+
 					`<p class="sp-lead sm">Say what the file helps with and how long it takes, in one or two sentences.</p></div>`+
 					`<span class="cov lg blank" role="img" aria-label="Cover of `+name+`"></span></div></div>`),
-			section("section", "The form and the reasons", "sp-sec cmp", "white", "",
+			section("section", "The form and the reasons", "sp-sec cmp top0", "white", "",
 				`<div class="sp-in"><div class="lp-body"><rc-form data-pb-id="form" data-pb-name="Signup form" form="`+e(o.FormID)+`" heading="Get the checklist" hint="We'll email a confirmation link. The file is on the page that opens."></rc-form>`+
 					`<div class="bens" data-pb-name="Features list · benefits"><div class="ben"><b>The first benefit</b>What the reader gets from it.</div><div class="ben"><b>The second benefit</b>Why it saves them time.</div><div class="ben"><b>The third benefit</b>What they would otherwise miss.</div></div></div></div>`),
 			quotesSection("Testimonials", 1),
@@ -71,7 +71,7 @@ func TemplateHTML(template string, o TemplateOptions) string {
 					`<p class="sp-lead sm">Say what launches, when, and why it's worth waiting for.</p>`+
 					`<rc-countdown data-pb-id="countdown" data-pb-name="Countdown" at="`+o.Date+`T09:00" tz="`+e(o.TZ)+`" units="days,hours,minutes" end="reveal" reveal="buy" hide="waitlist" label="Opens"></rc-countdown></div>`+
 					`<span class="cov lg blank" role="img" aria-label="Cover of `+name+`"></span></div></div>`),
-			section("section", "The waitlist, then the Buy button", "sp-sec cmp", "white", "",
+			section("section", "The waitlist, then the Buy button", "sp-sec cmp top0", "white", "",
 				`<div class="sp-in"><div class="lp-body"><div class="lp-cols">`+
 					`<rc-form data-pb-id="waitlist" data-pb-name="Signup form · the waitlist" form="`+e(o.FormID)+`" heading="Join the waitlist" hint="We'll email you the moment it opens."></rc-form>`+
 					`<rc-product data-pb-id="buy" data-pb-name="Product · revealed when the countdown ends" id="buy" product="`+e(o.ProductID)+`" button="Buy {product}" price="1" offer="1" layout="box"></rc-product>`+
@@ -82,7 +82,7 @@ func TemplateHTML(template string, o TemplateOptions) string {
 			section("hero", "Hero · the event", "lp-band", "lavender", "",
 				`<div class="sp-in"><div class="lp-copy solo" data-pb-name="Heading and text"><span class="eyebrow">Live session</span><h1>`+name+`</h1>`+
 					`<p class="sp-lead sm">Say who runs it, what they'll show and what attendees take away.</p></div></div>`),
-			section("section", "Details, agenda and registration", "sp-sec cmp", "white", "",
+			section("section", "Details, agenda and registration", "sp-sec cmp top0", "white", "",
 				`<div class="sp-in nar"><div class="lp-body"><rc-event data-pb-id="event" data-pb-name="Event details" date="`+o.Date+`" start="17:00" end="17:30" tz="`+e(o.TZ)+`" local="1" where="online" platform="Zoom" calendar="1" title="`+name+`" reminders="1 day and 1 hour before"></rc-event>`+
 					`<div class="host" data-pb-name="Speaker"><span class="hav" aria-hidden="true">`+e(initials(o.Publisher))+`</span><span class="hn"><b>Your name</b><span class="hr">What you do, and why you're running this session</span></span></div>`+
 					`<div data-pb-name="Agenda"><h2 class="agenda-h">Agenda</h2><ol class="agenda"><li><span class="m">5 min</span>The first part</li><li><span class="m">15 min</span>The main part</li><li><span class="m">10 min</span>Your questions</li></ol></div>`+

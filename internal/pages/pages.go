@@ -89,6 +89,8 @@ type Service struct {
 	// Probe checks a link of a page (the "A link doesn't work" warning):
 	// its HTTP status (nil: links aren't checked).
 	Probe func(ctx context.Context, url string) (int, error)
+	// ReminderFlow makes a webinar's reminder automation (nil: none).
+	ReminderFlow func(ctx context.Context, ws *store.Workspace, by *uuid.UUID, r ReminderRequest) (uuid.UUID, error)
 }
 
 func (s *Service) now() time.Time {

@@ -84,7 +84,8 @@ func TestDeleteAndRestoreList(t *testing.T) {
 		if im.Name != "Product Updates" || im.Members != 14110 || im.Elsewhere <= 0 || im.Elsewhere >= im.Members {
 			t.Fatalf("impact %+v", im)
 		}
-		if im.OtherListCount != 2 || !slices.Contains(im.OtherLists, "Weekly Digest") {
+		// Weekly Digest, Beta Program, and the webinar's and the Launch Kit waitlist's lists (X19).
+		if im.OtherListCount != 4 || !slices.Contains(im.OtherLists, "Weekly Digest") {
 			t.Errorf("other lists %v (%d)", im.OtherLists, im.OtherListCount)
 		}
 		one := func(what string, items []struct{ Name string }, want string) {
@@ -112,7 +113,7 @@ func TestDeleteAndRestoreList(t *testing.T) {
 			OtherListCount int
 		}
 		sofia.Do(http.MethodGet, ws+"/lists/"+listID("Beta Program").String()+"/impact", nil).MustStatus(t, 200).JSON(t, &im)
-		if len(im.OtherLists) != 0 || im.OtherListCount != 2 {
+		if len(im.OtherLists) != 0 || im.OtherListCount != 4 { // with the webinar's and the waitlist's lists (X19)
 			t.Errorf("other lists for a scoped member: %v (%d)", im.OtherLists, im.OtherListCount)
 		}
 	})

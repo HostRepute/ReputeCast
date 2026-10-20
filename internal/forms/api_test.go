@@ -162,7 +162,9 @@ func TestFormsBuilderAPI(t *testing.T) {
 	c := signedIn(env, "linh@acme.io")
 
 	o := overview(t, c)
-	if len(o.Forms) != 3 || o.Forms[0].Name != "Newsletter signup" || o.Forms[1].Name != "Footer mini form" || o.Forms[2].Name != "Beta apply" {
+	// The pages and products sample (X19) adds the forms its pages use:
+	// DNS checklist, Launch Kit waitlist and DMARC live.
+	if len(o.Forms) != 6 || o.Forms[0].Name != "Newsletter signup" || o.Forms[1].Name != "Footer mini form" || o.Forms[2].Name != "Beta apply" {
 		t.Fatalf("forms: %+v", o.Forms)
 	}
 	if o.Branding.PublisherName != "Acme" || o.Branding.Accent != "#4338CA" || o.Branding.Logo == nil || o.Branding.Logo.Name != "acme-mark.svg" {

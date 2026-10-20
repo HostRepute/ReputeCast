@@ -22,5 +22,11 @@
   "page.redirectInvalid": "Send readers to a path on the site, like /products.",
   "page.notPublished": "This page isn't published.",
   "page.undoLate": "It's too late to undo: unpublish the page instead.",
-  "page.noApproval": "Publishing pages doesn't need approval here: publish it directly."
+  "page.noApproval": "Publishing pages doesn't need approval here: publish it directly.",
+  "page.nothingNew": "Nothing changed since the live version: there's nothing to publish.",
+  "reminders.noEvent": "Add event details with a date field to the page first.",
+  "reminders.exist": "The reminder automation “{name}” exists already.",
+  "reminders.unavailable": "Automations aren't available on this server.",
+  "reminders.noTime": "Set the event's date, start time and time zone first.",
+  "reminders.name": { "message": "{title} · reminders", "note": "the reminder automation's name; title: the event's title" }
 }

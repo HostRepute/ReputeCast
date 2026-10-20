@@ -76,8 +76,10 @@ var Events = []string{
 	"charge.dispute.created",
 	"customer.updated",
 	"customer.deleted",
-	// Digital products (design expansion phase 7): a dispute's outcome.
+	// Digital products (design expansion phase 7): a dispute's outcome, and
+	// a delayed payment method's success.
 	"charge.dispute.closed",
+	"checkout.session.async_payment_succeeded",
 }
 
 // Prefixes of restricted keys per mode, and of the secret keys refused.

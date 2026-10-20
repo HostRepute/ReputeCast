@@ -418,6 +418,11 @@ func (f *Fake) synthesize(d *data, kind, id string, live bool) obj {
 		o := obj{"id": id, "object": "price", "active": true, "unit_amount": 0, "currency": f.Account.Currency, "livemode": live}
 		d.objects[id] = o
 		return o
+	case "products":
+		// The demo's digital products (X19).
+		o := obj{"id": id, "object": "product", "active": true, "name": "", "description": nil, "livemode": live, "metadata": obj{}}
+		d.objects[id] = o
+		return o
 	case "charges":
 		o := obj{"id": id, "object": "charge", "amount": 0, "amount_refunded": 0, "currency": f.Account.Currency, "failure_message": nil, "livemode": live}
 		d.objects[id] = o

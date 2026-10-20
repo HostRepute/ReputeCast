@@ -226,7 +226,11 @@ func (s *Service) number(pg store.Page, views int64, c conv) PageNumbers {
 // counts are views and conversions per page; the shop is uuid.Nil.
 func (s *Service) counts(ctx context.Context, ws *store.Workspace, from, until time.Time) (map[uuid.UUID]int64, map[uuid.UUID]conv, error) {
 	views := map[uuid.UUID]int64{}
-	vrows, err := s.Q.PageViewCounts(ctx, store.PageViewCountsParams{WorkspaceID: ws.ID, Since: dayOf(from), Until: dayOf(until)})
+	loc := time.UTC
+	if l, err := time.LoadLocation(ws.Timezone); err == nil && ws.Timezone != "" {
+		loc = l
+	}
+	vrows, err := s.Q.PageViewCounts(ctx, store.PageViewCountsParams{WorkspaceID: ws.ID, Since: dayIn(from, loc), Until: dayIn(until, loc)})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -258,8 +262,10 @@ func (s *Service) counts(ctx context.Context, ws *store.Workspace, from, until t
 	return views, convs, nil
 }
 
-func dayOf(t time.Time) time.Time {
-	u := t.UTC()
+// dayIn is the day t falls on in loc (views are counted by the
+// workspace's day), as a date.
+func dayIn(t time.Time, loc *time.Location) time.Time {
+	u := t.In(loc)
 	return time.Date(u.Year(), u.Month(), u.Day(), 0, 0, 0, 0, time.UTC)
 }
 
@@ -292,12 +298,12 @@ func (s *Service) Overview(ctx context.Context, ws *store.Workspace, p *authz.Pr
 			FirstPublishedAt: pg.FirstPublishedAt, PublishedAt: pg.PublishedAt, PublishAt: pg.PublishAt, UnpublishedAt: pg.UnpublishedAt,
 			Visibility: pg.Visibility, Views: n.Views, Result: n.Result, EditedAt: pg.SavedAt}
 		if pg.LiveVersion != nil {
-			it.Changes = pg.Status == StatusPublished && *pg.LiveVersion != pg.Version
+			it.Changes = isLive(pg) && *pg.LiveVersion != pg.Version
 		}
 		if r.SavedByName != "" && pg.SavedBy != nil {
-			it.EditedBy = &PagePerson{ID: pg.SavedBy.String(), Name: r.SavedByName, Initials: initialsOf(r.SavedByName)}
+			it.EditedBy = &PagePerson{ID: pg.SavedBy.String(), Name: r.SavedByName, Initials: initialsOf(r.SavedByName), AvatarColor: r.SavedByColor}
 		}
-		if pg.Status == StatusPublished {
+		if isLive(pg) {
 			for _, c := range Analyze(s.liveHTML(ctx, pg)).Countdowns {
 				if !c.At.After(now) {
 					at := c.At

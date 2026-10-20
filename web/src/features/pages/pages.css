@@ -1,0 +1,483 @@
+/* Forms & public pages › Pages (design expansion phase 7: PagesList,
+   PagesListTablet, PagesListPhone, PagesStates). Values are the boards'.
+   The Built-in pages card keeps website.css (X18). */
+
+@layer components {
+  /* The four cards. */
+  .pg-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+  }
+  @media (max-width: 767px) {
+    .pg-stats {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  .pg-stat {
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .pg-stat .v {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.25;
+    margin-top: 2px;
+  }
+  .pg-stat .s {
+    font-size: 12px;
+    color: var(--ink-3);
+    font-weight: 500;
+  }
+
+  /* Your pages: search, status, template chips. */
+  .pg-filters {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--line-2);
+  }
+  /* The board's box: 360 px of content plus padding and border. */
+  .pg-search {
+    flex: 1 1 260px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 36px;
+    padding: 0 10px;
+    border: 1px solid var(--line-input);
+    border-radius: 8px;
+    background: var(--surface);
+    max-width: 360px;
+    box-sizing: content-box;
+    color: var(--ink-3);
+  }
+  .pg-search:focus-within {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+  .pg-search input {
+    border: 0;
+    outline: 0;
+    font: inherit;
+    font-size: 13px;
+    flex: 1;
+    min-width: 0;
+    background: none;
+    color: var(--ink);
+  }
+  .pg-search input::placeholder {
+    color: var(--ink-3);
+  }
+  .pg-status {
+    width: 190px;
+  }
+  @media (max-width: 767px) {
+    .pg-search {
+      max-width: none;
+    }
+    .pg-status {
+      width: 100%;
+    }
+  }
+  .pg-chips {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--line-2);
+  }
+  .pg-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 30px;
+    padding: 0 11px;
+    border-radius: 999px;
+    border: 1px solid var(--line-strong);
+    background: var(--surface);
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--ink-nav);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .pg-chip b {
+    font-weight: 600;
+    color: var(--ink-3);
+    font-variant-numeric: tabular-nums;
+  }
+  .pg-chip.on {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: #fff;
+  }
+  .pg-chip.on b {
+    color: var(--line-hover);
+  }
+
+  /* The table (wide) and the list of rows (tablet and phone). */
+  .pg-tbl td {
+    padding: 11px 12px;
+  }
+  .pg-name {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .pg-name a {
+    color: var(--ink);
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .pg-name a:hover {
+    color: var(--accent-hover);
+  }
+  .pg-stk {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+  }
+  .pg-vis {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--ink-nav);
+    white-space: nowrap;
+  }
+  .pg-vis svg {
+    color: var(--ink-2);
+  }
+  .pg-res {
+    font-weight: 600;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .pg-who {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+  }
+  .pg-acts {
+    display: inline-flex;
+    gap: 6px;
+  }
+  .pg-narrow {
+    display: none;
+  }
+  @media (max-width: 1100px) {
+    .pg-wide {
+      display: none;
+    }
+    .pg-narrow {
+      display: flex;
+      flex-direction: column;
+    }
+  }
+  .pg-nrow {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    padding: 12px 16px;
+    border-top: 1px solid var(--line-2);
+    color: var(--ink);
+    text-decoration: none;
+  }
+  .pg-nrow:first-child {
+    border-top: 0;
+  }
+  .pg-nrow:hover {
+    background: var(--ground-3);
+    color: var(--ink);
+  }
+  .pg-nrow .hd {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .pg-nrow .hd b {
+    font-weight: 600;
+  }
+  .pg-nrow .ad {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: baseline;
+  }
+  .pg-nrow .ln {
+    color: var(--ink-nav);
+  }
+  .pg-none {
+    padding: 28px 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 8px;
+  }
+  .pg-lnk {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+    font-size: 13px;
+  }
+  .pg-tg[aria-disabled='true'] {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+  /* On phones a note keeps its icon beside the text, as the phone board draws it. */
+  @media (max-width: 767px) {
+    .note.pg-note > :last-child {
+      flex: 1 1 0%;
+      min-width: 0;
+    }
+  }
+
+  /* Empty, loading. */
+  .pg-empty {
+    padding: 44px 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 12px;
+    border-style: dashed;
+  }
+  .pg-empty .tt {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .pg-empty .ds {
+    color: var(--ink-2);
+    max-width: 560px;
+  }
+  .pg-empty .btn {
+    min-height: 40px;
+  }
+  .pg-skrow {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    padding: 8px 0;
+    border-top: 1px solid var(--line-2);
+  }
+
+  /* New page: the dialog and, beside it, what the template adds and what happens next. */
+  .pg-np {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    width: 100%;
+    max-width: 1152px;
+    outline: none;
+  }
+  .pg-np > .dlg {
+    flex: 0 1 720px;
+    max-width: 720px;
+    min-width: 0;
+  }
+  .pg-np-side {
+    flex: 1 1 340px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+  }
+  .pg-np-title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .pg-np fieldset {
+    border: 0;
+    margin: 0;
+    padding: 0;
+    min-width: 0;
+  }
+  .pg-np legend {
+    padding: 0;
+    margin-bottom: 8px;
+  }
+  .pg-tpls {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(196px, 100%), 1fr));
+    gap: 10px;
+  }
+  .pg-tplc {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--surface);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    min-width: 0;
+    color: inherit;
+  }
+  .pg-tplc:hover {
+    border-color: var(--line-hover);
+  }
+  .pg-tplc.on {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent);
+    background: var(--accent-tint);
+  }
+  .pg-tplc .th {
+    display: block;
+    height: 112px;
+    border-radius: 7px;
+    background: var(--publisher-ground);
+    border: 1px solid var(--purple-bg);
+    position: relative;
+    overflow: hidden;
+  }
+  .pg-tplc .nm {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--ink);
+  }
+  .pg-tplc .ds {
+    color: var(--ink-2);
+  }
+  .pg-wf {
+    position: absolute;
+    border-radius: 3px;
+    background: #ddd6fe;
+  }
+  .pg-wf.i {
+    background: var(--publisher-accent);
+  }
+  .pg-wf.w {
+    background: #fff;
+    border: 1px solid #ddd6fe;
+    box-sizing: border-box;
+  }
+  .pg-wf.g {
+    background: var(--line-hover);
+  }
+  .pg-blank {
+    position: absolute;
+    inset: 14px;
+    border: 1.5px dashed #ddd6fe;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ink-3);
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .pg-np-fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+    gap: 12px;
+  }
+  .pg-addr {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  }
+  /* A long host (the instance's /p/<workspace> before the domain is verified) ends in an ellipsis. */
+  .pg-addr .k {
+    white-space: nowrap;
+    max-width: 60%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .pg-addr .in {
+    flex: 1;
+    min-width: 0;
+  }
+  .pg-suggest {
+    border: 0;
+    background: none;
+    padding: 0;
+    font: inherit;
+    font-weight: 600;
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+  }
+  .pg-steps {
+    list-style: none;
+    margin: 0;
+    padding: 4px 18px 6px;
+    display: flex;
+    flex-direction: column;
+  }
+  .pg-ev {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    padding: 12px 0;
+    border-top: 1px solid var(--line-2);
+  }
+  .pg-ev:first-child {
+    border-top: 0;
+  }
+  .pg-ev .ic {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    background: var(--ground);
+  }
+  .pg-ev .ic.now {
+    background: var(--info-bg);
+    color: var(--info-fg);
+  }
+  .pg-ev .tx {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    flex: 1;
+  }
+  .pg-ev .tt {
+    font-weight: 600;
+  }
+  .pg-ev .tt.later {
+    color: var(--ink-3);
+  }
+
+  /* The approval review's page preview: the page at desktop width, scaled to the card. */
+  .pg-thumb {
+    background: #fff;
+    border-radius: 6px;
+    overflow: hidden;
+    position: relative;
+  }
+  .pg-thumb iframe {
+    border: 0;
+    display: block;
+    transform-origin: 0 0;
+  }
+}

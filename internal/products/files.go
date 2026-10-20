@@ -3,7 +3,6 @@ package products
 import (
 	"archive/zip"
 	"bytes"
-	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -295,6 +294,9 @@ var kinds = map[string]struct {
 	"text": {"text/plain; charset=utf-8", []string{"txt", "md", "csv", "json", "mjml", "html", "css"}},
 }
 
+// KindProgram is a program (Windows, Linux or macOS): never sold.
+const KindProgram = "program"
+
 // Detect reads what a file contains from its bytes, never its name.
 func Detect(path string) (Detected, error) {
 	f, err := os.Open(path) //nolint:gosec // callers pass a stored or uploading file's path
@@ -328,6 +330,12 @@ func Detect(path string) (Detected, error) {
 		if b := string(head[8:12]); b == "M4A " || b == "M4B " {
 			kind = "m4a"
 		}
+	case bytes.HasPrefix(head, []byte("MZ")), bytes.HasPrefix(head, []byte("\x7fELF")),
+		bytes.HasPrefix(head, []byte("\xfe\xed\xfa\xce")), bytes.HasPrefix(head, []byte("\xfe\xed\xfa\xcf")),
+		bytes.HasPrefix(head, []byte("\xce\xfa\xed\xfe")), bytes.HasPrefix(head, []byte("\xcf\xfa\xed\xfe")),
+		bytes.HasPrefix(head, []byte("\xca\xfe\xba\xbe")):
+		// A Windows, Linux or macOS program.
+		kind = KindProgram
 	case n > 0 && utf8.Valid(head) && !bytes.ContainsRune(head, 0):
 		kind = "text"
 	}
@@ -421,8 +429,12 @@ func kindOfExt(name string) string {
 // names no recognised kind, can't be checked.
 func Mismatch(name string, d Detected) (claimed string, bad bool) {
 	claimed = kindOfExt(name)
-	if claimed == "" || d.Kind == "" || claimed == d.Kind {
+	if claimed == "" || claimed == d.Kind {
 		return claimed, false
+	}
+	if d.Kind == "" {
+		// Content that can't be told doesn't pass for a recognised kind.
+		return claimed, true
 	}
 	// A plain-text CSV or Markdown file is text; that's what it claims.
 	return claimed, true
@@ -449,11 +461,4 @@ func SafeName(name string) string {
 		name = "download"
 	}
 	return name
-}
-
-// randomHex is n random bytes, hex encoded.
-func randomHex(n int) string {
-	b := make([]byte, n)
-	_, _ = rand.Read(b)
-	return hex.EncodeToString(b)
 }

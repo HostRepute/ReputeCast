@@ -6,6 +6,7 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
+	"math"
 	"slices"
 	"strconv"
 	"strings"
@@ -117,6 +118,7 @@ func (s *Service) Orders(ctx context.Context, ws *store.Workspace, in OrdersQuer
 	}
 	q := strings.TrimSpace(in.Q)
 	since := s.since(in.Period)
+	in.Status = s.orderStatus(ctx, ws, in.Status)
 	out := ProductOrderList{Items: []ProductOrderItem{}, Page: in.Page, PageSize: in.PageSize, Products: []ProductCount{}}
 	rows, err := s.Q.ProductOrdersList(ctx, store.ProductOrdersListParams{WorkspaceID: ws.ID, Q: q, ProductID: product, Status: in.Status, Since: since,
 		Lim: int32(in.PageSize), Off: int32((in.Page - 1) * in.PageSize)})
@@ -457,12 +459,23 @@ func (s *Service) order(ctx context.Context, ws *store.Workspace, o store.Produc
 			if m, err := s.Q.ProductBuyerMembership(ctx, store.ProductBuyerMembershipParams{ListID: lid, ContactID: *o.ContactID}); err == nil {
 				out.Buyer.ListStatus, out.Buyer.ConfirmedAt = m.Status, m.SubscribedAt
 			}
+			// A buyer who joined at checkout confirmed the offer's double
+			// opt-in: when they did.
+			if o.Buyer == "joined" {
+				if at, err := s.Q.ProductBuyerConfirmed(ctx, store.ProductBuyerConfirmedParams{ContactID: *o.ContactID, ListID: &lid}); err == nil {
+					out.Buyer.ConfirmedAt = &at
+				}
+			}
 		}
 	}
 	if o.ContactID != nil {
 		if c, err := s.Q.ProductBuyerContact(ctx, store.ProductBuyerContactParams{WorkspaceID: ws.ID, ID: *o.ContactID}); err == nil {
 			out.Buyer.ContactID = c.ID.String()
 			at := c.CreatedAt
+			if o.Buyer == "joined" {
+				// They became a contact when the order was paid.
+				at = o.PaidAt
+			}
 			out.Buyer.ContactSince = &at
 			if n := strings.TrimSpace(c.FirstName + " " + c.LastName); n != "" {
 				out.Buyer.Name = n
@@ -594,19 +607,17 @@ func (s *Service) order(ctx context.Context, ws *store.Workspace, o store.Produc
 	return out, nil
 }
 
+// deliverySeconds is how long a delivery email took, from the moment it
+// was queued to its delivery, as Transactional › Messages counts it.
 func deliverySeconds(m store.ProductDeliveryMessagesRow) float64 {
 	if m.DeliveredAt == nil {
 		return 0
 	}
-	start := m.QueuedAt
-	if m.SentAt != nil && m.SentAt.Before(*m.DeliveredAt) {
-		start = *m.SentAt
-	}
-	d := m.DeliveredAt.Sub(start).Seconds()
+	d := m.DeliveredAt.Sub(m.QueuedAt).Seconds()
 	if d < 0 {
 		return 0
 	}
-	return float64(int(d*10)) / 10
+	return math.Round(d*10) / 10
 }
 
 // event records a line of an order's activity.
@@ -713,6 +724,7 @@ func (s *Service) Export(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	if id, err := uuid.Parse(in.Product); err == nil {
 		product = &id
 	}
+	in.Status = s.orderStatus(ctx, ws, in.Status)
 	rows, err := s.Q.ProductOrdersExport(ctx, store.ProductOrdersExportParams{WorkspaceID: ws.ID, Q: strings.TrimSpace(in.Q), ProductID: product, Status: in.Status, Since: s.since(in.Period)})
 	if err != nil {
 		return nil, 0, err
@@ -746,4 +758,18 @@ func centsText(c int64) string {
 		sign, c = "-", -c
 	}
 	return fmt.Sprintf("%s%d.%02d", sign, c/100, c%100)
+}
+
+// orderStatus is the orders a filter shows: every live order by default;
+// the test orders while only a test key is connected (they're left out of
+// every number, and shown on their own with the "test" filter).
+func (s *Service) orderStatus(ctx context.Context, ws *store.Workspace, status string) string {
+	if status != "" {
+		return status
+	}
+	pay, _, err := s.payments(ctx, ws)
+	if err == nil && numbersMode(pay) == string(payments.Test) {
+		return "test"
+	}
+	return "live"
 }

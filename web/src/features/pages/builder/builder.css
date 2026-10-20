@@ -1,0 +1,680 @@
+/*
+ * The page builder (design expansion phase 7, X19: PageBuilder,
+ * PageBuilderTablet, PageBuilderStates). It wears the composer's chrome
+ * (composer.css: .cmp, .cmp-head, .cmp-tools, .cmp-canvas, .cmp-sel, .blk,
+ * .prop…); what's here are the boards' own values for the page builder:
+ * the 248 px and 344 px panels, the layers, the toggles' rows, the theme's
+ * swatches, the checks and the marks over the canvas. Scoped to .pb.
+ */
+
+/* The boards' dense controls inside the builder */
+.pb .btn.sm.ic {
+  width: 32px;
+  min-height: 28px;
+  padding: 0;
+}
+.pb .seg {
+  border-radius: 8px;
+}
+.pb .seg button {
+  padding: 0 11px;
+  color: #4b5563;
+}
+.pb .seg button + button {
+  border-left: 1px solid #e3e6eb;
+}
+.pb .seg button[aria-pressed='true'] {
+  color: #fff;
+}
+.pb input[type='checkbox'].tg {
+  width: 36px;
+  height: 22px;
+}
+.pb input[type='checkbox'].tg::after {
+  width: 18px;
+  height: 18px;
+}
+.pb input[type='checkbox'].tg:checked::after {
+  left: 16px;
+}
+.pb .note {
+  padding: 10px 12px;
+  font-size: 12.5px;
+}
+.pb .note > :last-child {
+  flex: 1 1 200px;
+}
+.pb .ptab button {
+  padding: 0 6px;
+  white-space: nowrap;
+}
+.pb .k.pb-bad {
+  color: var(--bad-fg);
+}
+.pb .k.pb-warn {
+  color: var(--warn-fg);
+}
+
+/* Header */
+.pb-head .pb-crumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.pb-head .pb-crumb a {
+  color: #5b6472;
+  font-weight: 500;
+}
+.pb-head .pb-crumb b {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0b1220;
+}
+.pb-head .pb-acts {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.pb-idchip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 9px;
+  border-radius: 7px;
+  background: #f3f4f6;
+  border: 1px solid #e3e6eb;
+  font-family: var(--font-family-mono);
+  font-size: 12px;
+  color: #374151;
+  white-space: nowrap;
+}
+.pb-band {
+  padding: 10px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+
+/* Panels and canvas column */
+.pb-wrap {
+  display: flex;
+  flex: 1;
+  align-items: stretch;
+  min-height: 0;
+}
+.pb-left {
+  flex: 0 0 248px;
+  width: 248px;
+  box-sizing: border-box;
+  background: #fff;
+  border-right: 1px solid #e3e6eb;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.pb-right {
+  flex: 0 0 344px;
+  width: 344px;
+  box-sizing: border-box;
+  background: #fff;
+  border-left: 1px solid #e3e6eb;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.pb-main {
+  flex: 1;
+  min-width: 0;
+}
+/* The settings stay in view while the page scrolls past the selected block. */
+@media (min-width: 1101px) {
+  .pb-right .pb-sticky {
+    position: sticky;
+    top: 0;
+    max-height: 100vh;
+    max-height: 100dvh;
+    overflow-y: auto;
+  }
+}
+/*
+ * On a desktop the header stays one line: when everything doesn't fit (a
+ * blocking check's note, a long name), the device switch keeps its icons
+ * only (.tight, set by Header), then the page's name shortens.
+ */
+@media (min-width: 1101px) {
+  .pb-head {
+    flex-wrap: nowrap;
+  }
+  .pb-head > * {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  .pb-head > .pb-crumb {
+    flex-shrink: 1;
+    flex-wrap: nowrap;
+    overflow: hidden;
+  }
+  .pb-head .pb-crumb b {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .pb-head .pb-acts {
+    flex-wrap: nowrap;
+  }
+  .pb-head.tight .pb-devseg .pb-devlabel {
+    display: none;
+  }
+}
+/* Who saved last when it wasn't you: in the header when it has the room. */
+.pb-head .pb-savedby {
+  display: none;
+}
+@media (min-width: 1600px) {
+  .pb-head .pb-savedby {
+    display: inline;
+  }
+}
+.pb-ltop {
+  padding: 12px 12px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pb-ltitle {
+  font-weight: 700;
+  font-size: 13px;
+}
+.pb .blk {
+  min-width: 0;
+  line-height: 1.25;
+}
+.pb .blk.on {
+  border-color: #0f766e;
+  box-shadow: 0 0 0 1px #0f766e;
+}
+
+/* Layers */
+.pb-lsec {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 12px 6px;
+  border-top: 1px solid #e3e6eb;
+  margin-top: 6px;
+}
+.pb-lsec h2 {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #5b6472;
+}
+.pb-lyrs {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 0 8px 14px;
+}
+.pb-lyr {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 30px;
+  padding: 0 8px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  color: #374151;
+  min-width: 0;
+  cursor: pointer;
+}
+.pb-lyr:hover {
+  background: #f3f4f6;
+}
+.pb-lyr svg {
+  flex: none;
+}
+.pb-lyr .n {
+  flex: 1;
+  min-width: 0;
+  /* The row's weight (the kit's .n is bold). */
+  font-weight: inherit;
+  font-variant-numeric: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pb-lyr .k {
+  flex: none;
+}
+.pb-lyr.on {
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-weight: 600;
+  box-shadow: inset 2px 0 0 #1d4ed8;
+}
+.pb-lyr.sub {
+  padding-left: 26px;
+}
+.pb-lyr.th {
+  color: #5b6472;
+  cursor: default;
+}
+.pb-lyr.th:hover {
+  background: none;
+}
+
+/* Canvas */
+.pb .pb-tools .pb-chip {
+  height: 26px;
+  font-size: 12px;
+  padding: 0 9px;
+  border-color: #d4d8df;
+}
+.pb-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  display: inline-block;
+}
+/*
+ * The canvas grows with the page and the window scrolls. The zoomed frame
+ * keeps its unscaled box inside GrapesJS's elements: clipped here, it can't
+ * become a scroll range of the canvas (a scrolled block, a wheel over it).
+ */
+.pb .cmp-canvas {
+  overflow: clip;
+}
+.pb .cmp-canvas .cmp-stage.pb-stage {
+  padding: 22px 4px 40px;
+}
+.pb .cmp-canvas .gjs-frame-wrapper {
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(11, 18, 32, 0.12), 0 8px 24px rgba(11, 18, 32, 0.06);
+  overflow: hidden;
+}
+/* GrapesJS's hover box doesn't follow the zoomed frame (it shows as a dot): the selection draws its own. */
+.pb .cmp-canvas .gjs-highlighter {
+  display: none;
+}
+.pb-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 640px;
+  margin: 0 auto 20px;
+}
+.pb-card {
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.pb-loading {
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 360px;
+  background: var(--surface);
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(11, 18, 32, 0.12);
+}
+.pb-emptyhint {
+  margin: 12px auto 0;
+  text-align: center;
+}
+.pb-sel .cmp-sel-box {
+  outline-offset: 0;
+}
+/* A narrow block's label shortens before it reaches the toolbar (4 buttons, 108 px). */
+.pb-sel .lab {
+  display: block;
+  line-height: 26px;
+  max-width: max(64px, calc(100% - 116px));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pb-sel.ro .lab {
+  max-width: calc(100% + 4px);
+}
+.pb-sel.bad .cmp-sel-box {
+  outline-color: #dc2626;
+}
+.pb-sel.bad .lab,
+.pb-sel.bad .tb {
+  background: #b91c1c;
+}
+.pb-sel .tb button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.pb-err {
+  position: absolute;
+  pointer-events: none;
+  z-index: 2;
+  outline: 2px solid #dc2626;
+}
+.pb-err .lab {
+  position: absolute;
+  top: -28px;
+  left: -2px;
+  background: #b91c1c;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 0 8px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 6px 6px 0 0;
+  white-space: nowrap;
+}
+.pb-dim {
+  position: absolute;
+  pointer-events: none;
+  z-index: 1;
+  background: rgba(233, 236, 240, 0.5);
+  outline: 1.5px dashed #9aa3b2;
+}
+.pb-hbtag {
+  position: absolute;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 6px;
+  background: #eef0f3;
+  color: #374151;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.pb-hbtag.plain {
+  background: none;
+  color: #5b6472;
+  font-weight: 500;
+  font-size: 12px;
+  padding: 0;
+}
+
+/* Right panel */
+.pb .pb-proprow {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+.pb .trow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+.pb .trow .tt {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.pb .trow .tt b {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #0b1220;
+}
+.pb .row2 {
+  gap: 8px;
+}
+.pb-klink {
+  color: var(--accent) !important;
+  font-weight: 600;
+  align-self: flex-start;
+}
+.pb-offerprev {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 8px 10px;
+  border: 1px dashed #c9ced6;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #374151;
+  background: #f9fafb;
+}
+.pb-offerprev input {
+  margin-top: 1px;
+}
+.pb-sws {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+.pb-swb {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 9px 0 5px;
+  border-radius: 7px;
+  border: 1px solid #d4d8df;
+  background: #fff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+}
+.pb-swb i {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  border: 1px solid #d4d8df;
+  display: inline-block;
+}
+.pb-swb[aria-pressed='true'] {
+  border-color: #0f766e;
+  box-shadow: 0 0 0 1px #0f766e;
+}
+.pb-swb:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+.pb-pbody {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+}
+.pb-radio7 {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 8px 10px;
+  border: 1px solid #e3e6eb;
+  border-radius: 8px;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.pb-radio7.on {
+  border-color: #0f766e;
+  background: #f0fdfa;
+}
+.pb-radio7 input {
+  margin-top: 2px;
+  accent-color: #0f766e;
+}
+.pb-fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+.pb-fieldset legend {
+  padding: 0;
+  margin-bottom: 2px;
+}
+.pb-thumb {
+  height: 96px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: repeating-conic-gradient(#f3f4f6 0 25%, #fff 0 50%) 0 0 / 12px 12px;
+  overflow: hidden;
+}
+.pb-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+/* Checks */
+.pb-grpk {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #5b6472;
+}
+.pb-chkr {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  border-top: 1px solid #eef0f3;
+  font-size: 12.5px;
+}
+.pb-chkr > svg {
+  flex: none;
+  margin-top: 2px;
+}
+.pb-chkr .tx {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+}
+.pb-chkr .acts {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.pb-chkr.blk7 {
+  background: #fff5f5;
+}
+
+/* Status bar */
+.pb-linkbtn {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: var(--accent);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.pb-foot .pb-linkbtn {
+  font-size: 12px;
+  font-weight: 500;
+  text-decoration: none;
+}
+.pb-foot .pb-linkbtn:hover {
+  text-decoration: underline;
+}
+
+/* Dialogs */
+.dlg.pb-pubdlg {
+  max-width: 720px;
+}
+.pb-diff .pb-diffhead {
+  background: #f9fafb;
+  font-weight: 600;
+}
+.pb-diff .ctx {
+  color: #4b5563;
+}
+.dlg.pb-prevdlg {
+  max-width: min(1280px, calc(100vw - 32px));
+}
+.pb-prevhost {
+  width: 100%;
+  background: #e9ecf0;
+  border-radius: 8px;
+  padding: 12px;
+  box-sizing: border-box;
+}
+.pb-prevbox {
+  margin: 0 auto;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(11, 18, 32, 0.12);
+  border-radius: 6px;
+}
+.pb-prevbox iframe {
+  border: 0;
+  display: block;
+  transform-origin: 0 0;
+  background: #fff;
+}
+.pb-shellbody {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.pb-previewpage {
+  padding: 16px;
+}
+
+/* Tablet: the canvas first, the panels side by side under it (PageBuilderTablet) */
+@media (max-width: 1100px) {
+  .pb-wrap {
+    flex-wrap: wrap;
+  }
+  .pb-main {
+    order: -1;
+    flex: 1 1 100%;
+  }
+  .pb-left,
+  .pb-right {
+    flex: 1 1 300px;
+    width: auto;
+    border-left: 0;
+    border-right: 0;
+    border-top: 1px solid #e3e6eb;
+  }
+  .pb-left {
+    border-right: 1px solid #e3e6eb;
+  }
+  .pb .cmp-canvas .cmp-stage.pb-stage {
+    padding: 22px 21px 40px;
+  }
+}
+@media (max-width: 767px) {
+  .pb-left,
+  .pb-right {
+    flex: 1 1 100%;
+    border-right: 0;
+  }
+  .pb .cmp-canvas .cmp-stage.pb-stage {
+    padding: 16px 8px 32px;
+  }
+}

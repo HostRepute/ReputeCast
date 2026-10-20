@@ -11,6 +11,7 @@ import { toast } from '@/components/ui/Toast'
 import { useT } from '@/i18n'
 import { cn } from '@/lib/cn'
 import { useWorkspace } from '@/lib/session'
+import { ProductSalesCard } from '../products/ProductSalesCard'
 import { EARN, EarnPage } from './EarnPage'
 import { day, money, statusLabel, statusTone, tierLine } from './format'
 import { me } from './messages'
@@ -50,6 +51,7 @@ export function EarnOverviewPage({ launched }: { launched: ReactNode }) {
       ) : (
         <LaunchChecklist c={q.data} />
       )}
+      {q.data ? <ProductSalesCard /> : null}
     </EarnPage>
   )
 }

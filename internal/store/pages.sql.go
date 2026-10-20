@@ -361,6 +361,7 @@ func (q *Queries) PageLock(ctx context.Context, arg PageLockParams) (Page, error
 
 const pageNames = `-- name: PageNames :one
 SELECT coalesce((SELECT name FROM users WHERE id = $1::uuid), '')::text AS saved_by_name,
+       coalesce((SELECT avatar_color FROM users WHERE id = $1::uuid), '')::text AS saved_by_color,
        coalesce((SELECT name FROM users WHERE id = $2::uuid), '')::text AS published_by_name
 `
 
@@ -371,6 +372,7 @@ type PageNamesParams struct {
 
 type PageNamesRow struct {
 	SavedByName     string `json:"savedByName"`
+	SavedByColor    string `json:"savedByColor"`
 	PublishedByName string `json:"publishedByName"`
 }
 
@@ -378,7 +380,7 @@ type PageNamesRow struct {
 func (q *Queries) PageNames(ctx context.Context, arg PageNamesParams) (PageNamesRow, error) {
 	row := q.db.QueryRow(ctx, pageNames, arg.SavedBy, arg.PublishedBy)
 	var i PageNamesRow
-	err := row.Scan(&i.SavedByName, &i.PublishedByName)
+	err := row.Scan(&i.SavedByName, &i.SavedByColor, &i.PublishedByName)
 	return i, err
 }
 
@@ -628,7 +630,8 @@ const pageSlugTaken = `-- name: PageSlugTaken :one
 SELECT (EXISTS (
     SELECT 1 FROM pages pg WHERE pg.workspace_id = $1 AND pg.id <> $2 AND pg.deleted_at IS NULL AND (pg.slug = $3 OR pg.live_slug = $3)
 ) OR EXISTS (
-    SELECT 1 FROM page_redirects pr WHERE pr.workspace_id = $1 AND pr.slug = $3 AND pr.page_id <> $2
+    SELECT 1 FROM page_redirects pr JOIN pages rp ON rp.id = pr.page_id AND rp.deleted_at IS NULL
+    WHERE pr.workspace_id = $1 AND pr.slug = $3 AND pr.page_id <> $2
 ))::boolean AS taken
 `
 
@@ -667,7 +670,7 @@ const pageTitlesBySlug = `-- name: PageTitlesBySlug :many
 SELECT live_slug::text AS slug, CASE WHEN v.settings->>'navLabel' <> '' THEN v.settings->>'navLabel' ELSE v.name END::text AS title
 FROM pages p
 JOIN page_versions v ON v.page_id = p.id AND v.version = p.live_version
-WHERE p.workspace_id = $1 AND p.deleted_at IS NULL AND p.status = 'published' AND p.live_slug = ANY($2::text[])
+WHERE p.workspace_id = $1 AND p.deleted_at IS NULL AND p.live_version IS NOT NULL AND p.status <> 'unpublished' AND p.live_slug = ANY($2::text[])
 `
 
 type PageTitlesBySlugParams struct {
@@ -739,7 +742,7 @@ func (q *Queries) PageVersionCount(ctx context.Context, pageID uuid.UUID) (int64
 }
 
 const pageVersionGet = `-- name: PageVersionGet :one
-SELECT v.page_id, v.version, v.name, v.slug, v.settings, v.project, v.html, v.label, v.saved_by, v.saved_at, v.published_at, v.published_by, coalesce(u.name, '')::text AS saved_by_name, coalesce(pb.name, '')::text AS published_by_name
+SELECT v.page_id, v.version, v.name, v.slug, v.settings, v.project, v.html, v.label, v.saved_by, v.saved_at, v.published_at, v.published_by, coalesce(u.name, '')::text AS saved_by_name, coalesce(pb.name, '')::text AS published_by_name, coalesce(u.avatar_color, '')::text AS saved_by_color
 FROM page_versions v
 LEFT JOIN users u ON u.id = v.saved_by
 LEFT JOIN users pb ON pb.id = v.published_by
@@ -755,6 +758,7 @@ type PageVersionGetRow struct {
 	PageVersion     PageVersion `json:"pageVersion"`
 	SavedByName     string      `json:"savedByName"`
 	PublishedByName string      `json:"publishedByName"`
+	SavedByColor    string      `json:"savedByColor"`
 }
 
 func (q *Queries) PageVersionGet(ctx context.Context, arg PageVersionGetParams) (PageVersionGetRow, error) {
@@ -775,6 +779,7 @@ func (q *Queries) PageVersionGet(ctx context.Context, arg PageVersionGetParams) 
 		&i.PageVersion.PublishedBy,
 		&i.SavedByName,
 		&i.PublishedByName,
+		&i.SavedByColor,
 	)
 	return i, err
 }
@@ -839,7 +844,7 @@ func (q *Queries) PageVersionPublished(ctx context.Context, arg PageVersionPubli
 }
 
 const pageVersions = `-- name: PageVersions :many
-SELECT v.version, v.name, v.label, v.saved_at, v.published_at, coalesce(u.name, '')::text AS saved_by_name,
+SELECT v.version, v.name, v.label, v.saved_at, v.published_at, coalesce(u.name, '')::text AS saved_by_name, coalesce(u.avatar_color, '')::text AS saved_by_color,
        coalesce(pb.name, '')::text AS published_by_name, length(v.html)::bigint AS size
 FROM page_versions v
 LEFT JOIN users u ON u.id = v.saved_by
@@ -856,6 +861,7 @@ type PageVersionsRow struct {
 	SavedAt         time.Time  `json:"savedAt"`
 	PublishedAt     *time.Time `json:"publishedAt"`
 	SavedByName     string     `json:"savedByName"`
+	SavedByColor    string     `json:"savedByColor"`
 	PublishedByName string     `json:"publishedByName"`
 	Size            int64      `json:"size"`
 }
@@ -876,6 +882,7 @@ func (q *Queries) PageVersions(ctx context.Context, pageID uuid.UUID) ([]PageVer
 			&i.SavedAt,
 			&i.PublishedAt,
 			&i.SavedByName,
+			&i.SavedByColor,
 			&i.PublishedByName,
 			&i.Size,
 		); err != nil {
@@ -967,7 +974,7 @@ func (q *Queries) PagesDue(ctx context.Context, now *time.Time) ([]PagesDueRow, 
 
 const pagesList = `-- name: PagesList :many
 
-SELECT p.id, p.workspace_id, p.name, p.slug, p.template, p.seo_title, p.seo_description, p.social_image, p.visibility, p.tiers, p.hide_header, p.show_in_nav, p.nav_label, p.project, p.html, p.version, p.saved_at, p.saved_by, p.autosaves, p.status, p.publish_at, p.publish_tz, p.live_version, p.live_slug, p.published_at, p.published_by, p.first_published_at, p.unpublished_at, p.unpublished_by, p.unpublish_reason, p.redirect_to, p.created_by, p.created_at, p.updated_by, p.updated_at, p.deleted_at, coalesce(u.name, '')::text AS saved_by_name, coalesce(pb.name, '')::text AS published_by_name
+SELECT p.id, p.workspace_id, p.name, p.slug, p.template, p.seo_title, p.seo_description, p.social_image, p.visibility, p.tiers, p.hide_header, p.show_in_nav, p.nav_label, p.project, p.html, p.version, p.saved_at, p.saved_by, p.autosaves, p.status, p.publish_at, p.publish_tz, p.live_version, p.live_slug, p.published_at, p.published_by, p.first_published_at, p.unpublished_at, p.unpublished_by, p.unpublish_reason, p.redirect_to, p.created_by, p.created_at, p.updated_by, p.updated_at, p.deleted_at, coalesce(u.name, '')::text AS saved_by_name, coalesce(pb.name, '')::text AS published_by_name, coalesce(u.avatar_color, '')::text AS saved_by_color
 FROM pages p
 LEFT JOIN users u ON u.id = p.saved_by
 LEFT JOIN users pb ON pb.id = p.published_by
@@ -979,6 +986,7 @@ type PagesListRow struct {
 	Page            Page   `json:"page"`
 	SavedByName     string `json:"savedByName"`
 	PublishedByName string `json:"publishedByName"`
+	SavedByColor    string `json:"savedByColor"`
 }
 
 // Landing and sales pages (internal/pages, design expansion phase 7, M29):
@@ -1033,6 +1041,7 @@ func (q *Queries) PagesList(ctx context.Context, workspaceID uuid.UUID) ([]Pages
 			&i.Page.DeletedAt,
 			&i.SavedByName,
 			&i.PublishedByName,
+			&i.SavedByColor,
 		); err != nil {
 			return nil, err
 		}
@@ -1048,7 +1057,7 @@ const pagesPublished = `-- name: PagesPublished :many
 SELECT p.id, p.live_slug::text AS slug, v.name, v.settings, p.published_at
 FROM pages p
 JOIN page_versions v ON v.page_id = p.id AND v.version = p.live_version
-WHERE p.workspace_id = $1 AND p.deleted_at IS NULL AND p.status = 'published'
+WHERE p.workspace_id = $1 AND p.deleted_at IS NULL AND p.live_version IS NOT NULL AND p.status <> 'unpublished'
 ORDER BY v.name
 `
 
@@ -1088,7 +1097,7 @@ func (q *Queries) PagesPublished(ctx context.Context, workspaceID uuid.UUID) ([]
 }
 
 const pagesPublishedCount = `-- name: PagesPublishedCount :one
-SELECT count(*)::bigint FROM pages WHERE workspace_id = $1 AND deleted_at IS NULL AND status = 'published' AND visibility = 'public'
+SELECT count(*)::bigint FROM pages WHERE workspace_id = $1 AND deleted_at IS NULL AND live_version IS NOT NULL AND status <> 'unpublished' AND visibility = 'public'
 `
 
 func (q *Queries) PagesPublishedCount(ctx context.Context, workspaceID uuid.UUID) (int64, error) {

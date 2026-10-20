@@ -48,6 +48,9 @@ const lists: Record<string, (v: string) => [string, string, (i: Item) => boolean
   placement: (name) => ['placement/tests', 'tests', (t) => t.name === name],
   verification: (label) => ['verification/services', 'uses', (u) => u.label === label && u.kind !== 'realtime'],
   post: (title) => [`website/posts?pageSize=100&q=${encodeURIComponent(title)}`, 'posts', (p) => p.title === title],
+  product: (name) => ['products', 'products', (p) => p.name === name],
+  order: (n) => [`products/orders?period=all&q=${encodeURIComponent(n)}`, 'items', (o) => String(o.number) === n],
+  page: (name) => ['pages', 'pages', (p) => p.name === name],
 }
 
 /** Looks up the ids behind {campaign:Name}, {sso:Name} and the kinds in `lists` in a path. */

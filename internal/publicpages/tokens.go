@@ -32,6 +32,8 @@ type gotView struct {
 type confirmBody struct {
 	Heading, Email, Sender, LatestHref, PrefsHref, Proof string
 	Lists                                                []gotView
+	// Download is the form's download after confirmation (sell_confirm.go).
+	Download *confirmDownload
 }
 
 func (h *Handler) evidence(r *http.Request, source string) audience.PublicEvidence {
@@ -75,6 +77,7 @@ func (h *Handler) confirm(w http.ResponseWriter, r *http.Request) {
 		h.serverError(w, r, s, err)
 		return
 	}
+	body.Download = h.confirmDownloadFor(r.Context(), s, pc, pl.Code)
 	v := h.view(s, pageTitle(pl, s, "confirm.title"), body)
 	h.setLang(v, r, s, pl, nil)
 	h.render(w, r, s, "confirm", http.StatusOK, v, csp{}, true)

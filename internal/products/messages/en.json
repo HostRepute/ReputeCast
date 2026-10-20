@@ -25,6 +25,7 @@
   "file.tooBig": "That file is {size}. Files can be up to 500 MB each.",
   "file.productFull": "That would make the product's files {size}, over the 2 GB a product can hold. Remove a file first.",
   "file.empty": "That file is empty.",
+  "file.program": "That file is a program. Programs can't be sold or offered as downloads.",
   "file.mismatch": "This file says .{ext} but contains {content}. Buyers would get a file their computer can't open. Upload the {claimed} itself, or the {actual} with a .{actualExt} name.",
   "file.uploadGone": "That upload stopped and nothing was kept. Choose the file again.",
   "file.offset": "Part of the upload arrived twice. It continues from {offset} bytes.",
@@ -63,5 +64,7 @@
   "checkout.pwywBelow": "The amount must be at least {minimum}.",
   "checkout.failed": "Stripe didn't answer, so checkout couldn't start. No payment was taken; try again in a minute.",
   "consent.source": "Product checkout",
-  "consent.note": "ticked “{text}” at checkout"
+  "consent.note": "ticked “{text}” at checkout",
+  "activity.bought": { "message": "{amount} · order #{number}", "note": "a contact's timeline: what they paid for a product, and the order's number" },
+  "activity.refunded": { "message": "{amount} refunded · order #{number}", "note": "a contact's timeline: a refund of a product order" }
 }

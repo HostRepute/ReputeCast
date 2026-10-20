@@ -109,6 +109,14 @@ WHERE workspace_id = @workspace_id AND key = @key AND deleted_at IS NULL;
 SELECT id, key, coalesce(live_version, 0)::integer AS version FROM transactional_templates
 WHERE workspace_id = @workspace_id AND id = @id AND deleted_at IS NULL;
 
+-- name: SegmentProductOptions :many
+-- The products the segment builder offers: published first, then the rest
+-- that ever sold.
+SELECT p.id, p.name FROM products p
+WHERE p.workspace_id = @workspace_id AND p.deleted_at IS NULL
+  AND (p.status = 'published' OR EXISTS (SELECT 1 FROM product_orders o WHERE o.product_id = p.id))
+ORDER BY CASE p.status WHEN 'published' THEN 0 ELSE 1 END, p.created_at;
+
 -- name: ProductListOptions :many
 SELECT id, name, double_opt_in FROM lists WHERE workspace_id = @workspace_id AND deleted_at IS NULL ORDER BY created_at, name;
 
@@ -210,7 +218,7 @@ LEFT JOIN products p ON p.id = o.product_id
 WHERE o.workspace_id = @workspace_id
   AND (@q::text = '' OR o.number::text = @q OR lower(o.buyer_email) LIKE '%' || lower(@q) || '%')
   AND (sqlc.narg(product_id)::uuid IS NULL OR o.product_id = sqlc.narg(product_id))
-  AND (@status::text = '' OR (@status = 'test' AND o.mode = 'test') OR (@status <> 'test' AND o.status = @status AND o.mode = 'live'))
+  AND (@status::text = '' OR (@status = 'test' AND o.mode = 'test') OR (@status = 'live' AND o.mode = 'live') OR (@status NOT IN ('test', 'live') AND o.status = @status AND o.mode = 'live'))
   AND o.paid_at >= @since
 ORDER BY o.paid_at DESC, o.number DESC
 LIMIT @lim OFFSET @off;
@@ -220,7 +228,7 @@ SELECT count(*)::bigint FROM product_orders o
 WHERE o.workspace_id = @workspace_id
   AND (@q::text = '' OR o.number::text = @q OR lower(o.buyer_email) LIKE '%' || lower(@q) || '%')
   AND (sqlc.narg(product_id)::uuid IS NULL OR o.product_id = sqlc.narg(product_id))
-  AND (@status::text = '' OR (@status = 'test' AND o.mode = 'test') OR (@status <> 'test' AND o.status = @status AND o.mode = 'live'))
+  AND (@status::text = '' OR (@status = 'test' AND o.mode = 'test') OR (@status = 'live' AND o.mode = 'live') OR (@status NOT IN ('test', 'live') AND o.status = @status AND o.mode = 'live'))
   AND o.paid_at >= @since;
 
 -- name: ProductOrdersExport :many
@@ -230,7 +238,7 @@ LEFT JOIN products p ON p.id = o.product_id
 WHERE o.workspace_id = @workspace_id
   AND (@q::text = '' OR o.number::text = @q OR lower(o.buyer_email) LIKE '%' || lower(@q) || '%')
   AND (sqlc.narg(product_id)::uuid IS NULL OR o.product_id = sqlc.narg(product_id))
-  AND (@status::text = '' OR (@status = 'test' AND o.mode = 'test') OR (@status <> 'test' AND o.status = @status AND o.mode = 'live'))
+  AND (@status::text = '' OR (@status = 'test' AND o.mode = 'test') OR (@status = 'live' AND o.mode = 'live') OR (@status NOT IN ('test', 'live') AND o.status = @status AND o.mode = 'live'))
   AND o.paid_at >= @since
 ORDER BY o.paid_at DESC, o.number DESC
 LIMIT 100000;
@@ -305,6 +313,24 @@ SELECT count(*)::bigint AS orders, coalesce(sum(amount_cents - refunded_cents), 
 FROM product_orders
 WHERE workspace_id = @workspace_id AND campaign_id = @campaign_id AND mode = 'live';
 
+-- name: ProductOrdersByCampaignProducts :many
+-- The same sales, product by product.
+SELECT o.product_id, coalesce(p.name, max(o.product_name))::text AS name, count(*)::bigint AS orders,
+       coalesce(sum(o.amount_cents - o.refunded_cents), 0)::bigint AS revenue
+FROM product_orders o
+LEFT JOIN products p ON p.id = o.product_id
+WHERE o.workspace_id = @workspace_id AND o.campaign_id = @campaign_id AND o.mode = 'live'
+GROUP BY o.product_id, p.name
+ORDER BY revenue DESC, name;
+
+-- name: ProductTemplateUses :many
+-- How many published products send each delivery template (Transactional's
+-- "Used by 2 products").
+SELECT delivery_template_id::uuid AS template_id, count(*)::bigint AS products
+FROM products
+WHERE workspace_id = @workspace_id AND deleted_at IS NULL AND status = 'published' AND delivery_template_id IS NOT NULL
+GROUP BY delivery_template_id;
+
 -- Links
 
 -- name: ProductOrderLinkInsert :exec
@@ -321,7 +347,7 @@ SELECT * FROM product_order_links WHERE id = @id FOR UPDATE;
 SELECT sqlc.embed(l), coalesce(u.name, '')::text AS created_by_name
 FROM product_order_links l LEFT JOIN users u ON u.id = l.created_by
 WHERE l.order_id = @order_id
-ORDER BY l.created_at DESC;
+ORDER BY l.created_at DESC, l.id DESC;
 
 -- name: ProductOrderLatestLinks :many
 -- Each order's current link.
@@ -373,6 +399,13 @@ SELECT id, email, first_name, last_name, created_at, status FROM contacts WHERE 
 -- name: ProductBuyerMembership :one
 SELECT status, subscribed_at FROM list_memberships WHERE list_id = @list_id AND contact_id = @contact_id;
 
+-- name: ProductBuyerConfirmed :one
+-- When a buyer who joined at checkout confirmed the list offer's list.
+SELECT occurred_at FROM consent_events
+WHERE contact_id = @contact_id AND list_id = @list_id AND action = 'confirmed' AND source LIKE 'product_checkout:%'
+ORDER BY occurred_at DESC
+LIMIT 1;
+
 -- Activity
 
 -- name: ProductOrderEventInsert :exec
@@ -387,10 +420,10 @@ ORDER BY e.at, e.id;
 -- Lead magnets
 
 -- name: FormDownloadSet :exec
-UPDATE forms SET download_file_id = sqlc.narg(file_id), download_days = @days WHERE id = @id;
+UPDATE forms SET download_file_id = sqlc.narg(file_id), download_days = @days WHERE id = @id AND workspace_id = @workspace_id;
 
 -- name: FormDownloadGet :one
-SELECT f.download_file_id, f.download_days FROM forms f WHERE f.id = @id;
+SELECT f.download_file_id, f.download_days, f.name FROM forms f WHERE f.id = @id AND f.workspace_id = @workspace_id;
 
 -- name: LeadMagnetLinkInsert :exec
 INSERT INTO lead_magnet_links (id, workspace_id, form_id, file_id, contact_id, created_at, expires_at)

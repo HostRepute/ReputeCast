@@ -166,7 +166,7 @@ func (s *Service) publicOf(ctx context.Context, ws *store.Workspace, rows []stor
 		if live.SalesPageID != "" {
 			if pid, err := uuid.Parse(live.SalesPageID); err == nil {
 				var slug string
-				if err := s.Pool.QueryRow(ctx, `SELECT live_slug FROM pages WHERE id = $1 AND workspace_id = $2 AND status = 'published' AND deleted_at IS NULL`, pid, ws.ID).Scan(&slug); err == nil {
+				if err := s.Pool.QueryRow(ctx, `SELECT live_slug FROM pages WHERE id = $1 AND workspace_id = $2 AND live_version IS NOT NULL AND status <> 'unpublished' AND deleted_at IS NULL`, pid, ws.ID).Scan(&slug); err == nil {
 					p.SalesPage = slug
 				}
 			}

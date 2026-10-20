@@ -82,7 +82,12 @@ func (s *Service) consume(ctx context.Context, tx pgx.Tx, ws *store.Workspace, c
 		return outcome{}, false, nil
 	}
 	p, err := pp.ParsePayment(pe.Payload)
-	if err != nil || p.Kind == payments.PaymentOther {
+	if err != nil {
+		// Not a one-time payment event this parser reads: Earn's own
+		// handling takes it.
+		return outcome{}, false, nil //nolint:nilerr // the event goes on to Earn
+	}
+	if p.Kind == payments.PaymentOther {
 		return outcome{}, false, nil
 	}
 	e := PaymentEvent{Workspace: ws, ConnectionID: conn.ID, Provider: firstNonEmpty(conn.Provider, DefaultProvider), Mode: payments.Mode(pe.Mode),

@@ -35,6 +35,7 @@ import { useConditional } from '@/features/conditional/state'
 import { PollSettings } from '@/features/polls/Inspector'
 import { UpgradeSettings } from '@/features/earn/composer/UpgradeSettings'
 import { ShowOnProp } from '@/features/website/composer/campaign'
+import { FillFromProduct } from '@/features/products/composer'
 import { useT } from '@/i18n'
 
 /** A text input that edits a draft and commits on Enter or blur (one undo step per edit). */
@@ -780,6 +781,8 @@ export function SettingsFields({ c }: { c: Component }) {
   const tag = tagOf(c)
   const head = useHead()
   const rows: ReactNode[] = []
+  // The Product card filled from a digital product (X19).
+  rows.push(<FillFromProduct key="product" c={c} />)
   // A Poll block's settings, and who sees the block (design expansion, X11);
   // the Upgrade block's (Earn, X16); where the block shows, email or web (X18).
   rows.push(<UpgradeSettings key="upgrade" c={c} />, <PollSettings key="poll" c={c} />, <VisibilitySection key="who" c={c} />, <ShowOnProp key="showon" c={c} />)

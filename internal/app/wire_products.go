@@ -67,7 +67,18 @@ func (productFlows) Refunded(ctx context.Context, tx pgx.Tx, wsID, contactID, pr
 	return err
 }
 
+// purchasesActivity reads a contact's purchases for the timeline, building
+// the products service only when asked (the audience service is built
+// while the forms service is, and the products service needs both).
+type purchasesActivity struct{ a *App }
+
+func (p purchasesActivity) ContactActivity(ctx context.Context, ws *store.Workspace, contactID uuid.UUID, before *time.Time, beforeID string, limit int) ([]audience.ContactActivityItem, int64, error) {
+	return productsService(p.a).ContactActivity(ctx, ws, contactID, before, beforeID, limit)
+}
+
 func init() {
+	// A contact's timeline shows what they bought and refunds.
+	audiencePurchases = func(a *App) audience.ActivitySource { return purchasesActivity{a} }
 	apiRegistrars = append(apiRegistrars, func(a *App, h huma.API) {
 		products.Register(h, productsService(a))
 	})

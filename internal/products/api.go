@@ -129,6 +129,9 @@ func Register(h huma.API, s *Service) {
 	base := "/workspaces/{workspace}/products"
 	view, edit, publish := api.Workspace(authz.ProductsView), api.Workspace(authz.ProductsEdit), api.Workspace(authz.ProductsPublish)
 	pid := func(in ProductPath) uuid.UUID { return uuid.MustParse(in.Product) }
+	registerContacts(h, s)
+	registerFormDownloads(h, s)
+	registerElsewhere(h, s)
 
 	api.Get(h, api.Op{ID: "list-products", Path: base, Summary: "Products with their numbers, where sales came from and the payment connection", Tags: tags, Access: view},
 		func(ctx context.Context, in *overviewInput) (*api.Body[ProductsOverview], error) {

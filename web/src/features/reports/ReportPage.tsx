@@ -21,6 +21,7 @@ import { copyText, ShareCard, ShareDialog, useShares } from './ShareCard'
 import { StateAlert } from './StateAlert'
 import { headerCaption, notSentLead, statusBadge, type CampaignReport } from './words'
 import { useReportAI } from '@/features/ai/report'
+import { ReportProductSales } from '@/features/products/report'
 import './reports.css'
 import { ReportWebSection } from '@/features/website/elsewhere'
 
@@ -319,6 +320,8 @@ export function ReportPage({ campaignId }: { campaignId: string }) {
           <ReportBody r={r} actions={actions} polls={{ items: polls.data?.items, error: polls.error ?? undefined, retry: () => void polls.refetch() }} />
           {/* The website's Web section (features/website): the campaign's post. */}
           <ReportWebSection campaignId={campaignId} />
+          {/* Product sales credited to this email (digital products, X19), with products:view. */}
+          <ReportProductSales campaignId={campaignId} />
           <ShareCard ref={shareCard} campaignId={campaignId} onCreate={() => setSharing(true)} />
         </>
       )}

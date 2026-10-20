@@ -293,11 +293,22 @@ type AutomationOptions struct {
 	// ScoreBands are the applied score thresholds, for the "Score
 	// crosses…" trigger; null while the workspace has no scoring (X13).
 	ScoreBands *scoring.ScoringBands `json:"scoreBands,omitempty"`
+	// Products are the digital products, for "Bought a product" (X19):
+	// published first, then the others that ever sold.
+	Products []AutomationOptionItem `json:"products"`
 }
 
 // Options lists lists, forms, fields, emails, providers, tags and API events.
 func (s *Service) Options(ctx context.Context, ws *store.Workspace) (AutomationOptions, error) {
-	out := AutomationOptions{Lists: []AutomationOptionItem{}, Forms: []AutomationFormOption{}, Fields: []AutomationFieldOption{}, Emails: []AutomationEmailOption{}, Providers: []AutomationRouteProvider{}, Tags: []string{}, Events: []string{}}
+	out := AutomationOptions{Lists: []AutomationOptionItem{}, Forms: []AutomationFormOption{}, Fields: []AutomationFieldOption{}, Emails: []AutomationEmailOption{}, Providers: []AutomationRouteProvider{}, Tags: []string{}, Events: []string{},
+		Products: []AutomationOptionItem{}}
+	if prods, err := s.Q.SegmentProductOptions(ctx, ws.ID); err == nil {
+		for _, p := range prods {
+			out.Products = append(out.Products, AutomationOptionItem{ID: p.ID.String(), Name: p.Name})
+		}
+	} else {
+		return out, err
+	}
 	lists, err := s.Q.AutomationLists(ctx, ws.ID)
 	if err != nil {
 		return out, err

@@ -1,0 +1,46 @@
+/* The form builder's lead magnet and pages (design expansion phase 7, §6
+   "Form builder"). The file row and the upload bar are the product
+   editor's (products.css). */
+
+@layer components {
+  /* "After confirmation" follows "After submit", the last block of the column. */
+  .fb-sec.fl-after {
+    border-top: 1px solid var(--line-2);
+  }
+  .fl-after .pr-frow {
+    border-top: 0;
+    padding: 4px 0;
+  }
+
+  /* Used on pages: one row per page. */
+  .fl-pages {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .fl-pages li {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    min-width: 0;
+  }
+  .fl-pages .nm {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .fl-pages .nm a {
+    font-weight: 600;
+    color: var(--ink);
+    text-decoration: none;
+    overflow-wrap: anywhere;
+  }
+  .fl-pages .nm a:hover {
+    color: var(--accent-hover);
+  }
+}

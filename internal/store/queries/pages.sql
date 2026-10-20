@@ -4,7 +4,7 @@
 
 -- name: PagesList :many
 -- Every page with who edited it last.
-SELECT sqlc.embed(p), coalesce(u.name, '')::text AS saved_by_name, coalesce(pb.name, '')::text AS published_by_name
+SELECT sqlc.embed(p), coalesce(u.name, '')::text AS saved_by_name, coalesce(pb.name, '')::text AS published_by_name, coalesce(u.avatar_color, '')::text AS saved_by_color
 FROM pages p
 LEFT JOIN users u ON u.id = p.saved_by
 LEFT JOIN users pb ON pb.id = p.published_by
@@ -20,6 +20,7 @@ SELECT * FROM pages WHERE workspace_id = @workspace_id AND id = @id AND deleted_
 -- name: PageNames :one
 -- The names of who saved and who published a page.
 SELECT coalesce((SELECT name FROM users WHERE id = sqlc.narg(saved_by)::uuid), '')::text AS saved_by_name,
+       coalesce((SELECT avatar_color FROM users WHERE id = sqlc.narg(saved_by)::uuid), '')::text AS saved_by_color,
        coalesce((SELECT name FROM users WHERE id = sqlc.narg(published_by)::uuid), '')::text AS published_by_name;
 
 -- name: PageByLiveSlug :one
@@ -37,7 +38,8 @@ ORDER BY deleted_at DESC LIMIT 1;
 SELECT (EXISTS (
     SELECT 1 FROM pages pg WHERE pg.workspace_id = @workspace_id AND pg.id <> @id AND pg.deleted_at IS NULL AND (pg.slug = @slug OR pg.live_slug = @slug)
 ) OR EXISTS (
-    SELECT 1 FROM page_redirects pr WHERE pr.workspace_id = @workspace_id AND pr.slug = @slug AND pr.page_id <> @id
+    SELECT 1 FROM page_redirects pr JOIN pages rp ON rp.id = pr.page_id AND rp.deleted_at IS NULL
+    WHERE pr.workspace_id = @workspace_id AND pr.slug = @slug AND pr.page_id <> @id
 ))::boolean AS taken;
 
 -- name: PageInsert :exec
@@ -104,14 +106,14 @@ ON CONFLICT (page_id, version) DO UPDATE SET name = EXCLUDED.name, slug = EXCLUD
 UPDATE page_versions SET published_at = @at::timestamptz, published_by = sqlc.narg(actor) WHERE page_id = @page_id AND version = @version;
 
 -- name: PageVersionGet :one
-SELECT sqlc.embed(v), coalesce(u.name, '')::text AS saved_by_name, coalesce(pb.name, '')::text AS published_by_name
+SELECT sqlc.embed(v), coalesce(u.name, '')::text AS saved_by_name, coalesce(pb.name, '')::text AS published_by_name, coalesce(u.avatar_color, '')::text AS saved_by_color
 FROM page_versions v
 LEFT JOIN users u ON u.id = v.saved_by
 LEFT JOIN users pb ON pb.id = v.published_by
 WHERE v.page_id = @page_id AND v.version = @version;
 
 -- name: PageVersions :many
-SELECT v.version, v.name, v.label, v.saved_at, v.published_at, coalesce(u.name, '')::text AS saved_by_name,
+SELECT v.version, v.name, v.label, v.saved_at, v.published_at, coalesce(u.name, '')::text AS saved_by_name, coalesce(u.avatar_color, '')::text AS saved_by_color,
        coalesce(pb.name, '')::text AS published_by_name, length(v.html)::bigint AS size
 FROM page_versions v
 LEFT JOIN users u ON u.id = v.saved_by
@@ -174,17 +176,17 @@ DELETE FROM page_conversions WHERE order_id = @order_id;
 SELECT live_slug::text AS slug, CASE WHEN v.settings->>'navLabel' <> '' THEN v.settings->>'navLabel' ELSE v.name END::text AS title
 FROM pages p
 JOIN page_versions v ON v.page_id = p.id AND v.version = p.live_version
-WHERE p.workspace_id = @workspace_id AND p.deleted_at IS NULL AND p.status = 'published' AND p.live_slug = ANY(@slugs::text[]);
+WHERE p.workspace_id = @workspace_id AND p.deleted_at IS NULL AND p.live_version IS NOT NULL AND p.status <> 'unpublished' AND p.live_slug = ANY(@slugs::text[]);
 
 -- name: PagesPublishedCount :one
-SELECT count(*)::bigint FROM pages WHERE workspace_id = @workspace_id AND deleted_at IS NULL AND status = 'published' AND visibility = 'public';
+SELECT count(*)::bigint FROM pages WHERE workspace_id = @workspace_id AND deleted_at IS NULL AND live_version IS NOT NULL AND status <> 'unpublished' AND visibility = 'public';
 
 -- name: PagesPublished :many
 -- Every published page (the sitemap, the navigation picker).
 SELECT p.id, p.live_slug::text AS slug, v.name, v.settings, p.published_at
 FROM pages p
 JOIN page_versions v ON v.page_id = p.id AND v.version = p.live_version
-WHERE p.workspace_id = @workspace_id AND p.deleted_at IS NULL AND p.status = 'published'
+WHERE p.workspace_id = @workspace_id AND p.deleted_at IS NULL AND p.live_version IS NOT NULL AND p.status <> 'unpublished'
 ORDER BY v.name;
 
 -- The shop

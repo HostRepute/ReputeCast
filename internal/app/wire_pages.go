@@ -5,7 +5,10 @@ import (
 	"sync"
 
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/approvals"
+	"github.com/hostrepute/reputecast/internal/automations"
 	"github.com/hostrepute/reputecast/internal/demo"
 	"github.com/hostrepute/reputecast/internal/pages"
 	"github.com/hostrepute/reputecast/internal/publicpages"
@@ -42,6 +45,10 @@ func pagesService(a *App) *pages.Service {
 			return r.Status, nil
 		},
 		Approvals: pageApprovals(a),
+		ReminderFlow: func(ctx context.Context, ws *store.Workspace, by *uuid.UUID, r pages.ReminderRequest) (uuid.UUID, error) {
+			return newAutomations(a).CreateEventReminders(ctx, ws, by, automations.EventReminders{Name: r.Name, Title: r.Title, Field: r.Field, At: r.At,
+				Link: r.Link, When: r.When})
+		},
 	}
 	v, _ := pagesServices.LoadOrStore(a, s)
 	return v.(*pages.Service)
@@ -50,9 +57,23 @@ func pagesService(a *App) *pages.Service {
 // Pages is the pages domain (tests set its clock).
 func (a *App) Pages() *pages.Service { return pagesService(a) }
 
-// pageApprovals applies the approval rules to pages (wire_approvals.go
-// sets it once approvals know pages).
-var pageApprovals = func(*App) pages.Approvals { return nil }
+// pageApprovals applies the workspace's approval rules to pages.
+func pageApprovals(a *App) pages.Approvals { return approvals.PagesGate{S: newApprovals(a)} }
+
+// approvalsPages lets the approvals publish an approved page and draw it
+// for the review (newApprovals calls it; set in init, so the wiring has no
+// initialization cycle).
+var approvalsPages = func(*App, *approvals.Service) {}
+
+func init() {
+	approvalsPages = func(a *App, s *approvals.Service) {
+		s.Pages = func() approvals.PagesPublisher { return pagesService(a) }
+		s.PagePreview = func(ctx context.Context, ws *store.Workspace, pageID uuid.UUID) (string, error) {
+			out, err := a.publicPages().PagePreview(ctx, ws, pageID, publicpages.PagePreviewInput{})
+			return out.HTML, err
+		}
+	}
+}
 
 func init() {
 	apiRegistrars = append(apiRegistrars, func(a *App, h huma.API) {

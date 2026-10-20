@@ -67,7 +67,6 @@ type pageRender struct {
 	frames []string
 	buyBar *buyBarView
 	event  *eventView
-	cache  map[string]template.HTML
 }
 
 // formFailure is a signup of a block that didn't go through.
@@ -276,7 +275,7 @@ func (pr *pageRender) block(n *html.Node) (template.HTML, error) {
 	}
 	// Store products come with the stores (phase 7, X20).
 	if pr.preview {
-		return template.HTML(`<p class="pg-empty">` + esc(n.Data) + `</p>`), nil //nolint:gosec // escaped
+		return template.HTML(`<p class="pg-empty">` + esc(pr.v.S("store.empty")) + `</p>`), nil //nolint:gosec // escaped
 	}
 	return "", nil
 }
@@ -523,11 +522,9 @@ func (pr *pageRender) shopCards(list []products.PublicProduct, button string) te
 		}
 		b.WriteString(`<article class="shopc"><div class="art">` + coverImg(p, "card") + `</div><div class="b">`)
 		b.WriteString(`<h2><a href="` + esc(href) + `">` + esc(p.Live.Name) + `</a></h2>`)
-		desc := p.Live.ShortDesc
-		if f := products.FileText(p.Files); f != "" {
-			desc = strings.TrimSpace(strings.TrimSuffix(desc, ".") + ". " + f + ".")
-		}
-		b.WriteString(`<p>` + esc(desc) + `</p><div class="f">`)
+		// The short description is the card's line ("Eight chapters on …
+		// PDF, 86 pages."): it says what the files are.
+		b.WriteString(`<p>` + esc(p.Live.ShortDesc) + `</p><div class="f">`)
 		if p.Live.PriceKind == products.PricePWYW {
 			b.WriteString(`<span class="pr">` + esc(v.S("shop.pwywFrom", "min", money(p.Live.MinCents, p.Currency))) + `</span>`)
 		} else {
@@ -733,7 +730,7 @@ func (pr *pageRender) countdown(n *html.Node) template.HTML {
 	var b strings.Builder
 	b.WriteString(`<div class="cdw" role="timer" aria-label="` + esc(spoken) + `"><div class="cd" aria-hidden="true">`)
 	unit := func(n int, key string) {
-		b.WriteString(fmt.Sprintf(`<span class="cdu"><b>%02d</b><span>%s</span></span>`, n, esc(v.S(key, "count", n))))
+		fmt.Fprintf(&b, `<span class="cdu"><b>%02d</b><span>%s</span></span>`, n, esc(v.S(key, "count", n)))
 	}
 	if has["days"] {
 		unit(days, "cd.days")
@@ -844,8 +841,12 @@ func (pr *pageRender) eventBlock(n *html.Node) template.HTML {
 	}
 	b.WriteString(`</span></div>`)
 	if attrOf(n, "where") != "venue" {
-		text := v.S("event.joinTextPlain")
-		if ev.Reminders != "" {
+		// The link shows once the reader registers; reminders by email
+		// only when a live automation sends them.
+		text := v.S("event.joinShown")
+		if ev.Reminders != "" && pr.pageID != uuid.Nil && !pr.preview && pr.h.remindersLive(pr.ctx, pr.s, pr.pageID) {
+			text = v.S("event.joinText", "reminders", ev.Reminders)
+		} else if ev.Reminders != "" && pr.preview {
 			text = v.S("event.joinText", "reminders", ev.Reminders)
 		}
 		b.WriteString(`<div class="evd-r"><span class="ei">` + icoLink + `</span><span class="et"><b>` + esc(v.S("event.join")) + `</b><span>` + esc(text) + `</span></span></div>`)

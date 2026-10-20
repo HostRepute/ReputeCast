@@ -95,6 +95,11 @@ func (s *Service) consumePaid(ctx context.Context, tx pgx.Tx, e earn.PaymentEven
 	if co.WorkspaceID != e.Workspace.ID {
 		return earn.Consumed{}, false, nil
 	}
+	if !e.Payment.Paid {
+		// A delayed payment method (a bank debit): the order waits for
+		// checkout.session.async_payment_succeeded.
+		return earn.Consumed{Outcome: "payment_pending", Ignored: true, Detail: map[string]any{"session": e.Payment.SessionID}}, true, nil
+	}
 	o, created, err := s.applyPaid(ctx, tx, e.Workspace, co, e.Payment, e.Type)
 	if err != nil {
 		return earn.Consumed{}, true, err
@@ -435,6 +440,15 @@ func (s *Service) consumeDispute(ctx context.Context, tx pgx.Tx, e earn.PaymentE
 		if err := s.event(ctx, q, o.ID, "dispute_closed", now, nil, map[string]any{"stripe": e.Type, "outcome": status}); err != nil {
 			return earn.Consumed{}, true, err
 		}
+		// A won dispute gives back the access the dispute took.
+		if status == "won" && o.AccessRevokedAt != nil && o.AccessRevokeReason == "dispute" {
+			if err := q.ProductOrderRestore(ctx, o.ID); err != nil {
+				return earn.Consumed{}, true, err
+			}
+			if err := s.event(ctx, q, o.ID, "access_restored", now, nil, map[string]any{"reason": "dispute_won", "auto": true}); err != nil {
+				return earn.Consumed{}, true, err
+			}
+		}
 	default:
 		return earn.Consumed{Outcome: "order_dispute_updated", Detail: map[string]any{"order": o.Number, "status": status}}, true, nil
 	}
@@ -455,10 +469,10 @@ func (s *Service) consumeDispute(ctx context.Context, tx pgx.Tx, e earn.PaymentE
 			}
 		}
 		lang := i18n.For(i18n.English)
-		body := word(lang, "notify.disputeBodyNoDue", map[string]any{"email": o.BuyerEmail, "order": o.Number, "product": o.ProductName,
+		body := word(lang, "notify.disputeBodyNoDue", map[string]any{"email": o.BuyerEmail, "order": orderNo(o.Number), "product": o.ProductName,
 			"amount": moneyText(o.AmountCents, o.Currency), "reason": reason})
 		if e.Payment.DisputeDueBy != nil {
-			body = word(lang, "notify.disputeBody", map[string]any{"email": o.BuyerEmail, "order": o.Number, "product": o.ProductName,
+			body = word(lang, "notify.disputeBody", map[string]any{"email": o.BuyerEmail, "order": orderNo(o.Number), "product": o.ProductName,
 				"amount": moneyText(o.AmountCents, o.Currency), "reason": reason, "due": dayText(ws, *e.Payment.DisputeDueBy)})
 		}
 		if revoked {

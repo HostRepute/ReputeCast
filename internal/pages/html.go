@@ -292,15 +292,6 @@ func attr(n *html.Node, key string) string {
 	return ""
 }
 
-func hasClass(n *html.Node, class string) bool {
-	for _, c := range strings.Fields(attr(n, "class")) {
-		if c == class {
-			return true
-		}
-	}
-	return false
-}
-
 // textOf is the text inside a node, spaces collapsed.
 func textOf(n *html.Node) string {
 	var b strings.Builder

@@ -34,6 +34,8 @@ type PagePerson struct {
 	ID       string `json:"id"`
 	Name     string `json:"name"`
 	Initials string `json:"initials"`
+	// AvatarColor is the member's avatar color ("" for the default).
+	AvatarColor string `json:"avatarColor"`
 }
 
 // PageSettings are a page's settings (the builder's Page tab).
@@ -250,7 +252,7 @@ func (s *Service) templateOptions(ctx context.Context, ws *store.Workspace, name
 		}
 	}
 	var form uuid.UUID
-	if err := s.Pool.QueryRow(ctx, `SELECT id FROM forms WHERE workspace_id = $1 AND deleted_at IS NULL AND status = 'live' ORDER BY created_at LIMIT 1`, ws.ID).Scan(&form); err == nil {
+	if err := s.Pool.QueryRow(ctx, `SELECT id FROM forms WHERE workspace_id = $1 AND status = 'live' ORDER BY created_at LIMIT 1`, ws.ID).Scan(&form); err == nil {
 		o.FormID = form.String()
 	}
 	loc := time.UTC
@@ -313,7 +315,7 @@ func (s *Service) person(ctx context.Context, id *uuid.UUID) *PagePerson {
 	if err != nil || n.SavedByName == "" {
 		return nil
 	}
-	return &PagePerson{ID: id.String(), Name: n.SavedByName, Initials: initialsOf(n.SavedByName)}
+	return &PagePerson{ID: id.String(), Name: n.SavedByName, Initials: initialsOf(n.SavedByName), AvatarColor: n.SavedByColor}
 }
 
 // Detail reads a page for the builder.
@@ -326,9 +328,8 @@ func (s *Service) Detail(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	set := settingsOf(pg)
 	out := PageDetail{ID: pg.ID.String(), Name: pg.Name, Slug: pg.Slug, Template: pg.Template, Status: pg.Status, Host: links.host,
 		Path: "/" + pg.Slug, URL: links.page(pg.Slug), CreatedAt: pg.CreatedAt,
-		Settings: PageSettings{SEOTitle: set.SEOTitle, SEODescription: set.SEODescription, SocialImage: set.SocialImage, Visibility: set.Visibility,
-			Tiers: set.Tiers, HideHeader: set.HideHeader, ShowInNav: set.ShowInNav, NavLabel: set.NavLabel},
-		Draft: PageDraft{Version: pg.Version, HTML: pg.Html, Project: json.RawMessage(pg.Project), SavedAt: pg.SavedAt, SavedBy: s.person(ctx, pg.SavedBy),
+		Settings: PageSettings(set),
+		Draft: PageDraft{Version: pg.Version, HTML: pg.Html, Project: pg.Project, SavedAt: pg.SavedAt, SavedBy: s.person(ctx, pg.SavedBy),
 			Autosaved: pg.Autosaves > 0},
 		PublishAt: pg.PublishAt, PublishTZ: pg.PublishTz, UnpublishedAt: pg.UnpublishedAt, UnpublishReason: pg.UnpublishReason, RedirectTo: pg.RedirectTo}
 	if len(out.Draft.Project) == 0 {
@@ -419,6 +420,7 @@ func (s *Service) SaveContent(ctx context.Context, ws *store.Workspace, p *authz
 	if err != nil {
 		return out, err
 	}
+	s.changed(ctx, ws, p, saved)
 	out = PageSaved{Version: saved.Version, SavedAt: saved.SavedAt, SavedBy: s.person(ctx, saved.SavedBy),
 		Changes: saved.Status == StatusPublished && saved.LiveVersion != nil && *saved.LiveVersion != saved.Version}
 	out.Checks, out.Counts, err = s.checks(ctx, ws, saved)
@@ -528,7 +530,21 @@ func (s *Service) SaveSettings(ctx context.Context, ws *store.Workspace, p *auth
 	if err != nil {
 		return PageDetail{}, err
 	}
+	s.changedNow(ctx, ws, p, id)
 	return s.Detail(ctx, ws, p, id)
+}
+
+// changedNow tells the approvals the page changed, as it is now.
+func (s *Service) changedNow(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID) {
+	if pg, err := s.get(ctx, s.Q, ws, id); err == nil {
+		s.changed(ctx, ws, p, pg)
+	}
+}
+
+// isLive reports whether a page is on the site: published, or published
+// with changes scheduled.
+func isLive(pg store.Page) bool {
+	return pg.LiveVersion != nil && pg.Status != StatusUnpublished
 }
 
 // Delete deletes a page. A page that was published answers 410 at its
@@ -540,7 +556,7 @@ func (s *Service) Delete(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		if err != nil {
 			return err
 		}
-		if cur.Status == StatusPublished && !p.Can(authz.WebsitePublish) {
+		if isLive(cur) && !p.Can(authz.WebsitePublish) {
 			return api.Forbidden(authz.WebsitePublish, s.helpers(ctx, ws, authz.WebsitePublish, 3, false))
 		}
 		now := s.now()
@@ -590,7 +606,7 @@ func (s *Service) Versions(ctx context.Context, ws *store.Workspace, id uuid.UUI
 		it := PageVersionItem{Version: r.Version, Name: r.Name, Label: r.Label, SavedAt: r.SavedAt, PublishedAt: r.PublishedAt, PublishedBy: r.PublishedByName,
 			Live: pg.LiveVersion != nil && *pg.LiveVersion == r.Version, Current: r.Version == pg.Version}
 		if r.SavedByName != "" {
-			it.SavedBy = &PagePerson{Name: r.SavedByName, Initials: initialsOf(r.SavedByName)}
+			it.SavedBy = &PagePerson{Name: r.SavedByName, Initials: initialsOf(r.SavedByName), AvatarColor: r.SavedByColor}
 		}
 		out.Items = append(out.Items, it)
 	}
@@ -623,11 +639,10 @@ func (s *Service) Version(ctx context.Context, ws *store.Workspace, id uuid.UUID
 	out := PageVersionDetail{PageVersionItem: PageVersionItem{Version: v.PageVersion.Version, Name: v.PageVersion.Name, Label: v.PageVersion.Label,
 		SavedAt: v.PageVersion.SavedAt, PublishedAt: v.PageVersion.PublishedAt, PublishedBy: v.PublishedByName,
 		Live: pg.LiveVersion != nil && *pg.LiveVersion == version, Current: version == pg.Version},
-		Slug: v.PageVersion.Slug, HTML: v.PageVersion.Html, Project: json.RawMessage(v.PageVersion.Project),
-		Settings: PageSettings{SEOTitle: set.SEOTitle, SEODescription: set.SEODescription, SocialImage: set.SocialImage, Visibility: set.Visibility, Tiers: set.Tiers,
-			HideHeader: set.HideHeader, ShowInNav: set.ShowInNav, NavLabel: set.NavLabel}}
+		Slug: v.PageVersion.Slug, HTML: v.PageVersion.Html, Project: v.PageVersion.Project,
+		Settings: PageSettings(set)}
 	if v.SavedByName != "" {
-		out.SavedBy = &PagePerson{Name: v.SavedByName, Initials: initialsOf(v.SavedByName)}
+		out.SavedBy = &PagePerson{Name: v.SavedByName, Initials: initialsOf(v.SavedByName), AvatarColor: v.SavedByColor}
 	}
 	return out, nil
 }
@@ -664,6 +679,7 @@ func (s *Service) Restore(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	if err != nil {
 		return PageDetail{}, err
 	}
+	s.changedNow(ctx, ws, p, id)
 	return s.Detail(ctx, ws, p, id)
 }
 

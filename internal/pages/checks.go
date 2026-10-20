@@ -152,12 +152,15 @@ func (s *Service) checks(ctx context.Context, ws *store.Workspace, pg store.Page
 			var pausedBy string
 			err := s.Pool.QueryRow(ctx, `SELECT f.name, f.status, f.updated_at, coalesce(u.name, '')
 				FROM forms f LEFT JOIN users u ON u.id = f.updated_by
-				WHERE f.workspace_id = $1 AND f.id = $2 AND f.deleted_at IS NULL`, ws.ID, id).Scan(&name, &status, &pausedAt, &pausedBy)
+				WHERE f.workspace_id = $1 AND f.id = $2`, ws.ID, id).Scan(&name, &status, &pausedAt, &pausedBy)
 			switch {
 			case err != nil:
 				c.Status, c.Problem = CheckBlock, "deleted"
 			case status == "paused":
 				c.Status, c.Problem, c.Name, c.At, c.By = CheckBlock, "paused", name, pausedAt, pausedBy
+			case status != "live":
+				// A draft form shows nothing on the site.
+				c.Status, c.Problem, c.Name = CheckBlock, status, name
 			default:
 				c.Name = name
 			}

@@ -93,7 +93,7 @@ func (q *Queries) ContactChoseFewer(ctx context.Context, contactID *uuid.UUID) (
 
 const contactConsentEvents = `-- name: ContactConsentEvents :many
 SELECT ce.id, ce.list_id, ce.action, ce.source, ce.ip, ce.user_agent, ce.detail, ce.note, ce.consent_version, ce.language, ce.occurred_at,
-       coalesce(u.name, '')::text AS actor_name
+       coalesce(u.name, '')::text AS actor_name, coalesce(ce.consent_text, '')::text AS consent_text
 FROM consent_events ce
 LEFT JOIN users u ON u.id = ce.actor_id
 WHERE ce.contact_id = $1
@@ -113,6 +113,7 @@ type ContactConsentEventsRow struct {
 	Language       string      `json:"language"`
 	OccurredAt     time.Time   `json:"occurredAt"`
 	ActorName      string      `json:"actorName"`
+	ConsentText    string      `json:"consentText"`
 }
 
 func (q *Queries) ContactConsentEvents(ctx context.Context, contactID uuid.UUID) ([]ContactConsentEventsRow, error) {
@@ -137,6 +138,7 @@ func (q *Queries) ContactConsentEvents(ctx context.Context, contactID uuid.UUID)
 			&i.Language,
 			&i.OccurredAt,
 			&i.ActorName,
+			&i.ConsentText,
 		); err != nil {
 			return nil, err
 		}

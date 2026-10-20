@@ -22,7 +22,6 @@ import (
 	"net/http"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 
@@ -109,12 +108,4 @@ func noStore(w http.ResponseWriter, v *siteView) {
 	v.private, v.secret = true, true
 	w.Header().Set("Cache-Control", "private, no-store")
 	w.Header().Set("Referrer-Policy", "no-referrer")
-}
-
-// dayIn writes a date the way the pages do ("22 Oct", "15 Oct 2026").
-func dayIn(t time.Time, loc *time.Location, year bool) string {
-	if year {
-		return t.In(loc).Format("2 Jan 2006")
-	}
-	return t.In(loc).Format("2 Jan")
 }

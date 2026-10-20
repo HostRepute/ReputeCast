@@ -12,6 +12,7 @@ import (
 	"net/http/cookiejar"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"strings"
 	"sync"
 	"testing"
@@ -47,7 +48,10 @@ var testKey = secrets.GenerateKey()
 var demoTemplate struct {
 	once sync.Once
 	name string
-	err  error
+	// files holds the demo's sample files (digital products, a lead
+	// magnet); each clone gets a copy in its own folder.
+	files string
+	err   error
 }
 
 // New starts the API on a fresh database.
@@ -267,8 +271,16 @@ func (e *Env) SeedDemo() {
 	e.T.Helper()
 	ctx := context.Background()
 	demoTemplate.once.Do(func() {
+		dir, err := os.MkdirTemp("", "reputecast-demo-files-")
+		if err != nil {
+			demoTemplate.err = err
+			return
+		}
+		cfg := *e.App.Cfg
+		cfg.Files.Dir = dir
+		demoTemplate.files = dir
 		demoTemplate.name, demoTemplate.err = testdb.Template(ctx, "demo", func(pool *pgxpool.Pool) error {
-			_, err := demo.Seed(ctx, pool, e.App.Cfg, e.App.Secrets, slog.New(slog.NewTextHandler(io.Discard, nil)))
+			_, err := demo.Seed(ctx, pool, &cfg, e.App.Secrets, slog.New(slog.NewTextHandler(io.Discard, nil)))
 			return err
 		})
 	})
@@ -279,6 +291,12 @@ func (e *Env) SeedDemo() {
 	// full seed per test.
 	e.stop()
 	e.start(testdb.NewFrom(e.T, demoTemplate.name))
+	// Cleanups run last first: this app stops before its clone is dropped.
+	e.T.Cleanup(e.stop)
+	// The sample files, in this app's own folder.
+	if err := os.CopyFS(e.App.Cfg.FilesDir(), os.DirFS(demoTemplate.files)); err != nil {
+		e.T.Fatalf("demo files: %v", err)
+	}
 }
 
 // SignInDemo signs in as a demo user. Demo users with an authenticator get

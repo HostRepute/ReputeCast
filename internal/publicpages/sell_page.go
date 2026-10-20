@@ -2,6 +2,7 @@ package publicpages
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -11,8 +12,10 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/forms"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/linktoken"
 	pagesvc "github.com/hostrepute/reputecast/internal/pages"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -177,13 +180,33 @@ func (h *Handler) renderGate(w http.ResponseWriter, r *http.Request, s *site, v 
 	h.renderSite(w, r, s, "sell-gate", http.StatusOK, v)
 }
 
-// pageGone is a page taken off the site: 410.
+// pageGone is a page taken off the site: 410 with the latest posts in the
+// site's frame when the website is on, a plain message page otherwise.
 func (h *Handler) pageGone(w http.ResponseWriter, r *http.Request, s *site) {
 	if h.Website != nil && h.siteOn(r.Context(), s) {
-		h.siteGone(w, r, s)
+		v, ok := h.siteViewFor(w, r, s)
+		if !ok {
+			return
+		}
+		v.Title = v.T("site.title", "page", v.S("gone.title"), "site", v.Frame.Title)
+		v.Robots = "noindex, follow"
+		b, err := h.latestBody(r.Context(), s, v, "gone", v.S("gone.title"), v.S("gone.text"))
+		if err != nil {
+			h.siteFail(w, r, s, err)
+			return
+		}
+		v.Body = b
+		h.renderSite(w, r, s, "gone", http.StatusGone, v)
 		return
 	}
-	h.notFound(w, r, s)
+	pl := h.visitorLang(w, r, s, nil)
+	l := i18n.For(i18n.English)
+	if loc, ok := i18n.ParseLocale(pl.Code); ok {
+		l = i18n.For(loc)
+	}
+	title := sellMsgs.M("gone.title").Text(l, nil)
+	h.messageIn(w, r, s, pl, http.StatusGone, pl.Labels.Text("page.title", i18n.Args{"heading": title, "publisher": s.set.Branding.PublisherName}),
+		messageBody{Heading: title, Text: sellMsgs.M("gone.textPlain").Text(l, nil)}, true)
 }
 
 // customForm is a signup through a page's form block: the form's own
@@ -242,6 +265,13 @@ func (h *Handler) customForm(w http.ResponseWriter, r *http.Request) {
 		if err := h.Pages.Conversion(ctx, s.ws, lp.ID, kind, contact); err != nil {
 			h.log().WarnContext(ctx, "page conversion", "err", err)
 		}
+		// A webinar's registrants get its date in their date field, for
+		// the reminder automation.
+		if ev, ok := pagesvc.FirstEvent(lp.HTML); ok && ev.Field != "" && contact != nil {
+			if err := h.Pages.RecordEventDate(ctx, s.ws, *contact, ev); err != nil {
+				h.log().WarnContext(ctx, "event date field", "err", err)
+			}
+		}
 		if kind == "registration" && out.RedirectURL == "" {
 			h.registered(w, r, s, lp, out, contact)
 			return
@@ -271,7 +301,10 @@ func (h *Handler) contactOf(ctx context.Context, s *site, email string) *uuid.UU
 		return nil
 	}
 	var id uuid.UUID
-	if err := h.Pool.QueryRow(ctx, `SELECT id FROM contacts WHERE workspace_id = $1 AND lower(email) = lower($2) AND deleted_at IS NULL`, s.ws.ID, email).Scan(&id); err != nil {
+	if err := h.Pool.QueryRow(ctx, `SELECT id FROM contacts WHERE workspace_id = $1 AND lower(email) = lower($2) AND erased_at IS NULL`, s.ws.ID, email).Scan(&id); err != nil {
+		if !errors.Is(err, pgx.ErrNoRows) {
+			h.log().WarnContext(ctx, "page signup contact", "err", err)
+		}
 		return nil
 	}
 	return &id
@@ -280,11 +313,14 @@ func (h *Handler) contactOf(ctx context.Context, s *site, email string) *uuid.UU
 // registeredBody is a webinar's "You're registered".
 type registeredBody struct {
 	Title, When, Emailed, CalendarNote string
-	Google, Outlook, ICS               string
+	// Link is the joining link, shown to whoever registered.
+	Link                 string
+	Google, Outlook, ICS string
 }
 
 // registered answers a webinar registration: the event in the reader's
-// time, where the joining link went, and Add to calendar.
+// time, the joining link, the reminders when a live automation sends them,
+// and Add to calendar.
 func (h *Handler) registered(w http.ResponseWriter, r *http.Request, s *site, lp *pagesvc.LivePage, out forms.Outcome, contact *uuid.UUID) {
 	v, ok := h.siteViewFor(w, r, s)
 	if !ok {
@@ -307,10 +343,9 @@ func (h *Handler) registered(w http.ResponseWriter, r *http.Request, s *site, lp
 			b.Title = ev.Title
 		}
 		b.When = v.S("event.whenPlain", "date", v.longDate(ev.Start.In(ev.TZ)), "time", timeRange(ev.Start, ev.End, ev.TZ))
-		if ev.Reminders != "" {
-			b.Emailed = v.S("event.emailed", "email", out.Email, "reminders", ev.Reminders)
-		} else {
-			b.Emailed = v.S("event.emailedPlain", "email", out.Email)
+		b.Link = ev.Link
+		if ev.Reminders != "" && h.remindersLive(r.Context(), s, lp.ID) {
+			b.Emailed = v.S("event.remindersTo", "email", out.Email, "reminders", ev.Reminders)
 		}
 		details := lp.Name
 		if ev.Link != "" {
@@ -326,6 +361,16 @@ func (h *Handler) registered(w http.ResponseWriter, r *http.Request, s *site, lp
 	}
 	v.Body = b
 	h.renderSite(w, r, s, "sell-registered", http.StatusOK, v)
+}
+
+// remindersLive reports whether a live automation sends the session's
+// reminders (the page's reminder automation).
+func (h *Handler) remindersLive(ctx context.Context, s *site, pageID uuid.UUID) bool {
+	if h.Pages == nil {
+		return false
+	}
+	rem, err := h.Pages.Reminders(ctx, s.ws, pageID)
+	return err == nil && rem.Flow != nil && rem.Flow.Status == "live"
 }
 
 func calStamp(t time.Time) string { return t.UTC().Format("20060102T150405Z") }

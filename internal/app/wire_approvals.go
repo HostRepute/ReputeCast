@@ -95,6 +95,7 @@ func newApprovals(a *App) *approvals.Service {
 		},
 	}
 	approvalsWebsite(a, s)
+	approvalsPages(a, s)
 	// Fixes and send settings re-check open approvals; so do composer saves.
 	rs.AfterChange = s.CampaignChanged
 	rs.Campaigns.AfterChange = s.CampaignChanged

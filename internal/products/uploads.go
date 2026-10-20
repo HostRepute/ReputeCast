@@ -43,9 +43,10 @@ type UploadState struct {
 func humanSize(n int64) string {
 	switch {
 	case n >= 1<<30:
-		return fmt.Sprintf("%.1f GB", float64(n)/(1<<30))
+		return strings.TrimSuffix(fmt.Sprintf("%.1f", float64(n)/(1<<30)), ".0") + " GB"
 	case n >= 1<<20:
-		return fmt.Sprintf("%.1f MB", float64(n)/(1<<20))
+		// "4.2 MB", "38 MB".
+		return strings.TrimSuffix(fmt.Sprintf("%.1f", float64(n)/(1<<20)), ".0") + " MB"
 	case n >= 1<<10:
 		return fmt.Sprintf("%d KB", n/(1<<10))
 	}
@@ -145,6 +146,10 @@ func (s *Service) FinishUpload(ctx context.Context, ws *store.Workspace, p *auth
 		s.Files.abort(id)
 		return ProductFile{}, err
 	}
+	if det.Kind == KindProgram {
+		s.Files.abort(id)
+		return ProductFile{}, api.Err(422, "file_program", word(l, "file.program", nil))
+	}
 	if claimed, bad := Mismatch(u.Name, det); bad {
 		s.Files.abort(id)
 		actualExt := "file"
@@ -173,12 +178,24 @@ func (s *Service) FinishUpload(ctx context.Context, ws *store.Workspace, p *auth
 	var name string
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
-		if kind == OwnerProduct {
-			pr, err := q.ProductLock(ctx, store.ProductLockParams{WorkspaceID: ws.ID, ID: owner})
-			if err != nil {
-				return api.MapError(err, "Product")
+		n, err := ownerName(ctx, q, ws, kind, owner)
+		if err != nil {
+			return err
+		}
+		name = n
+		// Under the owner's lock: uploads finishing side by side can't take
+		// it past its total.
+		total, err := q.DownloadFilesSize(ctx, store.DownloadFilesSizeParams{OwnerKind: kind, OwnerID: owner})
+		if err != nil {
+			return err
+		}
+		if rid, err := uuid.Parse(u.Replaces); err == nil {
+			if f, err := q.DownloadFileGet(ctx, store.DownloadFileGetParams{WorkspaceID: ws.ID, ID: rid}); err == nil && f.OwnerID == owner && f.RemovedAt == nil {
+				total -= f.SizeBytes
 			}
-			name = pr.Name
+		}
+		if total+u.Size > MaxProductBytes {
+			return api.Invalid("body.size", word(l, "file.productFull", map[string]any{"size": humanSize(total + u.Size)}))
 		}
 		pos, err := q.DownloadFilesNextPosition(ctx, store.DownloadFilesNextPositionParams{OwnerKind: kind, OwnerID: owner})
 		if err != nil {
@@ -240,6 +257,23 @@ func (s *Service) dropBytes(ctx context.Context, f store.DownloadFile) {
 	}
 }
 
+// ownerName locks a product (or reads a form) of the workspace: the name
+// its audit entries carry.
+func ownerName(ctx context.Context, q *store.Queries, ws *store.Workspace, kind string, owner uuid.UUID) (string, error) {
+	if kind == OwnerForm {
+		d, err := q.FormDownloadGet(ctx, store.FormDownloadGetParams{ID: owner, WorkspaceID: ws.ID})
+		if err != nil {
+			return "", api.MapError(err, "Form")
+		}
+		return d.Name, nil
+	}
+	pr, err := q.ProductLock(ctx, store.ProductLockParams{WorkspaceID: ws.ID, ID: owner})
+	if err != nil {
+		return "", api.MapError(err, "Product")
+	}
+	return pr.Name, nil
+}
+
 // RemoveFile takes a file off its owner. Buyers' download pages show the
 // files the product has now.
 func (s *Service) RemoveFile(ctx context.Context, ws *store.Workspace, p *authz.Principal, kind string, owner, fileID uuid.UUID) error {
@@ -250,13 +284,9 @@ func (s *Service) RemoveFile(ctx context.Context, ws *store.Workspace, p *authz.
 		if err != nil || f.OwnerID != owner || f.OwnerKind != kind || f.RemovedAt != nil {
 			return api.Err(404, "not_found", word(lang(ctx), "file.notFound", nil))
 		}
-		name := ""
-		if kind == OwnerProduct {
-			pr, err := q.ProductLock(ctx, store.ProductLockParams{WorkspaceID: ws.ID, ID: owner})
-			if err != nil {
-				return api.MapError(err, "Product")
-			}
-			name = pr.Name
+		name, err := ownerName(ctx, q, ws, kind, owner)
+		if err != nil {
+			return err
 		}
 		if err := q.DownloadFileRemove(ctx, store.DownloadFileRemoveParams{ID: fileID, At: s.now()}); err != nil {
 			return err

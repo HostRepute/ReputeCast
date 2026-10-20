@@ -220,7 +220,7 @@ func (s *Service) deliveryFailed(ctx context.Context, ws *store.Workspace, o sto
 	l := i18n.For(i18n.English)
 	n := notify.Notification{WorkspaceID: &ws.ID, Kind: notify.KindProductDeliveryFailed, Severity: "bad",
 		Title: word(l, "notify.deliveryFailedTitle", nil),
-		Body:  word(l, "notify.deliveryFailedBody", map[string]any{"order": o.Number, "product": o.ProductName, "email": o.BuyerEmail, "reason": detail}),
+		Body:  word(l, "notify.deliveryFailedBody", map[string]any{"order": orderNo(o.Number), "product": o.ProductName, "email": o.BuyerEmail, "reason": detail}),
 		Link:  "/w/" + ws.Slug + "/earn/products?order=" + o.ID.String(), Data: map[string]any{"order_id": o.ID.String(), "code": code}}
 	if err := notify.ToMembersWith(ctx, s.Pool, ws.ID, authz.OrdersManage, n); err != nil {
 		s.log().WarnContext(ctx, "products: delivery failed notification", "err", err)
@@ -263,6 +263,9 @@ func moneyText(cents int64, currency string) string {
 }
 
 // MoneyShort is an amount without cents when they're zero ("$29", "$15.50").
+// MoneyText is an amount with its currency ("$29.00").
+func MoneyText(cents int64, currency string) string { return moneyText(cents, currency) }
+
 func MoneyShort(cents int64, currency string) string {
 	full := moneyText(cents, currency)
 	return strings.TrimSuffix(full, ".00")

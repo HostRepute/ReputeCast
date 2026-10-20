@@ -79,6 +79,45 @@ type Approvals interface {
 	RequestPage(ctx context.Context, ws *store.Workspace, p *authz.Principal, req ApprovalRequest, note string) (uuid.UUID, error)
 }
 
+// ApprovalHooks are told what happened to a page after a request: a change
+// invalidates the requests for the page as it was, and a publish marks the
+// approval it relied on (internal/approvals implements them).
+type ApprovalHooks interface {
+	PageChanged(ctx context.Context, ws *store.Workspace, p *authz.Principal, pageID uuid.UUID, name, hash string) error
+	PagePublished(ctx context.Context, ws *store.Workspace, pageID uuid.UUID, hash string) error
+}
+
+// requestOf is the approval a page needs as it is now: scheduled pages at
+// their time, others now.
+func requestOf(pg store.Page) ApprovalRequest {
+	if pg.Status == StatusScheduled && pg.PublishAt != nil {
+		return approvalRequest(pg, "at", pg.PublishAt)
+	}
+	return approvalRequest(pg, "now", nil)
+}
+
+// changed tells the approvals a page changed.
+func (s *Service) changed(ctx context.Context, ws *store.Workspace, p *authz.Principal, pg store.Page) {
+	h, ok := s.Approvals.(ApprovalHooks)
+	if !ok {
+		return
+	}
+	if err := h.PageChanged(ctx, ws, p, pg.ID, pg.Name, requestOf(pg).Hash); err != nil {
+		s.log().WarnContext(ctx, "page approvals after a change", "page", pg.ID, "err", err)
+	}
+}
+
+// publishedWith marks the approval a publish relied on.
+func (s *Service) publishedWith(ctx context.Context, ws *store.Workspace, pageID uuid.UUID, hash string) {
+	h, ok := s.Approvals.(ApprovalHooks)
+	if !ok || hash == "" {
+		return
+	}
+	if err := h.PagePublished(ctx, ws, pageID, hash); err != nil {
+		s.log().WarnContext(ctx, "mark the page's approval published", "page", pageID, "err", err)
+	}
+}
+
 // approvalRequest is the approval a page needs as it is.
 func approvalRequest(pg store.Page, when string, at *time.Time) ApprovalRequest {
 	h := sha256.New()
@@ -150,6 +189,10 @@ func (s *Service) Publish(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	if err != nil {
 		return PageDetail{}, err
 	}
+	if pg.Status == StatusPublished && pg.LiveVersion != nil && *pg.LiveVersion == pg.Version {
+		// Nothing new: a publish (and its Undo) would change nothing.
+		return PageDetail{}, api.Err(http.StatusConflict, "nothing_to_publish", word(ctx, "page.nothingNew", nil))
+	}
 	checks, _, err := s.checks(ctx, ws, pg)
 	if err != nil {
 		return PageDetail{}, err
@@ -195,6 +238,9 @@ func (s *Service) Publish(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	})
 	if err != nil {
 		return PageDetail{}, err
+	}
+	if d.Approved != "" && in.When != "at" {
+		s.publishedWith(ctx, ws, id, approvalRequest(pg, in.When, in.At).Hash)
 	}
 	return s.Detail(ctx, ws, p, id)
 }
@@ -357,31 +403,54 @@ func (s *Service) RequestApproval(ctx context.Context, ws *store.Workspace, p *a
 	if err != nil {
 		return PageDetail{}, err
 	}
-	when, at := "now", (*time.Time)(nil)
-	if pg.Status == StatusScheduled && pg.PublishAt != nil {
-		when, at = "at", pg.PublishAt
-	}
-	if _, err := s.Approvals.RequestPage(ctx, ws, p, approvalRequest(pg, when, at), in.Note); err != nil {
+	if _, err := s.Approvals.RequestPage(ctx, ws, p, requestOf(pg), in.Note); err != nil {
 		return PageDetail{}, err
 	}
 	return s.Detail(ctx, ws, p, id)
 }
 
 // PublishApproved publishes a page once its approval came (the approvals
-// domain calls it), unless it changed since.
-func (s *Service) PublishApproved(ctx context.Context, ws *store.Workspace, id uuid.UUID, approvalID, approver string) error {
-	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+// domain calls it), unless it changed since (hash is the page as approved)
+// or a blocking check fails now.
+func (s *Service) PublishApproved(ctx context.Context, ws *store.Workspace, id uuid.UUID, approvalID, approver, hash string) error {
+	pg, err := s.get(ctx, s.Q, ws, id)
+	if err != nil {
+		return err
+	}
+	if requestOf(pg).Hash != hash {
+		return nil
+	}
+	checks, _, err := s.checks(ctx, ws, pg)
+	if err != nil {
+		return err
+	}
+	for _, c := range checks {
+		if c.Status == CheckBlock {
+			s.log().WarnContext(ctx, "approved page not published: a blocking check fails", "page", id, "check", c.Key)
+			return nil
+		}
+	}
+	published := false
+	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		cur, err := s.lockPage(ctx, q, ws, id)
 		if err != nil {
 			return err
 		}
+		if cur.Version != pg.Version {
+			return nil
+		}
 		if cur.Status == StatusScheduled && cur.PublishAt != nil && cur.PublishAt.After(s.now()) {
 			// It goes live at its time (PublishDue).
 			return nil
 		}
+		published = true
 		return s.publishNow(ctx, tx, ws, cur, nil, &audit.Actor{Type: authz.ActorSystem, Name: "Approved by " + approver}, approvalID)
 	})
+	if err == nil && published {
+		s.publishedWith(ctx, ws, id, hash)
+	}
+	return err
 }
 
 // PublishDue publishes the scheduled pages whose time came.

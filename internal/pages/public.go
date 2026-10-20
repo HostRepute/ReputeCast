@@ -81,8 +81,7 @@ func (s *Service) live(ctx context.Context, pg store.Page) (*LivePage, error) {
 	set := parseSettings(v.PageVersion.Settings)
 	return &LivePage{ID: pg.ID, Slug: *pg.LiveSlug, Name: v.PageVersion.Name, Template: pg.Template, Version: v.PageVersion.Version, HTML: v.PageVersion.Html,
 		PublishedAt: v.PageVersion.PublishedAt,
-		Settings: PageSettings{SEOTitle: set.SEOTitle, SEODescription: set.SEODescription, SocialImage: set.SocialImage, Visibility: set.Visibility,
-			Tiers: set.Tiers, HideHeader: set.HideHeader, ShowInNav: set.ShowInNav, NavLabel: set.NavLabel}}, nil
+		Settings:    PageSettings(set)}, nil
 }
 
 // Draft is a page's draft as the builder's preview draws it.
@@ -93,8 +92,7 @@ func (s *Service) Draft(ctx context.Context, ws *store.Workspace, id uuid.UUID) 
 	}
 	set := settingsOf(pg)
 	return &LivePage{ID: pg.ID, Slug: pg.Slug, Name: pg.Name, Template: pg.Template, Version: pg.Version, HTML: pg.Html,
-		Settings: PageSettings{SEOTitle: set.SEOTitle, SEODescription: set.SEODescription, SocialImage: set.SocialImage, Visibility: set.Visibility,
-			Tiers: set.Tiers, HideHeader: set.HideHeader, ShowInNav: set.ShowInNav, NavLabel: set.NavLabel}}, nil
+		Settings: PageSettings(set)}, nil
 }
 
 // Conversion records what a page brought in: a signup, a registration.

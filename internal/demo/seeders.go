@@ -47,6 +47,8 @@ var (
 	seedWebsite = noop
 	// SMS: Twilio and Vonage, routes and rules, Acme Summit 2026's registrants and texts (seed_sms.go)
 	seedSMS = noop
+	// landing and sales pages, digital products and their orders (seed_pages_products.go)
+	seedPagesProducts = noop
 )
 
 func noop(context.Context, *Seeder) error { return nil }

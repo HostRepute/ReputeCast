@@ -158,6 +158,8 @@ func Register(h huma.API, s *Service) {
 			out, err := s.Version(ctx, api.WorkspaceFrom(ctx), in.id(), in.Version)
 			return api.OK(out), err
 		})
+	registerReminders(h, s)
+	registerFormPages(h, s)
 	api.Post(h, api.Op{ID: "restore-page-version", Path: base + "/{page}/versions/{version}/restore", Summary: "Make an earlier version the draft again, as a new version",
 		Tags: tags, Access: edit},
 		func(ctx context.Context, in *versionInput) (*api.Body[PageDetail], error) {

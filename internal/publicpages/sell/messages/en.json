@@ -56,7 +56,7 @@
   "dl.expiredTitle": "This link has expired",
   "dl.expiredText": { "message": "Download links work for {days, plural, one {# day} other {# days}}. This one, for {product}, expired on {date}.", "note": "date: 10 Oct" },
   "dl.usedTitle": { "message": "This link has reached its {count, plural, one {# download} other {# downloads}}", "note": "the link's download limit" },
-  "dl.usedText": { "message": "Each link for {product} works for {count, plural, one {# download} other {# downloads}}, and this one has used them all.", "note": "product: the Newsletter Launch Kit" },
+  "dl.usedText": { "message": "Each link for {product} works for {count, plural, one {# download} other {# downloads}}, and this one has used them all.", "note": "product: Newsletter Launch Kit" },
   "dl.replacedTitle": "A newer link replaced this one",
   "dl.replacedText": { "message": "There's a newer download link for {product}: it's in the latest email we sent.", "note": "an older link of an order" },
   "dl.newLink": { "message": "Send a new link to {email}", "note": "email: s•••@outlook.com, masked" },
@@ -91,12 +91,12 @@
   "event.yourTime": { "message": "{time} your time · {zone}", "note": "time: 13:00–13:30; zone: New York" },
   "event.join": "Joining link after you register",
   "event.joinText": { "message": "Sent by email, with reminders {reminders}", "note": "reminders: 1 day and 1 hour before" },
-  "event.joinTextPlain": "Sent by email after you register",
+  "event.joinShown": "Shown when you register",
   "event.registered": "You're registered",
   "event.when": { "message": "{date} · {local} your time ({utc})", "note": "29 October 2026 · 13:00–13:30 your time (17:00 UTC)" },
   "event.whenPlain": { "message": "{date} · {time}", "note": "29 October 2026 · 17:00–17:30 UTC" },
-  "event.emailed": { "message": "We emailed the joining link to {email}. Reminders come {reminders}.", "note": "reminders: 1 day and 1 hour before" },
-  "event.emailedPlain": { "message": "We emailed the joining link to {email}.", "note": "email: sam@example.com" },
+  "event.joinLink": "Your joining link",
+  "event.remindersTo": { "message": "We'll email reminders to {email}, {reminders}.", "note": "reminders: 1 day and 1 hour before" },
   "event.calendar": "Add to calendar",
   "event.google": "Google Calendar",
   "event.outlook": "Outlook",
@@ -127,6 +127,7 @@
   "tiers.none": "No paid tiers yet.",
 
   "posts.empty": "No posts yet.",
+  "store.empty": "Products from a connected store show here.",
 
   "gate.membersTitle": "This page is for members",
   "gate.membersText": "Sign in with the email you subscribe with to read it.",
@@ -144,5 +145,11 @@
   "account.newLink": "Send me a new link",
   "account.open": "Open the download page",
   "account.note": "New links go only to the address on the order. Stripe emailed your receipt.",
-  "account.sent": { "message": "A new link is on its way to {email}.", "note": "email: masked" }
+  "account.sent": { "message": "A new link is on its way to {email}.", "note": "email: masked" },
+  "gone.title": "This page is no longer available",
+  "gone.text": "It was taken off the site. Here are the latest posts instead.",
+  "gone.textPlain": "It was taken off the site.",
+  "confirm.download.pages": { "message": "{count, plural, one {# page} other {# pages}}", "note": "the confirmation page's download: the file's length" },
+  "confirm.download.button": { "message": "Download ({kind}, {size})", "note": "the confirmation page's download button; kind: PDF, ZIP…; size: 380 KB" },
+  "confirm.download.note": { "message": "{days, plural, one {The download link on this page works for # day.} other {The download link on this page works for # days.}}", "note": "under the confirmation page's download button" }
 }

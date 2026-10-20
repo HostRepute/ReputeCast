@@ -126,8 +126,12 @@ func linesOf(root *html.Node) []string {
 	var visit func(n *html.Node)
 	visit = func(n *html.Node) {
 		if n.Type == html.ElementNode {
+			if attr(n, "aria-hidden") == "true" {
+				// Initials and icons: nothing a reader reads.
+				return
+			}
 			if textBlocks[n.Data] {
-				if t := strings.Join(strings.Fields(textOf(n)), " "); t != "" {
+				if t := lineText(n); t != "" {
 					out = append(out, t)
 				}
 				return
@@ -153,6 +157,34 @@ func linesOf(root *html.Node) []string {
 	}
 	visit(root)
 	return out
+}
+
+// lineText is an element's text as one diff line, without what's hidden
+// from readers; an attribution's parts read "Hannah Weiss · Weekly Digest
+// Insider".
+func lineText(n *html.Node) string {
+	var parts []string
+	var walk func(*html.Node)
+	walk = func(c *html.Node) {
+		if c.Type == html.ElementNode && attr(c, "aria-hidden") == "true" {
+			return
+		}
+		if c.Type == html.TextNode {
+			if t := strings.Join(strings.Fields(c.Data), " "); t != "" {
+				parts = append(parts, t)
+			}
+			return
+		}
+		for k := c.FirstChild; k != nil; k = k.NextSibling {
+			walk(k)
+		}
+	}
+	walk(n)
+	sep := " "
+	if n.Data == "figcaption" {
+		sep = " · "
+	}
+	return strings.Join(parts, sep)
 }
 
 func blockLabel(el string) string {

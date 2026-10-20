@@ -176,7 +176,10 @@ func (s *Service) Thanks(ctx context.Context, ws *store.Workspace, productID uui
 	o, err := s.Q.ProductOrderBySession(ctx, sessionID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		co, cerr := s.Q.ProductCheckoutBySession(ctx, sessionID)
-		if cerr != nil || co.WorkspaceID != ws.ID || co.ProductID != productID || co.ConnectionID == nil {
+		if cerr != nil && !errors.Is(cerr, pgx.ErrNoRows) {
+			return ThanksView{}, false, cerr
+		}
+		if errors.Is(cerr, pgx.ErrNoRows) || co.WorkspaceID != ws.ID || co.ProductID != productID || co.ConnectionID == nil {
 			return ThanksView{}, false, nil
 		}
 		client, cerr := s.Earn().SellingClient(ctx, ws, *co.ConnectionID)
@@ -256,7 +259,10 @@ func (s *Service) ThanksFor(ctx context.Context, ws *store.Workspace, sessionID 
 		return s.thanksView(ctx, ws, o)
 	}
 	co, err := s.Q.ProductCheckoutBySession(ctx, sessionID)
-	if err != nil || co.WorkspaceID != ws.ID {
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return ThanksView{}, false, err
+	}
+	if errors.Is(err, pgx.ErrNoRows) || co.WorkspaceID != ws.ID {
 		return ThanksView{}, false, nil
 	}
 	return s.Thanks(ctx, ws, co.ProductID, sessionID)

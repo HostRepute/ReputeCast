@@ -819,7 +819,7 @@ type Querier interface {
 	FormCopyUpsert(ctx context.Context, arg FormCopyUpsertParams) error
 	FormDelete(ctx context.Context, arg FormDeleteParams) (int64, error)
 	FormDismissOrigin(ctx context.Context, arg FormDismissOriginParams) (int64, error)
-	FormDownloadGet(ctx context.Context, id uuid.UUID) (FormDownloadGetRow, error)
+	FormDownloadGet(ctx context.Context, arg FormDownloadGetParams) (FormDownloadGetRow, error)
 	// Lead magnets
 	FormDownloadSet(ctx context.Context, arg FormDownloadSetParams) error
 	FormGet(ctx context.Context, arg FormGetParams) (Form, error)
@@ -1457,6 +1457,21 @@ type Querier interface {
 	OverviewListChanges(ctx context.Context, arg OverviewListChangesParams) ([]OverviewListChangesRow, error)
 	// Overview (spec 7.1).
 	OverviewNextScheduled(ctx context.Context, arg OverviewNextScheduledParams) (OverviewNextScheduledRow, error)
+	// A new request replaces a pending one.
+	PageApprovalCancelPending(ctx context.Context, arg PageApprovalCancelPendingParams) error
+	// Approvals for publishing landing and sales pages (internal/pages, design
+	// expansion phase 7, M29): the workspace rule "Publishing a post or page
+	// needs approval" and "The author lacks the send permission" cover pages.
+	// One request covers a page as it is (its hash: the content, the address,
+	// the settings and the publish time).
+	// The approved request that covers a page as it is, if any.
+	PageApprovalForHash(ctx context.Context, arg PageApprovalForHashParams) (uuid.UUID, error)
+	// A page that changed after its request: pending and approved requests for
+	// the page as it was are invalidated (a change needs a new approval).
+	PageApprovalInvalidate(ctx context.Context, arg PageApprovalInvalidateParams) ([]PageApprovalInvalidateRow, error)
+	// The approved request a publish relied on remembers it went out.
+	PageApprovalMarkPublished(ctx context.Context, arg PageApprovalMarkPublishedParams) error
+	PageApprovalPending(ctx context.Context, pageID *uuid.UUID) (PageApprovalPendingRow, error)
 	// The published (or unpublished) page answering at an address.
 	PageByLiveSlug(ctx context.Context, arg PageByLiveSlugParams) (Page, error)
 	// Conversions per page and kind between two times.
@@ -1731,6 +1746,8 @@ type Querier interface {
 	ProductAny(ctx context.Context, id uuid.UUID) (Product, error)
 	ProductArchive(ctx context.Context, arg ProductArchiveParams) error
 	ProductBuyerByEmail(ctx context.Context, arg ProductBuyerByEmailParams) (ProductBuyerByEmailRow, error)
+	// When a buyer who joined at checkout confirmed the list offer's list.
+	ProductBuyerConfirmed(ctx context.Context, arg ProductBuyerConfirmedParams) (time.Time, error)
 	ProductBuyerContact(ctx context.Context, arg ProductBuyerContactParams) (ProductBuyerContactRow, error)
 	ProductBuyerMembership(ctx context.Context, arg ProductBuyerMembershipParams) (ProductBuyerMembershipRow, error)
 	ProductByLiveSlug(ctx context.Context, arg ProductByLiveSlugParams) (Product, error)
@@ -1792,6 +1809,8 @@ type Querier interface {
 	ProductOrderStats(ctx context.Context, arg ProductOrderStatsParams) ([]ProductOrderStatsRow, error)
 	// Sales credited to a campaign (the report's Revenue rows).
 	ProductOrdersByCampaign(ctx context.Context, arg ProductOrdersByCampaignParams) (ProductOrdersByCampaignRow, error)
+	// The same sales, product by product.
+	ProductOrdersByCampaignProducts(ctx context.Context, arg ProductOrdersByCampaignProductsParams) ([]ProductOrdersByCampaignProductsRow, error)
 	ProductOrdersCount(ctx context.Context, arg ProductOrdersCountParams) (int64, error)
 	ProductOrdersExport(ctx context.Context, arg ProductOrdersExportParams) ([]ProductOrdersExportRow, error)
 	// Orders newest first, with the latest link's state. q matches the order
@@ -1810,6 +1829,9 @@ type Querier interface {
 	ProductSoftDelete(ctx context.Context, arg ProductSoftDeleteParams) error
 	ProductTemplateByKey(ctx context.Context, arg ProductTemplateByKeyParams) (ProductTemplateByKeyRow, error)
 	ProductTemplateExists(ctx context.Context, arg ProductTemplateExistsParams) (ProductTemplateExistsRow, error)
+	// How many published products send each delivery template (Transactional's
+	// "Used by 2 products").
+	ProductTemplateUses(ctx context.Context, workspaceID uuid.UUID) ([]ProductTemplateUsesRow, error)
 	ProductUnarchive(ctx context.Context, arg ProductUnarchiveParams) error
 	ProductsByIDs(ctx context.Context, arg ProductsByIDsParams) ([]Product, error)
 	// Digital products (internal/products, design expansion phase 7, M29):
@@ -2201,6 +2223,9 @@ type Querier interface {
 	// Workspaces that set up scoring, with what the jobs need.
 	ScoringWorkspaces(ctx context.Context) ([]ScoringWorkspacesRow, error)
 	SegmentMemberIDs(ctx context.Context, segmentID uuid.UUID) ([]uuid.UUID, error)
+	// The products the segment builder offers: published first, then the rest
+	// that ever sold.
+	SegmentProductOptions(ctx context.Context, workspaceID uuid.UUID) ([]SegmentProductOptionsRow, error)
 	// Campaigns that are not sent yet and use the sender (deleting it clears them).
 	SenderCampaignCount(ctx context.Context, senderID *uuid.UUID) (int64, error)
 	SenderCreate(ctx context.Context, arg SenderCreateParams) (Sender, error)

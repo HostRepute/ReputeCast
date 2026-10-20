@@ -33,7 +33,7 @@ type FormDownload struct {
 
 // FormDownloadOf reads a form's download.
 func (s *Service) FormDownloadOf(ctx context.Context, ws *store.Workspace, formID uuid.UUID) (FormDownload, error) {
-	d, err := s.Q.FormDownloadGet(ctx, formID)
+	d, err := s.Q.FormDownloadGet(ctx, store.FormDownloadGetParams{ID: formID, WorkspaceID: ws.ID})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return FormDownload{}, api.NotFound("Form")
 	}
@@ -62,17 +62,17 @@ func (s *Service) FormDownloadDays(ctx context.Context, ws *store.Workspace, p *
 	}
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
-		cur, err := q.FormDownloadGet(ctx, formID)
+		cur, err := q.FormDownloadGet(ctx, store.FormDownloadGetParams{ID: formID, WorkspaceID: ws.ID})
 		if err != nil {
 			return api.MapError(err, "Form")
 		}
 		if cur.DownloadDays == days {
 			return nil
 		}
-		if err := q.FormDownloadSet(ctx, store.FormDownloadSetParams{ID: formID, FileID: cur.DownloadFileID, Days: days}); err != nil {
+		if err := q.FormDownloadSet(ctx, store.FormDownloadSetParams{ID: formID, WorkspaceID: ws.ID, FileID: cur.DownloadFileID, Days: days}); err != nil {
 			return err
 		}
-		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "form.download_updated", TargetType: "form", TargetID: formID.String(),
+		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "form.download_updated", TargetType: "form", TargetID: formID.String(), TargetName: cur.Name,
 			Before: map[string]any{"days": cur.DownloadDays}, After: map[string]any{"days": days}})
 	})
 	if err != nil {
@@ -95,12 +95,18 @@ type LeadMagnetOffer struct {
 // LeadMagnetFor is the download a contact who confirmed through a form
 // gets: a link of their own, made once and reused while it works.
 func (s *Service) LeadMagnetFor(ctx context.Context, ws *store.Workspace, base string, formID, contactID uuid.UUID) (LeadMagnetOffer, bool, error) {
-	d, err := s.Q.FormDownloadGet(ctx, formID)
-	if err != nil || d.DownloadFileID == nil {
+	d, err := s.Q.FormDownloadGet(ctx, store.FormDownloadGetParams{ID: formID, WorkspaceID: ws.ID})
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return LeadMagnetOffer{}, false, err
+	}
+	if errors.Is(err, pgx.ErrNoRows) || d.DownloadFileID == nil {
 		return LeadMagnetOffer{}, false, nil
 	}
 	f, err := s.Q.DownloadFileGet(ctx, store.DownloadFileGetParams{WorkspaceID: ws.ID, ID: *d.DownloadFileID})
-	if err != nil || f.RemovedAt != nil {
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return LeadMagnetOffer{}, false, err
+	}
+	if errors.Is(err, pgx.ErrNoRows) || f.RemovedAt != nil {
 		return LeadMagnetOffer{}, false, nil
 	}
 	now := s.now()
@@ -144,7 +150,7 @@ func (s *Service) OpenLeadMagnet(ctx context.Context, ws *store.Workspace, token
 		return store.DownloadFile{}, nil, ErrLinkExpired
 	}
 	f, err := s.Q.DownloadFileGet(ctx, store.DownloadFileGetParams{WorkspaceID: ws.ID, ID: link.FileID})
-	if err != nil {
+	if err != nil || f.RemovedAt != nil {
 		return store.DownloadFile{}, nil, ErrNoDownload
 	}
 	if count {

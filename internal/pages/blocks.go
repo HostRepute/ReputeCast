@@ -159,7 +159,7 @@ var blockSpecs = map[string]blockSpec{
 	ElEvent: {"date": func(v string) (string, bool) { return v, dateRe.MatchString(v) }, "start": func(v string) (string, bool) { return v, clockRe.MatchString(v) },
 		"end": func(v string) (string, bool) { return v, v == "" || clockRe.MatchString(v) }, "tz": timezone, "local": flag,
 		"where": oneOf("online", "venue"), "platform": text(40), "venue": text(200), "link": httpsURL, "calendar": flag, "title": text(160),
-		"reminders": text(160)},
+		"reminders": text(160), "field": fieldKey},
 	ElProduct: {"product": anyUUID, "button": text(60), "price": flag, "offer": flag, "layout": oneOf("box", "final"), "eyebrow": text(60),
 		"bg": oneOf("white", "lavender", "indigo", "ink")},
 	ElProducts:     {"source": oneOf("digital", "store"), "products": uuidList, "count": small(1, 12), "button": text(40)},

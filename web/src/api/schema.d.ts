@@ -4044,6 +4044,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaign}/product-sales": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Product sales credited to a campaign (its report's Revenue rows) */
+        get: operations["get-campaign-product-sales"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/channels": {
         parameters: {
             query?: never;
@@ -4698,6 +4715,23 @@ export interface paths {
         put?: never;
         /** Get the contact's preference center link (logged) */
         post: operations["contact-preference-link"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/contacts/{contact}/purchases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A contact's purchases: products, each download's state and what they spent */
+        get: operations["get-contact-purchases"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -6293,6 +6327,77 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/forms/{form}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The file a form offers after confirmation, and its numbers */
+        get: operations["get-form-download"];
+        /** How many days the confirmation page's download links work */
+        put: operations["set-form-download"];
+        post?: never;
+        /** Stop offering a download after confirmation; links already sent stop working */
+        delete: operations["remove-form-download"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/forms/{form}/download/uploads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Announce the file to offer: it replaces the current one once it finished */
+        post: operations["start-form-download-upload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/forms/{form}/download/uploads/{upload}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Send the next chunk of the file */
+        put: operations["upload-form-download-chunk"];
+        post?: never;
+        /** Cancel an upload; nothing is kept */
+        delete: operations["cancel-form-download-upload"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/forms/{form}/download/uploads/{upload}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Finish the upload: the file's type is checked from its content, then the form offers it */
+        post: operations["finish-form-download-upload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/forms/{form}/language": {
         parameters: {
             query?: never;
@@ -6306,6 +6411,23 @@ export interface paths {
          * @description page: the lang of the page it's on; browser: the visitor's browser; fixed: always one language. A language whose copy isn't Live shows the fallback.
          */
         put: operations["set-signup-form-language"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/forms/{form}/pages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The pages whose signup form block uses a form */
+        get: operations["list-form-pages"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -8216,6 +8338,24 @@ export interface paths {
          * @description Blocked until every blocking check passes. When publishing needs approval the answer is 409 approval_required with the rule and the approvers.
          */
         post: operations["publish-page"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/pages/{page}/reminder-automation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A webinar page's reminder automation: the offer, or the flow made */
+        get: operations["get-page-reminders"];
+        put?: never;
+        /** Make the reminder automation of a webinar page: a draft flow with a date-field trigger, the day before and an hour before */
+        post: operations["create-page-reminders"];
         delete?: never;
         options?: never;
         head?: never;
@@ -14301,6 +14441,7 @@ export interface components {
             needed: number;
             nextId?: string;
             note: string;
+            page?: components["schemas"]["ApprovalPageSnapshot"];
             readiness?: components["schemas"]["ApprovalReadinessView"];
             /** Format: date-time */
             requestedAt: string;
@@ -14313,7 +14454,7 @@ export interface components {
             /** @enum {string} */
             status: "pending" | "approved" | "changes_requested" | "rejected" | "invalidated" | "bypassed" | "sent" | "cancelled";
             /** @enum {string} */
-            subjectType: "campaign" | "automation" | "transactional_template" | "website_post";
+            subjectType: "campaign" | "automation" | "transactional_template" | "website_post" | "website_page";
             transactional?: components["schemas"]["ApprovalTransactionalSnapshot"];
             /** Format: int64 */
             version: number;
@@ -14348,6 +14489,7 @@ export interface components {
             id: string;
             name: string;
             note?: string;
+            page?: components["schemas"]["ApprovalPageSnapshot"];
             /** Format: date-time */
             requestedAt: string;
             route: string;
@@ -14361,10 +14503,26 @@ export interface components {
             /** @enum {string} */
             status: "pending" | "approved" | "changes_requested" | "rejected" | "invalidated" | "bypassed" | "sent" | "cancelled";
             /** @enum {string} */
-            subjectType: "campaign" | "automation" | "transactional_template" | "website_post";
+            subjectType: "campaign" | "automation" | "transactional_template" | "website_post" | "website_page";
             transactionalTemplateId?: string;
             website?: components["schemas"]["ApprovalWebsiteSnapshot"];
+            websitePageId?: string;
             websitePostId?: string;
+        };
+        ApprovalPageSnapshot: {
+            name: string;
+            pageId: string;
+            path: string;
+            /** Format: date-time */
+            publishAt?: string;
+            published: boolean;
+            slug: string;
+            template: string;
+            /** @enum {string} */
+            visibility: "public" | "members" | "paid";
+            visibilityLabel: string;
+            /** @enum {string} */
+            when: "now" | "at";
         };
         ApprovalPendingItem: {
             /** Format: int64 */
@@ -14486,7 +14644,7 @@ export interface components {
             /** @enum {string} */
             status: "pending" | "approved" | "changes_requested" | "rejected" | "invalidated" | "bypassed" | "sent" | "cancelled";
             /** @enum {string} */
-            subjectType: "campaign" | "automation" | "transactional_template" | "website_post";
+            subjectType: "campaign" | "automation" | "transactional_template" | "website_post" | "website_page";
             /** Format: int64 */
             version: number;
         };
@@ -15232,6 +15390,7 @@ export interface components {
             fields: components["schemas"]["AutomationFieldOption"][];
             forms: components["schemas"]["AutomationFormOption"][];
             lists: components["schemas"]["AutomationOptionItem"][];
+            products: components["schemas"]["AutomationOptionItem"][];
             providers: components["schemas"]["AutomationRouteProvider"][];
             scoreBands?: components["schemas"]["ScoringBands"];
             tags: string[];
@@ -15658,6 +15817,24 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
             updatedBy: string;
+        };
+        CampaignProductSale: {
+            name: string;
+            /** Format: int64 */
+            orders: number;
+            productId: string;
+            /** Format: int64 */
+            revenueCents: number;
+        };
+        CampaignProductSales: {
+            currency: string;
+            /** Format: int64 */
+            orders: number;
+            products: components["schemas"]["CampaignProductSale"][];
+            /** Format: int64 */
+            revenueCents: number;
+            /** Format: int64 */
+            window: number;
         };
         CampaignReport: {
             abTest?: components["schemas"]["ReportABTest"];
@@ -16796,6 +16973,7 @@ export interface components {
             actor?: string;
             /** Format: date-time */
             at: string;
+            consentText?: string;
             consentVersion?: string;
             detail: string;
             ip?: string;
@@ -16822,6 +17000,8 @@ export interface components {
         ContactFilter: {
             /** @enum {string} */
             band?: "cold" | "warm" | "hot" | "none";
+            /** @description Buyers of a product (its id), or of any product (any) */
+            bought?: string;
             /** @enum {string} */
             check?: "valid" | "invalid" | "risky" | "unknown" | "never";
             /** @enum {string} */
@@ -17019,6 +17199,44 @@ export interface components {
             reason: string;
             /** @enum {string} */
             scope: "all" | "marketing";
+        };
+        ContactPurchase: {
+            /** Format: int64 */
+            amountCents: number;
+            buyerEmail: string;
+            coverAlt: string;
+            coverUrl: string;
+            currency: string;
+            disputeReason: string;
+            /** @enum {string} */
+            disputeStatus: "" | "open" | "won" | "lost";
+            /** Format: date-time */
+            disputedAt?: string;
+            download: components["schemas"]["ProductDownloadState"];
+            id: string;
+            /** Format: int64 */
+            number: number;
+            /** Format: date-time */
+            paidAt: string;
+            payWhatYouWant: boolean;
+            /** @description The product's short name (Field Guide) */
+            product: string;
+            productId: string;
+            productName: string;
+            /** Format: date-time */
+            refundedAt?: string;
+            /** Format: int64 */
+            refundedCents: number;
+            /** @enum {string} */
+            status: "paid" | "refunded" | "partially_refunded" | "disputed";
+            test: boolean;
+        };
+        ContactPurchases: {
+            canManage: boolean;
+            currency: string;
+            items: components["schemas"]["ContactPurchase"][];
+            /** Format: int64 */
+            spentCents: number;
         };
         ContactSavedView: {
             /** Format: int64 */
@@ -19541,6 +19759,34 @@ export interface components {
         };
         FieldSources: {
             items: components["schemas"]["FieldSource"][];
+        };
+        FormDownload: {
+            /** Format: int32 */
+            days: number;
+            /** Format: int64 */
+            downloaded: number;
+            file?: components["schemas"]["ProductFile"];
+            /** Format: int64 */
+            links: number;
+        };
+        FormDownloadInput: {
+            /**
+             * Format: int32
+             * @description How many days a link works
+             */
+            days: number;
+        };
+        FormPage: {
+            id: string;
+            live: boolean;
+            name: string;
+            path: string;
+            /** @enum {string} */
+            status: "draft" | "scheduled" | "published" | "unpublished";
+            url: string;
+        };
+        FormPages: {
+            items: components["schemas"]["FormPage"][];
         };
         GrowthChart: {
             days: components["schemas"]["GrowthChartDay"][];
@@ -22898,6 +23144,7 @@ export interface components {
             views: number;
         };
         PagePerson: {
+            avatarColor: string;
             id: string;
             initials: string;
             name: string;
@@ -22926,6 +23173,18 @@ export interface components {
             publishers: string[];
             reason?: string;
             rule?: string;
+        };
+        PageReminderFlow: {
+            id: string;
+            name: string;
+            status: string;
+        };
+        PageReminders: {
+            automation?: components["schemas"]["PageReminderFlow"];
+            available: boolean;
+            field: string;
+            reminders: string;
+            title: string;
         };
         PageRenderInput: {
             blocks?: string[];
@@ -31497,6 +31756,8 @@ export interface components {
             stats: components["schemas"]["TransactionalStats"];
             /** Format: date-time */
             updatedAt: string;
+            /** Format: int64 */
+            usedByProducts?: number;
         };
         TransactionalTemplateUpdate: {
             categoryId?: string;
@@ -42702,6 +42963,39 @@ export interface operations {
             };
         };
     };
+    "get-campaign-product-sales": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaign: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampaignProductSales"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "list-channels": {
         parameters: {
             query?: never;
@@ -43503,6 +43797,8 @@ export interface operations {
                 paid?: "with_access" | "trialing" | "past_due" | "complimentary" | "gift" | "ended" | "free" | "";
                 /** @description With paid=with_access: a tier's id, for that tier and above */
                 paidTier?: string;
+                /** @description Only contacts who bought a product: any, or the product's id */
+                bought?: string;
                 page?: number;
                 pageSize?: number;
             };
@@ -44261,6 +44557,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PreferenceLinkResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-contact-purchases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                contact: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactPurchases"];
                 };
             };
             /** @description Error */
@@ -47936,6 +48265,260 @@ export interface operations {
             };
         };
     };
+    "get-form-download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Form id */
+                form: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormDownload"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-form-download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Form id */
+                form: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FormDownloadInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormDownload"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-form-download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Form id */
+                form: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormDownload"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "start-form-download-upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Form id */
+                form: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UploadStart"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadState"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "upload-form-download-chunk": {
+        parameters: {
+            query?: {
+                /** @description Where this chunk starts: the bytes received so far */
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Form id */
+                form: string;
+                upload: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/octet-stream": string;
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadState"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "cancel-form-download-upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Form id */
+                form: string;
+                upload: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "finish-form-download-upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Form id */
+                form: string;
+                upload: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormDownload"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "set-signup-form-language": {
         parameters: {
             query?: never;
@@ -47961,6 +48544,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SignupFormCopy"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-form-pages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Form id */
+                form: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormPages"];
                 };
             };
             /** @description Error */
@@ -52348,6 +52965,74 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PageDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-page-reminders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The page's id */
+                page: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageReminders"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-page-reminders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The page's id */
+                page: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageReminders"];
                 };
             };
             /** @description Error */

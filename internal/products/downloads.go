@@ -11,7 +11,6 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/db"
-	"github.com/hostrepute/reputecast/internal/linktoken"
 	"github.com/hostrepute/reputecast/internal/payments"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -145,6 +144,11 @@ func (s *Service) OpenFile(ctx context.Context, ws *store.Workspace, token strin
 	if err != nil || f.OwnerKind != OwnerProduct || f.OwnerID != o.ProductID || f.RemovedAt != nil {
 		return store.DownloadFile{}, nil, "", ErrNoDownload
 	}
+	// The file first: a download that can't be sent isn't counted.
+	file, err := s.Files.Open(f.StorageKey)
+	if err != nil {
+		return f, nil, "", err
+	}
 	state := DownloadOK
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
@@ -170,15 +174,9 @@ func (s *Service) OpenFile(ctx context.Context, ws *store.Workspace, token strin
 		h := sha256.Sum256([]byte(o.ID.String() + "|" + ip))
 		return q.ProductOrderDownloadInsert(ctx, store.ProductOrderDownloadInsertParams{ID: newID(), OrderID: o.ID, LinkID: l.ID, FileID: f.ID, IpHash: h[:], At: s.now()})
 	})
-	if err != nil {
-		return f, nil, "", err
-	}
-	if state != DownloadOK {
-		return f, nil, state, nil
-	}
-	file, err := s.Files.Open(f.StorageKey)
-	if err != nil {
-		return f, nil, "", err
+	if err != nil || state != DownloadOK {
+		_ = file.Close()
+		return f, nil, state, err
 	}
 	return f, file, DownloadOK, nil
 }
@@ -189,7 +187,7 @@ var ErrTooManyLinks = errors.New("products: too many new links")
 // BuyerNewLink sends a new link to the order's address, from an expired or
 // used-up link's page. It answers the masked address the link went to.
 func (s *Service) BuyerNewLink(ctx context.Context, ws *store.Workspace, token string) (string, error) {
-	link, o, err := s.resolve(ctx, ws, token)
+	_, o, err := s.resolve(ctx, ws, token)
 	if err != nil {
 		return "", err
 	}
@@ -215,10 +213,8 @@ func (s *Service) BuyerNewLink(ctx context.Context, ws *store.Workspace, token s
 		if recent >= 3 {
 			return ErrTooManyLinks
 		}
-		// A link that still works is sent again rather than replaced.
-		if latest := links[0].ProductOrderLink; latest.ID != link.ID && s.linkState(latest, cur) == DownloadOK {
-			return nil
-		}
+		// A new link replaces the one the buyer has, even one that still
+		// works: what they asked for is an email with a link.
 		if _, err := s.newLink(ctx, tx, ws, cur, "buyer", nil); err != nil {
 			return err
 		}
@@ -260,9 +256,4 @@ func (s *Service) AccountNewLink(ctx context.Context, ws *store.Workspace, conta
 		}
 		return s.event(ctx, q, cur.ID, "buyer_asked", s.now(), nil, map[string]any{"email": MaskEmail(cur.BuyerEmail), "from": "account"})
 	})
-}
-
-// tokenOf re-signs a link's token (the thank-you page's Download now).
-func (s *Service) tokenOf(wsID uuid.UUID, link store.ProductOrderLink) string {
-	return s.Links.Sign(linktoken.Claims{Kind: TokenDownload, WorkspaceID: wsID, MessageID: link.ID, ContactID: link.OrderID})
 }

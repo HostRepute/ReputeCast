@@ -46,7 +46,7 @@ func (e *executor) keepVars(ctx context.Context, msg uuid.UUID) error {
 	}
 	b, err := json.Marshal(e.st.Vars)
 	if err != nil {
-		return nil
+		return err
 	}
 	return e.q.AutomationMessageVarsInsert(ctx, store.AutomationMessageVarsInsertParams{MessageID: msg, Vars: b})
 }

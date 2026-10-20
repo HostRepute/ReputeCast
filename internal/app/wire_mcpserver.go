@@ -24,6 +24,8 @@ func (a *App) mcpserver() *mcpserver.Service {
 		PaidMembers:   earnService(a),
 		Placement:     a.placement(),
 		Website:       websiteService(a),
+		Pages:         pagesService(a),
+		Products:      productsService(a),
 		PublicURL:     func(context.Context) string { return a.URLs.Base() },
 	}
 }

@@ -1,5 +1,19 @@
 package transactional
 
+import "errors"
+
+// StarterDemo is a starter's content for the demo data: subject, preheader
+// and MJML with the product name and the address filled in, compiled.
+func StarterDemo(key, product, address string) (DemoTemplate, []TransactionalTestData, error) {
+	st, ok := starterByKey(key)
+	if !ok {
+		return DemoTemplate{}, nil, errors.New("transactional: no starter " + key)
+	}
+	d := DemoTemplate{Subject: fillProduct(st.Subject, product), Preheader: fillProduct(st.Preheader, product), MJML: st.mjmlFor(product, address),
+		Variables: st.Variables}
+	return d, st.TestData, d.Compile()
+}
+
 // Digital products (design expansion phase 7): the delivery email. The
 // products domain makes it, in the Essential "Purchases" category, when
 // the first product is created. Its download_url is sensitive, so the

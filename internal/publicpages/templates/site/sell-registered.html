@@ -1,10 +1,11 @@
 {{/* A webinar's "You're registered": the session in the reader's time,
-     where the joining link went, and Add to calendar (no script needed:
-     the menu is a details element). */}}
+     the joining link, the reminders when an automation sends them, and Add
+     to calendar (no script needed: the menu is a details element). */}}
 {{define "site-main"}}{{with .Body}}<main id="main" class="pg-main">
 <div class="pg-center lav"><div class="pcard7">
 <div class="hrow"><span class="okc" aria-hidden="true">{{template "site-check"}}</span><h1>{{$.S "event.registered"}}</h1></div>
 <div class="pg-ev"><b>{{.Title}}</b>{{with .When}}<span>{{.}}</span>{{end}}</div>
+{{with .Link}}<p class="pg-join"><span class="k">{{$.S "event.joinLink"}}</span><a href="{{.}}" rel="noopener noreferrer">{{.}}</a></p>{{end}}
 {{with .Emailed}}<p class="ptxt">{{.}}</p>{{end}}
 {{- if or .Google .Outlook .ICS}}
 <details class="calm"><summary class="st-btn2">{{$.S "event.calendar"}}</summary>
