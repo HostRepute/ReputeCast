@@ -459,7 +459,7 @@ Brief: `docs/spec/reputecast-design-addon-publish-sell.md`. Not built yet: each 
 | `CommerceStates.dc.html` | Stores · connect Shopify and WooCommerce, import, webhook missing, disconnected, errors, read-only | — |
 | `CommerceEmails.dc.html` | Stores in emails · product picker, product grid, removed product, abandoned-cart starter, revenue, Sam Rivera's orders | — |
 
-Built in M30 (X20): IntegrationsShopify with its tablet and phone boards, CommerceStates, CommerceEmails and the Commerce group of IntegrationsCatalog, mapped in `web/scripts/qa-map.ts` (the `{store:…}` placeholder). The differences are rows 380–395 below.
+Built in M30 (X20): IntegrationsShopify with its tablet and phone boards, CommerceStates, CommerceEmails and the Commerce group of IntegrationsCatalog, mapped in `web/scripts/qa-map.ts` (the `{store:…}` placeholder). The differences are rows 380–397 below.
 
 ### P8 SMS, push & agencies
 
@@ -916,3 +916,5 @@ When they disagree we follow the design for UI and the spec for behaviour.
 | 393 | Reconnect on a connected store (X20) | IntegrationsShopify's menu: Change what syncs, Reconnect, Disconnect | Spec: Reconnect for a revoked token or an uninstalled app | On a connected store, Reconnect approves the app again (how write_customers is granted later); the store keeps syncing meanwhile. |
 | 394 | Revenue rows before phase 6's section (X20) | CommerceEmails: the store row in the Revenue section, Earn › Overview's card | X17 builds the Revenue section and the revenue overview | Until they land, the report shows a Revenue section with the store rows only, and Earn › Overview the "Store revenue from email" card above its placeholder once Earn is live (until then Overview is X16's launch checklist, so a store-only workspace sees its revenue on the store's page); both are components X17's screens take. |
 | 395 | The picker's sources (X20) | CommerceEmails: "Acme Merch · 38" and "Digital products · 2" | Digital products are X19's | The picker lists the connected stores; X19's products join as a source. |
+| 396 | Sam Rivera's consent history (X20) | CommerceEmails: "Not added to Acme Merch · 13 Oct · didn't accept marketing at checkout in Shopify" in the profile's consent history | The profile's Consent per list card has one row per list | Acme Merch's row says "Never subscribed"; the Store orders card under it says "Not added to Acme Merch: didn't accept marketing in Shopify". |
+| 397 | A refused client secret's fields (X20) | CommerceStates: the Client ID and a masked client secret filled in | Secrets are write-only: the API never returns them | Both fields are empty to paste again; the Client ID shows the saved one's hint (4f1c…a9e2) as its placeholder. |
