@@ -22,6 +22,7 @@ import { StateAlert } from './StateAlert'
 import { headerCaption, notSentLead, statusBadge, type CampaignReport } from './words'
 import { useReportAI } from '@/features/ai/report'
 import './reports.css'
+import { ReportWebSection } from '@/features/website/elsewhere'
 
 type BounceRow = Schemas['ReportBounceRow']
 
@@ -316,6 +317,8 @@ export function ReportPage({ campaignId }: { campaignId: string }) {
           {ai.panel}
           {issue ? <IssueComparison issue={issue} report={r} /> : null}
           <ReportBody r={r} actions={actions} polls={{ items: polls.data?.items, error: polls.error ?? undefined, retry: () => void polls.refetch() }} />
+          {/* The website's Web section (features/website): the campaign's post. */}
+          <ReportWebSection campaignId={campaignId} />
           <ShareCard ref={shareCard} campaignId={campaignId} onCreate={() => setSharing(true)} />
         </>
       )}

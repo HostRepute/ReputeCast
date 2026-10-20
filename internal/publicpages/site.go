@@ -121,8 +121,9 @@ type siteView struct {
 	Session   *website.Session
 	PoweredBy bool
 	Landing   string
-	Year      int
-	Owner     string
+	// Year is the copyright year, as text so it isn't grouped like a number ("2,026").
+	Year  string
+	Owner string
 	// Toast is a one-line notice at the bottom ("You're signed in as …").
 	Toast string
 	Body  any
@@ -309,7 +310,7 @@ func (h *Handler) siteViewIn(ctx context.Context, s *site, pl pageLang) (*siteVi
 	v := &siteView{
 		Robots: "index, follow", CSS: s.links.Static("site.css?v=" + h.siteVersion()), Theme: s.links.Theme(themeVersion(s.set)),
 		Lang: pl.Code, Dir: pagelabels.Dir(pl.Code), Preview: s.preview, Brand: siteBrand{Initial: b.Initial()}, Frame: frame,
-		PoweredBy: b.PoweredBy, Landing: h.LandingURL, Year: h.now().In(location(s.ws)).Year(), Owner: owner(s),
+		PoweredBy: b.PoweredBy, Landing: h.LandingURL, Year: strconv.Itoa(h.now().In(location(s.ws)).Year()), Owner: owner(s),
 		words: website.WordsIn(pl.Labels.Lang()), labels: pl.Labels,
 	}
 	if b.Logo != nil {

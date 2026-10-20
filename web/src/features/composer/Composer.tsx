@@ -14,7 +14,7 @@ import { CanvasArea } from './CanvasArea'
 import { ComposerCtx, type ABTest, type Campaign, type Checks, type ComposerCtxData, type ComposerDialog, type ComposerState, type SaveStatus, type View } from './context'
 import { Dialogs } from './Dialogs'
 import { trackChanges, type ChangeTracker } from './editor/changes'
-import { createComposerEditor, type ComposerEditor, type DeviceId } from './editor/grapes'
+import { createComposerEditor, type ComposerEditor, type DeviceId, type EmailDevice } from './editor/grapes'
 import { atPath } from './editor/labels'
 import { canvasHead, isEmptyBody, joinMjml, splitMjml, withHeadMeta } from './editor/mjmlDoc'
 import { Footer, VersionLink } from './Footer'
@@ -33,6 +33,7 @@ import { DigestModeProvider, digestLeftPanel } from '@/features/digests/composer
 import { AssistRight } from '@/features/ai/composer/panel'
 import { ComposerAssistScope, useComposerAssistState } from '@/features/ai/composer/state'
 import { AITranslateFooter, AITranslateView } from '@/features/ai/composer/translate'
+import { WebCanvasView, WebModeProvider } from '@/features/website/composer/campaign'
 import './composer.css'
 
 // CodeMirror loads with the code view only.
@@ -42,11 +43,11 @@ export interface ComposerSearch {
   view?: View | 'compare'
   /** A language version (internal/languages); none is the source. */
   language?: string
-  device?: DeviceId
+  device?: EmailDevice
   variant?: string
   /** Component to select once the canvas is ready (element path from mj-body, "1-0-0"). */
   select?: string
-  panel?: 'style' | 'settings' | 'deliverability' | 'accessibility'
+  panel?: 'style' | 'settings' | 'deliverability' | 'accessibility' | 'web'
   left?: 'blocks' | 'layers' | 'templates'
 }
 
@@ -116,7 +117,7 @@ export function Composer({
   const [checks, setChecks] = useState<Checks>()
   const [checksPending, setChecksPending] = useState(false)
   const [checksNonce, setChecksNonce] = useState(0)
-  const [rightTab, setRightTab] = useState<'style' | 'settings' | 'deliverability' | 'accessibility'>(search.panel ?? 'style')
+  const [rightTab, setRightTab] = useState<'style' | 'settings' | 'deliverability' | 'accessibility' | 'web'>(search.panel ?? 'style')
   const [leftTab, setLeftTab] = useState<'blocks' | 'layers' | 'templates'>(search.left ?? 'blocks')
   // A deep link selects its component once the canvas is ready.
   const deepLink = useRef(search.select)
@@ -531,7 +532,7 @@ export function Composer({
     },
     [view, onSearch, search, save],
   )
-  const setDevice = useCallback((d: DeviceId) => onSearch({ ...search, device: d === 'desktop' ? undefined : d }), [onSearch, search])
+  const setDevice = useCallback((d: DeviceId) => onSearch({ ...search, device: d === 'mobile' ? 'mobile' : undefined }), [onSearch, search])
 
   /** Switches variant; a content test swaps the canvas body. */
   const setVariant = useCallback(
@@ -655,6 +656,7 @@ export function Composer({
 
   return (
     <ComposerCtx.Provider value={state}>
+      <WebModeProvider campaign={campaign}>
       <ComposerAssistScope value={assist}>
       <AccessibilityProvider>
       <DigestModeProvider>
@@ -680,6 +682,8 @@ export function Composer({
               aria-hidden={view !== 'visual' || comparing || Boolean(missingLanguage) || undefined}
             >
               <CanvasArea containerRef={containerRef} savedCard={savedCard} onCloseSaved={() => setSavedCard(null)} onReview={goReview} />
+              {/* The website's Web view of the canvas (features/website). */}
+              <WebCanvasView />
             </div>
             {view === 'mjml' || view === 'html' ? (
               <Suspense fallback={<div className="cmp-main" style={{ alignItems: 'center', justifyContent: 'center' }} aria-busy="true"><span className="spin" aria-hidden="true" /></div>}>
@@ -713,6 +717,7 @@ export function Composer({
       </DigestModeProvider>
       </AccessibilityProvider>
       </ComposerAssistScope>
+      </WebModeProvider>
     </ComposerCtx.Provider>
   )
 }

@@ -5,13 +5,24 @@ import { canvasCss } from './canvasCss'
 import { encodeTables, loadTable } from './components'
 import { installMjmlHooks, type MjmlCompile } from './mjmlHooks'
 
-/** Devices of the device switcher: desktop 600 px and mobile 375 px (MJML stacks columns below 480 px). */
+/**
+ * Devices of the device switcher: desktop 600 px and mobile 375 px (MJML
+ * stacks columns below 480 px). A website post (post mode) is edited in the
+ * site's 680 px reading column instead of the email's 600 px.
+ */
 export const DEVICES = {
   desktop: { id: 'desktop', name: 'Desktop', width: '600px', height: 'auto', widthMedia: '' },
   mobile: { id: 'mobile', name: 'Mobile', width: '375px', height: 'auto', widthMedia: '480px' },
+  web: { id: 'web', name: 'Web', width: '680px', height: 'auto', widthMedia: '' },
 } as const
 
+/** The devices an email's switcher offers (the web column is post mode's). */
+export const EMAIL_DEVICES: EmailDevice[] = ['desktop', 'mobile']
+
 export type DeviceId = keyof typeof DEVICES
+
+/** An email's devices: desktop and mobile (the address bar keeps one of them). */
+export type EmailDevice = Exclude<DeviceId, 'web'>
 
 export interface ComposerEditor {
   editor: Editor
@@ -82,7 +93,7 @@ export async function createComposerEditor(container: HTMLElement, opts: CreateO
     assetManager: { custom: true },
     richTextEditor: { custom: true },
     canvasCss: `${canvasCss}\n${fontFaces()}`,
-    deviceManager: { default: opts.device, devices: [DEVICES.desktop, DEVICES.mobile] },
+    deviceManager: { default: opts.device, devices: [DEVICES.desktop, DEVICES.mobile, DEVICES.web] },
     canvas: { customSpots: { select: true, target: true }, autoscrollLimit: 60 },
     plugins: [
       (ed: Editor) =>

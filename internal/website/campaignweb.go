@@ -16,6 +16,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/forms"
+	"github.com/hostrepute/reputecast/internal/paidaccess"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/website/gate"
 )
@@ -129,22 +130,24 @@ func (s *Service) campaign(ctx context.Context, ws *store.Workspace, id uuid.UUI
 	return f, nil
 }
 
-// paidOnly reports a campaign whose audience is paid members only (phase
-// 6): its post follows it behind the paywall.
+// paidAudience reports a campaign sent to paid members only (Earn's "Who on
+// this list", X16) and its lowest tier (nil: any paid tier): its post
+// follows it behind the paywall, for that tier and above.
+func paidAudience(audience json.RawMessage) (bool, []uuid.UUID) {
+	a := paidaccess.Parse(audience)
+	if a.Who != paidaccess.Paid {
+		return false, nil
+	}
+	if id, err := uuid.Parse(a.Tier); err == nil {
+		return true, []uuid.UUID{id}
+	}
+	return true, nil
+}
+
+// paidOnly reports a campaign sent to paid members only.
 func paidOnly(audience json.RawMessage) bool {
-	var a map[string]any
-	if json.Unmarshal(audience, &a) != nil {
-		return false
-	}
-	for _, k := range []string{"paid_only", "paidOnly"} {
-		if v, ok := a[k].(bool); ok && v {
-			return true
-		}
-	}
-	if t, ok := a["paid_tiers"].([]any); ok && len(t) > 0 {
-		return true
-	}
-	return false
+	paid, _ := paidAudience(audience)
+	return paid
 }
 
 // defaultPost is a campaign's post before anyone saves its Web tab: the
@@ -162,10 +165,15 @@ func (s *Service) defaultPost(ctx context.Context, ws *store.Workspace, c *confi
 	}
 	cover, alt := firstImage(camp.MJML)
 	vis := c.row.CampaignVisibility
+	tiers := []WebsiteTierRef{}
 	if vis == "audience" {
 		vis = gate.Public
-		if paidOnly(camp.Audience) {
+		if paid, ids := paidAudience(camp.Audience); paid {
 			vis = gate.Paid
+			if len(ids) > 0 {
+				all, _ := s.tiers(ctx, s.Q, ws)
+				tiers = tierRefs(ids, all)
+			}
 		}
 	}
 	mode := WhenWithSend
@@ -180,7 +188,7 @@ func (s *Service) defaultPost(ctx context.Context, ws *store.Workspace, c *confi
 	post := WebsitePost{WebOn: s.inArchive(ctx, ws, camp.lists), Base: hostOnly(strings.TrimSuffix(s.sitePath(ctx, ws, "posts", "x"), "x")),
 		CoverURL: cover, CoverAlt: alt, Checks: []WebsiteWebCheck{}}
 	post.WebsitePostRow = WebsitePostRow{Kind: KindCampaign, Title: title, Excerpt: excerpt, Slug: s.freeSlug(ctx, ws, uuid.Nil, title), Status: PostDraft,
-		PublishMode: mode, Visibility: vis, Tiers: []WebsiteTierRef{}, Tags: s.listTags(ctx, ws, camp.lists), Byline: WebsiteByline{Name: byline}}
+		PublishMode: mode, Visibility: vis, Tiers: tiers, Tags: s.listTags(ctx, ws, camp.lists), Byline: WebsiteByline{Name: byline}}
 	post.URL = s.postURL(ws, post.Slug)
 	post.Campaign = &WebsitePostCampaign{ID: camp.ID.String(), Name: camp.Name, Status: camp.Status, SentAt: camp.StartedAt, ScheduledAt: camp.ScheduledAt}
 	post.Publish = WebsitePublishState{Approvers: []string{}}

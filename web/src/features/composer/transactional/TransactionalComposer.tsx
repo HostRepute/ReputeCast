@@ -14,7 +14,7 @@ import { CanvasArea } from '../CanvasArea'
 import { ComposerCtx, type Campaign, type ComposerCtxData, type ComposerDialog, type ComposerState, type SaveStatus, type View } from '../context'
 import { Dialogs } from '../Dialogs'
 import { trackChanges, type ChangeTracker } from '../editor/changes'
-import { createComposerEditor, type ComposerEditor, type DeviceId } from '../editor/grapes'
+import { createComposerEditor, type ComposerEditor, type DeviceId, type EmailDevice } from '../editor/grapes'
 import { canvasHead, isEmptyBody, joinMjml, splitMjml, withHeadMeta } from '../editor/mjmlDoc'
 import { LeftPanel } from '../LeftPanel'
 import { transactionalBlocks } from './blocks'
@@ -42,7 +42,7 @@ const CodeView = lazy(() => import('../CodeView').then((x) => ({ default: x.Code
 
 export interface TxSearch {
   view?: TxView
-  device?: DeviceId
+  device?: EmailDevice
   tab?: TxTab
   /** Open the publish dialog (the approval notification links here with it). */
   publish?: boolean
@@ -786,7 +786,7 @@ export function TransactionalComposer({
     device,
     variant: 'A',
     setView: (v: View) => setView(v === 'preview' ? 'text' : v),
-    setDevice: (d: DeviceId) => onSearch({ ...search, device: d === 'desktop' ? undefined : d }),
+    setDevice: (d: DeviceId) => onSearch({ ...search, device: d === 'mobile' ? 'mobile' : undefined }),
     setVariant: () => undefined,
     name,
     subject,

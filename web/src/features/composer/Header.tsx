@@ -16,6 +16,7 @@ import { dc } from '@/features/digests/composer/messages'
 import { useT } from '@/i18n'
 import { useAssistBanner } from '@/features/ai/composer/panel'
 import { AssistMenu } from '@/features/ai/composer/assistMenu'
+import { WebChip } from '@/features/website/composer/campaign'
 
 const routeColors: Record<string, string> = { ses: 'var(--chart-ses)', postal: 'var(--chart-postal)', postmark: 'var(--chart-postmark)' }
 
@@ -169,6 +170,7 @@ export function Header({ onReview }: { onReview: () => void }) {
           <AudiencePicker />
           <SenderPicker />
           <RouteButton />
+          <WebChip />
         </div>
       )}
       <div className="flex flex-wrap items-center gap-2" style={{ marginLeft: 'auto' }}>

@@ -3,6 +3,8 @@ package render
 import (
 	"strings"
 	"testing"
+
+	"github.com/hostrepute/reputecast/internal/earn"
 )
 
 const digest = `<mjml>
@@ -22,7 +24,7 @@ const digest = `<mjml>
     <mj-section rc-name="Beta corner" rc-visible='{"id":"beta01","show":"only","conditions":[{"kind":"list","op":"includes","value":"x","label":"Beta Program"}]}'>
       <mj-column><mj-text>For Beta Program readers only.</mj-text></mj-column>
     </mj-section>
-    <mj-section rc-visible='{"id":"paid01","show":"only","conditions":[{"kind":"paid_tier","op":"is","value":""}]}'>
+    <mj-section rc-visible='{"id":"paid01","show":"only","conditions":[{"kind":"paid","op":"any","value":""}]}'>
       <mj-column><mj-text>Insider extras: the runbook template.</mj-text></mj-column>
     </mj-section>
     <mj-section rc-show-on="web"><mj-column><mj-text>Only on the web.</mj-text></mj-column></mj-section>
@@ -149,18 +151,31 @@ func TestSanitizeDropsUnsafeMarkup(t *testing.T) {
 }
 
 func TestPaidRuleForChosenTiers(t *testing.T) {
+	// The renderer reads Earn's Paid access condition by its names.
+	if PaidKind != earn.KindPaid || PaidAny != earn.OpPaidAny || PaidAtLeast != earn.OpPaidTier {
+		t.Fatal("the renderer's Paid access names differ from Earn's")
+	}
 	v := visRule{ID: "p", Show: "only", Match: "any"}
 	v.Conditions = append(v.Conditions, struct {
 		Kind  string `json:"kind"`
 		Op    string `json:"op"`
 		Value string `json:"value"`
 		Label string `json:"label"`
-	}{Kind: PaidTierKind, Op: "is", Value: "tier-a"})
+	}{Kind: earn.KindPaid, Op: earn.OpPaidTier, Value: "tier-a"})
 	tiers, ok := paidRule(v)
 	if !ok || len(tiers) != 1 || tiers[0] != "tier-a" {
 		t.Fatalf("paid rule: %v %v", tiers, ok)
 	}
-	v.Conditions[0].Kind = "list"
+	v.Conditions[0].Op, v.Conditions[0].Value = earn.OpPaidAny, ""
+	if tiers, ok := paidRule(v); !ok || len(tiers) != 0 {
+		t.Fatalf("any paid tier: %v %v", tiers, ok)
+	}
+	// Free subscribers only isn't for a paid tier: the web hides that block.
+	v.Conditions[0].Op = earn.OpPaidFree
+	if _, ok := paidRule(v); ok {
+		t.Fatal("a free-only block is a paid block")
+	}
+	v.Conditions[0].Kind, v.Conditions[0].Op = "list", "in"
 	if _, ok := paidRule(v); ok {
 		t.Fatal("a list rule isn't a paid rule")
 	}
