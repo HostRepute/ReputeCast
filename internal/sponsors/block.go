@@ -16,6 +16,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/contentcheck"
 	"github.com/hostrepute/reputecast/internal/mjml"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -31,7 +32,9 @@ import (
 //
 // Its content comes from the issue's booking: the creative once it's
 // ready, a placeholder while it's waiting (Send Readiness won't let the
-// issue go out), nothing without a booking. The label can't be removed.
+// issue go out), and without a booking a note the composer shows and the
+// email leaves out (rc-omit, internal/mjml.PrepareCompile). The label can't
+// be removed.
 const (
 	BlockAttr  = "rc-sponsor"
 	LayoutAttr = "rc-sponsor-layout"
@@ -115,7 +118,21 @@ func (s *Service) campaignBooking(ctx context.Context, ws *store.Workspace, camp
 	} else if !errors.Is(err, pgx.ErrNoRows) {
 		return out, err
 	}
-	if out.booking == nil {
+	dated := true
+	if out.booking == nil && (cp.StartedAt == nil && cp.ScheduledAt == nil) {
+		// Without a date, a booking that was canceled still names the
+		// issue, and the issue's new booking is the block's.
+		if last, err := s.Q.SponsorLastIssueOfCampaign(ctx, &campaignID); err == nil {
+			dated = false
+			out.slot, out.issue, out.issueOn = slotOfID(last.SlotID), int(last.IssueNumber), last.IssueOn
+			if b, err := s.Q.SponsorBookingOfIssue(ctx, store.SponsorBookingOfIssueParams{SlotID: last.SlotID, IssueNumber: last.IssueNumber}); err == nil &&
+				(b.CampaignID == nil || *b.CampaignID == campaignID) {
+				bk := b
+				out.booking = &bk
+			}
+		}
+	}
+	if out.booking == nil && dated {
 		at := firstTime(cp.StartedAt, cp.ScheduledAt)
 		var lists []string
 		var aud struct {
@@ -226,10 +243,10 @@ func (s *Service) block(ctx context.Context, ws *store.Workspace, bb blockBookin
 	return out
 }
 
-// blockHash names what fills a block: its state, label, layout and the
-// creative.
+// blockHash names what fills a block: its state, issue, label, layout and
+// the creative.
 func blockHash(b SponsorBlock) string {
-	raw, _ := json.Marshal([]any{b.State, b.Label, b.Layout, b.Creative, b.Link, b.Sponsor})
+	raw, _ := json.Marshal([]any{b.State, b.Issue, b.Label, b.Layout, b.Creative, b.Link, b.Sponsor})
 	sum := sha256.Sum256(raw)
 	return hex.EncodeToString(sum[:6])
 }
@@ -241,66 +258,94 @@ const (
 
 func esc(s string) string { return html.EscapeString(s) }
 
-// blockMJML is a Sponsor block's content: the creative in its layout, the
-// waiting placeholder, or an empty section that renders nothing.
+// The card's colours and type, as the ComposerEarnBlocks board draws them.
+const (
+	cardLabel  = `font-family:'IBM Plex Sans',Helvetica,Arial,sans-serif;font-size:12px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#5B6472;`
+	cardNote   = `font-family:'IBM Plex Sans',Helvetica,Arial,sans-serif;font-size:13.5px;line-height:1.5;color:#374151;margin:0;`
+	cardSquare = `width:44px;height:44px;line-height:44px;border-radius:8px;background-color:#F3F4F6;border:1px solid #E3E6EB;text-align:center;` +
+		`font-family:'IBM Plex Sans',Helvetica,Arial,sans-serif;font-size:13px;font-weight:700;color:#374151;`
+)
+
+// blockMJML is a Sponsor block's content: one card, so it looks the same on
+// the canvas and in every mail app. Ready, the creative in its layout;
+// waiting, a placeholder (Send Readiness won't let the issue go out); with
+// no booking, a note the composer shows and the email leaves out (rc-omit).
+// The label is 12 px, the accessibility policy's smallest text.
 func (s *Service) blockMJML(ctx context.Context, ws *store.Workspace, b SponsorBlock) string {
 	attrs := fmt.Sprintf(`%s="%s" %s="%s" %s="%s"`, BlockAttr, esc(firstNonEmpty(b.SlotID, "1")), LayoutAttr, b.Layout, LabelAttr, b.LabelMode)
-	label := strings.ToUpper(b.Label)
+	label := b.Label
 	if b.LabelMode == "name" && b.Sponsor != "" && b.State != BlockReady {
-		label = strings.ToUpper(text(ctx, "block.placeholderLabel", map[string]any{"sponsor": b.Sponsor}))
+		label = text(ctx, "block.placeholderLabel", map[string]any{"sponsor": b.Sponsor})
 	}
-	labelText := fmt.Sprintf(`<mj-text font-family="%s" font-size="11px" font-weight="700" letter-spacing="0.06em" color="#5B6472" padding="0px 0px 6px">%s</mj-text>`, sans, esc(label))
+	labelDiv := fmt.Sprintf(`<div style="%spadding-bottom:6px;">%s</div>`, cardLabel, esc(label))
+	section := func(extra, card string) string {
+		return fmt.Sprintf(`<mj-section %s%s background-color="#ffffff" padding="12px 24px"><mj-column><mj-text padding="0px">%s</mj-text></mj-column></mj-section>`, attrs, extra, card)
+	}
+	square := func() string {
+		return fmt.Sprintf(`<div style="%s" aria-hidden="true">%s</div>`, cardSquare, esc(b.Initials))
+	}
+	// A card: a table, the side column (the logo or initials) and the main one.
+	card := func(border, background, side, main string) string {
+		out := fmt.Sprintf(`<table role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0" style="border:%s;border-radius:8px;background-color:%s;border-collapse:separate;"><tr>`,
+			border, background)
+		if side != "" {
+			out += `<td width="44" valign="top" style="width:44px;padding:16px 0px 16px 18px;">` + side + `</td>`
+			out += `<td valign="top" style="padding:16px 18px 16px 14px;">` + main + `</td>`
+		} else {
+			out += `<td valign="top" style="padding:16px 18px;">` + main + `</td>`
+		}
+		return out + `</tr></table>`
+	}
 	switch b.State {
 	case BlockNone:
-		return fmt.Sprintf(`<mj-section %s padding="0px"><mj-column><mj-raw><!-- rc:sponsor none --></mj-raw></mj-column></mj-section>`, attrs)
+		// The composer shows why the block is empty; the email leaves it out.
+		note := text(ctx, "block.noneNoIssue", nil)
+		switch {
+		case b.Issue > 0:
+			note = text(ctx, "block.none", map[string]any{"issue": b.Issue})
+		case b.SlotID != "":
+			note = text(ctx, "block.noDate", nil)
+		}
+		main := labelDiv + fmt.Sprintf(`<p style="%s">%s</p>`, cardNote, esc(note))
+		return section(fmt.Sprintf(` %s="1"`, mjml.AttrOmit), card("1px dashed #D4D8DF", "#F9FAFB", "", main))
 	case BlockWaiting:
 		due := ""
 		if b.CreativeDue != nil {
 			due = b.CreativeDue.In(location(ws)).Format("Mon 2 Jan")
 		}
-		note := text(ctx, "block.waiting", map[string]any{"due": due})
-		box := fmt.Sprintf(`<mj-column border="1px dashed #C9CED6" background-color="#F8FAFC" padding="14px 16px">%s<mj-text font-family="%s" font-size="13px" line-height="1.5" color="#374151" padding="0px">%s</mj-text></mj-column>`,
-			labelText, sans, esc(note))
-		return fmt.Sprintf(`<mj-section %s background-color="#ffffff" padding="12px 24px">%s</mj-section>`, attrs, box)
+		main := labelDiv + fmt.Sprintf(`<p style="%s">%s</p>`, cardNote, esc(text(ctx, "block.waiting", map[string]any{"due": due})))
+		return section("", card("1px dashed #C9CED6", "#F9FAFB", square(), main))
 	}
 	c := b.Creative
 	link := esc(b.Link)
-	head := ""
+	main := labelDiv
 	if c.Headline != "" {
-		head = fmt.Sprintf(`<mj-text font-family="%s" font-size="17px" line-height="1.3" font-weight="700" color="#0B1220" padding="0px 0px 6px"><h3 style="margin:0;font-size:17px;font-weight:700">%s</h3></mj-text>`,
-			serif, esc(c.Headline))
+		main += fmt.Sprintf(`<p style="margin:0;padding-bottom:6px;font-family:%s;font-size:17px;font-weight:700;line-height:1.3;color:#0B1220;">%s</p>`, serif, esc(c.Headline))
 	}
-	body := ""
 	if c.Text != "" {
-		body = fmt.Sprintf(`<mj-text font-family="%s" font-size="14px" line-height="1.55" color="#374151" padding="0px 0px 12px">%s</mj-text>`, serif, esc(c.Text))
+		main += fmt.Sprintf(`<p style="margin:0;padding-bottom:12px;font-family:%s;font-size:14px;line-height:1.55;color:#374151;">%s</p>`, serif, esc(c.Text))
 	}
-	button := ""
 	if c.Button != "" && b.Link != "" {
-		button = fmt.Sprintf(`<mj-button href="%s" align="left" background-color="#0B1220" color="#ffffff" font-family="%s" font-size="13px" font-weight="600" border-radius="6px" inner-padding="9px 14px" padding="0px">%s</mj-button>`,
-			link, sans, esc(c.Button))
+		main += fmt.Sprintf(`<a href="%s" style="display:inline-block;background-color:#0B1220;color:#ffffff;font-family:%s;font-size:13px;font-weight:600;line-height:1;`+
+			`padding:9px 14px;border-radius:6px;text-decoration:none;">%s</a>`, link, sans, esc(c.Button))
 	}
 	alt := esc(b.Sponsor)
-	logo := ""
-	switch {
-	case c.Logo != "":
-		logo = fmt.Sprintf(`<mj-image src="%s" alt="%s" width="44px" href="%s" align="left" padding="0px"></mj-image>`, esc(c.Logo), alt, link)
-	default:
-		logo = fmt.Sprintf(`<mj-text align="center" font-family="%s" font-size="13px" font-weight="700" color="#374151" container-background-color="#F3F4F6" padding="12px 0px">%s</mj-text>`,
-			sans, esc(b.Initials))
-	}
-	open := fmt.Sprintf(`<mj-section %s background-color="#ffffff" border="1px solid #E3E6EB" border-radius="8px" padding="16px 16px">`, attrs)
 	switch b.Layout {
 	case "image-top":
-		img := ""
 		if c.Image != "" {
-			img = fmt.Sprintf(`<mj-image src="%s" alt="%s" href="%s" padding="0px 0px 12px"></mj-image>`, esc(c.Image), alt, link)
+			img := fmt.Sprintf(`<a href="%s"><img src="%s" alt="%s" width="100%%" style="display:block;width:100%%;height:auto;border-radius:6px;"></a>`, link, esc(c.Image), alt)
+			main = `<div style="padding-bottom:12px;">` + img + `</div>` + main
 		}
-		return open + `<mj-column>` + img + labelText + head + body + button + `</mj-column></mj-section>`
+		return section("", card("1px solid #E3E6EB", "#ffffff", "", main))
 	case "text":
-		return open + `<mj-column>` + labelText + head + body + button + `</mj-column></mj-section>`
+		return section("", card("1px solid #E3E6EB", "#ffffff", "", main))
 	}
-	return open + `<mj-column width="15%" vertical-align="top" padding="0px 12px 0px 0px">` + logo + `</mj-column><mj-column width="85%">` + labelText + head + body + button +
-		`</mj-column></mj-section>`
+	side := square()
+	if c.Logo != "" {
+		side = fmt.Sprintf(`<a href="%s"><img src="%s" alt="%s" width="44" height="44" style="display:block;width:44px;height:44px;border-radius:8px;border:1px solid #E3E6EB;"></a>`,
+			link, esc(c.Logo), alt)
+	}
+	return section("", card("1px solid #E3E6EB", "#ffffff", side, main))
 }
 
 func firstNonEmpty(v ...string) string {
@@ -366,6 +411,69 @@ func (s *Service) ReadinessFacts(ctx context.Context, ws *store.Workspace, campa
 	return out
 }
 
+// blockPath is a block's element-index path from mj-body, as the composer's
+// checks locate elements, and its top-level section.
+func blockPath(src string, n *mjml.Node) ([]int, int) {
+	root, err := mjml.Parse(src)
+	if err != nil {
+		return []int{}, -1
+	}
+	body := mjml.Body(root)
+	if body == nil {
+		return []int{}, -1
+	}
+	var found []int
+	body.Walk(func(x *mjml.Node, path []int) {
+		if found == nil && len(path) > 0 && x.Start == n.Start && x.End == n.End {
+			found = path
+		}
+	})
+	if len(found) == 0 {
+		return []int{}, -1
+	}
+	return found, found[0]
+}
+
+// ends is "s" when a name ends in an s, for possessives in messages
+// ("Northwind Analytics’ creative").
+func ends(name string) string {
+	if strings.HasSuffix(strings.ToLower(strings.TrimSpace(name)), "s") {
+		return "s"
+	}
+	return "other"
+}
+
+// ComposerIssues are the Sponsor block's findings for the composer's checks:
+// a creative still waiting blocks the issue, as in Review & send, with the
+// booking to open and the block to remove.
+func (s *Service) ComposerIssues(ctx context.Context, ws *store.Workspace, campaignID uuid.UUID, src string) []contentcheck.ContentCheckIssue {
+	nodes := blockNodes(src)
+	if len(nodes) == 0 {
+		return nil
+	}
+	bb, err := s.campaignBooking(ctx, ws, campaignID)
+	if err != nil {
+		return nil
+	}
+	n := nodes[0]
+	b := s.block(ctx, ws, bb, n.Attr(LayoutAttr), n.Attr(LabelAttr))
+	if b.State != BlockWaiting {
+		return nil
+	}
+	path, section := blockPath(src, n)
+	detail := text(ctx, "check.missingNoDue", nil)
+	if b.CreativeDue != nil {
+		detail = text(ctx, "check.missingDetail", map[string]any{"due": b.CreativeDue.In(location(ws)).Format("Mon 2 Jan")})
+	}
+	fixes := []contentcheck.ContentCheckFix{{Kind: "open", Label: text(ctx, "check.openBooking", nil), Value: "/w/" + ws.Slug + "/earn/sponsors?booking=" + b.BookingID}}
+	if section >= 0 {
+		fixes = append(fixes, contentcheck.ContentCheckFix{Kind: "remove_section", Label: text(ctx, "check.remove", nil), Path: []int{section}})
+	}
+	return []contentcheck.ContentCheckIssue{{ID: "content.sponsor_creative", Severity: contentcheck.Block, Group: "Content",
+		Title: text(ctx, "check.missing", map[string]any{"sponsor": b.Sponsor, "ends": ends(b.Sponsor)}), Detail: detail, Tag: text(ctx, "check.tag", nil),
+		Path: path, Section: section, Fixes: fixes}}
+}
+
 // Fix actions of the Sponsor block in Review & send.
 const (
 	FixRemoveBlock  = "sponsor_remove_block"
@@ -394,7 +502,14 @@ func (s *Service) FixMJML(ctx context.Context, ws *store.Workspace, campaignID u
 			return src, "", err
 		}
 		b := s.block(ctx, ws, bb, n.Attr(LayoutAttr), n.Attr(LabelAttr))
-		next := strings.Replace(b.MJML, BlockAttr+`="`, HashAttr+`="`+b.Hash+`" `+BlockAttr+`="`, 1)
+		// The writer's own settings stay: the block's name, Visibility and classes.
+		own := ""
+		for _, a := range []string{mjml.AttrName, mjml.AttrVisible, "css-class"} {
+			if v, ok := n.Get(a); ok && v != "" {
+				own += fmt.Sprintf(`%s="%s" `, a, esc(v))
+			}
+		}
+		next := strings.Replace(b.MJML, BlockAttr+`="`, own+HashAttr+`="`+b.Hash+`" `+BlockAttr+`="`, 1)
 		return src[:n.Start] + next + src[n.End:], text(ctx, "fix.refreshed", nil), nil
 	}
 	return src, "", errors.New("unknown fix")

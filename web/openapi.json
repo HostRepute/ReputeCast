@@ -15828,7 +15828,8 @@
               "set_alt",
               "minify",
               "remove_section",
-              "use_subject"
+              "use_subject",
+              "open"
             ],
             "type": "string"
           },
@@ -20754,6 +20755,46 @@
         ],
         "type": "object"
       },
+      "EarnComposerOffer": {
+        "additionalProperties": false,
+        "properties": {
+          "button": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "endsAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "line": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "option": {
+            "type": "string"
+          },
+          "period": {
+            "enum": [
+              "month",
+              "year"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "period",
+          "option",
+          "line",
+          "button"
+        ],
+        "type": "object"
+      },
       "EarnComposerTier": {
         "additionalProperties": false,
         "properties": {
@@ -20768,6 +20809,12 @@
           },
           "name": {
             "type": "string"
+          },
+          "offers": {
+            "items": {
+              "$ref": "#/components/schemas/EarnComposerOffer"
+            },
+            "type": "array"
           },
           "priceLine": {
             "type": "string"
@@ -20790,7 +20837,8 @@
           "top",
           "priceLine",
           "trialDays",
-          "includes"
+          "includes",
+          "offers"
         ],
         "type": "object"
       },
@@ -42787,7 +42835,9 @@
               "visibility_remove_condition",
               "poll_close_days",
               "exclude_risky",
-              "verify_addresses"
+              "verify_addresses",
+              "sponsor_remove_block",
+              "sponsor_refresh_block"
             ],
             "type": "string"
           },
@@ -42870,7 +42920,9 @@
               "visibility_remove_condition",
               "poll_close_days",
               "exclude_risky",
-              "verify_addresses"
+              "verify_addresses",
+              "sponsor_remove_block",
+              "sponsor_refresh_block"
             ],
             "type": "string"
           },

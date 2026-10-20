@@ -24,8 +24,13 @@ export const mc = defineMessages('earn.composer', {
   // The Upgrade block.
   blockLabel: 'Upgrade',
   blocksGroup: 'Earn',
-  blocksHint: 'Upgrade shows to free subscribers only, unless you change its Visibility.',
+  blocksHint: 'Sponsor fills itself from the issue’s booking. Upgrade shows to free subscribers only, unless you change its Visibility.',
   upgradeTitle: 'Upgrade block',
+  // The Upgrade block's offer (X17).
+  offer: 'Offer',
+  offerNone: 'None',
+  offerEnds: '{offer} ends {date}. After that the block shows the normal price.',
+  offerNoneLive: 'No signup offer applies to this tier. Offers are in Earn › Plans & offers.',
   upgradeSub: 'The paywall card · links to the upgrade page',
   headline: 'Headline',
   line: 'Line',

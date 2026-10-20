@@ -7,6 +7,10 @@
 // and read as default: "there". Rendering is bounded: no include or render
 // (templates can't load other templates or files), ranges of at most 1,000
 // items and at most 4 MB of output.
+//
+// One filter of ReputeCast's own: with_query sets a query parameter on a
+// link, {{ upgrade_url | with_query: "offer", "FALL26" }}, whether or not
+// the link already has a query (the Upgrade block's offer, Earn).
 package liquid
 
 import (
@@ -14,6 +18,7 @@ import (
 	"fmt"
 	"html"
 	"io"
+	"net/url"
 	"regexp"
 	"sort"
 	"strconv"
@@ -174,7 +179,21 @@ func NewEngine() *osteele.Engine {
 	e.UnregisterTag("include")
 	e.UnregisterTag("render")
 	e.RegisterTemplateStore(noTemplates{})
+	e.RegisterFilter("with_query", WithQuery)
 	return e
+}
+
+// WithQuery is the with_query filter: the link with the query parameter
+// name set to value. Anything that isn't a web link comes back as it is.
+func WithQuery(link, name, value string) string {
+	u, err := url.Parse(strings.TrimSpace(link))
+	if err != nil || name == "" || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+		return link
+	}
+	q := u.Query()
+	q.Set(name, value)
+	u.RawQuery = q.Encode()
+	return u.String()
 }
 
 // noTemplates is a template store without templates.

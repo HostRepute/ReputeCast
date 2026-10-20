@@ -16523,7 +16523,7 @@ export interface components {
         };
         ContentCheckFix: {
             /** @enum {string} */
-            kind: "replace_link" | "edit_link" | "insert_footer" | "set_alt" | "minify" | "remove_section" | "use_subject";
+            kind: "replace_link" | "edit_link" | "insert_footer" | "set_alt" | "minify" | "remove_section" | "use_subject" | "open";
             label: string;
             path?: number[];
             value?: string;
@@ -17924,10 +17924,22 @@ export interface components {
             tiers: components["schemas"]["EarnComposerTier"][];
             upgradeUrl: string;
         };
+        EarnComposerOffer: {
+            button: string;
+            code: string;
+            /** Format: date-time */
+            endsAt?: string;
+            line: string;
+            name: string;
+            option: string;
+            /** @enum {string} */
+            period: "month" | "year";
+        };
         EarnComposerTier: {
             id: string;
             includes: string[];
             name: string;
+            offers: components["schemas"]["EarnComposerOffer"][];
             priceLine: string;
             short: string;
             top: boolean;
@@ -24312,7 +24324,7 @@ export interface components {
         };
         ReadinessFix: {
             /** @enum {string} */
-            action?: "exclude_sunset" | "route_only" | "insert_footer" | "replace_link" | "use_subject" | "minify" | "mark_language_up_to_date" | "mark_language_translated" | "hold_language" | "release_language" | "accessibility_decorative" | "accessibility_color" | "accessibility_one_click" | "visibility_show_everyone" | "visibility_hide_block" | "visibility_remove_condition" | "poll_close_days" | "exclude_risky" | "verify_addresses";
+            action?: "exclude_sunset" | "route_only" | "insert_footer" | "replace_link" | "use_subject" | "minify" | "mark_language_up_to_date" | "mark_language_translated" | "hold_language" | "release_language" | "accessibility_decorative" | "accessibility_color" | "accessibility_one_click" | "visibility_show_everyone" | "visibility_hide_block" | "visibility_remove_condition" | "poll_close_days" | "exclude_risky" | "verify_addresses" | "sponsor_remove_block" | "sponsor_refresh_block";
             href?: string;
             /** @enum {string} */
             kind: "apply" | "link";
@@ -24331,7 +24343,7 @@ export interface components {
         };
         ReadinessFixRequest: {
             /** @enum {string} */
-            action: "exclude_sunset" | "route_only" | "insert_footer" | "replace_link" | "use_subject" | "minify" | "mark_language_up_to_date" | "mark_language_translated" | "hold_language" | "release_language" | "accessibility_decorative" | "accessibility_color" | "accessibility_one_click" | "visibility_show_everyone" | "visibility_hide_block" | "visibility_remove_condition" | "poll_close_days" | "exclude_risky" | "verify_addresses";
+            action: "exclude_sunset" | "route_only" | "insert_footer" | "replace_link" | "use_subject" | "minify" | "mark_language_up_to_date" | "mark_language_translated" | "hold_language" | "release_language" | "accessibility_decorative" | "accessibility_color" | "accessibility_one_click" | "visibility_show_everyone" | "visibility_hide_block" | "visibility_remove_condition" | "poll_close_days" | "exclude_risky" | "verify_addresses" | "sponsor_remove_block" | "sponsor_refresh_block";
             params?: {
                 [key: string]: string;
             };

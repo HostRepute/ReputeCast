@@ -8,7 +8,9 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/campaigns"
 	"github.com/hostrepute/reputecast/internal/media"
+	"github.com/hostrepute/reputecast/internal/readiness"
 	"github.com/hostrepute/reputecast/internal/sponsors"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -48,7 +50,23 @@ func (i sponsorImages) Upload(ctx context.Context, ws *store.Workspace, p *authz
 	return asset.URL, nil
 }
 
+// readinessSponsors is the Sponsor block in Send Readiness.
+type readinessSponsors struct{ s *sponsors.Service }
+
+func (r readinessSponsors) SponsorFacts(ctx context.Context, ws *store.Workspace, campaignID uuid.UUID, src string) readiness.SponsorFacts {
+	f := r.s.ReadinessFacts(ctx, ws, campaignID, src)
+	return readiness.SponsorFacts{HasBlock: f.HasBlock, State: f.State, Sponsor: f.Sponsor, Issue: f.Issue, BookingID: f.BookingID, CreativeDue: f.CreativeDue,
+		Stale: f.Stale, Labelled: f.Labelled}
+}
+
+func (r readinessSponsors) FixSponsor(ctx context.Context, ws *store.Workspace, campaignID uuid.UUID, src, action string) (string, string, error) {
+	return r.s.FixMJML(ctx, ws, campaignID, src, action)
+}
+
 func init() {
+	// The Sponsor block: the composer's checks and Send Readiness.
+	campaignMore = func(a *App) campaigns.MoreChecks { return sponsorService(a).ComposerIssues }
+	readinessSponsor = func(a *App) readiness.SponsorChecker { return readinessSponsors{sponsorService(a)} }
 	apiRegistrars = append(apiRegistrars, func(a *App, h huma.API) {
 		sponsors.Register(h, sponsorService(a))
 	})

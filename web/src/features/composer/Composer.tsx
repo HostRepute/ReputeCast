@@ -33,6 +33,7 @@ import { DigestModeProvider, digestLeftPanel } from '@/features/digests/composer
 import { AssistRight } from '@/features/ai/composer/panel'
 import { ComposerAssistScope, useComposerAssistState } from '@/features/ai/composer/state'
 import { AITranslateFooter, AITranslateView } from '@/features/ai/composer/translate'
+import { SponsorSync } from '@/features/earn/sponsors/composer/SponsorSettings'
 import './composer.css'
 
 // CodeMirror loads with the code view only.
@@ -665,6 +666,8 @@ export function Composer({
         </a>
         <h1 className="vh">{view === 'preview' ? `Preview of ${name}` : `Campaign composer: ${name || 'Untitled campaign'}`}</h1>
         <Header onReview={goReview} />
+        {/* Sponsor blocks fill themselves from the issue's booking (Earn, X17). */}
+        <SponsorSync />
         {!campaign.access.canSend && canEditPerm ? <PermissionBanner /> : null}
         {view === 'preview' ? <PreviewView onReview={goReview} /> : null}
         {/* The canvas stays mounted off screen in the other views: GrapesJS keeps its state and compiles. */}

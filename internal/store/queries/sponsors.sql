@@ -93,6 +93,12 @@ LEFT JOIN sponsors sp ON sp.id = b.sponsor_id
 WHERE b.campaign_id = @campaign_id AND b.status IN ('booked','sent')
 ORDER BY b.issue_number DESC LIMIT 1;
 
+-- name: SponsorLastIssueOfCampaign :one
+-- The issue of the last booking linked to a campaign, whatever became of it:
+-- a canceled booking leaves the campaign its issue number.
+SELECT slot_id, issue_number, issue_on FROM sponsor_bookings WHERE campaign_id = @campaign_id
+ORDER BY updated_at DESC LIMIT 1;
+
 -- name: SponsorBookingInsert :exec
 INSERT INTO sponsor_bookings (id, workspace_id, slot_id, issue_number, issue_on, sponsor_id, campaign_id, campaign_by_hand, price_cents, currency, status,
     hold_until, creative, creative_status, creative_due, payment_due, notes, proposed_by, proposed_name, proposed_note, created_by, created_at, updated_at)

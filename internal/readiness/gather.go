@@ -161,6 +161,12 @@ func (s *Service) gather(ctx context.Context, ws *store.Workspace, c store.Readi
 	if s.Website != nil {
 		f.Web = s.Website.WebFacts(ctx, ws, c.ID)
 	}
+	if s.Sponsor != nil && strings.TrimSpace(c.Mjml) != "" {
+		f.Sponsor = s.Sponsor.SponsorFacts(ctx, ws, c.ID, c.Mjml)
+	}
+	if s.UpgradeOffers != nil && strings.TrimSpace(c.Mjml) != "" {
+		f.UpgradeOffers = s.UpgradeOffers.EndedUpgradeOffers(ctx, ws, c.ID, c.Mjml)
+	}
 	done(stageContent, f)
 
 	// Languages: who gets which version, and the content checks of every

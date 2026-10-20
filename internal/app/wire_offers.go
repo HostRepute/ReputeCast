@@ -1,12 +1,16 @@
 package app
 
 import (
+	"context"
 	"sync"
 
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/earn"
 	"github.com/hostrepute/reputecast/internal/offers"
+	"github.com/hostrepute/reputecast/internal/readiness"
+	"github.com/hostrepute/reputecast/internal/store"
 )
 
 // Offers and the hosted cancel page (design expansion phase 6, X17): signup
@@ -37,7 +41,19 @@ func offerService(a *App) *offers.Service {
 // Offers is the offers domain (tests set its clock).
 func (a *App) Offers() *offers.Service { return offerService(a) }
 
+// readinessOffers is the Upgrade block's offer in Send Readiness.
+type readinessOffers struct{ s *offers.Service }
+
+func (r readinessOffers) EndedUpgradeOffers(ctx context.Context, ws *store.Workspace, _ uuid.UUID, src string) []readiness.EndedUpgradeOffer {
+	var out []readiness.EndedUpgradeOffer
+	for _, o := range r.s.EndedUpgradeOffers(ctx, ws, src) {
+		out = append(out, readiness.EndedUpgradeOffer{Code: o.Code, Name: o.Name, EndedOn: o.EndedOn, Path: o.Path})
+	}
+	return out
+}
+
 func init() {
+	readinessUpgradeOffers = func(a *App) readiness.UpgradeOfferChecker { return readinessOffers{offerService(a)} }
 	apiRegistrars = append(apiRegistrars, func(a *App, h huma.API) {
 		offers.Register(h, offerService(a))
 	})

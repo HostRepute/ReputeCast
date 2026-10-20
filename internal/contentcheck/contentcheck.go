@@ -41,9 +41,10 @@ const ClipBytes = 102 * 1024
 const NearClipBytes = 85 * 1024
 
 // ContentCheckFix is a one-click fix offered with an issue. The composer applies it to
-// the canvas (Path points at the component) or to the campaign settings.
+// the canvas (Path points at the component) or to the campaign settings; an
+// open fix opens the page in Value (a Sponsor block's booking).
 type ContentCheckFix struct {
-	Kind  string `json:"kind" enum:"replace_link,edit_link,insert_footer,set_alt,minify,remove_section,use_subject"`
+	Kind  string `json:"kind" enum:"replace_link,edit_link,insert_footer,set_alt,minify,remove_section,use_subject,open"`
 	Label string `json:"label"`
 	Value string `json:"value,omitempty"`
 	Path  []int  `json:"path,omitempty"`
@@ -385,6 +386,46 @@ func (c *Checker) Check(ctx context.Context, in Input) (ContentCheckReport, erro
 		r.Verdict = "ready"
 	}
 	return r, nil
+}
+
+// AddIssues adds findings of other domains (the Sponsor block's) to a
+// report: they count in its verdict and in their sections.
+func (r *ContentCheckReport) AddIssues(issues ...ContentCheckIssue) {
+	if len(issues) == 0 {
+		return
+	}
+	for _, is := range issues {
+		if is.Fixes == nil {
+			is.Fixes = []ContentCheckFix{}
+		}
+		if is.Path == nil {
+			is.Path = []int{}
+		}
+		r.Issues = append(r.Issues, is)
+		for i := range r.Sections {
+			if r.Sections[i].Index == is.Section && is.Section >= 0 && (is.Severity == Block || is.Severity == Warn) {
+				r.Sections[i].Issues++
+			}
+		}
+	}
+	sort.SliceStable(r.Issues, func(i, j int) bool { return rank(r.Issues[i]) < rank(r.Issues[j]) })
+	r.Blocks, r.Warnings = 0, 0
+	for _, is := range r.Issues {
+		switch is.Severity {
+		case Block:
+			r.Blocks++
+		case Warn:
+			r.Warnings++
+		}
+	}
+	switch {
+	case r.Blocks > 0:
+		r.Verdict = "blocked"
+	case r.Warnings > 0:
+		r.Verdict = "warnings"
+	default:
+		r.Verdict = "ready"
+	}
 }
 
 // rank orders issues: blocks, then warnings, then the rest; subject issues

@@ -19,7 +19,10 @@ import (
 // offer's price on the tier it applies to and checkout applies its code;
 // an ended offer says so and the page shows the normal prices.
 
-var _ earn.OfferHook = (*Service)(nil)
+var (
+	_ earn.OfferHook         = (*Service)(nil)
+	_ earn.ComposerOfferHook = (*Service)(nil)
+)
 
 func moneyOf(cents int64, currency string) string { return earn.Money(cents, currency) }
 
@@ -176,6 +179,49 @@ func (s *Service) UpgradeOffer(ctx context.Context, ws *store.Workspace, mode, c
 		v.OfferCode = r.Code
 	}
 	return nil
+}
+
+// ComposerOffers implements earn.ComposerOfferHook: the live signup
+// offers on a tier, each with the period it applies to (the year when it
+// applies to both), as the Upgrade block's settings and card say them.
+func (s *Service) ComposerOffers(ctx context.Context, ws *store.Workspace, tier uuid.UUID) []earn.EarnComposerOffer {
+	out := []earn.EarnComposerOffer{}
+	mode, _, _ := s.account(ctx, ws)
+	if mode == "" {
+		return out
+	}
+	rows, err := s.Q.OfferList(ctx, ws.ID)
+	if err != nil {
+		return out
+	}
+	short := s.Earn.TierShortName(ctx, ws.ID, tier)
+	for _, row := range rows {
+		r := store.OfferGetRow(row)
+		if r.Kind != KindSignup || !s.live(ctx, ws, r, mode) {
+			continue
+		}
+		for _, period := range []string{"year", "month"} {
+			if !applies(r, tier.String(), period) {
+				continue
+			}
+			full, cur, ok := s.priceOf(ctx, ws, tier, period)
+			if !ok {
+				continue
+			}
+			a := i18n.Args{"price": moneyOf(discounted(full, r), cur), "full": moneyOf(full, cur), "period": period, "tier": short, "offer": r.Name}
+			key := r.Duration
+			if r.DurationMonths != nil {
+				a["months"] = int(*r.DurationMonths)
+			}
+			if r.Duration == "months" && period == "year" {
+				key = "once"
+			}
+			out = append(out, earn.EarnComposerOffer{Code: r.Code, Name: r.Name, Period: period, Option: text(ctx, "composer.option."+key, a),
+				Line: text(ctx, "composer.line."+key, a), Button: text(ctx, "composer.button", a), EndsAt: r.EndsAt})
+			break
+		}
+	}
+	return out
 }
 
 // priceOf is a tier's current price for a period.

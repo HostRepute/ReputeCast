@@ -77,10 +77,11 @@ export function blockedLine(c: Counts, checks: Check[]): string {
 
 /**
  * The one-click fix a "fix all" button applies for a check: its first apply
- * fix. Marking an image decorative is a judgment, never applied in bulk.
+ * fix. Marking an image decorative is a judgment, and removing a sponsor's
+ * block a decision (Earn, X17): neither is applied in bulk.
  */
 export function primaryFix(c: Check): Fix | undefined {
-  return c.fixes.find((f) => f.kind === 'apply' && f.action !== 'accessibility_decorative')
+  return c.fixes.find((f) => f.kind === 'apply' && f.action !== 'accessibility_decorative' && f.action !== 'sponsor_remove_block')
 }
 
 /** "Fix both warnings", "Apply all 3 fixes". */

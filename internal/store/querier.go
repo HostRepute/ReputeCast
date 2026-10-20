@@ -2504,6 +2504,9 @@ type Querier interface {
 	SponsorGet(ctx context.Context, arg SponsorGetParams) (Sponsor, error)
 	SponsorHoldsLapsed(ctx context.Context, today time.Time) ([]SponsorBooking, error)
 	SponsorInsert(ctx context.Context, arg SponsorInsertParams) error
+	// The issue of the last booking linked to a campaign, whatever became of it:
+	// a canceled booking leaves the campaign its issue number.
+	SponsorLastIssueOfCampaign(ctx context.Context, campaignID *uuid.UUID) (SponsorLastIssueOfCampaignRow, error)
 	// Sponsorships (internal/sponsors): the sponsor library, slots, bookings
 	// with their creative and payment, booking events, report stats and the
 	// read-only report links.

@@ -671,6 +671,9 @@ func (s *Service) Checks(ctx context.Context, ws *store.Workspace, id uuid.UUID,
 	if err != nil {
 		return ComposerChecks{}, err
 	}
+	if s.More != nil && in.Language == "" && strings.TrimSpace(in.MJML) != "" {
+		r.AddIssues(s.More(ctx, ws, id, in.MJML)...)
+	}
 	out := ComposerChecks{ContentCheckReport: r, Lint: mjml.Lint(in.MJML)}
 	for _, is := range r.Issues {
 		if is.ID == "compliance.footer" {

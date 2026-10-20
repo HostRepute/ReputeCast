@@ -300,3 +300,63 @@ func between(s, a, b string) string {
 	}
 	return s
 }
+
+// An Upgrade block can carry a live signup offer (ComposerEarnBlocks): the
+// composer gets each tier's offers with the card's line and button, and
+// once an offer ends Send Readiness finds the blocks that still offer it.
+func TestUpgradeBlockOffer(t *testing.T) {
+	s := newSample(t)
+	ctx := context.Background()
+	in := map[string]any{"name": "SPRING27", "kind": "signup", "discountType": "percent", "percentOff": 25, "duration": "once",
+		"applies": []map[string]any{{"tierId": s.insider, "period": "year"}}, "byCode": true, "code": "spring27", "byLink": true,
+		"endsOn": s.clock.AddDate(0, 0, 10).In(time.UTC).Format(time.DateOnly)}
+	var d offers.OfferDetail
+	s.c.Do(http.MethodPost, ws+"/earn/offers", in).MustStatus(t, 201).JSON(t, &d)
+	type composerOffer struct {
+		Code, Name, Period, Option, Line, Button string
+		EndsAt                                   *time.Time
+	}
+	offersOf := func() []composerOffer {
+		var comp struct {
+			Tiers []struct {
+				ID     string
+				Offers []composerOffer
+			}
+		}
+		s.c.Do(http.MethodGet, ws+"/earn/composer", nil).MustStatus(t, 200).JSON(t, &comp)
+		for _, tier := range comp.Tiers {
+			if tier.ID == s.insider {
+				return tier.Offers
+			}
+		}
+		t.Fatal("no Insider tier in the composer's data")
+		return nil
+	}
+	var spring *composerOffer
+	for _, o := range offersOf() {
+		if o.Code == "SPRING27" {
+			spring = &o
+		}
+	}
+	if spring == nil || spring.Period != "year" || spring.Option != "SPRING27 · $60 for the first year" ||
+		spring.Line != "$60 for your first year with SPRING27, then $80 a year" || spring.Button != "Get Insider for $60" || spring.EndsAt == nil {
+		t.Fatalf("composer offer: %+v", spring)
+	}
+
+	// An email whose Upgrade block carries it.
+	src := `<mjml><mj-body><mj-section><mj-column><mj-text>Story</mj-text></mj-column></mj-section>` +
+		`<mj-section rc-upgrade='{"tier":"` + s.insider + `","offer":"SPRING27"}'><mj-column><mj-text>Card</mj-text></mj-column></mj-section></mj-body></mjml>`
+	if got := s.env.App.Offers().EndedUpgradeOffers(ctx, &s.ws, src); len(got) != 0 {
+		t.Fatalf("a live offer counted as ended: %+v", got)
+	}
+	s.c.Do(http.MethodPost, ws+"/earn/offers/"+d.ID+"/end", nil).MustStatus(t, 200)
+	got := s.env.App.Offers().EndedUpgradeOffers(ctx, &s.ws, src)
+	if len(got) != 1 || got[0].Code != "SPRING27" || got[0].Name != "SPRING27" || got[0].EndedOn == nil || len(got[0].Path) != 1 || got[0].Path[0] != 1 {
+		t.Fatalf("ended: %+v", got)
+	}
+	for _, o := range offersOf() {
+		if o.Code == "SPRING27" {
+			t.Error("the composer still offers an ended offer")
+		}
+	}
+}

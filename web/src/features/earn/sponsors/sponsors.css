@@ -659,4 +659,62 @@
     font-family: var(--font-mono);
     font-size: 12.5px;
   }
+
+  /* The composer's Sponsor block settings (ComposerEarnBlocks): the booking card. */
+  .sp-cblk {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--ground-3);
+  }
+  .sp-cblk-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+  .sp-cblk-head .badge {
+    height: 20px;
+    font-size: 11px;
+  }
+  .sp-cblk-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+  .sp-cblk-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    align-self: flex-start;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .sp-cblk-link:hover {
+    text-decoration: underline;
+  }
+  /* The label: "Sponsored" always on; naming the sponsor is a switch. */
+  .sp-clabel {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    font-size: 12.5px;
+  }
+  .sp-clabel input {
+    margin-top: 1px;
+  }
+  .sp-cname {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 12.5px;
+    cursor: pointer;
+  }
 }

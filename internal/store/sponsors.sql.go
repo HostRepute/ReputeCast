@@ -1327,6 +1327,26 @@ func (q *Queries) SponsorInsert(ctx context.Context, arg SponsorInsertParams) er
 	return err
 }
 
+const sponsorLastIssueOfCampaign = `-- name: SponsorLastIssueOfCampaign :one
+SELECT slot_id, issue_number, issue_on FROM sponsor_bookings WHERE campaign_id = $1
+ORDER BY updated_at DESC LIMIT 1
+`
+
+type SponsorLastIssueOfCampaignRow struct {
+	SlotID      uuid.UUID `json:"slotId"`
+	IssueNumber int32     `json:"issueNumber"`
+	IssueOn     time.Time `json:"issueOn"`
+}
+
+// The issue of the last booking linked to a campaign, whatever became of it:
+// a canceled booking leaves the campaign its issue number.
+func (q *Queries) SponsorLastIssueOfCampaign(ctx context.Context, campaignID *uuid.UUID) (SponsorLastIssueOfCampaignRow, error) {
+	row := q.db.QueryRow(ctx, sponsorLastIssueOfCampaign, campaignID)
+	var i SponsorLastIssueOfCampaignRow
+	err := row.Scan(&i.SlotID, &i.IssueNumber, &i.IssueOn)
+	return i, err
+}
+
 const sponsorList = `-- name: SponsorList :many
 
 SELECT id, workspace_id, name, website, logo_url, contact_name, contact_email, terms_days, notes, created_by, created_at, updated_at, deleted_at FROM sponsors WHERE workspace_id = $1 AND deleted_at IS NULL ORDER BY lower(name)

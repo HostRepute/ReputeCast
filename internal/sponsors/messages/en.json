@@ -1,8 +1,18 @@
 {
   "block.label": { "message": "Sponsored", "note": "the Sponsor block's label, always shown" },
   "block.labelBy": "Sponsored by {sponsor}",
+  "block.none": "No sponsor is booked for #{issue}. This block will be hidden.",
+  "block.noneNoIssue": "No sponsor slot covers this email’s list. This block will be hidden.",
+  "block.noDate": "This email has no send date yet. Once it’s scheduled, the block fills itself from that issue’s booking; until then it’s hidden.",
   "block.placeholderLabel": { "message": "Sponsored · {sponsor}", "note": "the waiting placeholder's label" },
   "block.waiting": "The creative is due {due}. Until it arrives, this issue can't go out with the block.",
+
+  "check.missing": { "message": "Sponsor block: {ends, select, s {{sponsor}’} other {{sponsor}’s}} creative is missing", "note": "ends: s when the sponsor's name ends in an s (Northwind Analytics’ creative)" },
+  "check.missingDetail": "Due {due}. Review & send blocks the issue until it’s ready.",
+  "check.missingNoDue": "Review & send blocks the issue until it’s ready.",
+  "check.openBooking": "Open booking",
+  "check.remove": "Remove the block",
+  "check.tag": { "message": "Creative missing", "note": "the short label next to the Sponsor block on the canvas" },
 
   "fix.refreshed": "Filled the Sponsor block from the booking",
   "fix.removed": "Removed the Sponsor block",
