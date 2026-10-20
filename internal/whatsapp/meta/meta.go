@@ -92,7 +92,9 @@ func (e *Error) Error() string {
 
 // TokenRejected reports whether Meta refused the access token: it expired,
 // was revoked, or lacks a permission. Sends are held until it's replaced.
-func (e *Error) TokenRejected() bool { return e.Code == 190 || e.Code == 102 || e.Status == http.StatusUnauthorized }
+func (e *Error) TokenRejected() bool {
+	return e.Code == 190 || e.Code == 102 || e.Status == http.StatusUnauthorized
+}
 
 // Expired reports whether the token expired (code 190, subcode 463).
 func (e *Error) Expired() bool { return e.Code == 190 && e.Subcode == 463 }
