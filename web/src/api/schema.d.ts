@@ -24963,7 +24963,7 @@ export interface components {
             /** @example first_name */
             key: string;
             /** @enum {string} */
-            kind: "contact" | "custom" | "system" | "referral";
+            kind: "contact" | "custom" | "system" | "referral" | "paid";
             /** @example First name */
             label: string;
         };

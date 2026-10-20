@@ -38,7 +38,7 @@ const MaxRange = 1000
 type PersonalizationToken struct {
 	Key   string `json:"key" example:"first_name"`
 	Label string `json:"label" example:"First name"`
-	Kind  string `json:"kind" enum:"contact,custom,system,referral"`
+	Kind  string `json:"kind" enum:"contact,custom,system,referral,paid"`
 	// Fallback is the suggested default for contacts without a value.
 	Fallback string `json:"fallback,omitempty"`
 }

@@ -12,6 +12,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/apptest"
 	"github.com/hostrepute/reputecast/internal/earn"
+	"github.com/hostrepute/reputecast/internal/liquid"
 	"github.com/hostrepute/reputecast/internal/mjml"
 	"github.com/hostrepute/reputecast/internal/sending"
 	"github.com/hostrepute/reputecast/internal/sending/engine"
@@ -360,5 +361,15 @@ func TestPaidTokens(t *testing.T) {
 	}
 	if tokens := earn.Tokens(); len(tokens) != 7 || tokens[0].Key != "paid.tier" || tokens[5].Key != "upgrade_url" || tokens[6].Label != "Manage subscription link" {
 		t.Errorf("tokens: %+v", tokens)
+	}
+	// Every email's token menu lists them in its Paid group.
+	kinds := map[string]string{}
+	for _, tok := range liquid.Catalog(nil) {
+		kinds[tok.Key] = tok.Kind
+	}
+	for _, tok := range earn.Tokens() {
+		if kinds[tok.Key] != "paid" {
+			t.Errorf("token menu: %s is %q, want paid", tok.Key, kinds[tok.Key])
+		}
 	}
 }

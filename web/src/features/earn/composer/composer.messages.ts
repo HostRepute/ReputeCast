@@ -21,6 +21,8 @@ export const mc = defineMessages('earn.composer', {
   includes: 'Paid access includes trialing, complimentary and gift access, and past due while Stripe retries.',
   includesTier: '{tier} includes {lower}’s paid content.',
   freeDefault: 'Paid access · Free subscribers only, the default',
+  // The token menu's Paid group: paid.* and the reader's two links.
+  tokensPaid: 'Paid',
   // The Upgrade block.
   blockLabel: 'Upgrade',
   blocksGroup: 'Earn',

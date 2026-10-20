@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"slices"
 	"sync"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -18,6 +19,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/demo"
 	"github.com/hostrepute/reputecast/internal/earn"
 	"github.com/hostrepute/reputecast/internal/jobs"
+	"github.com/hostrepute/reputecast/internal/liquid"
 	"github.com/hostrepute/reputecast/internal/routing"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/transactional"
@@ -310,4 +312,22 @@ func init() {
 	jobRegistrars = append(jobRegistrars, func(a *App) {
 		earn.RegisterJobs(a.JobReg, earnService(a))
 	})
+	recipientDataRegistrars = append(recipientDataRegistrars, func(a *App) liquid.RecipientData { return paidRecipients{a} })
+}
+
+// paidRecipients gives each reader their paid.* values (earn.PaidVars) in
+// sends, previews, test emails and view online.
+type paidRecipients struct{ a *App }
+
+func (paidRecipients) Roots() []string { return []string{earn.RootPaid} }
+
+func (p paidRecipients) Vars(ctx context.Context, wsID uuid.UUID, recipients []liquid.Recipient, roots []string) (map[uuid.UUID]map[string]any, error) {
+	if len(recipients) == 0 || !slices.Contains(roots, earn.RootPaid) {
+		return map[uuid.UUID]map[string]any{}, nil
+	}
+	ids := make([]uuid.UUID, len(recipients))
+	for i, r := range recipients {
+		ids[i] = r.ContactID
+	}
+	return earnService(p.a).PaidVars(ctx, wsID, ids)
 }

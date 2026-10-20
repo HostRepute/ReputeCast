@@ -38310,7 +38310,8 @@
               "contact",
               "custom",
               "system",
-              "referral"
+              "referral",
+              "paid"
             ],
             "type": "string"
           },

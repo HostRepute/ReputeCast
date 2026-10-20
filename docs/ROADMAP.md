@@ -35,7 +35,7 @@ Status: ✅ done · 🚧 in progress · ⏳ planned
 | **M23 Contact scoring and growth sources** | Scoring rules, bands and decay, the score on profiles, segments and automations; Audience › Growth | X13 | ✅ |
 | **M24 Address verification and placement tests** | Verification services and their uses; seed mailboxes, placement tests and results | X14 | ✅ |
 | **M25 Referrals and recommendations** | Referral program, milestones and rewards, review queue, public hub and invite pages; recommendations and partner links | X15 | ✅ |
-| **M26 Payments and paid subscriptions** | Stripe with a restricted key, tiers and prices, upgrade page and checkout, paid status, paid members and their import, paid-only content, member emails | X16 | 🚧 (X16: everything ✅ but the paid.* tokens, whose values are ready and join the composer once X15's per-reader data is in `expansion`) |
+| **M26 Payments and paid subscriptions** | Stripe with a restricted key, tiers and prices, upgrade page and checkout, paid status, paid members and their import, paid-only content, member emails | X16 | ✅ |
 | **M27 Offers, gifts, sponsorships and revenue** | Offers and the cancel page, gift subscriptions, sponsors and bookings, Earn overview, the conversion API and revenue attribution | X17 | ✅ |
 | **M28 Publication website** | Posts from campaigns and web-only posts, home, tags and navigation, members, visibility, the meter and paywall | X18 | ✅ (header and About links to pages open once M29's pages are in) |
 | **M29 Landing and sales pages, digital products** | The page builder, landing, sales and webinar pages, the shop, products, orders and downloads | X19 | ⏳ |
