@@ -47,6 +47,8 @@ func readinessService(a *App) *readiness.Service {
 	if v := readinessVerification(a); v != nil {
 		rs.Verification = v
 	}
+	// Grow's Referral and Recommendations blocks (wire_grow.go).
+	rs.Grow = growReadiness{a: a}
 	if w := readinessWebsite(a); w != nil {
 		rs.Website = w
 	}

@@ -95,6 +95,44 @@ func RegisterKind(k Kind) {
 	kinds[k.Key] = k
 }
 
+// Attributor reads a registered kind's source from a contact's own source
+// and its first consent record's (phase 5: "referral:<link>" on a contact
+// who joined through a referral link, "partner:<link>" on a partner
+// signup's consent).
+type Attributor func(contactSource, consentSource string) (kind, id string, ok bool)
+
+// Namer names a registered kind's sources by id ("Partner · Ops Weekly").
+type Namer func(ctx context.Context, q *store.Queries, ws *store.Workspace) (map[string]string, error)
+
+var (
+	attributors []Attributor
+	namers      = map[string]Namer{}
+)
+
+// RegisterAttributor adds a way to attribute joins to a registered kind.
+func RegisterAttributor(f Attributor) {
+	kindsMu.Lock()
+	defer kindsMu.Unlock()
+	attributors = append(attributors, f)
+}
+
+// RegisterNamer adds the names of a registered kind's sources.
+func RegisterNamer(kind string, f Namer) {
+	kindsMu.Lock()
+	defer kindsMu.Unlock()
+	namers[kind] = f
+}
+
+func registered() ([]Attributor, map[string]Namer) {
+	kindsMu.RLock()
+	defer kindsMu.RUnlock()
+	ns := make(map[string]Namer, len(namers))
+	for k, v := range namers {
+		ns[k] = v
+	}
+	return slices.Clone(attributors), ns
+}
+
 func kindOf(key string) Kind {
 	kindsMu.RLock()
 	defer kindsMu.RUnlock()
@@ -166,6 +204,8 @@ type names struct {
 	integrations map[string]store.GrowthIntegrationsOfRow
 	workflows    map[string]string // integration id + ":" + key → name
 	subscribeURL string
+	// extra are the registered kinds' names by id (RegisterNamer).
+	extra map[string]map[string]string
 }
 
 func (s *Service) names(ctx context.Context, q *store.Queries, ws *store.Workspace) (*names, error) {
@@ -209,6 +249,15 @@ func (s *Service) names(ctx context.Context, q *store.Queries, ws *store.Workspa
 	}
 	if s.SubscribeURL != nil {
 		n.subscribeURL = s.SubscribeURL(ctx, ws)
+	}
+	_, ns := registered()
+	n.extra = map[string]map[string]string{}
+	for kind, f := range ns {
+		m, err := f(ctx, q, ws)
+		if err != nil {
+			return nil, err
+		}
+		n.extra[kind] = m
 	}
 	return n, nil
 }
@@ -308,6 +357,10 @@ func (n *names) describe(key string) GrowthSource {
 			}
 		default:
 			out.Name = id
+		}
+	default:
+		if m := n.extra[kind]; m != nil {
+			out.Name = m[id]
 		}
 	}
 	return out

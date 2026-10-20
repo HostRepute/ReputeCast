@@ -1,0 +1,44 @@
+/* Grow on a contact's profile (design expansion phase 5, brief §3.7): the
+   Referrals card and "Referred by". */
+@layer components {
+  .gw-pref {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 16px 20px;
+  }
+  .gw-pref-by {
+    margin: 0;
+    font-size: 13.5px;
+  }
+  .gw-pref-link {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+    min-width: 0;
+  }
+  .gw-pref-link .mono {
+    overflow-wrap: anywhere;
+  }
+  .gw-pref-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 12px;
+    margin: 0;
+  }
+  .gw-pref-rewards {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .gw-pref-rewards li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+  }
+}

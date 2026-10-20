@@ -35,6 +35,9 @@ const (
 	// TriggerScoreCrosses starts when a contact's score rises to a
 	// threshold or falls below it (contact scoring, see scoretrigger.go).
 	TriggerScoreCrosses = "score_crosses"
+	// TriggerMilestoneReached starts when a referrer reaches a referral
+	// milestone (Grow), once per contact per milestone.
+	TriggerMilestoneReached = "milestone_reached"
 )
 
 // Branch paths.
@@ -96,7 +99,7 @@ type AutomationNodeData struct {
 
 // AutomationTrigger says which contacts enter the flow.
 type AutomationTrigger struct {
-	Kind string `json:"kind" enum:"joined_list,form_submitted,tag_added,api_event,date_field,score_crosses,poll_answered"`
+	Kind string `json:"kind" enum:"joined_list,form_submitted,tag_added,api_event,date_field,score_crosses,poll_answered,milestone_reached"`
 	// Joined list: the list, whether to wait for double opt-in, and whether
 	// contacts added by an import count.
 	ListID         string `json:"listId,omitempty" maxLength:"40"`
@@ -126,6 +129,11 @@ type AutomationTrigger struct {
 	AnswerOp string `json:"answerOp,omitempty" enum:"any,is,is_not"`
 	Answers  []int  `json:"answers,omitempty" maxItems:"11"`
 	OnChange bool   `json:"onChange,omitempty"`
+	// Reached a milestone (Grow): the referral program and its milestone,
+	// or any of its milestones when the milestone is empty (any program's
+	// when both are).
+	ProgramID   string `json:"programId,omitempty" maxLength:"40"`
+	MilestoneID string `json:"milestoneId,omitempty" maxLength:"40"`
 }
 
 // AutomationDuration is a delay or a time window.
@@ -468,6 +476,9 @@ type Refs struct {
 	Fields     map[string]string // key → type
 	Providers  map[string]string // id → name
 	Polls      map[string]string // "poll:<id>" or "survey:<id>" → name
+	// Milestones are Grow's referral milestones: "3 referrals · The Acme
+	// Field Guide".
+	Milestones map[string]string
 }
 
 var (
@@ -649,6 +660,11 @@ func checkConfig(n AutomationNode, refs *Refs) []configProblem {
 		}
 		if t.Kind == TriggerScoreCrosses {
 			out = append(out, checkScoreTrigger(t)...)
+		}
+		if t.Kind == TriggerMilestoneReached && t.MilestoneID != "" && refs != nil && refs.Milestones != nil {
+			if _, ok := refs.Milestones[t.MilestoneID]; !ok {
+				bad("missing_ref", "The trigger's milestone was deleted. Pick another milestone.")
+			}
 		}
 		if t.Reentry != "" && t.Reentry != "once" && t.Reentry != "always" {
 			bad("invalid_reentry", "Re-entry is once or always.")

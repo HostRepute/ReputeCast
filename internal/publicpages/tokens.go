@@ -20,6 +20,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/linktoken"
+	"github.com/hostrepute/reputecast/internal/liquid"
 	"github.com/hostrepute/reputecast/internal/pagelabels"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -32,6 +33,8 @@ type gotView struct {
 type confirmBody struct {
 	Heading, Email, Sender, LatestHref, PrefsHref, Proof string
 	Lists                                                []gotView
+	// Grow is "While you're here": recommendations (grow_recommends.go).
+	Grow *growConfirm
 }
 
 func (h *Handler) evidence(r *http.Request, source string) audience.PublicEvidence {
@@ -75,6 +78,7 @@ func (h *Handler) confirm(w http.ResponseWriter, r *http.Request) {
 		h.serverError(w, r, s, err)
 		return
 	}
+	body.Grow = h.growConfirmSection(r.Context(), s, pc.ID, chi.URLParam(r, "token"), "", "", true)
 	v := h.view(s, pageTitle(pl, s, "confirm.title"), body)
 	h.setLang(v, r, s, pl, nil)
 	h.render(w, r, s, "confirm", http.StatusOK, v, csp{}, true)
@@ -229,6 +233,8 @@ type preferencesBody struct {
 	Paid *earn.PreferencesPaid
 	// Account links a member signed in on the website to their account page.
 	Account *prefsAccount
+	// Invite is Grow's "Invite friends" card (grow_recommends.go).
+	Invite *growInvite
 }
 
 // prefsAccount is the preference center's line for a reader signed in on
@@ -367,6 +373,7 @@ func (h *Handler) preferencesBody(ctx context.Context, s *site, pc audience.Publ
 		fallback, _ := languages.Lookup(cp.Languages.Fallback)
 		b.LanguageNote = l.Text("prefs.languageNote", i18n.Args{"publisher": s.set.Branding.PublisherName, "fallback": fallback.Native})
 	}
+	b.Invite = h.growInvite(ctx, s, pc.ID)
 	return b, nil
 }
 
@@ -943,7 +950,12 @@ func (h *Handler) viewOnline(w http.ResponseWriter, r *http.Request) {
 			links[k] = v
 		}
 	}
-	subject, body := renderEmail(subj, html, pc.Email, pc.FirstName, pc.LastName, pc.Attributes, links, h.URLs.Base())
+	vars := liquid.Vars(pc.Email, pc.FirstName, pc.LastName, pc.Attributes, links)
+	if h.Recipients != nil {
+		// Grow's blocks show the reader's own link and progress.
+		vars = liquid.Fill(r.Context(), h.Recipients(), s.ws.ID, liquid.Recipient{ContactID: pc.ID, MessageID: m.ID}, liquid.ExpandBlocks(subj+"\n"+html), vars)
+	}
+	subject, body := renderEmailVars(subj, html, vars, h.URLs.Base())
 	doc := setDocLang(injectHead(body, emailHead{Title: subject, Robots: "noindex, nofollow"}), lang)
 	emailHeaders(w, true)
 	_, _ = w.Write([]byte(doc))

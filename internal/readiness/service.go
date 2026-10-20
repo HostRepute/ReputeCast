@@ -57,6 +57,9 @@ type Service struct {
 	// Website gives the web checks of a campaign that publishes to the
 	// website; nil leaves them out.
 	Website WebsiteChecker
+	// Grow checks the Referral and Recommendations blocks (Content rows);
+	// nil leaves them out.
+	Grow GrowChecker
 }
 
 func (s *Service) now() time.Time {

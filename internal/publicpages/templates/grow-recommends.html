@@ -1,0 +1,20 @@
+{{define "content"}}{{with .Body}}<main class="card g18" id="main">
+  {{template "brand" $}}
+  <div class="col4"><h1 class="h26">{{.Heading}}</h1>{{with .For}}<span class="sub">{{.}}</span>{{end}}</div>
+  {{if .None}}<p>{{.NoneText}}</p>{{with .NoneList}}<p class="sub">{{.}}</p>{{end}}
+  <div class="btns">{{with .LatestHref}}<a class="btn-sm" href="{{.}}">{{$.G "rec.latest"}}</a>{{end}}{{with .PrefsHref}}<a class="btn-ghost" href="{{.}}">{{$.G "rec.preferences"}}</a>{{end}}</div>
+  {{else}}<p class="lead">{{.Lead}}</p>
+  <form class="col18" method="post" action="{{.Action}}" novalidate>
+    {{if .Ask}}<div class="col6">
+      <span class="nm">{{$.G "rec.askHeading"}}</span><span class="sub">{{$.G "rec.askText"}}</span>
+      <label class="field">{{$.G "rec.email"}}<input class="in" type="email" name="email" id="{{.EmailFieldID}}" value="{{.AskEmail}}" autocomplete="email" required{{if .AskError}} aria-invalid="true" aria-describedby="{{.EmailFieldID}}-err"{{end}}></label>
+      {{with .AskError}}<span class="err" id="{{$.Body.EmailFieldID}}-err" role="alert">{{.}}</span>{{end}}
+    </div>{{end}}
+    <ul class="glist">{{range .Items}}{{template "grow-rec" .}}{{end}}</ul>
+  </form>
+  <p class="t13">{{.Footer}}</p>{{end}}
+</main>{{end}}{{end}}
+{{define "foot"}}<footer class="foot">
+  {{- with .Body.PrefsHref}}<a href="{{.}}">{{$.G "rec.preferences"}}</a>{{end}}
+  {{- if and .Body.PrefsHref .PoweredBy}}{{template "sep"}}{{end}}
+  {{- template "rcplain" .}}</footer>{{end}}

@@ -333,6 +333,11 @@ func (s *Service) Preview(ctx context.Context, ws *store.Workspace, p *authz.Pri
 		email = contact.Email
 	}
 	vars := liquid.Vars(email, first, last, attrs, links)
+	if s.Recipients != nil && contact != nil {
+		if cid, err := uuid.Parse(contact.ID); err == nil {
+			vars = liquid.Fill(ctx, s.Recipients(), ws.ID, liquid.Recipient{ContactID: cid}, liquid.ExpandBlocks(subject+"\n"+preheader+"\n"+html), vars)
+		}
+	}
 	out := ComposerPreview{Contact: contact, Tokens: []ComposerTokenValue{}, Problems: []liquid.LiquidProblem{}, RenderedAt: s.now(), FromName: c.SenderName, FromEmail: c.SenderEmail,
 		Language: lang, LanguageReason: reason}
 	render := func(src string) string {

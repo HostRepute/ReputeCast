@@ -183,6 +183,20 @@ func (s *Service) gather(ctx context.Context, ws *store.Workspace, c store.Readi
 	}
 	done(stageLang, f)
 
+	// Grow's blocks: who the Referral block shows to, what the
+	// Recommendations block shows.
+	if s.Grow != nil {
+		byList := map[uuid.UUID]int64{}
+		for _, r := range g.recipients {
+			for _, l := range r.Lists {
+				if id, err := uuid.Parse(l); err == nil {
+					byList[id]++
+				}
+			}
+		}
+		f.Grow = s.Grow.ReadinessRows(ctx, ws, c.ID, c.Html, byList, int64(len(g.recipients)))
+	}
+
 	// Accessibility: every language version, on the content as saved.
 	if s.Accessibility != nil {
 		f.Accessibility = s.Accessibility.ReadinessFacts(ctx, ws, accessibility.CampaignContent{ID: c.ID, Name: c.Name, Status: c.Status, MJML: c.Mjml, HTML: c.Html, Hash: c.ContentHash})

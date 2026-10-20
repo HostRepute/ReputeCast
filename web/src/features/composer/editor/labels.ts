@@ -2,6 +2,7 @@ import type { Component } from 'grapesjs'
 import { t as tt } from '@/i18n'
 import { feedItemsLabel, isFeedItems } from '@/features/digests/composer/feedComponent'
 import { dc } from '@/features/digests/composer/messages'
+import { growBlockLabel, growSectionLabel, isGrowBlock } from '@/features/grow/composer/blocks'
 
 /** MJML tag of a component ("mj-section"), or "" for non-MJML nodes. */
 export function tagOf(c: Component | undefined | null): string {
@@ -71,6 +72,7 @@ export function sectionLabel(c: Component): string {
   const named = String((c.getAttributes() as Record<string, unknown>)['rc-name'] ?? '').trim()
   if (named) return named
   if (isFeedItems(c)) return tt(dc.blockTitle)
+  if (isGrowBlock(c)) return growSectionLabel(c)
   const marker = markerOf(c)
   if (marker && !layoutMarkers.has(marker)) return markerLabels[marker] ?? marker.replace(/-/g, ' ')
   const tag = tagOf(c)
@@ -128,6 +130,7 @@ export function sectionLabel(c: Component): string {
 /** "mj-section · 2 columns", "mj-column · 50%", "mj-image". */
 export function componentLabel(c: Component): string {
   if (isFeedItems(c)) return feedItemsLabel(c)
+  if (isGrowBlock(c)) return growBlockLabel(c)
   const tag = tagOf(c)
   if (!tag) return String(c.get('type') ?? c.get('tagName') ?? 'element')
   const parent = c.parent()

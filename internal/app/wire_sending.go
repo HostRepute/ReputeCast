@@ -12,6 +12,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/automations"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/languages"
+	"github.com/hostrepute/reputecast/internal/liquid"
 	"github.com/hostrepute/reputecast/internal/sending"
 	"github.com/hostrepute/reputecast/internal/sending/engine"
 	"github.com/hostrepute/reputecast/internal/tracking"
@@ -69,7 +70,8 @@ func sendingTracker(a *App) *tracking.Service {
 	t := &tracking.Service{Pool: a.Pool, Q: a.Q, Links: a.Links, Log: a.Log,
 		Automations:   &automations.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Log: a.Log},
 		Transactional: transactionalService(a),
-		Placement:     a.placement()}
+		Placement:     a.placement(),
+		Recipients:    func() []liquid.RecipientData { return recipientData(a) }}
 	v, _ := trackers.LoadOrStore(a, t)
 	return v.(*tracking.Service)
 }
@@ -94,6 +96,8 @@ func sendingEngine(a *App) *engine.Engine {
 		// Each reader gets their version of conditional content, and their
 		// own poll and survey links.
 		Conditional: sendingConditional(a),
+		// Grow's blocks read each reader's referral link and progress.
+		Recipients: func() []liquid.RecipientData { return recipientData(a) },
 	}
 	v, _ := sendingEngines.LoadOrStore(a, e)
 	return v.(*engine.Engine)

@@ -106,6 +106,17 @@ func (s *Service) ListContacts(ctx context.Context, ws *store.Workspace, f Conta
 	if err := rows.Err(); err != nil {
 		return out, err
 	}
+	srcs := make([]string, len(out.Items))
+	for i, it := range out.Items {
+		srcs[i] = it.Source
+	}
+	if named := s.nameSources(ctx, ws.ID, ids, srcs); named != nil {
+		for i, id := range ids {
+			if n, ok := named[id]; ok {
+				out.Items[i].SourceLabel = n
+			}
+		}
+	}
 	names, err := s.Q.ContactListNames(ctx, ids)
 	if err != nil {
 		return out, err

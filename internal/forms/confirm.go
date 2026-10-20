@@ -112,6 +112,12 @@ func ConfirmationEmail(b Branding, firstName string, lists []string, link string
 // ConfirmationEmailIn is the double opt-in email in a language: plain text
 // and a small HTML version in the publisher's colours, no tracking.
 func ConfirmationEmailIn(l pagelabels.Set, b Branding, firstName string, lists []string, link string, reminder bool) mailer.Message {
+	return confirmationEmail(l, b, firstName, lists, link, reminder, "")
+}
+
+// confirmationEmail is ConfirmationEmailIn with an optional note under the
+// lead (a partner signup's "You asked for this on …'s page.").
+func confirmationEmail(l pagelabels.Set, b Branding, firstName string, lists []string, link string, reminder bool, note string) mailer.Message {
 	pub := i18n.Args{"publisher": b.PublisherName}
 	greeting := l.Text("email.greetingAnon", nil)
 	if name := strings.TrimSpace(firstName); name != "" {
@@ -129,6 +135,11 @@ func ConfirmationEmailIn(l pagelabels.Set, b Branding, firstName string, lists [
 	lead := l.Text(leadKey, i18n.Args{"publisher": b.PublisherName, "lists": l.Join(lists)})
 	ignore := l.Text("email.ignore", nil)
 	text := greeting + "\n\n" + lead + " " + l.Text("email.open", nil) + "\n\n" + link + "\n\n" + ignore + "\n\n" + b.PublisherName + "\n"
+	noteHTML := ""
+	if note = strings.TrimSpace(note); note != "" {
+		text = greeting + "\n\n" + lead + "\n\n" + note + " " + l.Text("email.open", nil) + "\n\n" + link + "\n\n" + ignore + "\n\n" + b.PublisherName + "\n"
+		noteHTML = `<p style="margin:0 0 20px;font-size:15px;line-height:1.5">` + html.EscapeString(note) + `</p>`
+	}
 	accent, on := b.Palette.Accent, b.Palette.OnAccent
 	esc := html.EscapeString
 	body := `<!doctype html><html lang="` + esc(l.Code()) + `" dir="` + pagelabels.Dir(l.Code()) + `"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>` + esc(subject) + `</title></head>` +
@@ -137,7 +148,7 @@ func ConfirmationEmailIn(l pagelabels.Set, b Branding, firstName string, lists [
 		`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border:1px solid #E3E6EB;border-radius:14px"><tr><td style="padding:28px">` +
 		`<p style="margin:0 0 16px;font-size:18px;font-weight:700;color:#0B1220">` + esc(b.PublisherName) + `</p>` +
 		`<p style="margin:0 0 12px;font-size:15px;line-height:1.5">` + esc(greeting) + `</p>` +
-		`<p style="margin:0 0 20px;font-size:15px;line-height:1.5">` + esc(lead) + `</p>` +
+		`<p style="margin:0 0 20px;font-size:15px;line-height:1.5">` + esc(lead) + `</p>` + noteHTML +
 		`<p style="margin:0 0 20px"><a href="` + esc(link) + `" style="display:inline-block;padding:12px 20px;border-radius:9px;background:` + esc(accent) + `;color:` + esc(on) + `;font-weight:700;font-size:15px;text-decoration:none">` + esc(l.Text("email.button", nil)) + `</a></p>` +
 		`<p style="margin:0;font-size:13px;line-height:1.5;color:#5B6472">` + esc(ignore) + `</p>` +
 		`</td></tr></table></td></tr></table></body></html>`
@@ -154,6 +165,9 @@ func (s *Service) Confirm(ctx context.Context, ws *store.Workspace, contactID uu
 		var err error
 		res, err = s.Audience.Confirm(ctx, tx, ws, contactID, ev)
 		if err != nil || len(res.Confirmed) == 0 {
+			return err
+		}
+		if err := s.signupConfirmed(ctx, tx, ws, ConfirmEvent{ContactID: contactID, Lists: res.Confirmed, IP: ev.IP, At: ev.At}); err != nil {
 			return err
 		}
 		q := store.New(tx)

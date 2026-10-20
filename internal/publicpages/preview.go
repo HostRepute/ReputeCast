@@ -56,6 +56,8 @@ func RegisterAPI(h huma.API, p *Handler) {
 	registerPollPreviews(h, p)
 	// A post on the web (site_preview.go).
 	registerSitePreviews(h, p)
+	// Grow's invite page, hub, leaderboard and recommendations page (grow_preview.go).
+	registerGrowPreviews(h, p)
 }
 
 // Preview renders one public page for the app.
