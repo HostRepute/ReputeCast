@@ -21,10 +21,13 @@ import { useComposerAssist, type Translation } from './state'
 type Block = Schemas['AITranslationBlock']
 const marksPath = '/api/v1/workspaces/{workspace}/campaigns/{campaignId}/ai-translations' as const
 
-/** The language versions written by AI that nobody has reviewed yet. */
+/**
+ * The language versions written by AI that nobody has reviewed yet. Editors
+ * without a campaign (a transactional template) have none.
+ */
 export function useAIMarks(campaignId: string): Schemas['AITranslationMark'][] {
   const { slug } = useWorkspace()
-  const q = $api.useQuery('get', marksPath, { params: { path: { workspace: slug, campaignId } } }, { staleTime: 30_000 })
+  const q = $api.useQuery('get', marksPath, { params: { path: { workspace: slug, campaignId } } }, { staleTime: 30_000, enabled: campaignId !== '' })
   return q.data?.items ?? []
 }
 
