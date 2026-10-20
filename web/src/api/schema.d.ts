@@ -5362,6 +5362,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/earn/audience": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Who on a list a paid-only campaign reaches: everyone, paid members only or free subscribers only
+         * @description Counts only. Drafting a paid-only campaign needs campaigns:edit, like any draft.
+         */
+        get: operations["get-earn-audience"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/earn/card": {
         parameters: {
             query?: never;
@@ -5406,6 +5426,26 @@ export interface paths {
         get?: never;
         /** Checkout and tax: currency, tax at checkout and the customer portal */
         put: operations["save-earn-checkout"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/composer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The composer's paid content: tiers with their prices, the connection and the upgrade page
+         * @description Needs campaigns:edit, like any draft: a Content Writer adds Upgrade blocks and paid-only sections without earn:view.
+         */
+        get: operations["get-earn-composer"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -13907,10 +13947,17 @@ export interface components {
             /** Format: int64 */
             subscribed: number;
         };
+        AudiencePaidTier: {
+            id: string;
+            name: string;
+            short: string;
+            top: boolean;
+        };
         AudienceSummary: {
             /** Format: int64 */
             contacts: number;
             lists: components["schemas"]["AudienceListSummary"][];
+            paidTiers: components["schemas"]["AudiencePaidTier"][];
             /** Format: int64 */
             segments: number;
             /** Format: int64 */
@@ -14786,6 +14833,14 @@ export interface components {
             /** @enum {string} */
             status?: "booked" | "hold" | "";
         };
+        Brand: {
+            accent: string;
+            ground: string;
+            onAccent: string;
+            publisher: string;
+            soft: string;
+            text: string;
+        };
         CallTarget: {
             email?: string;
             endpoint?: string;
@@ -14866,6 +14921,7 @@ export interface components {
             name: string;
             notes: string[];
             origin?: string;
+            paidOnly: boolean;
             readiness?: components["schemas"]["ReadinessSummary"];
             /** Format: int64 */
             recipients?: number;
@@ -14965,6 +15021,8 @@ export interface components {
             all: number;
             /** Format: int64 */
             drafts: number;
+            /** Format: int64 */
+            paidOnly: number;
             /** Format: int64 */
             scheduled: number;
             /** Format: int64 */
@@ -15122,6 +15180,9 @@ export interface components {
             excludeLists: string[];
             excludeSegments: string[];
             lists: string[];
+            /** @enum {string} */
+            paid?: "paid" | "free" | "";
+            paidTier?: string;
             segments: string[];
         };
         ComposerAudienceCount: {
@@ -15133,6 +15194,13 @@ export interface components {
             excludeLists?: string[];
             excludeSegments?: string[];
             lists?: string[];
+            /**
+             * @description paid: paid members only; free: free subscribers only; empty: everyone on the lists
+             * @enum {string}
+             */
+            paid?: "paid" | "free" | "";
+            /** @description With paid: the lowest tier (the tier and above); empty for any paid tier */
+            paidTier?: string;
             segments?: string[];
         };
         ComposerAudienceOption: {
@@ -16104,6 +16172,10 @@ export interface components {
             list?: string;
             /** @enum {string} */
             mailbox?: "gmail" | "outlook" | "yahoo" | "icloud" | "other";
+            /** @enum {string} */
+            paid?: "with_access" | "trialing" | "past_due" | "complimentary" | "gift" | "ended" | "free";
+            /** @description With paid=with_access: a tier's id, for that tier and above */
+            paidTier?: string;
             /** @description Email, name or tag */
             q?: string;
             referringDomain?: string;
@@ -16193,6 +16265,7 @@ export interface components {
             mailboxLabel: string;
             mailboxProvider: string;
             name: string;
+            paid?: components["schemas"]["ContactPaid"];
             /** Format: int64 */
             score?: number;
             /** @enum {string} */
@@ -16208,6 +16281,15 @@ export interface components {
             name: string;
             /** @enum {string} */
             status: "subscribed" | "pending";
+        };
+        ContactPaid: {
+            /** Format: date-time */
+            endedAt?: string;
+            memberId: string;
+            /** @enum {string} */
+            status: "trialing" | "active" | "past_due" | "complimentary" | "gift" | "ended";
+            /** @description The tier's short name (Insider) */
+            tier: string;
         };
         ContactProfile: {
             /** Format: int64 */
@@ -17712,6 +17794,43 @@ export interface components {
             name: string;
             taxEnabled: boolean;
         };
+        EarnAudience: {
+            /** Format: int64 */
+            complimentary: number;
+            connected: boolean;
+            /** Format: int64 */
+            everyone: number;
+            /** Format: int64 */
+            free: number;
+            /** Format: int64 */
+            gift: number;
+            leftOut: components["schemas"]["EarnAudienceLeftOut"];
+            /** Format: int64 */
+            paid: number;
+            /** Format: int64 */
+            pastDue: number;
+            tiers: components["schemas"]["EarnAudienceTier"][];
+            /** Format: int64 */
+            trialing: number;
+            /** Format: int64 */
+            withAccess: number;
+        };
+        EarnAudienceLeftOut: {
+            /** Format: int64 */
+            inactive: number;
+            /** Format: int64 */
+            notOnList: number;
+            /** Format: int64 */
+            suppressed: number;
+            /** Format: int64 */
+            unsubscribed: number;
+        };
+        EarnAudienceTier: {
+            id: string;
+            name: string;
+            short: string;
+            top: boolean;
+        };
         EarnCancelInput: {
             /** @description Send the Membership canceled email */
             email: boolean;
@@ -17799,6 +17918,21 @@ export interface components {
             tierId: string;
             /** @description YYYY-MM-DD; empty for no end date */
             until?: string;
+        };
+        EarnComposer: {
+            connected: boolean;
+            tiers: components["schemas"]["EarnComposerTier"][];
+            upgradeUrl: string;
+        };
+        EarnComposerTier: {
+            id: string;
+            includes: string[];
+            name: string;
+            priceLine: string;
+            short: string;
+            top: boolean;
+            /** Format: int32 */
+            trialDays: number;
         };
         EarnConnectInput: {
             /** @description A restricted key (rk_live_… or rk_test_…). Write-only: it's sealed and never returned. */
@@ -18130,6 +18264,7 @@ export interface components {
             kind: "stripe" | "complimentary" | "gift";
             legacy: boolean;
             link: string;
+            lists: string[];
             /** Format: int64 */
             ltvCents: number;
             matchedBy?: string;
@@ -18154,6 +18289,7 @@ export interface components {
             status: "trialing" | "active" | "past_due" | "canceled" | "complimentary" | "gift";
             subscriptionId?: string;
             subscriptionUrl?: string;
+            taxAdded: boolean;
             test: boolean;
             tier: string;
             tierId?: string;
@@ -18351,6 +18487,7 @@ export interface components {
             resource: string;
         };
         EarnPlans: {
+            brand: components["schemas"]["Brand"];
             canEdit: boolean;
             connected: boolean;
             currency: string;
@@ -18387,6 +18524,7 @@ export interface components {
             id: string;
             /** Format: int64 */
             members: number;
+            offers: components["schemas"]["EarnPriceOffer"][];
             /** @enum {string} */
             origin: "tier" | "mapped";
             /** Format: int64 */
@@ -18399,6 +18537,11 @@ export interface components {
             stripeLiveId?: string;
             stripeTestId?: string;
             stripeUrl?: string;
+        };
+        EarnPriceOffer: {
+            /** Format: int64 */
+            count: number;
+            label: string;
         };
         EarnProviderCard: {
             available: boolean;
@@ -18440,6 +18583,7 @@ export interface components {
             providerName?: string;
             setup?: string;
             testOnly: boolean;
+            upgradeUrl: string;
         };
         EarnStepInput: {
             /** @enum {string} */
@@ -18481,6 +18625,9 @@ export interface components {
             hiddenLink: string;
             highlight?: string;
             id: string;
+            /** Format: date-time */
+            importedAt?: string;
+            importedFrom?: string;
             includes: string[];
             lists: components["schemas"]["EarnListRef"][];
             monthly?: components["schemas"]["EarnPrice"];
@@ -20534,7 +20681,7 @@ export interface components {
             connectionId?: string;
             facts: components["schemas"]["IntegrationFacts"];
             /** @enum {string} */
-            key: "zapier" | "make" | "n8n" | "wordpress" | "hostrepute" | "api" | "webhooks" | "mcp" | "anthropic" | "openai" | "google" | "azure" | "compatible" | "zerobounce" | "neverbounce" | "kickbox" | "bouncer" | "emailable";
+            key: "zapier" | "make" | "n8n" | "wordpress" | "hostrepute" | "api" | "webhooks" | "mcp" | "anthropic" | "openai" | "google" | "azure" | "compatible" | "zerobounce" | "neverbounce" | "kickbox" | "bouncer" | "emailable" | "stripe" | "paddle" | "lemonsqueezy";
             reasons: components["schemas"]["IntegrationReason"][];
             /** @enum {string} */
             status: "not_connected" | "waiting" | "connected" | "attention" | "none";
@@ -20559,6 +20706,7 @@ export interface components {
             /** Format: date-time */
             lastSyncAt?: string;
             mcpEnabled: boolean;
+            payment?: components["schemas"]["IntegrationPaymentFacts"];
             /** Format: double */
             price?: number;
             /** Format: int64 */
@@ -20837,6 +20985,12 @@ export interface components {
         IntegrationOwnedList: {
             canManage: boolean;
             items: components["schemas"]["IntegrationOwned"][];
+        };
+        IntegrationPaymentFacts: {
+            account?: string;
+            available: boolean;
+            /** @enum {string} */
+            mode?: "live" | "test" | "";
         };
         IntegrationPerson: {
             avatarColor?: string;
@@ -30001,6 +30155,9 @@ export interface components {
             kinds: components["schemas"]["VisibilityCatalogKind"][];
             languages: components["schemas"]["VisibilityOption"][];
             lists: components["schemas"]["VisibilityOption"][];
+            options: {
+                [key: string]: components["schemas"]["VisibilityOption"][];
+            };
             score: components["schemas"]["VisibilityCatalogScore"];
             segments: components["schemas"]["VisibilityOption"][];
             tags: components["schemas"]["VisibilityOption"][];
@@ -37937,6 +38094,8 @@ export interface operations {
                 status?: "all" | "drafts" | "scheduled" | "sending" | "sent";
                 /** @description Search by name */
                 q?: string;
+                /** @description Only campaigns sent to paid members only */
+                paidOnly?: boolean;
                 page?: number;
                 pageSize?: number;
             };
@@ -41419,6 +41578,9 @@ export interface operations {
                 sort?: "activity" | "score" | "";
                 /** @description Only contacts who signed in to the website */
                 signedIn?: boolean;
+                paid?: "with_access" | "trialing" | "past_due" | "complimentary" | "gift" | "ended" | "free" | "";
+                /** @description With paid=with_access: a tier's id, for that tier and above */
+                paidTier?: string;
                 page?: number;
                 pageSize?: number;
             };
@@ -43637,6 +43799,43 @@ export interface operations {
             };
         };
     };
+    "get-earn-audience": {
+        parameters: {
+            query?: {
+                /** @description The campaign's list */
+                list?: string;
+                /** @description The lowest tier of paid members; empty for any paid tier */
+                tier?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnAudience"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "get-earn-card": {
         parameters: {
             query?: never;
@@ -43724,6 +43923,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EarnCheckoutSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-earn-composer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnComposer"];
                 };
             };
             /** @description Error */

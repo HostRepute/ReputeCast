@@ -46,6 +46,14 @@ func (c sendConditional) Links(ctx context.Context, wsID, campaignID uuid.UUID) 
 	for _, l := range links {
 		out = append(out, engine.RecipientLink{Var: l.Var, URL: l.URL})
 	}
+	// Earn's personal links: upgrade_url and manage_subscription_url.
+	paid, err := earnService(c.a).ReaderLinks(ctx, wsID)
+	if err != nil {
+		return nil, err
+	}
+	for _, l := range paid {
+		out = append(out, engine.RecipientLink{Var: l.Var, URL: l.URL})
+	}
 	return out, nil
 }
 
@@ -98,7 +106,24 @@ func (b browserContent) BrowserHTML(ctx context.Context, ws *store.Workspace, ca
 
 // BrowserLinks implements publicpages.Browser.
 func (b browserContent) BrowserLinks(ctx context.Context, ws *store.Workspace, campaignID uuid.UUID) map[string]string {
-	return b.a.polls().BrowserLinks(ctx, ws, campaignID)
+	out := b.a.polls().BrowserLinks(ctx, ws, campaignID)
+	return withPaidLinks(ctx, b.a, ws.ID, out)
+}
+
+// withPaidLinks adds Earn's links as anyone sees them (the archive, test
+// sends): the upgrade page itself, without a reader.
+func withPaidLinks(ctx context.Context, a *App, wsID uuid.UUID, links map[string]string) map[string]string {
+	paid, err := earnService(a).ReaderLinks(ctx, wsID)
+	if err != nil || len(paid) == 0 {
+		return links
+	}
+	if links == nil {
+		links = map[string]string{}
+	}
+	for _, l := range paid {
+		links[l.Var] = l.URL(uuid.Nil, uuid.Nil)
+	}
+	return links
 }
 
 // composerExtras gives the composer's test emails their poll links and
@@ -107,7 +132,11 @@ type composerExtras struct{ a *App }
 
 // TestLinks implements campaigns.Extras.
 func (c composerExtras) TestLinks(ctx context.Context, ws *store.Workspace, campaignID uuid.UUID, email string) (map[string]string, error) {
-	return c.a.polls().TestLinks(ctx, ws, campaignID, email)
+	links, err := c.a.polls().TestLinks(ctx, ws, campaignID, email)
+	if err != nil {
+		return nil, err
+	}
+	return withPaidLinks(ctx, c.a, ws.ID, links), nil
 }
 
 // TestVersion implements campaigns.Extras.

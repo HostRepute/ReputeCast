@@ -177,6 +177,9 @@ type Service struct {
 	// PublicPages names the upgrade page's address on the workspace's own
 	// domain (news.acme.io/upgrade), when it has one.
 	PageBase func(ctx context.Context, ws *store.Workspace) string
+	// Brand is the public pages' branding: the publisher's name ("Acme")
+	// and the page colours, for the in-app previews of reader pages.
+	Brand func(ctx context.Context, ws *store.Workspace) Brand
 	// StripeBase and StripeHTTP point Stripe at a fake (tests).
 	StripeBase string
 	StripeHTTP *http.Client
@@ -194,6 +197,39 @@ type Service struct {
 	// OneTime takes one-time payments' events (gifts); X17, x17.go.
 	Offers  OfferHook
 	OneTime OneTimeHook
+}
+
+// Brand is how the public pages look: who readers pay and the colours.
+type Brand struct {
+	Publisher string `json:"publisher"`
+	// Accent fills buttons and the highlighted card's border; Ground is the
+	// page's background, Soft tints chips, Text is the accent as text and
+	// OnAccent the text on accent buttons.
+	Accent   string `json:"accent"`
+	Ground   string `json:"ground"`
+	Soft     string `json:"soft"`
+	Text     string `json:"text"`
+	OnAccent string `json:"onAccent"`
+}
+
+// brand is the workspace's branding, with ReputeCast's defaults.
+func (s *Service) brand(ctx context.Context, ws *store.Workspace) Brand {
+	b := Brand{}
+	if s.Brand != nil {
+		b = s.Brand(ctx, ws)
+	}
+	if b.Publisher == "" {
+		b.Publisher = ws.Name
+	}
+	if b.Accent == "" {
+		b.Accent, b.Ground, b.Soft, b.Text, b.OnAccent = "#0f766e", "#f0fdfa", "#ccfbf1", "#0f766e", "#ffffff"
+	}
+	return b
+}
+
+// publisher names who readers pay: the branding's publisher name.
+func (s *Service) publisher(ctx context.Context, ws *store.Workspace) string {
+	return s.brand(ctx, ws).Publisher
 }
 
 func (s *Service) now() time.Time {

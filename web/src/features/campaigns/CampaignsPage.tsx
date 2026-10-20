@@ -18,11 +18,13 @@ import { RouteBadges } from './RouteBadges'
 import { CampaignStatusBadge } from './StatusBadge'
 import { NewCampaignDialog } from '@/features/digests/TypePicker'
 import { DigestBadgeLink, RecurringTable, useDigestCount } from '@/features/digests/RecurringTable'
+import { mc } from '@/features/earn/composer/composer.messages'
+import { PaidOnlyBadge } from '@/features/earn/composer/EarnBlocks'
 import { IssueStatusBadge } from '@/features/digests/shared'
 import { SponsorChip, useSponsorChips } from '@/features/earn/sponsors/chips'
 import { m as dm } from '@/features/digests/messages'
 
-export type CampaignFilter = 'all' | 'drafts' | 'scheduled' | 'sending' | 'sent' | 'recurring'
+export type CampaignFilter = 'all' | 'drafts' | 'scheduled' | 'sending' | 'sent' | 'recurring' | 'paid'
 
 export interface CampaignsSearch {
   status?: CampaignFilter
@@ -42,7 +44,13 @@ export function CampaignsPage({ search }: { search: CampaignsSearch }) {
   const list = $api.useQuery(
     'get',
     '/api/v1/workspaces/{workspace}/campaigns',
-    { params: { path: { workspace: slug }, query: { status: status === 'recurring' ? 'all' : status, q: search.q ?? '', page, pageSize: PAGE_SIZE } } },
+    {
+      params: {
+        path: { workspace: slug },
+        // Paid only (Earn): every status, campaigns for paid members only.
+        query: { status: status === 'recurring' || status === 'paid' ? 'all' : status, paidOnly: status === 'paid' || undefined, q: search.q ?? '', page, pageSize: PAGE_SIZE },
+      },
+    },
     { placeholderData: keepPreviousData },
   )
   const counts = list.data?.counts
@@ -131,6 +139,7 @@ function CampaignFilters({ status, counts, q }: { status: CampaignFilter; counts
         { value: 'sending', label: label('sending', counts?.sending) },
         { value: 'sent', label: label('sent', counts?.sent) },
         { value: 'recurring', label: digests !== undefined ? t(dm.recurringTabCount, { count: digests }) : t(dm.recurringTab) },
+        ...(counts?.paidOnly || status === 'paid' ? [{ value: 'paid' as const, label: t(mc.paidOnlyFilter, { count: count(counts?.paidOnly ?? 0) }) }] : []),
       ]}
     />
   )
@@ -291,6 +300,7 @@ function CampaignTable({ data, page, status, q }: { data: Schemas['CampaignList'
                       {sponsors.has(c.id) ? <SponsorChip sponsor={sponsors.get(c.id) ?? ''} /> : null}
                     </div>
                   ) : null}
+                  {c.paidOnly ? <PaidOnlyBadge className="my-1" /> : null}
                   <div className="k">{subtitle(c)}</div>
                 </Td>
                 <Td>

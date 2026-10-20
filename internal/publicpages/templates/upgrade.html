@@ -20,7 +20,7 @@
   {{end}}{{with $v.Offer}}<div class="ea-offer" role="note"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.6 1.8H13a1.2 1.2 0 0 1 1.2 1.2v4.4L7.6 14a1.2 1.2 0 0 1-1.7 0L2 10.1a1.2 1.2 0 0 1 0-1.7z"></path><circle cx="10.8" cy="5.2" r="1"></circle></svg><div><strong>{{.Label}}</strong><span>{{.Text}}</span></div></div>
   {{end}}{{if $v.Toggle}}<nav class="ea-toggle" aria-label="{{index $v.Words "billingPeriod"}}">
     <a href="{{.MonthHref}}"{{if eq $v.Period "month"}} aria-current="true"{{end}}>{{$v.Monthly}}</a>
-    <a href="{{.YearHref}}"{{if eq $v.Period "year"}} aria-current="true"{{end}}>{{$v.Yearly}}{{with $v.Saving}} · <span class="sv">{{.}}</span>{{end}}</a>
+    <a href="{{.YearHref}}"{{if eq $v.Period "year"}} aria-current="true"{{end}}>{{$v.Yearly}}{{with $v.Saving}}<span>·</span><span class="sv">{{.}}</span>{{end}}</a>
   </nav>
   {{end}}{{with $v.Free}}<section class="ea-free" aria-label="{{.Name}}">
     <div class="col4"><p><strong>{{.Name}}</strong> <span class="sub">{{.Price}}{{with .Line}} · {{.}}{{end}}</span></p>{{with .Text}}<p class="ds">{{.}}</p>{{end}}</div>
@@ -50,7 +50,7 @@
   {{end}}{{with $v.Trust}}<div class="ea-trust"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v5c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6z"></path><path d="m9 12 2 2 4-4"></path></svg><p>{{.}}</p></div>
   {{end}}{{if $v.FAQ}}<section class="ea-faq" aria-labelledby="ea-faq-h">
     <h2 id="ea-faq-h">{{$v.FAQTitle}}</h2>
-    {{range $v.FAQ}}<div class="ea-q"><h3>{{.Q}}</h3><p>{{.A}}</p></div>
+    {{range $v.FAQ}}<details class="ea-q" open><summary>{{.Q}}<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 10 4-4 4 4"></path></svg></summary><p>{{.A}}</p></details>
     {{end}}
   </section>
   {{end}}{{end}}

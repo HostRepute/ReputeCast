@@ -1,0 +1,59 @@
+@layer components {
+  /* Option cards of Visibility · Paid access and Who on this list (ComposerEarnBlocks). */
+  .ea-popt {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 9px 12px;
+    border: 1px solid var(--color-line);
+    border-radius: 8px;
+    background: var(--color-surface);
+    font-size: 12.5px;
+    cursor: pointer;
+  }
+  .ea-popt input {
+    flex: none;
+    margin-top: 2px;
+  }
+  .ea-popt.on {
+    border-color: var(--color-accent);
+    background: var(--color-accent-soft);
+  }
+  .ea-popt .num {
+    margin-left: auto;
+    color: var(--color-ink-2);
+    font-variant-numeric: tabular-nums;
+  }
+  /* Paid access's own choices, under Visibility's. */
+  .ea-paid-sub {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-left: 22px;
+    padding-left: 10px;
+    border-left: 2px solid var(--color-line-2);
+  }
+  /* Who on this list, in the audience popover. */
+  .ea-who {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 0;
+    padding: 0 10px;
+    border: 0;
+  }
+  .ea-who legend {
+    padding: 6px 0 2px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-ink-3);
+  }
+  .ea-who-sum {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 2px 10px 0;
+  }
+}

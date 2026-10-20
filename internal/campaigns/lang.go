@@ -19,6 +19,7 @@ var msgs = i18n.MustLoad(messagesFS, "campaigns")
 var (
 	mAudienceAll      = msgs.M("audience.all")
 	mAudienceSegments = msgs.M("audience.segments")
+	mAudiencePaid     = msgs.M("audience.paid")
 	mNoteAB           = msgs.M("note.ab")
 	mNoteABWinner     = msgs.M("note.abWinner")
 	mNoteAutoPaused   = msgs.M("note.autoPaused")

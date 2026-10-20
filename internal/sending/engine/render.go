@@ -197,6 +197,11 @@ func trackable(href string) bool {
 	if strings.Contains(href, "rc_poll_") || strings.Contains(href, "rc_survey_") {
 		return false
 	}
+	// Earn's personal links: the upgrade page knows the reader and credits
+	// the email itself, and the billing link is the reader's own.
+	if strings.Contains(href, "upgrade_url") || strings.Contains(href, "manage_subscription_url") {
+		return false
+	}
 	// Only absolute web links (possibly personalized) are redirected.
 	return strings.HasPrefix(lower, "http://") || strings.HasPrefix(lower, "https://") || strings.HasPrefix(href, "{{")
 }

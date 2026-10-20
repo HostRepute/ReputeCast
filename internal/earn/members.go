@@ -566,6 +566,10 @@ type EarnMember struct {
 	// Emails lists the member emails that can be resent to this paid member.
 	Emails []string `json:"emails"`
 	Link   string   `json:"link"`
+	// Lists are the tier's lists ("already on Weekly Digest"); TaxAdded says
+	// amounts are before tax, which checkout adds.
+	Lists    []string `json:"lists"`
+	TaxAdded bool     `json:"taxAdded"`
 }
 
 // Member is the member panel of a paid subscription.
@@ -673,6 +677,13 @@ func (s *Service) Member(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		}
 	}
 	out.Link = "/w/" + ws.Slug + "/earn/members?member=" + sub.ID.String()
+	out.Lists = names(sub.TierID)
+	if out.Lists == nil {
+		out.Lists = []string{}
+	}
+	if st, err := s.settingsRow(ctx, s.Q, ws.ID); err == nil {
+		out.TaxAdded = st.TaxAtCheckout && !st.PricesIncludeTax
+	}
 	return out, nil
 }
 
