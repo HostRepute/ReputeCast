@@ -149,6 +149,7 @@ CREATE TABLE whatsapp_messages (
     -- template or text (free-form, inside the customer service window)
     kind         text        NOT NULL CHECK (kind IN ('template','text')),
     template     text        NOT NULL DEFAULT '',
+    language     text        NOT NULL DEFAULT '',
     category     text        NOT NULL DEFAULT '',
     params       jsonb       NOT NULL DEFAULT '[]',
     read_at      timestamptz,

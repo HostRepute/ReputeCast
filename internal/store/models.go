@@ -3925,6 +3925,7 @@ type WhatsappMessage struct {
 	AccountID   *uuid.UUID      `json:"accountId"`
 	Kind        string          `json:"kind"`
 	Template    string          `json:"template"`
+	Language    string          `json:"language"`
 	Category    string          `json:"category"`
 	Params      json.RawMessage `json:"params"`
 	ReadAt      *time.Time      `json:"readAt"`

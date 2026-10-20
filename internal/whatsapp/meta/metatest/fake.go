@@ -271,7 +271,8 @@ func (f *Fake) send(w http.ResponseWriter, r *http.Request) {
 	}
 	f.mu.Lock()
 	f.next++
-	s.ID = fmt.Sprintf("wamid.HBgLMTMxMjU1NTAxMjMVAgARGBI%06d", f.next)
+	// Ids are unique across fakes and restarts, as Meta's are.
+	s.ID = fmt.Sprintf("wamid.HBgL%s%06d", strconv.FormatInt(time.Now().UnixNano(), 36), f.next)
 	f.sent = append(f.sent, s)
 	f.mu.Unlock()
 	reply(w, map[string]any{"messaging_product": "whatsapp", "contacts": []map[string]string{{"input": req.To, "wa_id": req.To}},

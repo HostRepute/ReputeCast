@@ -294,6 +294,24 @@ type TemplateComponent struct {
 	Format  string           `json:"format,omitempty"`
 	Text    string           `json:"text,omitempty"`
 	Buttons []TemplateButton `json:"buttons,omitempty"`
+	// Example holds the sample values Meta asks for with each variable.
+	Example *TemplateExample `json:"example,omitempty"`
+}
+
+// TemplateExample is a component's sample values: body_text holds one row
+// with a value per {{n}}.
+type TemplateExample struct {
+	BodyText [][]string `json:"body_text,omitempty"`
+}
+
+// Examples are the sample values of the body's variables, in order.
+func (t Template) Examples() []string {
+	for _, c := range t.Components {
+		if strings.EqualFold(c.Type, "BODY") && c.Example != nil && len(c.Example.BodyText) > 0 {
+			return c.Example.BodyText[0]
+		}
+	}
+	return nil
 }
 
 // TemplateButton is a quick reply, URL or phone number button.

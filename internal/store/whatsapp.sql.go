@@ -854,8 +854,8 @@ func (q *Queries) WhatsAppMessageByMetaID(ctx context.Context, arg WhatsAppMessa
 }
 
 const whatsAppMessageInsert = `-- name: WhatsAppMessageInsert :exec
-INSERT INTO whatsapp_messages (message_id, workspace_id, account_id, kind, template, category, params)
-VALUES ($1, $2, $3, $4, $5, $6, $7)
+INSERT INTO whatsapp_messages (message_id, workspace_id, account_id, kind, template, language, category, params)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 `
 
 type WhatsAppMessageInsertParams struct {
@@ -864,6 +864,7 @@ type WhatsAppMessageInsertParams struct {
 	AccountID   *uuid.UUID      `json:"accountId"`
 	Kind        string          `json:"kind"`
 	Template    string          `json:"template"`
+	Language    string          `json:"language"`
 	Category    string          `json:"category"`
 	Params      json.RawMessage `json:"params"`
 }
@@ -875,6 +876,7 @@ func (q *Queries) WhatsAppMessageInsert(ctx context.Context, arg WhatsAppMessage
 		arg.AccountID,
 		arg.Kind,
 		arg.Template,
+		arg.Language,
 		arg.Category,
 		arg.Params,
 	)

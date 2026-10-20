@@ -178,8 +178,8 @@ ON CONFLICT (campaign_id) DO UPDATE SET phase = EXCLUDED.phase, recipients = EXC
 UPDATE whatsapp_sends SET phase = @phase, completed_at = sqlc.narg(completed_at) WHERE campaign_id = @campaign_id;
 
 -- name: WhatsAppMessageInsert :exec
-INSERT INTO whatsapp_messages (message_id, workspace_id, account_id, kind, template, category, params)
-VALUES (@message_id, @workspace_id, sqlc.narg(account_id), @kind, @template, @category, @params);
+INSERT INTO whatsapp_messages (message_id, workspace_id, account_id, kind, template, language, category, params)
+VALUES (@message_id, @workspace_id, sqlc.narg(account_id), @kind, @template, @language, @category, @params);
 
 -- name: WhatsAppMessageByMetaID :one
 SELECT m.*, w.kind AS wa_kind, w.template, w.category, w.read_at, w.account_id

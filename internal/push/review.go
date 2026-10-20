@@ -622,10 +622,6 @@ func (s *Service) DescribeForApproval(ctx context.Context, ws *store.Workspace, 
 			snap.Push.Image = im.URL
 		}
 	}
-	for _, st := range rv.aud.list {
-		_ = st
-		break
-	}
 	if sites, err := s.sites(ctx, ws); err == nil {
 		for _, st := range sites {
 			for _, id := range c.SiteIds {
