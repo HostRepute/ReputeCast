@@ -18,6 +18,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/emailaddr"
 	"github.com/hostrepute/reputecast/internal/media"
+	"github.com/hostrepute/reputecast/internal/paidaccess"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/routing"
@@ -41,6 +42,9 @@ type audienceDef struct {
 	// whose Broadcasts the policy stopped receive it anyway (Review & send),
 	// unless the sunset tier is excluded.
 	IncludeSunset bool
+	// Paid keeps only the paid members of the lists (at a tier and above)
+	// or only the free subscribers: a paid-only campaign (Earn).
+	Paid paidaccess.Audience
 }
 
 // sendsToStopped reports whether contacts the sunset policy stopped receive
@@ -76,7 +80,8 @@ func parseAudience(raw json.RawMessage) audienceDef {
 	}
 	tiers := append(append([]string{}, in.ExcludeTiers...), in.ExcludeTiers2...)
 	return audienceDef{Lists: ids(in.Lists), Segments: ids(in.Segments), ExcludeLists: ids(in.ExcludeLists, in.ExcludeLists2),
-		ExcludeSegments: ids(in.ExcludeSegments, in.ExcludeSegments2), ExcludeTiers: tiers, IncludeSunset: in.IncludeSunset || in.IncludeSunset2}
+		ExcludeSegments: ids(in.ExcludeSegments, in.ExcludeSegments2), ExcludeTiers: tiers, IncludeSunset: in.IncludeSunset || in.IncludeSunset2,
+		Paid: paidaccess.Parse(raw)}
 }
 
 // Excluded counts the contacts of the audience who don't receive the send.
@@ -260,6 +265,12 @@ func (e *Engine) prepare(ctx context.Context, campaignID uuid.UUID, now time.Tim
 	var sc schedule
 	_ = json.Unmarshal(cc.Schedule, &sc)
 	bestTime := sc.Mode == "best_time"
+	// A paid-only campaign: who has paid access is read once, as the build
+	// starts (or continues); contacts it leaves out aren't recipients.
+	keep, err := paidaccess.Load(ctx, e.Q, cc.WorkspaceID, def.Paid)
+	if err != nil {
+		return err
+	}
 	// Conditional blocks: each page's recipients are decided once, here
 	// (their lists, tags, fields and tier as the build reads them).
 	var planner Planner
@@ -295,6 +306,9 @@ func (e *Engine) prepare(ctx context.Context, campaignID uuid.UUID, now time.Tim
 			}
 		}
 		for _, c := range rows {
+			if !keep.Keeps(c.ID) {
+				continue
+			}
 			if why := eligibility(c, def, dups[c.ID]); why != "" {
 				excluded.add(why)
 				continue

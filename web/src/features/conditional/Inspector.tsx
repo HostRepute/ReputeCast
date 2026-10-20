@@ -11,6 +11,9 @@ import { EyeOff } from './Canvas'
 import { m } from './messages'
 import { conditional, isFooter, nameOf, newRuleId, offered, ruleOf, setName, setRule, type VisibilityCondition, type VisibilityRule } from './rules'
 import { useConditional, type VisibilityCatalog } from './state'
+// Earn's Paid access (design expansion, X16): a kind of its own, in a group of its own.
+import { mc as paidWords } from '@/features/earn/composer/composer.messages'
+import { isPaidRule, KIND_PAID, PaidAccessChoice, paidDefault, paidOpLabel, paidRule, PaidTierSelect } from '@/features/earn/composer/PaidVisibility'
 import './conditional.css'
 
 type T = ReturnType<typeof useT>
@@ -64,11 +67,25 @@ function opsOf(cat: VisibilityCatalog | undefined, cond: VisibilityCondition): {
   return cat?.kinds.find((k) => k.key === cond.kind)?.ops ?? []
 }
 
+/** A kind's name in the picker; later phases' kinds name themselves. */
+function kindName(t: T, kind: string): string {
+  if (kind === KIND_PAID) return t(paidWords.kind)
+  return KIND_LABEL[kind] ? t(m[KIND_LABEL[kind]!]) : kind
+}
+
+/** A group's name in the picker. */
+function groupName(t: T, group: string): string {
+  if (group === KIND_PAID) return t(paidWords.group)
+  return GROUP_LABEL[group] ? t(m[GROUP_LABEL[group]!]) : group
+}
+
 /** The picker's note under a kind: how many there are, or their names. */
 function kindNote(t: T, cat: VisibilityCatalog | undefined, kind: string): string {
   if (!cat) return ''
   const names = (xs: { label: string }[]) => xs.map((x) => x.label).join(', ')
   switch (kind) {
+    case KIND_PAID:
+      return t(paidWords.kindNote)
     case 'segment':
       return t(m.noteSegments, { count: cat.segments.length })
     case 'list':
@@ -91,6 +108,8 @@ function kindNote(t: T, cat: VisibilityCatalog | undefined, kind: string): strin
 
 function rowLabel(t: T, cat: VisibilityCatalog | undefined, cond: VisibilityCondition): string {
   switch (cond.kind) {
+    case KIND_PAID:
+      return t(paidWords.row)
     case 'segment':
       return t(m.rowSegment)
     case 'list':
@@ -117,6 +136,8 @@ function defaultCondition(cat: VisibilityCatalog | undefined, kind: string): Vis
   const ops = cat?.kinds.find((k) => k.key === kind)?.ops ?? []
   const op = ops[0]?.key ?? 'is'
   switch (kind) {
+    case KIND_PAID:
+      return paidDefault()
     case 'segment':
       return { kind, op, value: cat?.segments[0]?.value ?? '', label: cat?.segments[0]?.label }
     case 'list':
@@ -211,6 +232,8 @@ function ValueField({ cond, onChange, disabled }: { cond: VisibilityCondition; o
     )
   }
   switch (cond.kind) {
+    case KIND_PAID:
+      return <PaidTierSelect cond={cond} onChange={onChange} disabled={disabled} />
     case 'segment':
       return pick(cat?.segments ?? [], t(m.deleted, { name: cond.label || cond.value || '' }))
     case 'list':
@@ -261,8 +284,8 @@ function ConditionPicker({ onPick, disabled, trigger, className = 'btn sm self-s
   const needle = q.trim().toLowerCase()
   const groups = (cat?.groups ?? ['lists', 'contact', 'engagement']).map((g) => ({
     key: g,
-    label: GROUP_LABEL[g] ? t(m[GROUP_LABEL[g]!]) : g,
-    kinds: (cat?.kinds ?? []).filter((k) => k.group === g && (!needle || (KIND_LABEL[k.key] ? t(m[KIND_LABEL[k.key]!]) : k.key).toLowerCase().includes(needle))),
+    label: groupName(t, g),
+    kinds: (cat?.kinds ?? []).filter((k) => k.group === g && (!needle || kindName(t, k.key).toLowerCase().includes(needle))),
   }))
   const empty = groups.every((g) => !g.kinds.length)
   return (
@@ -299,7 +322,7 @@ function ConditionPicker({ onPick, disabled, trigger, className = 'btn sm self-s
                     setQ('')
                   }}
                 >
-                  <span className="font-semibold">{KIND_LABEL[k.key] ? t(m[KIND_LABEL[k.key]!]) : k.key}</span>
+                  <span className="font-semibold">{kindName(t, k.key)}</span>
                   <span className="k">{kindNote(t, cat, k.key)}</span>
                 </button>
               ))}
@@ -377,7 +400,7 @@ function ConditionRow({
         >
           {ops.map((o) => (
             <option key={o.key} value={o.key}>
-              {opLabel(t, o.key)}
+              {cond.kind === KIND_PAID ? paidOpLabel(t, o.key) : opLabel(t, o.key)}
             </option>
           ))}
         </select>
@@ -431,12 +454,16 @@ export function VisibilitySection({ c }: { c: Component }) {
   if (!offered(c)) return null
   const footer = isFooter(c)
   const disabled = !ctx.canEdit || footer
+  const paidOffered = !!cond.catalog?.kinds.some((k) => k.key === KIND_PAID)
+  const paid = !footer && paidOffered && isPaidRule(rule)
   const show = footer ? 'everyone' : (rule?.show ?? 'everyone')
   const update = (next: VisibilityRule | null) => setRule(c, next)
-  const setShow = (s: VisibilityRule['show']) => {
+  const setShow = (s: VisibilityRule['show'] | 'paid') => {
     if (s === 'everyone') return update(null)
+    if (s === 'paid') return update(paidRule(rule, paidDefault()))
     const base = rule ?? { id: newRuleId(), show: s, match: 'all', conditions: [] }
-    const conditions = base.conditions.length ? base.conditions : [defaultCondition(cond.catalog, 'list')]
+    // Leaving Paid access starts the conditions over.
+    const conditions = base.conditions.length && !paid ? base.conditions : [defaultCondition(cond.catalog, 'list')]
     update({ ...base, show: s, conditions })
   }
   const setCondition = (i: number, next: VisibilityCondition) => rule && update({ ...rule, conditions: rule.conditions.map((x, j) => (j === i ? next : x)) })
@@ -467,10 +494,10 @@ export function VisibilitySection({ c }: { c: Component }) {
         </div>
       ) : null}
       <div className="cv-show" role="radiogroup" aria-label={t(m.subtitle)}>
-        {(['everyone', 'only', 'except'] as const).map((s) => (
+        {(paidOffered && !footer ? (['everyone', 'paid', 'only', 'except'] as const) : (['everyone', 'only', 'except'] as const)).map((s) => (
           <label key={s} className="tg">
-            <input type="radio" name={`${id}-show`} checked={show === s} disabled={disabled} onChange={() => setShow(s)} />
-            {s === 'everyone' ? t(m.showEveryone) : s === 'only' ? t(m.showOnly) : t(m.showExcept)}
+            <input type="radio" name={`${id}-show`} checked={s === 'paid' ? paid : !paid && show === s} disabled={disabled} onChange={() => setShow(s)} />
+            {s === 'everyone' ? t(m.showEveryone) : s === 'paid' ? t(paidWords.show) : s === 'only' ? t(m.showOnly) : t(m.showExcept)}
           </label>
         ))}
         {show === 'nobody' ? (
@@ -486,7 +513,8 @@ export function VisibilitySection({ c }: { c: Component }) {
           <span>{t(m.footerAlways)}</span>
         </div>
       ) : null}
-      {rule && (show === 'only' || show === 'except') ? (
+      {rule && paid ? <PaidAccessChoice rule={rule} disabled={disabled} onChange={update} /> : null}
+      {rule && !paid && (show === 'only' || show === 'except') ? (
         <>
           <div className="flex items-center gap-2">
             <span className="k">{t(m.match)}</span>

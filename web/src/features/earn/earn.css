@@ -168,12 +168,14 @@
   .ea-schip:hover {
     background: var(--ground-3);
   }
-  .ea-schip[aria-pressed='true'] {
+  .ea-schip[aria-pressed='true'],
+  .ea-schip[aria-selected='true'] {
     background: var(--ink);
     border-color: var(--ink);
     color: #fff;
   }
-  .ea-schip[aria-pressed='true'] .c {
+  .ea-schip[aria-pressed='true'] .c,
+  .ea-schip[aria-selected='true'] .c {
     color: #d1d5db;
   }
   .ea-filters {
@@ -310,6 +312,8 @@
     bottom: 0;
     width: min(600px, 100vw);
     background: #fff;
+    border-left: 1px solid var(--line);
+    outline: none;
     box-shadow: var(--shadow-dialog);
     z-index: 61;
     display: flex;
@@ -683,5 +687,682 @@
     flex-wrap: wrap;
     padding: 12px 18px;
     border-top: 1px solid var(--line-2);
+  }
+
+  /* The upgrade page editor (EarnUpgradeEditor): options on the left, the
+     page as readers see it on the right, under the top bar. */
+  .content.ea-editor-content {
+    padding: 0;
+    gap: 0;
+    flex: 1;
+  }
+  .ea-editor {
+    display: flex;
+    flex-wrap: wrap;
+    flex: 1;
+    align-items: stretch;
+  }
+  .ea-editor-side {
+    flex: 1 1 320px;
+    max-width: 360px;
+    background: #fff;
+    border-right: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+  }
+  .ea-osec {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--line-2);
+  }
+  .ea-osec .lbl {
+    gap: 4px;
+  }
+  .ea-orow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+  }
+  .ea-orow[data-over='true'] {
+    box-shadow: 0 -2px 0 var(--accent);
+  }
+  .ea-orow-l {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+  }
+  .ea-grip {
+    width: 24px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    background: none;
+    color: var(--line-input);
+    cursor: grab;
+    padding: 0;
+    flex: none;
+    border-radius: 6px;
+  }
+  .ea-grip:disabled {
+    cursor: default;
+    opacity: 0.5;
+  }
+  .ea-ta {
+    height: auto;
+    padding: 8px 10px;
+    resize: vertical;
+    font-weight: 400;
+    line-height: 1.45;
+  }
+  .ea-faq-edit {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 0 0 6px 32px;
+  }
+  .ea-editor-preview {
+    flex: 999 1 420px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    background: #e9ecf0;
+  }
+  .ea-editor-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 8px 14px;
+    background: #fff;
+    border-bottom: 1px solid var(--line);
+  }
+  .ea-pv {
+    flex: 1;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 28px 24px;
+  }
+  .ea-pvpage {
+    width: 100%;
+    max-width: 720px;
+    border: 1px solid #ddd6fe;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #fff;
+  }
+  .ea-pvpage[data-device='mobile'] {
+    max-width: 390px;
+  }
+  .ea-pvpage iframe {
+    display: block;
+    width: 100%;
+    border: 0;
+  }
+  @media (max-width: 767px) {
+    .ea-editor-side {
+      max-width: none;
+      border-right: 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .ea-pv {
+      padding: 14px 10px;
+    }
+  }
+
+  /* The tier editor (EarnPlanEditors). */
+  .ea-tier-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 360px);
+    gap: 20px;
+    align-items: start;
+  }
+  @media (max-width: 1099px) {
+    .ea-tier-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+  .ea-srow {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 14px 18px;
+    border-top: 1px solid var(--line-2);
+    flex-wrap: wrap;
+  }
+  .sec + .ea-srow {
+    border-top: 0;
+  }
+  .ea-srow .d {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    flex: 1 1 360px;
+    min-width: 0;
+  }
+  .ea-srow .c {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .ea-radio {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    cursor: pointer;
+    background: #fff;
+  }
+  .ea-radio input {
+    margin-top: 2px;
+    flex: none;
+  }
+  .ea-radio.on {
+    border-color: var(--accent);
+    background: #f0fdfa;
+  }
+  .ea-radio .k {
+    font-weight: 500;
+  }
+  .ea-lchip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 26px;
+    padding: 0 10px;
+    border-radius: 999px;
+    border: 1px solid var(--line-strong);
+    background: #fff;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+  .ea-lchip button {
+    display: inline-flex;
+    border: 0;
+    background: none;
+    padding: 0;
+    color: var(--ink-3);
+    cursor: pointer;
+  }
+  .ea-vline {
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+    flex-wrap: wrap;
+    padding: 8px 0;
+    border-top: 1px solid var(--line-2);
+    font-size: 13px;
+  }
+  .ea-ev {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    padding: 12px 0;
+    border-top: 1px solid var(--line-2);
+  }
+  .ea-ev:first-child {
+    border-top: 0;
+  }
+  .ea-ev .ic {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+  }
+  .ea-ev .tx {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    flex: 1;
+  }
+  .ea-spin {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid #c9ced6;
+    border-top-color: var(--accent);
+    flex: none;
+    display: inline-block;
+    animation: ea-spin 0.8s linear infinite;
+  }
+  @keyframes ea-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .ea-spin {
+      animation: none;
+    }
+  }
+  /* "How readers see it": the card in the publisher's colours. */
+  .ea-tprev {
+    padding: 18px;
+    background: var(--ea-ground);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    border-radius: 0 0 10px 10px;
+  }
+  .ea-tprev-on {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ea-text);
+  }
+  .ea-tprev-toggle {
+    display: inline-flex;
+    gap: 2px;
+    padding: 3px;
+    border-radius: 10px;
+    background: var(--ea-soft);
+    align-self: center;
+  }
+  .ea-tprev-toggle button {
+    height: 34px;
+    padding: 0 14px;
+    border: 0;
+    border-radius: 8px;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    background: none;
+    color: var(--ink-2);
+  }
+  .ea-tprev-toggle button[aria-pressed='true'] {
+    background: #fff;
+    color: var(--ink);
+    box-shadow: 0 1px 2px rgba(11, 18, 32, 0.12);
+  }
+  .ea-tprev-toggle .sv {
+    color: var(--ea-text);
+    font-weight: 700;
+  }
+  .ea-tcard {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 22px 18px 18px;
+    border-radius: 14px;
+    background: #fff;
+    border: 1px solid var(--line);
+    min-width: 0;
+  }
+  .ea-tcard.hl {
+    border: 2px solid var(--ea-accent);
+    padding: 21px 17px 17px;
+    margin-top: 6px;
+  }
+  .ea-tcard-hl {
+    position: absolute;
+    top: -12px;
+    left: 18px;
+    display: inline-flex;
+    align-items: center;
+    height: 24px;
+    padding: 0 10px;
+    border-radius: 999px;
+    background: var(--ea-accent);
+    color: var(--ea-on);
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .ea-tcard h3 {
+    margin: 0;
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--ink);
+  }
+  .ea-tcard-amt {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .ea-tcard-unit {
+    color: var(--ink-2);
+    font-size: 14px;
+  }
+  .ea-tcard-sub {
+    color: var(--ink-3);
+    font-size: 13px;
+  }
+  .ea-tcard-trial {
+    display: inline-flex;
+    align-self: flex-start;
+    align-items: center;
+    height: 24px;
+    padding: 0 9px;
+    border-radius: 999px;
+    background: var(--ea-soft);
+    color: var(--ea-text);
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .ea-tcard ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+  .ea-tcard li {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    font-size: 13.5px;
+    line-height: 1.4;
+    color: var(--ink);
+  }
+  .ea-tcard li svg {
+    flex: none;
+    margin-top: 1px;
+    color: var(--ea-accent);
+  }
+  .ea-tcard-buy {
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .ea-tcard-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 42px;
+    border-radius: 8px;
+    border: 1px solid var(--line-strong);
+    background: #fff;
+    color: var(--ink);
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .ea-tcard-btn.pri {
+    background: var(--ea-accent);
+    border-color: var(--ea-accent);
+    color: var(--ea-on);
+  }
+  .ea-tcard-fine {
+    font-size: 12.5px;
+    color: var(--ink-3);
+    line-height: 1.45;
+  }
+
+  /* Dialog pickers: contacts found by a search. */
+  .ea-picks {
+    list-style: none;
+    margin: 0;
+    padding: 4px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-height: 220px;
+    overflow: auto;
+  }
+  .ea-picks button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 6px 8px;
+    border: 0;
+    border-radius: 6px;
+    background: none;
+    font: inherit;
+    font-size: 13px;
+    color: var(--ink);
+    text-align: left;
+    cursor: pointer;
+  }
+  .ea-picks button:hover,
+  .ea-picks button:focus-visible {
+    background: var(--ground-3);
+  }
+
+  /* Two columns that stack (Settings › Member emails, Pages). */
+  .ea-two {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(460px, 100%), 1fr));
+    gap: 16px;
+    align-items: start;
+  }
+  .ea-lnk {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+    font-size: 13px;
+  }
+  .ea-sel td {
+    background: #f0fdfa;
+  }
+  .ea-flowr {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    font-size: 13px;
+  }
+  .ea-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 28px;
+    padding: 0 10px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: #f9fafb;
+    font-size: 12.5px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .ea-arw {
+    color: #9aa3b2;
+  }
+  .ea-always {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 13.5px;
+  }
+  .ea-always li {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .ea-always svg {
+    flex: none;
+    margin-top: 3px;
+    color: var(--ok-bar);
+  }
+
+  .ea-oldbox {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 14px 16px;
+    border-radius: 10px;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: #1e3a8a;
+    font-size: 13px;
+  }
+
+  /* The import dialog: wide while matching (EarnImport), source cards. */
+  .dlg.ea-wide {
+    max-width: 980px;
+  }
+  .ea-srcopts {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  @media (max-width: 560px) {
+    .ea-srcopts {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+  .ea-srcopt {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 14px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #fff;
+    font: inherit;
+    font-size: 14px;
+    color: var(--ink);
+    text-align: left;
+    cursor: pointer;
+  }
+  .ea-srcopt .k {
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--ink-2);
+  }
+  .ea-srcopt[aria-pressed='true'] {
+    border: 2px solid var(--accent);
+    padding: 13px;
+    background: #f0fdfa;
+  }
+
+  /* The connect wizard's provider cards (EarnConnect, step 1). */
+  .ea-provider {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #fff;
+  }
+  .ea-provider.on {
+    border: 2px solid var(--accent);
+    padding: 15px;
+  }
+  .ea-provider.off {
+    background: #f9fafb;
+  }
+  .ea-cap {
+    display: inline-flex;
+    align-items: center;
+    height: 22px;
+    padding: 0 8px;
+    border-radius: 999px;
+    background: #f3f4f6;
+    color: var(--ink-nav);
+    font-size: 11.5px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .ea-done-ic {
+    width: 40px;
+    height: 40px;
+    flex: none;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #dcfce7;
+    color: #166534;
+  }
+
+  .ea-evlink {
+    color: inherit;
+    text-decoration: none;
+  }
+  .ea-evlink:hover {
+    text-decoration: underline;
+  }
+
+  /* No paid members yet (EarnMembersStates). */
+  .ea-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 44px 28px;
+    text-align: center;
+    border-style: dashed;
+  }
+  .ea-empty .tt {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .ea-empty .ds {
+    margin: 0;
+    max-width: 560px;
+    color: var(--color-ink-2);
+  }
+  .ea-empty-ico {
+    display: inline-flex;
+    width: 52px;
+    height: 52px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--color-line);
+    border-radius: 12px;
+    background: var(--color-ground);
+    color: var(--color-ink-2);
+  }
+
+  /* The tier chip next to a paid member's name in Contacts (EarnInAudience). */
+  .ea-tierchip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 20px;
+    margin-left: 6px;
+    padding: 0 8px;
+    border: 1px solid var(--color-line-strong);
+    border-radius: 999px;
+    background: var(--color-surface);
+    color: var(--color-ink-2);
+    font-size: 11.5px;
+    font-weight: 600;
+    white-space: nowrap;
+    vertical-align: 1px;
+  }
+
+  /* Import contacts › Source: paid members import in Earn (EarnImportStates). */
+  .ea-hintrow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border: 1px solid var(--color-line);
+    border-radius: 8px;
+    background: var(--color-ground);
+    font-size: 13px;
   }
 }

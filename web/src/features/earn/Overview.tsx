@@ -93,7 +93,7 @@ function LaunchChecklist({ c }: { c: Checklist }) {
         ) : (
           <>
             <SideCard icon="upload" title={t(mo.importTitle)} text={t(mo.importText)} action={<ImportLink />} />
-            <SideCard icon="transactional" title={t(mo.sponsorsTitle)} text={t(mo.sponsorsText)} action={<SponsorsLink />} />
+            <SideCard icon="doc" title={t(mo.sponsorsTitle)} text={t(mo.sponsorsText)} action={<SponsorsLink />} />
           </>
         )}
       </div>
@@ -198,6 +198,11 @@ function StepAction({ s, c, primary }: { s: Step; c: Checklist; primary: boolean
         <ButtonAnchor href={c.testCheckoutUrl} size="sm" variant={variant}>
           {t(mo.testAction)}
         </ButtonAnchor>
+      ) : c.canManage ? (
+        // Without a test key, the wizard comes first.
+        <ButtonLink to="/w/$workspace/earn/connect" params={params} search={{ mode: 'test' }} size="sm" variant={variant}>
+          {t(mo.testAction)}
+        </ButtonLink>
       ) : (
         <span className="k whitespace-nowrap">{t(mo.testNeedsKey)}</span>
       )
@@ -210,11 +215,18 @@ function StepAction({ s, c, primary }: { s: Step; c: Checklist; primary: boolean
   }
 }
 
-function SideCard({ icon, title, text, action }: { icon: 'upload' | 'transactional'; title: string; text: string; action: ReactNode }) {
+function SideCard({ icon, title, text, action }: { icon: 'upload' | 'doc'; title: string; text: string; action: ReactNode }) {
   return (
     <section className="card ea-side-card">
       <span className="ea-side-ico" aria-hidden="true">
-        <Icon name={icon} size={18} />
+        {icon === 'doc' ? (
+          <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 1.5h5.5L12.5 4.5V14.5h-8.5z" />
+            <path d="M9.5 1.5v3h3M6 8h4.5M6 10.5h4.5" />
+          </svg>
+        ) : (
+          <Icon name={icon} size={18} />
+        )}
       </span>
       <h3 className="h2">{title}</h3>
       <span className="k text-ink-2">{text}</span>

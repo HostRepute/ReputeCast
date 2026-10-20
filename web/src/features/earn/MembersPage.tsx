@@ -8,13 +8,13 @@ import { Button, ButtonLink } from '@/components/ui/Button'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { EmptyState, ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Select } from '@/components/ui/Field'
-import { Banner, Note } from '@/components/ui/Note'
 import { TableScroll } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { T, useT } from '@/i18n'
 import { count, dayMonthDate, dayMonthYear, orList } from '@/lib/format'
 import { trackJob, updateJob } from '@/lib/jobs'
-import { useCan, useWorkspace } from '@/lib/session'
+import { roleName } from '@/lib/roles'
+import { useCan, useMe, useWorkspace } from '@/lib/session'
 import { fileName, saveBlob } from '../audience/download'
 import { ComplimentaryDialog } from './ComplimentaryDialog'
 import { EARN, EarnPage, copyText } from './EarnPage'
@@ -49,7 +49,8 @@ const statuses: Status[] = ['with_access', 'paying', 'trialing', 'past_due', 'ca
 /** Earn › Paid members (EarnMembers): the summary line, filters, status chips, the list and the member panel. */
 export function MembersPage({ search, onSearch }: { search: MembersSearch; onSearch: (next: MembersSearch, replace?: boolean) => void }) {
   const t = useT()
-  const { slug } = useWorkspace()
+  const { slug, me: who } = useWorkspace()
+  const user = useMe().data
   const status = search.status ?? 'with_access'
   const [q, setQ] = useState(search.q ?? '')
   // The box follows the address when it changes elsewhere (Clear search, Back).
@@ -93,17 +94,24 @@ export function MembersPage({ search, onSearch }: { search: MembersSearch; onSea
         </div>
       ) : (
         <div className="flex flex-col gap-4">
-          <Header list={d} search={search} onImport={() => onSearch({ ...search, import: 'new' })} onComp={() => onSearch({ ...search, comp: true })} />
           {!d.canManage ? (
-            <Note tone="neutral">
-              <T
-                msg={d.helpers.length ? mm.readOnly : mm.readOnlyNoHelpers}
-                values={{ manage: <span className="mono">earn:manage</span>, export: <span className="mono">subscribers:export</span>, helpers: orList(d.helpers) }}
-              />
-            </Note>
+            <div className="note n" role="note">
+              <Icon name="info" size={16} />
+              <div className="flex min-w-0 flex-col gap-1">
+                <span className="font-semibold">{t(mm.readOnlyTitle, { name: user?.user.name ?? '', role: roleName({ key: who.workspace.roleKey, name: who.workspace.roleName }) })}</span>
+                <div>
+                  <T
+                    msg={d.helpers.length ? mm.readOnly : mm.readOnlyNoHelpers}
+                    values={{ manage: <span className="mono">earn:manage</span>, export: <span className="mono">subscribers:export</span>, helpers: orList(d.helpers) }}
+                  />
+                </div>
+              </div>
+            </div>
           ) : null}
-          {status === 'past_due' && d.counts.pastDue > 0 ? <PastDueBanner list={d} search={search} /> : null}
-          {search.test && d.testMembers > 0 ? <TestBanner list={d} /> : null}
+          <Header list={d} search={search} onImport={() => onSearch({ ...search, import: 'new' })} onComp={() => onSearch({ ...search, comp: true })} />
+          {d.counts.withAccess === 0 && d.counts.ended === 0 && d.testMembers === 0 && !search.q ? (
+            <NoMembers list={d} />
+          ) : (
           <section className="card" aria-label={t(mm.tableLabel)}>
             <div className="ea-filters">
               <label className="ea-search">
@@ -191,6 +199,8 @@ export function MembersPage({ search, onSearch }: { search: MembersSearch; onSea
                 <input type="checkbox" role="switch" className="tg" checked={Boolean(search.test)} onChange={(e) => set({ test: e.target.checked || undefined })} />
               </label>
             </div>
+            {status === 'past_due' && d.counts.pastDue > 0 ? <PastDueBanner list={d} search={search} /> : null}
+            {search.test && d.testMembers > 0 ? <TestBanner list={d} /> : null}
             <MembersTable list={d} search={search} onOpen={(id) => onSearch({ ...search, member: id })} onClear={() => onSearch({ ...search, q: undefined, page: undefined })} onSearchEnded={() => onSearch({ ...search, status: 'ended' })} />
             <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line-2 px-[18px] py-3">
               <span className="k">
@@ -208,10 +218,11 @@ export function MembersPage({ search, onSearch }: { search: MembersSearch; onSea
               </div>
             </div>
           </section>
+          )}
         </div>
       )}
       {search.member ? <MemberPanel id={search.member} onClose={() => onSearch({ ...search, member: undefined })} /> : null}
-      {search.comp && d ? <ComplimentaryDialog tiers={d.tiers} onClose={() => onSearch({ ...search, comp: undefined })} /> : null}
+      {search.comp && d ? <ComplimentaryDialog onClose={() => onSearch({ ...search, comp: undefined })} /> : null}
       {search.import ? <ImportDialog id={search.import === 'new' ? undefined : search.import} onClose={() => onSearch({ ...search, import: undefined })} onChange={(id) => onSearch({ ...search, import: id }, true)} /> : null}
     </EarnPage>
   )
@@ -249,6 +260,7 @@ function Header({ list, search, onImport, onComp }: { list: List; search: Member
   const canExport = useCan('subscribers:export')
   const b = (c: React.ReactNode[]) => <b>{c}</b>
   return (
+    <div className="flex flex-col gap-1.5">
     <div className="flex flex-wrap items-center justify-between gap-3">
       <p className="m-0 text-[15px]">
         <T
@@ -262,7 +274,7 @@ function Header({ list, search, onImport, onComp }: { list: List; search: Member
             {t(mm.importMembers)}
           </Button>
         ) : null}
-        <Button disabledReason={canExport ? undefined : t(mm.readOnlyNoHelpers, { manage: 'earn:manage', export: 'subscribers:export' })} onClick={() => void exportMembers(slug, search, list.total, t)}>
+        <Button icon={canExport ? undefined : 'lock'} disabled={!canExport} aria-describedby={canExport ? undefined : 'ea-exp-why'} onClick={() => void exportMembers(slug, search, list.total, t)}>
           {t(mm.exportCsv)}
         </Button>
         {list.canManage ? (
@@ -271,6 +283,12 @@ function Header({ list, search, onImport, onComp }: { list: List; search: Member
           </Button>
         ) : null}
       </div>
+    </div>
+    {canExport ? null : (
+      <span className="k self-end" id="ea-exp-why">
+        <T msg={list.helpers.length ? mm.exportNeeds : mm.exportNeedsNoHelpers} values={{ permission: <span className="mono">subscribers:export</span>, helpers: orList(list.helpers) }} />
+      </span>
+    )}
     </div>
   )
 }
@@ -299,22 +317,25 @@ function PastDueBanner({ list, search }: { list: List; search: MembersSearch }) 
   const t = useT()
   const { slug } = useWorkspace()
   return (
-    <Banner
-      tone="warn"
-      title={t(mm.pastDueTitle, { count: list.counts.pastDue })}
-      actions={
-        <>
-          <ButtonLink to="/w/$workspace/earn/settings" params={{ workspace: slug }} search={{ tab: 'access' }} size="sm">
-            {t(mm.accessRules)}
-          </ButtonLink>
-          <Button size="sm" onClick={() => void exportMembers(slug, search, list.counts.pastDue, t)}>
-            {t(mm.exportThese, { count: list.counts.pastDue })}
-          </Button>
-        </>
-      }
-    >
-      {list.accessRule === 'end' ? t(mm.pastDueEnd) : t(mm.pastDueKeep)}
-    </Banner>
+    <div className="px-[18px] pt-3.5">
+      <div className="note w" role="note">
+        <Icon name="alertCircle" size={16} />
+        <div className="flex min-w-0 flex-col gap-1">
+          <span className="font-semibold">{t(mm.pastDueTitle, { count: list.counts.pastDue })}</span>
+          <div className="flex flex-col items-start gap-2">
+            {list.accessRule === 'end' ? t(mm.pastDueEnd) : t(mm.pastDueKeep)}
+            <div className="flex flex-wrap gap-2">
+              <ButtonLink to="/w/$workspace/earn/settings" params={{ workspace: slug }} search={{ tab: 'access' }} size="sm">
+                {t(mm.accessRules)}
+              </ButtonLink>
+              <Button size="sm" onClick={() => void exportMembers(slug, search, list.counts.pastDue, t)}>
+                {t(mm.exportThese, { count: list.counts.pastDue })}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -327,19 +348,22 @@ function TestBanner({ list }: { list: List }) {
   const clear = $api.useMutation('post', `${EARN}/test-data/clear`)
   return (
     <>
-      <Banner
-        tone="info"
-        title={t(mm.testShowing, { count: list.testMembers })}
-        actions={
-          canClear ? (
-            <Button size="sm" variant="danger" onClick={() => setOpen(true)}>
-              {t(mm.clearTest)}
-            </Button>
-          ) : null
-        }
-      >
-        {t(mm.testText)}
-      </Banner>
+      <div className="px-[18px] pt-3.5">
+        <div className="note n" role="note">
+          <Icon name="info" size={16} />
+          <div className="flex min-w-0 flex-col gap-1">
+            <span className="font-semibold">{t(mm.testShowing, { count: list.testMembers })}</span>
+            <div className="flex flex-col items-start gap-2">
+              {t(mm.testText)}
+              {canClear ? (
+                <Button size="sm" variant="danger" onClick={() => setOpen(true)}>
+                  {t(mm.clearTest)}
+                </Button>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      </div>
       <ConfirmDialog
         open={open}
         onOpenChange={setOpen}
@@ -360,7 +384,6 @@ function TestBanner({ list }: { list: List }) {
 
 function MembersTable({ list, search, onOpen, onClear, onSearchEnded }: { list: List; search: MembersSearch; onOpen: (id: string) => void; onClear: () => void; onSearchEnded: () => void }) {
   const t = useT()
-  const { slug } = useWorkspace()
   if (list.items.length === 0) {
     if (search.q) {
       return (
@@ -375,29 +398,6 @@ function MembersTable({ list, search, onOpen, onClear, onSearchEnded }: { list: 
             }
           >
             {t(mm.noResultsText)}
-          </EmptyState>
-        </div>
-      )
-    }
-    if (list.counts.withAccess === 0 && list.counts.ended === 0 && !search.test) {
-      return (
-        <div className="px-[18px] pb-6">
-          <EmptyState
-            title={t(mm.noMembersTitle)}
-            action={
-              <>
-                <Button icon="copy" onClick={() => void copyText(list.upgradeUrl, t, toast)}>
-                  {t(mm.copyUpgrade)}
-                </Button>
-                {list.canImport ? (
-                  <ButtonLink to="/w/$workspace/earn/members" params={{ workspace: slug }} search={{ import: 'new' }}>
-                    {t(mm.importMembers)}
-                  </ButtonLink>
-                ) : null}
-              </>
-            }
-          >
-            {t(mm.noMembersText)} <span className="mono">{list.upgradeHost}</span>
           </EmptyState>
         </div>
       )
@@ -529,4 +529,32 @@ function SourceCell({ r }: { r: MemberRow }) {
     )
   }
   return <span>{label}</span>
+}
+
+/** No paid members yet (EarnMembersStates): the upgrade page's link to share, or an import. */
+function NoMembers({ list }: { list: List }) {
+  const t = useT()
+  const { slug } = useWorkspace()
+  return (
+    <section className="card ea-empty" aria-labelledby="ea-nomembers">
+      <span className="ea-empty-ico" aria-hidden="true">
+        <Icon name="user" size={22} strokeWidth={1.6} />
+      </span>
+      <h2 className="tt" id="ea-nomembers">
+        {t(mm.noMembersTitle)}
+      </h2>
+      <p className="ds">{t(mm.noMembersText)}</p>
+      <div className="flex flex-wrap justify-center gap-2.5">
+        <Button variant="primary" icon="copy" onClick={() => void copyText(list.upgradeUrl, t, toast)}>
+          {t(mm.copyUpgrade)}
+        </Button>
+        {list.canImport ? (
+          <ButtonLink to="/w/$workspace/earn/members" params={{ workspace: slug }} search={{ import: 'new' }}>
+            {t(mm.importMembers)}
+          </ButtonLink>
+        ) : null}
+      </div>
+      <span className="k mono">{list.upgradeHost}</span>
+    </section>
+  )
 }

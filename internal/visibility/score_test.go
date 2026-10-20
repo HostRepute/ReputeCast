@@ -47,7 +47,7 @@ func TestScoreConditionsOfAnAudience(t *testing.T) {
 	for _, b := range cat.Bands {
 		bands = append(bands, b.Value+"="+b.Label)
 	}
-	if got := strings.Join(kinds, ","); !strings.HasSuffix(got, "engagement:tier,engagement:score,engagement:score_band") {
+	if got := strings.Join(kinds, ","); !strings.Contains(got, "engagement:tier,engagement:score,engagement:score_band") {
 		t.Fatalf("kinds: %s", got)
 	}
 	if strings.Join(bands, ",") != "hot=Hot,warm=Warm,cold=Cold" || !cat.Score.Configured || cat.Score.WarmFrom != 20 || cat.Score.HotFrom != 50 {

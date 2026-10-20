@@ -135,5 +135,25 @@
   "welcome.note": "{tier, select, none {Stripe emails your receipt.} other {Stripe emails your receipt. “Welcome to {tier}” is on its way too.}}",
   "welcome.past": "Read past issues",
   "welcome.soon": "soon",
-  "welcome.there": "there"
+  "welcome.there": "there",
+
+  "tokens.endsAt": "Access ends on",
+  "tokens.manageURL": "Manage subscription link",
+  "tokens.price": "Paid price",
+  "tokens.renewsAt": "Renews on",
+  "tokens.status": "Paid status",
+  "tokens.statusValue": { "message": "{status, select, trialing {Trialing} past_due {Past due} complimentary {Complimentary} gift {Gift} other {Active}}", "note": "the value of {{ paid.status }} in an email" },
+  "tokens.tier": "Paid tier",
+  "tokens.upgradeURL": "Upgrade link",
+
+  "visibility.aTier": "a tier and above",
+  "visibility.describeAny": "Paid · any paid tier",
+  "visibility.describeFree": "Free subscribers only",
+  "visibility.describeTier": { "message": "Paid · {tier}", "note": "tier: the choice as picked (Insider and above, Founding member)" },
+  "visibility.traitFree": "Free subscriber",
+  "visibility.traitPaid": { "message": "{tier} member · {status, select, trialing {trialing} past_due {past due} complimentary {complimentary} gift {gift} other {active}}", "note": "tier: the tier's short name (Insider)" },
+  "visibility.whyBelow": "{name}'s {tier} access doesn't include {needed}",
+  "visibility.whyNoAccess": "{name} has no paid access",
+  "visibility.whyNotConnected": "The Upgrade block is hidden until a payment provider is connected",
+  "visibility.whyPaid": "{name} has paid access ({tier})"
 }
