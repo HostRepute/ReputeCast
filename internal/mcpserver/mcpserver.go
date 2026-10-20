@@ -55,6 +55,10 @@ type Service struct {
 	Polls PollReader
 	// Website lists, reads and drafts posts (nil: unavailable).
 	Website WebsitePosts
+	// Revenue reads Earn › Overview and Sponsors takes proposed bookings
+	// (X17; nil: unavailable).
+	Revenue  RevenueReader
+	Sponsors SponsorProposer
 	// Grow and Recommendations read Grow's referrals and recommendations
 	// (nil: unavailable).
 	Grow            GrowReader

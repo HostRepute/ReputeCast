@@ -108,6 +108,10 @@ export async function applyFix(c: ComposerState, issue: Issue, fix: Fix, value?:
     case 'use_subject':
       if (fix.value) c.setSubject(fix.value)
       return
+    case 'open':
+      // The page beside the composer (a Sponsor block's booking): the draft stays open.
+      if (fix.value?.startsWith('/')) window.open(fix.value, '_blank', 'noopener')
+      return
     case 'minify':
       try {
         await http.PATCH('/api/v1/workspaces/{workspace}/campaigns/{campaignId}', {

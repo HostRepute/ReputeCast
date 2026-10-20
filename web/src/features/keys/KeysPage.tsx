@@ -173,6 +173,12 @@ function KeysCard({ q, onCreate, onAction }: { q: ListQuery; onCreate: () => voi
                       <span className="mt-[3px]">
                         <KeyBadges preset={k.transactional.preset} mode={k.transactional.mode} />
                       </span>
+                    ) : k.permissions.length === 1 && k.permissions[0] === 'conversions:create' ? (
+                      // Earn's conversion API key (EarnSettingsStates).
+                      <span className="mt-[3px] inline-flex flex-wrap gap-1.5">
+                        <Badge tone="info">Conversions</Badge>
+                        {k.masked.startsWith('rc_test_') ? <Badge tone="purple">Test</Badge> : <Badge tone="ok">Live</Badge>}
+                      </span>
                     ) : null}
                   </div>
                 </Td>

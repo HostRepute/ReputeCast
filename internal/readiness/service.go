@@ -57,6 +57,12 @@ type Service struct {
 	// Website gives the web checks of a campaign that publishes to the
 	// website; nil leaves them out.
 	Website WebsiteChecker
+	// Sponsor gives the Sponsor block's checks and fixes; nil leaves them
+	// out.
+	Sponsor SponsorChecker
+	// UpgradeOffers finds Upgrade blocks whose offer ended; nil leaves the
+	// check out.
+	UpgradeOffers UpgradeOfferChecker
 	// Grow checks the Referral and Recommendations blocks (Content rows);
 	// nil leaves them out.
 	Grow GrowChecker

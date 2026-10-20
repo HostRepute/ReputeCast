@@ -58,6 +58,8 @@ func earnService(a *App) *earn.Service {
 	if a.Cfg != nil {
 		s.AllowPrivate = a.Cfg.Providers.AllowPrivateNetworks
 	}
+	// Offers and gifts hook into the upgrade page, checkout and payments (X17).
+	wireEarnX17(a, s)
 	v, _ := earnServices.LoadOrStore(a, s)
 	return v.(*earn.Service)
 }
@@ -202,16 +204,24 @@ func (m earnMailer) Send(ctx context.Context, ws *store.Workspace, msg earn.Memb
 	}
 	status, body, err := transactionalService(m.a).Send(ctx, ws, in, idem, "api")
 	if err != nil {
+		// The transactional API answers with its own problem, which wraps
+		// the API's (X17: its refusals kept their reason only this way).
+		code := ""
 		var p *api.Problem
-		if errors.As(err, &p) {
-			switch p.Code {
-			case transactional.CodeTemplateNotPublished, transactional.CodeTemplateNotFound:
-				return earn.Sent{}, earn.ErrNotPublished
-			case transactional.CodeNoHealthyRoute:
-				return earn.Sent{}, earn.ErrNoRoute
-			case transactional.CodeRecipientSuppressed:
-				return earn.Sent{}, earn.ErrSuppressed
-			}
+		var tp *transactional.Problem
+		switch {
+		case errors.As(err, &tp):
+			code = tp.Code
+		case errors.As(err, &p):
+			code = p.Code
+		}
+		switch code {
+		case transactional.CodeTemplateNotPublished, transactional.CodeTemplateNotFound:
+			return earn.Sent{}, earn.ErrNotPublished
+		case transactional.CodeNoHealthyRoute:
+			return earn.Sent{}, earn.ErrNoRoute
+		case transactional.CodeRecipientSuppressed:
+			return earn.Sent{}, earn.ErrSuppressed
 		}
 		return earn.Sent{}, err
 	}

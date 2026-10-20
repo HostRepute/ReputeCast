@@ -904,6 +904,29 @@ type ContentTranslationVersion struct {
 	SizeBytes     int32           `json:"sizeBytes"`
 }
 
+type Conversion struct {
+	ID             uuid.UUID       `json:"id"`
+	WorkspaceID    uuid.UUID       `json:"workspaceId"`
+	ApiKeyID       *uuid.UUID      `json:"apiKeyId"`
+	KeyName        string          `json:"keyName"`
+	Name           string          `json:"name"`
+	Value          string          `json:"value"`
+	ValueCents     int64           `json:"valueCents"`
+	Currency       string          `json:"currency"`
+	OccurredAt     time.Time       `json:"occurredAt"`
+	ReceivedAt     time.Time       `json:"receivedAt"`
+	ContactID      *uuid.UUID      `json:"contactId"`
+	Matched        string          `json:"matched"`
+	MessageID      *uuid.UUID      `json:"messageId"`
+	CampaignID     *uuid.UUID      `json:"campaignId"`
+	AutomationID   *uuid.UUID      `json:"automationId"`
+	ClickedAt      *time.Time      `json:"clickedAt"`
+	Metadata       json.RawMessage `json:"metadata"`
+	IdempotencyKey string          `json:"idempotencyKey"`
+	RequestHash    string          `json:"requestHash"`
+	Test           bool            `json:"test"`
+}
+
 type CustomField struct {
 	ID          uuid.UUID       `json:"id"`
 	WorkspaceID uuid.UUID       `json:"workspaceId"`
@@ -1103,6 +1126,25 @@ type DmarcReport struct {
 	Via         string          `json:"via"`
 }
 
+type EarnCampaignClick struct {
+	CampaignID    uuid.UUID `json:"campaignId"`
+	WorkspaceID   uuid.UUID `json:"workspaceId"`
+	UpgradeClicks int64     `json:"upgradeClicks"`
+}
+
+type EarnCancelVisit struct {
+	ID             uuid.UUID  `json:"id"`
+	WorkspaceID    uuid.UUID  `json:"workspaceId"`
+	ContactID      *uuid.UUID `json:"contactId"`
+	SubscriptionID *uuid.UUID `json:"subscriptionId"`
+	Mode           string     `json:"mode"`
+	VisitedAt      time.Time  `json:"visitedAt"`
+	OfferID        *uuid.UUID `json:"offerId"`
+	Reason         string     `json:"reason"`
+	Decision       string     `json:"decision"`
+	DecidedAt      *time.Time `json:"decidedAt"`
+}
+
 type EarnCheckout struct {
 	ID              uuid.UUID       `json:"id"`
 	WorkspaceID     uuid.UUID       `json:"workspaceId"`
@@ -1121,6 +1163,70 @@ type EarnCheckout struct {
 	CreatedAt       time.Time       `json:"createdAt"`
 	CompletedAt     *time.Time      `json:"completedAt"`
 	SubscriptionID  *uuid.UUID      `json:"subscriptionId"`
+}
+
+type EarnGift struct {
+	ID              uuid.UUID  `json:"id"`
+	WorkspaceID     uuid.UUID  `json:"workspaceId"`
+	Mode            string     `json:"mode"`
+	OptionID        *uuid.UUID `json:"optionId"`
+	TierID          *uuid.UUID `json:"tierId"`
+	Months          int32      `json:"months"`
+	AmountCents     int64      `json:"amountCents"`
+	Currency        string     `json:"currency"`
+	Status          string     `json:"status"`
+	BuyerName       string     `json:"buyerName"`
+	BuyerEmail      string     `json:"buyerEmail"`
+	InPerson        bool       `json:"inPerson"`
+	RecipientName   string     `json:"recipientName"`
+	RecipientEmail  string     `json:"recipientEmail"`
+	Message         string     `json:"message"`
+	DeliverAt       *time.Time `json:"deliverAt"`
+	Timezone        string     `json:"timezone"`
+	Code            string     `json:"code"`
+	StripeSessionID string     `json:"stripeSessionId"`
+	PaymentIntent   string     `json:"paymentIntent"`
+	StripeCustomer  string     `json:"stripeCustomer"`
+	PaidAt          *time.Time `json:"paidAt"`
+	DeliveredAt     *time.Time `json:"deliveredAt"`
+	RemindedAt      *time.Time `json:"remindedAt"`
+	LinkExpiresAt   *time.Time `json:"linkExpiresAt"`
+	RedeemedAt      *time.Time `json:"redeemedAt"`
+	RedeemedEmail   string     `json:"redeemedEmail"`
+	RedeemedContact *uuid.UUID `json:"redeemedContact"`
+	SubscriptionID  *uuid.UUID `json:"subscriptionId"`
+	EndingSentAt    *time.Time `json:"endingSentAt"`
+	RefundedAt      *time.Time `json:"refundedAt"`
+	MessagePurgedAt *time.Time `json:"messagePurgedAt"`
+	CreatedAt       time.Time  `json:"createdAt"`
+	UpdatedAt       time.Time  `json:"updatedAt"`
+	ReceiptSentAt   *time.Time `json:"receiptSentAt"`
+	EmailStatus     string     `json:"emailStatus"`
+}
+
+type EarnGiftEvent struct {
+	ID         uuid.UUID       `json:"id"`
+	GiftID     uuid.UUID       `json:"giftId"`
+	Kind       string          `json:"kind"`
+	OccurredAt time.Time       `json:"occurredAt"`
+	ActorID    *uuid.UUID      `json:"actorId"`
+	MessageID  *uuid.UUID      `json:"messageId"`
+	Data       json.RawMessage `json:"data"`
+}
+
+type EarnGiftOption struct {
+	ID          uuid.UUID       `json:"id"`
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	TierID      uuid.UUID       `json:"tierId"`
+	Months      int32           `json:"months"`
+	AmountCents int64           `json:"amountCents"`
+	Currency    string          `json:"currency"`
+	Position    int32           `json:"position"`
+	Stripe      json.RawMessage `json:"stripe"`
+	CreatedBy   *uuid.UUID      `json:"createdBy"`
+	CreatedAt   time.Time       `json:"createdAt"`
+	UpdatedAt   time.Time       `json:"updatedAt"`
+	DeletedAt   *time.Time      `json:"deletedAt"`
 }
 
 type EarnImport struct {
@@ -1176,6 +1282,86 @@ type EarnMemberEmail struct {
 	TemplateID  *uuid.UUID `json:"templateId"`
 }
 
+type EarnMrrChange struct {
+	ID             int64      `json:"id"`
+	WorkspaceID    uuid.UUID  `json:"workspaceId"`
+	SubscriptionID *uuid.UUID `json:"subscriptionId"`
+	ContactID      *uuid.UUID `json:"contactId"`
+	TierID         *uuid.UUID `json:"tierId"`
+	Period         string     `json:"period"`
+	At             time.Time  `json:"at"`
+	Kind           string     `json:"kind"`
+	ArrBefore      int64      `json:"arrBefore"`
+	ArrAfter       int64      `json:"arrAfter"`
+	Source         string     `json:"source"`
+}
+
+type EarnMrrHistory struct {
+	WorkspaceID   uuid.UUID  `json:"workspaceId"`
+	ConnectionID  *uuid.UUID `json:"connectionId"`
+	BuiltAt       time.Time  `json:"builtAt"`
+	Subscriptions int32      `json:"subscriptions"`
+}
+
+type EarnOffer struct {
+	ID             uuid.UUID       `json:"id"`
+	WorkspaceID    uuid.UUID       `json:"workspaceId"`
+	Name           string          `json:"name"`
+	Kind           string          `json:"kind"`
+	DiscountType   string          `json:"discountType"`
+	PercentOff     *int32          `json:"percentOff"`
+	AmountOff      *int64          `json:"amountOff"`
+	Currency       string          `json:"currency"`
+	Duration       string          `json:"duration"`
+	DurationMonths *int32          `json:"durationMonths"`
+	Applies        json.RawMessage `json:"applies"`
+	ByCode         bool            `json:"byCode"`
+	Code           string          `json:"code"`
+	ByLink         bool            `json:"byLink"`
+	RedeemLimit    *int32          `json:"redeemLimit"`
+	EndsAt         *time.Time      `json:"endsAt"`
+	NewOnly        bool            `json:"newOnly"`
+	MinPaidMonths  int32           `json:"minPaidMonths"`
+	CodeDays       int32           `json:"codeDays"`
+	Status         string          `json:"status"`
+	EndedAt        *time.Time      `json:"endedAt"`
+	EndedReason    string          `json:"endedReason"`
+	EndedBy        *uuid.UUID      `json:"endedBy"`
+	Stripe         json.RawMessage `json:"stripe"`
+	SyncStatus     string          `json:"syncStatus"`
+	SyncError      string          `json:"syncError"`
+	StartedAt      time.Time       `json:"startedAt"`
+	CreatedBy      *uuid.UUID      `json:"createdBy"`
+	CreatedAt      time.Time       `json:"createdAt"`
+	UpdatedAt      time.Time       `json:"updatedAt"`
+	DeletedAt      *time.Time      `json:"deletedAt"`
+}
+
+type EarnOfferCode struct {
+	ID          uuid.UUID       `json:"id"`
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	OfferID     uuid.UUID       `json:"offerId"`
+	Code        string          `json:"code"`
+	ContactID   *uuid.UUID      `json:"contactId"`
+	IssuedTo    string          `json:"issuedTo"`
+	IssuedAt    time.Time       `json:"issuedAt"`
+	ExpiresAt   time.Time       `json:"expiresAt"`
+	Stripe      json.RawMessage `json:"stripe"`
+	RedeemedAt  *time.Time      `json:"redeemedAt"`
+	Source      string          `json:"source"`
+}
+
+type EarnOfferUse struct {
+	ID             uuid.UUID  `json:"id"`
+	WorkspaceID    uuid.UUID  `json:"workspaceId"`
+	OfferID        uuid.UUID  `json:"offerId"`
+	ContactID      uuid.UUID  `json:"contactId"`
+	SubscriptionID *uuid.UUID `json:"subscriptionId"`
+	Mode           string     `json:"mode"`
+	UsedAt         time.Time  `json:"usedAt"`
+	Source         string     `json:"source"`
+}
+
 type EarnPageVisit struct {
 	WorkspaceID uuid.UUID `json:"workspaceId"`
 	Day         time.Time `json:"day"`
@@ -1213,6 +1399,13 @@ type EarnSetting struct {
 	AttributionDays    int32           `json:"attributionDays"`
 	UpdatedAt          time.Time       `json:"updatedAt"`
 	UpdatedBy          *uuid.UUID      `json:"updatedBy"`
+	GiftPageOn         bool            `json:"giftPageOn"`
+	GiftPageAt         *time.Time      `json:"giftPageAt"`
+	GiftPageBy         *uuid.UUID      `json:"giftPageBy"`
+	GiftLinkMonths     int32           `json:"giftLinkMonths"`
+	GiftPage           json.RawMessage `json:"giftPage"`
+	ClickTokenOn       bool            `json:"clickTokenOn"`
+	ClickTokenDomains  []string        `json:"clickTokenDomains"`
 }
 
 type EarnTier struct {
@@ -3141,6 +3334,119 @@ type SndsDaily struct {
 	Messages      int64     `json:"messages"`
 	Via           string    `json:"via"`
 	JmrpReports   int32     `json:"jmrpReports"`
+}
+
+type Sponsor struct {
+	ID           uuid.UUID  `json:"id"`
+	WorkspaceID  uuid.UUID  `json:"workspaceId"`
+	Name         string     `json:"name"`
+	Website      string     `json:"website"`
+	LogoUrl      string     `json:"logoUrl"`
+	ContactName  string     `json:"contactName"`
+	ContactEmail string     `json:"contactEmail"`
+	TermsDays    int32      `json:"termsDays"`
+	Notes        string     `json:"notes"`
+	CreatedBy    *uuid.UUID `json:"createdBy"`
+	CreatedAt    time.Time  `json:"createdAt"`
+	UpdatedAt    time.Time  `json:"updatedAt"`
+	DeletedAt    *time.Time `json:"deletedAt"`
+}
+
+type SponsorBooking struct {
+	ID             uuid.UUID       `json:"id"`
+	WorkspaceID    uuid.UUID       `json:"workspaceId"`
+	SlotID         uuid.UUID       `json:"slotId"`
+	IssueNumber    int32           `json:"issueNumber"`
+	IssueOn        time.Time       `json:"issueOn"`
+	SponsorID      *uuid.UUID      `json:"sponsorId"`
+	CampaignID     *uuid.UUID      `json:"campaignId"`
+	CampaignByHand bool            `json:"campaignByHand"`
+	PriceCents     int64           `json:"priceCents"`
+	Currency       string          `json:"currency"`
+	Status         string          `json:"status"`
+	HoldUntil      *time.Time      `json:"holdUntil"`
+	Creative       json.RawMessage `json:"creative"`
+	CreativeStatus string          `json:"creativeStatus"`
+	CreativeDue    *time.Time      `json:"creativeDue"`
+	ReadyAt        *time.Time      `json:"readyAt"`
+	ReadyBy        *uuid.UUID      `json:"readyBy"`
+	PaymentStatus  string          `json:"paymentStatus"`
+	PaymentDue     *time.Time      `json:"paymentDue"`
+	PaidOn         *time.Time      `json:"paidOn"`
+	PaidCents      *int64          `json:"paidCents"`
+	PaidNote       string          `json:"paidNote"`
+	PaidBy         *uuid.UUID      `json:"paidBy"`
+	PaidRecordedAt *time.Time      `json:"paidRecordedAt"`
+	Notes          string          `json:"notes"`
+	CancelReason   string          `json:"cancelReason"`
+	CanceledAt     *time.Time      `json:"canceledAt"`
+	CanceledBy     *uuid.UUID      `json:"canceledBy"`
+	SentAt         *time.Time      `json:"sentAt"`
+	ProposedBy     *uuid.UUID      `json:"proposedBy"`
+	ProposedName   string          `json:"proposedName"`
+	ProposedNote   string          `json:"proposedNote"`
+	Notified       []string        `json:"notified"`
+	CreatedBy      *uuid.UUID      `json:"createdBy"`
+	CreatedAt      time.Time       `json:"createdAt"`
+	UpdatedAt      time.Time       `json:"updatedAt"`
+}
+
+type SponsorBookingEvent struct {
+	ID         uuid.UUID       `json:"id"`
+	BookingID  uuid.UUID       `json:"bookingId"`
+	Kind       string          `json:"kind"`
+	OccurredAt time.Time       `json:"occurredAt"`
+	ActorID    *uuid.UUID      `json:"actorId"`
+	ActorName  string          `json:"actorName"`
+	Data       json.RawMessage `json:"data"`
+}
+
+type SponsorReportShare struct {
+	ID           uuid.UUID  `json:"id"`
+	WorkspaceID  uuid.UUID  `json:"workspaceId"`
+	BookingID    *uuid.UUID `json:"bookingId"`
+	SponsorID    *uuid.UUID `json:"sponsorId"`
+	TokenHash    []byte     `json:"tokenHash"`
+	TokenSealed  []byte     `json:"tokenSealed"`
+	CreatedBy    *uuid.UUID `json:"createdBy"`
+	CreatedAt    time.Time  `json:"createdAt"`
+	ExpiresAt    *time.Time `json:"expiresAt"`
+	RevokedAt    *time.Time `json:"revokedAt"`
+	RevokedBy    *uuid.UUID `json:"revokedBy"`
+	Views        int64      `json:"views"`
+	LastViewedAt *time.Time `json:"lastViewedAt"`
+}
+
+type SponsorReportStat struct {
+	BookingID      uuid.UUID       `json:"bookingId"`
+	SentAt         *time.Time      `json:"sentAt"`
+	Delivered      int64           `json:"delivered"`
+	HumanOpens     int64           `json:"humanOpens"`
+	UniqueClickers int64           `json:"uniqueClickers"`
+	Clicks         int64           `json:"clicks"`
+	Links          json.RawMessage `json:"links"`
+	VisibilityNote string          `json:"visibilityNote"`
+	Final          bool            `json:"final"`
+	ComputedAt     time.Time       `json:"computedAt"`
+}
+
+type SponsorSlot struct {
+	ID           uuid.UUID  `json:"id"`
+	WorkspaceID  uuid.UUID  `json:"workspaceId"`
+	ListID       uuid.UUID  `json:"listId"`
+	Name         string     `json:"name"`
+	Placement    string     `json:"placement"`
+	PriceCents   int64      `json:"priceCents"`
+	Currency     string     `json:"currency"`
+	FirstNumber  int32      `json:"firstNumber"`
+	FirstOn      time.Time  `json:"firstOn"`
+	EveryDays    int32      `json:"everyDays"`
+	CreativeDays int32      `json:"creativeDays"`
+	Selling      bool       `json:"selling"`
+	CreatedBy    *uuid.UUID `json:"createdBy"`
+	CreatedAt    time.Time  `json:"createdAt"`
+	UpdatedAt    time.Time  `json:"updatedAt"`
+	DeletedAt    *time.Time `json:"deletedAt"`
 }
 
 type SsoProvider struct {
