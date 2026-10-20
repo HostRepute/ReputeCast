@@ -116,15 +116,16 @@ func TestStoresSample(t *testing.T) {
 	if rev.Revenue != 2183600 || rev.CreditedRevenue != 518400 || rev.Share != 23.7 {
 		t.Errorf("revenue: %+v", rev)
 	}
-	// The Audience boards' 48,213 contacts: the store's customers are sample
-	// contacts, Grace Liu among them.
-	var contacts, grace int64
-	if err := pool.QueryRow(ctx, `SELECT count(*), count(*) FILTER (WHERE first_name = 'Grace' AND last_name = 'Liu') FROM contacts
-		WHERE workspace_id = $1 AND erased_at IS NULL`, ws.ID).Scan(&contacts, &grace); err != nil {
+	// The store adds no contact (the Audience boards keep their 48,213; other
+	// samples count their own): its customers are sample contacts, Grace Liu
+	// among them.
+	var added, grace int64
+	if err := pool.QueryRow(ctx, `SELECT count(*) FILTER (WHERE source LIKE 'store:%'), count(*) FILTER (WHERE first_name = 'Grace' AND last_name = 'Liu') FROM contacts
+		WHERE workspace_id = $1 AND erased_at IS NULL`, ws.ID).Scan(&added, &grace); err != nil {
 		t.Fatal(err)
 	}
-	if contacts != 48213 || grace != 1 {
-		t.Errorf("contacts: %d, Grace Liu %d", contacts, grace)
+	if added != 0 || grace != 1 {
+		t.Errorf("contacts the store added: %d, Grace Liu %d", added, grace)
 	}
 	// The October Product Update carries its grid as sent; a grid that
 	// names the sticker pack deleted on 13 Oct is flagged.

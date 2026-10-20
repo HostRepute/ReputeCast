@@ -238,21 +238,25 @@ func seedStoresImpl(ctx context.Context, s *Seeder) error {
 		g.flows[name] = id
 	}
 	rows.Close()
-	// The sample's joins and renames are history, not changes to announce:
-	// the contact events they queue for the workspace's webhooks (the
-	// Product backend listens to contact.subscribed) are dropped.
-	var queued int64
-	if err := s.Tx.QueryRow(ctx, `SELECT coalesce(max(id), 0) FROM webhook_contact_events`).Scan(&queued); err != nil {
+	// The demo's history isn't news for webhooks: the contact events the
+	// samples queued (the store's 2,318 joins, SMS's summit registrants, the
+	// late renames) for the demo's endpoints (the Product backend listens to
+	// contact.subscribed) are dropped once every sample is in.
+	s.After(func(ctx context.Context, s *Seeder) error {
+		ids := make([]uuid.UUID, 0, len(s.Workspaces))
+		for _, w := range s.Workspaces {
+			ids = append(ids, w.ID)
+		}
+		_, err := s.Tx.Exec(ctx, `DELETE FROM webhook_contact_events WHERE workspace_id = ANY($1)`, ids)
 		return err
-	}
+	})
 	steps := []func() error{g.store, g.catalog, g.list, g.customers, g.flow, g.ordersAndCheckouts, g.blocks, g.history}
 	for _, step := range steps {
 		if err := step(); err != nil {
 			return err
 		}
 	}
-	_, err = s.Tx.Exec(ctx, `DELETE FROM webhook_contact_events WHERE workspace_id = $1 AND id > $2`, ws.ID, queued)
-	return err
+	return nil
 }
 
 // store inserts Acme Merch, connected on 6 Oct at 16:04 by Marcus Chen.
@@ -366,7 +370,9 @@ func (g *storeSeedState) list() error {
 	}
 	const eligible = `c.workspace_id = $1 AND c.status = 'active' AND c.erased_at IS NULL AND c.consent IN ('double', 'single') AND NOT (c.email = ANY($2))
 		  AND NOT EXISTS (SELECT 1 FROM suppressions su WHERE su.workspace_id = c.workspace_id AND su.email = c.email)
-		  AND NOT EXISTS (SELECT 1 FROM list_memberships lm JOIN lists l ON l.id = lm.list_id WHERE lm.contact_id = c.id AND l.name = 'Beta Program')
+		  AND NOT EXISTS (SELECT 1 FROM list_memberships lm JOIN lists l ON l.id = lm.list_id WHERE lm.contact_id = c.id AND (l.name = 'Beta Program' OR NOT l.public))
+		  AND NOT EXISTS (SELECT 1 FROM channel_consents x WHERE x.contact_id = c.id)
+		  AND NOT EXISTS (SELECT 1 FROM channel_messages x WHERE x.contact_id = c.id)
 		  AND EXISTS (SELECT 1 FROM list_memberships lm WHERE lm.contact_id = c.id AND lm.status = 'subscribed')`
 	// Grace: a sample contact no other part of the demo tells a story about.
 	var grace storeCustomer
