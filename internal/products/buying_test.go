@@ -789,15 +789,21 @@ func TestDisputes(t *testing.T) {
 	if a, ok := s.audited("order.dispute_closed", o.ID); !ok || a.ActorType != "system" || a.After["dispute"] != "won" {
 		t.Errorf("audit: %v %+v", ok, a)
 	}
-	// Winning doesn't give the downloads back by itself: a person restores
-	// them (the dispute's revocation stays until then).
-	if o.AccessRevokedAt == nil {
-		t.Error("access came back with the won dispute")
+	// Winning gives back the access the dispute took; nothing is left for a
+	// person to restore.
+	if o.AccessRevokedAt != nil || o.AccessRevokeReason != "" {
+		t.Errorf("access stayed revoked after the won dispute: %+v", o)
 	}
-	s.owner.Do("POST", ws+"/products/orders/"+o.ID.String()+"/restore", nil).MustStatus(t, 200)
+	if d := s.event(o.ID, "access_restored"); d["reason"] != "dispute_won" || d["auto"] != true {
+		t.Errorf("access_restored: %v", d)
+	}
+	if a, ok := s.audited("order.dispute_closed", o.ID); !ok || a.After["access"] != "restored" {
+		t.Errorf("audit of the restore: %v %+v", ok, a)
+	}
 	if st := s.downloadState(o.ID, link.ID); st != products.DownloadOK {
-		t.Errorf("download page once restored: %s", st)
+		t.Errorf("download page once the dispute is won: %s", st)
 	}
+	s.owner.Do("POST", ws+"/products/orders/"+o.ID.String()+"/restore", nil).MustStatus(t, 409)
 
 	// Opened, then lost.
 	o, paid = s.buy(s.fieldGuide, buyer{Email: "lou.lost@example.com"})

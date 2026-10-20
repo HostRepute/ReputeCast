@@ -418,6 +418,7 @@ function eventView(t: T, ev: Event, o: OrderDetail): { tone: EvTone; title: stri
       if (ev.reason === 'refund') return { tone: 'mut', title: t(po.evRevoked), detail: t(po.evRevokedRefund) }
       return { tone: 'mut', title: t(po.evRevoked), detail: ev.by ? t(po.evBy, { name: ev.by }) : t(po.evBySystem) }
     case 'access_restored':
+      if (ev.reason === 'dispute_won') return { tone: 'ok', title: t(po.evRestored), detail: t(po.evRestoredDisputeWon) }
       return { tone: 'ok', title: t(po.evRestored), detail: ev.by ? t(po.evBy, { name: ev.by }) : undefined }
     case 'new_link':
       return { tone: 'ok', title: ev.by ? t(po.evNewLink, { name: ev.by }) : t(po.evNewLinkPlain), detail: ev.email ? t(po.evNewLinkDetail, { email: ev.email }) : undefined }

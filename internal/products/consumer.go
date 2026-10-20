@@ -431,6 +431,7 @@ func (s *Service) consumeDispute(ctx context.Context, tx pgx.Tx, e earn.PaymentE
 		DisputeReason: reason, DisputeFeeCents: max(e.Payment.DisputeFee, o.DisputeFeeCents), At: now, DisputeDueBy: e.Payment.DisputeDueBy}); err != nil {
 		return earn.Consumed{}, true, err
 	}
+	restored := false
 	switch {
 	case opened:
 		if err := s.event(ctx, q, o.ID, "dispute_opened", now, nil, map[string]any{"stripe": e.Type, "reason": reason, "respondBy": e.Payment.DisputeDueBy}); err != nil {
@@ -448,6 +449,7 @@ func (s *Service) consumeDispute(ctx context.Context, tx pgx.Tx, e earn.PaymentE
 			if err := s.event(ctx, q, o.ID, "access_restored", now, nil, map[string]any{"reason": "dispute_won", "auto": true}); err != nil {
 				return earn.Consumed{}, true, err
 			}
+			restored = true
 		}
 	default:
 		return earn.Consumed{Outcome: "order_dispute_updated", Detail: map[string]any{"order": o.Number, "status": status}}, true, nil
@@ -491,6 +493,9 @@ func (s *Service) consumeDispute(ctx context.Context, tx pgx.Tx, e earn.PaymentE
 	after := map[string]any{"dispute": status, "reason": reason}
 	if revoked {
 		after["access"] = "revoked"
+	}
+	if restored {
+		after["access"] = "restored"
 	}
 	if err := s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Actor: systemActor, Action: action, TargetType: "product_order", TargetID: o.ID.String(),
 		TargetName: orderName(o), Before: map[string]any{"dispute": o.DisputeStatus, "status": o.Status}, After: after,

@@ -125,6 +125,7 @@ export const po = defineMessages('products.order', {
   evBySystem: 'by the system',
   evBy: 'by {name}',
   evRestored: 'Access restored',
+  evRestoredDisputeWon: 'by the system, as the dispute was won',
   evNewLink: 'New link sent by {name}',
   evNewLinkPlain: 'New link sent',
   evNewLinkDetail: 'to {email} · recorded in the audit log',
