@@ -786,6 +786,7 @@ func (b *builder) content() {
 			Detail: "The email has no text, so the text/plain part is blank. Add a sentence that says what the images show.", Label: "Plain text",
 			Ack: "I understand the plain-text version is empty.", Fixes: []ReadinessFix{link("Open in editor", b.editor(nil, ""))}})
 	}
+	b.grow()
 }
 
 func issuesOf(r contentcheck.ContentCheckReport, id string) []contentcheck.ContentCheckIssue {

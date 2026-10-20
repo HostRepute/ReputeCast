@@ -54,6 +54,11 @@ var Events = []EventType{
 	{Key: KindSeedSignInFailed, Label: "Seed mailbox sign-in failed", Audience: "Everyone with placement:manage", Short: "seed sign-in failures", DefaultEmail: true, Kinds: []string{KindSeedSignInFailed}},
 	// The publication website (design expansion, phase 7).
 	{Key: KindWebsiteDomain, Label: "Website domain or certificate problem", Audience: "Everyone with website:manage", Short: "website domain problems", DefaultEmail: true, Kinds: []string{KindWebsiteDomain}},
+	// Grow (design expansion, phase 5).
+	{Key: KindReferralsHeld, Label: "Referrals held for review", Audience: "Everyone with grow:review · then at most once a day while the queue isn't empty", Short: "held referrals", DefaultEmail: true, Kinds: []string{KindReferralsHeld}},
+	{Key: KindRewardCodesLow, Label: "Reward codes running low or out", Audience: "Everyone with grow:edit", Short: "reward codes running low", DefaultEmail: true, Kinds: []string{KindRewardCodesLow}},
+	{Key: KindRewardWebhookFailing, Label: "Reward webhook failing", Audience: "Everyone with grow:edit", Short: "failing reward webhooks", DefaultEmail: true, Kinds: []string{KindRewardWebhookFailing}},
+	{Key: KindPartnerLinkProblem, Label: "Partner link invalid or unreachable", Audience: "Everyone with grow:connect", Short: "partner link problems", DefaultEmail: true, Kinds: []string{KindPartnerLinkProblem}},
 	// SMS (design expansion, phase 8).
 	{Key: KindSMSBudget, Label: "SMS budget at 80% or used up", Audience: "Everyone with providers:manage", Short: "SMS budget alerts", DefaultEmail: true, Kinds: []string{KindSMSBudget}},
 	{Key: KindSMSRegistration, Label: "Sender registration approved or rejected", Audience: "Everyone with providers:view", Short: "sender registrations", DefaultEmail: true, Kinds: []string{KindSMSRegistration}},
@@ -97,6 +102,8 @@ const (
 	CategoryEarn = "earn"
 	// CategoryWebsite holds the publication website's notifications.
 	CategoryWebsite = "website"
+	// CategoryGrow holds referrals' and partner links' notifications.
+	CategoryGrow = "grow"
 )
 
 var categoryKinds = map[string][]string{
@@ -110,6 +117,7 @@ var categoryKinds = map[string][]string{
 	CategoryAI:            {KindAIUsage, KindAIKeyRejected},
 	CategoryEarn:          {KindPaymentsAttention, KindUnmappedPrice, KindPaidImportDone, KindFailedPayments},
 	CategoryWebsite:       {KindWebsiteDomain},
+	CategoryGrow:          {KindReferralsHeld, KindRewardCodesLow, KindRewardWebhookFailing, KindPartnerLinkProblem},
 }
 
 var categoryLabels = map[string]string{
@@ -124,6 +132,7 @@ var categoryLabels = map[string]string{
 	CategoryAI:            "AI",
 	CategoryEarn:          "Earn",
 	CategoryWebsite:       "Website",
+	CategoryGrow:          "Grow",
 }
 
 // CategoryOf returns the center tab a kind is listed under.

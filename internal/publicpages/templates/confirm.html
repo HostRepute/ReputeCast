@@ -14,6 +14,7 @@
     {{with .LatestHref}}<a class="btn-sm" href="{{.}}">{{$.T "confirm.latest"}}</a>{{end}}
     {{with .PrefsHref}}<a class="btn-ghost" href="{{.}}">{{$.T "page.preferences"}}</a>{{end}}
   </div>
+  {{template "grow-confirm" $}}
 </main>{{end}}{{end}}
 {{define "foot"}}<footer class="foot">
   {{- with .Body.Proof}}<span>{{.}}</span>{{end}}

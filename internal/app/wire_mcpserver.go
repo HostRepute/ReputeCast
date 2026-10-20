@@ -25,6 +25,10 @@ func (a *App) mcpserver() *mcpserver.Service {
 		Placement:     a.placement(),
 		Website:       websiteService(a),
 		PublicURL:     func(context.Context) string { return a.URLs.Base() },
+		// Grow: results, referrers, the review queue (masked) and
+		// recommendations; agents only read and propose.
+		Grow:            a.referrals(),
+		Recommendations: a.recommendations(),
 	}
 }
 

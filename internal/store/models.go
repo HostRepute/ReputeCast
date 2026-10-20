@@ -330,6 +330,8 @@ type AutomationEmail struct {
 	CreatedAt     time.Time  `json:"createdAt"`
 	UpdatedAt     time.Time  `json:"updatedAt"`
 	DeletedAt     *time.Time `json:"deletedAt"`
+	SenderID      *uuid.UUID `json:"senderId"`
+	ReplyTo       string     `json:"replyTo"`
 }
 
 type AutomationEmailLink struct {
@@ -1825,6 +1827,98 @@ type PaidSubscription struct {
 	UpdatedAt            time.Time       `json:"updatedAt"`
 }
 
+type PartnerCode struct {
+	ID          uuid.UUID  `json:"id"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	CodeHash    []byte     `json:"codeHash"`
+	Label       string     `json:"label"`
+	ListID      uuid.UUID  `json:"listId"`
+	DailyLimit  int32      `json:"dailyLimit"`
+	CreatedBy   *uuid.UUID `json:"createdBy"`
+	CreatedAt   time.Time  `json:"createdAt"`
+	ExpiresAt   time.Time  `json:"expiresAt"`
+	UsedAt      *time.Time `json:"usedAt"`
+	UsedLinkID  *uuid.UUID `json:"usedLinkId"`
+	RevokedAt   *time.Time `json:"revokedAt"`
+	RevokedBy   *uuid.UUID `json:"revokedBy"`
+}
+
+type PartnerLink struct {
+	ID                uuid.UUID  `json:"id"`
+	WorkspaceID       uuid.UUID  `json:"workspaceId"`
+	Direction         string     `json:"direction"`
+	RemoteUrl         string     `json:"remoteUrl"`
+	RemoteLinkID      string     `json:"remoteLinkId"`
+	ProtocolVersion   int32      `json:"protocolVersion"`
+	RemoteName        string     `json:"remoteName"`
+	RemoteDescription string     `json:"remoteDescription"`
+	RemoteLogoUrl     string     `json:"remoteLogoUrl"`
+	RemoteListName    string     `json:"remoteListName"`
+	DailyLimit        int32      `json:"dailyLimit"`
+	ListID            *uuid.UUID `json:"listId"`
+	Label             string     `json:"label"`
+	CodeID            *uuid.UUID `json:"codeId"`
+	CodeHash          []byte     `json:"codeHash"`
+	LastRotation      string     `json:"lastRotation"`
+	Secret            []byte     `json:"secret"`
+	PrevSecret        []byte     `json:"prevSecret"`
+	PrevSecretUntil   *time.Time `json:"prevSecretUntil"`
+	SecretRotatedAt   *time.Time `json:"secretRotatedAt"`
+	Status            string     `json:"status"`
+	PausedSide        string     `json:"pausedSide"`
+	PausedAt          *time.Time `json:"pausedAt"`
+	PausedBy          *uuid.UUID `json:"pausedBy"`
+	InvalidSince      *time.Time `json:"invalidSince"`
+	InvalidReason     string     `json:"invalidReason"`
+	LimitUntil        *time.Time `json:"limitUntil"`
+	FailingSince      *time.Time `json:"failingSince"`
+	EndedAt           *time.Time `json:"endedAt"`
+	EndedBy           *uuid.UUID `json:"endedBy"`
+	EndedSide         string     `json:"endedSide"`
+	ConnectedAt       time.Time  `json:"connectedAt"`
+	ConnectedBy       *uuid.UUID `json:"connectedBy"`
+	NotifiedAt        *time.Time `json:"notifiedAt"`
+	CreatedAt         time.Time  `json:"createdAt"`
+	UpdatedAt         time.Time  `json:"updatedAt"`
+}
+
+type PartnerRequestsIn struct {
+	ID             uuid.UUID  `json:"id"`
+	WorkspaceID    uuid.UUID  `json:"workspaceId"`
+	LinkID         uuid.UUID  `json:"linkId"`
+	RequestID      string     `json:"requestId"`
+	Status         string     `json:"status"`
+	ContactID      *uuid.UUID `json:"contactId"`
+	Asked          bool       `json:"asked"`
+	OptinStatus    string     `json:"optinStatus"`
+	OptinAttempts  int32      `json:"optinAttempts"`
+	OptinNextAt    *time.Time `json:"optinNextAt"`
+	OptinSentAt    *time.Time `json:"optinSentAt"`
+	SourceName     string     `json:"sourceName"`
+	ReceivedAt     time.Time  `json:"receivedAt"`
+	ConfirmedAt    *time.Time `json:"confirmedAt"`
+	NoticeStatus   string     `json:"noticeStatus"`
+	NoticeAttempts int32      `json:"noticeAttempts"`
+	NoticeNextAt   *time.Time `json:"noticeNextAt"`
+	NoticeSentAt   *time.Time `json:"noticeSentAt"`
+}
+
+type PartnerRequestsOut struct {
+	ID               uuid.UUID  `json:"id"`
+	WorkspaceID      uuid.UUID  `json:"workspaceId"`
+	LinkID           uuid.UUID  `json:"linkId"`
+	RecommendationID *uuid.UUID `json:"recommendationId"`
+	Email            []byte     `json:"email"`
+	Origin           string     `json:"origin"`
+	Status           string     `json:"status"`
+	Attempts         int32      `json:"attempts"`
+	NextAttemptAt    *time.Time `json:"nextAttemptAt"`
+	LastError        string     `json:"lastError"`
+	CreatedAt        time.Time  `json:"createdAt"`
+	SentAt           *time.Time `json:"sentAt"`
+	ConfirmedAt      *time.Time `json:"confirmedAt"`
+}
+
 type PasswordReset struct {
 	ID        uuid.UUID  `json:"id"`
 	UserID    uuid.UUID  `json:"userId"`
@@ -2230,6 +2324,299 @@ type ReadinessRun struct {
 	Fingerprint       string          `json:"fingerprint"`
 	UnknownAcceptedAt *time.Time      `json:"unknownAcceptedAt"`
 	UnknownAcceptedBy *uuid.UUID      `json:"unknownAcceptedBy"`
+}
+
+type Recommendation struct {
+	ID            uuid.UUID  `json:"id"`
+	WorkspaceID   uuid.UUID  `json:"workspaceId"`
+	Kind          string     `json:"kind"`
+	Name          string     `json:"name"`
+	Description   string     `json:"description"`
+	LogoID        *uuid.UUID `json:"logoId"`
+	Url           string     `json:"url"`
+	PartnerLinkID *uuid.UUID `json:"partnerLinkId"`
+	ShowConfirm   bool       `json:"showConfirm"`
+	ShowBlock     bool       `json:"showBlock"`
+	Status        string     `json:"status"`
+	PausedAt      *time.Time `json:"pausedAt"`
+	PausedBy      *uuid.UUID `json:"pausedBy"`
+	Position      int32      `json:"position"`
+	CreatedBy     *uuid.UUID `json:"createdBy"`
+	CreatedAt     time.Time  `json:"createdAt"`
+	UpdatedAt     time.Time  `json:"updatedAt"`
+	RemovedAt     *time.Time `json:"removedAt"`
+}
+
+type RecommendationDaily struct {
+	RecommendationID uuid.UUID `json:"recommendationId"`
+	Day              time.Time `json:"day"`
+	ShownConfirm     int32     `json:"shownConfirm"`
+	ShownEmail       int32     `json:"shownEmail"`
+	Clicks           int32     `json:"clicks"`
+	Requests         int32     `json:"requests"`
+	Confirmed        int32     `json:"confirmed"`
+}
+
+type RecommendationMessageShown struct {
+	MessageID         uuid.UUID   `json:"messageId"`
+	WorkspaceID       uuid.UUID   `json:"workspaceId"`
+	RecommendationIds []uuid.UUID `json:"recommendationIds"`
+	CreatedAt         time.Time   `json:"createdAt"`
+}
+
+type RecommendationSetting struct {
+	WorkspaceID        uuid.UUID  `json:"workspaceId"`
+	ConfirmPage        bool       `json:"confirmPage"`
+	ProfileName        string     `json:"profileName"`
+	ProfileDescription string     `json:"profileDescription"`
+	ProfileLogoID      *uuid.UUID `json:"profileLogoId"`
+	ProfileListID      *uuid.UUID `json:"profileListId"`
+	UpdatedBy          *uuid.UUID `json:"updatedBy"`
+	UpdatedAt          time.Time  `json:"updatedAt"`
+}
+
+type Referral struct {
+	ID           uuid.UUID   `json:"id"`
+	WorkspaceID  uuid.UUID   `json:"workspaceId"`
+	ProgramID    uuid.UUID   `json:"programId"`
+	LinkID       *uuid.UUID  `json:"linkId"`
+	ReferrerID   *uuid.UUID  `json:"referrerId"`
+	ContactID    *uuid.UUID  `json:"contactId"`
+	Seq          int32       `json:"seq"`
+	Status       string      `json:"status"`
+	Reason       string      `json:"reason"`
+	LeftKind     string      `json:"leftKind"`
+	Signals      []string    `json:"signals"`
+	Via          string      `json:"via"`
+	Ip           *netip.Addr `json:"ip"`
+	IpNetwork    string      `json:"ipNetwork"`
+	NetworkName  string      `json:"networkName"`
+	NetworkAsn   string      `json:"networkAsn"`
+	NetworkKind  string      `json:"networkKind"`
+	SignedUpAt   time.Time   `json:"signedUpAt"`
+	RemindedAt   *time.Time  `json:"remindedAt"`
+	ConfirmedAt  *time.Time  `json:"confirmedAt"`
+	HoldUntil    *time.Time  `json:"holdUntil"`
+	CountedAt    *time.Time  `json:"countedAt"`
+	NotCountedAt *time.Time  `json:"notCountedAt"`
+	HeldAt       *time.Time  `json:"heldAt"`
+	DecidedAt    *time.Time  `json:"decidedAt"`
+	DecidedBy    *uuid.UUID  `json:"decidedBy"`
+	Decision     string      `json:"decision"`
+	DecisionNote string      `json:"decisionNote"`
+	DecisionID   *uuid.UUID  `json:"decisionId"`
+	UndoUntil    *time.Time  `json:"undoUntil"`
+	BeforeStatus string      `json:"beforeStatus"`
+	IpReducedAt  *time.Time  `json:"ipReducedAt"`
+	CreatedAt    time.Time   `json:"createdAt"`
+	UpdatedAt    time.Time   `json:"updatedAt"`
+}
+
+type ReferralEvent struct {
+	ID          uuid.UUID       `json:"id"`
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	ProgramID   uuid.UUID       `json:"programId"`
+	ReferralID  *uuid.UUID      `json:"referralId"`
+	LinkID      *uuid.UUID      `json:"linkId"`
+	ContactID   *uuid.UUID      `json:"contactId"`
+	Kind        string          `json:"kind"`
+	Detail      json.RawMessage `json:"detail"`
+	OccurredAt  time.Time       `json:"occurredAt"`
+}
+
+type ReferralFile struct {
+	ID          uuid.UUID  `json:"id"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	ProgramID   uuid.UUID  `json:"programId"`
+	FileName    string     `json:"fileName"`
+	ContentType string     `json:"contentType"`
+	SizeBytes   int64      `json:"sizeBytes"`
+	Sha256      []byte     `json:"sha256"`
+	Downloads   int64      `json:"downloads"`
+	UploadedBy  *uuid.UUID `json:"uploadedBy"`
+	UploadedAt  time.Time  `json:"uploadedAt"`
+	RemovedAt   *time.Time `json:"removedAt"`
+}
+
+type ReferralFileChunk struct {
+	FileID uuid.UUID `json:"fileId"`
+	Seq    int32     `json:"seq"`
+	Data   []byte    `json:"data"`
+}
+
+type ReferralLeaderboard struct {
+	ProgramID  uuid.UUID `json:"programId"`
+	Period     string    `json:"period"`
+	LinkID     uuid.UUID `json:"linkId"`
+	Rank       int32     `json:"rank"`
+	Counted    int32     `json:"counted"`
+	ComputedAt time.Time `json:"computedAt"`
+}
+
+type ReferralLink struct {
+	ID              uuid.UUID  `json:"id"`
+	WorkspaceID     uuid.UUID  `json:"workspaceId"`
+	ProgramID       uuid.UUID  `json:"programId"`
+	ContactID       uuid.UUID  `json:"contactId"`
+	Code            string     `json:"code"`
+	Status          string     `json:"status"`
+	PausedAt        *time.Time `json:"pausedAt"`
+	PausedBy        *uuid.UUID `json:"pausedBy"`
+	PauseNote       string     `json:"pauseNote"`
+	ShowName        bool       `json:"showName"`
+	ShowLeaderboard bool       `json:"showLeaderboard"`
+	ChoicesAt       *time.Time `json:"choicesAt"`
+	Visits          int64      `json:"visits"`
+	Signups         int64      `json:"signups"`
+	CreatedAt       time.Time  `json:"createdAt"`
+}
+
+type ReferralMilestone struct {
+	ID                uuid.UUID  `json:"id"`
+	WorkspaceID       uuid.UUID  `json:"workspaceId"`
+	ProgramID         uuid.UUID  `json:"programId"`
+	Count             int32      `json:"count"`
+	RewardName        string     `json:"rewardName"`
+	RewardDescription string     `json:"rewardDescription"`
+	ImageID           *uuid.UUID `json:"imageId"`
+	RewardType        string     `json:"rewardType"`
+	FileID            *uuid.UUID `json:"fileId"`
+	DownloadUrl       string     `json:"downloadUrl"`
+	CodesAlertBelow   int32      `json:"codesAlertBelow"`
+	CodesAlerted      string     `json:"codesAlerted"`
+	AskAddress        bool       `json:"askAddress"`
+	CouponOfferID     string     `json:"couponOfferId"`
+	CouponOfferName   string     `json:"couponOfferName"`
+	CouponValidDays   int32      `json:"couponValidDays"`
+	WebhookUrl        string     `json:"webhookUrl"`
+	WebhookSecret     []byte     `json:"webhookSecret"`
+	WebhookStatus     *int32     `json:"webhookStatus"`
+	WebhookCalledAt   *time.Time `json:"webhookCalledAt"`
+	WebhookFailures   int32      `json:"webhookFailures"`
+	WebhookAlertedAt  *time.Time `json:"webhookAlertedAt"`
+	EmailOn           bool       `json:"emailOn"`
+	EmailID           *uuid.UUID `json:"emailId"`
+	EmailSubject      string     `json:"emailSubject"`
+	EmailPreheader    string     `json:"emailPreheader"`
+	EmailMjml         string     `json:"emailMjml"`
+	EmailHtml         string     `json:"emailHtml"`
+	EmailRevision     int32      `json:"emailRevision"`
+	EmailSavedAt      *time.Time `json:"emailSavedAt"`
+	EmailSavedBy      *uuid.UUID `json:"emailSavedBy"`
+	CreatedBy         *uuid.UUID `json:"createdBy"`
+	CreatedAt         time.Time  `json:"createdAt"`
+	UpdatedAt         time.Time  `json:"updatedAt"`
+	DeletedAt         *time.Time `json:"deletedAt"`
+}
+
+type ReferralProgram struct {
+	ID                 uuid.UUID  `json:"id"`
+	WorkspaceID        uuid.UUID  `json:"workspaceId"`
+	ListID             uuid.UUID  `json:"listId"`
+	Status             string     `json:"status"`
+	SetupStep          int32      `json:"setupStep"`
+	SetupSavedAt       *time.Time `json:"setupSavedAt"`
+	SetupSavedBy       *uuid.UUID `json:"setupSavedBy"`
+	FirstOnAt          *time.Time `json:"firstOnAt"`
+	FirstOnBy          *uuid.UUID `json:"firstOnBy"`
+	StatusAt           *time.Time `json:"statusAt"`
+	StatusBy           *uuid.UUID `json:"statusBy"`
+	HoldDays           int32      `json:"holdDays"`
+	RuleSameIp         bool       `json:"ruleSameIp"`
+	RuleDisposable     bool       `json:"ruleDisposable"`
+	RuleLeft           bool       `json:"ruleLeft"`
+	BurstOn            bool       `json:"burstOn"`
+	BurstThreshold     int32      `json:"burstThreshold"`
+	SharedIpOn         bool       `json:"sharedIpOn"`
+	SharedIpThreshold  int32      `json:"sharedIpThreshold"`
+	NumberedOn         bool       `json:"numberedOn"`
+	InviteHeadline     string     `json:"inviteHeadline"`
+	InviteText         string     `json:"inviteText"`
+	HubIntro           string     `json:"hubIntro"`
+	ShareMessage       string     `json:"shareMessage"`
+	ShareButtons       []string   `json:"shareButtons"`
+	LeaderboardOn      bool       `json:"leaderboardOn"`
+	LeaderboardAt      *time.Time `json:"leaderboardAt"`
+	LeaderboardBy      *uuid.UUID `json:"leaderboardBy"`
+	LeaderboardPeriods []string   `json:"leaderboardPeriods"`
+	LeaderboardRows    int32      `json:"leaderboardRows"`
+	SenderID           *uuid.UUID `json:"senderId"`
+	ReplyTo            string     `json:"replyTo"`
+	ReviewNotifiedAt   *time.Time `json:"reviewNotifiedAt"`
+	CreatedBy          *uuid.UUID `json:"createdBy"`
+	CreatedAt          time.Time  `json:"createdAt"`
+	UpdatedAt          time.Time  `json:"updatedAt"`
+	DeletedAt          *time.Time `json:"deletedAt"`
+	DeletedBy          *uuid.UUID `json:"deletedBy"`
+}
+
+type ReferralReferrerIp struct {
+	LinkID uuid.UUID  `json:"linkId"`
+	Ip     netip.Addr `json:"ip"`
+	SeenAt time.Time  `json:"seenAt"`
+}
+
+type ReferralReward struct {
+	ID             uuid.UUID  `json:"id"`
+	WorkspaceID    uuid.UUID  `json:"workspaceId"`
+	ProgramID      uuid.UUID  `json:"programId"`
+	MilestoneID    *uuid.UUID `json:"milestoneId"`
+	ContactID      uuid.UUID  `json:"contactId"`
+	LinkID         *uuid.UUID `json:"linkId"`
+	MilestoneCount int32      `json:"milestoneCount"`
+	RewardName     string     `json:"rewardName"`
+	RewardType     string     `json:"rewardType"`
+	Status         string     `json:"status"`
+	ReachedAt      time.Time  `json:"reachedAt"`
+	SentAt         *time.Time `json:"sentAt"`
+	UsedAt         *time.Time `json:"usedAt"`
+	Downloads      int32      `json:"downloads"`
+	CodeID         *uuid.UUID `json:"codeId"`
+	ClaimUrl       string     `json:"claimUrl"`
+	ExpiresAt      *time.Time `json:"expiresAt"`
+	Answer         []byte     `json:"answer"`
+	Attempts       int32      `json:"attempts"`
+	NextAttemptAt  *time.Time `json:"nextAttemptAt"`
+	LastError      string     `json:"lastError"`
+	FailedAt       *time.Time `json:"failedAt"`
+	Address        []byte     `json:"address"`
+	AddressAt      *time.Time `json:"addressAt"`
+	FulfilledBy    *uuid.UUID `json:"fulfilledBy"`
+	FulfillNote    string     `json:"fulfillNote"`
+	AddressPurgeAt *time.Time `json:"addressPurgeAt"`
+	EmailSentAt    *time.Time `json:"emailSentAt"`
+	EmailMessageID *uuid.UUID `json:"emailMessageId"`
+	ResentAt       *time.Time `json:"resentAt"`
+	CreatedAt      time.Time  `json:"createdAt"`
+	UpdatedAt      time.Time  `json:"updatedAt"`
+}
+
+type ReferralRewardCode struct {
+	ID          uuid.UUID  `json:"id"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	MilestoneID uuid.UUID  `json:"milestoneId"`
+	Code        []byte     `json:"code"`
+	CodeHash    []byte     `json:"codeHash"`
+	BatchID     uuid.UUID  `json:"batchId"`
+	UploadedBy  *uuid.UUID `json:"uploadedBy"`
+	UploadedAt  time.Time  `json:"uploadedAt"`
+	RewardID    *uuid.UUID `json:"rewardId"`
+	AssignedAt  *time.Time `json:"assignedAt"`
+	RemovedAt   *time.Time `json:"removedAt"`
+}
+
+type ReferralVisitKey struct {
+	Key    []byte    `json:"key"`
+	SeenAt time.Time `json:"seenAt"`
+}
+
+type ReferralVisitsDaily struct {
+	LinkID    uuid.UUID `json:"linkId"`
+	ProgramID uuid.UUID `json:"programId"`
+	Day       time.Time `json:"day"`
+	Via       string    `json:"via"`
+	Visits    int32     `json:"visits"`
+	Signups   int32     `json:"signups"`
 }
 
 type ReportShare struct {

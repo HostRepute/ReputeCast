@@ -18,6 +18,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 
 	osteele "github.com/osteele/liquid"
 )
@@ -32,7 +33,7 @@ const MaxRange = 1000
 type PersonalizationToken struct {
 	Key   string `json:"key" example:"first_name"`
 	Label string `json:"label" example:"First name"`
-	Kind  string `json:"kind" enum:"contact,custom,system"`
+	Kind  string `json:"kind" enum:"contact,custom,system,referral"`
 	// Fallback is the suggested default for contacts without a value.
 	Fallback string `json:"fallback,omitempty"`
 }
@@ -68,7 +69,23 @@ func Catalog(custom []CustomField) []PersonalizationToken {
 		}
 		out = append(out, f)
 	}
-	return append(out, SystemFields...)
+	out = append(out, SystemFields...)
+	tokensMu.RLock()
+	defer tokensMu.RUnlock()
+	return append(out, extraTokens...)
+}
+
+var (
+	tokensMu    sync.RWMutex
+	extraTokens []PersonalizationToken
+)
+
+// RegisterTokens adds tokens other packages provide to every email's token
+// catalog (Grow's referral.* tokens).
+func RegisterTokens(t ...PersonalizationToken) {
+	tokensMu.Lock()
+	defer tokensMu.Unlock()
+	extraTokens = append(extraTokens, t...)
 }
 
 var (
@@ -78,8 +95,12 @@ var (
 )
 
 // Prepare decodes HTML entities inside Liquid delimiters and rewrites the
-// short fallback form, so Liquid embedded in compiled HTML parses.
-func Prepare(src string) string {
+// short fallback form, so Liquid embedded in compiled HTML parses. Blocks
+// that render per reader are expanded first (ExpandBlocks).
+func Prepare(src string) string { return prepareSpans(ExpandBlocks(src)) }
+
+// prepareSpans is Prepare without expanding blocks.
+func prepareSpans(src string) string {
 	if !strings.Contains(src, "{{") && !strings.Contains(src, "{%") {
 		return src
 	}
@@ -289,10 +310,12 @@ type Use struct {
 }
 
 // Uses lists the variables printed with {{ … }}, in order of first use.
+// Blocks (ExpandBlocks) aren't expanded: their Liquid is ReputeCast's own,
+// and what a person typed in their settings stays in the marker.
 func Uses(src string) []Use {
 	out := []Use{}
 	idx := map[string]int{}
-	for _, span := range spanRe.FindAllString(Prepare(src), -1) {
+	for _, span := range spanRe.FindAllString(prepareSpans(src), -1) {
 		if !strings.HasPrefix(span, "{{") {
 			continue
 		}

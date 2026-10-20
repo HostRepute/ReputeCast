@@ -41,6 +41,8 @@ type Facts struct {
 	// MailboxRates are the per-mailbox-provider throttles (messages per
 	// second, 0 = full rate).
 	MailboxRates map[string]float64
+	// Grow are the Referral and Recommendations blocks' rows (grow.go).
+	Grow []GrowRow
 }
 
 // CampaignFacts describes the campaign being checked.

@@ -59,6 +59,8 @@ func TriggerKindLabel(kind string) string {
 		return "Score crosses…"
 	case TriggerPollAnswered:
 		return "Answered a poll or survey"
+	case TriggerMilestoneReached:
+		return "Reached a milestone"
 	case TriggerOrderPlaced:
 		return "Order placed"
 	case TriggerFirstOrder:
@@ -104,6 +106,16 @@ func TriggerRef(t *AutomationTrigger, refs *Refs) string {
 			}
 		}
 		return "a poll"
+	case TriggerMilestoneReached:
+		if t.MilestoneID == "" {
+			return "any milestone"
+		}
+		if refs != nil {
+			if n, ok := refs.Milestones[t.MilestoneID]; ok {
+				return n
+			}
+		}
+		return "a milestone"
 	case TriggerOrderPlaced, TriggerFirstOrder, TriggerAbandonedCheckout:
 		if refs != nil {
 			if n, ok := refs.Stores[t.Store]; ok {

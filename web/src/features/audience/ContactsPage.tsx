@@ -310,6 +310,9 @@ const sourceOptions: [string, string][] = [
   ['form:popup', 'Popup form'],
   ['api', 'API'],
   ['app', 'Added in ReputeCast'],
+  // Grow (design expansion, X15): any referral, any partner.
+  ['referral', 'Referral'],
+  ['partner', 'Partner'],
 ]
 
 function Filters({

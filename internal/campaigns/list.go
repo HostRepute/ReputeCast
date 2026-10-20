@@ -16,6 +16,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/contentcheck"
 	"github.com/hostrepute/reputecast/internal/i18n"
+	"github.com/hostrepute/reputecast/internal/liquid"
 	"github.com/hostrepute/reputecast/internal/mailer"
 	"github.com/hostrepute/reputecast/internal/paidaccess"
 	"github.com/hostrepute/reputecast/internal/publicurl"
@@ -50,6 +51,9 @@ type Service struct {
 	// later push and WhatsApp): their routes, results and readiness. Nil
 	// leaves those rows as stored.
 	Channels ChannelRows
+	// Recipients add the per-reader variables of blocks (Grow's Referral
+	// and Recommendations blocks) to previews and test sends; nil adds none.
+	Recipients func() []liquid.RecipientData
 }
 
 // ChannelRows fills in the list's rows of one channel's campaigns

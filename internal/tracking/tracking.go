@@ -67,6 +67,9 @@ type Service struct {
 	// its trigger passed ("checkout_url": the store's recovery link).
 	MessageVars func(ctx context.Context, msgCtx map[string]string) map[string]string
 	Now         func() time.Time
+	// Recipients add the per-reader variables of blocks (Grow's
+	// referral.* links) to personalized links; nil adds none.
+	Recipients func() []liquid.RecipientData
 
 	once  sync.Once
 	in    chan *pending
@@ -312,7 +315,12 @@ func (s *Service) resolve(ctx context.Context, c linktoken.Claims, m store.Track
 		if ct, err := s.Q.TrackingContactVars(ctx, *m.ContactID); err == nil {
 			var attrs map[string]any
 			_ = json.Unmarshal(ct.Attributes, &attrs)
-			if out, err := liquid.Render(raw, liquid.Vars(ct.Email, ct.FirstName, ct.LastName, attrs, links)); err == nil {
+			vars := liquid.Vars(ct.Email, ct.FirstName, ct.LastName, attrs, links)
+			if s.Recipients != nil {
+				r := liquid.Recipient{ContactID: *m.ContactID, MessageID: m.ID, EmailID: refOf(m.ContentRef).Email}
+				vars = liquid.Fill(ctx, s.Recipients(), m.WorkspaceID, r, raw, vars)
+			}
+			if out, err := liquid.Render(raw, vars); err == nil {
 				raw = strings.TrimSpace(out)
 			}
 		}

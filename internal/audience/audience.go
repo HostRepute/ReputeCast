@@ -34,6 +34,21 @@ type Service struct {
 	// Answers adds poll answers and survey responses to the timeline (nil:
 	// none).
 	Answers ActivitySource
+	// SourceNames names sources a label can't (Grow: "Referral · Sam
+	// Rivera", "Partner · Ops Weekly"); nil: none.
+	SourceNames SourceNamer
+}
+
+// SourceNamer names contacts' sources: by contact, for the contacts whose
+// source it knows. sources[i] is contacts[i]'s.
+type SourceNamer func(ctx context.Context, ws uuid.UUID, contacts []uuid.UUID, sources []string) map[uuid.UUID]string
+
+// nameSources puts SourceNames' names on the labels.
+func (s *Service) nameSources(ctx context.Context, ws uuid.UUID, contacts []uuid.UUID, sources []string) map[uuid.UUID]string {
+	if s.SourceNames == nil || len(contacts) == 0 {
+		return nil
+	}
+	return s.SourceNames(ctx, ws, contacts, sources)
 }
 
 func (s *Service) now() time.Time {

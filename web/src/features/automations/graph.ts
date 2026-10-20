@@ -1,6 +1,7 @@
 import type { Schemas } from '@/api/client'
 import { scoreTriggerDefaults } from '@/features/scoring/ScoreTrigger'
 import { isOneOfPhrase, scoreTriggerDetail, scoreTriggerName, scoreTriggerRef } from '@/features/scoring/triggerText'
+import { milestoneTriggerDetail, milestoneTriggerName, milestoneTriggerRef } from '@/features/grow/triggerText'
 
 /*
  * Flow graph helpers shared by the canvas, the step panel and the tests:
@@ -27,11 +28,13 @@ export interface Refs {
   fields: Map<string, { label: string; type: string }>
   /** Polls and surveys the trigger "Answered a poll or survey" names ("poll:<id>" → name). */
   polls?: Map<string, string>
+  /** Grow's referral milestones: "3 referrals · The Acme Field Guide". */
+  milestones?: Map<string, string>
   /** Stores the store triggers watch (id → name; X20). */
   stores?: Map<string, string>
 }
 
-export const emptyRefs: Refs = { lists: new Map(), forms: new Map(), emails: new Map(), providers: new Map(), fields: new Map() }
+export const emptyRefs: Refs = { lists: new Map(), forms: new Map(), emails: new Map(), providers: new Map(), fields: new Map(), milestones: new Map() }
 
 export function refsFrom(o: Schemas['AutomationOptions'] | undefined): Refs {
   if (!o) return emptyRefs
@@ -41,6 +44,7 @@ export function refsFrom(o: Schemas['AutomationOptions'] | undefined): Refs {
     emails: new Map(o.emails.map((e) => [e.id, { name: e.name, latestVersion: e.latestVersion, subject: e.subject }])),
     providers: new Map(o.providers.map((p) => [p.id, { name: p.name, short: p.short, status: p.status }])),
     fields: new Map(o.fields.map((f) => [f.key, { label: f.label, type: f.type }])),
+    milestones: new Map(o.milestones.map((x) => [x.id, x.name])),
   }
 }
 
@@ -69,6 +73,10 @@ export const triggerKindLabels: Record<TriggerConfig['kind'], string> = {
     return scoreTriggerName()
   },
   poll_answered: 'Answered a poll or survey',
+  // Grow (referral milestones).
+  get milestone_reached() {
+    return milestoneTriggerName()
+  },
   order_placed: 'Order placed',
   first_order: 'First order',
   abandoned_checkout: 'Abandoned checkout',
@@ -210,6 +218,8 @@ export function triggerRef(t: TriggerConfig | undefined, refs: Refs): string {
       return scoreTriggerRef(t)
     case 'poll_answered':
       return refs.polls?.get(t.poll ?? '') ?? 'a poll or survey'
+    case 'milestone_reached':
+      return milestoneTriggerRef(t, refs.milestones)
     case 'order_placed':
     case 'first_order':
     case 'abandoned_checkout':
@@ -349,6 +359,7 @@ export function nodeDetail(n: FlowNode): string {
         return `${when}${d.trigger.yearly ? ', every year' : ''} at ${d.trigger.at || '09:00'}`
       }
       if (d.trigger?.kind === 'score_crosses') return scoreTriggerDetail(d.trigger)
+      if (d.trigger?.kind === 'milestone_reached') return milestoneTriggerDetail()
       return ''
     case 'branch':
       if (d.condition?.kind === 'opened' && d.condition.humanOnly) return 'human opens only'

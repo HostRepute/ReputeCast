@@ -32,6 +32,8 @@ import { StepLanguages } from '@/features/languages/automation'
 import { ScoreTriggerFields, scoreTriggerDefaults } from '@/features/scoring/ScoreTrigger'
 import { isOneOfLabel, scoreTriggerName } from '@/features/scoring/triggerText'
 import { PollTriggerProps } from '@/features/polls/trigger'
+import { MilestoneTriggerFields } from '@/features/grow/MilestoneTrigger'
+import { milestoneTriggerName } from '@/features/grow/triggerText'
 import { isStoreTrigger, PlacedOrderFields, StoreTriggerFields, storeTriggerDefaults, useStoreTriggerOptions } from '@/features/commerce/automation'
 
 type Options = Schemas['AutomationOptions']
@@ -59,6 +61,13 @@ const triggerItems: { kind: TriggerConfig['kind']; label: string }[] = [
   },
   // Design expansion, X11.
   { kind: 'poll_answered', label: 'Answered a poll or survey' },
+  // Referral milestones (Grow).
+  {
+    kind: 'milestone_reached',
+    get label() {
+      return milestoneTriggerName()
+    },
+  },
   // Shopify and WooCommerce (design expansion, X20).
   { kind: 'order_placed', label: 'Order placed' },
   { kind: 'first_order', label: 'First order' },
@@ -645,6 +654,7 @@ function TriggerProps({ graph, node, options, editable, onChange, stats, hasStat
           </>
         ) : null}
         {t.kind === 'score_crosses' ? <ScoreTriggerFields t={t} set={set} disabled={disabled} bands={options?.scoreBands} /> : null}
+        {t.kind === 'milestone_reached' ? <MilestoneTriggerFields t={t} set={set} disabled={disabled} milestones={options?.milestones ?? []} /> : null}
         {t.kind === 'date_field' ? (
           <>
             <select className="in" aria-label="Date field" disabled={disabled} value={t.field ?? ''} onChange={(e) => set({ field: e.target.value })}>
@@ -674,7 +684,7 @@ function TriggerProps({ graph, node, options, editable, onChange, stats, hasStat
           </>
         ) : null}
       </Prop>
-      {t.kind === 'score_crosses' ? null : (
+      {t.kind === 'score_crosses' || t.kind === 'milestone_reached' ? null : (
         <Prop title="Re-entry" id="p-reentry">
           <select aria-labelledby="p-reentry" className="in" disabled={disabled} value={t.reentry ?? 'once'} onChange={(e) => set({ reentry: e.target.value })}>
             <option value="once">Once per contact</option>

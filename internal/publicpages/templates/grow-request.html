@@ -1,0 +1,16 @@
+{{define "content"}}{{with .Body}}<main class="card" id="main">
+  {{template "brand" $}}
+  <h1 class="h26">{{.Heading}}</h1>
+  <p class="lead">{{.Text}}</p>
+  {{if not .Sent}}<form class="form" method="post" action="{{.Action}}" novalidate>
+    {{if .Ask}}<div class="col6"><label class="field">{{$.G "request.email"}}<input class="in" type="email" name="email" id="hub-email" value="{{.Email}}" autocomplete="email" required{{if .Error}} aria-invalid="true" aria-describedby="hub-email-err"{{end}}></label>
+      {{with .Error}}<span class="err" id="hub-email-err" role="alert">{{.}}</span>{{end}}</div>{{end}}
+    <button class="btn-pri" type="submit">{{.Button}}</button>
+    {{with .Masked}}<span class="foot-note">{{.}}</span>{{end}}
+  </form>
+  {{with .Tip}}<p class="t13">{{.}}</p>{{end}}{{end}}
+</main>{{end}}{{end}}
+{{define "foot"}}<footer class="foot">
+  {{- with .Privacy}}<a href="{{.}}">{{$.G "hub.privacyLink"}}</a>{{end}}
+  {{- if and .Privacy .PoweredBy}}{{template "sep"}}{{end}}
+  {{- template "rcplain" .}}</footer>{{end}}

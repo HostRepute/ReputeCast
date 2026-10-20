@@ -133,6 +133,11 @@ func SourceLabel(src string) string {
 		return "API"
 	case "manual":
 		return "Added by the team"
+	case "referral":
+		// Grow: the Contacts list names the referrer ("Referral · Sam Rivera").
+		return "Referral"
+	case "partner":
+		return "Partner"
 	case "store":
 		// "store:shopify:<store id>": a store's customer who accepted
 		// marketing (X20).

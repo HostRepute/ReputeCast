@@ -75,8 +75,13 @@ func (m AutomationMailer) QueueAutomationEmail(ctx context.Context, tx pgx.Tx, o
 	}
 	ref, _ := json.Marshal(cr)
 	node := o.NodeID
+	// Milestone emails (Grow) are automation emails outside any flow.
+	var automation *uuid.UUID
+	if o.AutomationID != uuid.Nil {
+		automation = &o.AutomationID
+	}
 	if err := q.SendingInsertAutomationMessage(ctx, store.SendingInsertAutomationMessageParams{
-		ID: out.MessageID, WorkspaceID: o.WorkspaceID, AutomationID: &o.AutomationID, AutomationNode: &node, ContactID: &o.ContactID,
+		ID: out.MessageID, WorkspaceID: o.WorkspaceID, AutomationID: automation, AutomationNode: &node, ContactID: &o.ContactID,
 		Email: o.To, ProviderID: provider, MailboxProvider: mbp, Status: status, QueuedAt: m.E.now(), ContentRef: ref,
 		Language: ml.Language, ContactLanguage: ml.Contact, LanguageReason: ml.Reason,
 	}); err != nil {
@@ -400,7 +405,7 @@ func (e *Engine) composeAutomation(ctx context.Context, r *runRoute, row store.S
 					}
 				}
 			}
-			ot.sender, _ = e.Q.SendingAutomationSender(ctx, em.WorkspaceID)
+			ot.sender, _ = e.Q.SendingAutomationSender(ctx, store.SendingAutomationSenderParams{WorkspaceID: em.WorkspaceID, EmailID: ref.Email})
 			if ot.sender.Email == "" && ot.missing == "" {
 				ot.missing = "the workspace has no default sender; set one in Settings › General"
 			}
@@ -444,7 +449,11 @@ func (e *Engine) composeAutomation(ctx context.Context, r *runRoute, row store.S
 	}
 	var attrs map[string]any
 	_ = json.Unmarshal(row.Attributes, &attrs)
-	out, err := ot.tpl.Render(liquid.Vars(row.Email, row.FirstName, row.LastName, attrs, links), tracked)
+	vars := liquid.Vars(row.Email, row.FirstName, row.LastName, attrs, links)
+	if e.Recipients != nil && contact != uuid.Nil {
+		vars = liquid.Fill(ctx, e.Recipients(), row.WorkspaceID, liquid.Recipient{ContactID: contact, MessageID: row.ID, EmailID: ref.Email}, ot.tpl.Source(), vars)
+	}
+	out, err := ot.tpl.Render(vars, tracked)
 	if err != nil {
 		return providers.Message{}, err
 	}

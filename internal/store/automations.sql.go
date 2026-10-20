@@ -2184,6 +2184,7 @@ SELECT e.id, e.name, e.latest_version, e.automation_id, e.updated_at, v.subject
 FROM automation_emails e
 JOIN automation_email_versions v ON v.email_id = e.id AND v.version = e.latest_version
 WHERE e.workspace_id = $1 AND e.deleted_at IS NULL
+  AND NOT EXISTS (SELECT 1 FROM referral_milestones m WHERE m.email_id = e.id)
 ORDER BY e.created_at
 `
 
@@ -2196,6 +2197,8 @@ type ListAutomationEmailsRow struct {
 	Subject       string     `json:"subject"`
 }
 
+// Milestone emails (Grow) are automation emails too, edited from their
+// milestone: not offered to flows.
 func (q *Queries) ListAutomationEmails(ctx context.Context, workspaceID uuid.UUID) ([]ListAutomationEmailsRow, error) {
 	rows, err := q.db.Query(ctx, listAutomationEmails, workspaceID)
 	if err != nil {

@@ -23,8 +23,12 @@ func init() {
 
 func (a *App) audience() *audience.Service {
 	return &audience.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Segments: a.segments(), Mail: a.Mail, Links: a.Links, URLs: a.URLs,
-		Answers: joinActivity(audienceAnswers(a), audienceStores(a))}
+		Answers: joinActivity(audienceAnswers(a), audienceStores(a)), SourceNames: audienceSourceNames(a)}
 }
+
+// audienceSourceNames names Grow's sources in the contacts list and the
+// profile; Grow sets it from its wire file.
+var audienceSourceNames = func(*App) audience.SourceNamer { return nil }
 
 // audienceAnswers adds poll answers and survey responses to the contact
 // timeline; the polls domain sets it from its wire file.
