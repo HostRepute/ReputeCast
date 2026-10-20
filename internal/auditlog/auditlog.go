@@ -141,6 +141,9 @@ var Categories = []AuditCategory{
 	{Key: "placement", Label: "Placement tests", Groups: []string{"placement"}},
 	// The publication website (design expansion, phase 7).
 	{Key: "website", Label: "Website", Groups: []string{"website", "post", "tag"}},
+	// Web push and WhatsApp (design expansion, phase 8, X22).
+	{Key: "push", Label: "Push", Groups: []string{"push_keys", "push_site", "push_prompt", "push_settings", "push_subscription"}},
+	{Key: "whatsapp", Label: "WhatsApp", Groups: []string{"whatsapp", "whatsapp_templates", "whatsapp_rates", "whatsapp_settings"}},
 }
 
 // Filter narrows the log.
