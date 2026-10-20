@@ -145,6 +145,17 @@ func (s *Service) staffOf(ctx context.Context, u *store.User) (*Staff, error) {
 	}
 	r, _ := authz.Agency(st.Level)
 	st.Permissions = r.Permissions
+	// A narrowed row holds fewer of its level's permissions (never more,
+	// never fewer than the overview); instance admins hold them all.
+	if err == nil && row.Permissions != nil && !u.IsInstanceAdmin {
+		keep := []authz.Permission{authz.AgencyView}
+		for _, p := range row.Permissions {
+			if r.Permissions.Has(authz.Permission(p)) {
+				keep = append(keep, authz.Permission(p))
+			}
+		}
+		st.Permissions = authz.AgencySet(keep...)
+	}
 	return st, nil
 }
 

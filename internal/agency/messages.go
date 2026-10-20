@@ -65,4 +65,5 @@ var (
 	mFirstPersonRole       = msgs.M("firstPersonRole")
 	mAgencyWorkspaceDelete = msgs.M("agencyWorkspaceDelete")
 	mSearchShort           = msgs.M("searchShort")
+	mPermissionLevel       = msgs.M("permissionLevel")
 )

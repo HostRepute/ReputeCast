@@ -114,6 +114,8 @@ type nwSeed struct {
 	// Providers by "<workspace>/<short>" ("contoso/ses").
 	providers map[string]uuid.UUID
 	senders   map[string]uuid.UUID // by workspace key
+	// scale divides the number of contacts (tests seed a smaller sample).
+	scale int
 }
 
 // at is hour:minute in Chicago, days after the sample's today (negative:
@@ -138,8 +140,20 @@ func (n *nwSeed) onBoards(d time.Time) time.Time {
 	return n.at(-days, 10, 0)
 }
 
+// NorthwindOptions change how much of the sample is loaded.
+type NorthwindOptions struct {
+	// ContactsDivisor loads every client with 1/n of its contacts (tests:
+	// the same people, lists and rules on a database that clones fast).
+	ContactsDivisor int
+}
+
 // SeedNorthwind loads the agency sample into an empty database.
 func SeedNorthwind(ctx context.Context, pool *pgxpool.Pool, cfg *config.Config, box *secrets.Box, log *slog.Logger) (*Result, error) {
+	return SeedNorthwindWith(ctx, pool, cfg, box, log, NorthwindOptions{})
+}
+
+// SeedNorthwindWith loads the agency sample with options.
+func SeedNorthwindWith(ctx context.Context, pool *pgxpool.Pool, cfg *config.Config, box *secrets.Box, log *slog.Logger, opts NorthwindOptions) (*Result, error) {
 	res := &Result{OwnerEmail: NorthwindStaff, Password: Password, TOTPSecret: TOTPSecret}
 	var exists, others bool
 	if err := pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM users WHERE email = $1), EXISTS (SELECT 1 FROM users WHERE email <> $1)`, NorthwindOwner).Scan(&exists, &others); err != nil {
@@ -170,7 +184,7 @@ func SeedNorthwind(ctx context.Context, pool *pgxpool.Pool, cfg *config.Config, 
 			Senders: map[string]uuid.UUID{}, Domains: map[string]uuid.UUID{}, Extra: map[string]any{}},
 		loc: loc, today: time.Date(local.Year(), local.Month(), local.Day(), 0, 0, 0, 0, loc),
 		people: map[string]store.User{}, ws: map[string]store.Workspace{}, templates: map[string]uuid.UUID{},
-		lists: map[string]map[string]uuid.UUID{}, providers: map[string]uuid.UUID{}, senders: map[string]uuid.UUID{},
+		lists: map[string]map[string]uuid.UUID{}, providers: map[string]uuid.UUID{}, senders: map[string]uuid.UUID{}, scale: max(opts.ContactsDivisor, 1),
 	}
 	steps := []struct {
 		name string

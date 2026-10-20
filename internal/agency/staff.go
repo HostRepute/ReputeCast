@@ -36,6 +36,8 @@ type person struct {
 	Active        bool
 	LastActiveAt  *time.Time
 	AddedAt       time.Time
+	// Permissions narrow the level's when set.
+	Permissions []string
 }
 
 func (p person) key() string {
@@ -76,7 +78,7 @@ func peopleWith(ctx context.Context, q *store.Queries) ([]person, error) {
 	for _, r := range rows {
 		id := r.ID
 		p := person{StaffID: &id, UserID: r.UserID, Name: displayName(r.Name, r.Email), Email: r.Email, Color: r.AvatarColor, Level: r.Level, Title: r.Title,
-			InstanceAdmin: r.IsInstanceAdmin, Active: r.UserStatus == "active", LastActiveAt: r.LastActiveAt, AddedAt: r.AddedAt}
+			InstanceAdmin: r.IsInstanceAdmin, Active: r.UserStatus == "active", LastActiveAt: r.LastActiveAt, AddedAt: r.AddedAt, Permissions: r.Permissions}
 		if p.InstanceAdmin {
 			p.Level = authz.AgencyManagerLevel
 		}
@@ -106,6 +108,9 @@ type AgencyStaffMember struct {
 	Roles        []AgencyRoleRef `json:"roles"`
 	LastActiveAt *time.Time      `json:"lastActiveAt,omitempty"`
 	You          bool            `json:"you"`
+	// Permissions are the agency permissions they hold: their level's, or
+	// fewer when narrowed.
+	Permissions []string `json:"permissions"`
 }
 
 // AgencyRoleRef names a role.
@@ -218,7 +223,10 @@ func (s *Service) StaffView(ctx context.Context) (AgencyStaffView, error) {
 	out.Clients = len(clients)
 	for _, p := range people {
 		row := AgencyStaffMember{ID: p.key(), Name: p.Name, Email: p.Email, AvatarColor: p.Color, Level: p.Level, Title: p.Title, InstanceAdmin: p.InstanceAdmin,
-			Invited: p.UserID == nil, Clients: []string{}, Roles: []AgencyRoleRef{}, LastActiveAt: p.LastActiveAt}
+			Invited: p.UserID == nil, Clients: []string{}, Roles: []AgencyRoleRef{}, LastActiveAt: p.LastActiveAt, Permissions: p.Permissions}
+		if level, ok := authz.Agency(p.Level); ok && (p.Permissions == nil || p.InstanceAdmin) {
+			row.Permissions = level.Permissions.Strings()
+		}
 		if p.UserID != nil {
 			row.UserID = p.UserID.String()
 			row.You = *p.UserID == me.UserID
@@ -639,6 +647,10 @@ func (s *Service) principalIn(me *Staff, set workspaceSet, wsID uuid.UUID) *auth
 type AgencyStaffUpdate struct {
 	Level string `json:"level" enum:"agency_manager,account_manager"`
 	Title string `json:"title,omitempty" maxLength:"60"`
+	// Permissions narrows the level's agency permissions (an account
+	// manager without agency:usage); omitted, they hold all of the level's.
+	// agency:view is always kept.
+	Permissions []string `json:"permissions,omitempty" maxItems:"4" enum:"agency:view,agency:usage,agency:library,agency:manage"`
 }
 
 // UpdateStaff changes a staff member's level or title. A new agency
@@ -673,13 +685,32 @@ func (s *Service) UpdateStaff(ctx context.Context, staffID string, in AgencyStaf
 	if err != nil {
 		return err
 	}
+	// Narrowing keeps to the level's permissions, and always to the overview.
+	var perms []string
+	if in.Permissions != nil {
+		level, _ := authz.Agency(in.Level)
+		chosen := []authz.Permission{authz.AgencyView}
+		for _, v := range in.Permissions {
+			pm := authz.Permission(v)
+			if !level.Permissions.Has(pm) {
+				return api.Invalid("body.permissions", mPermissionLevel.Text(l, i18n.Args{"permission": v}))
+			}
+			if !slices.Contains(chosen, pm) {
+				chosen = append(chosen, pm)
+			}
+		}
+		if len(chosen) < len(level.Permissions) {
+			perms = authz.AgencySet(chosen...).Strings()
+		}
+	}
 	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
-		if _, err := q.AgencyStaffUpdate(ctx, store.AgencyStaffUpdateParams{ID: id, Level: in.Level, Title: strings.TrimSpace(in.Title)}); err != nil {
+		if _, err := q.AgencyStaffUpdate(ctx, store.AgencyStaffUpdateParams{ID: id, Level: in.Level, Title: strings.TrimSpace(in.Title), Permissions: perms}); err != nil {
 			return err
 		}
 		if err := s.Audit.LogWith(ctx, q, audit.Event{Action: "agency.staff_changed", TargetType: "agency_staff", TargetID: id.String(), TargetName: p.Email,
-			Before: map[string]any{"level": p.Level, "title": p.Title}, After: map[string]any{"level": in.Level, "title": strings.TrimSpace(in.Title)},
+			Before:   map[string]any{"level": p.Level, "title": p.Title, "permissions": p.Permissions},
+			After:    map[string]any{"level": in.Level, "title": strings.TrimSpace(in.Title), "permissions": perms},
 			Metadata: map[string]any{"permission": string(authz.AgencyManage)}}); err != nil {
 			return err
 		}

@@ -635,3 +635,19 @@ SELECT c.id, c.item_id, c.version, c.target_kind, c.target_id, i.version AS late
 FROM agency_library_copies c
 JOIN agency_library_items i ON i.id = c.item_id AND i.deleted_at IS NULL
 WHERE c.workspace_id = @workspace_id;
+
+-- ---------------------------------------------------------------------------
+-- Staff notifications: incidents and approvals in their clients, in the
+-- Agency area's bell.
+
+-- name: AgencyNotifications :many
+SELECT n.id, n.workspace_id, n.kind, n.severity, n.title, coalesce(nullif(n.summary, ''), n.body, '')::text AS summary, coalesce(n.link, '')::text AS link,
+       n.created_at, (n.read_at IS NOT NULL)::boolean AS read
+FROM notifications n
+WHERE n.user_id = @user_id AND n.workspace_id = ANY(@workspace_ids::uuid[]) AND n.in_app
+ORDER BY (n.read_at IS NULL) DESC, n.created_at DESC
+LIMIT @lim;
+
+-- name: AgencyUnreadNotifications :one
+SELECT count(*) FROM notifications n
+WHERE n.user_id = @user_id AND n.workspace_id = ANY(@workspace_ids::uuid[]) AND n.in_app AND n.read_at IS NULL;

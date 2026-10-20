@@ -293,7 +293,8 @@ func (e *Env) SeedNorthwind() {
 	ctx := context.Background()
 	northwindTemplate.once.Do(func() {
 		northwindTemplate.name, northwindTemplate.err = testdb.Template(ctx, "northwind", func(pool *pgxpool.Pool) error {
-			_, err := demo.SeedNorthwind(ctx, pool, e.App.Cfg, e.App.Secrets, slog.New(slog.NewTextHandler(io.Discard, nil)))
+			// A fortieth of the contacts: the same sample, cloned in moments.
+			_, err := demo.SeedNorthwindWith(ctx, pool, e.App.Cfg, e.App.Secrets, slog.New(slog.NewTextHandler(io.Discard, nil)), demo.NorthwindOptions{ContactsDivisor: 40})
 			return err
 		})
 	})

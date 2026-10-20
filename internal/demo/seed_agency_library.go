@@ -445,7 +445,7 @@ func (n *nwSeed) library(ctx context.Context) error {
 		{kind: agency.KindSection, name: "Product grid · 3 up", versions: n.versions(5, day(9, 30, 14), "ravi", func(v int) agency.LibraryContent {
 			return sec(grid([]string{"Shop", "Shop", "View", "View", "Shop now"}[v-1]))
 		}), copies: []nwLibCopy{{"contoso", 5, day(10, 1, 9), "mei"}, {"fabrikam", 5, day(10, 1, 10), "mei"}, {"tailspin", 5, day(10, 2, 9), "ella"},
-			{"alpine", 5, day(10, 2, 11), "ella"}, {"litware", 5, day(10, 6, 9), "ella"}}},
+			{"coho", 5, day(10, 2, 11), "mei"}, {"litware", 5, day(10, 6, 9), "ella"}}},
 		{kind: agency.KindAutomation, name: "Abandoned cart (Shopify)", versions: n.versions(2, day(9, 22, 11), "mei", func(v int) agency.LibraryContent {
 			a, _ := nwAbandonedCart("Abandoned cart (Shopify)")
 			if v == 1 {

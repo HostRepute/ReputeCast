@@ -1672,6 +1672,67 @@ func (q *Queries) AgencyMemberships(ctx context.Context, userIds []uuid.UUID) ([
 	return items, nil
 }
 
+const agencyNotifications = `-- name: AgencyNotifications :many
+
+SELECT n.id, n.workspace_id, n.kind, n.severity, n.title, coalesce(nullif(n.summary, ''), n.body, '')::text AS summary, coalesce(n.link, '')::text AS link,
+       n.created_at, (n.read_at IS NOT NULL)::boolean AS read
+FROM notifications n
+WHERE n.user_id = $1 AND n.workspace_id = ANY($2::uuid[]) AND n.in_app
+ORDER BY (n.read_at IS NULL) DESC, n.created_at DESC
+LIMIT $3
+`
+
+type AgencyNotificationsParams struct {
+	UserID       uuid.UUID   `json:"userId"`
+	WorkspaceIds []uuid.UUID `json:"workspaceIds"`
+	Lim          int32       `json:"lim"`
+}
+
+type AgencyNotificationsRow struct {
+	ID          uuid.UUID  `json:"id"`
+	WorkspaceID *uuid.UUID `json:"workspaceId"`
+	Kind        string     `json:"kind"`
+	Severity    string     `json:"severity"`
+	Title       string     `json:"title"`
+	Summary     string     `json:"summary"`
+	Link        string     `json:"link"`
+	CreatedAt   time.Time  `json:"createdAt"`
+	Read        bool       `json:"read"`
+}
+
+// ---------------------------------------------------------------------------
+// Staff notifications: incidents and approvals in their clients, in the
+// Agency area's bell.
+func (q *Queries) AgencyNotifications(ctx context.Context, arg AgencyNotificationsParams) ([]AgencyNotificationsRow, error) {
+	rows, err := q.db.Query(ctx, agencyNotifications, arg.UserID, arg.WorkspaceIds, arg.Lim)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AgencyNotificationsRow{}
+	for rows.Next() {
+		var i AgencyNotificationsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.WorkspaceID,
+			&i.Kind,
+			&i.Severity,
+			&i.Title,
+			&i.Summary,
+			&i.Link,
+			&i.CreatedAt,
+			&i.Read,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const agencyPendingApprovals = `-- name: AgencyPendingApprovals :many
 SELECT a.workspace_id, a.id, a.requested_at, a.matched_rules, a.campaign_id, a.requested_by, a.approvals_required,
        coalesce(c.name, '')::text AS campaign_name, c.scheduled_at, coalesce(c.schedule, '{}')::jsonb AS schedule,
@@ -2713,6 +2774,23 @@ func (q *Queries) AgencyTemplates(ctx context.Context) ([]AgencyTemplatesRow, er
 		return nil, err
 	}
 	return items, nil
+}
+
+const agencyUnreadNotifications = `-- name: AgencyUnreadNotifications :one
+SELECT count(*) FROM notifications n
+WHERE n.user_id = $1 AND n.workspace_id = ANY($2::uuid[]) AND n.in_app AND n.read_at IS NULL
+`
+
+type AgencyUnreadNotificationsParams struct {
+	UserID       uuid.UUID   `json:"userId"`
+	WorkspaceIds []uuid.UUID `json:"workspaceIds"`
+}
+
+func (q *Queries) AgencyUnreadNotifications(ctx context.Context, arg AgencyUnreadNotificationsParams) (int64, error) {
+	row := q.db.QueryRow(ctx, agencyUnreadNotifications, arg.UserID, arg.WorkspaceIds)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
 }
 
 const agencyUpdateTemplateContent = `-- name: AgencyUpdateTemplateContent :execrows

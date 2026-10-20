@@ -405,7 +405,7 @@ func labelOf(line string) string {
 }
 
 var (
-	tagRe   = regexp.MustCompile(`(?s)<mj-(button|image|text)\b([^>]*)>(.*?)</mj-(?:button|text)>|<mj-image\b([^>]*)/?>`)
+	tagRe   = regexp.MustCompile(`(?s)<mj-(button|text)\b([^>]*)>(.*?)</mj-(?:button|text)>|<mj-image\b([^>]*?)/?>`)
 	attrRe  = regexp.MustCompile(`([a-z-]+)="([^"]*)"`)
 	stripRe = regexp.MustCompile(`(?s)<[^>]+>`)
 	spaceRe = regexp.MustCompile(`\s+`)

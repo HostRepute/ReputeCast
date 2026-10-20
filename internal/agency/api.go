@@ -63,6 +63,14 @@ func Register(h huma.API, s *Service) {
 			return api.OK(out), err
 		})
 
+	api.Get(h, api.Op{ID: "list-agency-notifications", Path: "/agency/notifications", Summary: "Your latest notifications across the agency's workspaces, unread first", Tags: tags, Access: view},
+		func(ctx context.Context, in *struct {
+			Limit int `query:"limit" default:"6" minimum:"1" maximum:"50"`
+		}) (*api.Body[AgencyNotificationList], error) {
+			out, err := s.Notifications(ctx, in.Limit)
+			return api.OK(out), err
+		})
+
 	api.Get(h, api.Op{ID: "get-agency-client", Path: "/agency/clients/{workspaceId}", Summary: "One client's row: health, next send, approvals, incidents and setup", Tags: tags, Access: view},
 		func(ctx context.Context, in *AgencyWorkspacePath) (*api.Body[AgencyClientPulse], error) {
 			out, err := s.Pulse(ctx, in.WorkspaceID)

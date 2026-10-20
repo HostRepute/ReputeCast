@@ -243,6 +243,18 @@ func (n *nwSeed) contacts(ctx context.Context) error {
 }
 
 func (n *nwSeed) audience(ctx context.Context, a nwAudience) error {
+	if d := n.scale; d > 1 {
+		// A smaller sample: every position divided, the same lists and rules.
+		a.total /= d
+		lists := make([]nwListPlan, len(a.lists))
+		for i, l := range a.lists {
+			l.from, l.to = l.from/d, l.to/d
+			lists[i] = l
+		}
+		a.lists = lists
+		a.suppressed = [2]int{a.suppressed[0] / d, a.suppressed[1] / d}
+		a.role = [2]int{a.role[0] / d, a.role[1] / d}
+	}
 	ws := n.ws[a.ws]
 	start := ws.CreatedAt
 	span := n.Now.Sub(start)
@@ -352,9 +364,9 @@ func (n *nwSeed) campaigns(ctx context.Context) error {
 		{ws: "tailspin", name: "Back to school picks", status: "sent", subject: "Back to school, sorted", lists: []string{"Newsletter"}, count: 40211, at: n.at(-44, 9, 0), by: "ella",
 			humanOpens: 37.2},
 		{ws: "alpine", name: "Season pass early bird", status: "scheduled", subject: "Season passes: early-bird prices end Sunday", lists: []string{"Newsletter"}, count: 19804,
-			at: n.ahead(0, 17, 0), tz: "America/Denver", by: "ella"},
+			at: n.ahead(0, 17, 0), tz: "America/Chicago", by: "ella"},
 		{ws: "coho", name: "Wine club: November box", status: "approval", subject: "Your November box: three reds for the season", lists: []string{"Wine club"}, count: 3412,
-			at: inLA(4, 10, 0), tz: "America/Los_Angeles", by: "mei"},
+			at: n.ahead(4, 10, 0), tz: "America/Chicago", by: "mei"},
 		{ws: "litware", name: "Fall reading list", status: "sent", subject: "Twelve books for the fall", lists: []string{"Newsletter"}, count: 8104, at: n.at(-7, 8, 0), by: "ella",
 			humanOpens: 48.9},
 		{ws: "northwind", name: "Studio notes #18", status: "scheduled", subject: "Studio notes #18: what we shipped this month", lists: []string{"Studio notes"}, count: 3390,

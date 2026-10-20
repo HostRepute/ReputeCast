@@ -4,6 +4,24 @@
  */
 
 export interface paths {
+    "/api/v1/admin/agency": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Agency mode: on or off, the agency's name, its workspace, clients and default template */
+        get: operations["get-agency-mode"];
+        /** Turn agency mode on or off and choose its workspaces */
+        put: operations["update-agency-mode"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/audit": {
         parameters: {
             query?: never;
@@ -577,6 +595,470 @@ export interface paths {
         put?: never;
         /** Restore a deleted workspace during its 7-day hold */
         post: operations["restore-instance-workspace"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agency/assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Assign a staff member to a workspace with a role (only roles whose permissions you hold there) */
+        put: operations["assign-agency-staff"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agency/assignments/keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The API keys and agents a staff member created in a workspace */
+        get: operations["get-agency-assignment-keys"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agency/assignments/remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Remove an assignment: the membership goes; the keys they made are kept or revoked */
+        post: operations["unassign-agency-staff"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agency/clients": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a client workspace, from a template, with its first person invited */
+        post: operations["create-agency-client"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agency/clients/{workspaceId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One client's row: health, next send, approvals, incidents and setup */
+        get: operations["get-agency-client"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Change a client's contact at the agency */
+        patch: operations["update-agency-client"];
+        trace?: never;
+    };
+    "/api/v1/agency/clients/{workspaceId}/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Delete a client workspace (typed name; restorable for 7 days) */
+        post: operations["delete-agency-client"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agency/clients/{workspaceId}/details": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What the agency keeps about a client: contact, rate, people, last months */
+        get: operations["get-agency-client-details"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agency/clients/{workspaceId}/rate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set a client's rebill rate (applies from the 1st of this month) */
+        put: operations["set-agency-client-rate"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agency/clients/{workspaceId}/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The last workspace template applied to a client, and what it added */
+        get: operations["get-agency-client-setup"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agency/library": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The shared library, most used first */
+        get: operations["get-agency-library"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agency/library/copies/{copyId}/update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Bring a client's copy to the library's latest version */
+        post: operations["update-agency-library-copy"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agency/library/{itemId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A library item: versions, fields it needs, copies and their diff */
+        get: operations["get-agency-library-item"];
+        put?: never;
+        post?: never;
+        /** Remove a library item (copies in clients stay) */
+        delete: operations["remove-agency-library-item"];
+        options?: never;
+        head?: never;
+        /** Rename a library item, or publish a client's copy as its next version */
+        patch: operations["update-agency-library-item"];
+        trace?: never;
+    };
+    "/api/v1/agency/library/{itemId}/copies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Copy a library item into a client (needs its edit permission there) */
+        post: operations["copy-agency-library-item"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agency/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The agency, as the app shell shows it: its clients for staff, its name for everyone */
+        get: operations["get-agency-me"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agency/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your latest notifications across the agency's workspaces, unread first */
+        get: operations["list-agency-notifications"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agency/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The agency overview: clients, approvals waiting, incidents and the next sends */
+        get: operations["get-agency-overview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agency/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search your clients: names, or a contact by exact email (recorded in the audit log) */
+        get: operations["search-agency"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agency/staff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The agency's staff and the assignment matrix */
+        get: operations["get-agency-staff"];
+        put?: never;
+        /** Add someone to the staff, from this instance's accounts or by invitation */
+        post: operations["add-agency-staff"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agency/staff/candidates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Accounts of this instance that can join the staff */
+        get: operations["list-agency-staff-candidates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agency/staff/{staffId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Change a staff member's level or title */
+        patch: operations["update-agency-staff"];
+        trace?: never;
+    };
+    "/api/v1/agency/staff/{staffId}/remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Take someone off the staff, and optionally out of the agency's workspaces */
+        post: operations["remove-agency-staff"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agency/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Workspace templates, what each sets up and the clients using it */
+        get: operations["list-agency-templates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agency/templates/{templateId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a workspace template (clients keep everything it set up) */
+        delete: operations["delete-agency-template"];
+        options?: never;
+        head?: never;
+        /** Rename a workspace template or leave parts out of it */
+        patch: operations["update-agency-template"];
+        trace?: never;
+    };
+    "/api/v1/agency/templates/{templateId}/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Apply a template to a client: adds what's missing, renames clashes, never overwrites */
+        post: operations["apply-agency-template"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agency/templates/{templateId}/plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What applying a template to a client would add and rename */
+        get: operations["plan-agency-template"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agency/usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Usage per client for a month, with provider costs and what to rebill */
+        get: operations["get-agency-usage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agency/usage/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Usage as CSV: one row per client and channel (recorded in the audit log) */
+        get: operations["export-agency-usage"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1693,6 +2175,75 @@ export interface paths {
         put?: never;
         /** Update a community adapter to its latest version (instance admins) */
         post: operations["update-adapter"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/agency": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The agency managing this workspace: “Managed by”, the contact, staff among the members */
+        get: operations["get-workspace-agency"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/agency/library": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The agency library tab of this workspace's gallery and automation starters */
+        get: operations["get-agency-gallery"];
+        put?: never;
+        /** Add an item of this workspace to the agency's library (agency:library and its view permission here) */
+        post: operations["add-agency-library-item"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/agency/library/{itemId}/use": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Copy a library item into this workspace */
+        post: operations["use-agency-library-item"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/agency/template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Save this workspace's setup as a workspace template (agency:library) */
+        post: operations["save-agency-template"];
         delete?: never;
         options?: never;
         head?: never;
@@ -12632,6 +13183,780 @@ export interface components {
             /** @description A base language code, such as fr */
             code: string;
         };
+        AgencyAddToLibrary: {
+            /**
+             * Format: uuid
+             * @description The saved section, campaign template, automation or transactional template
+             */
+            id: string;
+            /** @enum {string} */
+            kind: "section" | "template" | "automation" | "transactional";
+            name?: string;
+            /** Format: uuid */
+            newVersionOf?: string;
+            note?: string;
+        };
+        AgencyApproval: {
+            campaign: string;
+            campaignId: string;
+            clientSignoff: boolean;
+            id: string;
+            /** Format: int64 */
+            recipients: number;
+            /** Format: date-time */
+            requestedAt: string;
+            requestedBy: string;
+            /** Format: date-time */
+            sendAt?: string;
+            timezone?: string;
+            waitingFor: string[];
+            workspace: components["schemas"]["AgencyWorkspaceRef"];
+        };
+        AgencyAssignInput: {
+            /** Format: uuid */
+            roleId: string;
+            staffId: string;
+            /** Format: uuid */
+            workspaceId: string;
+        };
+        AgencyAssignableRole: {
+            builtin: boolean;
+            description: string;
+            grantable: boolean;
+            id?: string;
+            key: string;
+            name: string;
+            reason?: string;
+        };
+        AgencyAssignmentCell: {
+            role?: components["schemas"]["AgencyRoleRef"];
+            source?: string;
+            staffId: string;
+        };
+        AgencyAssignmentKeys: {
+            keys: components["schemas"]["AgencyKeyRef"][];
+        };
+        AgencyAssignmentRow: {
+            canAssign: boolean;
+            cells: components["schemas"]["AgencyAssignmentCell"][];
+            roles: components["schemas"]["AgencyAssignableRole"][];
+            workspace: components["schemas"]["AgencyWorkspaceRef"];
+            yourRole?: string;
+        };
+        AgencyAssignmentSpec: {
+            /** Format: uuid */
+            roleId: string;
+            /** Format: uuid */
+            workspaceId: string;
+        };
+        AgencyBilledMonth: {
+            month: string;
+            rate?: components["schemas"]["AgencyRate"];
+            /** Format: double */
+            toRebill?: number;
+        };
+        AgencyClientCreated: {
+            /** Format: date-time */
+            createdAt: string;
+            createdBy: string;
+            invitation?: components["schemas"]["TeamCreatedInvitation"];
+            plan?: components["schemas"]["AgencyTemplatePlan"];
+            setup?: components["schemas"]["AgencySetup"];
+            workspace: components["schemas"]["AgencyWorkspaceRef"];
+        };
+        AgencyClientDelete: {
+            /** @description The client's name, typed */
+            confirm: string;
+        };
+        AgencyClientDeleted: {
+            /** Format: date-time */
+            restoreUntil: string;
+        };
+        AgencyClientDetails: {
+            accountManager?: components["schemas"]["AgencyPersonRef"];
+            billed: components["schemas"]["AgencyBilledMonth"][];
+            canManage: boolean;
+            canSeeCosts: boolean;
+            /** Format: date-time */
+            clientSince: string;
+            people: components["schemas"]["AgencyClientPerson"][];
+            providers: string[];
+            rate?: components["schemas"]["AgencyRate"];
+            /** Format: date-time */
+            rateSince?: string;
+            staff: components["schemas"]["AgencyPersonRef"][];
+            template?: string;
+            workspace: components["schemas"]["AgencyWorkspaceRef"];
+        };
+        AgencyClientInput: {
+            /** Format: uuid */
+            accountManagerId?: string;
+        };
+        AgencyClientNew: {
+            accountManagerIds?: string[];
+            firstPerson?: components["schemas"]["AgencyFirstPerson"];
+            name: string;
+            /** Format: uuid */
+            ownerId: string;
+            /** @description Defaults to the name in lowercase with hyphens */
+            slug?: string;
+            /** Format: uuid */
+            templateId?: string;
+            timezone: string;
+        };
+        AgencyClientPerson: {
+            email: string;
+            invited: boolean;
+            name: string;
+            role: components["schemas"]["AgencyRoleRef"];
+        };
+        AgencyClientPulse: {
+            approvals: components["schemas"]["AgencyApproval"][];
+            /** Format: int64 */
+            contacts: number;
+            draft?: string;
+            health?: components["schemas"]["AgencyHealth"];
+            incidents: components["schemas"]["AgencyIncident"][];
+            nextSend?: components["schemas"]["AgencySend"];
+            setup?: components["schemas"]["AgencySetup"];
+            workspace: components["schemas"]["AgencyWorkspaceRef"];
+        };
+        AgencyClientRow: {
+            accountManager?: components["schemas"]["AgencyPersonRef"];
+            attention: boolean;
+            attentionReasons: string[];
+            /** Format: int64 */
+            contacts: number;
+            /** Format: date-time */
+            createdAt: string;
+            health?: components["schemas"]["AgencyHealth"];
+            mine: boolean;
+            /** Format: date-time */
+            nextSendAt?: string;
+            role?: components["schemas"]["AgencyRoleRef"];
+            settingUp: boolean;
+            template?: string;
+            workspace: components["schemas"]["AgencyWorkspaceRef"];
+        };
+        AgencyCopyInput: {
+            /** Format: uuid */
+            workspaceId: string;
+        };
+        AgencyCopyResult: {
+            kind: string;
+            name: string;
+            targetId: string;
+            workspace: components["schemas"]["AgencyWorkspaceRef"];
+        };
+        AgencyCopyTarget: {
+            canCopy: boolean;
+            reason?: string;
+            workspace: components["schemas"]["AgencyWorkspaceRef"];
+        };
+        AgencyCounts: {
+            /** Format: int64 */
+            all: number;
+            /** Format: int64 */
+            attention: number;
+            /** Format: int64 */
+            mine: number;
+            /** Format: int64 */
+            sends: number;
+        };
+        AgencyEnteredPrice: {
+            /** Format: double */
+            monthly: number;
+            provider: string;
+            workspace: components["schemas"]["AgencyWorkspaceRef"];
+        };
+        AgencyFailover: {
+            stream: string;
+            to: string;
+        };
+        AgencyFirstPerson: {
+            email: string;
+            /** @enum {string} */
+            role: "client_approver" | "client_viewer";
+        };
+        AgencyGalleryCopy: {
+            id: string;
+            itemId: string;
+            kind: string;
+            /** Format: int64 */
+            latest: number;
+            name: string;
+            targetId: string;
+            /** Format: int64 */
+            version: number;
+        };
+        AgencyGalleryView: {
+            agency: string;
+            canUse: boolean;
+            copies: components["schemas"]["AgencyGalleryCopy"][];
+            items: components["schemas"]["AgencyLibraryItem"][];
+            reason?: string;
+            role?: string;
+        };
+        AgencyHealth: {
+            /** Format: date-time */
+            checkedAt: string;
+            hostRepute?: string;
+            /** Format: int64 */
+            listings?: number;
+            /** Format: int64 */
+            score: number;
+            /** @enum {string} */
+            state: "ready" | "pending" | "unknown";
+            tone: string;
+            trend: number[];
+        };
+        AgencyIncident: {
+            broadcastHeld: boolean;
+            campaign?: string;
+            detail: string;
+            failovers: components["schemas"]["AgencyFailover"][];
+            id: string;
+            /** @enum {string} */
+            kind: "auto_pause" | "provider_down" | "webhooks_silent" | "sms_budget_reached" | "store_disconnected";
+            mailboxProvider?: string;
+            metric?: string;
+            /** Format: date-time */
+            occurredAt: string;
+            provider?: string;
+            /** Format: date-time */
+            resolvedAt?: string;
+            resolvedBy?: string;
+            /** @enum {string} */
+            state: "ongoing" | "resumed" | "cancelled" | "recovered";
+            /** Format: double */
+            threshold?: number;
+            title: string;
+            /** Format: double */
+            value?: number;
+            withChanges?: boolean;
+            workspace: components["schemas"]["AgencyWorkspaceRef"];
+        };
+        AgencyKeyRef: {
+            id: string;
+            /** @enum {string} */
+            kind: "api_key" | "mcp_agent";
+            name: string;
+            prefix: string;
+        };
+        AgencyLibraryAdded: {
+            id: string;
+            /** Format: int64 */
+            version: number;
+        };
+        AgencyLibraryCopy: {
+            behind: boolean;
+            canUpdate: boolean;
+            /** Format: date-time */
+            copiedAt: string;
+            id: string;
+            reason?: string;
+            /** Format: int64 */
+            version: number;
+            workspace: components["schemas"]["AgencyWorkspaceRef"];
+        };
+        AgencyLibraryDetail: {
+            canEdit: boolean;
+            clients: components["schemas"]["AgencyCopyTarget"][];
+            copies: components["schemas"]["AgencyLibraryCopy"][];
+            diff?: components["schemas"]["AgencyLibraryDiff"];
+            item: components["schemas"]["AgencyLibraryItem"];
+            preview?: string;
+            subject?: string;
+            versions: components["schemas"]["AgencyLibraryVersion"][];
+        };
+        AgencyLibraryDiff: {
+            /** Format: int64 */
+            from: number;
+            lines: components["schemas"]["DiffLine"][];
+            /** Format: int64 */
+            to: number;
+        };
+        AgencyLibraryEdit: {
+            /** Format: uuid */
+            fromCopy?: string;
+            name: string;
+            note?: string;
+        };
+        AgencyLibraryField: {
+            fallback?: string;
+            key: string;
+        };
+        AgencyLibraryItem: {
+            /** Format: int64 */
+            behind: number;
+            body?: string;
+            /** Format: int64 */
+            clients: number;
+            /** Format: int64 */
+            copies: number;
+            fields: components["schemas"]["AgencyLibraryField"][];
+            id: string;
+            /** @enum {string} */
+            kind: "section" | "template" | "automation" | "transactional" | "sms";
+            name: string;
+            /** Format: int64 */
+            steps?: number;
+            thumb?: unknown;
+            /** Format: date-time */
+            updatedAt: string;
+            updatedBy?: string;
+            /** Format: int64 */
+            version: number;
+        };
+        AgencyLibraryVersion: {
+            /** Format: date-time */
+            at: string;
+            by?: string;
+            note?: string;
+            /** Format: int64 */
+            version: number;
+        };
+        AgencyLibraryView: {
+            canEdit: boolean;
+            counts: {
+                [key: string]: number;
+            };
+            helpers: string[];
+            items: components["schemas"]["AgencyLibraryItem"][];
+            reason?: string;
+            /** Format: int64 */
+            total: number;
+        };
+        AgencyMe: {
+            agencyWorkspace?: components["schemas"]["AgencyClientRow"];
+            /** Format: int64 */
+            clientCount: number;
+            clients: components["schemas"]["AgencyClientRow"][];
+            enabled: boolean;
+            home?: string;
+            host: string;
+            initials: string;
+            name: string;
+            staff?: components["schemas"]["AgencyMeStaff"];
+        };
+        AgencyMeStaff: {
+            /** @enum {string} */
+            level: "agency_manager" | "account_manager";
+            permissions: string[];
+            title?: string;
+        };
+        AgencyModeInput: {
+            agencyWorkspaceId?: string;
+            clientIds?: string[];
+            defaultTemplateId?: string;
+            enabled: boolean;
+            name?: string;
+        };
+        AgencyModeView: {
+            agencyWorkspaceId?: string;
+            /** Format: int64 */
+            clients: number;
+            defaultTemplateId?: string;
+            enabled: boolean;
+            /** Format: date-time */
+            enabledAt?: string;
+            enabledByName?: string;
+            instanceName: string;
+            name: string;
+            templates: components["schemas"]["AgencyTemplateRef"][];
+            workspaces: components["schemas"]["AgencyModeWorkspace"][];
+        };
+        AgencyModeWorkspace: {
+            agency: boolean;
+            client: boolean;
+            color: string;
+            id: string;
+            initials: string;
+            name: string;
+            slug: string;
+        };
+        AgencyNotification: {
+            /** Format: date-time */
+            createdAt: string;
+            id: string;
+            kind: string;
+            link: string;
+            read: boolean;
+            /** @enum {string} */
+            severity: "info" | "ok" | "warn" | "bad";
+            summary: string;
+            title: string;
+            workspace: components["schemas"]["AgencyWorkspaceRef"];
+        };
+        AgencyNotificationList: {
+            items: components["schemas"]["AgencyNotification"][];
+            /** Format: int64 */
+            unread: number;
+        };
+        AgencyOverviewView: {
+            agencyWorkspace?: components["schemas"]["AgencyClientRow"];
+            approvals: components["schemas"]["AgencyApproval"][];
+            canCreate: boolean;
+            clients: components["schemas"]["AgencyClientRow"][];
+            counts: components["schemas"]["AgencyCounts"];
+            incidents: components["schemas"]["AgencyIncident"][];
+            manager: boolean;
+            nextAfter?: components["schemas"]["AgencySend"];
+            sends: components["schemas"]["AgencySend"][];
+            timezone: string;
+        };
+        AgencyPersonRef: {
+            avatarColor: string;
+            email: string;
+            id: string;
+            name: string;
+        };
+        AgencyPlanPart: {
+            added: string[];
+            renamed: components["schemas"]["AgencyPlanRename"][];
+        };
+        AgencyPlanRename: {
+            from: string;
+            to: string;
+        };
+        AgencyPlanSkip: {
+            part: string;
+            permission: string;
+        };
+        AgencyProviderCost: {
+            adapter: string;
+            /** @enum {string} */
+            basis: "metered" | "plan";
+            channel: string;
+            /** Format: double */
+            cost: number;
+            entered: boolean;
+            /** Format: double */
+            per1000?: number;
+            provider: string;
+            /** Format: int64 */
+            units: number;
+        };
+        AgencyRate: {
+            /** Format: double */
+            costPlusPct?: number;
+            /** Format: double */
+            flat?: number;
+            /** Format: double */
+            monthlyFee?: number;
+            /** Format: double */
+            per1000Emails?: number;
+            /** Format: double */
+            perSegment?: number;
+        };
+        AgencyRateInput: {
+            rate: components["schemas"]["AgencyRate"];
+        };
+        AgencyRateSaved: {
+            /** Format: date-time */
+            effectiveFrom: string;
+        };
+        AgencyRebill: {
+            /** Format: double */
+            cost: number;
+            /** Format: double */
+            costPlus: number;
+            /** Format: double */
+            emails: number;
+            /** Format: double */
+            flat: number;
+            /** Format: double */
+            monthly: number;
+            /** Format: double */
+            segments: number;
+            /** Format: double */
+            toRebill?: number;
+        };
+        AgencyRoleRef: {
+            builtin: boolean;
+            id?: string;
+            key: string;
+            name: string;
+        };
+        AgencySearchGroup: {
+            hits: components["schemas"]["AgencySearchHit"][];
+            workspace: components["schemas"]["AgencyWorkspaceRef"];
+        };
+        AgencySearchHit: {
+            id: string;
+            /** @enum {string} */
+            kind: "campaign" | "automation" | "template" | "section" | "form" | "contact" | "library";
+            leftLists?: string[];
+            libraryKind?: string;
+            lists?: string[];
+            name: string;
+            status?: string;
+            /** Format: date-time */
+            subscribedAt?: string;
+            /** Format: date-time */
+            unsubscribedAt?: string;
+            /** Format: int64 */
+            version?: number;
+        };
+        AgencySearchResults: {
+            contact: boolean;
+            groups: components["schemas"]["AgencySearchGroup"][];
+            library: components["schemas"]["AgencySearchHit"][];
+            query: string;
+            /** Format: int64 */
+            searched: number;
+            /** Format: int64 */
+            skipped: number;
+            /** Format: int64 */
+            total: number;
+        };
+        AgencySend: {
+            campaignId: string;
+            /** Format: int64 */
+            health?: number;
+            name: string;
+            /** Format: int64 */
+            recipients: number;
+            /** Format: date-time */
+            sendAt: string;
+            status: string;
+            timezone: string;
+            workspace: components["schemas"]["AgencyWorkspaceRef"];
+        };
+        AgencySetup: {
+            /** Format: int64 */
+            done: number;
+            steps: components["schemas"]["AgencySetupStep"][];
+            /** Format: int64 */
+            total: number;
+        };
+        AgencySetupStep: {
+            detail?: string;
+            done: boolean;
+            /** @enum {string} */
+            key: "provider" | "domain" | "invite" | "shopify";
+        };
+        AgencyStaffAdded: {
+            /** Format: int64 */
+            assigned: number;
+            emailed: boolean;
+            id: string;
+            invitations: components["schemas"]["TeamCreatedInvitation"][];
+        };
+        AgencyStaffCandidate: {
+            avatarColor: string;
+            email: string;
+            id: string;
+            name: string;
+        };
+        AgencyStaffInput: {
+            assignments?: components["schemas"]["AgencyAssignmentSpec"][];
+            /** @description Invite by email instead */
+            email?: string;
+            /** @enum {string} */
+            level: "agency_manager" | "account_manager";
+            title?: string;
+            /**
+             * Format: uuid
+             * @description An account of this instance
+             */
+            userId?: string;
+        };
+        AgencyStaffMember: {
+            avatarColor: string;
+            clients: string[];
+            email: string;
+            everyClient: boolean;
+            /** @description Staff id: the staff row, or admin:<user id> for an instance admin */
+            id: string;
+            instanceAdmin: boolean;
+            invited: boolean;
+            /** Format: date-time */
+            lastActiveAt?: string;
+            /** @enum {string} */
+            level: "agency_manager" | "account_manager";
+            name: string;
+            permissions: string[];
+            roles: components["schemas"]["AgencyRoleRef"][];
+            title?: string;
+            /** @description Empty while an invited person has no account yet */
+            userId?: string;
+            you: boolean;
+        };
+        AgencyStaffRemoveInput: {
+            removeAssignments?: boolean;
+            revokeKeys?: boolean;
+        };
+        AgencyStaffUpdate: {
+            /** @enum {string} */
+            level: "agency_manager" | "account_manager";
+            permissions?: ("agency:view" | "agency:usage" | "agency:library" | "agency:manage")[];
+            title?: string;
+        };
+        AgencyStaffView: {
+            assignments: components["schemas"]["AgencyAssignmentRow"][];
+            canManage: boolean;
+            /** Format: int64 */
+            clients: number;
+            hasAgencyWorkspace: boolean;
+            helpers: string[];
+            reason?: string;
+            staff: components["schemas"]["AgencyStaffMember"][];
+        };
+        AgencyTemplate: {
+            default: boolean;
+            description?: string;
+            id: string;
+            name: string;
+            nextSteps: string[];
+            setsUp: components["schemas"]["AgencyTemplateSummary"];
+            /** Format: date-time */
+            updatedAt: string;
+            updatedBy?: string;
+            usedBy: components["schemas"]["AgencyWorkspaceRef"][];
+        };
+        AgencyTemplateFromWorkspace: {
+            description?: string;
+            name: string;
+        };
+        AgencyTemplateInput: {
+            description?: string;
+            exclude?: string[];
+            name: string;
+            nextSteps?: string[];
+        };
+        AgencyTemplatePlan: {
+            /** Format: date-time */
+            appliedAt?: string;
+            appliedBy?: string;
+            automations: components["schemas"]["AgencyPlanPart"];
+            branding: boolean;
+            /** @enum {string} */
+            clientRoles: "added" | "already";
+            /** @enum {string} */
+            clientSignoff: "on" | "already" | "off" | "skipped";
+            forms: components["schemas"]["AgencyPlanPart"];
+            lists: components["schemas"]["AgencyPlanPart"];
+            nextSteps: string[];
+            roles: components["schemas"]["AgencyPlanPart"];
+            sections: components["schemas"]["AgencyPlanPart"];
+            senders: boolean;
+            skipped: components["schemas"]["AgencyPlanSkip"][];
+            smsTexts: components["schemas"]["AgencyPlanPart"];
+            template: components["schemas"]["AgencyTemplateRef"];
+            templates: components["schemas"]["AgencyPlanPart"];
+            workspace: components["schemas"]["AgencyWorkspaceRef"];
+        };
+        AgencyTemplateRef: {
+            id: string;
+            name: string;
+        };
+        AgencyTemplateSummary: {
+            automationNames: string[];
+            /** Format: int64 */
+            automations: number;
+            automationsNote?: string;
+            branding: boolean;
+            clientRoles: boolean;
+            clientSignoff: boolean;
+            /** Format: int64 */
+            forms: number;
+            listNames: string[];
+            /** Format: int64 */
+            lists: number;
+            /** Format: int64 */
+            roles: number;
+            /** Format: int64 */
+            sections: number;
+            /** Format: int64 */
+            smsTexts: number;
+            /** Format: int64 */
+            templates: number;
+        };
+        AgencyUnassignInput: {
+            revokeKeys?: boolean;
+            staffId: string;
+            /** Format: uuid */
+            workspaceId: string;
+        };
+        AgencyUsageCount: {
+            key: string;
+            label: string;
+            /** Format: int64 */
+            units: number;
+        };
+        AgencyUsageMonth: {
+            month: string;
+            partial: boolean;
+        };
+        AgencyUsageRow: {
+            costs: components["schemas"]["AgencyProviderCost"][];
+            countries: components["schemas"]["AgencyUsageCount"][];
+            /** Format: int64 */
+            emails: number;
+            /** Format: int64 */
+            providers: number;
+            /** Format: int64 */
+            push: number;
+            rate?: components["schemas"]["AgencyRate"];
+            /** Format: date-time */
+            rateSince?: string;
+            rebill: components["schemas"]["AgencyRebill"];
+            /** Format: int64 */
+            segments: number;
+            streams: components["schemas"]["AgencyUsageCount"][];
+            /** Format: int64 */
+            whatsApp: number;
+            workspace: components["schemas"]["AgencyWorkspaceRef"];
+        };
+        AgencyUsageTotals: {
+            /** Format: int64 */
+            billed: number;
+            /** Format: int64 */
+            clients: number;
+            /** Format: double */
+            cost: number;
+            /** Format: int64 */
+            emails: number;
+            /** Format: int64 */
+            push: number;
+            /** Format: int64 */
+            segments: number;
+            /** Format: double */
+            toRebill: number;
+            /** Format: int64 */
+            whatsApp: number;
+            /** Format: int64 */
+            workspaces: number;
+        };
+        AgencyUsageView: {
+            canSeeCosts: boolean;
+            entered: components["schemas"]["AgencyEnteredPrice"][];
+            /** Format: date-time */
+            from: string;
+            helpers: string[];
+            month: string;
+            months: components["schemas"]["AgencyUsageMonth"][];
+            partial: boolean;
+            /** Format: date-time */
+            pricingDate: string;
+            reason?: string;
+            rows: components["schemas"]["AgencyUsageRow"][];
+            /** Format: date-time */
+            to: string;
+            totals: components["schemas"]["AgencyUsageTotals"];
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        AgencyWorkspaceRef: {
+            color: string;
+            id: string;
+            initials: string;
+            /** @enum {string} */
+            kind: "client" | "agency";
+            name: string;
+            slug: string;
+        };
         AlertDomain: {
             /** Format: int64 */
             count: number;
@@ -12722,6 +14047,22 @@ export interface components {
             label: string;
             what?: string;
         };
+        ApprovalClientSignoff: {
+            automations: boolean;
+            enabled: boolean;
+        };
+        ApprovalClientSignoffInfo: {
+            agency: string;
+            approvers: string[];
+            staff: string[];
+        };
+        ApprovalClientSignoffState: {
+            approvers: string[];
+            met: boolean;
+            signedOffBy?: string;
+            staffApprovals: string[];
+            viewerIsStaff: boolean;
+        };
         ApprovalCommentInput: {
             body: string;
         };
@@ -12770,6 +14111,7 @@ export interface components {
             can: components["schemas"]["ApprovalCan"];
             changes: components["schemas"]["ApprovalChange"][];
             changesSince: components["schemas"]["ApprovalChange"][];
+            clientSignoff?: components["schemas"]["ApprovalClientSignoffState"];
             comment?: string;
             comments: components["schemas"]["ApprovalCommentView"][];
             /** Format: date-time */
@@ -12877,6 +14219,7 @@ export interface components {
             audienceMin: components["schemas"]["ApprovalAudienceRule"];
             authorLacksSend: boolean;
             automationPublish: boolean;
+            clientSignoff?: components["schemas"]["ApprovalClientSignoff"];
             emergencyBypass: boolean;
             /** Format: int64 */
             newProviderDays: number;
@@ -12904,6 +14247,7 @@ export interface components {
             /** Format: int64 */
             bypassCount: number;
             canManage: boolean;
+            clientSignoff?: components["schemas"]["ApprovalClientSignoffInfo"];
             matches: components["schemas"]["ApprovalPolicyMatches"];
             pending: components["schemas"]["ApprovalPendingItem"][];
             policy: components["schemas"]["ApprovalPolicy"];
@@ -12986,7 +14330,7 @@ export interface components {
             author?: string;
             badge: string;
             /** @enum {string} */
-            key: "audience_min" | "warming_provider" | "new_provider" | "ready_with_warnings" | "author_lacks_send" | "approval_lists" | "automation_publish" | "transactional_publish" | "post_publish";
+            key: "audience_min" | "warming_provider" | "new_provider" | "ready_with_warnings" | "author_lacks_send" | "approval_lists" | "automation_publish" | "transactional_publish" | "post_publish" | "client_signoff";
             label: string;
             role?: string;
             short: string;
@@ -16086,6 +17430,11 @@ export interface components {
             /** Format: int64 */
             days: number;
         };
+        DiffLine: {
+            /** @enum {string} */
+            op: "del" | "add" | "ctx";
+            text: string;
+        };
         DigestApprovals: {
             approvers: string[];
             needed: boolean;
@@ -19114,6 +20463,8 @@ export interface components {
             enabled: boolean;
         };
         InstanceUser: {
+            /** @enum {string} */
+            agencyLevel?: "agency_manager" | "account_manager";
             allMethods: components["schemas"]["MemberSignInMethod"][];
             /**
              * Format: int64
@@ -19981,6 +21332,7 @@ export interface components {
         };
         InvitationAcceptInput: {
             name?: string;
+            passkey?: boolean;
             password?: string;
         };
         InvitationAccepted: {
@@ -19993,6 +21345,11 @@ export interface components {
             /** @description Workspace slug */
             workspace: string;
             workspaceName: string;
+        };
+        InvitationAgency: {
+            clientRole: boolean;
+            name: string;
+            roleLine?: string;
         };
         InvitationPasswordPolicy: {
             breachedCheck: boolean;
@@ -20016,6 +21373,7 @@ export interface components {
             /** Format: date-time */
             acceptedAt?: string;
             accountExists: boolean;
+            agency?: components["schemas"]["InvitationAgency"];
             description: string;
             email: string;
             /** Format: date-time */
@@ -29290,6 +30648,33 @@ export interface components {
             tags?: string[];
             template?: string;
         };
+        WorkspaceAgency: {
+            agency?: string;
+            agencyInitials?: string;
+            billed: boolean;
+            canSaveTemplate: boolean;
+            /** Format: date-time */
+            clientSince?: string;
+            contact?: components["schemas"]["AgencyPersonRef"];
+            host?: string;
+            /** @enum {string} */
+            kind?: "client" | "agency";
+            managed: boolean;
+            rate?: components["schemas"]["AgencyRate"];
+            /** Format: date-time */
+            rateSince?: string;
+            staff: components["schemas"]["WorkspaceAgencyStaff"][];
+            template?: string;
+            viewerIsStaff: boolean;
+        };
+        WorkspaceAgencyStaff: {
+            contact: boolean;
+            everyClient: boolean;
+            /** @enum {string} */
+            level: "agency_manager" | "account_manager";
+            title?: string;
+            userId: string;
+        };
         WorkspaceApprovals: {
             /** Format: int64 */
             approvalsRequired: number;
@@ -29456,6 +30841,68 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    "get-agency-mode": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgencyModeView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-agency-mode": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgencyModeInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgencyModeView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "list-instance-audit-events": {
         parameters: {
             query?: {
@@ -29469,6 +30916,7 @@ export interface operations {
                 /** @description Overrides range */
                 since?: string;
                 until?: string;
+                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "ai" | "earn" | "verification" | "placement" | "website" | "agency";
                 cursor?: string;
                 limit?: number;
             };
@@ -29542,6 +30990,7 @@ export interface operations {
                 /** @description Overrides range */
                 since?: string;
                 until?: string;
+                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "ai" | "earn" | "verification" | "placement" | "website" | "agency";
                 format?: "csv" | "json";
             };
             header?: never;
@@ -30891,6 +32340,1012 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["InstanceWorkspace"];
                 };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "assign-agency-staff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgencyAssignInput"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-agency-assignment-keys": {
+        parameters: {
+            query?: {
+                staffId?: string;
+                workspaceId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgencyAssignmentKeys"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "unassign-agency-staff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgencyUnassignInput"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-agency-client": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgencyClientNew"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgencyClientCreated"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-agency-client": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspaceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgencyClientPulse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-agency-client": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspaceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgencyClientInput"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-agency-client": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspaceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgencyClientDelete"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgencyClientDeleted"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-agency-client-details": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspaceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgencyClientDetails"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-agency-client-rate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspaceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgencyRateInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgencyRateSaved"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-agency-client-setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspaceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgencyTemplatePlan"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-agency-library": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgencyLibraryView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-agency-library-copy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                copyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-agency-library-item": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgencyLibraryDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-agency-library-item": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-agency-library-item": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgencyLibraryEdit"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "copy-agency-library-item": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgencyCopyInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgencyCopyResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-agency-me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgencyMe"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-agency-notifications": {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgencyNotificationList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-agency-overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgencyOverviewView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "search-agency": {
+        parameters: {
+            query?: {
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgencySearchResults"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-agency-staff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgencyStaffView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "add-agency-staff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgencyStaffInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgencyStaffAdded"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-agency-staff-candidates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgencyStaffCandidate"][];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-agency-staff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                staffId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgencyStaffUpdate"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-agency-staff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                staffId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgencyStaffRemoveInput"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-agency-templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgencyTemplate"][];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-agency-template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                templateId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-agency-template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                templateId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgencyTemplateInput"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "apply-agency-template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                templateId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgencyCopyInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgencyTemplatePlan"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "plan-agency-template": {
+        parameters: {
+            query?: {
+                workspaceId?: string;
+            };
+            header?: never;
+            path: {
+                templateId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgencyTemplatePlan"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-agency-usage": {
+        parameters: {
+            query?: {
+                /** @description 2026-09; the last full month by default */
+                month?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgencyUsageView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "export-agency-usage": {
+        parameters: {
+            query?: {
+                month?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Error */
             default: {
@@ -33160,6 +35615,177 @@ export interface operations {
             };
         };
     };
+    "get-workspace-agency": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceAgency"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-agency-gallery": {
+        parameters: {
+            query?: {
+                kind?: "composer" | "automation" | "transactional" | "sms";
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgencyGalleryView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "add-agency-library-item": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgencyAddToLibrary"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgencyLibraryAdded"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "use-agency-library-item": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgencyCopyResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-agency-template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgencyTemplateFromWorkspace"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgencyTemplateRef"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "get-ai-settings": {
         parameters: {
             query?: never;
@@ -34557,7 +37183,7 @@ export interface operations {
                 /** @description Action group (routing) or action (routing.updated) */
                 action?: string;
                 /** @description A group of actions, as in the action filter */
-                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "ai" | "earn" | "verification" | "placement" | "website";
+                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "ai" | "earn" | "verification" | "placement" | "website" | "agency";
                 result?: "allowed" | "denied" | "error";
                 range?: "24h" | "7d" | "30d" | "90d" | "all";
                 /** @description Overrides range */
@@ -34639,7 +37265,7 @@ export interface operations {
                 /** @description Action group (routing) or action (routing.updated) */
                 action?: string;
                 /** @description A group of actions, as in the action filter */
-                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "ai" | "earn" | "verification" | "placement" | "website";
+                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "ai" | "earn" | "verification" | "placement" | "website" | "agency";
                 result?: "allowed" | "denied" | "error";
                 range?: "24h" | "7d" | "30d" | "90d" | "all";
                 /** @description Overrides range */

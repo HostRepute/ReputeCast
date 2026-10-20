@@ -387,9 +387,13 @@ func (s *Service) Decide(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		if locked.SubjectType == "website_post" && locked.WebsitePostID != nil {
 			targetType, targetID, action = websiteDecisionAudit(*locked.WebsitePostID, in.Decision)
 		}
+		meta := map[string]any{"request_id": requestID.String(), "approvals": fmt.Sprintf("%d of %d", min(given+1, int(locked.ApprovalsRequired)), locked.ApprovalsRequired), "permission": "campaigns:approve"}
+		if in.Decision == DecisionApprove && !signedOff {
+			// An agency's staff approved: recorded, but client sign-off still waits.
+			meta["client_signoff"] = "waiting for a Client approver"
+		}
 		if err := s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: action, TargetType: targetType, TargetID: targetID, TargetName: name,
-			Before: map[string]any{"status": "pending"}, After: map[string]any{"status": status, "comment": comment},
-			Metadata: map[string]any{"request_id": requestID.String(), "approvals": fmt.Sprintf("%d of %d", min(given+1, int(locked.ApprovalsRequired)), locked.ApprovalsRequired), "permission": "campaigns:approve"}}); err != nil {
+			Before: map[string]any{"status": "pending"}, After: map[string]any{"status": status, "comment": comment}, Metadata: meta}); err != nil {
 			return err
 		}
 		if status != "pending" {

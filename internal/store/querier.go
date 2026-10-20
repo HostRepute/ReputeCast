@@ -149,6 +149,10 @@ type Querier interface {
 	// Staff members' memberships in the agency's workspaces (the assignment
 	// matrix) and every client person, with their roles.
 	AgencyMemberships(ctx context.Context, userIds []uuid.UUID) ([]AgencyMembershipsRow, error)
+	// ---------------------------------------------------------------------------
+	// Staff notifications: incidents and approvals in their clients, in the
+	// Agency area's bell.
+	AgencyNotifications(ctx context.Context, arg AgencyNotificationsParams) ([]AgencyNotificationsRow, error)
 	AgencyPendingApprovals(ctx context.Context, workspaceIds []uuid.UUID) ([]AgencyPendingApprovalsRow, error)
 	// ---------------------------------------------------------------------------
 	// The overview's rows
@@ -205,6 +209,7 @@ type Querier interface {
 	// ---------------------------------------------------------------------------
 	// Workspace templates
 	AgencyTemplates(ctx context.Context) ([]AgencyTemplatesRow, error)
+	AgencyUnreadNotifications(ctx context.Context, arg AgencyUnreadNotificationsParams) (int64, error)
 	AgencyUpdateTemplateContent(ctx context.Context, arg AgencyUpdateTemplateContentParams) (int64, error)
 	AgencyUsageClearDay(ctx context.Context, arg AgencyUsageClearDayParams) error
 	AgencyUsageComputedAt(ctx context.Context, arg AgencyUsageComputedAtParams) (int64, error)
