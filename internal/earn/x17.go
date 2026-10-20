@@ -8,11 +8,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/hostrepute/reputecast/internal/liquid"
 	"github.com/hostrepute/reputecast/internal/payments"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -184,4 +186,94 @@ func (s *Service) CancelPortal(ctx context.Context, ws *store.Workspace, sub sto
 		return "", fmt.Errorf("%w: %w", ErrUnavailable, err)
 	}
 	return u, nil
+}
+
+// PaidAccessOf is the paid access a contact has now, in mode ("" for
+// either): the subscription and its tier's name, or nil without any.
+func (s *Service) PaidAccessOf(ctx context.Context, ws *store.Workspace, contact uuid.UUID, mode string) (*store.PaidSubscription, string, error) {
+	acc, err := s.accessOf(ctx, ws, contact, mode)
+	if err != nil || acc == nil {
+		return nil, "", err
+	}
+	p := acc.PaidSubscription
+	return &p, acc.TierName, nil
+}
+
+// Timeline adds an entry to a paid member's timeline in the caller's
+// transaction (with its webhook event, when the kind has one).
+func (s *Service) Timeline(ctx context.Context, q *store.Queries, wsID, contact uuid.UUID, sub *uuid.UUID, mode, kind string, at time.Time, actor *uuid.UUID,
+	data map[string]any) error {
+	return s.timeline(ctx, q, wsID, contact, sub, mode, kind, at, nil, "", nil, "", actor, data)
+}
+
+// MemberEmailResult is what sending a member email did: sent, or not_sent
+// and why (not_published, no_route, suppressed, failed, no_mailer,
+// no_template).
+type MemberEmailResult struct {
+	Status    string
+	Reason    string
+	MessageID *uuid.UUID
+	Template  string
+	Version   int
+}
+
+// Sent reports whether the email went out.
+func (r MemberEmailResult) Sent() bool { return r.Status == "sent" }
+
+// SendMemberEmailTo sends one of the member emails (EmailGiftPurchased…)
+// to an address that needn't be a contact: a gift's buyer, or its
+// recipient before redeeming. key makes a retry send nothing twice.
+func (s *Service) SendMemberEmailTo(ctx context.Context, ws *store.Workspace, email, to, toName string, data map[string]any, key string) MemberEmailResult {
+	if s.Mailer == nil {
+		return MemberEmailResult{Status: "not_sent", Reason: "no_mailer"}
+	}
+	tpl, err := s.memberTemplate(ctx, ws, email)
+	if err != nil {
+		return MemberEmailResult{Status: "not_sent", Reason: "no_template"}
+	}
+	out := MemberEmailResult{Status: "sent", Template: tpl.Key, Version: tpl.LiveVersion}
+	res, err := s.Mailer.Send(ctx, ws, MemberMessage{Template: tpl.Key, To: to, ToName: toName, Data: data, Key: key})
+	switch {
+	case errors.Is(err, ErrNotPublished):
+		out.Status, out.Reason = "not_sent", "not_published"
+	case errors.Is(err, ErrNoRoute):
+		out.Status, out.Reason = "not_sent", "no_route"
+	case errors.Is(err, ErrSuppressed):
+		out.Status, out.Reason = "not_sent", "suppressed"
+	case err != nil:
+		out.Status, out.Reason = "not_sent", "failed"
+		s.log().WarnContext(ctx, "member email", "email", email, "err", err)
+	case res.MessageID != uuid.Nil:
+		id := res.MessageID
+		out.MessageID = &id
+	}
+	return out
+}
+
+// DateText is a date as the member emails write it ("24 Dec", with the
+// year when it isn't this year's), in the workspace's time zone.
+func (s *Service) DateText(ws *store.Workspace, t time.Time) string { return s.dateText(ws, t) }
+
+// WelcomeLine is the upgrade page's welcome text after its first sentence
+// ("Your first members-only deep dive arrives Tue 21 Oct."), for a new
+// paid member of the tier: the gift's redeem page says it too.
+func (s *Service) WelcomeLine(ctx context.Context, ws *store.Workspace, tier *uuid.UUID, first string) string {
+	page, err := s.upgradePage(ctx, ws)
+	if err != nil {
+		return ""
+	}
+	short := ""
+	if tier != nil {
+		short = s.tierShortName(ctx, s.Q, ws.ID, tier)
+	}
+	text, err := liquid.Render(page.Welcome, map[string]any{"first_name": firstNonEmpty(first, s.t(PageLang, "welcome.there", nil)),
+		"next_issue": s.nextIssue(ctx, ws, tier, PageLang), "tier": short})
+	if err != nil {
+		return ""
+	}
+	_, rest, found := strings.Cut(strings.TrimSpace(text), ". ")
+	if !found {
+		return ""
+	}
+	return strings.TrimSpace(rest)
 }

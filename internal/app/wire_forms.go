@@ -86,6 +86,8 @@ func (a *App) publicPages() *publicpages.Handler {
 		Earn: earnService(a),
 		// The hosted cancel page and its retention offer (X17).
 		Offers: offerService(a),
+		// The gift and redeem pages (X17).
+		Gifts: giftService(a),
 		// The publication website's pages (X18).
 		Website: site,
 	}

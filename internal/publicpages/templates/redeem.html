@@ -1,0 +1,45 @@
+{{define "content"}}{{with .Body}}<main class="card g18 gf" id="main">
+  {{template "brand" $}}
+  {{if eq .State "redeem"}}<div class="gf-head">
+    <span class="gf-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6.5" width="11" height="7.5" rx="1"></rect><path d="M1.8 4.2h12.4v2.3H1.8zM8 4.2V14M8 4.2c-1.2-2.3-4-2.6-4-.9 0 .9 1.6.9 4 .9zM8 4.2c1.2-2.3 4-2.6 4-.9 0 .9-1.6.9-4 .9z"></path></svg></span>
+    <h1 class="h26">{{.Heading}}</h1>
+  </div>
+  {{with .Message}}<figure class="gf-quote">
+    <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M3 9.5C3 6.5 4.6 4.6 7 4v1.6c-1.3.5-2 1.5-2.1 2.9H7V12H3zm6 0C9 6.5 10.6 4.6 13 4v1.6c-1.3.5-2 1.5-2.1 2.9H13V12H9z"></path></svg>
+    <blockquote>{{.}}</blockquote>
+    <figcaption>{{$.Body.From}}</figcaption>
+  </figure>
+  {{end}}{{if .Benefits}}<section class="gf-inc" aria-labelledby="gf-inc-h">
+    <h2 id="gf-inc-h">{{.Included}}</h2>
+    <ul>{{range .Benefits}}<li><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg><span>{{.}}</span></li>{{end}}</ul>
+  </section>
+  {{end}}<form class="gf-form" method="post" action="{{.Action}}" novalidate>
+    <label class="field">{{index .Words "email"}}<input class="in" type="email" name="email" value="{{.Email}}" autocomplete="email" required aria-describedby="gf-hint{{if .Error}} gf-err{{end}}"{{if .Error}} aria-invalid="true"{{end}}>
+      <span class="gf-hint" id="gf-hint">{{index .Words "hint"}}</span>
+      {{with .Error}}<span class="err" id="gf-err" role="alert">{{.}}</span>{{end}}</label>
+    <button class="btn-pri gf-go" type="submit"{{if $.Preview}} disabled{{end}}>{{.Button}}</button>
+  </form>
+  <p class="pnote">{{.Fine}}</p>
+  <p class="gf-pass">{{.PassOn}}</p>
+  {{else if eq .State "redeemed"}}<div class="gf-head">
+    <span class="gf-icon ok" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 8 3.5 3.5L13 5"></path></svg></span>
+    <h1 class="h24">{{.Heading}}</h1>
+    <p class="lead">{{.Text}}</p>
+  </div>
+  <a class="btn-out gf-go" href="{{.Preferences}}">{{.Button}}</a>
+  {{else if eq .State "have"}}<h1 class="h24">{{.Heading}}</h1>
+  <p class="lead">{{.Text}}</p>
+  <div class="gf-link">
+    <input class="in mono" value="{{.Link}}" readonly aria-label="{{index .Words "link"}}" data-gift-link data-url="{{.LinkURL}}">
+    <button class="btn-pri" type="button" data-gift-copy data-copied="{{.Copied}}">{{.Copy}}</button>
+  </div>
+  {{else}}<h1 class="h22">{{.Heading}}</h1>
+  <p class="lead">{{.TextHTML}}</p>
+  {{end}}
+</main>{{end}}{{end}}
+{{define "foot"}}<footer class="foot">
+  {{- with .Body.TermsURL}}<a href="{{.}}">{{$.Body.TermsLabel}}</a>{{end}}
+  {{- if and .Body.TermsURL .Privacy}}{{template "sep"}}{{end}}
+  {{- with .Privacy}}<a href="{{.}}">{{$.T "page.privacy"}}</a>{{end}}
+  {{- if and (or .Body.TermsURL .Privacy) .PoweredBy}}{{template "sep"}}{{end}}
+  {{- template "rcplain" .}}</footer>{{end}}

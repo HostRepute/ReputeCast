@@ -185,6 +185,10 @@ export const ms = defineMessages('earn.settings', {
   oPlanChanged: 'Plan changed from {from}',
   oOffer: 'Offer applied',
   oCheckout: 'Checkout completed',
+  // Gifts (X17): a gift's one payment and its refund.
+  oGiftPaid: 'Gift paid · {months, plural, =12 {1 year} =24 {2 years} one {1 month} other {# months}}',
+  oGiftRefunded: 'Gift refunded · its redeem link stops working',
+  oGiftPartlyRefunded: 'Gift partly refunded · the gift keeps working',
   oDispute: 'Dispute opened · nothing changed for the paid member',
   oBilling: 'Billing email updated',
   oNothing: 'Nothing to change',

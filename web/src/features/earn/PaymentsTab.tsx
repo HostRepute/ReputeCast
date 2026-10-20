@@ -640,7 +640,7 @@ function EventLog() {
 function eventStatus(t: T, e: Schemas['EarnEvent']): { label: string; tone: Tone } {
   switch (e.status) {
     case 'applied': {
-      const tone: Tone = e.outcome === 'past_due' ? 'warn' : e.outcome === 'access_ended' || e.outcome === 'refunded' || e.outcome === 'cancel_scheduled' ? 'neutral' : 'ok'
+      const tone: Tone = e.outcome === 'past_due' ? 'warn' : e.outcome === 'access_ended' || e.outcome === 'refunded' || e.outcome === 'gift_refunded' || e.outcome === 'cancel_scheduled' ? 'neutral' : 'ok'
       return { label: t(ms.stApplied), tone }
     }
     case 'ignored':
@@ -693,6 +693,10 @@ export function outcomeText(t: T, e: Schemas['EarnEvent']): string {
       return t(ms.oOffer)
     case 'checkout_completed':
       return t(ms.oCheckout)
+    case 'gift_paid':
+      return t(ms.oGiftPaid, { months: num('months') })
+    case 'gift_refunded':
+      return d.partial ? t(ms.oGiftPartlyRefunded) : t(ms.oGiftRefunded)
     case 'dispute_opened':
       return t(ms.oDispute)
     case 'billing_email':

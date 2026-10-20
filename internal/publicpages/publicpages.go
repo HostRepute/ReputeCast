@@ -43,6 +43,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audience"
 	"github.com/hostrepute/reputecast/internal/earn"
 	"github.com/hostrepute/reputecast/internal/forms"
+	"github.com/hostrepute/reputecast/internal/gifts"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/linktoken"
 	"github.com/hostrepute/reputecast/internal/offers"
@@ -90,6 +91,9 @@ type Handler struct {
 	// Offers serves the hosted cancel page with its retention offer (X17;
 	// nil: the cancel link opens the portal's cancel step).
 	Offers *offers.Service
+	// Gifts serves the gift page, the page after paying and the redeem
+	// page (X17; nil: none).
+	Gifts *gifts.Service
 
 	tmpl     map[string]*template.Template
 	version  string
@@ -112,7 +116,7 @@ func (h *Handler) log() *slog.Logger {
 
 // pages are the templates, each rendered inside layout.html.
 var pages = []string{"subscribe", "confirm", "preferences", "request", "unsubscribe", "done", "message", "archive", "challenge", "category", "poll", "survey", "upgrade", "welcome",
-	"cancel"}
+	"cancel", "gift", "giftdone", "redeem"}
 
 // Init parses the templates; Routes calls it.
 func (h *Handler) Init() error {
@@ -614,6 +618,9 @@ func (h *Handler) static(w http.ResponseWriter, r *http.Request) {
 		ctype = "text/javascript; charset=utf-8"
 	case "poll.js":
 		data, _ = fs.ReadFile(staticFS, "static/poll.js")
+		ctype = "text/javascript; charset=utf-8"
+	case "gift.js":
+		data, _ = fs.ReadFile(staticFS, "static/gift.js")
 		ctype = "text/javascript; charset=utf-8"
 	default:
 		http.NotFound(w, r)

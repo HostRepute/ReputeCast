@@ -49,7 +49,7 @@ func seedEarnMoreImpl(ctx context.Context, s *Seeder) error {
 			*p = &id
 		}
 	}
-	for _, step := range []func(context.Context) error{e.sponsors, e.bookingsSeed, e.sponsorAudit, e.offersSeed, e.cancelVisitsSeed, e.ledgerSeed, e.sourcesSeed, e.checkoutsSeed, e.conversionsSeed} {
+	for _, step := range []func(context.Context) error{e.sponsors, e.bookingsSeed, e.sponsorAudit, e.offersSeed, e.cancelVisitsSeed, e.ledgerSeed, e.sourcesSeed, e.checkoutsSeed, e.conversionsSeed, e.giftsSeed} {
 		if err := step(ctx); err != nil {
 			return err
 		}

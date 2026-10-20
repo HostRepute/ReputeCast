@@ -24007,6 +24007,662 @@
         ],
         "type": "object"
       },
+      "GiftCounts": {
+        "additionalProperties": false,
+        "properties": {
+          "all": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "expired": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "notRedeemed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "redeemed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "refunded": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "scheduled": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "all",
+          "scheduled",
+          "notRedeemed",
+          "redeemed",
+          "expired",
+          "refunded"
+        ],
+        "type": "object"
+      },
+      "GiftDeliveryInput": {
+        "additionalProperties": false,
+        "properties": {
+          "date": {
+            "description": "The day, in the time zone",
+            "format": "date",
+            "type": "string"
+          },
+          "notifyBuyer": {
+            "type": "boolean"
+          },
+          "time": {
+            "description": "The time of day, 24-hour",
+            "pattern": "^[0-2][0-9]:[0-5][0-9]$",
+            "type": "string"
+          },
+          "timezone": {
+            "description": "An IANA time zone; the buyer's is the default",
+            "type": "string"
+          }
+        },
+        "required": [
+          "date",
+          "time"
+        ],
+        "type": "object"
+      },
+      "GiftEmail": {
+        "additionalProperties": false,
+        "properties": {
+          "draftVersion": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "email": {
+            "enum": [
+              "gift_purchased",
+              "gift_received",
+              "gift_ending"
+            ],
+            "type": "string"
+          },
+          "liveVersion": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "live",
+              "draft",
+              "missing"
+            ],
+            "type": "string"
+          },
+          "template": {
+            "type": "string"
+          },
+          "templateId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "template",
+          "name",
+          "status",
+          "liveVersion",
+          "draftVersion"
+        ],
+        "type": "object"
+      },
+      "GiftEndingWarning": {
+        "additionalProperties": false,
+        "properties": {
+          "buyer": {
+            "type": "string"
+          },
+          "due": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "inPerson": {
+            "type": "boolean"
+          },
+          "recipient": {
+            "type": "string"
+          },
+          "templateId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "due",
+          "buyer",
+          "inPerson",
+          "recipient"
+        ],
+        "type": "object"
+      },
+      "GiftLink": {
+        "additionalProperties": false,
+        "properties": {
+          "host": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "host"
+        ],
+        "type": "object"
+      },
+      "GiftList": {
+        "additionalProperties": false,
+        "properties": {
+          "counts": {
+            "$ref": "#/components/schemas/GiftCounts"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/GiftRow"
+            },
+            "type": "array"
+          },
+          "page": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "pageSize": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "status": {
+            "type": "string"
+          },
+          "total": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "counts",
+          "status",
+          "page",
+          "pageSize",
+          "total"
+        ],
+        "type": "object"
+      },
+      "GiftMonthsCount": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "months": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "months",
+          "count"
+        ],
+        "type": "object"
+      },
+      "GiftNumbers": {
+        "additionalProperties": false,
+        "properties": {
+          "byMonths": {
+            "items": {
+              "$ref": "#/components/schemas/GiftMonthsCount"
+            },
+            "type": "array"
+          },
+          "delivered": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "nextAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "nextTimezone": {
+            "type": "string"
+          },
+          "redeemed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "scheduled": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "sold": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "soldCents": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "waiting": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "withAccess": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "sold",
+          "soldCents",
+          "byMonths",
+          "delivered",
+          "redeemed",
+          "waiting",
+          "scheduled",
+          "withAccess"
+        ],
+        "type": "object"
+      },
+      "GiftOption": {
+        "additionalProperties": false,
+        "properties": {
+          "amountCents": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "months": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "short": {
+            "type": "string"
+          },
+          "sold": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "soldCents": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "tier": {
+            "type": "string"
+          },
+          "tierId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "tierId",
+          "tier",
+          "short",
+          "months",
+          "amountCents",
+          "currency",
+          "sold",
+          "soldCents"
+        ],
+        "type": "object"
+      },
+      "GiftOptionInput": {
+        "additionalProperties": false,
+        "properties": {
+          "amountCents": {
+            "description": "The one-time price, in the workspace currency",
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "months": {
+            "description": "How long the gift lasts",
+            "format": "int64",
+            "maximum": 36,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "tierId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tierId",
+          "months",
+          "amountCents"
+        ],
+        "type": "object"
+      },
+      "GiftPage": {
+        "additionalProperties": false,
+        "properties": {
+          "changedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "changedBy": {
+            "type": "string"
+          },
+          "host": {
+            "type": "string"
+          },
+          "linkMonths": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "on": {
+            "type": "boolean"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "on",
+          "url",
+          "host",
+          "linkMonths"
+        ],
+        "type": "object"
+      },
+      "GiftPageInput": {
+        "additionalProperties": false,
+        "properties": {
+          "linkMonths": {
+            "description": "How long a gift link works after delivery",
+            "enum": [
+              3,
+              6,
+              12
+            ],
+            "format": "int64",
+            "type": "integer"
+          },
+          "on": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "on",
+          "linkMonths"
+        ],
+        "type": "object"
+      },
+      "GiftRow": {
+        "additionalProperties": false,
+        "properties": {
+          "accessEnds": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "amountCents": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "boughtAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "buyer": {
+            "type": "string"
+          },
+          "buyerEmail": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "deliverAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "deliveredAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "emailStatus": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "inPerson": {
+            "type": "boolean"
+          },
+          "linkExpiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "months": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "paymentUrl": {
+            "type": "string"
+          },
+          "recipientEmail": {
+            "type": "string"
+          },
+          "recipientName": {
+            "type": "string"
+          },
+          "redeemedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "redeemedBy": {
+            "type": "string"
+          },
+          "refundedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "remindAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "remindedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "short": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "scheduled",
+              "not_redeemed",
+              "redeemed",
+              "expired",
+              "refunded"
+            ],
+            "type": "string"
+          },
+          "tier": {
+            "type": "string"
+          },
+          "timezone": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "boughtAt",
+          "buyer",
+          "buyerEmail",
+          "inPerson",
+          "recipientName",
+          "recipientEmail",
+          "tier",
+          "short",
+          "months",
+          "amountCents",
+          "currency",
+          "status",
+          "timezone",
+          "emailStatus"
+        ],
+        "type": "object"
+      },
+      "GiftTier": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "monthlyCents": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "short": {
+            "type": "string"
+          },
+          "yearlyCents": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "short",
+          "monthlyCents",
+          "yearlyCents"
+        ],
+        "type": "object"
+      },
+      "GiftsView": {
+        "additionalProperties": false,
+        "properties": {
+          "canEdit": {
+            "type": "boolean"
+          },
+          "canManage": {
+            "type": "boolean"
+          },
+          "categoryKind": {
+            "type": "string"
+          },
+          "categoryName": {
+            "type": "string"
+          },
+          "connected": {
+            "type": "boolean"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "emails": {
+            "items": {
+              "$ref": "#/components/schemas/GiftEmail"
+            },
+            "type": "array"
+          },
+          "ending": {
+            "$ref": "#/components/schemas/GiftEndingWarning"
+          },
+          "fromEmail": {
+            "type": "string"
+          },
+          "fromName": {
+            "type": "string"
+          },
+          "helpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "listNames": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "mode": {
+            "enum": [
+              "live",
+              "test",
+              ""
+            ],
+            "type": "string"
+          },
+          "needsLook": {
+            "items": {
+              "$ref": "#/components/schemas/GiftRow"
+            },
+            "type": "array"
+          },
+          "numbers": {
+            "$ref": "#/components/schemas/GiftNumbers"
+          },
+          "options": {
+            "items": {
+              "$ref": "#/components/schemas/GiftOption"
+            },
+            "type": "array"
+          },
+          "page": {
+            "$ref": "#/components/schemas/GiftPage"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "routePrimary": {
+            "type": "string"
+          },
+          "tiers": {
+            "items": {
+              "$ref": "#/components/schemas/GiftTier"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "mode",
+          "connected",
+          "provider",
+          "currency",
+          "numbers",
+          "options",
+          "page",
+          "tiers",
+          "listNames",
+          "emails",
+          "fromName",
+          "fromEmail",
+          "categoryName",
+          "categoryKind",
+          "routePrimary",
+          "needsLook",
+          "canEdit",
+          "canManage",
+          "helpers"
+        ],
+        "type": "object"
+      },
       "GrowthChart": {
         "additionalProperties": false,
         "properties": {
@@ -34752,11 +35408,7 @@
           "kind",
           "discountType",
           "duration",
-          "applies",
-          "byCode",
-          "byLink",
-          "newOnly",
-          "minPaidMonths"
+          "applies"
         ],
         "type": "object"
       },
@@ -91767,6 +92419,647 @@
         ],
         "x-access": "workspace",
         "x-permission": "earn:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/earn/gifts": {
+      "get": {
+        "operationId": "get-gifts",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GiftsView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Earn › Gifts: the numbers, the gift options and page, the gift emails and the gifts that need a look",
+        "tags": [
+          "Gifts"
+        ],
+        "x-access": "workspace",
+        "x-permission": "earn:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/earn/gifts/list": {
+      "get": {
+        "operationId": "list-gifts",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The filter (all by default)",
+            "explode": false,
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "description": "The filter (all by default)",
+              "enum": [
+                "all",
+                "scheduled",
+                "not_redeemed",
+                "redeemed",
+                "expired",
+                "refunded"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Buyer, recipient or email",
+            "explode": false,
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "description": "Buyer, recipient or email",
+              "maxLength": 100,
+              "type": "string"
+            }
+          },
+          {
+            "description": "The page (20 gifts each)",
+            "explode": false,
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "description": "The page (20 gifts each)",
+              "format": "int64",
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GiftList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A page of the gifts bought on the gift page, the latest first",
+        "tags": [
+          "Gifts"
+        ],
+        "x-access": "workspace",
+        "x-permission": "earn:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/earn/gifts/options": {
+      "post": {
+        "operationId": "create-gift-option",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GiftOptionInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GiftOption"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add a gift option: a tier for a period at a one-time price",
+        "tags": [
+          "Gifts"
+        ],
+        "x-access": "workspace",
+        "x-permission": "earn:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/earn/gifts/options/{id}": {
+      "delete": {
+        "operationId": "delete-gift-option",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The gift option's id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "The gift option's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Take a gift option off the gift page; gifts already bought keep working",
+        "tags": [
+          "Gifts"
+        ],
+        "x-access": "workspace",
+        "x-permission": "earn:edit"
+      },
+      "put": {
+        "operationId": "update-gift-option",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The gift option's id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "The gift option's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GiftOptionInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GiftOption"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change a gift option; gifts already bought keep what they were sold as",
+        "tags": [
+          "Gifts"
+        ],
+        "x-access": "workspace",
+        "x-permission": "earn:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/earn/gifts/page": {
+      "put": {
+        "description": "Gifts already bought keep working while the page is off: their emails go out and their links can be redeemed.",
+        "operationId": "set-gift-page",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GiftPageInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GiftPage"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Turn the gift page on or off, and set how long gift links work",
+        "tags": [
+          "Gifts"
+        ],
+        "x-access": "workspace",
+        "x-permission": "earn:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/earn/gifts/{id}/delivery": {
+      "post": {
+        "operationId": "change-gift-delivery",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The gift's id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "The gift's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GiftDeliveryInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GiftRow"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Move a scheduled gift's delivery to another day and time",
+        "tags": [
+          "Gifts"
+        ],
+        "x-access": "workspace",
+        "x-permission": "earn:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/earn/gifts/{id}/link": {
+      "post": {
+        "operationId": "copy-gift-link",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The gift's id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "The gift's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GiftLink"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Copy a gift's redeem link (recorded in the audit log: anyone with it can redeem the gift)",
+        "tags": [
+          "Gifts"
+        ],
+        "x-access": "workspace",
+        "x-permission": "earn:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/earn/gifts/{id}/resend": {
+      "post": {
+        "operationId": "resend-gift",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The gift's id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "The gift's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GiftRow"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Send the gift email again to a gift's recipient",
+        "tags": [
+          "Gifts"
+        ],
+        "x-access": "workspace",
+        "x-permission": "earn:manage"
       }
     },
     "/api/v1/workspaces/{workspace}/earn/imports": {

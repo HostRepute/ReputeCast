@@ -11,6 +11,7 @@ package publicpages
 //	/p/{workspace}/upgrade/welcome        after checkout (?session=)
 //	/p/{workspace}/billing/{token}        a paid member's billing portal
 //	/p/{workspace}/cancel/{token}         the portal's cancel step (the cancel page comes with offers)
+//	/p/{workspace}/gift…                  the gift pages (gift.go, X17)
 
 import (
 	"context"
@@ -40,10 +41,12 @@ func (h *Handler) earnRoutes(r chi.Router) {
 	r.Get("/cancel/{token}", h.cancelPage)
 	r.Post("/cancel/{token}", h.cancelPost)
 	r.Head("/cancel/{token}", h.headOnly)
+	// The gift pages (X17, gift.go).
+	h.giftRoutes(r)
 }
 
 // earnRootPaths are the Earn pages on a verified custom domain.
-var earnRootPaths = []string{"/upgrade", "/upgrade/*", "/billing/*", "/cancel/*"}
+var earnRootPaths = []string{"/upgrade", "/upgrade/*", "/billing/*", "/cancel/*", "/gift", "/gift/*"}
 
 // upgradeBody is the upgrade page.
 type upgradeBody struct {

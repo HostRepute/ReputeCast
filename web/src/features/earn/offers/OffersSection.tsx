@@ -11,6 +11,7 @@ import { count, dayMonthDate, pct } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { EARN } from '../EarnPage'
 import { money } from '../format'
+import { GiftStrip } from '../gifts/GiftStrip'
 import { EndOfferDialog } from './EndOfferDialog'
 import { discounted, discountLine, forLine, howLine } from './lines'
 import { mof } from './messages'
@@ -19,12 +20,22 @@ import './offers.css'
 type Offer = Schemas['Offer']
 type TT = ReturnType<typeof useT>
 
+/** Plans & offers' part after the tiers: the offers, then the gift options line. */
+export function OffersSection() {
+  return (
+    <>
+      <OffersCard />
+      <GiftStrip />
+    </>
+  )
+}
+
 /**
  * Plans & offers' Offers (EarnPlans, EarnPlansStates): each offer's
  * discount, who it's for, how readers get it, its use and its status, with
  * a note when one reached its limit or ended.
  */
-export function OffersSection() {
+function OffersCard() {
   const t = useT()
   const { slug } = useWorkspace()
   const q = $api.useQuery('get', `${EARN}/offers`, { params: { path: { workspace: slug } } })

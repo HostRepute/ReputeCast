@@ -5621,6 +5621,146 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/earn/gifts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Earn › Gifts: the numbers, the gift options and page, the gift emails and the gifts that need a look */
+        get: operations["get-gifts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/gifts/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A page of the gifts bought on the gift page, the latest first */
+        get: operations["list-gifts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/gifts/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add a gift option: a tier for a period at a one-time price */
+        post: operations["create-gift-option"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/gifts/options/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change a gift option; gifts already bought keep what they were sold as */
+        put: operations["update-gift-option"];
+        post?: never;
+        /** Take a gift option off the gift page; gifts already bought keep working */
+        delete: operations["delete-gift-option"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/gifts/page": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Turn the gift page on or off, and set how long gift links work
+         * @description Gifts already bought keep working while the page is off: their emails go out and their links can be redeemed.
+         */
+        put: operations["set-gift-page"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/gifts/{id}/delivery": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Move a scheduled gift's delivery to another day and time */
+        post: operations["change-gift-delivery"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/gifts/{id}/link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Copy a gift's redeem link (recorded in the audit log: anyone with it can redeem the gift) */
+        post: operations["copy-gift-link"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/gifts/{id}/resend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send the gift email again to a gift's recipient */
+        post: operations["resend-gift"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/earn/imports": {
         parameters: {
             query?: never;
@@ -18663,6 +18803,213 @@ export interface components {
         FieldSources: {
             items: components["schemas"]["FieldSource"][];
         };
+        GiftCounts: {
+            /** Format: int64 */
+            all: number;
+            /** Format: int64 */
+            expired: number;
+            /** Format: int64 */
+            notRedeemed: number;
+            /** Format: int64 */
+            redeemed: number;
+            /** Format: int64 */
+            refunded: number;
+            /** Format: int64 */
+            scheduled: number;
+        };
+        GiftDeliveryInput: {
+            /**
+             * Format: date
+             * @description The day, in the time zone
+             */
+            date: string;
+            notifyBuyer?: boolean;
+            /** @description The time of day, 24-hour */
+            time: string;
+            /** @description An IANA time zone; the buyer's is the default */
+            timezone?: string;
+        };
+        GiftEmail: {
+            /** Format: int64 */
+            draftVersion: number;
+            /** @enum {string} */
+            email: "gift_purchased" | "gift_received" | "gift_ending";
+            /** Format: int64 */
+            liveVersion: number;
+            name: string;
+            /** @enum {string} */
+            status: "live" | "draft" | "missing";
+            template: string;
+            templateId?: string;
+        };
+        GiftEndingWarning: {
+            buyer: string;
+            /** Format: date-time */
+            due: string;
+            inPerson: boolean;
+            recipient: string;
+            templateId?: string;
+        };
+        GiftLink: {
+            host: string;
+            url: string;
+        };
+        GiftList: {
+            counts: components["schemas"]["GiftCounts"];
+            items: components["schemas"]["GiftRow"][];
+            /** Format: int64 */
+            page: number;
+            /** Format: int64 */
+            pageSize: number;
+            status: string;
+            /** Format: int64 */
+            total: number;
+        };
+        GiftMonthsCount: {
+            /** Format: int64 */
+            count: number;
+            /** Format: int64 */
+            months: number;
+        };
+        GiftNumbers: {
+            byMonths: components["schemas"]["GiftMonthsCount"][];
+            /** Format: int64 */
+            delivered: number;
+            /** Format: date-time */
+            nextAt?: string;
+            nextTimezone?: string;
+            /** Format: int64 */
+            redeemed: number;
+            /** Format: int64 */
+            scheduled: number;
+            /** Format: int64 */
+            sold: number;
+            /** Format: int64 */
+            soldCents: number;
+            /** Format: int64 */
+            waiting: number;
+            /** Format: int64 */
+            withAccess: number;
+        };
+        GiftOption: {
+            /** Format: int64 */
+            amountCents: number;
+            currency: string;
+            id: string;
+            /** Format: int64 */
+            months: number;
+            short: string;
+            /** Format: int64 */
+            sold: number;
+            /** Format: int64 */
+            soldCents: number;
+            tier: string;
+            tierId: string;
+        };
+        GiftOptionInput: {
+            /**
+             * Format: int64
+             * @description The one-time price, in the workspace currency
+             */
+            amountCents: number;
+            /**
+             * Format: int64
+             * @description How long the gift lasts
+             */
+            months: number;
+            /** Format: uuid */
+            tierId: string;
+        };
+        GiftPage: {
+            /** Format: date-time */
+            changedAt?: string;
+            changedBy?: string;
+            host: string;
+            /** Format: int64 */
+            linkMonths: number;
+            on: boolean;
+            url: string;
+        };
+        GiftPageInput: {
+            /**
+             * Format: int64
+             * @description How long a gift link works after delivery
+             * @enum {integer}
+             */
+            linkMonths: 3 | 6 | 12;
+            on: boolean;
+        };
+        GiftRow: {
+            /** Format: date-time */
+            accessEnds?: string;
+            /** Format: int64 */
+            amountCents: number;
+            /** Format: date-time */
+            boughtAt: string;
+            buyer: string;
+            buyerEmail: string;
+            currency: string;
+            /** Format: date-time */
+            deliverAt?: string;
+            /** Format: date-time */
+            deliveredAt?: string;
+            emailStatus: string;
+            id: string;
+            inPerson: boolean;
+            /** Format: date-time */
+            linkExpiresAt?: string;
+            /** Format: int64 */
+            months: number;
+            paymentUrl?: string;
+            recipientEmail: string;
+            recipientName: string;
+            /** Format: date-time */
+            redeemedAt?: string;
+            redeemedBy?: string;
+            /** Format: date-time */
+            refundedAt?: string;
+            /** Format: date-time */
+            remindAt?: string;
+            /** Format: date-time */
+            remindedAt?: string;
+            short: string;
+            /** @enum {string} */
+            status: "scheduled" | "not_redeemed" | "redeemed" | "expired" | "refunded";
+            tier: string;
+            timezone: string;
+        };
+        GiftTier: {
+            id: string;
+            /** Format: int64 */
+            monthlyCents: number;
+            name: string;
+            short: string;
+            /** Format: int64 */
+            yearlyCents: number;
+        };
+        GiftsView: {
+            canEdit: boolean;
+            canManage: boolean;
+            categoryKind: string;
+            categoryName: string;
+            connected: boolean;
+            currency: string;
+            emails: components["schemas"]["GiftEmail"][];
+            ending?: components["schemas"]["GiftEndingWarning"];
+            fromEmail: string;
+            fromName: string;
+            helpers: string[];
+            listNames: string[];
+            /** @enum {string} */
+            mode: "live" | "test" | "";
+            needsLook: components["schemas"]["GiftRow"][];
+            numbers: components["schemas"]["GiftNumbers"];
+            options: components["schemas"]["GiftOption"][];
+            page: components["schemas"]["GiftPage"];
+            provider: string;
+            routePrimary: string;
+            tiers: components["schemas"]["GiftTier"][];
+        };
         GrowthChart: {
             days: components["schemas"]["GrowthChartDay"][];
             series: components["schemas"]["GrowthSeries"][];
@@ -21781,8 +22128,8 @@ export interface components {
             /** Format: int64 */
             amountOffCents?: number;
             applies: components["schemas"]["OfferAppliesInput"][];
-            byCode: boolean;
-            byLink: boolean;
+            byCode?: boolean;
+            byLink?: boolean;
             code?: string;
             /** Format: int64 */
             codeDays?: number;
@@ -21797,11 +22144,11 @@ export interface components {
             /** Format: int64 */
             limit?: number;
             /** Format: int64 */
-            minPaidMonths: number;
+            minPaidMonths?: number;
             /** Format: int64 */
             months?: number;
             name: string;
-            newOnly: boolean;
+            newOnly?: boolean;
             /** Format: int64 */
             percentOff?: number;
         };
@@ -43771,6 +44118,325 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EarnMember"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-gifts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GiftsView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-gifts": {
+        parameters: {
+            query?: {
+                /** @description The filter (all by default) */
+                status?: "all" | "scheduled" | "not_redeemed" | "redeemed" | "expired" | "refunded";
+                /** @description Buyer, recipient or email */
+                q?: string;
+                /** @description The page (20 gifts each) */
+                page?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GiftList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-gift-option": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GiftOptionInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GiftOption"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-gift-option": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The gift option's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GiftOptionInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GiftOption"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-gift-option": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The gift option's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-gift-page": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GiftPageInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GiftPage"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "change-gift-delivery": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The gift's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GiftDeliveryInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GiftRow"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "copy-gift-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The gift's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GiftLink"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "resend-gift": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The gift's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GiftRow"];
                 };
             };
             /** @description Error */

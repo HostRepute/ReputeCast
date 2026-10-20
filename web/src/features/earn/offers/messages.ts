@@ -227,6 +227,7 @@ export const mof = defineMessages('earn.offers', {
   retry: 'Retry',
   // The Gift options strip under the offers.
   giftsStrip: '<b>Gift options:</b> {options} · gift page {on, select, true {on} other {off}} at <mono>{host}</mono>',
+  giftsOption: '{tier} for {months, plural, =12 {a year} =24 {2 years} one {a month} other {# months}}, {price}',
   giftsNone: '<b>Gift options:</b> none yet',
   giftsLink: 'Manage them in Gifts',
 })

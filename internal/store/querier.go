@@ -867,6 +867,72 @@ type Querier interface {
 	GetUserSession(ctx context.Context, arg GetUserSessionParams) (Session, error)
 	GetWorkspace(ctx context.Context, id uuid.UUID) (Workspace, error)
 	GetWorkspaceBySlug(ctx context.Context, slug string) (Workspace, error)
+	// Paid members with gift access now.
+	GiftAccessNow(ctx context.Context, arg GiftAccessNowParams) (int64, error)
+	GiftByCode(ctx context.Context, arg GiftByCodeParams) (GiftByCodeRow, error)
+	GiftByIntentForUpdate(ctx context.Context, arg GiftByIntentForUpdateParams) (EarnGift, error)
+	GiftBySession(ctx context.Context, arg GiftBySessionParams) (GiftBySessionRow, error)
+	GiftBySessionForUpdate(ctx context.Context, arg GiftBySessionForUpdateParams) (EarnGift, error)
+	GiftCodeTaken(ctx context.Context, code string) (bool, error)
+	// The Gifts table's filters: how many gifts each shows.
+	GiftCounts(ctx context.Context, arg GiftCountsParams) (GiftCountsRow, error)
+	GiftDelivered(ctx context.Context, arg GiftDeliveredParams) error
+	// "Your gift" went again (a reminder, or resent by the team).
+	GiftEmailed(ctx context.Context, arg GiftEmailedParams) error
+	GiftEndingSent(ctx context.Context, arg GiftEndingSentParams) error
+	GiftEventInsert(ctx context.Context, arg GiftEventInsertParams) error
+	GiftExpired(ctx context.Context, arg GiftExpiredParams) error
+	// The first gift-ending reminder due: the redeemed gift whose access ends
+	// first, and who gave it.
+	GiftFirstEnding(ctx context.Context, arg GiftFirstEndingParams) (GiftFirstEndingRow, error)
+	GiftForUpdate(ctx context.Context, id uuid.UUID) (EarnGift, error)
+	GiftGet(ctx context.Context, arg GiftGetParams) (GiftGetRow, error)
+	GiftInsert(ctx context.Context, arg GiftInsertParams) error
+	// A page of the Gifts table, the latest bought first.
+	GiftList(ctx context.Context, arg GiftListParams) ([]GiftListRow, error)
+	// Gifts that need a look: delivered a week ago and not redeemed, or
+	// refunded in the last 30 days.
+	GiftNeedsLook(ctx context.Context, arg GiftNeedsLookParams) ([]GiftNeedsLookRow, error)
+	GiftNextScheduled(ctx context.Context, arg GiftNextScheduledParams) (EarnGift, error)
+	// The Gifts tab's numbers: of the gifts paid since a time, those delivered
+	// and redeemed; the gifts waiting for their date, and the next one.
+	GiftNumbers(ctx context.Context, arg GiftNumbersParams) (GiftNumbersRow, error)
+	GiftOptionDelete(ctx context.Context, arg GiftOptionDeleteParams) error
+	GiftOptionGet(ctx context.Context, arg GiftOptionGetParams) (EarnGiftOption, error)
+	GiftOptionInsert(ctx context.Context, arg GiftOptionInsertParams) error
+	// Each option's gifts paid since a time, refunded ones left out.
+	GiftOptionSales(ctx context.Context, arg GiftOptionSalesParams) ([]GiftOptionSalesRow, error)
+	// Another option of the same tier and period.
+	GiftOptionTaken(ctx context.Context, arg GiftOptionTakenParams) (bool, error)
+	GiftOptionUpdate(ctx context.Context, arg GiftOptionUpdateParams) error
+	// Gifts (X17): gift options, the gift page's settings, gifts bought on the
+	// gift page, their delivery, redemption and reminders.
+	GiftOptions(ctx context.Context, workspaceID uuid.UUID) ([]GiftOptionsRow, error)
+	GiftPageByName(ctx context.Context, workspaceID uuid.UUID) (string, error)
+	GiftPageSet(ctx context.Context, arg GiftPageSetParams) error
+	// The payment went through: the gift waits for its delivery date.
+	GiftPaid(ctx context.Context, arg GiftPaidParams) error
+	GiftReceiptSent(ctx context.Context, arg GiftReceiptSentParams) error
+	GiftRedeemed(ctx context.Context, arg GiftRedeemedParams) error
+	GiftRefunded(ctx context.Context, arg GiftRefundedParams) error
+	GiftSetDelivery(ctx context.Context, arg GiftSetDeliveryParams) error
+	GiftSetSession(ctx context.Context, arg GiftSetSessionParams) error
+	// Gifts paid since a time by their period ("7 for a year, 4 for 3 months").
+	GiftSoldByMonths(ctx context.Context, arg GiftSoldByMonthsParams) ([]GiftSoldByMonthsRow, error)
+	// Checkouts never paid within a day.
+	GiftsAbandon(ctx context.Context, arg GiftsAbandonParams) (int64, error)
+	// Paid gifts whose delivery time has come.
+	GiftsDue(ctx context.Context, now time.Time) ([]EarnGift, error)
+	// Redeemed gifts whose access ends within a week, not told yet.
+	GiftsEnding(ctx context.Context, arg GiftsEndingParams) ([]GiftsEndingRow, error)
+	// Gift messages are kept until the gift ends, plus 30 days; a checkout
+	// that was never paid loses its message once abandoned.
+	GiftsPurgeMessages(ctx context.Context, arg GiftsPurgeMessagesParams) (int64, error)
+	GiftsToExpire(ctx context.Context, now time.Time) ([]EarnGift, error)
+	// Paid gifts whose receipt hasn't gone yet.
+	GiftsToReceipt(ctx context.Context, since time.Time) ([]EarnGift, error)
+	// Delivered a week ago, not redeemed, not reminded yet, the link still good.
+	GiftsToRemind(ctx context.Context, arg GiftsToRemindParams) ([]EarnGift, error)
 	// A contact's attribution, for the profile's join line.
 	GrowthContactTouch(ctx context.Context, contactID uuid.UUID) (ContactGrowth, error)
 	GrowthFormsOf(ctx context.Context, workspaceID uuid.UUID) ([]GrowthFormsOfRow, error)
