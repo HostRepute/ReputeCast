@@ -7,6 +7,7 @@ import { T, useT, formatList, type MessageDescriptor } from '@/i18n'
 import { clock, dayMonthDate, dayMonthYear } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { aiCatalogCapabilities, aiEntryLine, aiEntryName, aiMaintainer } from '@/features/ai/entries'
+import { paymentCapabilities, paymentEntryLine, paymentEntryName, paymentLetters, paymentMaintainer } from '@/features/earn/entries'
 import { m } from './messages'
 import './integrations.css'
 
@@ -80,6 +81,7 @@ export const entryName: Record<EntryKey, MessageDescriptor> = {
   kickbox: m.kickbox,
   bouncer: m.bouncer,
   emailable: m.emailable,
+  ...paymentEntryName,
 }
 
 export const maintainer: Record<EntryKey, MessageDescriptor> = {
@@ -97,6 +99,7 @@ export const maintainer: Record<EntryKey, MessageDescriptor> = {
   kickbox: m.byOwnAccount,
   bouncer: m.byOwnAccount,
   emailable: m.byOwnAccount,
+  ...paymentMaintainer,
 }
 
 export const entryLine: Record<EntryKey, MessageDescriptor> = {
@@ -114,6 +117,7 @@ export const entryLine: Record<EntryKey, MessageDescriptor> = {
   kickbox: m.kickboxLine,
   bouncer: m.bouncerLine,
   emailable: m.emailableLine,
+  ...paymentEntryLine,
 }
 
 export const capabilities: Record<EntryKey, MessageDescriptor[]> = {
@@ -131,6 +135,7 @@ export const capabilities: Record<EntryKey, MessageDescriptor[]> = {
   kickbox: [m.capBulkLists, m.capRealtime, m.capCreditBalance],
   bouncer: [m.capBulkLists, m.capRealtime, m.capCreditBalance],
   emailable: [m.capBulkLists, m.capRealtime, m.capCreditBalance],
+  ...paymentCapabilities,
 }
 
 /** The address verification services' keys (X14). */
@@ -148,7 +153,18 @@ export function platformUrl(kind: PlatformKind, address?: string): string | unde
 /** The board's logo tiles: letters for the apps, icons for the built-in ones. */
 export function Tile({ k, size }: { k: EntryKey; size?: 'sm' | 'lg' }) {
   const px = size === 'lg' ? 22 : size === 'sm' ? 14 : 18
-  const letters: Partial<Record<EntryKey, string>> = { zapier: 'Z', make: 'M', n8n: 'n8n', wordpress: 'W', zerobounce: 'ZB', neverbounce: 'NB', kickbox: 'K', bouncer: 'B', emailable: 'E' }
+  const letters: Partial<Record<EntryKey, string>> = {
+    zapier: 'Z',
+    make: 'M',
+    n8n: 'n8n',
+    wordpress: 'W',
+    zerobounce: 'ZB',
+    neverbounce: 'NB',
+    kickbox: 'K',
+    bouncer: 'B',
+    emailable: 'E',
+    ...paymentLetters,
+  }
   let inner: ReactNode = letters[k]
   if (k === 'hostrepute') inner = <ShieldTick size={px} />
   if (k === 'api') inner = <Icon name="code" size={px} strokeWidth={1.7} />

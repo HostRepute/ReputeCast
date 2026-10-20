@@ -55,12 +55,15 @@ type VisibilityCatalog struct {
 	Tiers     []VisibilityOption       `json:"tiers"`
 	Bands     []VisibilityOption       `json:"bands"`
 	Score     VisibilityCatalogScore   `json:"score"`
+	// Options are the values of kinds later phases register, by kind
+	// (paid tiers under "paid").
+	Options map[string][]VisibilityOption `json:"options"`
 }
 
 // Catalog returns the condition picker's kinds and values.
 func (s *Service) Catalog(ctx context.Context, ws *store.Workspace) (VisibilityCatalog, error) {
 	out := VisibilityCatalog{Groups: []string{}, Kinds: []VisibilityCatalogKind{}, Segments: []VisibilityOption{}, Lists: []VisibilityOption{}, Tags: []VisibilityOption{},
-		Fields: []VisibilityCatalogField{}, Languages: []VisibilityOption{}, Tiers: []VisibilityOption{}, Bands: []VisibilityOption{}}
+		Fields: []VisibilityCatalogField{}, Languages: []VisibilityOption{}, Tiers: []VisibilityOption{}, Bands: []VisibilityOption{}, Options: map[string][]VisibilityOption{}}
 	for _, k := range Kinds() {
 		found := false
 		for _, g := range out.Groups {
@@ -104,6 +107,20 @@ func (s *Service) Catalog(ctx context.Context, ws *store.Workspace) (VisibilityC
 	names, err := LoadNames(ctx, s.Q, ws.ID)
 	if err != nil {
 		return out, err
+	}
+	names.Lang = lang(ctx)
+	for _, k := range Kinds() {
+		if k.Options == nil {
+			continue
+		}
+		opts, err := k.Options(ctx, s.Q, ws.ID, names)
+		if err != nil {
+			return out, err
+		}
+		if opts == nil {
+			opts = []VisibilityOption{}
+		}
+		out.Options[k.Key] = opts
 	}
 	fields, err := s.Q.VisibilityFields(ctx, ws.ID)
 	if err != nil {

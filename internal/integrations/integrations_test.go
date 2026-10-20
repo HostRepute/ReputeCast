@@ -146,8 +146,17 @@ func TestCatalogAndReadOnly(t *testing.T) {
 	for _, g := range cat.Groups {
 		keys = append(keys, g.Key)
 	}
-	if strings.Join(keys, ",") != "automation,websites,deliverability,developer,ai,verification" {
+	if strings.Join(keys, ",") != "automation,websites,deliverability,developer,ai,verification,payments" {
 		t.Fatalf("groups with nothing in them aren't shown: %v", keys)
+	}
+	// Payments (X16): Stripe, connected in the demo, and the merchants of
+	// record that aren't available yet.
+	pay := []string{}
+	for _, e := range cat.Groups[6].Entries {
+		pay = append(pay, e.Key+":"+e.Status)
+	}
+	if strings.Join(pay, ",") != "stripe:connected,paddle:not_connected,lemonsqueezy:not_connected" {
+		t.Fatalf("payment cards = %v", pay)
 	}
 	// Verification lists every address verification service (X14).
 	services := []string{}

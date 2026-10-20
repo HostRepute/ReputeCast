@@ -106,6 +106,13 @@ type Kind struct {
 	// Why says why a contact doesn't get a block because of this condition
 	// ("Sam Rivera isn't on Beta Program"). matched is the condition's result.
 	Why func(c VisibilityCondition, f *Facts, matched bool, n *Names) string
+	// Options are the values the picker offers for kinds registered by
+	// later phases (the catalog's options under the kind's key); nil for
+	// none.
+	Options func(ctx context.Context, q *store.Queries, workspaceID uuid.UUID, n *Names) ([]VisibilityOption, error)
+	// Trait says what the condition reads about a contact for the preview
+	// ("Insider · trialing"); nil leaves it out.
+	Trait func(c VisibilityCondition, f *Facts, n *Names) string
 }
 
 var (

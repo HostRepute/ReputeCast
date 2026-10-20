@@ -162,7 +162,8 @@ type Querier interface {
 	// Public pages (spec 7.12): the archive, view online and what an
 	// unsubscribe records about the email it came from.
 	// Sent campaigns of the archived lists without an archive row yet, oldest
-	// first so slugs are handed out in publishing order.
+	// first so slugs are handed out in publishing order. Campaigns for paid
+	// members only (Earn) are never archived.
 	ArchiveMissingIssues(ctx context.Context, arg ArchiveMissingIssuesParams) ([]ArchiveMissingIssuesRow, error)
 	ArchiveSlugTaken(ctx context.Context, arg ArchiveSlugTakenParams) (bool, error)
 	// Every published issue: how many and since when.
@@ -1399,6 +1400,31 @@ type Querier interface {
 	PageCopySetLabels(ctx context.Context, arg PageCopySetLabelsParams) error
 	PageCopySetPages(ctx context.Context, arg PageCopySetPagesParams) error
 	PageCopyUserName(ctx context.Context, id uuid.UUID) (string, error)
+	// Each contact with paid access, the highest tier's subscription, with what
+	// decides whether a campaign to a list reaches them: subscribed to it,
+	// unsubscribed from it, suppressed.
+	PaidAccessAudience(ctx context.Context, arg PaidAccessAudienceParams) ([]PaidAccessAudienceRow, error)
+	// Some contacts' paid access, the highest tier first: one row per contact
+	// with access, with what personalization and conditions read.
+	PaidAccessFacts(ctx context.Context, arg PaidAccessFactsParams) ([]PaidAccessFactsRow, error)
+	// The recipients of lists minus excluded lists and suppressions, as the
+	// composer counts them, split by paid access (Who on this list): everyone,
+	// those with paid access at a tier ranked at least min_rank, and free
+	// subscribers (no paid access at all).
+	PaidAccessListCounts(ctx context.Context, arg PaidAccessListCountsParams) (PaidAccessListCountsRow, error)
+	// Paid access for the domains that choose recipients and content (design
+	// expansion X16): paid-only campaigns, paid-only blocks, paid tokens and
+	// the contacts table. A contact has paid access while a live subscription,
+	// complimentary grant or gift hasn't ended and is trialing, active,
+	// complimentary or a gift, or past due while Stripe retries (unless the
+	// access rule paused it). Test paid members never count.
+	// One row per contact with paid access at a tier ranked at least min_rank
+	// (1: any paid tier): the highest tier's subscription.
+	PaidAccessRows(ctx context.Context, arg PaidAccessRowsParams) ([]PaidAccessRowsRow, error)
+	PaidAccessTierRank(ctx context.Context, arg PaidAccessTierRankParams) (int32, error)
+	// The workspace's tiers in access order, for the pickers ("Insider and
+	// above"), with the names of their lists.
+	PaidAccessTiers(ctx context.Context, workspaceID uuid.UUID) ([]PaidAccessTiersRow, error)
 	PartnerCodeByHash(ctx context.Context, codeHash []byte) (PartnerCode, error)
 	PartnerCodeInsert(ctx context.Context, arg PartnerCodeInsertParams) error
 	PartnerCodeLock(ctx context.Context, id uuid.UUID) (PartnerCode, error)

@@ -11,6 +11,7 @@ import { BlockIcon, ToolIcon } from './icons'
 import { Thumb } from './Thumb'
 import { isDigestTemplate } from '@/features/digests/composer/DigestMode'
 import { LayerMark, LayersNote } from '@/features/conditional/Canvas'
+import { EarnBlocksHint } from '@/features/earn/composer/EarnBlocks'
 import { PollBlockHint } from '@/features/polls/Block'
 import { GrowBlocksNote, OpenGrowLink } from '@/features/grow/composer/Panel'
 import { mb as growMessages } from '@/features/grow/composer/messages'
@@ -60,7 +61,7 @@ function BlockTile({ def, flagged, onSaved }: { def: BlockDef | { id: string; la
   return (
     <button
       type="button"
-      className={`blk${def.group === 'reputecast' || def.group === 'grow' ? ' rc' : ''}${flagged ? ' flagged' : ''}`}
+      className={`blk${def.group === 'reputecast' || def.group === 'grow' || def.group === 'earn' ? ' rc' : ''}${flagged ? ' flagged' : ''}`}
       draggable={!disabled && !isSaved}
       aria-disabled={disabled || undefined}
       onDragStart={(e) => {
@@ -110,6 +111,7 @@ function BlocksTab({ onShowSections, blocks, note, reputecastFirst }: { onShowSe
         { key: 'content', label: 'Content · MJML' },
         { key: 'layout', label: 'Layout · MJML' },
         { key: 'grow', label: tt(growMessages.group) },
+        { key: 'earn', label: 'Earn' },
       ]
     : reputecastFirst
       ? [
@@ -117,12 +119,14 @@ function BlocksTab({ onShowSections, blocks, note, reputecastFirst }: { onShowSe
           { key: 'layout', label: 'Layout · MJML' },
           { key: 'content', label: 'Content · MJML' },
           { key: 'grow', label: tt(growMessages.group) },
+          { key: 'earn', label: 'Earn' },
         ]
       : [
           { key: 'layout', label: 'Layout · MJML' },
           { key: 'content', label: 'Content · MJML' },
           { key: 'reputecast', label: 'ReputeCast blocks' },
           { key: 'grow', label: tt(growMessages.group) },
+          { key: 'earn', label: 'Earn' },
         ]
   return (
     <>
@@ -151,6 +155,7 @@ function BlocksTab({ onShowSections, blocks, note, reputecastFirst }: { onShowSe
               </div>
               {pollHint ? <PollBlockHint /> : null}
               {g.key === 'grow' ? <GrowBlocksNote milestone={items.some((d) => d.id === 'rc-reward')} /> : null}
+              {g.key === 'earn' && items.length ? <EarnBlocksHint /> : null}
             </div>
             {reputecastFirst && g.key === 'reputecast' ? note : null}
           </Fragment>

@@ -6,8 +6,9 @@
  */
 import { newPoll, pollSection } from '@/features/polls/config'
 import { growBlockDefs } from '@/features/grow/composer/blocks'
+import { upgradeSection } from '@/features/earn/composer/upgrade'
 
-export type BlockGroup = 'layout' | 'content' | 'reputecast' | 'grow'
+export type BlockGroup = 'layout' | 'content' | 'reputecast' | 'grow' | 'earn'
 
 export interface BlockDef {
   id: string
@@ -183,6 +184,17 @@ export function blockDefs(address: string): BlockDef[] {
     { id: 'rc-poll', label: 'Poll', badge: 'New', group: 'reputecast', icon: 'rcPoll', kind: 'section', content: pollSection(newPoll()), keywords: 'poll question vote nps rating survey feedback' },
     // Grow's blocks (design expansion, X15): Referral and Recommendations.
     ...growBlockDefs(),
+    // Earn (design expansion, X16): the Upgrade block, the paywall card; its
+    // settings fill in the tier's price and trial.
+    {
+      id: 'rc-upgrade',
+      label: 'Upgrade',
+      group: 'earn',
+      icon: 'rcUpgrade',
+      kind: 'section',
+      content: upgradeSection({ tier: '', headline: 'Get more with a paid membership', line: 'Paid members get every issue in full, the archive and the extras.', button: 'Upgrade', price: '' }),
+      keywords: 'paywall paid membership subscribe price trial earn',
+    },
   ]
 }
 

@@ -24,6 +24,7 @@ import { NotificationsRow, TransactionalActivityRow, transactionalCount, useCont
 import { JoinLine } from '@/features/growth/JoinLine'
 import { ProfileScoreCard } from '@/features/scoring/ProfileScoreCard'
 import { FieldSourceNote, useAnswerActivity, useFieldSources } from '@/features/polls/contact'
+import { ContactPaidCard, ContactTierChip, PaidActivity, useHasPaidActivity } from '@/features/earn/ContactPaidCard'
 import { AddressCheckRow } from '@/features/verification/AddressCheck'
 import { GrowActivityRow, growEvents, ProfileReferralsCard, useContactGrow, withGrow } from '@/features/grow/contact/ContactGrow'
 import './audience.css'
@@ -137,6 +138,7 @@ export function ContactProfilePage({ contactId }: { contactId: string }) {
           <ProfileReferralsCard contactId={p.id} />
           <div className="flex flex-wrap items-start gap-5">
             <div className="flex min-w-0 flex-[1_1_380px] flex-col gap-5">
+              <ContactPaidCard contactId={p.id} />
               <FieldsCard p={p} />
               <ConsentCard p={p} />
             </div>
@@ -173,7 +175,10 @@ function Summary({ p }: { p: Profile }) {
         {initials(p)}
       </span>
       <div className="flex flex-[1_1_260px] flex-col gap-0.5">
-        <span className="text-[20px] font-bold tracking-[-0.01em]">{p.name || p.email}</span>
+        <span className="text-[20px] font-bold tracking-[-0.01em]">
+          {p.name || p.email}
+          <ContactTierChip contactId={p.id} />
+        </span>
         <span className="mono text-[13px] text-ink-2">{p.email}</span>
         <div className="mt-1 flex flex-wrap gap-1.5">
           <span className={`badge ${tierClass[tier]}`}>{tierLabel[tier]}</span>
@@ -513,25 +518,29 @@ function ConsentCard({ p }: { p: Profile }) {
   )
 }
 
-type Filter = 'all' | 'deliveries' | 'engagement' | 'consent'
+type Filter = 'all' | 'deliveries' | 'engagement' | 'consent' | 'paid'
 
 function ActivityCard({ contactId, total }: { contactId: string; total: number }) {
   const { slug } = useWorkspace()
   const [filter, setFilter] = useState<Filter>('all')
+  // Paid (Earn, X16): the paid member's timeline, for contacts who had paid access.
+  const hasPaid = useHasPaidActivity(contactId)
+  const paid = filter === 'paid'
   const q = $api.useInfiniteQuery(
     'get',
     '/api/v1/workspaces/{workspace}/contacts/{contact}/activity',
-    { params: { path: { workspace: slug, contact: contactId }, query: { filter, limit: 8 } } },
-    { pageParamName: 'cursor', initialPageParam: '', getNextPageParam: (last) => last.nextCursor || undefined },
+    { params: { path: { workspace: slug, contact: contactId }, query: { filter: paid ? 'all' : filter, limit: 8 } } },
+    { pageParamName: 'cursor', initialPageParam: '', getNextPageParam: (last) => last.nextCursor || undefined, enabled: !paid },
   )
   const items = q.data?.pages.flatMap((pg) => pg.items) ?? []
   // Transactional mail joins the deliveries; the Optional categories, consent.
   const tx = useContactTransactional(contactId)
+  const base = paid ? 'all' : filter
   // Grow's events join them the same way (design expansion, X15).
   const grow = useContactGrow(contactId)
-  const growList = growEvents(grow.data, filter)
-  const entries = withGrow(withTransactional(items, tx.data, filter, !q.hasNextPage), growList, !q.hasNextPage, items.length ? Date.parse(items[items.length - 1]!.at) : -Infinity)
-  const txCount = transactionalCount(tx.data, filter)
+  const growList = paid ? [] : growEvents(grow.data, base)
+  const entries = paid ? [] : withGrow(withTransactional(items, tx.data, base, !q.hasNextPage), growList, !q.hasNextPage, items.length ? Date.parse(items[items.length - 1]!.at) : -Infinity)
+  const txCount = transactionalCount(tx.data, base)
   const shown = (q.data?.pages[0]?.total ?? (filter === 'all' ? total : 0)) + txCount + growList.length
   const listed = entries.filter((e) => e.kind !== 'notifications').length
   return (
@@ -547,6 +556,7 @@ function ActivityCard({ contactId, total }: { contactId: string; total: number }
               ['deliveries', 'Deliveries'],
               ['engagement', 'Engagement'],
               ['consent', 'Consent'],
+              ...(hasPaid ? [['paid', 'Paid']] : []),
             ] as [Filter, string][]
           ).map(([v, l]) => (
             <button key={v} type="button" className="badge mut afilter" aria-pressed={filter === v} data-all={v === 'all' || undefined} onClick={() => setFilter(v)}>
@@ -555,7 +565,9 @@ function ActivityCard({ contactId, total }: { contactId: string; total: number }
           ))}
         </div>
       </div>
-      {q.isError ? (
+      {paid ? (
+        <PaidActivity contactId={contactId} />
+      ) : q.isError ? (
         <div className="border-t border-line-2 px-4.5 py-4">
           <ErrorPanel title="Couldn't load the activity" actions={<Button size="sm" onClick={() => q.refetch()}>Retry</Button>}>
             {errorMessage(q.error)}
@@ -592,7 +604,7 @@ function ActivityCard({ contactId, total }: { contactId: string; total: number }
           )}
         </ol>
       )}
-      {entries.length > 0 ? (
+      {entries.length > 0 && !paid ? (
         <div className="flex items-center justify-between border-t border-line-2 px-4.5 py-2.5">
           <span className="k" role="status">
             {count(listed)} of {count(shown)} events

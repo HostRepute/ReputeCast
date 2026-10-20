@@ -1,12 +1,13 @@
 import { Link } from '@tanstack/react-router'
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { $api, type Schemas } from '@/api/client'
 import { Page } from '@/components/shell/Page'
 import type { NavTab } from '@/components/ui/Tabs'
-import { ForbiddenState } from '@/components/shell/SystemScreens'
-import { ButtonLink } from '@/components/ui/Button'
+import { FullPageState, RequestAccessDialog } from '@/components/shell/SystemScreens'
+import { Button, ButtonAnchor, ButtonLink } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
-import { useT } from '@/i18n'
+import { formatList, useT } from '@/i18n'
+import { roleName } from '@/lib/roles'
 import { useCan, useWorkspace } from '@/lib/session'
 import { me } from './messages'
 import './earn.css'
@@ -34,6 +35,13 @@ export function EarnPage({ tab, title, actions, children, banner = true }: { tab
   const can = useCan('earn:view')
   const status = useEarnStatus()
   const params = { workspace: slug }
+  // The overview opens the upgrade page from the top bar (EarnStates).
+  const open =
+    tab === 'overview' && !actions && status.data?.upgradeUrl ? (
+      <ButtonAnchor href={status.data.upgradeUrl} iconRight="external">
+        {t(me.openUpgrade)}
+      </ButtonAnchor>
+    ) : null
   const tabs: NavTab[] = [
     { label: t(me.tabOverview), to: '/w/$workspace/earn', params, exact: true, current: tab === 'overview' },
     { label: t(me.tabPlans), to: '/w/$workspace/earn/plans', params, current: tab === 'plans' },
@@ -51,7 +59,7 @@ export function EarnPage({ tab, title, actions, children, banner = true }: { tab
     )
   }
   return (
-    <Page title={t(me.title)} documentTitle={title ?? t(me.title)} badges={<ProviderChip status={status.data} />} tabs={tabs} tabsLabel={t(me.tabsLabel)} actions={actions}>
+    <Page title={t(me.title)} documentTitle={title ?? t(me.title)} badges={<ProviderChip status={status.data} />} tabs={tabs} tabsLabel={t(me.tabsLabel)} actions={actions ?? open}>
       {banner && status.data?.testOnly ? <TestModeBanner /> : null}
       {children}
     </Page>
@@ -65,7 +73,7 @@ export function ProviderChip({ status }: { status?: Schemas['EarnStatus'] }) {
   if (!status) return <span className="ea-chip" aria-hidden="true" />
   if (!status.mode) {
     return (
-      <span className="ea-chip" aria-label={t(me.chipNoneLabel)}>
+      <span className="ea-chip">
         <span className="dot" style={{ color: 'var(--ink-4)' }} aria-hidden="true" />
         {t(me.chipNone)}
         {status.canManage ? (
@@ -85,8 +93,9 @@ export function ProviderChip({ status }: { status?: Schemas['EarnStatus'] }) {
       params={{ workspace: slug }}
       search={{ tab: 'payments' }}
       className="ea-chip"
-      aria-label={t(me.chipLabel, { provider: status.providerName ?? 'Stripe', account: status.account ?? '', mode: status.mode })}
     >
+      {/* The name is the chip's own text (Label in Name), after this. */}
+      <span className="vh">{t(me.chipPrefix)} </span>
       <span className="dot" style={{ color }} aria-hidden="true" />
       <span>
         {status.providerName} · {status.account}
@@ -117,20 +126,47 @@ function TestModeBanner() {
   )
 }
 
-/** 403 for members without earn:view (Daniel Park, Content Writer). */
+/**
+ * 403 for members without earn:view (EarnStates, Daniel Park, Content
+ * Writer): who to ask, what they can still do in drafts, and a request for
+ * access that goes to the members who manage the team.
+ */
 function EarnForbidden() {
   const t = useT()
-  const { slug } = useWorkspace()
+  const { slug, me: who } = useWorkspace()
+  const canDraft = useCan('campaigns:edit')
+  const [asking, setAsking] = useState(false)
+  const q = $api.useQuery('get', '/api/v1/workspaces/{workspace}/access-requests/suggestion', {
+    params: { path: { workspace: slug }, query: { permission: 'earn:view' } },
+  })
+  const s = q.data
+  const role = roleName({ key: who.workspace.roleKey, name: who.workspace.roleName })
+  const ask = s?.managers.length ? t(me.forbiddenAsk, { names: formatList(s.managers, 'disjunction') }) : ''
   return (
-    <ForbiddenState
-      permission="earn:view"
-      title={t(me.forbiddenTitle)}
-      readOnly={
-        <ButtonLink to="/w/$workspace" params={{ workspace: slug }}>
-          {t(me.tabOverview)}
-        </ButtonLink>
-      }
-    />
+    <>
+      <FullPageState
+        icon="lockLarge"
+        tone="warn"
+        badge={t(me.forbiddenBadge, { role })}
+        title={t(me.forbiddenTitle)}
+        actions={
+          <>
+            {s?.requestedAt ? null : (
+              <Button variant="primary" onClick={() => setAsking(true)} disabledReason={q.isPending ? t(me.loading) : undefined}>
+                {t(me.forbiddenRequest)}
+              </Button>
+            )}
+            <ButtonLink to="/w/$workspace" params={{ workspace: slug }}>
+              {t(me.forbiddenOverview)}
+            </ButtonLink>
+          </>
+        }
+        footnote={s?.requestedAt ? t(me.forbiddenAsked) : undefined}
+      >
+        {[ask, canDraft ? t(me.forbiddenDrafts, { role }) : ''].filter(Boolean).join(' ')}
+      </FullPageState>
+      {s ? <RequestAccessDialog open={asking} onOpenChange={setAsking} permission="earn:view" roleName={roleName({ name: s.roleName })} managers={s.managers} /> : null}
+    </>
   )
 }
 
