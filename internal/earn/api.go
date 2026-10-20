@@ -332,4 +332,7 @@ func Register(h huma.API, s *Service) {
 		func(ctx context.Context, in *idPath) (*api.Empty, error) {
 			return api.NoContent, s.CancelImport(ctx, api.WorkspaceFrom(ctx), in.ID)
 		})
+
+	// Paid-only campaigns and blocks, and paid status in Audience.
+	registerAudience(h, s, tags, base)
 }

@@ -35,6 +35,9 @@ const search = z.object({
   sort: z.enum(['activity', 'score']).optional().catch(undefined),
   /** The latest address check's result (X14). */
   check: z.enum(['valid', 'invalid', 'risky', 'unknown', 'never']).optional().catch(undefined),
+  /** Paid status (Earn, X16). */
+  paid: z.enum(['with_access', 'trialing', 'past_due', 'complimentary', 'gift', 'ended', 'free']).optional().catch(undefined),
+  paidTier: z.string().uuid().optional().catch(undefined),
   /** Members of the website: contacts who signed in to it (X18). */
   signedIn: z.boolean().optional().catch(undefined),
   page: z.coerce.number().int().min(1).optional().catch(undefined),

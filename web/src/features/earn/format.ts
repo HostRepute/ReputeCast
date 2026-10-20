@@ -152,25 +152,31 @@ export function tierLine(t: T, r: MemberRow): string {
   return t(me.tierPeriod, { tier: r.tier, period: r.period })
 }
 
-/** The price line under the tier: "$64 for the first year with FALL26, then $80/year". */
-export function priceLine(t: T, r: MemberRow): string {
+/**
+ * The price line under the tier: "$64 for the first year with FALL26, then
+ * $80/year". `words` says the full price the readers' way ("then $80 a
+ * year", the member panel's status line); `percent` names the offer's
+ * discount ("with FALL26 (20% off)", its summary).
+ */
+export function priceLine(t: T, r: MemberRow, opts: { words?: boolean; percent?: boolean; refund?: boolean } = {}): string {
   if (r.kind === 'complimentary') return t(me.complimentaryNoPayment)
   if (r.kind === 'gift') {
     const months = r.giftMonths ?? 12
     const length = months === 12 ? 'year' : 'months'
     return r.giftFrom ? t(me.giftFrom, { length, months, from: r.giftFrom }) : t(me.giftFromNoName, { length, months })
   }
-  const full = pricePer(t, r.amountCents, r.currency, r.period)
+  const full = opts.words && r.period ? priceA(t, r.amountCents, r.currency, r.period) : pricePer(t, r.amountCents, r.currency, r.period)
   let line = full
   const d = r.discount
   if (d && d.amountCents < r.amountCents) {
     const amount = money(d.amountCents, r.currency)
-    if (d.duration === 'once') line = t(me.discountOnce, { amount, period: r.period, offer: d.label, price: full })
+    const offer = opts.percent && d.percent ? t(me.offerPercent, { offer: d.label, percent: d.percent }) : d.label
+    if (d.duration === 'once') line = t(me.discountOnce, { amount, period: r.period, offer, price: full })
     else if (d.duration === 'forever') line = t(me.discountForever, { amount: pricePer(t, d.amountCents, r.currency, r.period), offer: d.label, price: full })
     else if (d.endsAt) line = t(me.discountUntil, { amount: pricePer(t, d.amountCents, r.currency, r.period), date: day(d.endsAt), offer: d.label, full: money(r.amountCents, r.currency) })
   }
   if (r.status === 'trialing') line = t(me.afterTrial, { price: line })
-  if (r.refundedCents > 0) line = `${line} · ${t(me.refundedOn, { amount: money(r.refundedCents, r.currency, 'always'), date: day(r.nextAt) })}`
+  if (r.refundedCents > 0 && opts.refund !== false) line = `${line} · ${t(me.refundedOn, { amount: money(r.refundedCents, r.currency, 'always'), date: day(r.nextAt) })}`
   if (r.legacy) line = `${line} · ${t(me.legacyPrice)}`
   return line
 }

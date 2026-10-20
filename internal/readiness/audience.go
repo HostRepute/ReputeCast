@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/emailaddr"
+	"github.com/hostrepute/reputecast/internal/paidaccess"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/routing"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -32,12 +33,16 @@ type AudienceDef struct {
 	// IncludeSunset is the campaign overriding the sunset policy: contacts
 	// whose Broadcasts the policy stopped receive this one anyway.
 	IncludeSunset bool `json:"include_sunset,omitempty"`
+	// Paid is who on the lists gets a paid-only campaign (Earn): paid
+	// members only, at a tier and above, or free subscribers only.
+	Paid paidaccess.Audience `json:"-"`
 }
 
 // ParseAudience reads a stored audience definition.
 func ParseAudience(raw json.RawMessage) AudienceDef {
 	var a AudienceDef
 	_ = json.Unmarshal(raw, &a)
+	a.Paid = paidaccess.Parse(raw)
 	return a
 }
 
@@ -184,10 +189,33 @@ func (s *Service) computeAudience(ctx context.Context, q *store.Queries, wsID uu
 	if err != nil {
 		return out, nil, err
 	}
+	// A paid-only campaign goes to the paid members on its lists, or to
+	// the free subscribers.
+	keep, err := paidaccess.Load(ctx, q, wsID, def.Paid)
+	if err != nil {
+		return out, nil, err
+	}
+	if def.Paid.Set() {
+		out.Paid = &PaidAudienceFacts{Who: def.Paid.Who}
+		if def.Paid.Tier != "" {
+			if id, err := uuid.Parse(def.Paid.Tier); err == nil {
+				if tiers, err := paidaccess.Tiers(ctx, q, wsID); err == nil {
+					for _, t := range tiers {
+						if t.ID == id {
+							out.Paid.Tier, out.Paid.TierTop = t.Short, t.Top
+						}
+					}
+				}
+			}
+		}
+	}
 	seen := make(map[string]bool, len(rows))
 	recipients := make([]Recipient, 0, len(rows))
 	sunset := out.UnengagedExcluded
 	for _, r := range rows {
+		if !keep.Keeps(r.ID) {
+			continue
+		}
 		out.Base++
 		switch {
 		case r.Suppressed:
@@ -220,6 +248,9 @@ func (s *Service) computeAudience(ctx context.Context, q *store.Queries, wsID uu
 		out.Final++
 		if r.Tier == "sunset" {
 			out.Unengaged++
+		}
+		if m, ok := keep.Member(r.ID); ok {
+			out.Paid.count(m)
 		}
 		if r.Bounced {
 			out.RecentlyBounced++

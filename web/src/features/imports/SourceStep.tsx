@@ -16,6 +16,7 @@ import { clock, count } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { ImportFrame, PreviousImport, stepPath, useImportDetail, useRefreshImport, WizardHeading, type Detail } from './ImportFrame'
 import { ReadingSource } from './states'
+import { PaidMembersImportHint } from '@/features/earn/entries'
 
 type Source = Schemas['ImportCreateInput']['source']
 type ListChoice = Schemas['ImportListChoice']
@@ -162,6 +163,8 @@ function SourceBody({ d, firstImport }: { d?: Detail; firstImport: boolean }) {
           </button>
         ))}
       </div>
+      {/* Paid members import in Earn (X16). */}
+      <PaidMembersImportHint />
       {err ? <Note tone="bad">{err}</Note> : null}
       {!d ? (
         <EmptyDrop firstImport={firstImport} busy={uploading} onFile={(f) => void upload(f)} onSources={() => cards.current?.querySelector('button')?.focus()} />

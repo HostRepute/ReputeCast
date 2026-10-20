@@ -10,7 +10,6 @@ import { toast } from '@/components/ui/Toast'
 import { t, useT } from '@/i18n'
 import { clock, count, dayMonthDate, dayMonthYear, monthName } from '@/lib/format'
 import { useCan, useWorkspace } from '@/lib/session'
-import { Link } from '@tanstack/react-router'
 import { bare, useWebsite } from './api'
 import { me } from './elsewhere.messages'
 import { dateTime } from './postFormat'
@@ -271,9 +270,19 @@ export function ContactWebsiteCard({ contactId, name }: { contactId: string; nam
 }
 
 /** The contacts filters' members: "Signed in to the website · 2,804" and "Paid members · 1,184". */
-export function MembersChips({ signedIn, onSignedIn }: { signedIn: boolean; onSignedIn: (on: boolean) => void }) {
+export function MembersChips({
+  signedIn,
+  onSignedIn,
+  paid,
+  onPaid,
+}: {
+  signedIn: boolean
+  onSignedIn: (on: boolean) => void
+  /** Earn's "Paid status: with access" filter (X16). */
+  paid: boolean
+  onPaid: (on: boolean) => void
+}) {
   const t = useT()
-  const { slug } = useWorkspace()
   const ov = useWebsite()
   const d = ov.data
   if (!d || d.status !== 'on') return null
@@ -283,9 +292,11 @@ export function MembersChips({ signedIn, onSignedIn }: { signedIn: boolean; onSi
       <button type="button" className="vchip" aria-pressed={signedIn} onClick={() => onSignedIn(!signedIn)}>
         {t(me.filterSignedIn, { count: count(d.members.signedIn) })}
       </button>
-      <Link to="/w/$workspace/earn/members" params={{ workspace: slug }} className="vchip no-underline">
-        {t(me.filterPaid, { count: count(d.members.paid) })}
-      </Link>
+      {d.members.paid ? (
+        <button type="button" className="vchip" aria-pressed={paid} onClick={() => onPaid(!paid)}>
+          {t(me.filterPaid, { count: count(d.members.paid) })}
+        </button>
+      ) : null}
     </div>
   )
 }

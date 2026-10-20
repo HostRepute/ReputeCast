@@ -9,12 +9,12 @@ import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonAnchor, ButtonLink } from '@/components/ui/Button'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Field, Input, Select, Toggle } from '@/components/ui/Field'
-import { Banner, Note } from '@/components/ui/Note'
+import { Banner } from '@/components/ui/Note'
 import { TableScroll } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
-import { useT } from '@/i18n'
+import { T as Msg, useT } from '@/i18n'
 import { cn } from '@/lib/cn'
-import { clock, orList } from '@/lib/format'
+import { clock, clockSeconds, orList } from '@/lib/format'
 import { useDocumentTitle } from '@/lib/hooks'
 import { roleName } from '@/lib/roles'
 import { useCan, useWorkspace } from '@/lib/session'
@@ -62,7 +62,13 @@ export function ConnectWizard({ search, onSearch }: { search: ConnectSearch; onS
           ) : step === 'provider' ? (
             <ProviderStep pay={pay.data} onNext={() => onSearch({ ...search, step: 'key' })} />
           ) : step === 'key' ? (
-            <KeyStep pay={pay.data} mode={search.mode} onBack={() => onSearch({ ...search, step: 'provider' })} onChecked={(c) => onSearch({ id: c.id, step: 'check', mode: search.mode })} />
+            <KeyStep
+              pay={pay.data}
+              mode={search.mode}
+              onMode={(m) => onSearch({ ...search, mode: m }, true)}
+              onBack={() => onSearch({ ...search, step: 'provider' })}
+              onChecked={(c) => onSearch({ id: c.id, step: 'check', mode: search.mode })}
+            />
           ) : conn.data && step === 'check' ? (
             <CheckStep c={conn.data} onBack={() => onSearch({ mode: search.mode, step: 'key' })} onNext={() => onSearch({ ...search, step: 'webhook' })} />
           ) : conn.data && step === 'webhook' ? (
@@ -144,16 +150,30 @@ function Steps({ current, conn, pay }: { current: number; conn?: Conn; pay?: Sch
   )
 }
 
-function StepCard({ n, title, lead, children, footer }: { n: number; title: ReactNode; lead?: ReactNode; children?: ReactNode; footer?: ReactNode }) {
+function StepCard({ n, title, lead, children, footer, done }: { n: number; title: ReactNode; lead?: ReactNode; children?: ReactNode; footer?: ReactNode; done?: boolean }) {
   const t = useT()
+  const head = (
+    <>
+      <h2 className="m-0 text-[24px] font-bold tracking-[-0.02em]">{title}</h2>
+      {lead ? <span className="max-w-[760px] text-ink-2">{lead}</span> : null}
+    </>
+  )
   return (
     <section className="card flex flex-col gap-4 p-6">
       <div className="flex flex-col gap-1.5">
         <Badge tone="neutral" className="w-fit">
           {t(mc.stepBadge, { n })}
         </Badge>
-        <h2 className="m-0 text-[24px] font-bold tracking-[-0.02em]">{title}</h2>
-        {lead ? <span className="max-w-[760px] text-ink-2">{lead}</span> : null}
+        {done ? (
+          <div className="flex items-start gap-3">
+            <span className="ea-done-ic" aria-hidden="true">
+              <Icon name="check" size={18} strokeWidth={2.6} />
+            </span>
+            <div className="flex min-w-0 flex-col gap-1">{head}</div>
+          </div>
+        ) : (
+          head
+        )}
       </div>
       {children}
       {footer ? <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line-2 pt-4">{footer}</div> : null}
@@ -183,18 +203,20 @@ function NoPermission({ pay }: { pay?: Schemas['EarnPayments'] }) {
   )
 }
 
-function capLabel(t: T, c: string): string {
+/** A capability as the cards name it; coupons with promotion codes are one ("Coupons and promotion codes"). */
+function capLabel(t: T, c: string, all: string[]): string {
   return (
     {
       subscriptions: t(mc.capSubscriptions),
       one_time: t(mc.capOneTime),
       trials: t(mc.capTrials),
-      coupons: t(mc.capCoupons),
+      coupons: all.includes('promotion_codes') ? t(mc.capCoupons) : t(mc.capCouponsOnly),
       promotion_codes: '',
       portal: t(mc.capPortal),
       tax: t(mc.capTax),
+      merchant_of_record: t(mc.capMor),
       test_mode: t(mc.capTestMode),
-    }[c] ?? c
+    }[c] ?? ''
   )
 }
 
@@ -219,7 +241,7 @@ function ProviderStep({ pay, onNext }: { pay: Schemas['EarnPayments']; onNext: (
     >
       <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
         {pay.providers.map((p) => (
-          <div key={p.key} className={cn('card flex flex-col gap-2 p-4', p.available && 'ea-provider-on')} aria-disabled={!p.available || undefined}>
+          <div key={p.key} className={cn('ea-provider', p.available ? 'on' : 'off')} aria-disabled={!p.available || undefined}>
             <div className="flex items-center gap-3">
               <span className="ea-upg-ico" aria-hidden="true">
                 {p.name
@@ -236,12 +258,14 @@ function ProviderStep({ pay, onNext }: { pay: Schemas['EarnPayments']; onNext: (
             </div>
             <span className="text-[13px] text-ink-2">{p.merchantOfRecord ? t(mc.morLine) : t(mc.stripeLine)}</span>
             <div className="flex flex-wrap gap-1.5">
-              {p.capabilities.map(capLabel.bind(null, t)).filter(Boolean).map((c) => (
-                <span key={c} className="badge sm mut">
-                  {c}
-                </span>
-              ))}
-              {p.merchantOfRecord ? <span className="badge sm mut">{t(mc.capMor)}</span> : null}
+              {p.capabilities
+                .map((c) => capLabel(t, c, p.capabilities))
+                .filter(Boolean)
+                .map((c) => (
+                  <span key={c} className="ea-cap">
+                    {c}
+                  </span>
+                ))}
             </div>
           </div>
         ))}
@@ -270,7 +294,19 @@ function why(t: T, r: string): string {
   )
 }
 
-function KeyStep({ pay, mode, onBack, onChecked }: { pay: Schemas['EarnPayments']; mode?: 'live' | 'test'; onBack: () => void; onChecked: (c: Conn) => void }) {
+function KeyStep({
+  pay,
+  mode,
+  onMode,
+  onBack,
+  onChecked,
+}: {
+  pay: Schemas['EarnPayments']
+  mode?: 'live' | 'test'
+  onMode: (m: 'live' | 'test') => void
+  onBack: () => void
+  onChecked: (c: Conn) => void
+}) {
   const t = useT()
   const { slug } = useWorkspace()
   const [key, setKey] = useState('')
@@ -304,9 +340,16 @@ function KeyStep({ pay, mode, onBack, onChecked }: { pay: Schemas['EarnPayments'
       }
     >
       {!mode && !pay.test && !pay.live ? (
-        <Note tone="info" label={t(mc.recommendTitle)}>
-          {t(mc.recommendText)}
-        </Note>
+        <div className="note i" role="note">
+          <Icon name="info" size={16} />
+          <div className="flex min-w-0 flex-[1_1_420px] flex-col gap-0.5">
+            <span className="font-semibold">{t(mc.recommendTitle)}</span>
+            <span>{t(mc.recommendText)}</span>
+          </div>
+          <Button size="sm" onClick={() => onMode('test')}>
+            {t(mc.useTestKey)}
+          </Button>
+        </div>
       ) : null}
       <section className="card">
         <div className="sec">
@@ -346,7 +389,11 @@ function KeyStep({ pay, mode, onBack, onChecked }: { pay: Schemas['EarnPayments'
           </table>
         </TableScroll>
       </section>
-      <Field label={t(mc.keyLabel)} hint={t(mc.keyHint)} error={err ? (err.title ? `${err.title}. ${err.text}` : err.text) : undefined}>
+      <Field
+        label={t(mc.keyLabel)}
+        hint={<Msg msg={mc.keyHint} values={{ live: <span className="mono">rk_live_</span>, test: <span className="mono">rk_test_</span> }} />}
+        error={err ? (err.title ? `${err.title}. ${err.text}` : err.text) : undefined}
+      >
         <Input type="password" autoComplete="off" spellCheck={false} value={key} onChange={(e) => (setKey(e.target.value), setErr(undefined))} placeholder={mode === 'test' ? 'rk_test_…' : 'rk_live_… or rk_test_…'} />
       </Field>
     </StepCard>
@@ -457,7 +504,7 @@ function WebhookStep({ c, onBack, onNext }: { c: Conn; onBack: () => void; onNex
     // Registers once on arrival; the person retries after a failure.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-  const at = (d?: string) => (d ? clock(d) : '')
+  const at = (d?: string) => (d ? clockSeconds(d) : '')
   return (
     <StepCard
       n={4}
@@ -649,7 +696,10 @@ function SettingsStep({ c, pay, onBack, onDone }: { c: Conn; pay: Schemas['EarnP
           ))}
         </fieldset>
       </div>
-      <Note tone="neutral">{t(mc.sellerNote)}</Note>
+      <div className="note n" role="note">
+        <Icon name="info" size={16} />
+        <div>{t(mc.sellerNote)}</div>
+      </div>
     </StepCard>
   )
 }
@@ -661,7 +711,7 @@ function DoneStep({ c, pay }: { c: Conn; pay: Schemas['EarnPayments'] }) {
   const fin = qc.getQueryData<Schemas['EarnFinished']>(['earn-finished', c.id])
   const w = c.webhook
   return (
-    <StepCard n={6} title={t(mc.doneTitle, { provider: c.providerName, account: c.account.name, mode: c.mode })} lead={c.mode === 'live' ? t(mc.doneLive, { account: c.account.name }) : t(mc.doneTest)}>
+    <StepCard n={6} done title={t(mc.doneTitle, { provider: c.providerName, account: c.account.name, mode: c.mode })} lead={c.mode === 'live' ? t(mc.doneLive, { account: c.account.name }) : t(mc.doneTest)}>
       <dl className="ea-kv">
         <dt>{t(mc.account)}</dt>
         <dd>{t(mc.accountLine, { name: c.account.name, country: countries[c.account.country] ?? c.account.country, currency: c.account.currency.toUpperCase() })}</dd>

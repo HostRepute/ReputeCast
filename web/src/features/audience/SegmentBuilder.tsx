@@ -20,6 +20,7 @@ import { BetweenTo } from '@/features/scoring/ContactsScore'
 import { DraftBanner, DraftFooter, DraftMark, DraftSqlNote, draftCountLabels, useSegmentAssist, type SegmentDraft } from '@/features/ai/segment'
 import { DeleteSegmentButton, SegmentUsageCard } from '@/features/conditional/usage'
 import { useT } from '@/i18n'
+import { mpc } from '@/features/earn/contacts.messages'
 import './audience.css'
 import { SignedInWhen } from '@/features/website/elsewhere'
 
@@ -410,6 +411,8 @@ function Builder({ segmentId, detail, catalog }: { segmentId: string; detail?: S
               </Button>
               <span className="k self-center">Suppressed, bounced and role addresses are always excluded at send time, whatever the segment says.</span>
             </div>
+            {/* Paid subscription conditions (Earn, X16). */}
+            {draft.groups.some((g) => g.conditions.some((c) => c.field.startsWith('paid_'))) ? <span className="k">{t(mpc.segmentNote)}</span> : null}
             {ai ? <DraftFooter draft={ai.draft} /> : null}
           </div>
         ) : (

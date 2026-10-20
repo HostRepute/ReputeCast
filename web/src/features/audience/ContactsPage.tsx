@@ -21,6 +21,7 @@ import { BandSelect, ScoreCell, ScoreGrowthChips, ScoreGrowthFields, scoreGrowth
 import { fileName, saveBlob } from './download'
 import { consentFilterLabel, consentLabel, consentTone, mailboxColor, mailboxes, mailboxLabel, tierClass, tierColor, tierLabel, tiers, type Consent, type Mailbox, type Tier } from './labels'
 import { LanguageFilter } from '@/features/page-languages/contacts'
+import { PaidStatusCell, PaidStatusSelect, PaidTierChip } from '@/features/earn/ContactsPaid'
 import './audience.css'
 import { MembersChips } from '@/features/website/elsewhere'
 
@@ -47,6 +48,9 @@ export interface ContactsSearch {
   sort?: 'activity' | 'score'
   /** The latest address check (X14). */
   check?: 'valid' | 'invalid' | 'risky' | 'unknown' | 'never'
+  /** Paid status (Earn, X16): a status, or with_access at paidTier and above. */
+  paid?: 'with_access' | 'trialing' | 'past_due' | 'complimentary' | 'gift' | 'ended' | 'free'
+  paidTier?: string
   /** Members of the website: contacts who signed in to it (X18). */
   signedIn?: boolean
   page?: number
@@ -79,6 +83,9 @@ const filterKeys = [
   'sort',
   // The latest address check (X14).
   'check',
+  // Paid status (Earn, X16).
+  'paid',
+  'paidTier',
   // Members of the website (X18).
   'signedIn',
 ] as const
@@ -174,8 +181,13 @@ export function ContactsPage({ search }: { search: ContactsSearch }) {
         <>
           <SavedViews views={views.data} filter={filter} onPick={(f) => go({ ...f, size: search.size })} onSave={() => setSaving(true)} />
           {/* The website's members (features/website), while it's on. */}
-          <MembersChips signedIn={Boolean(search.signedIn)} onSignedIn={(on) => setFilter({ signedIn: on || undefined })} />
-          <Filters search={search} total={list.data?.total} lists={summary.data?.lists ?? []} onChange={setFilter} />
+          <MembersChips
+            signedIn={Boolean(search.signedIn)}
+            onSignedIn={(on) => setFilter({ signedIn: on || undefined })}
+            paid={search.paid === 'with_access' && !search.paidTier}
+            onPaid={(on) => setFilter({ paid: on ? 'with_access' : undefined, paidTier: undefined })}
+          />
+          <Filters search={search} total={list.data?.total} lists={summary.data?.lists ?? []} paidTiers={summary.data?.paidTiers ?? []} onChange={setFilter} />
           {result ? <BulkResultPanel result={result} onDismiss={() => setResult(null)} /> : null}
           {ids.length > 0 ? (
             <BulkBar
@@ -199,6 +211,7 @@ export function ContactsPage({ search }: { search: ContactsSearch }) {
               page={page}
               size={size}
               filtered={Object.keys(filter).length > 0}
+              paid={(summary.data?.paidTiers.length ?? 0) > 0}
               byScore={search.sort === 'score'}
               onSort={(score) => go({ ...search, sort: score ? 'score' : undefined, page: undefined })}
               onPage={(p) => go({ ...search, page: p > 1 ? p : undefined })}
@@ -294,11 +307,13 @@ function Filters({
   search,
   total,
   lists,
+  paidTiers,
   onChange,
 }: {
   search: ContactsSearch
   total?: number
   lists: Schemas['AudienceListSummary'][]
+  paidTiers: Schemas['AudiencePaidTier'][]
   onChange: (patch: Partial<ContactsSearch>) => void
 }) {
   // The box follows the URL (a saved view or "Clear filters" changes it)
@@ -371,6 +386,7 @@ function Filters({
       </select>
       <LanguageFilter className={sel} value={search.language} onChange={(language) => onChange({ language })} />
       <AddressCheckFilter className={sel} value={search.check} onChange={(check) => onChange({ check })} />
+      <PaidStatusSelect className={sel} tiers={paidTiers} paid={search.paid} tier={search.paidTier} onChange={(f) => onChange(f as Partial<ContactsSearch>)} />
       <MoreFilters search={search} n={more} onChange={onChange} />
       <span className="k ml-auto">{total === undefined ? '' : totalLine(total, search.sort === 'score')}</span>
       <ScoreGrowthChips search={search} onChange={onChange} />
@@ -503,6 +519,7 @@ function ContactsTable({
   page,
   size,
   filtered,
+  paid,
   onPage,
   onSize,
   onClear,
@@ -515,6 +532,8 @@ function ContactsTable({
   page: number
   size: number
   filtered: boolean
+  /** Paid status shows (Earn, X16): the tier chip and the Paid column. */
+  paid: boolean
   onPage: (p: number) => void
   onSize: (s: number) => void
   onClear: () => void
@@ -569,6 +588,7 @@ function ContactsTable({
                 <table.FlexRender header={header} />
               </th>
               <th scope="col">Contact</th>
+              {paid ? <th scope="col">Paid</th> : null}
               <th scope="col">Lists</th>
               <th scope="col">Tier</th>
               <ScoreHeader sorted={byScore} onSort={onSort} />
@@ -597,8 +617,14 @@ function ContactsTable({
                     >
                       {c.name || c.email}
                     </Link>
+                    {paid ? <PaidTierChip paid={c.paid} /> : null}
                     <div className="k mono">{c.email}</div>
                   </td>
+                  {paid ? (
+                    <td className="nw">
+                      <PaidStatusCell paid={c.paid} />
+                    </td>
+                  ) : null}
                   <td className="lists">{c.lists.join(', ') || '–'}</td>
                   <td>
                     <span className={`badge ${tierClass[tier]}`}>{tierLabel[tier]}</span>

@@ -7,6 +7,7 @@ import { useComposer, type SaveStatus } from './context'
 import { statusWord } from './format'
 import { ToolIcon } from './icons'
 import { AudiencePicker, SenderPicker } from './Pickers'
+import { PaidOnlyBadge } from '@/features/earn/composer/EarnBlocks'
 import { SendTestButton } from './SendTest'
 import { ComposerLanguageSwitcher, versionLanguage, withoutVersion } from '@/features/languages/composerParts'
 import { DigestBadge, DigestHeaderActions, isDigestTemplate } from '@/features/digests/composer/DigestMode'
@@ -146,6 +147,7 @@ export function Header({ onReview }: { onReview: () => void }) {
         )}
       </div>
       <DigestBadge />
+      {campaign.audience.paid === 'paid' ? <PaidOnlyBadge /> : null}
       {digest && !canEdit && !preview ? (
         <Badge id="cstatus" tone="neutral" role="status">
           {t(dc.readOnly)}

@@ -28,10 +28,21 @@ var views = []struct{ name, body string }{
     FROM public.delivery_events de
     WHERE de.workspace_id = {ws}`},
 	{"lists", `SELECT l.id, l.name FROM public.lists l WHERE l.workspace_id = {ws} AND l.deleted_at IS NULL`},
+	// Paid subscriptions (Earn, paid.go): one row per live subscription,
+	// complimentary grant or gift; access says it gives paid access now,
+	// paid is what it brought in (paid minus refunded, before tax).
+	{"paid_members", `SELECT s.contact_id, s.status, s.kind, s.period, s.started_at, s.ended_at, s.tier_id,
+           coalesce(t.access_rank, 1) AS tier_rank,
+           (s.ended_at IS NULL AND (s.status IN ('trialing', 'active', 'complimentary', 'gift') OR (s.status = 'past_due' AND NOT s.access_paused))) AS access,
+           (s.paid_cents - s.refunded_cents) / 100.0 AS paid
+    FROM public.paid_subscriptions s
+    LEFT JOIN public.earn_tiers t ON t.id = s.tier_id
+    WHERE s.workspace_id = {ws} AND s.mode = 'live' AND s.status <> 'incomplete'`},
+	{"paid_tiers", `SELECT t.id, t.name, t.access_rank AS rank FROM public.earn_tiers t WHERE t.workspace_id = {ws} AND t.deleted_at IS NULL`},
 }
 
 // ViewNames are the relations a SQL segment may read.
-var ViewNames = []string{"contacts", "list_members", "events", "lists"}
+var ViewNames = []string{"contacts", "list_members", "events", "lists", "paid_members", "paid_tiers"}
 
 // withViews is the CTE prelude for builder queries; $1 is the workspace.
 func withViews() string {

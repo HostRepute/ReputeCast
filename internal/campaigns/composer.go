@@ -21,17 +21,24 @@ import (
 	"github.com/hostrepute/reputecast/internal/contentcheck"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/mjml"
+	"github.com/hostrepute/reputecast/internal/paidaccess"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/templates"
 )
 
 // ComposerAudience says who receives a campaign: lists and segments, minus
-// excluded lists and segments.
+// excluded lists and segments, and who on them (Earn: everyone, paid
+// members only at a tier and above, or free subscribers only).
 type ComposerAudience struct {
 	Lists           []string `json:"lists"`
 	Segments        []string `json:"segments"`
 	ExcludeLists    []string `json:"excludeLists"`
 	ExcludeSegments []string `json:"excludeSegments"`
+	// Paid is "paid" for paid members only, "free" for free subscribers
+	// only; empty for everyone. PaidTier is the lowest tier of paid
+	// members ("Insider and above"); empty for any paid tier.
+	Paid     string `json:"paid,omitempty" enum:"paid,free,"`
+	PaidTier string `json:"paidTier,omitempty"`
 }
 
 // ComposerAudienceInput is an audience in requests (every part optional).
@@ -40,6 +47,8 @@ type ComposerAudienceInput struct {
 	Segments        []string `json:"segments,omitempty" maxItems:"100"`
 	ExcludeLists    []string `json:"excludeLists,omitempty" maxItems:"100"`
 	ExcludeSegments []string `json:"excludeSegments,omitempty" maxItems:"100"`
+	Paid            string   `json:"paid,omitempty" enum:"paid,free," doc:"paid: paid members only; free: free subscribers only; empty: everyone on the lists"`
+	PaidTier        string   `json:"paidTier,omitempty" doc:"With paid: the lowest tier (the tier and above); empty for any paid tier"`
 }
 
 func (in ComposerAudienceInput) def() ComposerAudience {
@@ -53,18 +62,22 @@ type dbAudience struct {
 	ExcludeLists    []string `json:"exclude_lists,omitempty"`
 	ExcludeSegments []string `json:"exclude_segments,omitempty"`
 	ExcludeTiers    []string `json:"exclude_tiers,omitempty"`
+	Paid            string   `json:"paid,omitempty"`
+	PaidTier        string   `json:"paid_tier,omitempty"`
 }
 
 func audienceFromDB(raw json.RawMessage) ComposerAudience {
 	var a dbAudience
 	_ = json.Unmarshal(raw, &a)
-	return ComposerAudience{Lists: nonNil(a.Lists), Segments: nonNil(a.Segments), ExcludeLists: nonNil(a.ExcludeLists), ExcludeSegments: nonNil(a.ExcludeSegments)}
+	p := paidaccess.Parse(raw)
+	return ComposerAudience{Lists: nonNil(a.Lists), Segments: nonNil(a.Segments), ExcludeLists: nonNil(a.ExcludeLists), ExcludeSegments: nonNil(a.ExcludeSegments),
+		Paid: p.Who, PaidTier: p.Tier}
 }
 
 func (a ComposerAudience) toDB(prev json.RawMessage) json.RawMessage {
 	var d dbAudience
 	_ = json.Unmarshal(prev, &d) // keeps exclude_tiers set elsewhere
-	d.Lists, d.Segments, d.ExcludeLists, d.ExcludeSegments = a.Lists, a.Segments, a.ExcludeLists, a.ExcludeSegments
+	d.Lists, d.Segments, d.ExcludeLists, d.ExcludeSegments, d.Paid, d.PaidTier = a.Lists, a.Segments, a.ExcludeLists, a.ExcludeSegments, a.Paid, a.PaidTier
 	b, _ := json.Marshal(d)
 	return b
 }
@@ -605,7 +618,17 @@ func normalizeAudience(a ComposerAudience) ComposerAudience {
 		}
 		return out
 	}
-	return ComposerAudience{Lists: clean(a.Lists), Segments: clean(a.Segments), ExcludeLists: clean(a.ExcludeLists), ExcludeSegments: clean(a.ExcludeSegments)}
+	out := ComposerAudience{Lists: clean(a.Lists), Segments: clean(a.Segments), ExcludeLists: clean(a.ExcludeLists), ExcludeSegments: clean(a.ExcludeSegments)}
+	switch a.Paid {
+	case paidaccess.Paid:
+		out.Paid = a.Paid
+		if u, err := uuid.Parse(strings.TrimSpace(a.PaidTier)); err == nil {
+			out.PaidTier = u.String()
+		}
+	case paidaccess.Free:
+		out.Paid = a.Paid
+	}
+	return out
 }
 
 // checkAudience verifies the lists and segments exist and that a scoped
@@ -641,6 +664,19 @@ func (s *Service) checkAudience(ctx context.Context, q *store.Queries, ws *store
 			if !knownSeg[id] {
 				return api.Invalid("body.audience.segments", "One of the segments no longer exists. Reload and pick again.")
 			}
+		}
+	}
+	if a.PaidTier != "" {
+		tiers, err := paidaccess.Tiers(ctx, q, ws.ID)
+		if err != nil {
+			return err
+		}
+		found := false
+		for _, t := range tiers {
+			found = found || t.ID.String() == a.PaidTier
+		}
+		if !found {
+			return api.Invalid("body.audience.paidTier", "That tier no longer exists. Pick another one, or any paid tier.")
 		}
 	}
 	return nil
