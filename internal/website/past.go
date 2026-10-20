@@ -143,14 +143,16 @@ func (s *Service) PublishPast(ctx context.Context, ws *store.Workspace, p *authz
 			continue
 		}
 		vis := in.Visibility
+		tiers := []uuid.UUID{}
 		if vis == "" || vis == "audience" {
 			vis = gate.Public
-			if paidOnly(r.Audience) {
+			if paid, ids := paidAudience(r.Audience); paid {
 				vis = gate.Paid
+				tiers = append(tiers, ids...)
 			}
 		}
 		err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
-			return s.publishPast(ctx, tx, ws, p, r, vis)
+			return s.publishPast(ctx, tx, ws, p, r, vis, tiers)
 		})
 		if err != nil {
 			return out, err
@@ -160,7 +162,7 @@ func (s *Service) PublishPast(ctx context.Context, ws *store.Workspace, p *authz
 	return out, nil
 }
 
-func (s *Service) publishPast(ctx context.Context, tx pgx.Tx, ws *store.Workspace, p *authz.Principal, r store.WebsiteSentWithoutPostRow, vis string) error {
+func (s *Service) publishPast(ctx context.Context, tx pgx.Tx, ws *store.Workspace, p *authz.Principal, r store.WebsiteSentWithoutPostRow, vis string, tiers []uuid.UUID) error {
 	q := store.New(tx)
 	var mjmlSrc string
 	_ = tx.QueryRow(ctx, `SELECT mjml FROM campaigns WHERE id = $1`, r.ID).Scan(&mjmlSrc)
@@ -188,7 +190,7 @@ func (s *Service) publishPast(ctx context.Context, tx pgx.Tx, ws *store.Workspac
 		}
 		if err := q.WebsitePostInsert(ctx, store.WebsitePostInsertParams{ID: id, WorkspaceID: ws.ID, Kind: KindCampaign, CampaignID: &r.ID, WebOn: true,
 			Status: PostDraft, PublishMode: WhenNow, Title: title, Slug: slug, Excerpt: excerpt, CoverUrl: cover, CoverAlt: alt, Visibility: vis,
-			Tiers: []uuid.UUID{}, CreatedBy: userID(p), At: s.now()}); err != nil {
+			Tiers: tiers, CreatedBy: userID(p), At: s.now()}); err != nil {
 			return err
 		}
 		for i, t := range s.listTags(ctx, ws, audienceLists(r.Audience)) {
@@ -209,11 +211,11 @@ func (s *Service) publishPast(ctx context.Context, tx pgx.Tx, ws *store.Workspac
 		if cur.Status == PostPublished {
 			return nil
 		}
-		if _, err := tx.Exec(ctx, `UPDATE website_posts SET web_on = true, publish_mode = 'now', visibility = $2, updated_at = $3 WHERE id = $1`,
-			cur.ID, vis, s.now()); err != nil {
+		if _, err := tx.Exec(ctx, `UPDATE website_posts SET web_on = true, publish_mode = 'now', visibility = $2, tiers = $4, updated_at = $3 WHERE id = $1`,
+			cur.ID, vis, s.now(), tiers); err != nil {
 			return err
 		}
-		cur.WebOn, cur.PublishMode, cur.Visibility = true, WhenNow, vis
+		cur.WebOn, cur.PublishMode, cur.Visibility, cur.Tiers = true, WhenNow, vis, tiers
 	}
 	d, err := s.decision(ctx, ws, p, cur)
 	if err != nil {
