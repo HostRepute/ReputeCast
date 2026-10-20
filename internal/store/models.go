@@ -56,6 +56,131 @@ type AdapterRuntime struct {
 	UpdatedAt          time.Time  `json:"updatedAt"`
 }
 
+type AgencyHealth struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Day         time.Time `json:"day"`
+	State       string    `json:"state"`
+	Score       int32     `json:"score"`
+	Tone        string    `json:"tone"`
+	Hostrepute  string    `json:"hostrepute"`
+	Listings    int32     `json:"listings"`
+	Demo        bool      `json:"demo"`
+	ComputedAt  time.Time `json:"computedAt"`
+}
+
+type AgencyLibraryCopy struct {
+	ID          uuid.UUID  `json:"id"`
+	ItemID      uuid.UUID  `json:"itemId"`
+	Version     int32      `json:"version"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	TargetKind  string     `json:"targetKind"`
+	TargetID    uuid.UUID  `json:"targetId"`
+	CopiedBy    *uuid.UUID `json:"copiedBy"`
+	CopiedAt    time.Time  `json:"copiedAt"`
+	UpdatedAt   time.Time  `json:"updatedAt"`
+}
+
+type AgencyLibraryItem struct {
+	ID        uuid.UUID       `json:"id"`
+	Kind      string          `json:"kind"`
+	Name      string          `json:"name"`
+	Version   int32           `json:"version"`
+	Fields    json.RawMessage `json:"fields"`
+	CreatedBy *uuid.UUID      `json:"createdBy"`
+	CreatedAt time.Time       `json:"createdAt"`
+	UpdatedBy *uuid.UUID      `json:"updatedBy"`
+	UpdatedAt time.Time       `json:"updatedAt"`
+	DeletedAt *time.Time      `json:"deletedAt"`
+}
+
+type AgencyLibraryVersion struct {
+	ItemID            uuid.UUID       `json:"itemId"`
+	Version           int32           `json:"version"`
+	Content           json.RawMessage `json:"content"`
+	Summary           []string        `json:"summary"`
+	Note              string          `json:"note"`
+	SourceWorkspaceID *uuid.UUID      `json:"sourceWorkspaceId"`
+	CreatedBy         *uuid.UUID      `json:"createdBy"`
+	CreatedAt         time.Time       `json:"createdAt"`
+}
+
+type AgencyRate struct {
+	WorkspaceID   uuid.UUID       `json:"workspaceId"`
+	EffectiveFrom time.Time       `json:"effectiveFrom"`
+	Rate          json.RawMessage `json:"rate"`
+	SetBy         *uuid.UUID      `json:"setBy"`
+	SetAt         time.Time       `json:"setAt"`
+}
+
+type AgencySetting struct {
+	ID                bool       `json:"id"`
+	Enabled           bool       `json:"enabled"`
+	Name              string     `json:"name"`
+	DefaultTemplateID *uuid.UUID `json:"defaultTemplateId"`
+	EnabledBy         *uuid.UUID `json:"enabledBy"`
+	EnabledAt         *time.Time `json:"enabledAt"`
+	UpdatedBy         *uuid.UUID `json:"updatedBy"`
+	UpdatedAt         time.Time  `json:"updatedAt"`
+}
+
+type AgencyStaff struct {
+	ID          uuid.UUID  `json:"id"`
+	UserID      *uuid.UUID `json:"userId"`
+	Email       string     `json:"email"`
+	Level       string     `json:"level"`
+	Title       string     `json:"title"`
+	Permissions []string   `json:"permissions"`
+	AddedBy     *uuid.UUID `json:"addedBy"`
+	AddedAt     time.Time  `json:"addedAt"`
+}
+
+type AgencyTemplate struct {
+	ID          uuid.UUID       `json:"id"`
+	Name        string          `json:"name"`
+	Description string          `json:"description"`
+	Content     json.RawMessage `json:"content"`
+	CreatedFrom *uuid.UUID      `json:"createdFrom"`
+	CreatedBy   *uuid.UUID      `json:"createdBy"`
+	CreatedAt   time.Time       `json:"createdAt"`
+	UpdatedBy   *uuid.UUID      `json:"updatedBy"`
+	UpdatedAt   time.Time       `json:"updatedAt"`
+	DeletedAt   *time.Time      `json:"deletedAt"`
+}
+
+type AgencyTemplateApplication struct {
+	ID          uuid.UUID       `json:"id"`
+	TemplateID  uuid.UUID       `json:"templateId"`
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	AppliedBy   *uuid.UUID      `json:"appliedBy"`
+	AppliedAt   time.Time       `json:"appliedAt"`
+	Result      json.RawMessage `json:"result"`
+}
+
+type AgencyUsage struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Day         time.Time `json:"day"`
+	Channel     string    `json:"channel"`
+	Dimension   string    `json:"dimension"`
+	Key         string    `json:"key"`
+	Label       string    `json:"label"`
+	Units       int64     `json:"units"`
+	CostMicros  int64     `json:"costMicros"`
+	Demo        bool      `json:"demo"`
+	ComputedAt  time.Time `json:"computedAt"`
+}
+
+type AgencyWorkspace struct {
+	WorkspaceID      uuid.UUID  `json:"workspaceId"`
+	Kind             string     `json:"kind"`
+	AccountManagerID *uuid.UUID `json:"accountManagerId"`
+	ClientSince      time.Time  `json:"clientSince"`
+	TemplateID       *uuid.UUID `json:"templateId"`
+	SetupSteps       []string   `json:"setupSteps"`
+	Color            string     `json:"color"`
+	AddedBy          *uuid.UUID `json:"addedBy"`
+	AddedAt          time.Time  `json:"addedAt"`
+}
+
 type AiConnection struct {
 	WorkspaceID    uuid.UUID  `json:"workspaceId"`
 	Provider       string     `json:"provider"`

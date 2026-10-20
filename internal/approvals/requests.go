@@ -213,9 +213,12 @@ func (s *Service) RequestApproval(ctx context.Context, ws *store.Workspace, p *a
 			approvers = append(approvers, a)
 		}
 	}
-	if len(approvers) < policy.ApprovalsRequired {
+	if len(approvers) < requiredFor(policy, rules) {
 		return uuid.Nil, api.Err(http.StatusConflict, "no_approvers", fmt.Sprintf("This send needs %d %s from someone other than you, and the workspace has %d. An Owner can give campaigns:approve to another role.",
 			policy.ApprovalsRequired, readiness.Plural(int64(policy.ApprovalsRequired), "approval", "approvals"), len(approvers)))
+	}
+	if err := s.needClientApprover(ctx, ws, rules, approvers); err != nil {
+		return uuid.Nil, err
 	}
 	snap, err := s.buildSnapshot(ctx, ws, c, run, rules, *author)
 	if err != nil {
@@ -234,7 +237,7 @@ func (s *Service) RequestApproval(ctx context.Context, ws *store.Workspace, p *a
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		if err := q.ApprovalInsertRequest(ctx, store.ApprovalInsertRequestParams{ID: id, WorkspaceID: ws.ID, SubjectType: "campaign", CampaignID: &campaignID,
-			RequestedBy: &p.UserID, RequestedAt: now, Note: note, Status: "pending", MatchedRules: ruleKeys(rules), ApprovalsRequired: int32(policy.ApprovalsRequired),
+			RequestedBy: &p.UserID, RequestedAt: now, Note: note, Status: "pending", MatchedRules: ruleKeys(rules), ApprovalsRequired: int32(requiredFor(policy, rules)),
 			Snapshot: sb, CampaignVersion: &version, ReadinessRunID: &runID, PreviousID: previous}); err != nil {
 			if strings.Contains(err.Error(), "approval_requests_open_campaign") {
 				return api.Conflict("Approval is already requested for this campaign.")
@@ -324,13 +327,22 @@ func (s *Service) Decide(ctx context.Context, ws *store.Workspace, p *authz.Prin
 			return err
 		}
 		given := 0
+		approved := []uuid.UUID{p.UserID}
 		for _, d := range decisions {
 			if d.ApproverID != nil && *d.ApproverID == p.UserID {
 				return api.Conflict("You already decided on this request.")
 			}
 			if d.Decision == DecisionApprove {
 				given++
+				if d.ApproverID != nil {
+					approved = append(approved, *d.ApproverID)
+				}
 			}
+		}
+		// Client sign-off: approvals from agency staff don't count toward it.
+		signedOff, err := signoffMet(ctx, q, locked.MatchedRules, approved)
+		if err != nil {
+			return err
 		}
 		now := s.now()
 		if err := q.ApprovalInsertDecision(ctx, store.ApprovalInsertDecisionParams{ID: uuid.Must(uuid.NewV7()), RequestID: requestID, ApproverID: &p.UserID, Decision: in.Decision,
@@ -340,7 +352,7 @@ func (s *Service) Decide(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		status := "pending"
 		switch in.Decision {
 		case DecisionApprove:
-			if given+1 >= int(locked.ApprovalsRequired) {
+			if given+1 >= int(locked.ApprovalsRequired) && signedOff {
 				status = "approved"
 			}
 		case DecisionRequestChanges:
