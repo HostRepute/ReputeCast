@@ -13,6 +13,8 @@ import { accessibilityTab } from '@/features/accessibility/composer/Status'
 import { FeedItemsInspector, isFeedItems, useDigestMode } from '@/features/digests/composer/DigestMode'
 import { dc } from '@/features/digests/composer/messages'
 import { t as tt } from '@/i18n'
+import { useWebMode, WebTabPanel } from '@/features/website/composer/campaign'
+import { mc } from '@/features/website/composer/messages'
 
 /** Issues the Deliverability tab counts: blocks and warnings about the content (the subject has its own line). */
 export function contentIssues(issues: Issue[] | undefined): Issue[] {
@@ -203,8 +205,12 @@ export function RightPanel() {
   const c = useComposer()
   const a11y = useAccessibility()
   const digest = useDigestMode()
+  const web = useWebMode()
   const issues = contentIssues(c.checks?.issues)
-  const tab = c.rightTab === 'deliverability' && !issues.length && !(c.checks?.issues ?? []).some((i) => i.severity === 'warn' || i.severity === 'block') ? 'style' : c.rightTab
+  const tab =
+    (c.rightTab === 'deliverability' && !issues.length && !(c.checks?.issues ?? []).some((i) => i.severity === 'warn' || i.severity === 'block')) || (c.rightTab === 'web' && !web)
+      ? 'style'
+      : c.rightTab
   if (c.isEmpty) {
     return (
       <aside className="cpanel right dim" aria-hidden="true" inert>
@@ -223,10 +229,12 @@ export function RightPanel() {
   const sel = c.selected && tagOf(c.selected) ? c.selected : null
   // The Feed items block has its own checks (the posts it draws are not in the template).
   const footer = sel && isFeedItems(sel) ? null : c.device === 'mobile' ? <MobileChecks selected={sel} /> : <SectionHealth selected={sel} />
-  const items: { value: 'style' | 'settings' | 'deliverability' | 'accessibility'; label: string }[] = [
+  const items: { value: 'style' | 'settings' | 'deliverability' | 'accessibility' | 'web'; label: string }[] = [
     { value: 'style', label: 'Style' },
     { value: 'settings', label: 'Settings' },
   ]
+  // The website's Web tab (features/website), while it's on.
+  if (web) items.push({ value: 'web', label: tt(mc.tabWeb) })
   const allWarn = (c.checks?.issues ?? []).filter((i) => i.severity === 'block' || i.severity === 'warn')
   if (allWarn.length) items.push({ value: 'deliverability', label: `Deliverability · ${issues.length || allWarn.length}` })
   const a11yTab = accessibilityTab(a11y)
@@ -277,6 +285,9 @@ export function RightPanel() {
         </TabPanel>
         <TabPanel value="accessibility" className="flex flex-1 flex-col" tabIndex={-1}>
           <AccessibilityPanel />
+        </TabPanel>
+        <TabPanel value="web" className="flex flex-1 flex-col overflow-y-auto" tabIndex={-1}>
+          <WebTabPanel />
         </TabPanel>
       </PanelTabs>
     </aside>

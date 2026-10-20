@@ -181,6 +181,10 @@ func traits(e Email, f *Facts, n *Names) []string {
 				add("language", languageName(f.Language))
 			case KindScore, KindScoreBand:
 				add("score", scoreTrait(f, n))
+			default:
+				if k, ok := Lookup(c.Kind); ok && k.Trait != nil {
+					add(c.Kind, k.Trait(c, f, n))
+				}
 			}
 		}
 	}
@@ -302,6 +306,11 @@ func blockTrait(b Block, f *Facts, n *Names) string {
 		return c.Value
 	case KindScore, KindScoreBand:
 		return scoreTrait(f, n)
+	}
+	if k, ok := Lookup(c.Kind); ok && k.Trait != nil {
+		if t := k.Trait(c, f, n); t != "" {
+			return t
+		}
 	}
 	return b.Name
 }

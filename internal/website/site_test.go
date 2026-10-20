@@ -14,6 +14,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/apptest"
+	"github.com/hostrepute/reputecast/internal/linktoken"
 	"github.com/hostrepute/reputecast/internal/mailer"
 	"github.com/hostrepute/reputecast/internal/website"
 )
@@ -538,6 +539,26 @@ func TestSiteAccount(t *testing.T) {
 	}
 }
 
+// The preference center links a member signed in on the site to their
+// account page; a visitor and another member's session don't get the line.
+func TestPreferencesAccountLink(t *testing.T) {
+	env, _ := demoOn(t)
+	var alex uuid.UUID
+	if err := env.App.Pool.QueryRow(context.Background(), `SELECT id FROM contacts WHERE email = 'a.murphy@icloud.com'`).Scan(&alex); err != nil {
+		t.Fatal(err)
+	}
+	path := "/preferences/" + env.App.Links.Sign(linktoken.Claims{Kind: linktoken.Preferences, WorkspaceID: workspaceID(t, env), ContactID: alex})
+	if body := page(t, sessionOf(t, env, "alex"), path, 200); !has(body, "You're signed in to") || !regexp.MustCompile(`href="[^"]*`+site+`/account"`).MatchString(body) {
+		i := strings.Index(body, `<main`)
+		t.Fatalf("signed in: %.900s", body[max(i, 0):])
+	}
+	for _, c := range []*apptest.Client{env.Client(), sessionOf(t, env, "sam")} {
+		if body := page(t, c, path, 200); has(body, "You're signed in to") {
+			t.Fatal("the account line for someone who isn't signed in as the contact")
+		}
+	}
+}
+
 // The Home & navigation tab's live preview renders unsaved settings and
 // saves nothing; settings that wouldn't save are refused the same way.
 func TestHomeNavPreview(t *testing.T) {
@@ -558,6 +579,21 @@ func TestHomeNavPreview(t *testing.T) {
 		in.Header = append(in.Header, h.WebsiteNavLink)
 	}
 	in.Header = in.Header[:1]
+	// The tags table opens with the header's tags, in the header's order.
+	n := 0
+	for _, h := range saved.Header {
+		if h.Kind == website.NavTag {
+			if n >= len(saved.Tags) || saved.Tags[n].ID != h.Ref {
+				t.Fatalf("tag %d isn't the header's %q: %+v", n, h.Ref, saved.Tags)
+			}
+			n++
+		}
+	}
+	for i := n + 1; i < len(saved.Tags); i++ {
+		if saved.Tags[i].Posts > saved.Tags[i-1].Posts {
+			t.Fatalf("the other tags aren't by posts: %+v", saved.Tags[n:])
+		}
+	}
 	var out struct{ HTML, URL string }
 	c.Do("POST", ws+"/website/home-nav/preview", in).MustStatus(t, 200).JSON(t, &out)
 	// The grid layout: the latest posts as cards, not a list.
@@ -576,8 +612,13 @@ func TestHomeNavPreview(t *testing.T) {
 	if after.Layout != saved.Layout || after.Identity.Title != saved.Identity.Title || len(after.Header) != len(saved.Header) {
 		t.Fatalf("the preview saved: %s %q %d", after.Layout, after.Identity.Title, len(after.Header))
 	}
-	if r := page(t, env.Client(), "/", 200); has(r, "Acme, unsaved") {
+	r := page(t, env.Client(), "/", 200)
+	if has(r, "Acme, unsaved") {
 		t.Fatal("the live home shows the unsaved title")
+	}
+	// The footer's year is a year, not a number ("© 2,026").
+	if !regexp.MustCompile(`© \d{4} `).MatchString(r) || regexp.MustCompile(`© \d,\d{3}`).MatchString(r) {
+		t.Fatalf("copyright: %s", regexp.MustCompile(`©[^<]*`).FindString(r))
 	}
 	in.Identity.Title = " "
 	c.Do("POST", ws+"/website/home-nav/preview", in).MustStatus(t, 422)

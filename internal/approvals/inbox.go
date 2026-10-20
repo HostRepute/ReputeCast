@@ -34,7 +34,10 @@ type ApprovalListItem struct {
 	// they cover (the inbox's "Post · Members").
 	WebsitePostID string                   `json:"websitePostId,omitempty"`
 	Website       *ApprovalWebsiteSnapshot `json:"website,omitempty"`
-	Name          string                   `json:"name"`
+	// Channel is a campaign's channel (the row's icon): email, sms, push or
+	// whatsapp.
+	Channel string `json:"channel" enum:"email,sms,push,whatsapp"`
+	Name    string `json:"name"`
 	// Rules is "rules: audience ≥ 10,000 · warming-up provider".
 	Rules    string         `json:"rules"`
 	Author   ApprovalPerson `json:"author"`
@@ -163,6 +166,7 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, p *authz.Princi
 			ScheduleMode: sched.Mode, RequestedAt: r.RequestedAt, Status: r.Status, DecidedBy: r.DecidedByName, DecidedAt: r.DecidedAt,
 			Author: ApprovalPerson{Name: r.RequestedByName, Email: r.RequestedByEmail, Initials: Initials(r.RequestedByName), Color: r.RequestedByColor}}
 		it.Audience = r.AudienceCount
+		it.Channel = r.CampaignChannel
 		if r.RequestedBy != nil {
 			it.Author.ID = r.RequestedBy.String()
 		}
@@ -348,6 +352,10 @@ type ApprovalDetail struct {
 	Transactional *ApprovalTransactionalSnapshot `json:"transactional,omitempty"`
 	// Website is what a post publish request covers.
 	Website *ApprovalWebsiteSnapshot `json:"website,omitempty"`
+	// Channel is a campaign's channel; SMS is what an SMS campaign's request
+	// covers (the text, segments, senders and cost per country).
+	Channel string               `json:"channel" enum:"email,sms,push,whatsapp"`
+	SMS     *ApprovalSMSSnapshot `json:"sms,omitempty"`
 	// ChangesSince lists what changed since the previous request this one
 	// follows (empty for a first request).
 	ChangesSince []ApprovalChange `json:"changesSince"`
@@ -391,7 +399,7 @@ func (s *Service) Detail(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	}
 	snap := ParseSnapshot(r.Snapshot)
 	out := ApprovalDetail{ApprovalRequestView: view, Name: r.SubjectName, Author: view.RequestedBy, Approvers: []ApprovalPerson{}, ChangesSince: []ApprovalChange{},
-		Comments: []ApprovalCommentView{}, Automation: snap.Automation, Transactional: snap.Transactional, Website: snap.Website}
+		Comments: []ApprovalCommentView{}, Automation: snap.Automation, Transactional: snap.Transactional, Website: snap.Website, Channel: r.CampaignChannel, SMS: snap.SMS}
 	out.Author.Role = firstNonEmptyStr(snap.AuthorRole, out.Author.Role)
 	for _, a := range approversOf(ms) {
 		out.Approvers = append(out.Approvers, s.person(a))
@@ -416,7 +424,10 @@ func (s *Service) Detail(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		}
 		excluded = append(excluded, "role addresses")
 		aud := &ApprovalAudienceView{Count: snap.AudienceCount, Lists: snap.AudienceLabels, Excluded: strings.Join(excluded, " · "), Current: snap.AudienceCount}
-		if c, err := s.Readiness.Campaign(ctx, ws, *r.CampaignID); err == nil {
+		if r.CampaignChannel != "email" {
+			// A channel campaign's audience is counted by its channel: the
+			// request shows what it covered.
+		} else if c, err := s.Readiness.Campaign(ctx, ws, *r.CampaignID); err == nil {
 			if a, err := s.Readiness.Audience(ctx, ws, c.Audience); err == nil && !a.Empty && snap.Baseline() > 0 {
 				aud.Current = snap.AudienceCount + a.Final - snap.Baseline()
 				aud.ChangePct = math.Round(float64(a.Final-snap.Baseline())/float64(snap.Baseline())*1000) / 10
@@ -511,7 +522,8 @@ func (s *Service) nextOf(ctx context.Context, id uuid.UUID) (uuid.UUID, error) {
 
 func currentFromSnapshot(s Snapshot) Current {
 	return Current{Version: s.Version, ContentHash: s.ContentHash, Subject: s.Subject, Preheader: s.Preheader, SenderID: s.SenderID, From: s.From, Audience: s.Audience,
-		AudienceNames: s.AudienceLabels, AudienceCount: s.AudienceCount, RouteKey: s.RouteKey, SplitLabel: s.SplitLabel, Schedule: s.Schedule}
+		AudienceNames: s.AudienceLabels, AudienceCount: s.AudienceCount, RouteKey: s.RouteKey, SplitLabel: s.SplitLabel, Schedule: s.Schedule,
+		Text: s.Text, ScheduleLabel: s.ScheduleLabel}
 }
 
 func firstNonEmptyStr(vals ...string) string {

@@ -54,7 +54,7 @@ type AutomationGraph struct {
 // AutomationNode is one step of a flow.
 type AutomationNode struct {
 	ID       string                 `json:"id" minLength:"1" maxLength:"40" pattern:"^[A-Za-z0-9_-]+$"`
-	Type     string                 `json:"type" enum:"trigger,delay,email,branch,filter,split,webhook,list,goal,exit"`
+	Type     string                 `json:"type" enum:"trigger,delay,email,branch,filter,split,webhook,list,goal,exit,sms"`
 	Position AutomationNodePosition `json:"position"`
 	Data     AutomationNodeData     `json:"data"`
 }
@@ -90,6 +90,8 @@ type AutomationNodeData struct {
 	Variants  []AutomationSplitVariant `json:"variants,omitempty" maxItems:"5"`
 	Webhook   *AutomationWebhook       `json:"webhook,omitempty"`
 	Action    *AutomationListAction    `json:"action,omitempty"`
+	// SMS is a "Send SMS" step (channels.go).
+	SMS *AutomationSMSStep `json:"sms,omitempty"`
 }
 
 // AutomationTrigger says which contacts enter the flow.
@@ -157,7 +159,7 @@ type AutomationSendWindow struct {
 
 // AutomationCondition is what a branch asks, a filter keeps or a goal waits for.
 type AutomationCondition struct {
-	Kind string `json:"kind" enum:"opened,clicked,field,tag,list,event,bought_product"`
+	Kind string `json:"kind" enum:"opened,clicked,field,tag,list,event,bought_product,sms_consent,sms_clicked,sms_replied"`
 	// Opened / clicked: the email step (empty = any email in this flow), the
 	// window and whether machine opens (Apple Mail Privacy Protection) count.
 	Step        string              `json:"step,omitempty" maxLength:"40"`
@@ -729,6 +731,14 @@ func checkConfig(n AutomationNode, refs *Refs) []configProblem {
 			}
 		case TriggerBoughtProduct:
 			checkProduct(c.ProductID, refs, bad)
+		case CondSMSConsent:
+			if c.ListID != "" && !listExists(c.ListID) {
+				bad("missing_ref", "The condition's list was deleted. Pick another list.")
+			}
+		case CondSMSClicked, CondSMSReplied:
+			if n.Type == NodeBranch && (c.Within == nil || c.Within.Amount <= 0) {
+				bad("invalid_window", "Set how long to wait for the click or reply.")
+			}
 		}
 	case NodeSplit:
 		if len(d.Variants) < 2 {
@@ -758,6 +768,10 @@ func checkConfig(n AutomationNode, refs *Refs) []configProblem {
 		}
 		if w.Method != "" && w.Method != http.MethodPost && w.Method != http.MethodPut {
 			bad("invalid_method", "Webhooks use POST or PUT.")
+		}
+	case NodeSMS:
+		for _, p := range checkChannelNode(n, listExists) {
+			bad(p.Code, "%s", p.Message)
 		}
 	case NodeList:
 		a := d.Action

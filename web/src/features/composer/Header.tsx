@@ -7,6 +7,7 @@ import { useComposer, type SaveStatus } from './context'
 import { statusWord } from './format'
 import { ToolIcon } from './icons'
 import { AudiencePicker, SenderPicker } from './Pickers'
+import { PaidOnlyBadge } from '@/features/earn/composer/EarnBlocks'
 import { SendTestButton } from './SendTest'
 import { ComposerLanguageSwitcher, versionLanguage, withoutVersion } from '@/features/languages/composerParts'
 import { DigestBadge, DigestHeaderActions, isDigestTemplate } from '@/features/digests/composer/DigestMode'
@@ -15,6 +16,7 @@ import { dc } from '@/features/digests/composer/messages'
 import { useT } from '@/i18n'
 import { useAssistBanner } from '@/features/ai/composer/panel'
 import { AssistMenu } from '@/features/ai/composer/assistMenu'
+import { WebChip } from '@/features/website/composer/campaign'
 
 const routeColors: Record<string, string> = { ses: 'var(--chart-ses)', postal: 'var(--chart-postal)', postmark: 'var(--chart-postmark)' }
 
@@ -145,6 +147,7 @@ export function Header({ onReview }: { onReview: () => void }) {
         )}
       </div>
       <DigestBadge />
+      {campaign.audience.paid === 'paid' ? <PaidOnlyBadge /> : null}
       {digest && !canEdit && !preview ? (
         <Badge id="cstatus" tone="neutral" role="status">
           {t(dc.readOnly)}
@@ -167,6 +170,7 @@ export function Header({ onReview }: { onReview: () => void }) {
           <AudiencePicker />
           <SenderPicker />
           <RouteButton />
+          <WebChip />
         </div>
       )}
       <div className="flex flex-wrap items-center gap-2" style={{ marginLeft: 'auto' }}>

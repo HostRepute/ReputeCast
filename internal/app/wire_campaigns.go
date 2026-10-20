@@ -27,11 +27,17 @@ func init() {
 			Translations: campaignTranslations(a),
 			// Test emails get their poll links and the contact's version.
 			Extras: campaignExtras(a),
+			// SMS rows of the list (wire_texting.go).
+			Channels: campaignChannelRows(a),
 		}
 		campaigns.Register(h, s)
 		campaigns.RegisterComposer(h, s)
 	})
 }
+
+// campaignChannelRows fills in the list's rows of other channels'
+// campaigns; set from wire_texting.go.
+var campaignChannelRows = func(*App) campaigns.ChannelRows { return nil }
 
 // campaignExtras plugs polls and conditional content into previews and
 // test sends; set from wire_visibility.go.

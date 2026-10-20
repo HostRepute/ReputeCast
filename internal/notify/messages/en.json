@@ -32,5 +32,9 @@
   "short.seed_signin_failed": "seed sign-in failures",
   "short.website_domain": "website domain problems",
   "short.product_delivery_failed": "failed product deliveries",
-  "short.order_disputed": "order disputes"
+  "short.order_disputed": "order disputes",
+  "short.sms_budget": "SMS budget alerts",
+  "short.sms_registration": "sender registrations",
+  "short.sms_provider_down": "SMS provider problems",
+  "short.sms_send_paused": "SMS auto-pauses"
 }

@@ -47,6 +47,7 @@ func earnService(a *App) *earn.Service {
 		Signup:        earnSignup{a},
 		Confirmations: earnConfirmations{a},
 		PageBase:      func(ctx context.Context, ws *store.Workspace) string { return earnPageBase(ctx, a, ws) },
+		Brand:         func(ctx context.Context, ws *store.Workspace) earn.Brand { return earnBrand(ctx, a, ws) },
 		// The demo's sample connections talk to an in-process Stripe.
 		Demo: func() *http.Client { return demoStripe().HTTPClient() },
 		// The upgrade page editor previews the public page.
@@ -83,6 +84,16 @@ func earnPageBase(ctx context.Context, a *App, ws *store.Workspace) string {
 		return ""
 	}
 	return fs.Links(ws, set).Origin()
+}
+
+// earnBrand is the public pages' branding: the publisher's name and colours.
+func earnBrand(ctx context.Context, a *App, ws *store.Workspace) earn.Brand {
+	set, err := a.formsService().LoadSettings(ctx, ws)
+	if err != nil {
+		return earn.Brand{}
+	}
+	p := set.Branding.Palette
+	return earn.Brand{Publisher: set.Branding.PublisherName, Accent: p.Accent, Ground: p.Background, Soft: p.Soft, Text: p.Text, OnAccent: p.OnAccent}
 }
 
 // earnMailer sends member emails through transactional email: each is a

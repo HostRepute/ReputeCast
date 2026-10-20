@@ -18,10 +18,14 @@ import { RouteBadges } from './RouteBadges'
 import { CampaignStatusBadge } from './StatusBadge'
 import { NewCampaignDialog } from '@/features/digests/TypePicker'
 import { DigestBadgeLink, RecurringTable, useDigestCount } from '@/features/digests/RecurringTable'
+import { mc } from '@/features/earn/composer/composer.messages'
+import { PaidOnlyBadge } from '@/features/earn/composer/EarnBlocks'
 import { IssueStatusBadge } from '@/features/digests/shared'
 import { m as dm } from '@/features/digests/messages'
+import { useCampaignWebStates, WebCell } from '@/features/website/elsewhere'
+import { me } from '@/features/website/elsewhere.messages'
 
-export type CampaignFilter = 'all' | 'drafts' | 'scheduled' | 'sending' | 'sent' | 'recurring'
+export type CampaignFilter = 'all' | 'drafts' | 'scheduled' | 'sending' | 'sent' | 'recurring' | 'paid'
 
 export interface CampaignsSearch {
   status?: CampaignFilter
@@ -41,7 +45,13 @@ export function CampaignsPage({ search }: { search: CampaignsSearch }) {
   const list = $api.useQuery(
     'get',
     '/api/v1/workspaces/{workspace}/campaigns',
-    { params: { path: { workspace: slug }, query: { status: status === 'recurring' ? 'all' : status, q: search.q ?? '', page, pageSize: PAGE_SIZE } } },
+    {
+      params: {
+        path: { workspace: slug },
+        // Paid only (Earn): every status, campaigns for paid members only.
+        query: { status: status === 'recurring' || status === 'paid' ? 'all' : status, paidOnly: status === 'paid' || undefined, q: search.q ?? '', page, pageSize: PAGE_SIZE },
+      },
+    },
     { placeholderData: keepPreviousData },
   )
   const counts = list.data?.counts
@@ -130,6 +140,7 @@ function CampaignFilters({ status, counts, q }: { status: CampaignFilter; counts
         { value: 'sending', label: label('sending', counts?.sending) },
         { value: 'sent', label: label('sent', counts?.sent) },
         { value: 'recurring', label: digests !== undefined ? t(dm.recurringTabCount, { count: digests }) : t(dm.recurringTab) },
+        ...(counts?.paidOnly || status === 'paid' ? [{ value: 'paid' as const, label: t(mc.paidOnlyFilter, { count: count(counts?.paidOnly ?? 0) }) }] : []),
       ]}
     />
   )
@@ -237,18 +248,26 @@ function CampaignTable({ data, page, status, q }: { data: Schemas['CampaignList'
   const from = (page - 1) * data.pageSize
   const shown = from + data.items.length
   const params = (id: string) => ({ workspace: slug, campaignId: id })
+  // The website's Web column (features/website), while it's on.
+  const web = useCampaignWebStates(data.items.map((c) => c.id))
   return (
     <section className="card" aria-label={t(m.title)}>
       {/* The board's key and provider cells wrap; a long audience ("Weekly Digest + Product
           Updates") wraps too, so the actions stay in view at 1440 as on the board. */}
       <Table
         phoneWrap
-        className="[&_td:first-child]:min-w-[200px] [&_td:first-child]:whitespace-normal [&_td:nth-child(3)]:min-w-[86px] [&_td:nth-child(3)]:whitespace-normal [&_td:nth-child(8)]:min-w-[120px] [&_td:nth-child(8)]:whitespace-normal [&_td:nth-child(8)_.badge]:my-px [&_td]:whitespace-nowrap"
+        className={
+          web
+            ? // With the Web column the cells sit a little closer and two headers wrap, so the actions stay in view at 1440.
+              '[&_td:first-child]:min-w-[200px] [&_td:first-child]:whitespace-normal [&_td:nth-child(3)]:min-w-[92px] [&_td:nth-child(3)]:whitespace-normal [&_td:nth-child(4)]:min-w-[86px] [&_td:nth-child(4)]:whitespace-normal [&_td:nth-child(9)]:min-w-[104px] [&_td:nth-child(9)]:whitespace-normal [&_td:nth-child(9)_.badge]:my-px [&_td]:whitespace-nowrap [&_td]:!px-[9px] [&_th]:!px-[9px] [&_th:nth-child(7)]:!whitespace-normal [&_th:nth-child(9)]:!whitespace-normal'
+            : '[&_td:first-child]:min-w-[200px] [&_td:first-child]:whitespace-normal [&_td:nth-child(3)]:min-w-[86px] [&_td:nth-child(3)]:whitespace-normal [&_td:nth-child(8)]:min-w-[120px] [&_td:nth-child(8)]:whitespace-normal [&_td:nth-child(8)_.badge]:my-px [&_td]:whitespace-nowrap'
+        }
       >
         <thead>
           <tr>
             <Th>{t(m.campaign)}</Th>
             <Th>{t(m.status)}</Th>
+            {web ? <Th>{t(me.colWeb)}</Th> : null}
             <Th>{t(m.audience)}</Th>
             <Th align="right">{t(m.recipients)}</Th>
             <Th align="right">{t(m.delivered)}</Th>
@@ -288,6 +307,7 @@ function CampaignTable({ data, page, status, q }: { data: Schemas['CampaignList'
                       <DigestBadgeLink digest={c.digest} />
                     </div>
                   ) : null}
+                  {c.paidOnly ? <PaidOnlyBadge className="my-1" /> : null}
                   <div className="k">{subtitle(c)}</div>
                 </Td>
                 <Td>
@@ -297,6 +317,11 @@ function CampaignTable({ data, page, status, q }: { data: Schemas['CampaignList'
                     <CampaignStatusBadge status={c.status} blocked={c.blocked} />
                   )}
                 </Td>
+                {web ? (
+                  <Td>
+                    <WebCell state={web.get(c.id)} status={c.status} />
+                  </Td>
+                ) : null}
                 <Td className={c.audience ? undefined : 'k'}>{c.audience || t(m.notSet)}</Td>
                 <Td align="right" num={c.recipients != null} className={c.recipients == null ? 'k' : undefined}>
                   {c.recipients != null ? count(c.recipients) : '–'}

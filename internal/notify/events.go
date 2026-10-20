@@ -57,6 +57,11 @@ var Events = []EventType{
 	// Digital products (design expansion, phase 7).
 	{Key: KindProductDeliveryFailed, Label: "Product delivery failed", Audience: "Everyone with orders:manage", Short: "failed product deliveries", DefaultEmail: true, Kinds: []string{KindProductDeliveryFailed}},
 	{Key: KindOrderDisputed, Label: "Dispute opened on an order", Audience: "Everyone with orders:manage", Short: "order disputes", DefaultEmail: true, Kinds: []string{KindOrderDisputed}},
+	// SMS (design expansion, phase 8).
+	{Key: KindSMSBudget, Label: "SMS budget at 80% or used up", Audience: "Everyone with providers:manage", Short: "SMS budget alerts", DefaultEmail: true, Kinds: []string{KindSMSBudget}},
+	{Key: KindSMSRegistration, Label: "Sender registration approved or rejected", Audience: "Everyone with providers:view", Short: "sender registrations", DefaultEmail: true, Kinds: []string{KindSMSRegistration}},
+	{Key: KindSMSProviderDown, Label: "SMS provider down or receipts silent", Audience: "Everyone with providers:view", Short: "SMS provider problems", DefaultEmail: true, Urgent: true, Kinds: []string{KindSMSProviderDown}},
+	{Key: KindSMSSendPaused, Label: "SMS campaign auto-paused", Audience: "Everyone with campaigns:pause", Short: "SMS auto-pauses", DefaultEmail: true, Urgent: true, Kinds: []string{KindSMSSendPaused}},
 }
 
 // otherEvent covers kinds without a preference row (send finished, jobs):
@@ -98,8 +103,8 @@ const (
 
 var categoryKinds = map[string][]string{
 	CategoryApprovals:     {KindApprovalRequested, KindApprovalDecided, KindApprovalInvalidated},
-	CategorySending:       {KindSendPaused, KindSendBlocked, KindSendFinished, KindDigestIssueHeld, KindDigestPaused, KindDigestFeedFailing, KindDigestDraftReady},
-	CategoryProviders:     {KindProviderDown, KindProviderDegraded, KindWebhooksSilent},
+	CategorySending:       {KindSendPaused, KindSendBlocked, KindSendFinished, KindDigestIssueHeld, KindDigestPaused, KindDigestFeedFailing, KindDigestDraftReady, KindSMSSendPaused},
+	CategoryProviders:     {KindProviderDown, KindProviderDegraded, KindWebhooksSilent, KindSMSProviderDown, KindSMSRegistration, KindSMSBudget},
 	CategoryTeam:          {KindInviteAccepted, KindInviteRequested},
 	CategoryHostRepute:    {KindHostReputeAlert},
 	CategoryIntegrations:  {KindIntegrationAttention, KindPostDraftCreated},

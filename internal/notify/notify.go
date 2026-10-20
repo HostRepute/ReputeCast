@@ -64,6 +64,11 @@ const (
 	// Digital products (design expansion, phase 7).
 	KindProductDeliveryFailed = "product_delivery_failed" // an order's delivery email couldn't be sent
 	KindOrderDisputed         = "order_disputed"          // a buyer disputed an order's payment in Stripe
+	// SMS (design expansion, phase 8).
+	KindSMSBudget       = "sms_budget"        // the month's SMS budget reached its alert level or ran out
+	KindSMSRegistration = "sms_registration"  // a sender's registration was approved or rejected
+	KindSMSProviderDown = "sms_provider_down" // an SMS provider is down, its credentials rejected, or its receipts silent
+	KindSMSSendPaused   = "sms_send_paused"   // an SMS campaign auto-paused
 )
 
 // Notification is what appears in the notification center.

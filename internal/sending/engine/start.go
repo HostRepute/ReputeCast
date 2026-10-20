@@ -102,6 +102,11 @@ func (e *Engine) StartWith(ctx context.Context, campaignID uuid.UUID, o StartOpt
 	default:
 		return stateErr("%q was already sent or cancelled; duplicate it to send it again.", c.Name)
 	}
+	// Texts (and later push and WhatsApp) have their own sending
+	// (internal/texting): an email send never takes them.
+	if c.Channel != "" && c.Channel != "email" {
+		return stateErr("%q isn't an email campaign: send it from its own Review & send.", c.Name)
+	}
 	var sc schedule
 	_ = json.Unmarshal(c.Schedule, &sc)
 	// "best_time" starts at the time too, then gives each recipient their

@@ -47,6 +47,7 @@ const lists: Record<string, (v: string) => [string, string, (i: Item) => boolean
   survey: (name) => ['surveys', 'items', (s) => s.name === name],
   placement: (name) => ['placement/tests', 'tests', (t) => t.name === name],
   verification: (label) => ['verification/services', 'uses', (u) => u.label === label && u.kind !== 'realtime'],
+  post: (title) => [`website/posts?pageSize=100&q=${encodeURIComponent(title)}`, 'posts', (p) => p.title === title],
 }
 
 /** Looks up the ids behind {campaign:Name}, {sso:Name} and the kinds in `lists` in a path. */

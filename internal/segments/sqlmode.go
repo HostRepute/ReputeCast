@@ -270,7 +270,11 @@ func (r *SQLRunner) Run(ctx context.Context, ws uuid.UUID, fn func(pgx.Tx) error
 			return fmt.Errorf("segment views: %w", err)
 		}
 	}
-	if _, err := tx.Exec(ctx, "GRANT SELECT ON pg_temp.contacts, pg_temp.list_members, pg_temp.events, pg_temp.lists TO reputecast_segments"); err != nil {
+	grants := make([]string, 0, len(ViewNames))
+	for _, v := range ViewNames {
+		grants = append(grants, "pg_temp."+v)
+	}
+	if _, err := tx.Exec(ctx, "GRANT SELECT ON "+strings.Join(grants, ", ")+" TO reputecast_segments"); err != nil {
 		return fmt.Errorf("segment views grant: %w", err)
 	}
 	if _, err := tx.Exec(ctx, "SET TRANSACTION READ ONLY"); err != nil {
@@ -296,7 +300,7 @@ func mapSQLError(err error) error {
 	case "57014":
 		return ErrTimeout
 	case "42501":
-		return &SQLError{Message: "Your SQL can only read the contacts, list_members, events and lists views (" + msg + ")."}
+		return &SQLError{Message: "Your SQL can only read the " + strings.Join(ViewNames[:len(ViewNames)-1], ", ") + " and " + ViewNames[len(ViewNames)-1] + " views (" + msg + ")."}
 	case "42804":
 		if strings.Contains(msg, "structure of query") {
 			return &SQLError{Message: "The query must return the contact id (a uuid) in a column named id, for example SELECT c.id FROM contacts c."}

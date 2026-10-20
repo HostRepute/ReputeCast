@@ -11,7 +11,8 @@ import { Banner, Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
 import { T, useT } from '@/i18n'
 import { count, orList } from '@/lib/format'
-import { useWorkspace } from '@/lib/session'
+import { roleName } from '@/lib/roles'
+import { useMe, useWorkspace } from '@/lib/session'
 import { EARN, EarnPage, copyText } from './EarnPage'
 import { money, pricePer } from './format'
 import { me } from './messages'
@@ -59,17 +60,26 @@ function PlansBody({ plans, unmapped }: { plans: Plans; unmapped: Schemas['EarnU
   const { slug } = useWorkspace()
   const [mapping, setMapping] = useState<Schemas['EarnUnmappedPrice']>()
   const ro = !plans.canEdit
+  const { me: who } = useWorkspace()
+  const user = useMe().data
   const freeList = plans.free.list?.name ?? ''
   const tierCount = plans.tiers.filter((x) => x.visibility !== 'archived').length + (plans.free.list ? 1 : 0)
   return (
     <div className="flex flex-col gap-5">
       {ro ? (
-        <Note tone="neutral">
-          <T
-            msg={plans.helpers.length ? mp.readOnly : mp.readOnlyNoHelpers}
-            values={{ permission: <span className="mono">earn:edit</span>, helpers: orList(plans.helpers) }}
-          />
-        </Note>
+        // Read-only (EarnPlansStates): who is looking, and who can change plans.
+        <div className="note n" role="note">
+          <Icon name="info" size={16} />
+          <div className="flex min-w-0 flex-col gap-1">
+            <span className="font-semibold">{t(mp.readOnlyTitle, { name: user?.user.name ?? '', role: roleName({ key: who.workspace.roleKey, name: who.workspace.roleName }) })}</span>
+            <div>
+              <T
+                msg={plans.helpers.length ? mp.readOnly : mp.readOnlyNoHelpers}
+                values={{ permission: <span className="mono">earn:edit</span>, helpers: orList(plans.helpers) }}
+              />
+            </div>
+          </div>
+        </div>
       ) : null}
       {unmapped[0] && plans.canEdit ? (
         <Banner
@@ -289,9 +299,11 @@ function TierCard({ tier, plans }: { tier: Tier; plans: Plans }) {
         <ButtonLink to="/w/$workspace/earn/plans/tiers/$tierId" params={{ workspace: slug, tierId: tier.id }} size="sm">
           {plans.canEdit ? t(mp.edit) : t(mp.view)}
         </ButtonLink>
-        <Button size="sm" icon="copy" onClick={() => void copyText(link, t, toast)}>
-          {t(mp.copyLink)}
-        </Button>
+        {plans.canEdit ? (
+          <Button size="sm" icon="copy" onClick={() => void copyText(link, t, toast)}>
+            {t(mp.copyLink)}
+          </Button>
+        ) : null}
         {plans.canEdit && tier.syncStatus === 'failed' && plans.connected ? (
           <Button size="sm" icon="refresh" onClick={retry} disabled={sync.isPending}>
             {t(mp.syncRetry)}

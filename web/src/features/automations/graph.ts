@@ -56,6 +56,7 @@ export const typeNames: Record<StepType, string> = {
   list: 'List action',
   goal: 'Goal',
   exit: 'Exit',
+  sms: 'Send SMS',
 }
 
 export const triggerKindLabels: Record<TriggerConfig['kind'], string> = {
@@ -83,6 +84,7 @@ export const typeColors: Record<StepType, string> = {
   list: '#1D4ED8',
   goal: '#0B1220',
   exit: '#0B1220',
+  sms: '#0F766E',
 }
 
 /** Node border colour on the canvas (the default border otherwise). */
@@ -291,6 +293,8 @@ export function nodeTitle(g: FlowGraph, n: FlowNode, refs: Refs): string {
       if (first) t += ` on ${inlineRef(g, first.target, refs)}`
       return t
     }
+    case 'sms':
+      return d.label || (d.sms?.body ? 'Send SMS' : 'Write the text')
     case 'webhook':
       return d.webhook?.name || (d.webhook?.url ? hostOf(d.webhook.url) : 'Set a URL')
     case 'list': {
@@ -624,5 +628,7 @@ export function newStepData(type: StepType, trigger?: TriggerConfig['kind']): No
       return { condition: { kind: 'clicked' } }
     case 'exit':
       return {}
+    case 'sms':
+      return { sms: { outside: 'wait' } }
   }
 }

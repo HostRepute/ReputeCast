@@ -25,11 +25,16 @@ import (
 // so the compiled HTML of the whole email can be cut down to one version
 // per recipient without compiling it again (internal/visibility.Apply).
 
-// AttrVisible, AttrName and AttrPoll are ReputeCast's own attributes.
+// AttrVisible, AttrName and AttrPoll are ReputeCast's own attributes;
+// AttrShowOn is a block's "Show on" (the publication website, design
+// expansion phase 7): "email", "web", or absent for both.
 const (
 	AttrVisible = "rc-visible"
 	AttrName    = "rc-name"
 	AttrPoll    = "rc-poll"
+	AttrShowOn  = "rc-show-on"
+	// ShowOnWeb is a Web only block: it isn't part of the email.
+	ShowOnWeb = "web"
 )
 
 // Marker comments around a conditional block in compiled HTML.
@@ -74,7 +79,8 @@ func validID(id string) bool { return idRe.MatchString(id) }
 var rcAttr = regexp.MustCompile(`\s+rc-[a-z-]+\s*=\s*("[^"]*"|'[^']*'|[^\s>"']+)`)
 
 // PrepareCompile turns a document into what the compilers get: rc-*
-// attributes removed and conditional blocks wrapped in their markers. A
+// attributes removed, Web only blocks left out (they're the post's, not
+// the email's) and conditional blocks wrapped in their markers. A
 // document that doesn't parse is returned unchanged (the compiler reports
 // its error). A block whose id appears twice is marked once, the first
 // time: the composer gives a copied block an id of its own.
@@ -96,6 +102,10 @@ func PrepareCompile(src string) string {
 	var walk func(n, parent *Node)
 	walk = func(n, parent *Node) {
 		if strings.HasPrefix(n.Tag, "mj-") && n.End > n.Start {
+			if v, ok := n.Get(AttrShowOn); ok && parent != nil && strings.TrimSpace(v) == ShowOnWeb {
+				edits = append(edits, edit{start: n.Start, end: n.End, order: 1})
+				return
+			}
 			open := strings.IndexByte(src[n.Start:n.End], '>')
 			if open > 0 {
 				tag := src[n.Start : n.Start+open+1]

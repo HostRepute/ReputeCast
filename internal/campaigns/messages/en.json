@@ -1,6 +1,7 @@
 {
   "audience.all": { "message": "All subscribers", "note": "the audience of a campaign sent to every list" },
   "audience.segments": "{count, plural, one {# segment} other {# segments}}",
+  "audience.paid": { "message": "{who, select, paid {Paid members only} other {Free subscribers only}}", "note": "who on the lists gets a paid-only campaign (Earn)" },
 
   "note.ab": { "message": "A/B {kind, select, subject {subject} content {content} send_time {send time} other {{kindName}}}", "note": "an A/B test that ran, in the campaign list: A/B subject" },
   "note.abWinner": { "message": "A/B {kind, select, subject {subject} content {content} send_time {send time} other {{kindName}}}, winner {winner}", "note": "winner: A or B" },

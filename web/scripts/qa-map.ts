@@ -329,4 +329,55 @@ export const entries: Entry[] = [
   // Describe the segment (a new segment) and Summarize results (the October Product Update's report,
   // with its kept summary): each starts from a click.
   { board: 'AISegmentReport', manual: true },
+  // X16 · payments and paid subscriptions. Acme Newsletter has Stripe connected (live and test keys) and
+  // 1,252 paid members; Acme Engineering Blog has no payment provider (the wizard's start, the first-run
+  // checklist, no paid members). The editors, the member panel and the tabs of Settings open from the
+  // pages; the public pages carry personal links (preferences) or need a checkout session.
+  { board: 'EarnConnect', path: '/w/acme-engineering-blog/earn/connect', widths: [1440] },
+  { board: 'EarnConnectStates', manual: true },
+  { board: 'EarnSettings', path: `${ws}/earn/settings`, widths: [1440] },
+  { board: 'EarnSettingsTabs', path: `${ws}/earn/settings?tab=emails`, widths: [1440] },
+  { board: 'EarnSettingsStates', manual: true },
+  { board: 'EarnPlans', path: `${ws}/earn/plans`, widths: [1440] },
+  { board: 'EarnPlansTablet', path: `${ws}/earn/plans`, widths: [834] },
+  { board: 'EarnPlansPhone', path: `${ws}/earn/plans`, widths: [390] },
+  { board: 'EarnPlansStates', manual: true },
+  { board: 'EarnPlanEditors', manual: true },
+  { board: 'EarnUpgradeEditor', path: `${ws}/earn/plans/upgrade-page`, widths: [1440] },
+  { board: 'EarnMembers', path: `${ws}/earn/members`, widths: [1440] },
+  { board: 'EarnMembersTablet', path: `${ws}/earn/members`, widths: [834] },
+  { board: 'EarnMembersPhone', path: `${ws}/earn/members`, widths: [390] },
+  { board: 'EarnMembersStates', manual: true },
+  { board: 'EarnMemberPanel', manual: true },
+  { board: 'EarnMemberPanelStates', manual: true },
+  { board: 'EarnImport', path: `${ws}/earn/members?import=new`, widths: [1440] },
+  { board: 'EarnImportStates', manual: true },
+  { board: 'EarnInAudience', path: `${ws}/audience?paid=with_access`, widths: [1440] },
+  { board: 'ComposerEarnBlocks', manual: true },
+  { board: 'PublicUpgrade', path: '/p/acme-newsletter/upgrade', user: 'anon', widths: [1440, 720] },
+  { board: 'PublicUpgradePhone', path: '/p/acme-newsletter/upgrade', user: 'anon', widths: [390] },
+  { board: 'PublicPreferencesPaid', manual: true },
+  { board: 'PublicEarnStates', manual: true },
+  // X18 · the publication website. The demo's website is on at news.acme.io. WebsiteStates holds
+  // the off and turning-on pages, address problems, read-only views and the elsewhere-in-the-app
+  // frames: reproduce them by hand (turn the website off in a dev database, sign in as aisha@acme.io).
+  { board: 'WebsitePosts', path: `${ws}/forms/website`, widths: [1440] },
+  { board: 'WebsitePostsTablet', path: `${ws}/forms/website`, widths: [834] },
+  { board: 'WebsitePostsPhone', path: `${ws}/forms/website`, widths: [390] },
+  { board: 'WebsiteHomeNav', path: `${ws}/forms/website/home`, widths: [1440] },
+  { board: 'WebsiteAccess', path: `${ws}/forms/website/access`, widths: [1440] },
+  { board: 'WebsiteStates', manual: true },
+  // Post mode (the runbook, with its free preview marker) and campaign mode (#142's Web tab).
+  { board: 'ComposerPublishToWeb', path: `${ws}/forms/website/posts/{post:Inside our Postgres migration: the runbook}`, widths: [1440], viewportOnly: true, height: 1000 },
+  { board: 'ComposerPublishToWebPhone', path: `${ws}/forms/website/posts/{post:Inside our Postgres migration: the runbook}`, widths: [390], viewportOnly: true, height: 1000 },
+  // The public site at /p/acme-newsletter, signed out (the runbook stops at the paywall). The
+  // account needs a member's session (sign in on the site with a link from Mailpit) and the site
+  // states need data changes: both by hand.
+  { board: 'PublicHome', path: '/p/acme-newsletter/', user: 'anon', widths: [720] },
+  { board: 'PublicHomePhone', path: '/p/acme-newsletter/', user: 'anon', widths: [390] },
+  { board: 'PublicPost', path: '/p/acme-newsletter/posts/postgres-migration-runbook', user: 'anon', widths: [720] },
+  { board: 'PublicPostPhone', path: '/p/acme-newsletter/posts/postgres-migration-runbook', user: 'anon', widths: [390] },
+  { board: 'PublicAccount', manual: true },
+  { board: 'PublicAccountPhone', manual: true },
+  { board: 'PublicSiteStates', manual: true },
 ]

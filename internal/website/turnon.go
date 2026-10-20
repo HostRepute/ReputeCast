@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -327,7 +328,9 @@ func (s *Service) postForIssue(ctx context.Context, ws *store.Workspace, is stor
 	})
 }
 
-// firstImage is an email's first image and its alt text: a post's cover by default.
+// firstImage is an email's first image and its alt text: a post's cover by
+// default. A logo or an icon (a header's image, or one under 240 px wide)
+// isn't a cover.
 func firstImage(src string) (string, string) {
 	root, err := mjml.Parse(src)
 	if err != nil {
@@ -339,13 +342,20 @@ func firstImage(src string) (string, string) {
 	}
 	var url, alt string
 	body.Walk(func(n *mjml.Node, _ []int) {
-		if url == "" && n.Tag == "mj-image" && n.Marker != "header-logo" {
+		if url == "" && n.Tag == "mj-image" && n.Marker != "header-logo" && !narrowImage(n.Attr("width")) {
 			if src := n.Attr("src"); strings.HasPrefix(src, "http") || strings.HasPrefix(src, "/media/") {
 				url, alt = src, n.Attr("alt")
 			}
 		}
 	})
 	return url, alt
+}
+
+// narrowImage reports an image width under 240 px ("96px"): a logo or an icon.
+func narrowImage(width string) bool {
+	w := strings.TrimSuffix(strings.TrimSpace(width), "px")
+	n, err := strconv.Atoi(w)
+	return err == nil && n > 0 && n < 240
 }
 
 // TurnOff turns the website off: the home page, web-only posts, sign-in,
