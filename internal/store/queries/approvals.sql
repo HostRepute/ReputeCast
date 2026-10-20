@@ -17,7 +17,8 @@ SELECT r.*,
        coalesce(c.status, '')::text AS campaign_status,
        c.scheduled_at AS campaign_scheduled_at,
        c.started_at AS campaign_started_at,
-       coalesce(c.version, 0)::integer AS campaign_current_version
+       coalesce(c.version, 0)::integer AS campaign_current_version,
+       coalesce(c.channel, 'email')::text AS campaign_channel
 FROM approval_requests r
 LEFT JOIN users u ON u.id = r.requested_by
 LEFT JOIN users d ON d.id = r.decided_by
@@ -129,7 +130,8 @@ SELECT r.id, r.subject_type, r.campaign_id, r.automation_id, r.transactional_tem
        coalesce(c.status, '')::text AS campaign_status,
        c.scheduled_at AS campaign_scheduled_at,
        c.started_at AS campaign_started_at,
-       coalesce((SELECT x.comment FROM approval_decisions x WHERE x.request_id = r.id ORDER BY x.created_at DESC LIMIT 1), '')::text AS last_comment
+       coalesce((SELECT x.comment FROM approval_decisions x WHERE x.request_id = r.id ORDER BY x.created_at DESC LIMIT 1), '')::text AS last_comment,
+       coalesce(c.channel, 'email')::text AS campaign_channel
 FROM approval_requests r
 LEFT JOIN users u ON u.id = r.requested_by
 LEFT JOIN users d ON d.id = r.decided_by

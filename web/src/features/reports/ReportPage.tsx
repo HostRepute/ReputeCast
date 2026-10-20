@@ -23,6 +23,7 @@ import { headerCaption, notSentLead, statusBadge, type CampaignReport } from './
 import { useReportAI } from '@/features/ai/report'
 import './reports.css'
 import { CampaignEarn } from '@/features/earn/revenue/CampaignEarn'
+import { ReportWebSection } from '@/features/website/elsewhere'
 
 type BounceRow = Schemas['ReportBounceRow']
 
@@ -322,6 +323,8 @@ export function ReportPage({ campaignId }: { campaignId: string }) {
             polls={{ items: polls.data?.items, error: polls.error ?? undefined, retry: () => void polls.refetch() }}
             earn={<CampaignEarn campaignId={campaignId} />}
           />
+          {/* The website's Web section (features/website): the campaign's post. */}
+          <ReportWebSection campaignId={campaignId} />
           <ShareCard ref={shareCard} campaignId={campaignId} onCreate={() => setSharing(true)} />
         </>
       )}

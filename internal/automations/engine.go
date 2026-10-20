@@ -214,8 +214,25 @@ func triggerMatches(t AutomationTrigger, ev store.ClaimAutomationEventsRow) bool
 		return scoreTriggerMatches(t, ev.Payload)
 	case TriggerPollAnswered:
 		return pollTriggerMatches(t, ev)
+	case TriggerMilestoneReached:
+		return milestoneTriggerMatches(t, ev)
 	}
 	return false
+}
+
+// milestoneTriggerMatches: the trigger's milestone, or any milestone of its
+// program (any program's when it has none).
+func milestoneTriggerMatches(t AutomationTrigger, ev store.ClaimAutomationEventsRow) bool {
+	if t.MilestoneID != "" {
+		return t.MilestoneID == ev.Ref
+	}
+	if t.ProgramID == "" {
+		return true
+	}
+	var p struct {
+		Program string `json:"program"`
+	}
+	return json.Unmarshal(ev.Payload, &p) == nil && p.Program == t.ProgramID
 }
 
 // stepID reads an id stored in a step's settings. A malformed one means
@@ -234,6 +251,12 @@ func (s *Service) enroll(ctx context.Context, q *store.Queries, stats statsBuf, 
 	}
 	if t.Kind == TriggerScoreCrosses {
 		if ok, err := scoreTriggerAllows(ctx, q, t, f.ID, ev.ContactID, now); err != nil || !ok {
+			return false, err
+		}
+	} else if t.Kind == TriggerMilestoneReached {
+		// Once per contact per milestone.
+		found, err := q.AutomationMilestoneRunExists(ctx, store.AutomationMilestoneRunExistsParams{AutomationID: f.ID, ContactID: ev.ContactID, Ref: ev.Ref})
+		if err != nil || found {
 			return false, err
 		}
 	} else if t.Reentry != "always" && !pollReentry(t, ev) {
@@ -376,6 +399,8 @@ func (e *executor) step(ctx context.Context, n AutomationNode) (next, path strin
 		return e.g.Next(n.ID), "", false, nil
 	case NodeEmail:
 		return e.email(ctx, n)
+	case NodeSMS:
+		return e.channelSend(ctx, n)
 	case NodeBranch:
 		return e.branch(ctx, n)
 	case NodeFilter:
@@ -551,7 +576,31 @@ func (e *executor) email(ctx context.Context, n AutomationNode) (string, string,
 func (e *executor) branch(ctx context.Context, n AutomationNode) (string, string, bool, error) {
 	c := n.Data.Condition
 	path := PathNo
-	if c != nil && (c.Kind == "opened" || c.Kind == "clicked") {
+	if c != nil && channelEngagement(c.Kind) {
+		// A click on a text's link or a reply: wait for it until the window closes.
+		met, sentAt, err := e.channelCondition(ctx, c)
+		if err != nil {
+			return "", "", true, err
+		}
+		if met {
+			path = PathYes
+		} else {
+			base := e.run.NodeEnteredAt
+			if !sentAt.IsZero() {
+				base = sentAt
+			}
+			deadline := base
+			if c.Within != nil {
+				deadline = base.Add(c.Within.Duration())
+			}
+			if e.now.Before(deadline) {
+				if e.st.Wait != "branch" {
+					e.stat(n.ID).Waiting++
+				}
+				return "", "", true, e.wait(ctx, "branch", deadline)
+			}
+		}
+	} else if c != nil && (c.Kind == "opened" || c.Kind == "clicked") {
 		met, msg, sentAt, err := e.engaged(ctx, c)
 		if err != nil {
 			return "", "", true, err
@@ -624,6 +673,10 @@ func (e *executor) engaged(ctx context.Context, c *AutomationCondition) (met boo
 func (e *executor) eval(ctx context.Context, c *AutomationCondition) (bool, error) {
 	if c == nil {
 		return false, nil
+	}
+	if isChannelCondition(c.Kind) {
+		met, _, err := e.channelCondition(ctx, c)
+		return met, err
 	}
 	switch c.Kind {
 	case "opened", "clicked":

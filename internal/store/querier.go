@@ -224,6 +224,11 @@ type Querier interface {
 	AutomationLostWebhookRuns(ctx context.Context, before time.Time) ([]AutomationLostWebhookRunsRow, error)
 	AutomationMessageEngaged(ctx context.Context, arg AutomationMessageEngagedParams) (bool, error)
 	AutomationMessageForStats(ctx context.Context, id uuid.UUID) (AutomationMessageForStatsRow, error)
+	// Whether a contact already went through a flow for this milestone ("once
+	// per contact per milestone").
+	AutomationMilestoneRunExists(ctx context.Context, arg AutomationMilestoneRunExistsParams) (bool, error)
+	// The milestones a "Reached a milestone" trigger can start on.
+	AutomationMilestones(ctx context.Context, workspaceID uuid.UUID) ([]AutomationMilestonesRow, error)
 	// What the trigger "Answered a poll or survey" can point at, by the ref
 	// its events carry ("poll:<id>", "survey:<id>").
 	AutomationPollRefs(ctx context.Context, workspaceID uuid.UUID) ([]AutomationPollRefsRow, error)
@@ -267,6 +272,45 @@ type Querier interface {
 	CancelVisitInsert(ctx context.Context, arg CancelVisitInsertParams) error
 	// A reader's undecided visit of the last half hour: a reload counts once.
 	CancelVisitRecent(ctx context.Context, arg CancelVisitRecentParams) (EarnCancelVisit, error)
+	ChanConsentEventInsert(ctx context.Context, arg ChanConsentEventInsertParams) error
+	ChanConsentEvents(ctx context.Context, contactID uuid.UUID) ([]ChanConsentEventsRow, error)
+	ChanConsentUpsert(ctx context.Context, arg ChanConsentUpsertParams) error
+	// A contact's consent per list on the text channels.
+	ChanConsents(ctx context.Context, contactID uuid.UUID) ([]ChannelConsent, error)
+	// Every contact with this number: a STOP applies to all of them.
+	ChanContactsByPhone(ctx context.Context, arg ChanContactsByPhoneParams) ([]ChanContactsByPhoneRow, error)
+	// The last text a number got from the workspace, for its replies.
+	ChanLastTextTo(ctx context.Context, arg ChanLastTextToParams) (ChannelMessage, error)
+	ChanMessage(ctx context.Context, id uuid.UUID) (ChannelMessage, error)
+	ChanMessageByProviderID(ctx context.Context, arg ChanMessageByProviderIDParams) (ChannelMessage, error)
+	// Claims a due text for sending: it leaves the queue, so it's never sent twice.
+	ChanMessageClaim(ctx context.Context, arg ChanMessageClaimParams) (ChannelMessage, error)
+	ChanMessageEventInsert(ctx context.Context, arg ChanMessageEventInsertParams) error
+	ChanMessageEvents(ctx context.Context, messageID uuid.UUID) ([]ChannelMessageEvent, error)
+	ChanMessageFail(ctx context.Context, arg ChanMessageFailParams) error
+	ChanMessageInsert(ctx context.Context, arg ChanMessageInsertParams) error
+	// A delivery receipt: a final status wins over an earlier one.
+	ChanMessageReceipt(ctx context.Context, arg ChanMessageReceiptParams) error
+	// A temporary failure: back in the queue after a pause.
+	ChanMessageRequeue(ctx context.Context, arg ChanMessageRequeueParams) error
+	ChanMessageSent(ctx context.Context, arg ChanMessageSentParams) error
+	// Texts whose time has come, oldest first, for one sender.
+	ChanMessagesDue(ctx context.Context, arg ChanMessagesDueParams) ([]ChannelMessage, error)
+	// The senders with texts due now.
+	ChanSendersDue(ctx context.Context, now *time.Time) ([]*uuid.UUID, error)
+	// What a provider learned about a number, for every contact who has it.
+	ChanSetLineType(ctx context.Context, arg ChanSetLineTypeParams) error
+	ChanSetPhone(ctx context.Context, arg ChanSetPhoneParams) error
+	// Which of these numbers are suppressed.
+	ChanSuppressedPhones(ctx context.Context, arg ChanSuppressedPhonesParams) ([]ChanSuppressedPhonesRow, error)
+	ChanSuppression(ctx context.Context, arg ChanSuppressionParams) (ChannelSuppression, error)
+	ChanSuppressionByPhone(ctx context.Context, arg ChanSuppressionByPhoneParams) (ChannelSuppression, error)
+	ChanSuppressionCount(ctx context.Context, arg ChanSuppressionCountParams) (int64, error)
+	ChanSuppressionCounts(ctx context.Context, arg ChanSuppressionCountsParams) ([]ChanSuppressionCountsRow, error)
+	ChanSuppressionInsert(ctx context.Context, arg ChanSuppressionInsertParams) error
+	ChanSuppressionRemove(ctx context.Context, arg ChanSuppressionRemoveParams) error
+	// A page of the SMS suppression list, newest first.
+	ChanSuppressions(ctx context.Context, arg ChanSuppressionsParams) ([]ChanSuppressionsRow, error)
 	ClaimAutomationEvents(ctx context.Context, lim int32) ([]ClaimAutomationEventsRow, error)
 	// Runs ready to move on, in flows that are live (paused flows hold their runs).
 	ClaimDueAutomationRuns(ctx context.Context, arg ClaimDueAutomationRunsParams) ([]ClaimDueAutomationRunsRow, error)
@@ -1320,6 +1364,8 @@ type Querier interface {
 	ListAuditEvents(ctx context.Context, arg ListAuditEventsParams) ([]AuditEvent, error)
 	// Open alerts, held sending first: nothing goes out until it is fixed.
 	ListAutomationAlerts(ctx context.Context, workspaceID uuid.UUID) ([]ListAutomationAlertsRow, error)
+	// Milestone emails (Grow) are automation emails too, edited from their
+	// milestone: not offered to flows.
 	ListAutomationEmails(ctx context.Context, workspaceID uuid.UUID) ([]ListAutomationEmailsRow, error)
 	ListAutomationHeldAlerts(ctx context.Context) ([]ListAutomationHeldAlertsRow, error)
 	ListAutomationPublishedGraphs(ctx context.Context, automationID uuid.UUID) ([]ListAutomationPublishedGraphsRow, error)
@@ -1523,6 +1569,45 @@ type Querier interface {
 	// The workspace's tiers in access order, for the pickers ("Insider and
 	// above"), with the names of their lists.
 	PaidAccessTiers(ctx context.Context, workspaceID uuid.UUID) ([]PaidAccessTiersRow, error)
+	PartnerCodeByHash(ctx context.Context, codeHash []byte) (PartnerCode, error)
+	PartnerCodeInsert(ctx context.Context, arg PartnerCodeInsertParams) error
+	PartnerCodeLock(ctx context.Context, id uuid.UUID) (PartnerCode, error)
+	PartnerCodeRevoke(ctx context.Context, arg PartnerCodeRevokeParams) error
+	PartnerCodeUse(ctx context.Context, arg PartnerCodeUseParams) error
+	// Codes not used, revoked or expired yet ("Waiting for …").
+	PartnerCodesOpen(ctx context.Context, arg PartnerCodesOpenParams) ([]PartnerCodesOpenRow, error)
+	PartnerLinkByCodeHash(ctx context.Context, arg PartnerLinkByCodeHashParams) (PartnerLinkByCodeHashRow, error)
+	PartnerLinkByID(ctx context.Context, id uuid.UUID) (PartnerLink, error)
+	PartnerLinkEnd(ctx context.Context, arg PartnerLinkEndParams) error
+	PartnerLinkFailing(ctx context.Context, arg PartnerLinkFailingParams) error
+	PartnerLinkGet(ctx context.Context, arg PartnerLinkGetParams) (PartnerLink, error)
+	PartnerLinkInsert(ctx context.Context, arg PartnerLinkInsertParams) error
+	PartnerLinkInvalid(ctx context.Context, arg PartnerLinkInvalidParams) error
+	PartnerLinkLimit(ctx context.Context, arg PartnerLinkLimitParams) error
+	PartnerLinkLock(ctx context.Context, id uuid.UUID) (PartnerLink, error)
+	// The partners that recommend a workspace, for its growth sources
+	// ("Partner · Ops Weekly").
+	PartnerLinkNames(ctx context.Context, workspaceID uuid.UUID) ([]PartnerLinkNamesRow, error)
+	PartnerLinkNotified(ctx context.Context, arg PartnerLinkNotifiedParams) error
+	PartnerLinkRotate(ctx context.Context, arg PartnerLinkRotateParams) error
+	PartnerLinkSetLimit(ctx context.Context, arg PartnerLinkSetLimitParams) error
+	PartnerLinkSetProfile(ctx context.Context, arg PartnerLinkSetProfileParams) error
+	PartnerLinkSetStatus(ctx context.Context, arg PartnerLinkSetStatusParams) error
+	PartnerLinks(ctx context.Context, arg PartnerLinksParams) ([]PartnerLinksRow, error)
+	PartnerNoticeResult(ctx context.Context, arg PartnerNoticeResultParams) error
+	PartnerNoticesDue(ctx context.Context, arg PartnerNoticesDueParams) ([]PartnerRequestsIn, error)
+	PartnerRequestInConfirmed(ctx context.Context, arg PartnerRequestInConfirmedParams) error
+	PartnerRequestInInsert(ctx context.Context, arg PartnerRequestInInsertParams) (uuid.UUID, error)
+	PartnerRequestOutConfirmed(ctx context.Context, arg PartnerRequestOutConfirmedParams) (*uuid.UUID, error)
+	PartnerRequestOutGet(ctx context.Context, id uuid.UUID) (PartnerRequestsOut, error)
+	PartnerRequestOutInsert(ctx context.Context, arg PartnerRequestOutInsertParams) error
+	PartnerRequestOutResult(ctx context.Context, arg PartnerRequestOutResultParams) error
+	// Accepted requests of a contact waiting for their confirmation.
+	PartnerRequestsInPending(ctx context.Context, contactID *uuid.UUID) ([]PartnerRequestsInPendingRow, error)
+	PartnerRequestsInToday(ctx context.Context, arg PartnerRequestsInTodayParams) (int64, error)
+	PartnerRequestsOutDue(ctx context.Context, arg PartnerRequestsOutDueParams) ([]PartnerRequestsOut, error)
+	// The partner request logs keep 90 days.
+	PartnerRequestsPrune(ctx context.Context, before time.Time) error
 	PauseAutomation(ctx context.Context, arg PauseAutomationParams) error
 	PayConnection(ctx context.Context, arg PayConnectionParams) (PayConnectionRow, error)
 	// The connection a webhook request is for.
@@ -1848,6 +1933,22 @@ type Querier interface {
 	// The latest test emails of a campaign, from the audit log.
 	ReadinessTestSends(ctx context.Context, arg ReadinessTestSendsParams) ([]ReadinessTestSendsRow, error)
 	ReadinessUpdateProgress(ctx context.Context, arg ReadinessUpdateProgressParams) error
+	RecByID(ctx context.Context, id uuid.UUID) (Recommendation, error)
+	RecDailyBump(ctx context.Context, arg RecDailyBumpParams) error
+	RecGet(ctx context.Context, arg RecGetParams) (Recommendation, error)
+	RecInsert(ctx context.Context, arg RecInsertParams) error
+	RecList(ctx context.Context, workspaceID uuid.UUID) ([]Recommendation, error)
+	RecOfLink(ctx context.Context, linkID *uuid.UUID) (Recommendation, error)
+	RecRemove(ctx context.Context, arg RecRemoveParams) error
+	RecSetPosition(ctx context.Context, arg RecSetPositionParams) error
+	RecSetStatus(ctx context.Context, arg RecSetStatusParams) error
+	// Recommendations and partner links (internal/recommendations): the
+	// newsletters a workspace recommends, its partner profile, partner codes,
+	// partner links in both directions and the partner request logs.
+	RecSettingsGet(ctx context.Context, workspaceID uuid.UUID) (RecommendationSetting, error)
+	RecSettingsUpsert(ctx context.Context, arg RecSettingsUpsertParams) (RecommendationSetting, error)
+	RecTotals(ctx context.Context, arg RecTotalsParams) ([]RecTotalsRow, error)
+	RecUpdate(ctx context.Context, arg RecUpdateParams) error
 	// Campaigns a segment can refer to ("Opened campaign …").
 	RecentSentCampaigns(ctx context.Context, workspaceID uuid.UUID) ([]RecentSentCampaignsRow, error)
 	RecordHostReputeSyncError(ctx context.Context, arg RecordHostReputeSyncErrorParams) error
@@ -1855,6 +1956,150 @@ type Querier interface {
 	RecordSignInSuccess(ctx context.Context, id uuid.UUID) error
 	RecordSignInThrottleFailure(ctx context.Context, arg RecordSignInThrottleFailureParams) (SignInThrottle, error)
 	RecoveryCodeStats(ctx context.Context, userID uuid.UUID) (RecoveryCodeStatsRow, error)
+	ReferralAddSignals(ctx context.Context, arg ReferralAddSignalsParams) error
+	// A contact's referrals waiting for their confirmation, with the program's
+	// rules.
+	ReferralAwaitingOfContact(ctx context.Context, contactID *uuid.UUID) ([]ReferralAwaitingOfContactRow, error)
+	// Codes ---------------------------------------------------------------------
+	ReferralCodeInsert(ctx context.Context, arg ReferralCodeInsertParams) (uuid.UUID, error)
+	ReferralCodeOf(ctx context.Context, id uuid.UUID) ([]byte, error)
+	// The oldest free code of a milestone, taken by a reward.
+	ReferralCodeTake(ctx context.Context, arg ReferralCodeTakeParams) (ReferralCodeTakeRow, error)
+	ReferralCodesLeft(ctx context.Context, milestoneID uuid.UUID) (int64, error)
+	ReferralCodesRemoveFree(ctx context.Context, arg ReferralCodesRemoveFreeParams) (int64, error)
+	ReferralCodesUploaded(ctx context.Context, milestoneID uuid.UUID) (int64, error)
+	ReferralContactOnList(ctx context.Context, arg ReferralContactOnListParams) (bool, error)
+	// A referrer's counted referrals in a program.
+	ReferralCountedOf(ctx context.Context, arg ReferralCountedOfParams) (int64, error)
+	// A milestone email is an automation email outside any flow.
+	ReferralEmailCreate(ctx context.Context, arg ReferralEmailCreateParams) error
+	ReferralEmailLatest(ctx context.Context, emailID uuid.UUID) (AutomationEmailVersion, error)
+	ReferralEmailRename(ctx context.Context, arg ReferralEmailRenameParams) error
+	ReferralEmailVersion(ctx context.Context, arg ReferralEmailVersionParams) (AutomationEmailVersion, error)
+	// Saving the milestone email adds a version; sends use the latest one.
+	ReferralEmailVersionInsert(ctx context.Context, arg ReferralEmailVersionInsertParams) (int32, error)
+	ReferralEmailVersions(ctx context.Context, emailID uuid.UUID) ([]ReferralEmailVersionsRow, error)
+	ReferralEventInsert(ctx context.Context, arg ReferralEventInsertParams) error
+	ReferralEventsOfContact(ctx context.Context, arg ReferralEventsOfContactParams) ([]ReferralEventsOfContactRow, error)
+	ReferralFileChunkInsert(ctx context.Context, arg ReferralFileChunkInsertParams) error
+	ReferralFileChunks(ctx context.Context, arg ReferralFileChunksParams) ([]ReferralFileChunksRow, error)
+	ReferralFileCounted(ctx context.Context, id uuid.UUID) error
+	ReferralFileGet(ctx context.Context, id uuid.UUID) (ReferralFileGetRow, error)
+	// Files ---------------------------------------------------------------------
+	ReferralFileInsert(ctx context.Context, arg ReferralFileInsertParams) error
+	ReferralFileRemove(ctx context.Context, arg ReferralFileRemoveParams) error
+	ReferralFiles(ctx context.Context, programID uuid.UUID) ([]ReferralFilesRow, error)
+	ReferralGet(ctx context.Context, arg ReferralGetParams) (Referral, error)
+	// Referrals of a link still in hold that a suspicion rule now covers:
+	// confirmed since a time, or matching ids.
+	ReferralHoldToReview(ctx context.Context, arg ReferralHoldToReviewParams) ([]uuid.UUID, error)
+	// Referrals -----------------------------------------------------------------
+	ReferralInsert(ctx context.Context, arg ReferralInsertParams) error
+	// Leaderboard ---------------------------------------------------------------
+	ReferralLeaderboardClear(ctx context.Context, programID uuid.UUID) error
+	ReferralLeaderboardComputedAt(ctx context.Context, programID uuid.UUID) (time.Time, error)
+	ReferralLeaderboardInsert(ctx context.Context, arg ReferralLeaderboardInsertParams) error
+	ReferralLinkBump(ctx context.Context, arg ReferralLinkBumpParams) error
+	ReferralLinkByCode(ctx context.Context, arg ReferralLinkByCodeParams) (ReferralLinkByCodeRow, error)
+	ReferralLinkCount(ctx context.Context, programID uuid.UUID) (int64, error)
+	ReferralLinkGet(ctx context.Context, arg ReferralLinkGetParams) (ReferralLinkGetRow, error)
+	// Links ---------------------------------------------------------------------
+	ReferralLinkInsert(ctx context.Context, arg ReferralLinkInsertParams) (uuid.UUID, error)
+	ReferralLinkOfContact(ctx context.Context, arg ReferralLinkOfContactParams) (ReferralLinkOfContactRow, error)
+	ReferralLinkSeenIP(ctx context.Context, arg ReferralLinkSeenIPParams) error
+	ReferralLinkSetChoices(ctx context.Context, arg ReferralLinkSetChoicesParams) error
+	ReferralLinkSetStatus(ctx context.Context, arg ReferralLinkSetStatusParams) error
+	// Confirmed subscribers of the program's list without a link yet.
+	ReferralLinksMissing(ctx context.Context, arg ReferralLinksMissingParams) ([]uuid.UUID, error)
+	ReferralLinksOfContact(ctx context.Context, contactID uuid.UUID) ([]ReferralLinksOfContactRow, error)
+	ReferralListSubscribers(ctx context.Context, listID uuid.UUID) (int64, error)
+	// Lists a program can use, with their subscribers and whether a program
+	// already has them.
+	ReferralListsOffered(ctx context.Context, workspaceID uuid.UUID) ([]ReferralListsOfferedRow, error)
+	ReferralMilestoneByID(ctx context.Context, id uuid.UUID) (ReferralMilestone, error)
+	ReferralMilestoneCodesAlerted(ctx context.Context, arg ReferralMilestoneCodesAlertedParams) error
+	ReferralMilestoneDelete(ctx context.Context, arg ReferralMilestoneDeleteParams) error
+	ReferralMilestoneEmailOn(ctx context.Context, arg ReferralMilestoneEmailOnParams) error
+	ReferralMilestoneGet(ctx context.Context, arg ReferralMilestoneGetParams) (ReferralMilestone, error)
+	// Milestones --------------------------------------------------------------
+	ReferralMilestoneInsert(ctx context.Context, arg ReferralMilestoneInsertParams) error
+	// How many referrers reached a milestone since a time (the pace of a code
+	// reward).
+	ReferralMilestoneReachedSince(ctx context.Context, arg ReferralMilestoneReachedSinceParams) (int64, error)
+	// Autosave of the milestone email's draft, refused when someone saved since
+	// base_revision.
+	ReferralMilestoneSaveEmail(ctx context.Context, arg ReferralMilestoneSaveEmailParams) (int32, error)
+	ReferralMilestoneSetEmail(ctx context.Context, arg ReferralMilestoneSetEmailParams) error
+	ReferralMilestoneSetSecret(ctx context.Context, arg ReferralMilestoneSetSecretParams) error
+	// Per milestone: reached (rewards given), sent, used, waiting and failed.
+	ReferralMilestoneStats(ctx context.Context, programID uuid.UUID) ([]ReferralMilestoneStatsRow, error)
+	ReferralMilestoneUpdate(ctx context.Context, arg ReferralMilestoneUpdateParams) error
+	ReferralMilestoneWebhookAlerted(ctx context.Context, arg ReferralMilestoneWebhookAlertedParams) error
+	ReferralMilestoneWebhookResult(ctx context.Context, arg ReferralMilestoneWebhookResultParams) error
+	ReferralMilestones(ctx context.Context, programID uuid.UUID) ([]ReferralMilestone, error)
+	// A link's other referrals with their addresses (the numbered-address rule).
+	ReferralNumberedPeers(ctx context.Context, arg ReferralNumberedPeersParams) ([]ReferralNumberedPeersRow, error)
+	ReferralOfContact(ctx context.Context, arg ReferralOfContactParams) (Referral, error)
+	// A program of any workspace (jobs, public pages).
+	ReferralProgramByID(ctx context.Context, id uuid.UUID) (ReferralProgram, error)
+	ReferralProgramDelete(ctx context.Context, arg ReferralProgramDeleteParams) error
+	ReferralProgramForList(ctx context.Context, listID uuid.UUID) (ReferralProgram, error)
+	ReferralProgramGet(ctx context.Context, arg ReferralProgramGetParams) (ReferralProgramGetRow, error)
+	// Referral programs (internal/referrals): programs, milestones and rewards,
+	// links, referrals and their log, visits, codes, files and the leaderboard.
+	ReferralProgramInsert(ctx context.Context, arg ReferralProgramInsertParams) error
+	ReferralProgramLock(ctx context.Context, id uuid.UUID) (ReferralProgram, error)
+	ReferralProgramReviewNotified(ctx context.Context, arg ReferralProgramReviewNotifiedParams) error
+	ReferralProgramSetLeaderboard(ctx context.Context, arg ReferralProgramSetLeaderboardParams) error
+	ReferralProgramSetList(ctx context.Context, arg ReferralProgramSetListParams) error
+	ReferralProgramSetStatus(ctx context.Context, arg ReferralProgramSetStatusParams) error
+	ReferralProgramSetStep(ctx context.Context, arg ReferralProgramSetStepParams) error
+	ReferralProgramUpdate(ctx context.Context, arg ReferralProgramUpdateParams) error
+	// Programs the minute job looks after: every program not deleted (counting
+	// and rewards go on while a program is off).
+	ReferralProgramsActive(ctx context.Context) ([]ReferralProgram, error)
+	ReferralProgramsOf(ctx context.Context, workspaceID uuid.UUID) ([]ReferralProgramsOfRow, error)
+	// A link's referrals confirmed since a time, still in hold or review (the
+	// burst rule).
+	ReferralRecentConfirmed(ctx context.Context, arg ReferralRecentConfirmedParams) ([]ReferralRecentConfirmedRow, error)
+	// A link's referrals that signed up from an address since a time.
+	ReferralRecentFromIP(ctx context.Context, arg ReferralRecentFromIPParams) ([]ReferralRecentFromIPRow, error)
+	// Whether ip is an address the referrer used in the last 30 days: to open
+	// their hub or a page of their link, or to subscribe or confirm.
+	ReferralReferrerIPMatch(ctx context.Context, arg ReferralReferrerIPMatchParams) (bool, error)
+	ReferralReferrerIPsPrune(ctx context.Context, before time.Time) error
+	ReferralRewardAddress(ctx context.Context, arg ReferralRewardAddressParams) error
+	ReferralRewardByID(ctx context.Context, id uuid.UUID) (ReferralReward, error)
+	ReferralRewardEmailSent(ctx context.Context, arg ReferralRewardEmailSentParams) error
+	ReferralRewardFulfill(ctx context.Context, arg ReferralRewardFulfillParams) error
+	ReferralRewardGet(ctx context.Context, arg ReferralRewardGetParams) (ReferralReward, error)
+	// Rewards -------------------------------------------------------------------
+	ReferralRewardInsert(ctx context.Context, arg ReferralRewardInsertParams) (uuid.UUID, error)
+	ReferralRewardLock(ctx context.Context, id uuid.UUID) (ReferralReward, error)
+	ReferralRewardResent(ctx context.Context, arg ReferralRewardResentParams) error
+	ReferralRewardSet(ctx context.Context, arg ReferralRewardSetParams) error
+	ReferralRewardUsed(ctx context.Context, arg ReferralRewardUsedParams) error
+	ReferralRewardsAddressPurge(ctx context.Context, now time.Time) error
+	// Rewards to deliver: webhook calls due, codes that may have arrived,
+	// coupons waiting for a payment provider.
+	ReferralRewardsDue(ctx context.Context, arg ReferralRewardsDueParams) ([]ReferralReward, error)
+	ReferralRewardsExpire(ctx context.Context, now time.Time) error
+	ReferralRewardsOfContact(ctx context.Context, arg ReferralRewardsOfContactParams) ([]ReferralRewardsOfContactRow, error)
+	ReferralRewardsToFulfill(ctx context.Context, programID uuid.UUID) ([]ReferralRewardsToFulfillRow, error)
+	ReferralSetConfirmed(ctx context.Context, arg ReferralSetConfirmedParams) error
+	ReferralSetCounted(ctx context.Context, arg ReferralSetCountedParams) error
+	ReferralSetNotCounted(ctx context.Context, arg ReferralSetNotCountedParams) error
+	ReferralVisitBump(ctx context.Context, arg ReferralVisitBumpParams) error
+	// Visits --------------------------------------------------------------------
+	// Records the day's visit key; a row comes back only for the first visit.
+	ReferralVisitKey(ctx context.Context, arg ReferralVisitKeyParams) ([]byte, error)
+	ReferralVisitKeysPrune(ctx context.Context, before time.Time) error
+	// Referrals whose hold has ended, with what decides whether they count.
+	ReferralsHoldDue(ctx context.Context, arg ReferralsHoldDueParams) ([]ReferralsHoldDueRow, error)
+	// Referrals still waiting for their confirmation after 7 days.
+	ReferralsNeverConfirmed(ctx context.Context, arg ReferralsNeverConfirmedParams) ([]ReferralsNeverConfirmedRow, error)
+	// After 90 days an address is reduced to its network.
+	ReferralsReduceIPs(ctx context.Context, arg ReferralsReduceIPsParams) error
 	RefreshInvitation(ctx context.Context, arg RefreshInvitationParams) (Invitation, error)
 	RelayACMEDelete(ctx context.Context, key string) error
 	RelayACMEGet(ctx context.Context, key string) ([]byte, error)
@@ -2229,8 +2474,9 @@ type Querier interface {
 	SendingAutomationEmail(ctx context.Context, arg SendingAutomationEmailParams) (SendingAutomationEmailRow, error)
 	SendingAutomationEmailLatest(ctx context.Context, id uuid.UUID) (int32, error)
 	SendingAutomationLinkCount(ctx context.Context, arg SendingAutomationLinkCountParams) (int64, error)
-	// The workspace's default sender (automation emails come from it).
-	SendingAutomationSender(ctx context.Context, workspaceID uuid.UUID) (SendingAutomationSenderRow, error)
+	// The sender of an automation email: its own (milestone emails come from
+	// their program's sender), else the workspace's default sender.
+	SendingAutomationSender(ctx context.Context, arg SendingAutomationSenderParams) (SendingAutomationSenderRow, error)
 	SendingBumpCounters(ctx context.Context, arg SendingBumpCountersParams) error
 	SendingCampaign(ctx context.Context, id uuid.UUID) (Campaign, error)
 	// A campaign with its sender and workspace, for building messages.
@@ -2464,6 +2710,83 @@ type Querier interface {
 	SignupUnsubscribeAll(ctx context.Context, arg SignupUnsubscribeAllParams) ([]uuid.UUID, error)
 	SignupUpsertPreferences(ctx context.Context, arg SignupUpsertPreferencesParams) error
 	SlugTaken(ctx context.Context, slug string) (bool, error)
+	// Notes a budget alert once per month and level; false when it was sent already.
+	SmsBudgetAlertInsert(ctx context.Context, arg SmsBudgetAlertInsertParams) (bool, error)
+	SmsCampaign(ctx context.Context, arg SmsCampaignParams) (SmsCampaignRow, error)
+	SmsCampaignBodySave(ctx context.Context, arg SmsCampaignBodySaveParams) error
+	SmsCampaignDetailInsert(ctx context.Context, arg SmsCampaignDetailInsertParams) error
+	SmsCampaignInsert(ctx context.Context, arg SmsCampaignInsertParams) error
+	// An autosave: the text, name and audience, with the next version number.
+	SmsCampaignSave(ctx context.Context, arg SmsCampaignSaveParams) error
+	SmsCampaignScheduleSave(ctx context.Context, arg SmsCampaignScheduleSaveParams) error
+	SmsCampaignSetStatus(ctx context.Context, arg SmsCampaignSetStatusParams) error
+	SmsCampaignVersionInsert(ctx context.Context, arg SmsCampaignVersionInsertParams) error
+	SmsCampaignVersions(ctx context.Context, campaignID uuid.UUID) ([]SmsCampaignVersionsRow, error)
+	SmsInboundInsert(ctx context.Context, arg SmsInboundInsertParams) error
+	SmsLink(ctx context.Context, code string) (SmsLink, error)
+	SmsLinkClickInsert(ctx context.Context, arg SmsLinkClickInsertParams) error
+	SmsLinkInsert(ctx context.Context, arg SmsLinkInsertParams) error
+	SmsOptOutSync(ctx context.Context, workspaceID uuid.UUID) ([]SmsOptOutSync, error)
+	SmsOptOutSyncUpsert(ctx context.Context, arg SmsOptOutSyncUpsertParams) error
+	SmsPriceUpsert(ctx context.Context, arg SmsPriceUpsertParams) error
+	SmsPrices(ctx context.Context, workspaceID uuid.UUID) ([]SmsPrice, error)
+	SmsProvider(ctx context.Context, arg SmsProviderParams) (SmsProvider, error)
+	// A provider by id, removed or not (old messages still name it).
+	SmsProviderAny(ctx context.Context, id uuid.UUID) (SmsProvider, error)
+	// The provider a webhook request is for.
+	SmsProviderByToken(ctx context.Context, arg SmsProviderByTokenParams) (SmsProvider, error)
+	SmsProviderInsert(ctx context.Context, arg SmsProviderInsertParams) error
+	SmsProviderRegistrationsRead(ctx context.Context, arg SmsProviderRegistrationsReadParams) error
+	SmsProviderRemove(ctx context.Context, arg SmsProviderRemoveParams) error
+	SmsProviderSetCredentials(ctx context.Context, arg SmsProviderSetCredentialsParams) error
+	SmsProviderSetHealth(ctx context.Context, arg SmsProviderSetHealthParams) error
+	SmsProviderSetWebhooks(ctx context.Context, arg SmsProviderSetWebhooksParams) error
+	SmsProviderTouchInbound(ctx context.Context, arg SmsProviderTouchInboundParams) error
+	SmsProviderTouchReceipt(ctx context.Context, arg SmsProviderTouchReceiptParams) error
+	// SMS (internal/texting): providers, senders and their registrations,
+	// routes, prices, the SMS rules, test numbers, the text message terms,
+	// consent per channel, the SMS suppression list, SMS campaigns, the message
+	// log, inbound texts, short links and raw provider events.
+	// The workspace's connected SMS providers, oldest first.
+	SmsProviders(ctx context.Context, workspaceID uuid.UUID) ([]SmsProvidersRow, error)
+	// Every connected SMS provider of the instance, for the health job.
+	SmsProvidersAll(ctx context.Context) ([]SmsProvider, error)
+	SmsRaw(ctx context.Context, id uuid.UUID) (SmsRawEvent, error)
+	SmsRawInsert(ctx context.Context, arg SmsRawInsertParams) error
+	SmsRawNormalized(ctx context.Context, arg SmsRawNormalizedParams) error
+	SmsRawPending(ctx context.Context, before time.Time) ([]uuid.UUID, error)
+	SmsRegistrationUpsert(ctx context.Context, arg SmsRegistrationUpsertParams) error
+	SmsRegistrations(ctx context.Context, workspaceID uuid.UUID) ([]SmsRegistrationsRow, error)
+	SmsRouteInsert(ctx context.Context, arg SmsRouteInsertParams) error
+	SmsRoutes(ctx context.Context, workspaceID uuid.UUID) ([]SmsRoute, error)
+	SmsRoutesDelete(ctx context.Context, workspaceID uuid.UUID) error
+	SmsSend(ctx context.Context, campaignID uuid.UUID) (SmsSend, error)
+	SmsSendSetPhase(ctx context.Context, arg SmsSendSetPhaseParams) error
+	SmsSendTouch(ctx context.Context, arg SmsSendTouchParams) error
+	SmsSendUpsert(ctx context.Context, arg SmsSendUpsertParams) error
+	SmsSender(ctx context.Context, arg SmsSenderParams) (SmsSenderRow, error)
+	SmsSenderInsert(ctx context.Context, arg SmsSenderInsertParams) error
+	SmsSenderRemove(ctx context.Context, arg SmsSenderRemoveParams) error
+	SmsSenderUpdate(ctx context.Context, arg SmsSenderUpdateParams) error
+	// The workspace's senders with their provider.
+	SmsSenders(ctx context.Context, workspaceID uuid.UUID) ([]SmsSendersRow, error)
+	// Sends that are scheduled, sending or held by an outage.
+	SmsSendsActive(ctx context.Context) ([]SmsSend, error)
+	SmsSettings(ctx context.Context, workspaceID uuid.UUID) (SmsSetting, error)
+	// The rules a workspace starts with: the brief's defaults.
+	SmsSettingsEnsure(ctx context.Context, arg SmsSettingsEnsureParams) error
+	SmsSettingsSave(ctx context.Context, arg SmsSettingsSaveParams) error
+	SmsSettingsShortDomain(ctx context.Context, arg SmsSettingsShortDomainParams) error
+	SmsSetup(ctx context.Context, arg SmsSetupParams) (SmsSetup, error)
+	SmsSetupInsert(ctx context.Context, arg SmsSetupInsertParams) error
+	SmsSetupUpdate(ctx context.Context, arg SmsSetupUpdateParams) error
+	// The workspace whose verified short-link domain a request came to.
+	SmsShortDomainWorkspace(ctx context.Context, host string) (uuid.UUID, error)
+	SmsTermsInsert(ctx context.Context, arg SmsTermsInsertParams) error
+	SmsTermsLatest(ctx context.Context, workspaceID uuid.UUID) (SmsTermsVersion, error)
+	SmsTestNumberDelete(ctx context.Context, arg SmsTestNumberDeleteParams) error
+	SmsTestNumberInsert(ctx context.Context, arg SmsTestNumberInsertParams) error
+	SmsTestNumbers(ctx context.Context, workspaceID uuid.UUID) ([]SmsTestNumbersRow, error)
 	SoftDeleteAutomation(ctx context.Context, arg SoftDeleteAutomationParams) error
 	SoftDeleteEmailTemplate(ctx context.Context, arg SoftDeleteEmailTemplateParams) (int64, error)
 	// The list goes from every screen and send; paused notes what deleting it

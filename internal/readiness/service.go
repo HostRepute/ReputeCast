@@ -63,6 +63,9 @@ type Service struct {
 	// UpgradeOffers finds Upgrade blocks whose offer ended; nil leaves the
 	// check out.
 	UpgradeOffers UpgradeOfferChecker
+	// Grow checks the Referral and Recommendations blocks (Content rows);
+	// nil leaves them out.
+	Grow GrowChecker
 }
 
 func (s *Service) now() time.Time {

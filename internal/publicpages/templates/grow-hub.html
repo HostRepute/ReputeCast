@@ -1,0 +1,74 @@
+{{define "content"}}{{with .Body}}<main class="wide gwide" id="main">
+  <div class="card g18">
+    {{template "brand" $}}
+    <div class="col4"><h1 class="h26">{{$.G "hub.heading"}}</h1><span class="sub">{{$.GH "hub.for" "email" .Email "href" .NotYouHref}}</span></div>
+    {{if not .ProgramOn}}<div class="notice" role="status"><strong>{{$.G "hub.pausedTitle"}}</strong> {{$.G "hub.pausedText" "publisher" .Publisher}}</div>
+    {{else if not .LinkActive}}<div class="notice" role="status">{{$.G "hub.linkPaused" "publisher" .Publisher}}</div>{{end}}
+  </div>
+  {{if .ProgramOn}}<section class="card g18" aria-labelledby="share-h">
+    <div class="col4"><h2 class="gh2" id="share-h">{{$.G "hub.shareHeading" "list" .ListName}}</h2><p class="sub">{{$.G "hub.shareText"}}</p></div>
+    <div class="col6">
+      <label class="field" for="ref-link">{{$.G "hub.yourLink"}}</label>
+      <div class="glink"><input class="in" id="ref-link" type="text" value="{{.LinkURL}}" readonly><button type="button" class="btn-ghost" data-copy="ref-link" hidden>{{$.G "hub.copy"}}</button></div>
+    </div>
+    {{with .Share}}<ul class="gshare" aria-label="{{$.G "hub.shareLabel"}}">{{range .}}<li><a class="btn-ghost" href="{{.URL}}" rel="noopener noreferrer" target="_blank">{{.Label}}</a></li>{{end}}</ul>{{end}}
+    <p class="t13">{{.VisitsLine}}</p>
+  </section>{{end}}
+  <section class="card g18" aria-labelledby="progress-h">
+    <div class="gsplit"><h2 class="gh2" id="progress-h">{{$.G "hub.progress"}}</h2>{{if and .Rank .BoardURL}}<a href="{{.BoardURL}}">{{.Rank}}</a>{{else if .BoardURL}}<a href="{{.BoardURL}}">{{$.G "hub.leaderboard"}}</a>{{end}}</div>
+    {{if .AllEarned}}<p>{{$.G "hub.allEarned"}}</p>{{else if .NextLine}}<div class="col4"><span class="t13b">{{$.G "hub.nextReward"}}</span><p class="gnext">{{.NextLine}}</p>{{with .BringsIt}}<p class="t13">{{.}}</p>{{end}}</div>{{end}}
+    {{with .Cells}}<ol class="gcells" aria-hidden="true">{{range .}}<li class="{{.State}}"></li>{{end}}</ol>{{end}}
+    <ol class="gtrack" aria-label="{{.TrackLabel}}">
+      <li class="you"><span class="t13b">{{.You}}</span></li>
+      {{range .Milestones}}<li class="{{if .Reached}}done{{else if .Next}}next{{end}}"><span class="t13b">{{.Label}}</span><span class="ds">{{.Name}}</span></li>
+      {{end}}
+    </ol>
+    <ul class="glegend">{{range .Legend}}<li class="{{.Kind}}">{{.Text}}</li>{{end}}</ul>
+  </section>
+  <section class="card g18" id="rewards" aria-labelledby="rewards-h">
+    <h2 class="gh2" id="rewards-h">{{$.G "hub.rewards"}}</h2>
+    <ul class="glist">{{range .Rewards}}{{$r := .}}<li>
+      <div class="gbody">
+        <span class="nm">{{.Name}}</span>{{with .Line}}<span class="ds">{{.}}</span>{{end}}{{with .Text}}<span class="ds">{{.}}</span>{{end}}
+        {{with .Code}}<span class="ds">{{$.G "hub.yourCode"}}: <strong class="gcode">{{.}}</strong></span>{{end}}
+        {{with .Saved}}<span class="ds">{{.}}</span>{{end}}
+        {{with .Note}}<div class="aside"><span><strong>{{$.G "hub.noteFrom" "publisher" $.Body.Publisher}}</strong> {{.}}</span></div>{{end}}
+        {{if .AddressAction}}<form class="gaddr" method="post" action="{{.AddressAction}}">
+          <label class="field">{{$.G "hub.addressName"}}<input class="in h44" type="text" name="name" autocomplete="name" maxlength="200" required></label>
+          <label class="field">{{$.G "hub.addressStreet"}}<input class="in h44" type="text" name="street" autocomplete="street-address" maxlength="500" required></label>
+          <label class="field">{{$.G "hub.addressCity"}}<input class="in h44" type="text" name="city" autocomplete="address-level2" maxlength="200"></label>
+          <label class="field">{{$.G "hub.addressCountry"}}<input class="in h44" type="text" name="country" autocomplete="country-name" maxlength="100"></label>
+          <button class="btn-sm start" type="submit">{{$.G "hub.addressSave"}}</button>
+          <span class="t13">{{$.G "hub.addressNote" "publisher" $.Body.Publisher}}</span>
+        </form>{{end}}
+      </div>
+      {{if .ActionHref}}<a class="btn-sm" href="{{.ActionHref}}" rel="noopener noreferrer">{{.ActionLabel}}</a>{{else if .Badge}}<span class="gbadge {{$r.BadgeK}}">{{.Badge}}</span>{{end}}
+    </li>{{end}}</ul>
+    <p class="t13">{{$.G "hub.keep"}}</p>
+  </section>
+  <section class="card g18" aria-labelledby="refs-h">
+    <div class="col4"><h2 class="gh2" id="refs-h">{{.ReferralsTitle}}</h2><p class="t13">{{$.G "hub.referralsNote"}}</p></div>
+    {{if .Referrals}}<ol class="glist">{{range .Referrals}}<li><span class="gnum" aria-hidden="true">{{.Number}}</span><div class="gbody"><span class="nm">{{.Title}}</span><span class="ds">{{.Line}}</span></div><span class="gbadge {{.BadgeK}}">{{.Badge}}</span></li>{{end}}</ol>
+    {{else}}<p class="sub">{{$.G "hub.referralsNone"}}</p>{{end}}
+  </section>
+  <section class="card g18" aria-labelledby="how-h">
+    <h2 class="gh2" id="how-h">{{$.G "hub.how"}}</h2>
+    <ol class="gsteps"><li><b aria-hidden="true">1</b>{{$.G "hub.step1"}}</li><li><b aria-hidden="true">2</b>{{$.G "hub.step2"}}</li><li><b aria-hidden="true">3</b>{{.Step3}}</li></ol>
+    <p class="sub">{{.Rules}}</p>
+  </section>
+  <section class="card g18" id="privacy" aria-labelledby="privacy-h">
+    <h2 class="gh2" id="privacy-h">{{$.G "hub.privacy"}}</h2>
+    {{if .Saved}}<div class="notice ok" role="status">{{$.G "hub.privacySaved"}}</div>{{end}}
+    <form class="col10" method="post" action="{{.PrivacyAction}}">
+      <label class="gswitch"><span class="gbody"><span class="nm">{{$.G "hub.showName"}}</span><span class="ds">{{.NameText}}</span></span><input type="checkbox" name="show_name" value="1"{{if .ShowName}} checked{{end}}></label>
+      {{if .BoardOn}}<label class="gswitch"><span class="gbody"><span class="nm">{{.BoardLabel}}</span><span class="ds">{{$.G "hub.showBoardText"}}</span></span><input type="checkbox" name="show_board" value="1"{{if .ShowBoard}} checked{{end}}></label>{{end}}
+      <button class="btn-ghost start" type="submit">{{$.G "hub.savePrivacy"}}</button>
+    </form>
+    <p class="t13">{{$.G "hub.privacyNote"}}</p>
+  </section>
+</main>{{end}}{{end}}
+{{define "foot"}}<footer class="foot">
+  {{- with .Privacy}}<a href="{{.}}">{{$.G "hub.privacyLink"}}</a>{{template "sep"}}{{end}}
+  {{- with .Body.PrefsURL}}<a href="{{.}}">{{$.G "hub.preferences"}}</a>{{end}}
+  {{- if .PoweredBy}}{{template "sep"}}{{end}}
+  {{- template "rcplain" .}}</footer>{{end}}

@@ -351,7 +351,7 @@ export function PreviewView({ onReview }: { onReview: () => void }) {
   const c = useComposer()
   const cond = useConditional()
   const [client, setClient] = useState<Client>('gmail')
-  const [device, setDevice] = useState<'desktop' | 'mobile'>(c.device)
+  const [device, setDevice] = useState<'desktop' | 'mobile'>(c.device === 'mobile' ? 'mobile' : 'desktop')
   // "Preview this version" in the versions opens the preview as one of its contacts.
   const [sample, setSample] = useState<Sample>(() => (cond?.pendingPreview ? { sample: 'contact', contactId: cond.pendingPreview } : { sample: 'contact' }))
   const [preview, setPreview] = useState<Preview | null>(null)

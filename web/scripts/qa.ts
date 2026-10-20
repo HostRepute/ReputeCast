@@ -135,6 +135,8 @@ const resolvers: Record<string, (ctx: BrowserContext, value: string) => Promise<
     if (!hit?.booking) throw new Error(`no booking of issue ${issue}`)
     return hit.booking.id
   },
+  // A website post by its title ({post:Inside our Postgres migration: the runbook}).
+  post: (ctx, title) => lookup(ctx, `website/posts?pageSize=100&q=${encodeURIComponent(title)}`, 'posts', (p) => p.title === title, `no post titled ${title}`),
 }
 
 /** The id of the first item of a workspace list that matches. */

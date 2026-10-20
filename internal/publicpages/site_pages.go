@@ -254,7 +254,14 @@ func (h *Handler) siteArchive(w http.ResponseWriter, r *http.Request, s *site) {
 	}
 	base := s.links.Archive()
 	host := strings.TrimPrefix(strings.TrimPrefix(strings.TrimSuffix(s.canonPath(), "/"), "https://"), "http://")
-	b := listBody{Kind: "archive", Heading: v.T("site.archive"), Text: v.T("site.archiveText", "host", host, "count", all), SearchAction: base,
+	text := v.T("site.archiveText", "host", host, "count", all)
+	// "since 2024": the year of the oldest post.
+	if all > 0 {
+		if oldest, _, err := h.Website.PublicPosts(ctx, s.ws, website.PublicQuery{Limit: 1, Offset: int(all - 1)}, v.labels.Lang()); err == nil && len(oldest) == 1 {
+			text = v.T("site.archiveTextSince", "host", host, "count", all, "year", strconv.Itoa(oldest[0].PublishedAt.In(location(s.ws)).Year()))
+		}
+	}
+	b := listBody{Kind: "archive", Heading: v.T("site.archive"), Text: text, SearchAction: base,
 		SearchLabel: v.T("site.searchPosts"), Query: query}
 	chip := func(label, slug string) linkAction {
 		qq := url.Values{}

@@ -141,6 +141,9 @@ var Categories = []AuditCategory{
 	{Key: "placement", Label: "Placement tests", Groups: []string{"placement"}},
 	// The publication website (design expansion, phase 7).
 	{Key: "website", Label: "Website", Groups: []string{"website", "post", "tag"}},
+	// Grow (design expansion, phase 5): referral programs, recommendations
+	// and partner links.
+	{Key: "grow", Label: "Grow", Groups: []string{"referral", "recommendation", "partner"}},
 }
 
 // Filter narrows the log.

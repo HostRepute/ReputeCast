@@ -5,10 +5,11 @@
  * <!-- rc:… --> marker so they stay recognisable (layer names, checks).
  */
 import { newPoll, pollSection } from '@/features/polls/config'
+import { growBlockDefs } from '@/features/grow/composer/blocks'
 import { upgradeSection } from '@/features/earn/composer/upgrade'
 import { sponsorSection } from '@/features/earn/sponsors/composer/sponsor'
 
-export type BlockGroup = 'layout' | 'content' | 'reputecast' | 'earn'
+export type BlockGroup = 'layout' | 'content' | 'reputecast' | 'grow' | 'earn'
 
 export interface BlockDef {
   id: string
@@ -182,6 +183,8 @@ export function blockDefs(address: string): BlockDef[] {
     { id: 'rc-footer', label: 'Footer + unsubscribe', group: 'reputecast', icon: 'rcFooter', kind: 'section', content: footerBlock(address), keywords: 'address unsubscribe compliance' },
     // The Poll block (design expansion, X11): each answer a plain link.
     { id: 'rc-poll', label: 'Poll', badge: 'New', group: 'reputecast', icon: 'rcPoll', kind: 'section', content: pollSection(newPoll()), keywords: 'poll question vote nps rating survey feedback' },
+    // Grow's blocks (design expansion, X15): Referral and Recommendations.
+    ...growBlockDefs(),
     // Earn (design expansion, X17): the Sponsor block fills itself from the
     // issue's booking (its settings fetch the creative).
     {

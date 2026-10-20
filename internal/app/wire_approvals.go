@@ -47,6 +47,8 @@ func readinessService(a *App) *readiness.Service {
 	if v := readinessVerification(a); v != nil {
 		rs.Verification = v
 	}
+	// Grow's Referral and Recommendations blocks (wire_grow.go).
+	rs.Grow = growReadiness{a: a}
 	if w := readinessWebsite(a); w != nil {
 		rs.Website = w
 	}
@@ -112,8 +114,14 @@ func newApprovals(a *App) *approvals.Service {
 	// Fixes and send settings re-check open approvals; so do composer saves.
 	rs.AfterChange = s.CampaignChanged
 	rs.Campaigns.AfterChange = s.CampaignChanged
+	// Campaigns on other channels (SMS) describe themselves for approvals.
+	s.Channels = approvalChannels(a)
 	return s
 }
+
+// approvalChannels describes campaigns on channels other than email for
+// approvals; the channels' wire files set it (wire_texting.go).
+var approvalChannels = func(*App) map[string]approvals.ChannelCampaigns { return nil }
 
 // CampaignChangeHook re-checks a campaign's open approval after the composer
 // saved it (the composer's campaigns.Service.AfterChange).

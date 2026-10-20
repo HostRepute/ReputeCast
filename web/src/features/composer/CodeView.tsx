@@ -345,12 +345,12 @@ export function CodeView({ aside }: { aside?: ReactNode } = {}) {
               </div>
             </TabPanel>
             <TabPanel value="tokens" className="flex flex-col" tabIndex={-1}>
-              {(['contact', 'custom', 'system'] as const).map((kind) => {
+              {(['contact', 'custom', 'system', 'referral'] as const).map((kind) => {
                 const list = tokens.filter((t) => t.kind === kind)
                 if (!list.length) return null
                 return (
                   <div key={kind} className="flex flex-col">
-                    <div className="grp">{kind === 'contact' ? 'Contact fields' : kind === 'custom' ? 'Custom fields' : 'Links and system'}</div>
+                    <div className="grp">{kind === 'contact' ? 'Contact fields' : kind === 'custom' ? 'Custom fields' : kind === 'referral' ? 'Referral' : 'Links and system'}</div>
                     {list.map((t) => (
                       <button
                         key={t.key}

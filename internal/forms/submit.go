@@ -345,11 +345,13 @@ func (s *Service) accept(ctx context.Context, ws *store.Workspace, set *Settings
 	}
 	var res audience.SignupResult
 	var submissionID uuid.UUID
+	// A signup through a referral link always confirms by email.
+	doubleOptIn := c.DoubleOptIn || s.forceDouble(ctx, ws, sub)
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		var err error
 		res, err = s.Audience.Signup(ctx, tx, ws, audience.SignupInput{
 			Email: sub.Email, FirstName: sub.FirstName, LastName: sub.LastName, Company: sub.Company, Fields: fields,
-			Lists: lists, DoubleOptIn: c.DoubleOptIn, Evidence: ev, BrowserLanguage: sub.BrowserLanguage, FormName: formName,
+			Lists: lists, DoubleOptIn: doubleOptIn, Evidence: ev, BrowserLanguage: sub.BrowserLanguage, FormName: formName,
 		})
 		if err != nil || res.Blocked {
 			return err
@@ -363,6 +365,11 @@ func (s *Service) accept(ctx context.Context, ws *store.Workspace, set *Settings
 		if !c.Builtin {
 			id := c.ID
 			formID = &id
+		}
+		if err := s.signupAccepted(ctx, tx, ws, SignupEvent{ContactID: res.ContactID, Email: res.Email, FirstName: res.FirstName, Created: res.Created,
+			Lists: lists, Pending: res.Pending, Subscribed: res.Subscribed, Already: res.Already, Page: sub.Page, Referrer: sub.Referrer,
+			IP: sub.IP, UserAgent: sub.UserAgent, FormID: formID, At: now}); err != nil {
+			return err
 		}
 		touched := append(slices.Clone(res.Pending), res.Subscribed...)
 		if len(touched) == 0 {
@@ -421,7 +428,7 @@ func (s *Service) accept(ctx context.Context, ws *store.Workspace, set *Settings
 		s.Addresses.SignedUp(ctx, ws, res.ContactID, addr)
 	}
 	out := Outcome{Status: OutcomeSubscribed, Email: sub.Email, FirstName: res.FirstName, Lists: lists}
-	if c.DoubleOptIn || res.NeedsConfirmation() || res.Blocked {
+	if doubleOptIn || res.NeedsConfirmation() || res.Blocked {
 		out.Status = OutcomeConfirm
 	}
 	if res.NeedsConfirmation() && submissionID != uuid.Nil {
@@ -442,12 +449,16 @@ type heldSubmission struct {
 	Origin    string     `json:"origin"`
 	IP        string     `json:"ip"`
 	UserAgent string     `json:"ua"`
+	// Page and Referrer aren't in Sub's JSON: they come along so a
+	// challenged signup keeps its touch and its referral code.
+	Page     string `json:"page,omitempty"`
+	Referrer string `json:"referrer,omitempty"`
 }
 
 const challengeTTL = 30 * time.Minute
 
 func (s *Service) holdForChallenge(ctx context.Context, ws *store.Workspace, c Config, sub Submission) (string, error) {
-	h := heldSubmission{Builtin: c.Builtin, Sub: sub, Origin: sub.Origin, UserAgent: sub.UserAgent}
+	h := heldSubmission{Builtin: c.Builtin, Sub: sub, Origin: sub.Origin, UserAgent: sub.UserAgent, Page: sub.Page, Referrer: sub.Referrer}
 	if !c.Builtin {
 		h.FormID = c.ID.String()
 	}
@@ -546,6 +557,7 @@ func (s *Service) solveChallenge(ctx context.Context, ws *store.Workspace, set *
 		}
 	}
 	sub.UserAgent, sub.Origin = h.UserAgent, h.Origin
+	sub.Page, sub.Referrer = h.Page, h.Referrer
 	lists, errs := s.check(c, &sub)
 	if len(errs) > 0 {
 		return Outcome{Status: OutcomeInvalid, Errors: errs, Message: firstMessage(errs)}, c.ShownLanguage()

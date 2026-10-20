@@ -26,7 +26,9 @@ import { ProfileScoreCard } from '@/features/scoring/ProfileScoreCard'
 import { FieldSourceNote, useAnswerActivity, useFieldSources } from '@/features/polls/contact'
 import { ContactPaidCard, ContactTierChip, PaidActivity, useHasPaidActivity } from '@/features/earn/ContactPaidCard'
 import { AddressCheckRow } from '@/features/verification/AddressCheck'
+import { GrowActivityRow, growEvents, ProfileReferralsCard, useContactGrow, withGrow } from '@/features/grow/contact/ContactGrow'
 import './audience.css'
+import { ContactWebsiteCard } from '@/features/website/elsewhere'
 
 type Profile = Schemas['ContactProfile']
 type Item = Schemas['ContactActivityItem']
@@ -133,11 +135,15 @@ export function ContactProfilePage({ contactId }: { contactId: string }) {
           ) : null}
           <Summary p={p} />
           <ProfileScoreCard contactId={p.id} firstName={p.firstName} tier={p.tier as Tier} fields={p.fields} />
+          {/* Grow: the Referrals card, or who referred them (design expansion, X15). */}
+          <ProfileReferralsCard contactId={p.id} />
           <div className="flex flex-wrap items-start gap-5">
             <div className="flex min-w-0 flex-[1_1_380px] flex-col gap-5">
               <ContactPaidCard contactId={p.id} />
               <FieldsCard p={p} />
               <ConsentCard p={p} />
+              {/* The website's Website card (features/website), while it's on. */}
+              <ContactWebsiteCard contactId={p.id} name={[p.firstName, p.lastName].filter(Boolean).join(' ') || p.email} />
             </div>
             <ActivityCard contactId={contactId} total={p.activityTotal} />
           </div>
@@ -533,9 +539,12 @@ function ActivityCard({ contactId, total }: { contactId: string; total: number }
   // Transactional mail joins the deliveries; the Optional categories, consent.
   const tx = useContactTransactional(contactId)
   const base = paid ? 'all' : filter
-  const entries = paid ? [] : withTransactional(items, tx.data, base, !q.hasNextPage)
+  // Grow's events join them the same way (design expansion, X15).
+  const grow = useContactGrow(contactId)
+  const growList = paid ? [] : growEvents(grow.data, base)
+  const entries = paid ? [] : withGrow(withTransactional(items, tx.data, base, !q.hasNextPage), growList, !q.hasNextPage, items.length ? Date.parse(items[items.length - 1]!.at) : -Infinity)
   const txCount = transactionalCount(tx.data, base)
-  const shown = (q.data?.pages[0]?.total ?? (filter === 'all' ? total : 0)) + txCount
+  const shown = (q.data?.pages[0]?.total ?? (filter === 'all' ? total : 0)) + txCount + growList.length
   const listed = entries.filter((e) => e.kind !== 'notifications').length
   return (
     <section className="card flex min-w-0 flex-[1.4_1_480px] flex-col" aria-labelledby="activity-h">
@@ -590,6 +599,8 @@ function ActivityCard({ contactId, total }: { contactId: string; total: number }
               <ActivityRow key={e.it.id} it={e.it} />
             ) : e.kind === 'tx' ? (
               <TransactionalActivityRow key={`tx-${e.m.id}`} m={e.m} when={dateTime} product={tx.product} canViewContent={Boolean(tx.data?.canViewContent)} />
+            ) : e.kind === 'grow' ? (
+              <GrowActivityRow key={`grow-${e.e.kind}-${e.at}`} e={e.e} />
             ) : tx.data ? (
               <NotificationsRow key="tx-notifications" tx={tx.data} product={tx.product} essential={tx.essential} />
             ) : null,

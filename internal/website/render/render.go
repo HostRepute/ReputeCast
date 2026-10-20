@@ -40,14 +40,18 @@ import (
 const (
 	// AttrShowOn is a block's "Show on": "email" (Email only), "web" (Web
 	// only), or absent (email and web).
-	AttrShowOn = "rc-show-on"
+	AttrShowOn = mjml.AttrShowOn
 	// AttrPreview marks the "Free preview ends here" block (an mj-raw).
 	AttrPreview = "rc-preview"
 	// PreviewComment is the marker block's content.
 	PreviewComment = "<!-- rc:preview-end -->"
-	// PaidTierKind is the Visibility condition of a paid tier (phase 6);
-	// its value is a tier's id, or empty for any paid tier.
-	PaidTierKind = "paid_tier"
+	// PaidKind is Visibility's Paid access condition (Earn, X16: earn.KindPaid):
+	// PaidAny shows a block to any paid tier, PaidAtLeast to the tier in its
+	// value and above. Its third operator, free subscribers only, isn't for a
+	// paid tier: on the web that block is hidden like other conditional blocks.
+	PaidKind    = "paid"
+	PaidAny     = "any"
+	PaidAtLeast = "at_least"
 )
 
 // Show-on values.
@@ -490,20 +494,29 @@ func ruleOf(n *mjml.Node) (visRule, bool) {
 }
 
 // paidRule reports a rule that shows a block only to paid tiers, with the
-// tiers (empty: any paid tier).
+// lowest tiers it names (empty: any paid tier; a higher tier includes a
+// lower one).
 func paidRule(v visRule) ([]string, bool) {
 	if v.Show != "only" || len(v.Conditions) == 0 {
 		return nil, false
 	}
 	tiers := []string{}
 	for _, c := range v.Conditions {
-		if c.Kind != PaidTierKind || (c.Op != "" && c.Op != "is" && c.Op != "holds") {
+		if c.Kind != PaidKind {
 			return nil, false
 		}
-		if c.Value != "" && c.Value != "any" {
-			tiers = append(tiers, c.Value)
-		} else if v.Match != "all" {
-			return []string{}, true
+		switch c.Op {
+		case PaidAny:
+			if v.Match != "all" {
+				return []string{}, true
+			}
+		case PaidAtLeast:
+			if strings.TrimSpace(c.Value) == "" {
+				return nil, false
+			}
+			tiers = append(tiers, strings.TrimSpace(c.Value))
+		default:
+			return nil, false
 		}
 	}
 	return tiers, true

@@ -9,7 +9,7 @@ SELECT c.id, c.name, c.subject, c.audience,
        coalesce(c.started_at, c.completed_at, c.created_at)::timestamptz AS sent_at
 FROM campaigns c
 LEFT JOIN archive_issues ai ON ai.campaign_id = c.id
-WHERE c.workspace_id = @workspace_id AND c.status = 'sent' AND c.deleted_at IS NULL AND ai.campaign_id IS NULL
+WHERE c.workspace_id = @workspace_id AND c.status = 'sent' AND c.deleted_at IS NULL AND ai.campaign_id IS NULL AND c.channel = 'email'
   AND coalesce(c.audience ->> 'paid', '') <> 'paid'
   AND EXISTS (SELECT 1 FROM jsonb_array_elements_text(CASE WHEN jsonb_typeof(c.audience -> 'lists') = 'array' THEN c.audience -> 'lists' ELSE '[]'::jsonb END) AS l(id)
               WHERE l.id = ANY (@lists::text[]))
@@ -140,7 +140,7 @@ WHERE c.workspace_id = @workspace_id AND c.id = @id AND c.deleted_at IS NULL;
 -- Upcoming sends, for "Next issue: Tuesday 14 October" on the confirmation page.
 SELECT c.id, c.audience, c.scheduled_at::timestamptz AS scheduled_at
 FROM campaigns c
-WHERE c.workspace_id = @workspace_id AND c.status IN ('scheduled', 'approved') AND c.deleted_at IS NULL
+WHERE c.workspace_id = @workspace_id AND c.status IN ('scheduled', 'approved') AND c.deleted_at IS NULL AND c.channel = 'email'
   AND c.scheduled_at IS NOT NULL AND c.scheduled_at > @after::timestamptz
 ORDER BY c.scheduled_at
 LIMIT 50;

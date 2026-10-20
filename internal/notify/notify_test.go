@@ -182,7 +182,7 @@ func TestSummarize(t *testing.T) {
 		p.Events = append(p.Events, notify.NotificationEventPreference{Type: e.Key, InApp: true, Email: e.DefaultEmail})
 	}
 	s := notify.Summarize(p)
-	if s.InApp != "All events" || s.Email != "Approvals, auto-pauses, provider down, integration problems, post drafts, transactional delivery alerts, SMTP relay outages, held digest issues, paused digests, failing digest feeds, digest drafts, AI usage notices, rejected AI keys, payment problems, sponsor creatives, verification jobs, low verification credits, seed sign-in failures, website domain problems" ||
+	if s.InApp != "All events" || s.Email != "Approvals, auto-pauses, provider down, integration problems, post drafts, transactional delivery alerts, SMTP relay outages, held digest issues, paused digests, failing digest feeds, digest drafts, AI usage notices, rejected AI keys, payment problems, sponsor creatives, verification jobs, low verification credits, seed sign-in failures, website domain problems, held referrals, reward codes running low, failing reward webhooks, partner link problems, SMS budget alerts, sender registrations, SMS provider problems, SMS auto-pauses" ||
 		s.QuietHours != "22:00–07:00 America/New_York, email only" {
 		t.Fatalf("summary: %+v", s)
 	}
@@ -195,18 +195,18 @@ func TestSummarize(t *testing.T) {
 	}
 
 	// In the member's app language, starting with a capital in any script.
-	// (The recurring digests', verification, placement and website events aren't translated yet: they're off here.)
+	// (The recurring digests', verification, placement, website and Grow's events aren't translated yet: they're off here.)
 	for i := range p.Events {
 		switch p.Events[i].Type {
 		case notify.KindDigestIssueHeld, notify.KindDigestPaused, notify.KindDigestFeedFailing, notify.KindDigestDraftReady,
 			notify.KindVerificationEnded, notify.KindVerificationCreditsLow, notify.KindPlacementFinished, notify.KindSeedSignInFailed,
-			notify.KindWebsiteDomain:
+			notify.KindWebsiteDomain, notify.KindReferralsHeld, notify.KindRewardCodesLow, notify.KindRewardWebhookFailing, notify.KindPartnerLinkProblem:
 			p.Events[i].Email = false
 		}
 	}
 	vi := i18n.For(i18n.Vietnamese)
 	s = notify.SummarizeIn(vi, p)
-	if s.InApp != "Tất cả sự kiện" || s.Email != "Phê duyệt, tự tạm dừng, nhà cung cấp gặp sự cố, sự cố tích hợp, bản nháp bài viết, cảnh báo gửi email giao dịch, sự cố SMTP relay, payment problems, sponsor creatives" ||
+	if s.InApp != "Tất cả sự kiện" || s.Email != "Phê duyệt, tự tạm dừng, nhà cung cấp gặp sự cố, sự cố tích hợp, bản nháp bài viết, cảnh báo gửi email giao dịch, sự cố SMTP relay, payment problems, sponsor creatives, SMS budget alerts, sender registrations, SMS provider problems, SMS auto-pauses" ||
 		s.QuietHours != "22:00–07:00 America/New_York, chỉ email" {
 		t.Fatalf("Vietnamese summary: %+v", s)
 	}

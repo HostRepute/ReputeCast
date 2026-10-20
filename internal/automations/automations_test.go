@@ -69,13 +69,14 @@ func TestListAndSummaryMatchTheBoard(t *testing.T) {
 	_, c := signedIn(t, "linh@acme.io")
 	var l list
 	c.Do("GET", wsPath, nil).MustStatus(t, 200).JSON(t, &l)
-	// Contact scoring (X13) adds the live "Sales-ready handoff".
-	if l.Counts.All != 6 || l.Counts.Live != 4 || l.Counts.Paused != 1 || l.Counts.Drafts != 1 {
+	// Contact scoring (X13) adds the live "Sales-ready handoff", and SMS
+	// (X21) the live "Acme Summit reminders".
+	if l.Counts.All != 7 || l.Counts.Live != 5 || l.Counts.Paused != 1 || l.Counts.Drafts != 1 {
 		t.Fatalf("counts %+v", l.Counts)
 	}
 	var got []string
 	for _, it := range l.Items {
-		if it.Name != "Sales-ready handoff" {
+		if it.Name != "Sales-ready handoff" && it.Name != "Acme Summit reminders" {
 			got = append(got, it.Name)
 		}
 	}
@@ -129,7 +130,7 @@ func TestListAndSummaryMatchTheBoard(t *testing.T) {
 		}
 	}
 	c.Do("GET", wsPath+"/summary", nil).MustStatus(t, 200).JSON(t, &sum)
-	if sum.InFlow != 1932 || sum.LiveCount != 4 || sum.Goals != 604 || len(sum.GoalsBy) != 3 || sum.GoalsBy[0].Name != "welcome" || sum.GoalsBy[0].Count != 312 {
+	if sum.InFlow != 1932 || sum.LiveCount != 5 || sum.Goals != 604 || len(sum.GoalsBy) != 3 || sum.GoalsBy[0].Name != "welcome" || sum.GoalsBy[0].Count != 312 {
 		t.Fatalf("summary %+v", sum)
 	}
 	if len(sum.SentBy) == 0 || sum.SentBy[0].Short != "SES" {
@@ -519,7 +520,8 @@ func TestTemplatesAndOptions(t *testing.T) {
 		Providers []struct{ Short string }
 	}
 	c.Do("GET", wsPath+"/options", nil).MustStatus(t, 200).JSON(t, &opts)
-	if len(opts.Lists) != 3 || len(opts.Emails) < 5 || len(opts.Providers) != 3 {
+	// The three lists of the board, and SMS's (X21) Acme Summit 2026.
+	if len(opts.Lists) != 4 || len(opts.Emails) < 5 || len(opts.Providers) != 3 {
 		t.Fatalf("options %+v", opts)
 	}
 }

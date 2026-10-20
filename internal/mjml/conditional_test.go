@@ -86,3 +86,30 @@ func TestCompileKeepsMarkers(t *testing.T) {
 		t.Fatal("StripMarkers left markers")
 	}
 }
+
+// A Web only block (Show on) is the post's: the email never gets it; an
+// Email only block stays, its attribute removed.
+func TestPrepareCompileWebOnly(t *testing.T) {
+	doc := `<mjml><mj-body>
+    <mj-section><mj-column><mj-text>Both</mj-text></mj-column></mj-section>
+    <mj-section rc-show-on="web"><mj-column><mj-text>Read more on the site</mj-text><mj-text rc-visible='{"id":"web005","show":"only"}'>Inside</mj-text></mj-column></mj-section>
+    <mj-section><mj-column><mj-text rc-show-on="web">Web line</mj-text><mj-text rc-show-on="email">Email line</mj-text></mj-column></mj-section>
+  </mj-body></mjml>`
+	out := PrepareCompile(doc)
+	for _, gone := range []string{"Read more on the site", "Inside", "web005", "Web line", "rc-show-on"} {
+		if strings.Contains(out, gone) {
+			t.Fatalf("%q is in the email:\n%s", gone, out)
+		}
+	}
+	for _, kept := range []string{"Both", "Email line"} {
+		if !strings.Contains(out, kept) {
+			t.Fatalf("%q is missing:\n%s", kept, out)
+		}
+	}
+	if _, err := Parse(out); err != nil {
+		t.Fatalf("prepared document doesn't parse: %v\n%s", err, out)
+	}
+	if res := Compile(doc); len(res.Errors) > 0 || strings.Contains(res.HTML, "Web line") || !strings.Contains(res.HTML, "Email line") {
+		t.Fatalf("compiled: %+v", res.Errors)
+	}
+}

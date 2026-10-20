@@ -15,6 +15,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
+	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -37,6 +38,10 @@ type PublishRequest struct {
 	Migration    string
 	By           uuid.UUID
 	Changes      []AutomationDiffItem
+	// Missing are permissions the flow's channel steps need that the
+	// publisher lacks (sms:send for a "Send SMS" step): publishing goes
+	// for approval by someone who holds them.
+	Missing []authz.Permission
 }
 
 // GateDecision tells the publish whether to go ahead.
@@ -86,6 +91,12 @@ type AutomationPublishPreview struct {
 	Checks          []AutomationPublishCheck `json:"checks"`
 	CanPublish      bool                     `json:"canPublish"`
 	Blocker         string                   `json:"blocker,omitempty"`
+	// Requires are permissions the flow's channel steps need that the
+	// viewer lacks: publishing asks for approval instead ("This flow has an
+	// SMS step. Publishing needs sms:send.").
+	Requires []string `json:"requires"`
+	// ChannelSteps counts the flow's steps by channel ("sms": 1).
+	ChannelSteps map[string]int `json:"channelSteps"`
 }
 
 type publishState struct {
@@ -169,7 +180,16 @@ func (s *Service) PublishPreview(ctx context.Context, ws *store.Workspace, id uu
 	if err != nil {
 		return AutomationPublishPreview{}, err
 	}
-	out := AutomationPublishPreview{Name: a.Name, ToVersion: int(a.DraftVersion), Items: st.items, Changes: Changes(st.items), Checks: []AutomationPublishCheck{}}
+	out := AutomationPublishPreview{Name: a.Name, ToVersion: int(a.DraftVersion), Items: st.items, Changes: Changes(st.items), Checks: []AutomationPublishCheck{},
+		Requires: []string{}, ChannelSteps: map[string]int{}}
+	for _, n := range st.draft.Nodes {
+		if isChannelNode(n.Type) {
+			out.ChannelSteps[n.Type]++
+		}
+	}
+	for _, perm := range missingPermissions(ctx, st.draft) {
+		out.Requires = append(out.Requires, string(perm))
+	}
 	if st.liveV != nil {
 		v := int(*a.LiveVersion)
 		out.FromVersion = &v
@@ -489,11 +509,17 @@ func (s *Service) Publish(ctx context.Context, ws *store.Workspace, by uuid.UUID
 		} else if v.Blocked {
 			return api.Err(http.StatusConflict, CodeAccessibilityBlocked, v.Blocker)
 		}
-		dec, err := s.gate().Check(ctx, tx, PublishRequest{WorkspaceID: ws.ID, AutomationID: id, Name: a.Name, Version: version, Migration: migration, By: by, Changes: st.items})
+		req := PublishRequest{WorkspaceID: ws.ID, AutomationID: id, Name: a.Name, Version: version, Migration: migration, By: by, Changes: st.items,
+			Missing: missingPermissions(ctx, st.draft)}
+		dec, err := s.gate().Check(ctx, tx, req)
 		if err != nil {
 			return err
 		}
 		wsID := ws.ID
+		if !dec.Required && len(req.Missing) > 0 {
+			// Nobody can approve for the publisher: they need the permission.
+			return api.Forbidden(req.Missing[0], nil)
+		}
 		if dec.Required {
 			out = AutomationPublishResult{Status: "approval_required", Version: version, ApprovalID: dec.ApprovalID.String(), Message: dec.Message}
 			return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &wsID, Action: "automation.publish_requested", TargetType: "automation", TargetID: id.String(), TargetName: a.Name,

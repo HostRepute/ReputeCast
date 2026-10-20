@@ -36,7 +36,7 @@ type Service struct {
 type NotificationItem struct {
 	ID            string    `json:"id"`
 	Kind          string    `json:"kind"`
-	Category      string    `json:"category" enum:"approvals,sending,providers,team,hostrepute,other,integrations,transactional,earn,website"`
+	Category      string    `json:"category" enum:"approvals,sending,providers,team,hostrepute,other,integrations,transactional,earn,website,grow"`
 	CategoryLabel string    `json:"categoryLabel" example:"Approvals"`
 	Severity      string    `json:"severity" enum:"info,ok,warn,bad"`
 	Title         string    `json:"title" example:"Approval requested"`
@@ -201,7 +201,7 @@ type NotificationEventChoice struct {
 
 // NotificationPreferencesInput is PUT /me/notification-preferences.
 type NotificationPreferencesInput struct {
-	Events     []NotificationEventChoice `json:"events" maxItems:"20"`
+	Events     []NotificationEventChoice `json:"events" maxItems:"60"`
 	QuietHours *NotificationQuietHours   `json:"quietHours,omitempty" doc:"Omit or null to turn quiet hours off"`
 	Digest     string                    `json:"digest" enum:"immediate,hourly,daily"`
 }

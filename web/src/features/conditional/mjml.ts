@@ -192,8 +192,10 @@ export function stripRcAttrs(src: string): string {
 }
 
 /**
- * What the compiler gets: rc-* attributes out, blocks marked rc-omit left
- * out, conditional blocks wrapped in their markers (each id once, the first
+ * What the compiler gets: rc-* attributes out, Web only blocks (Show on, the
+ * publication website: they're the post's, not the email's) and blocks marked
+ * rc-omit (shown on the canvas only) left out, conditional blocks wrapped in
+ * their markers (each id once, the first
  * time). A document that doesn't parse is returned with the attributes
  * stripped.
  */
@@ -212,6 +214,10 @@ export function prepareCompile(src: string): string {
       return
     }
     if (n.tag.startsWith('mj-') && n.end > n.start) {
+      if (n.parent && (n.attrs['rc-show-on'] ?? '').trim() === 'web') {
+        edits.push({ start: n.start, end: n.end, text: '', order: 1 })
+        return
+      }
       const open = src.indexOf('>', n.start)
       if (open > 0 && open < n.end) {
         const tag = src.slice(n.start, open + 1)

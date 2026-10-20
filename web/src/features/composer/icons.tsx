@@ -118,6 +118,28 @@ const blocks: Record<string, ReactNode> = {
       <path d="M7 9h10M7 13h6" />
     </>
   ),
+  // Grow's blocks (design expansion, X15): Referral, Recommendations, Reward.
+  growReferral: (
+    <>
+      <circle cx="9" cy="8" r="3.2" />
+      <path d="M3 19.5a6 6 0 0 1 12 0" />
+      <path d="M18.5 7v6M15.5 10h6" />
+    </>
+  ),
+  growRecs: (
+    <>
+      <rect x="3" y="4" width="18" height="7" rx="1.6" />
+      <rect x="3" y="13" width="18" height="7" rx="1.6" />
+      <path d="M6.5 7.5h6M6.5 16.5h6" />
+    </>
+  ),
+  growReward: (
+    <>
+      <rect x="3.5" y="9.5" width="17" height="11" rx="1.6" />
+      <path d="M3 9.5h18M12 9.5v11" />
+      <path d="M12 9.5c-1.2-3.6-5-4.4-5-2.3S10 9.5 12 9.5zm0 0c1.2-3.6 5-4.4 5-2.3S14 9.5 12 9.5z" />
+    </>
+  ),
 }
 
 export function BlockIcon({ name }: { name: string }) {
