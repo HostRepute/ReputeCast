@@ -51,7 +51,8 @@
     {{end}}{{if .AskName}}<div class="col8"><label class="field">{{$.T "prefs.firstName"}}<input class="in h44" type="text" name="first_name" value="{{.FirstName}}" autocomplete="given-name" maxlength="100"></label></div>
     {{end}}<button class="btn-pri" type="submit"{{if $.Preview}} disabled{{end}}>{{$.T "prefs.save"}}</button>
   </form>
-  <div class="split"><span>{{$.T "prefs.applies"}}</span>{{with .UnsubscribeHref}}<a class="plain" href="{{.}}">{{$.T "prefs.unsubscribeAll"}}</a>{{end}}</div>
+  {{with .Push}}<div class="aside pn-off"><button class="btn-ghost" type="button" data-rc-push-turnoff data-done="{{.Done}}" data-none="{{.None}}">{{.Label}}</button><span class="t13" data-rc-push-turnoff-note role="status"></span></div>
+  {{end}}<div class="split"><span>{{$.T "prefs.applies"}}</span>{{with .UnsubscribeHref}}<a class="plain" href="{{.}}">{{$.T "prefs.unsubscribeAll"}}</a>{{end}}</div>
 </main>{{end}}{{end}}
 {{define "foot"}}<footer class="foot">
   {{- with .Privacy}}<a href="{{.}}">{{$.T "page.privacy"}}</a>{{end}}

@@ -229,6 +229,8 @@ type preferencesBody struct {
 	Paid *earn.PreferencesPaid
 	// Account links a member signed in on the website to their account page.
 	Account *prefsAccount
+	// Push is "Turn off notifications in this browser" (X22).
+	Push *PushTurnOff
 }
 
 // prefsAccount is the preference center's line for a reader signed in on
@@ -293,7 +295,14 @@ func (h *Handler) preferencesPage(w http.ResponseWriter, r *http.Request) {
 		body.Saved = pl.Labels.Text("prefs.saved", nil)
 	}
 	body.Account = h.prefsAccountFor(r, s, pc.ID, pl)
+	pushOn := ""
+	if host := pushHost(s); host != "" && h.Push != nil {
+		if body.Push = h.Push.TurnOff(r.Context(), s.ws, host, pl.Labels.Lang()); body.Push != nil {
+			pushOn = host
+		}
+	}
 	v := h.view(s, pageTitle(pl, s, "prefs.heading"), body)
+	v.Scripts = append(v.Scripts, h.pushScripts(r.Context(), s, pushOn)...)
 	h.setLang(v, r, s, pl, nil)
 	h.render(w, r, s, "preferences", http.StatusOK, v, csp{}, true)
 }

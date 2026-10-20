@@ -266,11 +266,11 @@ UPDATE push_sends SET phase = @phase, completed_at = sqlc.narg(completed_at) WHE
 SELECT * FROM push_sends WHERE phase = 'scheduled' AND scheduled_at <= @now ORDER BY scheduled_at LIMIT 20;
 
 -- name: PushMessageInsert :exec
-INSERT INTO push_messages (message_id, workspace_id, subscription_id, site_id, browser)
-VALUES (@message_id, @workspace_id, sqlc.narg(subscription_id), sqlc.narg(site_id), @browser);
+INSERT INTO push_messages (message_id, workspace_id, subscription_id, site_id, browser, token)
+VALUES (@message_id, @workspace_id, sqlc.narg(subscription_id), sqlc.narg(site_id), @browser, @token);
 
 -- name: PushMessage :one
-SELECT m.*, p.subscription_id, p.site_id, p.browser, p.answer, p.shown_at, p.clicked_at, p.closed_at
+SELECT m.*, p.subscription_id, p.site_id, p.browser, p.token, p.answer, p.shown_at, p.clicked_at, p.closed_at
 FROM channel_messages m JOIN push_messages p ON p.message_id = m.id
 WHERE m.id = @id;
 

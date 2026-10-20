@@ -34,5 +34,7 @@
   "short.sms_budget": "SMS budget alerts",
   "short.sms_registration": "sender registrations",
   "short.sms_provider_down": "SMS provider problems",
-  "short.sms_send_paused": "SMS auto-pauses"
+  "short.sms_send_paused": "SMS auto-pauses",
+  "short.push_worker_missing": "missing push service workers",
+  "short.whatsapp_attention": "WhatsApp templates and quality"
 }

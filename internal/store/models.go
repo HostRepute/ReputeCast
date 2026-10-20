@@ -2251,6 +2251,7 @@ type PushMessage struct {
 	SubscriptionID *uuid.UUID `json:"subscriptionId"`
 	SiteID         *uuid.UUID `json:"siteId"`
 	Browser        string     `json:"browser"`
+	Token          string     `json:"token"`
 	Answer         string     `json:"answer"`
 	ShownAt        *time.Time `json:"shownAt"`
 	ClickedAt      *time.Time `json:"clickedAt"`

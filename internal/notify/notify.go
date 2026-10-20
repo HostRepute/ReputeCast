@@ -66,6 +66,10 @@ const (
 	KindSMSRegistration = "sms_registration"  // a sender's registration was approved or rejected
 	KindSMSProviderDown = "sms_provider_down" // an SMS provider is down, its credentials rejected, or its receipts silent
 	KindSMSSendPaused   = "sms_send_paused"   // an SMS campaign auto-paused
+	// Web push and WhatsApp (design expansion, phase 8).
+	KindPushWorkerMissing  = "push_worker_missing" // a push site's service worker is missing or unreachable
+	KindWhatsAppAttention  = "whatsapp_attention"  // a WhatsApp template was rejected, or the number's quality dropped
+	KindWhatsAppTokenFails = "whatsapp_token"      // Meta rejected the WhatsApp access token: sends are held
 )
 
 // Notification is what appears in the notification center.

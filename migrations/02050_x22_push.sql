@@ -250,6 +250,10 @@ CREATE TABLE push_messages (
     subscription_id uuid,
     site_id         uuid        REFERENCES push_sites(id) ON DELETE SET NULL,
     browser         text        NOT NULL DEFAULT '',
+    -- A random token the notification carries: the service worker's
+    -- reports and the click link must name it, so nobody can count shown
+    -- or clicked notifications that weren't.
+    token           text        NOT NULL,
     -- The push service's answer ("201 Created", "410 Gone · Unregistered").
     answer          text        NOT NULL DEFAULT '',
     shown_at        timestamptz,

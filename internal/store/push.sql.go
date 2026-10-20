@@ -517,7 +517,7 @@ func (q *Queries) PushKeySetContact(ctx context.Context, arg PushKeySetContactPa
 }
 
 const pushMessage = `-- name: PushMessage :one
-SELECT m.id, m.workspace_id, m.channel, m.kind, m.campaign_id, m.automation_id, m.automation_step, m.run_id, m.contact_id, m.list_id, m.recipient, m.country, m.time_zone, m.zone_source, m.provider_id, m.sender_id, m.sender, m.body, m.units, m.encoding, m.price, m.cost, m.status, m.reason, m.provider_code, m.provider_message_id, m.send_after, m.expires_at, m.attempts, m.created_at, m.sent_at, m.delivered_at, m.failed_at, m.updated_at, p.subscription_id, p.site_id, p.browser, p.answer, p.shown_at, p.clicked_at, p.closed_at
+SELECT m.id, m.workspace_id, m.channel, m.kind, m.campaign_id, m.automation_id, m.automation_step, m.run_id, m.contact_id, m.list_id, m.recipient, m.country, m.time_zone, m.zone_source, m.provider_id, m.sender_id, m.sender, m.body, m.units, m.encoding, m.price, m.cost, m.status, m.reason, m.provider_code, m.provider_message_id, m.send_after, m.expires_at, m.attempts, m.created_at, m.sent_at, m.delivered_at, m.failed_at, m.updated_at, p.subscription_id, p.site_id, p.browser, p.token, p.answer, p.shown_at, p.clicked_at, p.closed_at
 FROM channel_messages m JOIN push_messages p ON p.message_id = m.id
 WHERE m.id = $1
 `
@@ -560,6 +560,7 @@ type PushMessageRow struct {
 	SubscriptionID    *uuid.UUID `json:"subscriptionId"`
 	SiteID            *uuid.UUID `json:"siteId"`
 	Browser           string     `json:"browser"`
+	Token             string     `json:"token"`
 	Answer            string     `json:"answer"`
 	ShownAt           *time.Time `json:"shownAt"`
 	ClickedAt         *time.Time `json:"clickedAt"`
@@ -607,6 +608,7 @@ func (q *Queries) PushMessage(ctx context.Context, id uuid.UUID) (PushMessageRow
 		&i.SubscriptionID,
 		&i.SiteID,
 		&i.Browser,
+		&i.Token,
 		&i.Answer,
 		&i.ShownAt,
 		&i.ClickedAt,
@@ -664,8 +666,8 @@ func (q *Queries) PushMessageClosed(ctx context.Context, arg PushMessageClosedPa
 }
 
 const pushMessageInsert = `-- name: PushMessageInsert :exec
-INSERT INTO push_messages (message_id, workspace_id, subscription_id, site_id, browser)
-VALUES ($1, $2, $3, $4, $5)
+INSERT INTO push_messages (message_id, workspace_id, subscription_id, site_id, browser, token)
+VALUES ($1, $2, $3, $4, $5, $6)
 `
 
 type PushMessageInsertParams struct {
@@ -674,6 +676,7 @@ type PushMessageInsertParams struct {
 	SubscriptionID *uuid.UUID `json:"subscriptionId"`
 	SiteID         *uuid.UUID `json:"siteId"`
 	Browser        string     `json:"browser"`
+	Token          string     `json:"token"`
 }
 
 func (q *Queries) PushMessageInsert(ctx context.Context, arg PushMessageInsertParams) error {
@@ -683,6 +686,7 @@ func (q *Queries) PushMessageInsert(ctx context.Context, arg PushMessageInsertPa
 		arg.SubscriptionID,
 		arg.SiteID,
 		arg.Browser,
+		arg.Token,
 	)
 	return err
 }

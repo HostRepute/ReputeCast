@@ -88,6 +88,10 @@ type Handler struct {
 	Earn *earn.Service
 	// TextTerms writes the text message terms page (nil: it answers 404).
 	TextTerms TextTerms
+	// Push adds web push to the pages (design expansion, X22): the prompt
+	// on the publication website's pages and "Turn off notifications in
+	// this browser" on the preference center (nil: neither).
+	Push PushPages
 
 	tmpl     map[string]*template.Template
 	version  string
