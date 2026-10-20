@@ -64,6 +64,11 @@ const (
 	// Digital products (design expansion, phase 7).
 	KindProductDeliveryFailed = "product_delivery_failed" // an order's delivery email couldn't be sent
 	KindOrderDisputed         = "order_disputed"          // a buyer disputed an order's payment in Stripe
+	// Grow (design expansion, phase 5).
+	KindReferralsHeld        = "referrals_held"         // referrals wait in the review queue (grow:review)
+	KindRewardCodesLow       = "reward_codes_low"       // a code reward is running low or out of codes (grow:edit)
+	KindRewardWebhookFailing = "reward_webhook_failing" // a webhook reward's endpoint keeps failing (grow:edit)
+	KindPartnerLinkProblem   = "partner_link_problem"   // a partner link is invalid or unreachable (grow:connect)
 	// SMS (design expansion, phase 8).
 	KindSMSBudget       = "sms_budget"        // the month's SMS budget reached its alert level or ran out
 	KindSMSRegistration = "sms_registration"  // a sender's registration was approved or rejected

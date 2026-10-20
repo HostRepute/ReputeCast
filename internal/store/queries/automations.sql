@@ -250,10 +250,13 @@ INSERT INTO automation_email_versions (email_id, version, subject, preheader, mj
 VALUES (@email_id, @version, @subject, @preheader, @mjml, @html, @plain_text, @created_by);
 
 -- name: ListAutomationEmails :many
+-- Milestone emails (Grow) are automation emails too, edited from their
+-- milestone: not offered to flows.
 SELECT e.id, e.name, e.latest_version, e.automation_id, e.updated_at, v.subject
 FROM automation_emails e
 JOIN automation_email_versions v ON v.email_id = e.id AND v.version = e.latest_version
 WHERE e.workspace_id = @workspace_id AND e.deleted_at IS NULL
+  AND NOT EXISTS (SELECT 1 FROM referral_milestones m WHERE m.email_id = e.id)
 ORDER BY e.created_at;
 
 -- name: GetAutomationEmailVersion :one

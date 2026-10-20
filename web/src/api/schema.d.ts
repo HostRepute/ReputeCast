@@ -4738,6 +4738,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/contacts/{contact}/referrals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A contact's referral link and counts, who referred them, and Grow's timeline events
+         * @description API keys with grow:view can read a contact's referral link and counts, so an app can show them to its users.
+         */
+        get: operations["get-contact-referrals"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/contacts/{contact}/resend-optin": {
         parameters: {
             query?: never;
@@ -6506,6 +6526,1036 @@ export interface paths {
          * @description The copy-link fallback while nothing can send System mail. Every link handed out is written to the audit log.
          */
         post: operations["signup-form-confirm-link"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/blocks/preview-contacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Readers to preview the Grow blocks as: referrers, and readers the block hides for */
+        get: operations["list-grow-preview-contacts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/blocks/recommendations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Render the Recommendations block for the composer's canvas */
+        post: operations["render-recommendations-block"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/blocks/render": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Render a Grow block for the composer's canvas, as a reader or a sample */
+        post: operations["render-grow-block"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/milestones/{milestone}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A milestone with its reward */
+        get: operations["get-referral-milestone"];
+        /** Change a milestone and its reward (rewards given from now on) */
+        put: operations["update-referral-milestone"];
+        post?: never;
+        /** Delete a milestone: rewards already sent stay with their referrers */
+        delete: operations["delete-referral-milestone"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/milestones/{milestone}/codes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload codes for a code reward (one per line); only their count is logged */
+        post: operations["upload-referral-codes"];
+        /** Remove the codes nobody has received yet */
+        delete: operations["remove-referral-codes"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/milestones/{milestone}/email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A milestone email for the composer's milestone mode */
+        get: operations["get-referral-milestone-email"];
+        /** Autosave a milestone email's draft (409 when saved elsewhere since) */
+        put: operations["autosave-referral-milestone-email"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/milestones/{milestone}/email/on": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Send this milestone's email, or none (an automation sends one) */
+        put: operations["set-referral-milestone-email-on"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/milestones/{milestone}/email/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Render a milestone email as a reader gets it */
+        post: operations["preview-referral-milestone-email"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/milestones/{milestone}/email/save": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Save a milestone email: the saved version is the one that goes out */
+        post: operations["save-referral-milestone-email"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/milestones/{milestone}/email/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send a test of a milestone email through the System route */
+        post: operations["test-referral-milestone-email"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/milestones/{milestone}/webhook-test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send a test referral.milestone_reached to a webhook reward's endpoint */
+        post: operations["test-referral-webhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Grow's overview: the last 30 days' numbers, what needs a person, and new subscribers per week by source */
+        get: operations["get-grow-overview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/partner-codes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a partner code for one newsletter (shown once, valid 7 days, works once) */
+        post: operations["create-partner-code"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/partner-codes/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke a partner code nobody has used */
+        delete: operations["revoke-partner-code"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/partner-links/{link}/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retry a partner's waiting requests now */
+        post: operations["check-partner-link"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/partner-links/{link}/end": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** End a partnership for good; reconnecting needs a new partner code */
+        post: operations["end-partner-link"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/partner-links/{link}/limit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change the daily limit of a partner that recommends you */
+        put: operations["set-partner-limit"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/partner-links/{link}/pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pause a partner link: requests stop until it resumes */
+        post: operations["pause-partner-link"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/partner-links/{link}/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A partner link's request log (90 days; never the addresses) */
+        get: operations["get-partner-requests"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/partner-links/{link}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resume a partner link this side paused */
+        post: operations["resume-partner-link"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/partner-links/{link}/rotate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Agree a new signing secret with the partner; both work for 24 hours */
+        post: operations["rotate-partner-secret"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/partners/connect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Connect a partner with its code: the instances agree a signing secret over HTTPS */
+        post: operations["connect-partner"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/partners/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ask a partner's instance what a pasted partner code connects to */
+        post: operations["preview-partner"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/previews/{page}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Preview a Grow public page: the invite page, a referrer's hub, the leaderboard or the recommendations page
+         * @description Rendered for the referrer with the most signups. Inert: links and buttons don't work and nothing is recorded.
+         */
+        get: operations["preview-grow-page"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/recommendations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What you recommend, who recommends you, where recommendations show and your partner profile */
+        get: operations["get-recommendations"];
+        put?: never;
+        /** Recommend a newsletter by its subscribe page (readers subscribe there) */
+        post: operations["add-link-recommendation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/recommendations/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Put the recommendations in the order readers see them */
+        put: operations["reorder-recommendations"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/recommendations/prefill": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Read a subscribe page's name, description and logo (through the SSRF guard) */
+        post: operations["prefill-recommendation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/recommendations/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Change the partner profile: what partners see and show
+         * @description Partners that recommend you get the new profile over the signed channel.
+         */
+        put: operations["update-partner-profile"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/recommendations/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Show recommendations on the opt-in confirmation page, or not */
+        put: operations["update-recommendation-settings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/recommendations/{recommendation}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change a recommendation (a partner's: only where it shows) */
+        put: operations["update-recommendation"];
+        post?: never;
+        /** Remove a recommendation (a partner's also ends its link, which needs grow:connect) */
+        delete: operations["remove-recommendation"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/recommendations/{recommendation}/pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pause a link recommendation: hidden until resumed, numbers kept */
+        post: operations["pause-recommendation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/recommendations/{recommendation}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resume a paused link recommendation */
+        post: operations["resume-recommendation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/referrals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The referral programs and the lists a new one can use */
+        get: operations["list-referral-programs"];
+        put?: never;
+        /** Start a referral program on a list (off, at the guide's second step) */
+        post: operations["create-referral-program"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A referral program with its settings */
+        get: operations["get-referral-program"];
+        put?: never;
+        post?: never;
+        /** Delete a program that is off: its links stop for good */
+        delete: operations["delete-referral-program"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/checks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The checks before a program turns on */
+        get: operations["get-referral-checks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload a file for download rewards (PDF, ZIP or an image, up to 100 MB) */
+        post: operations["upload-referral-file"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/files/{file}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a file from the program's files */
+        delete: operations["remove-referral-file"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/fulfill.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The To fulfill queue with shipping addresses as CSV (logged) */
+        get: operations["export-referral-fulfillment"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/leaderboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Turn the public leaderboard on or off */
+        put: operations["set-referral-leaderboard"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/milestones": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The milestones with their rewards, health and emails, the files and the To fulfill queue */
+        get: operations["list-referral-milestones"];
+        put?: never;
+        /**
+         * Add a milestone with its reward and a milestone email
+         * @description A Stripe coupon reward also needs earn:edit and Stripe connected.
+         */
+        post: operations["create-referral-milestone"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/off": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Turn a program off: links lead to the normal subscribe page and Referral blocks hide
+         * @description Earned rewards stay available on readers' hubs; counted referrals and sent rewards are kept.
+         */
+        post: operations["turn-off-referral-program"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/on": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Turn a program on: every confirmed subscriber of its list gets a link */
+        post: operations["turn-on-referral-program"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/referrers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Referrers by counted referrals, with search and filters */
+        get: operations["list-referrers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/referrers.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The referrers list as CSV (logged) */
+        get: operations["export-referrers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/referrers/{link}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A referrer: their link, progress, referrals and rewards */
+        get: operations["get-referrer"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/referrers/{link}/pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pause a referrer's link: it leads to the normal subscribe page */
+        post: operations["pause-referral-link"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/referrers/{link}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resume a referrer's paused link */
+        post: operations["resume-referral-link"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A program's results: the funnel, confirmed referrals over time, channels, top referrers, rewards and quality */
+        get: operations["get-referral-results"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Held referrals grouped by referrer, with their evidence */
+        get: operations["get-referral-review"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/review/decide": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Count held referrals, don't count them, or don't count them and pause the link
+         * @description People only: MCP agents can propose a decision (propose_referral_decision), never make one. Undo works for 10 seconds.
+         */
+        post: operations["decide-referrals"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/review/decisions/{decision}/undo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Undo a decision within 10 seconds */
+        post: operations["undo-referral-decision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/review/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** What a decision on held referrals would do */
+        post: operations["preview-referral-decision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Change the counting rules, pages, leaderboard and milestone emails' sender
+         * @description Changes apply going forward: counted referrals and sent rewards never change.
+         */
+        put: operations["update-referral-settings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/settings/impact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** What a change of the counting rules does to referrals not decided yet */
+        post: operations["referral-settings-impact"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Keep the set-up guide's step (and the list, until the program has been on) */
+        put: operations["save-referral-setup"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/rewards/{reward}/claim-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** A coupon reward's claim link to copy (logged) */
+        post: operations["copy-referral-claim-link"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/rewards/{reward}/fulfill": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark a manual reward fulfilled, with a note the referrer sees */
+        post: operations["fulfill-referral-reward"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/rewards/{reward}/resend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send a reward's milestone email again */
+        post: operations["resend-referral-reward"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/rewards/{reward}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Try a failed webhook reward again */
+        post: operations["retry-referral-reward"];
         delete?: never;
         options?: never;
         head?: never;
@@ -15355,6 +16405,24 @@ export interface components {
             description: string;
             name: string;
         };
+        AutomationMilestoneOption: {
+            /**
+             * Format: int64
+             * @example 3
+             */
+            count: number;
+            id: string;
+            /**
+             * @description The list of the milestone's referral program
+             * @example Weekly Digest
+             */
+            listName: string;
+            /** @example 3 referrals · The Acme Field Guide */
+            name: string;
+            programId: string;
+            /** @example The Acme Field Guide */
+            reward: string;
+        };
         AutomationNode: {
             data: components["schemas"]["AutomationNodeData"];
             id: string;
@@ -15390,6 +16458,7 @@ export interface components {
             fields: components["schemas"]["AutomationFieldOption"][];
             forms: components["schemas"]["AutomationFormOption"][];
             lists: components["schemas"]["AutomationOptionItem"][];
+            milestones: components["schemas"]["AutomationMilestoneOption"][];
             products: components["schemas"]["AutomationOptionItem"][];
             providers: components["schemas"]["AutomationRouteProvider"][];
             scoreBands?: components["schemas"]["ScoringBands"];
@@ -15633,8 +16702,9 @@ export interface components {
             formId?: string;
             includeImports?: boolean;
             /** @enum {string} */
-            kind: "joined_list" | "form_submitted" | "tag_added" | "api_event" | "date_field" | "score_crosses" | "poll_answered" | "bought_product";
+            kind: "joined_list" | "form_submitted" | "tag_added" | "api_event" | "date_field" | "score_crosses" | "poll_answered" | "bought_product" | "milestone_reached";
             listId?: string;
+            milestoneId?: string;
             /** Format: int64 */
             offsetDays?: number;
             onChange?: boolean;
@@ -15642,6 +16712,7 @@ export interface components {
             onceInDays?: number;
             poll?: string;
             productId?: string;
+            programId?: string;
             reentry?: string;
             tag?: string;
             /** Format: int64 */
@@ -15716,10 +16787,39 @@ export interface components {
             /** Format: int64 */
             version: number;
         };
+        BlockHiddenRec: {
+            id: string;
+            initials: string;
+            name: string;
+            pausedBy: string;
+            state: string;
+        };
         BlockInput: {
             /** Format: int64 */
             index?: number;
             key?: string;
+        };
+        BlockOption: {
+            hidden: boolean;
+            id: string;
+            initials: string;
+            /** @enum {string} */
+            kind: "link" | "partner";
+            name: string;
+            showBlock: boolean;
+            state: string;
+        };
+        BlockRender: {
+            hidden: components["schemas"]["BlockHiddenRec"][];
+            html: string;
+            options: components["schemas"]["BlockOption"][];
+            pageUrl: string;
+            settings: components["schemas"]["RecommendationsBlock"];
+            /** Format: int64 */
+            shows: number;
+        };
+        BlockRenderInput: {
+            settings?: unknown;
         };
         BlockSegment: {
             alt?: string;
@@ -19788,6 +20888,155 @@ export interface components {
         FormPages: {
             items: components["schemas"]["FormPage"][];
         };
+        GrowBlockRender: {
+            /** Format: int64 */
+            count: number;
+            for: string;
+            /** @enum {string} */
+            hidden: "none" | "not_on_list" | "program_off" | "no_program";
+            html: string;
+            listName: string;
+            /** Format: date-time */
+            offAt?: string;
+            offBy: string;
+            programId: string;
+            reward: components["schemas"]["RewardBlock"];
+            settings: components["schemas"]["ReferralBlock"];
+        };
+        GrowBlockRenderInput: {
+            /** Format: uuid */
+            contactId?: string;
+            /** @enum {string} */
+            kind: "referral" | "reward";
+            /** Format: uuid */
+            milestoneId?: string;
+            settings?: unknown;
+        };
+        GrowHelperSets: {
+            connect: string[];
+            earn: string[];
+            edit: string[];
+            export: string[];
+            review: string[];
+        };
+        GrowNamedCount: {
+            /** Format: int64 */
+            count: number;
+            name: string;
+        };
+        GrowNeed: {
+            /** Format: date-time */
+            at: string;
+            /** Format: int64 */
+            codesLeft: number;
+            /** Format: int64 */
+            count: number;
+            expires: string[];
+            /** @enum {string} */
+            kind: "held" | "partner_invalid" | "partner_unreachable" | "unclaimed" | "codes_out" | "codes_low" | "webhook_failing" | "to_fulfill" | "stripe_missing" | "file_missing";
+            /** Format: int64 */
+            milestone: number;
+            milestoneId: string;
+            partner: string;
+            people: components["schemas"]["GrowNamedCount"][];
+            /** @enum {string} */
+            reason: "signature_rejected" | "ended" | "unknown_link" | "";
+            reward: string;
+            /** Format: date-time */
+            since?: string;
+        };
+        GrowOverview: {
+            /**
+             * Format: date-time
+             * @description The period's first day (workspace time zone)
+             */
+            from: string;
+            helpers: components["schemas"]["GrowHelperSets"];
+            listId: string;
+            listName: string;
+            needsYou: components["schemas"]["GrowNeed"][];
+            programId: string;
+            /** Format: date-time */
+            programStart?: string;
+            /** @enum {string} */
+            programStatus: "on" | "off" | "";
+            /** Format: int64 */
+            recommendedBy: number;
+            /** Format: int64 */
+            recommends: number;
+            tiles: components["schemas"]["GrowOverviewTiles"];
+            /**
+             * Format: date-time
+             * @description Today
+             */
+            to: string;
+            /** Format: date-time */
+            updatedAt: string;
+            weeks: components["schemas"]["GrowWeek"][];
+        };
+        GrowOverviewTiles: {
+            /** Format: int64 */
+            confirmed: number;
+            /**
+             * Format: double
+             * @description Percent
+             */
+            conversion: number;
+            /** Format: int64 */
+            fromGrow: number;
+            /** Format: int64 */
+            newSubscribers: number;
+            /** Format: int64 */
+            partnerSignups: number;
+            partners: string[];
+            rewards: components["schemas"]["GrowRewardCount"][];
+            /** Format: int64 */
+            rewardsSent: number;
+            /** Format: int64 */
+            visits: number;
+        };
+        GrowPreviewContact: {
+            /** Format: int64 */
+            counted: number;
+            email: string;
+            id: string;
+            lists: string[];
+            name: string;
+            onList: boolean;
+        };
+        GrowPreviewContacts: {
+            items: components["schemas"]["GrowPreviewContact"][];
+            listName: string;
+            programId: string;
+            /** @enum {string} */
+            status: "on" | "off" | "";
+        };
+        GrowRewardCount: {
+            /** Format: int64 */
+            count: number;
+            /** Format: int64 */
+            milestone: number;
+            name: string;
+        };
+        GrowWeek: {
+            /** Format: int64 */
+            days: number;
+            /** Format: date-time */
+            end: string;
+            /**
+             * Format: int64
+             * @description Forms and other sources (imports left out)
+             */
+            other: number;
+            /** @description The week is still going */
+            partial: boolean;
+            /** Format: int64 */
+            partners: number;
+            /** Format: int64 */
+            referrals: number;
+            /** Format: date-time */
+            start: string;
+        };
         GrowthChart: {
             days: components["schemas"]["GrowthChartDay"][];
             series: components["schemas"]["GrowthSeries"][];
@@ -22718,7 +23967,7 @@ export interface components {
             /** @description Full sentence for the notification center */
             body: string;
             /** @enum {string} */
-            category: "approvals" | "sending" | "providers" | "team" | "hostrepute" | "other" | "integrations" | "transactional" | "earn" | "website";
+            category: "approvals" | "sending" | "providers" | "team" | "hostrepute" | "other" | "integrations" | "transactional" | "earn" | "website" | "grow";
             /** @example Approvals */
             categoryLabel: string;
             /** Format: date-time */
@@ -23349,6 +24598,85 @@ export interface components {
             logo: boolean;
             publisher: string;
         };
+        PartnerCodeCreated: {
+            code: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: int64 */
+            dailyLimit: number;
+            /** Format: date-time */
+            expiresAt: string;
+            id: string;
+            label: string;
+            listName: string;
+            url: string;
+        };
+        PartnerCodeInput: {
+            /** Format: int64 */
+            dailyLimit: number;
+            label: string;
+            /** Format: uuid */
+            listId: string;
+        };
+        PartnerCodeItem: {
+            /** Format: date-time */
+            createdAt: string;
+            createdBy: string;
+            /** Format: int64 */
+            dailyLimit: number;
+            /** Format: date-time */
+            expiresAt: string;
+            id: string;
+            label: string;
+            listName: string;
+        };
+        PartnerCodeText: {
+            code: string;
+        };
+        PartnerConnectInput: {
+            code: string;
+            showBlock: boolean;
+            showConfirm: boolean;
+        };
+        PartnerLimitInput: {
+            /** Format: int64 */
+            dailyLimit: number;
+        };
+        PartnerPreview: {
+            code: string;
+            /** Format: int64 */
+            dailyLimit: number;
+            description: string;
+            doubleOptIn: boolean;
+            initials: string;
+            instance: string;
+            list: string;
+            logoUrl: string;
+            name: string;
+        };
+        PartnerRequestItem: {
+            /** Format: date-time */
+            at: string;
+            /** Format: int64 */
+            attempts: number;
+            /** Format: date-time */
+            confirmedAt?: string;
+            id: string;
+            lastError: string;
+            /** @enum {string} */
+            origin: "confirm" | "page" | "partner";
+            /** @enum {string} */
+            status: "queued" | "accepted" | "limit" | "failed" | "rejected" | "paused";
+        };
+        PartnerRequestLog: {
+            /** @enum {string} */
+            direction: "out" | "in";
+            items: components["schemas"]["PartnerRequestItem"][];
+            linkId: string;
+            partner: string;
+            /** Format: int64 */
+            total: number;
+        };
         "Passkey-registerRequest": {
             challenge: string;
             /** @description The browser's RegistrationResponseJSON */
@@ -23403,7 +24731,7 @@ export interface components {
             /** @example first_name */
             key: string;
             /** @enum {string} */
-            kind: "contact" | "custom" | "system";
+            kind: "contact" | "custom" | "system" | "referral";
             /** @example First name */
             label: string;
         };
@@ -25898,6 +27226,160 @@ export interface components {
             /** Format: int64 */
             recipients: number;
         };
+        RecBlockUse: {
+            automation: string;
+            automationId: string;
+            emailId: string;
+            name: string;
+        };
+        RecImage: {
+            id: string;
+            name: string;
+            url: string;
+        };
+        RecLinkInput: {
+            description: string;
+            /** Format: uuid */
+            logoId?: string;
+            name: string;
+            showBlock: boolean;
+            showConfirm: boolean;
+            url: string;
+        };
+        RecListOption: {
+            id: string;
+            name: string;
+            /** Format: int64 */
+            subscribers: number;
+        };
+        RecOrderInput: {
+            ids: string[];
+        };
+        RecPrefill: {
+            description: string;
+            found: boolean;
+            logo?: components["schemas"]["RecImage"];
+            name: string;
+            url: string;
+        };
+        RecPrefillInput: {
+            url: string;
+        };
+        RecProfile: {
+            description: string;
+            initials: string;
+            instance: string;
+            listId: string;
+            listName: string;
+            /** Format: int64 */
+            listSubscribers: number;
+            logo?: components["schemas"]["RecImage"];
+            name: string;
+        };
+        RecProfileInput: {
+            description: string;
+            /** Format: uuid */
+            listId: string;
+            /** Format: uuid */
+            logoId?: string;
+            name: string;
+        };
+        RecSettingsInput: {
+            confirmPage: boolean;
+        };
+        RecommendationItem: {
+            /** Format: int64 */
+            clicks: number;
+            /** Format: int64 */
+            confirmed: number;
+            /** Format: date-time */
+            connectedAt?: string;
+            connectedBy: string;
+            /** Format: int64 */
+            dailyLimit: number;
+            description: string;
+            hidden: boolean;
+            host: string;
+            id: string;
+            initials: string;
+            /** @enum {string} */
+            invalidReason: "signature_rejected" | "ended" | "unknown_link" | "";
+            /** @enum {string} */
+            kind: "link" | "partner";
+            /** Format: date-time */
+            limitUntil?: string;
+            linkId: string;
+            logo?: components["schemas"]["RecImage"];
+            name: string;
+            pausedBy: string;
+            /** Format: int64 */
+            position: number;
+            /** Format: int64 */
+            requests: number;
+            showBlock: boolean;
+            showConfirm: boolean;
+            /** Format: int64 */
+            shown: number;
+            /** Format: int64 */
+            shownConfirm: number;
+            /** Format: int64 */
+            shownEmail: number;
+            /** Format: date-time */
+            since?: string;
+            /** @enum {string} */
+            state: "showing" | "paused" | "connected" | "partner_paused" | "invalid" | "limit" | "unreachable" | "ended";
+            /** Format: int64 */
+            today: number;
+            url: string;
+            /** Format: int64 */
+            waiting: number;
+        };
+        RecommendationsBlock: {
+            heading: string;
+            ids: string[];
+            intro: string;
+            /** @enum {string} */
+            layout: "stacked" | "columns" | "compact";
+            /** @enum {string} */
+            which: "all" | "pick";
+        };
+        RecommendationsView: {
+            /** Format: int64 */
+            blockShows: number;
+            blocks: components["schemas"]["RecBlockUse"][];
+            codes: components["schemas"]["PartnerCodeItem"][];
+            confirmPage: boolean;
+            confirmShows: string[];
+            helpers: components["schemas"]["GrowHelperSets"];
+            items: components["schemas"]["RecommendationItem"][];
+            lists: components["schemas"]["RecListOption"][];
+            pageUrl: string;
+            profile: components["schemas"]["RecProfile"];
+            recommendingYou: components["schemas"]["RecommendingYouItem"][];
+        };
+        RecommendingYouItem: {
+            /** Format: int64 */
+            confirmed: number;
+            connectedBy: string;
+            /** Format: int64 */
+            dailyLimit: number;
+            instance: string;
+            label: string;
+            linkId: string;
+            listName: string;
+            name: string;
+            /** Format: date-time */
+            pausedAt?: string;
+            pausedBy: string;
+            /** Format: int64 */
+            requests: number;
+            /** Format: date-time */
+            since: string;
+            /** @enum {string} */
+            state: "connected" | "paused" | "partner_paused" | "invalid";
+            /** Format: int64 */
+            today: number;
+        };
         RecoveryCodes: {
             codes: string[];
         };
@@ -25907,6 +27389,979 @@ export interface components {
             name: string;
             ref: string;
             suggested: boolean;
+        };
+        ReferralBlock: {
+            button: string;
+            /** @enum {string} */
+            layout: "line" | "progress" | "rewards";
+            /** Format: uuid */
+            program?: string;
+            progress: boolean;
+            share: string[];
+            texts: components["schemas"]["ReferralBlockTexts"];
+        };
+        ReferralBlockTexts: {
+            many: string;
+            none: string;
+            one: string;
+        };
+        ReferralBucket: {
+            /** Format: int64 */
+            confirmed: number;
+            /** Format: int64 */
+            days: number;
+            /** Format: date-time */
+            end: string;
+            partial: boolean;
+            /** Format: date-time */
+            start: string;
+        };
+        ReferralCampaignRef: {
+            id: string;
+            name: string;
+            /** Format: date-time */
+            scheduledAt?: string;
+        };
+        ReferralChannel: {
+            /** @enum {string} */
+            channel: "copy" | "x" | "linkedin" | "whatsapp" | "email" | "other";
+            /** Format: int64 */
+            signups: number;
+            /** Format: int64 */
+            visits: number;
+        };
+        ReferralCheck: {
+            account: string;
+            /** Format: int64 */
+            count: number;
+            counts: number[];
+            /** Format: int64 */
+            emails: number;
+            files: components["schemas"]["ReferralCheckFile"][];
+            /** @enum {string} */
+            key: "milestones" | "emails" | "files" | "stripe" | "sender";
+            missing: string[];
+            offer: string;
+            rewards: string[];
+            sender: string;
+            /** @enum {string} */
+            status: "pass" | "fail";
+        };
+        ReferralCheckFile: {
+            name: string;
+            /** Format: int64 */
+            size: number;
+        };
+        ReferralChecks: {
+            checks: components["schemas"]["ReferralCheck"][];
+            /** Format: int64 */
+            links: number;
+            nextIssue?: components["schemas"]["ReferralCampaignRef"];
+            pass: boolean;
+        };
+        ReferralClaimLink: {
+            /** Format: date-time */
+            expiresAt?: string;
+            url: string;
+        };
+        ReferralCodesInput: {
+            /** @description The codes, one per line; for CSV the first column */
+            text: string;
+        };
+        ReferralCodesResult: {
+            /** Format: int64 */
+            added: number;
+            /** Format: int64 */
+            duplicates: number;
+            /** Format: int64 */
+            left: number;
+            /** Format: int64 */
+            released: number;
+        };
+        ReferralContact: {
+            events: components["schemas"]["ReferralTimelineEvent"][];
+            referredBy?: components["schemas"]["ReferralContactReferredBy"];
+            referrer?: components["schemas"]["ReferralContactReferrer"];
+        };
+        ReferralContactReferredBy: {
+            /** Format: date-time */
+            countedAt?: string;
+            /** Format: date-time */
+            countsOn?: string;
+            linkId: string;
+            programId: string;
+            reason: string;
+            referrer: string;
+            referrerId: string;
+            /** @enum {string} */
+            status: "awaiting" | "hold" | "review" | "counted" | "not_counted";
+        };
+        ReferralContactReferrer: {
+            /** Format: int64 */
+            awaiting: number;
+            code: string;
+            /** Format: int64 */
+            counted: number;
+            /** Format: int64 */
+            held: number;
+            /** Format: int64 */
+            inHold: number;
+            link: string;
+            linkId: string;
+            /** @enum {string} */
+            linkStatus: "active" | "paused";
+            listName: string;
+            milestones: number[];
+            programId: string;
+            rewards: components["schemas"]["ReferralContactReward"][];
+            /** Format: int64 */
+            signups: number;
+            /** Format: int64 */
+            visits: number;
+        };
+        ReferralContactReward: {
+            /** Format: int64 */
+            milestone: number;
+            name: string;
+            /** Format: date-time */
+            sentAt?: string;
+            status: string;
+            /** Format: date-time */
+            usedAt?: string;
+        };
+        ReferralCounting: {
+            burst: components["schemas"]["ReferralRule"];
+            disposable: boolean;
+            /**
+             * Format: int64
+             * @enum {integer}
+             */
+            holdDays: 0 | 3 | 7 | 14 | 30;
+            left: boolean;
+            numbered: boolean;
+            sameIp: boolean;
+            sharedIp: components["schemas"]["ReferralRule"];
+        };
+        ReferralCouponOffer: {
+            appliesTo: string;
+            discount: string;
+            id: string;
+            /** Format: int64 */
+            issued: number;
+            name: string;
+            /** Format: int64 */
+            redeemed: number;
+        };
+        ReferralCreateInput: {
+            /** Format: uuid */
+            listId: string;
+        };
+        ReferralDecision: {
+            id: string;
+            preview: components["schemas"]["ReferralDecisionPreview"];
+            /** Format: date-time */
+            undoUntil: string;
+        };
+        ReferralDecisionInput: {
+            /** @enum {string} */
+            decision: "count" | "dont" | "dont_pause";
+            ids: string[];
+            note?: string;
+        };
+        ReferralDecisionPreview: {
+            /** Format: int64 */
+            after: number;
+            /** Format: int64 */
+            count: number;
+            /** Format: int64 */
+            counted: number;
+            decision: string;
+            /** Format: date-time */
+            holdEnds?: string;
+            now: boolean;
+            referrer: string;
+            rewards: string[];
+        };
+        ReferralEmailOnInput: {
+            on: boolean;
+        };
+        ReferralEmailPreviewInput: {
+            /** Format: uuid */
+            contactId?: string;
+            html?: string;
+            preheader?: string;
+            subject?: string;
+        };
+        ReferralEmailRender: {
+            for: string;
+            html: string;
+            preheader: string;
+            subject: string;
+        };
+        ReferralEmailSave: {
+            /** Format: int64 */
+            baseRevision: number;
+            html: string;
+            mjml: string;
+            preheader: string;
+            subject: string;
+        };
+        ReferralEmailSaved: {
+            /** Format: int64 */
+            revision: number;
+            /** Format: date-time */
+            savedAt: string;
+            /** Format: int64 */
+            version?: number;
+        };
+        ReferralEmailSettings: {
+            /** Format: int64 */
+            milestones: number;
+            /** Format: int64 */
+            on: number;
+            replyTo: string;
+            senderId: string;
+        };
+        ReferralEmailTest: {
+            /** Format: uuid */
+            contactId?: string;
+            html?: string;
+            preheader?: string;
+            subject?: string;
+            to: string[];
+        };
+        ReferralEmailTestResult: {
+            provider: string;
+            sent: string[];
+        };
+        ReferralEmailVersion: {
+            /** Format: date-time */
+            savedAt: string;
+            savedBy: string;
+            subject: string;
+            /** Format: int64 */
+            version: number;
+        };
+        ReferralEngagement: {
+            /** Format: int64 */
+            clicks: number;
+            joinedAfter: string;
+            opened: string[];
+            short: string[];
+        };
+        ReferralFile: {
+            contentType: string;
+            /** Format: int64 */
+            downloads: number;
+            id: string;
+            name: string;
+            /** Format: int64 */
+            size: number;
+            /** Format: date-time */
+            uploadedAt: string;
+            uploadedBy: string;
+        };
+        ReferralFilterOption: {
+            /** Format: int64 */
+            count: number;
+            linkId: string;
+            name: string;
+        };
+        ReferralFulfillInput: {
+            note?: string;
+        };
+        ReferralFulfillItem: {
+            address?: components["schemas"]["ReferralShippingAddress"];
+            contactId: string;
+            email: string;
+            /** Format: int64 */
+            milestone: number;
+            /** Format: date-time */
+            reachedAt: string;
+            referrer: string;
+            rewardId: string;
+            rewardName: string;
+        };
+        ReferralFunnel: {
+            /** Format: int64 */
+            confirmed: number;
+            /** Format: int64 */
+            counted: number;
+            /** Format: int64 */
+            held: number;
+            /** Format: date-time */
+            holdEndsBy?: string;
+            /** Format: int64 */
+            inHold: number;
+            /** Format: int64 */
+            notCounted: number;
+            reasons: components["schemas"]["ReferralReasonCount"][];
+            /** Format: int64 */
+            referrers: number;
+            /** Format: int64 */
+            rewardsSent: number;
+            /** Format: int64 */
+            signups: number;
+            /**
+             * Format: int64
+             * @description Never confirmed, or still waiting to confirm
+             */
+            unconfirmed: number;
+            /** Format: int64 */
+            visits: number;
+            /** Format: int64 */
+            weeks: number;
+        };
+        ReferralHeldItem: {
+            /** Format: date-time */
+            confirmedAt?: string;
+            email: string;
+            engagement: components["schemas"]["ReferralEngagement"];
+            /** Format: date-time */
+            holdEnds?: string;
+            id: string;
+            ip: string;
+            network: components["schemas"]["ReferralNetwork"];
+            signals: string[];
+            /** Format: date-time */
+            signedUpAt: string;
+        };
+        ReferralImage: {
+            /** Format: int64 */
+            height: number;
+            id: string;
+            name: string;
+            /** Format: int64 */
+            size: number;
+            url: string;
+            /** Format: int64 */
+            width: number;
+        };
+        ReferralItem: {
+            /** Format: date-time */
+            confirmedAt?: string;
+            /** Format: date-time */
+            countedAt?: string;
+            /** Format: date-time */
+            countsOn?: string;
+            email: string;
+            id: string;
+            leftKind: string;
+            /** Format: int64 */
+            number: number;
+            reason: string;
+            /** Format: date-time */
+            remindedAt?: string;
+            /** Format: date-time */
+            signedUpAt: string;
+            /** @enum {string} */
+            status: "awaiting" | "hold" | "review" | "counted" | "not_counted";
+        };
+        ReferralLeaderboardInput: {
+            on: boolean;
+        };
+        ReferralLeaderboardSettings: {
+            /** Format: date-time */
+            at?: string;
+            by: string;
+            on: boolean;
+            periods: ("month" | "all")[];
+            /**
+             * Format: int64
+             * @enum {integer}
+             */
+            rows: 5 | 10 | 25;
+            url: string;
+        };
+        ReferralLinkPauseInput: {
+            note?: string;
+        };
+        ReferralListOption: {
+            description: string;
+            id: string;
+            name: string;
+            /** Format: int64 */
+            subscribers: number;
+            taken: boolean;
+        };
+        ReferralMilestoneCnt: {
+            /** Format: int64 */
+            count: number;
+            /** Format: int64 */
+            referrers: number;
+        };
+        ReferralMilestoneEmail: {
+            emailId: string;
+            on: boolean;
+            /** Format: date-time */
+            savedAt?: string;
+            subject: string;
+            /** Format: int64 */
+            versions: number;
+        };
+        ReferralMilestoneEmailDetail: {
+            /** Format: int64 */
+            count: number;
+            description: string;
+            fileName: string;
+            /** Format: int64 */
+            fileSize: number;
+            fileType: string;
+            html: string;
+            listName: string;
+            milestoneId: string;
+            mjml: string;
+            on: boolean;
+            preheader: string;
+            programId: string;
+            /** Format: int64 */
+            revision: number;
+            rewardName: string;
+            rewardType: string;
+            /** Format: date-time */
+            savedAt?: string;
+            sender: string;
+            senderDefault: boolean;
+            subject: string;
+            uploadedBy: string;
+            versions: components["schemas"]["ReferralEmailVersion"][];
+        };
+        ReferralMilestoneHealth: {
+            /** Format: int64 */
+            codesLeft: number;
+            /** Format: int64 */
+            failures: number;
+            /** @enum {string} */
+            kind: "healthy" | "codes_low" | "codes_out" | "webhook_failing" | "stripe_missing" | "file_missing";
+            /** Format: int64 */
+            lastStatus: number;
+            /** Format: double */
+            runOutDays?: number;
+            /** @enum {string} */
+            status: "ok" | "warn" | "bad";
+            /** Format: int64 */
+            waiting: number;
+        };
+        ReferralMilestoneInput: {
+            askAddress?: boolean;
+            /** Format: int64 */
+            codesAlertBelow?: number;
+            /** Format: int64 */
+            count: number;
+            couponOfferId?: string;
+            /**
+             * Format: int64
+             * @enum {integer}
+             */
+            couponValidDays?: 0 | 30 | 60 | 90;
+            downloadUrl?: string;
+            emailOn: boolean;
+            /** Format: uuid */
+            fileId?: string;
+            /** Format: uuid */
+            imageId?: string;
+            rewardDescription: string;
+            rewardName: string;
+            /** @enum {string} */
+            type: "download" | "codes" | "manual" | "coupon" | "webhook";
+            webhookSecret?: string;
+            webhookUrl?: string;
+        };
+        ReferralMilestoneList: {
+            files: components["schemas"]["ReferralFile"][];
+            helpers: components["schemas"]["GrowHelperSets"];
+            items: components["schemas"]["ReferralMilestoneView"][];
+            listName: string;
+            programId: string;
+            sender: string;
+            showAddresses: boolean;
+            stripe: components["schemas"]["ReferralStripe"];
+            toFulfill: components["schemas"]["ReferralFulfillItem"][];
+        };
+        ReferralMilestoneStats: {
+            /** Format: int64 */
+            failed: number;
+            /** Format: int64 */
+            reached: number;
+            /** Format: int64 */
+            sent: number;
+            /** Format: int64 */
+            toFulfill: number;
+            /** Format: int64 */
+            used: number;
+            /** Format: int64 */
+            waiting: number;
+            /** Format: int64 */
+            waitingCodes: number;
+        };
+        ReferralMilestoneView: {
+            askAddress: boolean;
+            /** Format: int64 */
+            codesAlertBelow: number;
+            /** Format: int64 */
+            codesLeft: number;
+            /** Format: int64 */
+            codesUploaded: number;
+            /** Format: int64 */
+            count: number;
+            couponOfferId: string;
+            couponOfferName: string;
+            /** Format: int64 */
+            couponValidDays: number;
+            downloadUrl: string;
+            email: components["schemas"]["ReferralMilestoneEmail"];
+            file?: components["schemas"]["ReferralFile"];
+            health: components["schemas"]["ReferralMilestoneHealth"];
+            id: string;
+            image?: components["schemas"]["ReferralImage"];
+            rewardDescription: string;
+            rewardName: string;
+            stats: components["schemas"]["ReferralMilestoneStats"];
+            /** @enum {string} */
+            type: "download" | "codes" | "manual" | "coupon" | "webhook";
+            /** Format: date-time */
+            webhookCalledAt?: string;
+            webhookSecretSet: boolean;
+            /** Format: int64 */
+            webhookStatus?: number;
+            webhookUrl: string;
+        };
+        ReferralNetwork: {
+            asn: string;
+            cidr: string;
+            /** @enum {string} */
+            kind: "hosting" | "office" | "residential" | "mobile" | "";
+            name: string;
+        };
+        ReferralPageSettings: {
+            hubIntro: string;
+            inviteHeadline: string;
+            inviteText: string;
+            shareButtons: ("copy" | "email" | "x" | "linkedin" | "whatsapp")[];
+            shareMessage: string;
+        };
+        ReferralPerson: {
+            contactId: string;
+            /** Format: int64 */
+            counted: number;
+            email: string;
+            firstName: string;
+            linkId: string;
+            /** @enum {string} */
+            linkStatus: "active" | "paused";
+            name: string;
+            /**
+             * Format: date-time
+             * @description On the program's list since
+             */
+            since?: string;
+        };
+        ReferralProgramDetail: {
+            announcedIn: string;
+            /** Format: int64 */
+            awaiting: number;
+            counting: components["schemas"]["ReferralCounting"];
+            emails: components["schemas"]["ReferralEmailSettings"];
+            /** Format: int64 */
+            held: number;
+            /** Format: date-time */
+            heldOldest?: string;
+            helpers: components["schemas"]["GrowHelperSets"];
+            id: string;
+            /** Format: int64 */
+            inHold: number;
+            leaderboard: components["schemas"]["ReferralLeaderboardSettings"];
+            linkExample: string;
+            linkHost: string;
+            /** Format: int64 */
+            links: number;
+            listId: string;
+            listName: string;
+            pages: components["schemas"]["ReferralPageSettings"];
+            senders: components["schemas"]["ReferralSenderOption"][];
+            /** Format: date-time */
+            setupSavedAt?: string;
+            setupSavedBy: string;
+            /** Format: int64 */
+            setupStep: number;
+            /** Format: date-time */
+            startedAt?: string;
+            startedBy: string;
+            /** @enum {string} */
+            status: "off" | "on";
+            /** Format: date-time */
+            statusAt?: string;
+            statusBy: string;
+            /** Format: int64 */
+            subscribers: number;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        ReferralProgramList: {
+            helpers: components["schemas"]["GrowHelperSets"];
+            items: components["schemas"]["ReferralProgramSummary"][];
+            lists: components["schemas"]["ReferralListOption"][];
+        };
+        ReferralProgramSummary: {
+            id: string;
+            listId: string;
+            listName: string;
+            /**
+             * Format: int64
+             * @description The set-up guide's step (1 to 5) until the program is first turned on; 0 afterwards
+             */
+            setupStep: number;
+            /** Format: date-time */
+            startedAt?: string;
+            /** @enum {string} */
+            status: "off" | "on";
+            /** Format: int64 */
+            subscribers: number;
+        };
+        ReferralQuality: {
+            bounced: components["schemas"]["ReferralQualityLine"];
+            campaign: string;
+            enough: boolean;
+            opens: components["schemas"]["ReferralQualityLine"];
+            /** Format: int64 */
+            referred: number;
+            unsubscribed: components["schemas"]["ReferralQualityLine"];
+        };
+        ReferralQualityLine: {
+            /** Format: double */
+            others: number;
+            /** Format: int64 */
+            othersN: number;
+            /** Format: int64 */
+            othersOf: number;
+            /** Format: double */
+            referred: number;
+            /** Format: int64 */
+            referredN: number;
+            /** Format: int64 */
+            referredOf: number;
+        };
+        ReferralReasonCount: {
+            /** Format: int64 */
+            count: number;
+            leftKind: string;
+            /** @enum {string} */
+            reason: "self" | "same_ip" | "disposable" | "left" | "already" | "never_confirmed" | "reviewer";
+        };
+        ReferralReferrerList: {
+            /** Format: int64 */
+            heldReferrers: number;
+            helpers: components["schemas"]["GrowHelperSets"];
+            items: components["schemas"]["ReferralReferrerRow"][];
+            milestoneCounts: components["schemas"]["ReferralMilestoneCnt"][];
+            /** Format: int64 */
+            page: number;
+            /** Format: int64 */
+            pausedLinks: number;
+            showAddresses: boolean;
+            /** Format: int64 */
+            total: number;
+            /** Format: int64 */
+            withCounted: number;
+        };
+        ReferralReferrerPanel: {
+            code: string;
+            helpers: components["schemas"]["GrowHelperSets"];
+            link: string;
+            /** Format: date-time */
+            linkCreated: string;
+            pauseNote: string;
+            /** Format: date-time */
+            pausedAt?: string;
+            pausedBy: string;
+            /** Format: int64 */
+            pausedNotCounted: number;
+            pausedSignals: string[];
+            referrals: components["schemas"]["ReferralItem"][];
+            referrer: components["schemas"]["ReferralPerson"];
+            rewards: components["schemas"]["ReferralRewardItem"][];
+            showAddresses: boolean;
+            showLeaderboard: boolean;
+            showName: boolean;
+            /** Format: int64 */
+            signups: number;
+            track: components["schemas"]["ReferralTrack"];
+            /** Format: int64 */
+            visits: number;
+        };
+        ReferralReferrerRow: {
+            contactId: string;
+            /** Format: int64 */
+            counted: number;
+            email: string;
+            /** Format: int64 */
+            held: number;
+            /** Format: int64 */
+            inHold: number;
+            /** Format: date-time */
+            lastReferral?: string;
+            linkId: string;
+            /** @enum {string} */
+            linkStatus: "active" | "paused";
+            milestones: number[];
+            name: string;
+            /** Format: int64 */
+            notCounted: number;
+            /** Format: int64 */
+            rewardsSent: number;
+            unclaimed: string;
+        };
+        ReferralRemoved: {
+            /** Format: int64 */
+            removed: number;
+        };
+        ReferralResults: {
+            channels: components["schemas"]["ReferralChannel"][];
+            /** @description 20 confirmed referrals or more */
+            enough: boolean;
+            /** Format: date-time */
+            from: string;
+            funnel: components["schemas"]["ReferralFunnel"];
+            /** @enum {string} */
+            grouping: "day" | "week";
+            overTime: components["schemas"]["ReferralBucket"][];
+            /** @enum {string} */
+            period: "7d" | "30d" | "all";
+            program: components["schemas"]["ReferralProgramDetail"];
+            quality: components["schemas"]["ReferralQuality"];
+            rewards: components["schemas"]["ReferralRewardRow"][];
+            /** Format: date-time */
+            to: string;
+            top: components["schemas"]["ReferralTopReferrer"][];
+            /** Format: int64 */
+            withTen: number;
+            /** Format: int64 */
+            withThree: number;
+        };
+        ReferralReviewGroup: {
+            confirmedDays: string[];
+            /** Format: int64 */
+            days: number;
+            differentNames: boolean;
+            engaged: boolean;
+            holdEnds: string[];
+            items: components["schemas"]["ReferralHeldItem"][];
+            /** Format: int64 */
+            opened: number;
+            openedIn: string;
+            referrer: components["schemas"]["ReferralPerson"];
+            sameDomain: string;
+            signals: components["schemas"]["ReferralSignal"][];
+            /** @enum {string} */
+            suggestion: "dont_pause" | "count" | "";
+        };
+        ReferralReviewQueue: {
+            groups: components["schemas"]["ReferralReviewGroup"][];
+            /** Format: int64 */
+            held: number;
+            helpers: components["schemas"]["GrowHelperSets"];
+            /** Format: int64 */
+            holdDays: number;
+            /** Format: date-time */
+            oldest?: string;
+            referrers: components["schemas"]["ReferralFilterOption"][];
+            showAddresses: boolean;
+            signals: components["schemas"]["ReferralSignalCount"][];
+        };
+        ReferralRewardItem: {
+            code?: string;
+            error: string;
+            /** Format: date-time */
+            expiresAt?: string;
+            fileName: string;
+            /** Format: int64 */
+            fileSize: number;
+            fileType: string;
+            hasClaim: boolean;
+            id: string;
+            /** Format: int64 */
+            milestone: number;
+            name: string;
+            note: string;
+            /** Format: date-time */
+            reachedAt: string;
+            /** Format: date-time */
+            sentAt?: string;
+            /** @enum {string} */
+            status: "pending" | "sent" | "waiting_codes" | "to_fulfill" | "fulfilled" | "failed" | "expired";
+            /** @enum {string} */
+            type: "download" | "codes" | "manual" | "coupon" | "webhook";
+            /** Format: date-time */
+            usedAt?: string;
+        };
+        ReferralRewardRow: {
+            /** Format: int64 */
+            count: number;
+            /** Format: int64 */
+            failed: number;
+            milestoneId: string;
+            name: string;
+            /** Format: int64 */
+            reached: number;
+            /** Format: int64 */
+            sent: number;
+            type: string;
+            /** Format: int64 */
+            used: number;
+            /** Format: int64 */
+            waiting: number;
+        };
+        ReferralRule: {
+            on: boolean;
+            /** Format: int64 */
+            threshold: number;
+        };
+        ReferralSenderOption: {
+            default: boolean;
+            email: string;
+            id: string;
+            name: string;
+            verified: boolean;
+        };
+        ReferralSettingsImpact: {
+            /** Format: int64 */
+            awaiting: number;
+            /** Format: int64 */
+            holdFrom: number;
+            /** Format: int64 */
+            holdTo: number;
+            /** Format: int64 */
+            inHold: number;
+            rulesChanged: string[];
+        };
+        ReferralSettingsInput: {
+            /** Format: date-time */
+            baseUpdatedAt?: string;
+            counting: components["schemas"]["ReferralCounting"];
+            leaderboardPeriods: ("month" | "all")[];
+            /**
+             * Format: int64
+             * @enum {integer}
+             */
+            leaderboardRows: 5 | 10 | 25;
+            pages: components["schemas"]["ReferralPageSettings"];
+            replyTo: string;
+            /** Format: uuid */
+            senderId?: string;
+        };
+        ReferralSetupInput: {
+            /** Format: uuid */
+            listId?: string;
+            /** Format: int64 */
+            step: number;
+        };
+        ReferralShippingAddress: {
+            city: string;
+            country: string;
+            name: string;
+            street: string;
+        };
+        ReferralSignal: {
+            all: boolean;
+            /** Format: int64 */
+            count: number;
+            first: string;
+            /** Format: date-time */
+            from?: string;
+            ip: string;
+            /** @enum {string} */
+            kind: "burst" | "shared_ip" | "numbered";
+            last: string;
+            /** Format: int64 */
+            minutes: number;
+            network: components["schemas"]["ReferralNetwork"];
+            /** Format: int64 */
+            threshold: number;
+            /** Format: date-time */
+            to?: string;
+        };
+        ReferralSignalCount: {
+            kind: string;
+            /** Format: int64 */
+            referrers: number;
+        };
+        ReferralStripe: {
+            account: string;
+            connected: boolean;
+            offers: components["schemas"]["ReferralCouponOffer"][];
+        };
+        ReferralTimelineEvent: {
+            /** Format: date-time */
+            at: string;
+            /** Format: int64 */
+            counted: number;
+            /** @enum {string} */
+            kind: "joined" | "counted" | "milestone" | "reward_sent" | "partner_request";
+            /** Format: int64 */
+            milestone: number;
+            partner: string;
+            referrer: string;
+            referrerId: string;
+            reward: string;
+        };
+        ReferralTopReferrer: {
+            /** Format: int64 */
+            counted: number;
+            email: string;
+            /** Format: int64 */
+            held: number;
+            /** Format: int64 */
+            inHold: number;
+            /** Format: date-time */
+            lastReferral?: string;
+            linkId: string;
+            milestones: number[];
+            name: string;
+            unclaimed: string;
+        };
+        ReferralTrack: {
+            /** Format: int64 */
+            awaiting: number;
+            /** Format: int64 */
+            counted: number;
+            /** Format: int64 */
+            held: number;
+            /** Format: int64 */
+            inHold: number;
+            /** Format: int64 */
+            nextBySeq: number;
+            /** Format: int64 */
+            nextCount: number;
+            /**
+             * Format: date-time
+             * @description When the next referral in hold counts
+             */
+            nextHold?: string;
+            nextName: string;
+            points: components["schemas"]["ReferralTrackPoint"][];
+            /** Format: int64 */
+            toNext: number;
+        };
+        ReferralTrackPoint: {
+            /** Format: int64 */
+            count: number;
+            /** Format: date-time */
+            reachedAt?: string;
+            reward: string;
+        };
+        ReferralTurnedOn: {
+            /** Format: int64 */
+            linksCreated: number;
+            nextIssue?: components["schemas"]["ReferralCampaignRef"];
+            program: components["schemas"]["ReferralProgramDetail"];
+        };
+        ReferralWebhookTestResult: {
+            code: string;
+            error: string;
+            ok: boolean;
+            /** Format: int64 */
+            status: number;
+            url: string;
         };
         RemovalItem: {
             /** Format: int64 */
@@ -26484,6 +28939,13 @@ export interface components {
             languages?: string[];
             provider: string;
             to: string;
+        };
+        RewardBlock: {
+            button: string;
+            description: boolean;
+            expiry: boolean;
+            hub: boolean;
+            image: boolean;
         };
         RoleCreated: {
             id: string;
@@ -38984,7 +41446,7 @@ export interface operations {
                 /** @description Action group (routing) or action (routing.updated) */
                 action?: string;
                 /** @description A group of actions, as in the action filter */
-                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "ai" | "earn" | "verification" | "placement" | "website" | "products";
+                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "ai" | "earn" | "verification" | "placement" | "website" | "grow" | "products";
                 result?: "allowed" | "denied" | "error";
                 range?: "24h" | "7d" | "30d" | "90d" | "all";
                 /** @description Overrides range */
@@ -39066,7 +41528,7 @@ export interface operations {
                 /** @description Action group (routing) or action (routing.updated) */
                 action?: string;
                 /** @description A group of actions, as in the action filter */
-                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "ai" | "earn" | "verification" | "placement" | "website" | "products";
+                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "ai" | "earn" | "verification" | "placement" | "website" | "grow" | "products";
                 result?: "allowed" | "denied" | "error";
                 range?: "24h" | "7d" | "30d" | "90d" | "all";
                 /** @description Overrides range */
@@ -44603,6 +47065,39 @@ export interface operations {
             };
         };
     };
+    "get-contact-referrals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                contact: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralContact"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "resend-contact-optin": {
         parameters: {
             query?: never;
@@ -48737,6 +51232,2351 @@ export interface operations {
             };
         };
     };
+    "list-grow-preview-contacts": {
+        parameters: {
+            query?: {
+                program?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GrowPreviewContacts"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "render-recommendations-block": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BlockRenderInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BlockRender"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "render-grow-block": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GrowBlockRenderInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GrowBlockRender"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-referral-milestone": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                milestone: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralMilestoneView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-referral-milestone": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                milestone: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReferralMilestoneInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralMilestoneView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-referral-milestone": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                milestone: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "upload-referral-codes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                milestone: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReferralCodesInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralCodesResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-referral-codes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                milestone: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralRemoved"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-referral-milestone-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                milestone: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralMilestoneEmailDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "autosave-referral-milestone-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                milestone: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReferralEmailSave"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralEmailSaved"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-referral-milestone-email-on": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                milestone: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReferralEmailOnInput"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "preview-referral-milestone-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                milestone: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReferralEmailPreviewInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralEmailRender"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-referral-milestone-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                milestone: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReferralEmailSave"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralEmailSaved"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "test-referral-milestone-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                milestone: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReferralEmailTest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralEmailTestResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "test-referral-webhook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                milestone: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralWebhookTestResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-grow-overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GrowOverview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-partner-code": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PartnerCodeInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerCodeCreated"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "revoke-partner-code": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "check-partner-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                link: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecommendationItem"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "end-partner-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                link: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-partner-limit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                link: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PartnerLimitInput"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "pause-partner-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                link: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-partner-requests": {
+        parameters: {
+            query?: {
+                page?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                link: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerRequestLog"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "resume-partner-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                link: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "rotate-partner-secret": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                link: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "connect-partner": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PartnerConnectInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecommendationItem"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "preview-partner": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PartnerCodeText"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerPreview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "preview-grow-page": {
+        parameters: {
+            query?: {
+                /** @description The program (the first one by default) */
+                program?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                page: "invite" | "hub" | "leaderboard" | "recommends";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPagePreview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-recommendations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecommendationsView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "add-link-recommendation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecLinkInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecommendationItem"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "reorder-recommendations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecOrderInput"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "prefill-recommendation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecPrefillInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecPrefill"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-partner-profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecProfileInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecProfile"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-recommendation-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecSettingsInput"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-recommendation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                recommendation: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecLinkInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecommendationItem"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-recommendation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                recommendation: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "pause-recommendation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                recommendation: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecommendationItem"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "resume-recommendation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                recommendation: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecommendationItem"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-referral-programs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralProgramList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-referral-program": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReferralCreateInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralProgramDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-referral-program": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                program: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralProgramDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-referral-program": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                program: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-referral-checks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                program: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralChecks"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "upload-referral-file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                program: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralFile"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-referral-file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                program: string;
+                file: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "export-referral-fulfillment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                program: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control"?: string;
+                    "Content-Disposition"?: string;
+                    "Content-Type"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-referral-leaderboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                program: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReferralLeaderboardInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralProgramDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-referral-milestones": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                program: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralMilestoneList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-referral-milestone": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                program: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReferralMilestoneInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralMilestoneView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "turn-off-referral-program": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                program: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralProgramDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "turn-on-referral-program": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                program: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralTurnedOn"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-referrers": {
+        parameters: {
+            query?: {
+                q?: string;
+                /** @description 0 any, -1 none yet, n reached n */
+                milestone?: number;
+                held?: boolean;
+                paused?: boolean;
+                page?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                program: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralReferrerList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "export-referrers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                program: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control"?: string;
+                    "Content-Disposition"?: string;
+                    "Content-Type"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-referrer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                program: string;
+                link: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralReferrerPanel"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "pause-referral-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                program: string;
+                link: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReferralLinkPauseInput"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "resume-referral-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                program: string;
+                link: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-referral-results": {
+        parameters: {
+            query?: {
+                period?: "7d" | "30d" | "all";
+                grouping?: "day" | "week";
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                program: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralResults"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-referral-review": {
+        parameters: {
+            query?: {
+                signal?: "burst" | "shared_ip" | "numbered" | "";
+                referrer?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                program: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralReviewQueue"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "decide-referrals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                program: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReferralDecisionInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralDecision"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "undo-referral-decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                program: string;
+                decision: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "preview-referral-decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                program: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReferralDecisionInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralDecisionPreview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-referral-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                program: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReferralSettingsInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralProgramDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "referral-settings-impact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                program: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReferralCounting"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralSettingsImpact"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-referral-setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                program: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReferralSetupInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralProgramDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "copy-referral-claim-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                reward: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralClaimLink"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "fulfill-referral-reward": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                reward: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReferralFulfillInput"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "resend-referral-reward": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                reward: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "retry-referral-reward": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                reward: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "get-growth": {
         parameters: {
             query?: {
@@ -52327,7 +57167,7 @@ export interface operations {
         parameters: {
             query?: {
                 /** @description Notification center tab */
-                filter?: "all" | "unread" | "approvals" | "sending" | "providers" | "team" | "hostrepute" | "transactional" | "earn" | "website";
+                filter?: "all" | "unread" | "approvals" | "sending" | "providers" | "team" | "hostrepute" | "transactional" | "earn" | "website" | "grow";
                 /** @description Opaque cursor from a previous page */
                 cursor?: string;
                 limit?: number;

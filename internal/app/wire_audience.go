@@ -18,12 +18,16 @@ func init() {
 func (a *App) audience() *audience.Service {
 	return &audience.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Segments: a.segments(), Mail: a.Mail, Links: a.Links, URLs: a.URLs,
 		// Poll answers and survey responses, and what the contact bought.
-		Answers: audience.ActivitySources{audienceAnswers(a), audiencePurchases(a)}}
+		Answers: audience.ActivitySources{audienceAnswers(a), audiencePurchases(a)}, SourceNames: audienceSourceNames(a)}
 }
 
 // audiencePurchases adds what a contact bought to the timeline; the
 // products domain sets it from its wire file.
 var audiencePurchases = func(*App) audience.ActivitySource { return nil }
+
+// audienceSourceNames names Grow's sources in the contacts list and the
+// profile; Grow sets it from its wire file.
+var audienceSourceNames = func(*App) audience.SourceNamer { return nil }
 
 // audienceAnswers adds poll answers and survey responses to the contact
 // timeline; the polls domain sets it from its wire file.

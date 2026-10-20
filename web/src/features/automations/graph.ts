@@ -2,6 +2,7 @@ import type { Schemas } from '@/api/client'
 import { scoreTriggerDefaults } from '@/features/scoring/ScoreTrigger'
 import { isOneOfPhrase, scoreTriggerDetail, scoreTriggerName, scoreTriggerRef } from '@/features/scoring/triggerText'
 import { boughtGoalTitle, boughtPhrase, boughtRef, boughtTriggerName } from '@/features/products/automationText'
+import { milestoneTriggerDetail, milestoneTriggerName, milestoneTriggerRef } from '@/features/grow/triggerText'
 
 /*
  * Flow graph helpers shared by the canvas, the step panel and the tests:
@@ -30,9 +31,11 @@ export interface Refs {
   polls?: Map<string, string>
   /** Products the trigger and goal "Bought a product" name (id → name). */
   products?: Map<string, string>
+  /** Grow's referral milestones: "3 referrals · The Acme Field Guide". */
+  milestones?: Map<string, string>
 }
 
-export const emptyRefs: Refs = { lists: new Map(), forms: new Map(), emails: new Map(), providers: new Map(), fields: new Map() }
+export const emptyRefs: Refs = { lists: new Map(), forms: new Map(), emails: new Map(), providers: new Map(), fields: new Map(), milestones: new Map() }
 
 export function refsFrom(o: Schemas['AutomationOptions'] | undefined): Refs {
   if (!o) return emptyRefs
@@ -44,6 +47,7 @@ export function refsFrom(o: Schemas['AutomationOptions'] | undefined): Refs {
     fields: new Map(o.fields.map((f) => [f.key, { label: f.label, type: f.type }])),
     // Digital products (X19): published first, then others that sold.
     products: new Map((o.products ?? []).map((p) => [p.id, p.name])),
+    milestones: new Map(o.milestones.map((x) => [x.id, x.name])),
   }
 }
 
@@ -75,6 +79,10 @@ export const triggerKindLabels: Record<TriggerConfig['kind'], string> = {
   // Digital products (X19).
   get bought_product() {
     return boughtTriggerName()
+  },
+  // Grow (referral milestones).
+  get milestone_reached() {
+    return milestoneTriggerName()
   },
 }
 
@@ -216,6 +224,8 @@ export function triggerRef(t: TriggerConfig | undefined, refs: Refs): string {
       return refs.polls?.get(t.poll ?? '') ?? 'a poll or survey'
     case 'bought_product':
       return boughtRef(t.productId, refs.products?.get(t.productId ?? ''))
+    case 'milestone_reached':
+      return milestoneTriggerRef(t, refs.milestones)
   }
 }
 
@@ -347,6 +357,7 @@ export function nodeDetail(n: FlowNode): string {
         return `${when}${d.trigger.yearly ? ', every year' : ''} at ${d.trigger.at || '09:00'}`
       }
       if (d.trigger?.kind === 'score_crosses') return scoreTriggerDetail(d.trigger)
+      if (d.trigger?.kind === 'milestone_reached') return milestoneTriggerDetail()
       return ''
     case 'branch':
       if (d.condition?.kind === 'opened' && d.condition.humanOnly) return 'human opens only'

@@ -296,11 +296,25 @@ type AutomationOptions struct {
 	// Products are the digital products, for "Bought a product" (X19):
 	// published first, then the others that ever sold.
 	Products []AutomationOptionItem `json:"products"`
+	// Milestones are the referral milestones the "Reached a milestone"
+	// trigger can start on (Grow).
+	Milestones []AutomationMilestoneOption `json:"milestones"`
+}
+
+// AutomationMilestoneOption is a referral milestone a "Reached a
+// milestone" trigger can start on.
+type AutomationMilestoneOption struct {
+	ID        string `json:"id"`
+	ProgramID string `json:"programId"`
+	ListName  string `json:"listName" example:"Weekly Digest" doc:"The list of the milestone's referral program"`
+	Count     int    `json:"count" example:"3"`
+	Reward    string `json:"reward" example:"The Acme Field Guide"`
+	Name      string `json:"name" example:"3 referrals · The Acme Field Guide"`
 }
 
 // Options lists lists, forms, fields, emails, providers, tags and API events.
 func (s *Service) Options(ctx context.Context, ws *store.Workspace) (AutomationOptions, error) {
-	out := AutomationOptions{Lists: []AutomationOptionItem{}, Forms: []AutomationFormOption{}, Fields: []AutomationFieldOption{}, Emails: []AutomationEmailOption{}, Providers: []AutomationRouteProvider{}, Tags: []string{}, Events: []string{},
+	out := AutomationOptions{Lists: []AutomationOptionItem{}, Forms: []AutomationFormOption{}, Fields: []AutomationFieldOption{}, Emails: []AutomationEmailOption{}, Providers: []AutomationRouteProvider{}, Tags: []string{}, Events: []string{}, Milestones: []AutomationMilestoneOption{},
 		Products: []AutomationOptionItem{}}
 	if prods, err := s.Q.SegmentProductOptions(ctx, ws.ID); err == nil {
 		for _, p := range prods {
@@ -361,6 +375,14 @@ func (s *Service) Options(ctx context.Context, ws *store.Workspace) (AutomationO
 		return out, err
 	}
 	out.Events = append(out.Events, events...)
+	ms, err := s.Q.AutomationMilestones(ctx, ws.ID)
+	if err != nil {
+		return out, err
+	}
+	for _, m := range ms {
+		out.Milestones = append(out.Milestones, AutomationMilestoneOption{ID: m.ID.String(), ProgramID: m.ProgramID.String(), ListName: m.ListName,
+			Count: int(m.Count), Reward: m.RewardName, Name: milestoneName(m.Count, m.RewardName)})
+	}
 	return out, nil
 }
 

@@ -61,6 +61,8 @@ func TriggerKindLabel(kind string) string {
 		return "Answered a poll or survey"
 	case TriggerBoughtProduct:
 		return "Bought a product"
+	case TriggerMilestoneReached:
+		return "Reached a milestone"
 	}
 	return "Trigger"
 }
@@ -102,6 +104,16 @@ func TriggerRef(t *AutomationTrigger, refs *Refs) string {
 		return "a poll"
 	case TriggerBoughtProduct:
 		return productRef(t.ProductID, refs)
+	case TriggerMilestoneReached:
+		if t.MilestoneID == "" {
+			return "any milestone"
+		}
+		if refs != nil {
+			if n, ok := refs.Milestones[t.MilestoneID]; ok {
+				return n
+			}
+		}
+		return "a milestone"
 	}
 	return ""
 }

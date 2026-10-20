@@ -24,6 +24,8 @@ import { ConditionalOverlays, ConditionalToggle } from '@/features/conditional/C
 import { VersionsPanel } from '@/features/conditional/Versions'
 import { SurveyLinkChoices } from '@/features/surveys/LinkChoices'
 import { EmailWebToggle, WebOverlays } from '@/features/website/composer/campaign'
+import { GrowPreviewAs } from '@/features/grow/composer/Panel'
+import { mb as growMessages } from '@/features/grow/composer/messages'
 
 interface Box {
   top: number
@@ -194,6 +196,7 @@ function Toolbar({ zoom }: { zoom: number }) {
       <ViewSeg />
       <EmailWebToggle />
       {digest ? <DigestPreviewWith /> : <CanvasPreviewAs />}
+      <GrowPreviewAs editor={c.editor} slug={c.slug} rev={c.rev} campaignId={c.kind === 'transactional' ? undefined : c.campaign.id} />
       <ConditionalToggle />
       {digest?.preview === 'six' ? (
         // "6 items" shows the whole issue, zoomed out, instead of the canvas.
@@ -575,7 +578,13 @@ function RteToolbar({ host, tick }: { host: HTMLElement | null; tick: number }) 
         <span className="mh">Insert a token</span>
         <MouseShield keepFocus>
           <div className="flex max-h-[280px] flex-col overflow-auto">
-            {tokens.map((t) => (
+            {tokens.map((t, i) => [
+              // Grow's tokens under their own heading (design expansion, X15).
+              t.kind === 'referral' && tokens[i - 1]?.kind !== 'referral' ? (
+                <span key="referral-group" className="mh">
+                  {tt(growMessages.tokensReferral)}
+                </span>
+              ) : null,
               <button
                 key={t.key}
                 type="button"
@@ -588,9 +597,9 @@ function RteToolbar({ host, tick }: { host: HTMLElement | null; tick: number }) 
                 }}
               >
                 <span>{t.label}</span>
-                <span className="mono k">{t.key}</span>
-              </button>
-            ))}
+                <span className="mono k min-w-0 text-right [overflow-wrap:anywhere]">{t.key}</span>
+              </button>,
+            ])}
           </div>
         </MouseShield>
       </Popover>

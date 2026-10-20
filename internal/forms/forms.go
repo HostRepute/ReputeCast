@@ -61,6 +61,9 @@ type Service struct {
 	// (nil: forms keep ReputeCast's own checks only).
 	Addresses AddressChecker
 	Now       func() time.Time
+	// Hooks are told about signups and confirmations (Grow's referrals),
+	// read at call time.
+	Hooks func() []SignupHook
 
 	limitsOnce sync.Once
 	limits     *limiter

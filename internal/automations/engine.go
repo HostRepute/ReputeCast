@@ -219,8 +219,25 @@ func triggerMatches(t AutomationTrigger, ev store.ClaimAutomationEventsRow) bool
 		return pollTriggerMatches(t, ev)
 	case TriggerBoughtProduct:
 		return productTriggerMatches(t, ev)
+	case TriggerMilestoneReached:
+		return milestoneTriggerMatches(t, ev)
 	}
 	return false
+}
+
+// milestoneTriggerMatches: the trigger's milestone, or any milestone of its
+// program (any program's when it has none).
+func milestoneTriggerMatches(t AutomationTrigger, ev store.ClaimAutomationEventsRow) bool {
+	if t.MilestoneID != "" {
+		return t.MilestoneID == ev.Ref
+	}
+	if t.ProgramID == "" {
+		return true
+	}
+	var p struct {
+		Program string `json:"program"`
+	}
+	return json.Unmarshal(ev.Payload, &p) == nil && p.Program == t.ProgramID
 }
 
 // stepID reads an id stored in a step's settings. A malformed one means
@@ -239,6 +256,12 @@ func (s *Service) enroll(ctx context.Context, q *store.Queries, stats statsBuf, 
 	}
 	if t.Kind == TriggerScoreCrosses {
 		if ok, err := scoreTriggerAllows(ctx, q, t, f.ID, ev.ContactID, now); err != nil || !ok {
+			return false, err
+		}
+	} else if t.Kind == TriggerMilestoneReached {
+		// Once per contact per milestone.
+		found, err := q.AutomationMilestoneRunExists(ctx, store.AutomationMilestoneRunExistsParams{AutomationID: f.ID, ContactID: ev.ContactID, Ref: ev.Ref})
+		if err != nil || found {
 			return false, err
 		}
 	} else if t.Reentry != "always" && !pollReentry(t, ev) {

@@ -145,6 +145,9 @@ func (s *Service) Profile(ctx context.Context, ws *store.Workspace, id uuid.UUID
 	if out.Tags == nil {
 		out.Tags = []string{}
 	}
+	if n, ok := s.nameSources(ctx, ws.ID, []uuid.UUID{c.ID}, []string{c.Source})[c.ID]; ok {
+		out.SourceLabel = n
+	}
 	if sup, err := s.Q.GetSuppressionByEmail(ctx, store.GetSuppressionByEmailParams{WorkspaceID: ws.ID, Email: c.Email}); err == nil {
 		out.Suppression = &ContactProfileSuppression{ID: sup.ID.String(), Reason: sup.Reason, Scope: sup.Scope, At: sup.CreatedAt}
 	}

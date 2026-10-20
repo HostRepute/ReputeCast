@@ -60,6 +60,9 @@ type Service struct {
 	// and clicks are never counted (internal/placement).
 	Placement PlacementLinks
 	Now       func() time.Time
+	// Recipients add the per-reader variables of blocks (Grow's
+	// referral.* links) to personalized links; nil adds none.
+	Recipients func() []liquid.RecipientData
 
 	once  sync.Once
 	in    chan *pending
@@ -270,7 +273,12 @@ func (s *Service) target(ctx context.Context, c linktoken.Claims) (string, error
 		if ct, err := s.Q.TrackingContactVars(ctx, *m.ContactID); err == nil {
 			var attrs map[string]any
 			_ = json.Unmarshal(ct.Attributes, &attrs)
-			if out, err := liquid.Render(raw, liquid.Vars(ct.Email, ct.FirstName, ct.LastName, attrs, nil)); err == nil {
+			vars := liquid.Vars(ct.Email, ct.FirstName, ct.LastName, attrs, nil)
+			if s.Recipients != nil {
+				r := liquid.Recipient{ContactID: *m.ContactID, MessageID: m.ID, EmailID: refOf(m.ContentRef).Email}
+				vars = liquid.Fill(ctx, s.Recipients(), m.WorkspaceID, r, raw, vars)
+			}
+			if out, err := liquid.Render(raw, vars); err == nil {
 				raw = strings.TrimSpace(out)
 			}
 		}

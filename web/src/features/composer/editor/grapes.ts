@@ -1,6 +1,7 @@
 import type { Editor } from 'grapesjs'
 import type { ComponentPluginOptions } from 'grapesjs-mjml'
 import { loadFeedItems } from '@/features/digests/composer/feedComponent'
+import { loadGrowBlocks } from '@/features/grow/composer/blocks'
 import { canvasCss } from './canvasCss'
 import { encodeTables, loadTable } from './components'
 import { installMjmlHooks, type MjmlCompile } from './mjmlHooks'
@@ -109,6 +110,8 @@ export async function createComposerEditor(container: HTMLElement, opts: CreateO
             (e: Editor, o: ComponentPluginOptions) => loadTable(e, o),
             // A recurring digest's Feed items block (it only appears in digest templates).
             (e: Editor, o: ComponentPluginOptions) => loadFeedItems(e, o),
+            // Grow's Referral, Recommendations and Reward blocks (design expansion, X15).
+            (e: Editor, o: ComponentPluginOptions) => loadGrowBlocks(e, o),
             (_e: Editor, o: ComponentPluginOptions) => {
               compile = installMjmlHooks(ed, o, opts.head)
             },

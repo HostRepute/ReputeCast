@@ -380,6 +380,37 @@ export const entries: Entry[] = [
   { board: 'PublicAccount', manual: true },
   { board: 'PublicAccountPhone', manual: true },
   { board: 'PublicSiteStates', manual: true },
+  // X15 · Grow. The Weekly Digest program, its referrers, review queue and the recommendations come
+  // from the demo. The set-up guide shows for a program that was never on; the composer's Grow
+  // blocks need a block added to a draft (Weekly Digest #143, Blocks › Grow); the hub, the
+  // recommendations page and the leaderboard's own row need a reader's signed link; the states need
+  // data changes (program off, codes low or out, a failing webhook, partner states).
+  { board: 'GrowOverview', path: `${ws}/grow`, widths: [1440] },
+  { board: 'GrowOverviewTablet', path: `${ws}/grow`, widths: [834] },
+  { board: 'GrowOverviewPhone', path: `${ws}/grow`, widths: [390] },
+  { board: 'GrowStates', manual: true },
+  { board: 'Referrals', path: `${ws}/grow/referrals`, widths: [1440] },
+  { board: 'ReferralsTablet', path: `${ws}/grow/referrals`, widths: [834] },
+  { board: 'ReferralsPhone', path: `${ws}/grow/referrals`, widths: [390] },
+  { board: 'ReferralSetup', manual: true },
+  { board: 'ReferralMilestones', path: `${ws}/grow/referrals/milestones`, widths: [1440] },
+  { board: 'ReferralReferrers', path: `${ws}/grow/referrals/referrers`, widths: [1440] },
+  { board: 'ReferralReview', path: `${ws}/grow/referrals/review`, widths: [1440] },
+  { board: 'ReferralReviewPhone', path: `${ws}/grow/referrals/review`, widths: [390] },
+  { board: 'ReferralSettings', path: `${ws}/grow/referrals/settings`, widths: [1440] },
+  { board: 'ReferralStates', manual: true },
+  { board: 'ComposerGrowBlocks', manual: true },
+  { board: 'Recommendations', path: `${ws}/grow/recommendations`, widths: [1440] },
+  { board: 'RecommendationsTablet', path: `${ws}/grow/recommendations`, widths: [834] },
+  { board: 'RecommendationsPhone', path: `${ws}/grow/recommendations`, widths: [390] },
+  { board: 'RecommendationStates', manual: true },
+  { board: 'PublicReferralHub', manual: true },
+  { board: 'PublicReferralHubPhone', manual: true },
+  { board: 'PublicReferralInvite', path: '/p/acme-newsletter/join/K7Q2MX', user: 'anon', widths: [720] },
+  { board: 'PublicReferralInvitePhone', path: '/p/acme-newsletter/join/K7Q2MX', user: 'anon', widths: [390] },
+  { board: 'PublicRecommendations', manual: true },
+  { board: 'PublicRecommendationsPhone', manual: true },
+  { board: 'PublicGrowStates', manual: true },
   // X19 · Forms & public pages › Pages. PagesStates' frames: the template picker is
   // forms/pages?new=sales, read-only is the list as aisha@acme.io, the empty list is a workspace
   // without pages, loading and error need a slow or failing API; Daniel Park's draft is the page

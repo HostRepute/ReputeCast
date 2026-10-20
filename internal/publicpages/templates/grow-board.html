@@ -1,0 +1,26 @@
+{{define "content"}}{{with .Body}}<main class="card g18" id="main">
+  {{template "brand" $}}
+  <div class="col4"><h1 class="h26">{{$.G "board.title"}}</h1><p class="sub">{{$.G "board.sub" "list" .ListName}}</p></div>
+  <div class="gsplit">
+    <nav class="gseg" aria-label="{{$.G "board.period"}}"><a href="{{.MonthHref}}"{{if .Month}} aria-current="page"{{end}}>{{$.G "board.month"}}</a><a href="{{.AllHref}}"{{if not .Month}} aria-current="page"{{end}}>{{$.G "board.all"}}</a></nav>
+    {{with .Since}}<span class="t13">{{.}}</span>{{end}}
+  </div>
+  {{if .Empty}}<p class="sub">{{$.G "board.empty"}}</p>{{else}}
+  <table class="gtable">
+    <caption class="vh">{{.ListLabel}}</caption>
+    <thead><tr><th scope="col">{{$.G "board.rank"}}</th><th scope="col">{{$.G "board.reader"}}</th><th scope="col" class="r">{{$.G "board.referrals"}}</th></tr></thead>
+    <tbody>{{range .Rows}}<tr{{if .Me}} class="me"{{end}}><td class="num">{{.Rank}}</td><td>{{.Name}}</td><td class="r num">{{.Counted}}</td></tr>{{end}}</tbody>
+  </table>
+  {{with .More}}<p class="t13">{{.}}</p>{{end}}{{end}}
+  {{if .HubURL}}<section class="gme col6" aria-labelledby="me-h">
+    <h2 class="t13b" id="me-h">{{$.G "board.yourPlace"}}</h2>
+    {{with .Me}}<table class="gtable"><tbody><tr class="me"><td class="num">{{.Rank}}</td><td>{{.Name}}</td><td class="r num">{{.Counted}}</td></tr></tbody></table>{{end}}
+    <p class="t13">{{.MeText}}</p>
+  </section>{{end}}
+  <p class="t13">{{$.G "board.note"}}</p>
+  {{with .HubURL}}<a class="btn-ghost start" href="{{.}}">{{$.G "board.hub"}}</a>{{end}}
+</main>{{end}}{{end}}
+{{define "foot"}}<footer class="foot">
+  {{- with .Privacy}}<a href="{{.}}">{{$.G "hub.privacyLink"}}</a>{{end}}
+  {{- if and .Privacy .PoweredBy}}{{template "sep"}}{{end}}
+  {{- template "rcplain" .}}</footer>{{end}}
