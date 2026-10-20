@@ -50,9 +50,12 @@ func TestPageSignupForms(t *testing.T) {
 	contact, _ := contactID(t, e.Env, e.ws.ID, email)
 
 	t.Run("a webinar registration", func(t *testing.T) {
+		// The joining link is on the page itself; reminders are promised
+		// while a live automation sends them ("DMARC live reminders" is live
+		// in the demo; DESIGN_INVENTORY: the reminder automation).
 		must(t, reg, http.StatusOK, "You're registered", "Live: Fix your DMARC setup in 30 minutes", start.Format("2 January 2006")+" · 17:00–17:30 UTC",
-			"We emailed the joining link to "+email+". Reminders come 1 day and 1 hour before.", "Add to calendar", "Google Calendar",
-			"https://calendar.google.com/calendar/render?")
+			"Your joining link", "https://acme.zoom.us/j/88412093371", "We'll email reminders to "+email+", 1 day and 1 hour before.",
+			"Add to calendar", "Google Calendar", "https://calendar.google.com/calendar/render?")
 		if cc := reg.Header.Get("Cache-Control"); !strings.Contains(cc, "no-store") {
 			t.Errorf("the registered page is cached: %q", cc)
 		}
