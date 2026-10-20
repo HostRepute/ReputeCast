@@ -88,6 +88,10 @@ func text(ctx context.Context, key string, args i18n.Args) string {
 	return msgs.M(key).Text(lang(ctx), args)
 }
 
+// Text is one of the shared sponsor report's words (internal/publicpages),
+// in English until the public pages are translated.
+func Text(key string, args i18n.Args) string { return msgs.M(key).Text(i18n.Default, args) }
+
 // problem is an RFC 9457 answer with its text from the catalog.
 func problem(ctx context.Context, status int, code, key string, args i18n.Args) *api.Problem {
 	return api.Err(status, code, text(ctx, key, args))

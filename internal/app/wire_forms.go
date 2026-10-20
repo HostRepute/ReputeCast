@@ -88,6 +88,8 @@ func (a *App) publicPages() *publicpages.Handler {
 		Offers: offerService(a),
 		// The gift and redeem pages (X17).
 		Gifts: giftService(a),
+		// Shared sponsor reports (X17).
+		Sponsors: sponsorService(a),
 		// The publication website's pages (X18).
 		Website: site,
 	}

@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
 	"strings"
 	"testing"
 	"time"
@@ -51,6 +53,25 @@ func testSlot(t *testing.T, env *apptest.Env, c *apptest.Client) (sponsor, slot 
 		t.Fatalf("slot: %+v", sl)
 	}
 	return sp.ID, sl.ID, first
+}
+
+// readerPage gets a reader-facing page (outside /api/v1) without signing in.
+func readerPage(t *testing.T, env *apptest.Env, path string) (int, http.Header, string) {
+	t.Helper()
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, env.Server.URL+path, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp, err := env.Server.Client().Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return resp.StatusCode, resp.Header, string(b)
 }
 
 func auditCount(t *testing.T, env *apptest.Env, action, target string) int {
@@ -290,9 +311,18 @@ func TestSponsorReportCountsOnlyBlockRecipients(t *testing.T) {
 	if auditCount(t, env, "sponsors.report_link_created", "") < 1 {
 		t.Error("share not audited")
 	}
+	// The page anyone with the link opens: the numbers, never indexed.
+	status, header, body := readerPage(t, env, "/r/"+token)
+	if status != 200 || !strings.Contains(body, "Sponsor report") || !strings.Contains(body, "recipients who got the block") ||
+		strings.Contains(body, "r0@") || header.Get("Referrer-Policy") != "no-referrer" || !strings.Contains(header.Get("X-Robots-Tag")+body, "noindex") {
+		t.Fatalf("report page: %d %v %s", status, header, body)
+	}
 	c.Do("DELETE", ws+"/sponsor-report-shares/"+sh.ID, nil).MustStatus(t, 204)
 	if _, err := env.App.Sponsors().Shared(ctx, token); !errors.Is(err, sponsors.ErrShareGone) {
 		t.Errorf("revoked link still works: %v", err)
+	}
+	if status, _, body := readerPage(t, env, "/r/"+token); status != 410 || !strings.Contains(body, "This report isn’t available") {
+		t.Errorf("revoked page: %d %s", status, body)
 	}
 	if auditCount(t, env, "sponsors.report_link_revoked", sh.ID) != 1 {
 		t.Error("revoke not audited")

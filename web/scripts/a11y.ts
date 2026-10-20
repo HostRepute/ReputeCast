@@ -47,6 +47,7 @@ const lists: Record<string, (v: string) => [string, string, (i: Item) => boolean
   survey: (name) => ['surveys', 'items', (s) => s.name === name],
   placement: (name) => ['placement/tests', 'tests', (t) => t.name === name],
   verification: (label) => ['verification/services', 'uses', (u) => u.label === label && u.kind !== 'realtime'],
+  offer: (name) => ['earn/offers', 'items', (o) => o.name === name],
 }
 
 /** Looks up the ids behind {campaign:Name}, {sso:Name} and the kinds in `lists` in a path. */
@@ -73,6 +74,12 @@ async function resolvePath(ctx: BrowserContext, path: string) {
         const detail = await ctx.request.get(`${app}/api/v1/workspaces/${workspace}/digests/${digest.id}`)
         id = ((await detail.json()) as { templateId?: string }).templateId
       }
+    } else if (kind === 'booking') {
+      // A sponsor booking by its issue ({booking:141}).
+      type Row = { number: number; booking?: { id: string } }
+      const r = await ctx.request.get(`${app}/api/v1/workspaces/${workspace}/sponsors/overview`, { params: { range: 'all' } })
+      const body = (await r.json()) as { past?: Row[]; upcoming?: Row[] }
+      id = [...(body.past ?? []), ...(body.upcoming ?? [])].find((i) => String(i.number) === name && i.booking)?.booking?.id
     } else if (kind in lists) {
       // Ids the demo generates at seed time (see scripts/qa.ts).
       const [list, key, match] = lists[kind]!(name)

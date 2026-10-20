@@ -24,7 +24,10 @@ func (a *App) mcpserver() *mcpserver.Service {
 		PaidMembers:   earnService(a),
 		Placement:     a.placement(),
 		Website:       websiteService(a),
-		PublicURL:     func(context.Context) string { return a.URLs.Base() },
+		// Earn's revenue and sponsor bookings (X17).
+		Revenue:   revenueService(a),
+		Sponsors:  sponsorService(a),
+		PublicURL: func(context.Context) string { return a.URLs.Base() },
 	}
 }
 

@@ -51,6 +51,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/polls"
 	"github.com/hostrepute/reputecast/internal/publicurl"
 	"github.com/hostrepute/reputecast/internal/server"
+	"github.com/hostrepute/reputecast/internal/sponsors"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/website"
 )
@@ -94,6 +95,8 @@ type Handler struct {
 	// Gifts serves the gift page, the page after paying and the redeem
 	// page (X17; nil: none).
 	Gifts *gifts.Service
+	// Sponsors serves shared sponsor reports at /r/{token} (X17; nil: none).
+	Sponsors *sponsors.Service
 
 	tmpl     map[string]*template.Template
 	version  string
@@ -116,7 +119,7 @@ func (h *Handler) log() *slog.Logger {
 
 // pages are the templates, each rendered inside layout.html.
 var pages = []string{"subscribe", "confirm", "preferences", "request", "unsubscribe", "done", "message", "archive", "challenge", "category", "poll", "survey", "upgrade", "welcome",
-	"cancel", "gift", "giftdone", "redeem"}
+	"cancel", "gift", "giftdone", "redeem", "sponsorreport"}
 
 // Init parses the templates; Routes calls it.
 func (h *Handler) Init() error {
@@ -151,6 +154,8 @@ func (h *Handler) Routes(r chi.Router) {
 	r.Get("/p/_/tls-check", h.tlsCheck)
 	r.Get("/p/_/{file}", h.static)
 	r.Route("/p/{ws}", func(r chi.Router) { h.pageRoutes(r) })
+	// A shared sponsor report (X17); other /r/ links are the web app's.
+	h.sharedReportRoutes(r)
 	// On a verified custom domain the same pages answer at the root.
 	root := chi.NewRouter()
 	h.pageRoutes(root)
