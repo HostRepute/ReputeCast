@@ -279,6 +279,31 @@ func (e *Env) SeedDemo() {
 	e.start(testdb.NewFrom(e.T, demoTemplate.name))
 }
 
+// northwindTemplate is the agency sample, seeded once per test binary.
+var northwindTemplate struct {
+	once sync.Once
+	name string
+	err  error
+}
+
+// SeedNorthwind loads the agency sample (Northwind Studio and its seven
+// clients) into the test database instead of the Acme demo.
+func (e *Env) SeedNorthwind() {
+	e.T.Helper()
+	ctx := context.Background()
+	northwindTemplate.once.Do(func() {
+		northwindTemplate.name, northwindTemplate.err = testdb.Template(ctx, "northwind", func(pool *pgxpool.Pool) error {
+			_, err := demo.SeedNorthwind(ctx, pool, e.App.Cfg, e.App.Secrets, slog.New(slog.NewTextHandler(io.Discard, nil)))
+			return err
+		})
+	})
+	if northwindTemplate.err != nil {
+		e.T.Fatalf("seed northwind: %v", northwindTemplate.err)
+	}
+	e.stop()
+	e.start(testdb.NewFrom(e.T, northwindTemplate.name))
+}
+
 // SignInDemo signs in as a demo user. Demo users with an authenticator get
 // a session directly (tests don't type TOTP codes).
 func (c *Client) SignInDemo(email string) {

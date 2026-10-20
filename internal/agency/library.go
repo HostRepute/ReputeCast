@@ -155,8 +155,15 @@ func (s *Service) Library(ctx context.Context) (AgencyLibraryView, error) {
 		out.Items = append(out.Items, item)
 		out.Counts[r.Kind]++
 	}
-	// Most used first: the copies made, then the latest change.
+	// Items with copies behind first (they want an update), then the most
+	// used: the copies made, then the latest change.
 	slices.SortStableFunc(out.Items, func(a, b AgencyLibraryItem) int {
+		if (a.Behind > 0) != (b.Behind > 0) {
+			if a.Behind > 0 {
+				return -1
+			}
+			return 1
+		}
 		if a.Copies != b.Copies {
 			return b.Copies - a.Copies
 		}
@@ -279,6 +286,11 @@ func (s *Service) LibraryItem(ctx context.Context, id string) (AgencyLibraryDeta
 			out.Item.Thumb, out.Item.Body, out.Preview, out.Subject = c.Thumb, c.Body, c.HTML, c.Subject
 			if r.Kind == KindSMS {
 				out.Preview = c.Body
+			}
+			// The preview reads as a recipient without data would see it:
+			// "Hi there".
+			if html, err := liquid.Render(out.Preview, map[string]any{}); err == nil {
+				out.Preview = html
 			}
 			if c.Automation != nil {
 				if g, err := automations.ParseGraph(c.Automation.Graph); err == nil {

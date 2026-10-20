@@ -290,6 +290,10 @@ func (s *Service) usage(ctx context.Context, rows []store.AgencyWorkspacesRow, f
 		return out, err
 	}
 	for _, w := range ordered {
+		if !w.AddedAt.Before(to) {
+			// It joined the agency after the month.
+			continue
+		}
 		row := s.usageRow(w, figures, provs, rates, from, to)
 		for _, c := range row.Costs {
 			if c.Basis == "plan" && c.Entered {
@@ -329,6 +333,8 @@ func (s *Service) usageRow(w store.AgencyWorkspacesRow, figures []store.AgencyUs
 	// Each provider's units and cost, in the order they first appear.
 	order := []string{}
 	costs := map[string]*AgencyProviderCost{}
+	// Each provider's cost in micro-dollars, rounded once at the end.
+	micros := map[string]int64{}
 	for _, f := range figures {
 		if f.WorkspaceID != w.ID {
 			continue
@@ -338,6 +344,15 @@ func (s *Service) usageRow(w store.AgencyWorkspacesRow, figures []store.AgencyUs
 			row.Emails += f.Units
 			row.Streams = append(row.Streams, AgencyUsageCount{Key: f.Key, Label: f.Label, Units: f.Units})
 		case f.Dimension == "provider":
+			if f.CostMicros == 0 && (f.Channel == "push" || f.Channel == "whatsapp") {
+				// Free channels (web push) count, with no cost line.
+				if f.Channel == "push" {
+					row.Push += f.Units
+				} else {
+					row.WhatsApp += f.Units
+				}
+				continue
+			}
 			switch f.Channel {
 			case "sms":
 				row.Segments += f.Units
@@ -361,7 +376,8 @@ func (s *Service) usageRow(w store.AgencyWorkspacesRow, figures []store.AgencyUs
 				order = append(order, key)
 			}
 			c.Units += f.Units
-			c.Cost = cents(c.Cost + float64(f.CostMicros)/1e6)
+			micros[key] += f.CostMicros
+			c.Cost = cents(float64(micros[key]) / 1e6)
 			costMicros += f.CostMicros
 		case f.Channel == "sms" && f.Dimension == "country":
 			row.Countries = append(row.Countries, AgencyUsageCount{Key: f.Key, Label: f.Label, Units: f.Units})

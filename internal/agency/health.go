@@ -51,11 +51,12 @@ func (s *Service) refreshHealth(ctx context.Context, wsID uuid.UUID) (*AgencyHea
 	}
 	hr, listed := hostReputeOf(ctx, s.Q, wsID)
 	now := s.now()
-	if err := s.Q.AgencyHealthPut(ctx, store.AgencyHealthPutParams{WorkspaceID: wsID, Day: dateOnly(now), State: h.State, Score: int32(h.Score), Tone: h.Tone,
+	tone := agencyTone(h.State, h.Score)
+	if err := s.Q.AgencyHealthPut(ctx, store.AgencyHealthPutParams{WorkspaceID: wsID, Day: dateOnly(now), State: h.State, Score: int32(h.Score), Tone: tone,
 		Hostrepute: hr, Listings: int32(listed), ComputedAt: now}); err != nil {
 		return nil, err
 	}
-	out := &AgencyHealth{State: h.State, Score: h.Score, Tone: h.Tone, Trend: []int{}, HostRepute: hr, Listings: listed, CheckedAt: now}
+	out := &AgencyHealth{State: h.State, Score: h.Score, Tone: tone, Trend: []int{}, HostRepute: hr, Listings: listed, CheckedAt: now}
 	if h.State == "ready" {
 		out.Trend = append(out.Trend, h.Score)
 	}

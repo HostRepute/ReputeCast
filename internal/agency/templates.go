@@ -404,6 +404,16 @@ func (s *Service) Templates(ctx context.Context) ([]AgencyTemplate, error) {
 		}
 		out = append(out, t)
 	}
+	// The default for new clients first, then the most recently updated.
+	slices.SortStableFunc(out, func(a, b AgencyTemplate) int {
+		if a.Default != b.Default {
+			if a.Default {
+				return -1
+			}
+			return 1
+		}
+		return b.UpdatedAt.Compare(a.UpdatedAt)
+	})
 	return out, nil
 }
 

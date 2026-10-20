@@ -222,7 +222,7 @@ func (s *Service) healthOf(ctx context.Context, rows []store.AgencyWorkspacesRow
 		if sn.State == "ready" {
 			h.Trend = append(h.Trend, int(sn.Score))
 		}
-		h.State, h.Score, h.Tone, h.HostRepute, h.Listings, h.CheckedAt = sn.State, int(sn.Score), sn.Tone, sn.Hostrepute, int(sn.Listings), sn.ComputedAt
+		h.State, h.Score, h.Tone, h.HostRepute, h.Listings, h.CheckedAt = sn.State, int(sn.Score), agencyTone(sn.State, int(sn.Score)), sn.Hostrepute, int(sn.Listings), sn.ComputedAt
 	}
 	for _, r := range rows {
 		if out[r.ID] != nil {
@@ -236,6 +236,21 @@ func (s *Service) healthOf(ctx context.Context, rows []store.AgencyWorkspacesRow
 		out[r.ID] = h
 	}
 	return out, nil
+}
+
+// agencyTone colours a score on the agency's scale, where Needs attention
+// starts below 80: green from 80, amber from 65, red below.
+func agencyTone(state string, score int) string {
+	switch {
+	case state != "ready":
+		return "neutral"
+	case score >= attentionHealth:
+		return "ok"
+	case score >= 65:
+		return "warn"
+	default:
+		return "bad"
+	}
 }
 
 // AgencySetup is a new client's setup: the steps its template asked for.

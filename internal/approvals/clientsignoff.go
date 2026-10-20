@@ -273,4 +273,3 @@ func (s *Service) checkSignoff(ctx context.Context, ws *store.Workspace, in Appr
 	}
 	return nil
 }
-

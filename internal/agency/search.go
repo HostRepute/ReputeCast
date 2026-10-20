@@ -122,7 +122,26 @@ func (s *Service) Search(ctx context.Context, query string) (AgencySearchResults
 		if err != nil {
 			return out, err
 		}
+		// Copies of library items show once, under the library.
+		copies := map[uuid.UUID]bool{}
+		checked := map[uuid.UUID]bool{}
 		for _, r := range rows {
+			if (r.Kind != "section" && r.Kind != "template" && r.Kind != "automation") || checked[r.WorkspaceID] {
+				continue
+			}
+			checked[r.WorkspaceID] = true
+			cs, err := s.Q.AgencyCopiesOfWorkspace(ctx, r.WorkspaceID)
+			if err != nil {
+				return out, err
+			}
+			for _, c := range cs {
+				copies[c.TargetID] = true
+			}
+		}
+		for _, r := range rows {
+			if copies[r.ID] {
+				continue
+			}
 			g := group(r.WorkspaceID)
 			hit := AgencySearchHit{Kind: r.Kind, ID: r.ID.String(), Name: r.Name}
 			if r.Status != "saved" {

@@ -12,6 +12,7 @@ import (
 
 func newSeedCmd(o *rootOpts) *cobra.Command {
 	var reset bool
+	var sample string
 	cmd := &cobra.Command{
 		Use:   "seed",
 		Short: "Load the Acme demo data (development and screenshots only)",
@@ -38,6 +39,22 @@ func newSeedCmd(o *rootOpts) *cobra.Command {
 			if err != nil {
 				return err
 			}
+			if sample == "northwind" {
+				// The agency sample (agency accounts): its own database.
+				res, err := demo.SeedNorthwind(cmd.Context(), pool, cfg, box, log)
+				if err != nil {
+					return err
+				}
+				out := cmd.OutOrStdout()
+				fmt.Fprintf(out, "\n  Sample loaded (Northwind Studio, an agency with seven clients).\n\n")
+				fmt.Fprintf(out, "  Agency manager  %s   password %q   authenticator secret %s\n", res.OwnerEmail, res.Password, res.TOTPSecret)
+				fmt.Fprintf(out, "  Instance admin  %s   (same password and secret)\n", demo.NorthwindOwner)
+				fmt.Fprintf(out, "  Client approver jane.morales@contoso.example   password %q\n\n", res.Password)
+				return nil
+			}
+			if sample != "" && sample != "acme" {
+				return usageError{fmt.Errorf("unknown sample %q: use acme or northwind", sample)}
+			}
 			res, err := demo.Seed(cmd.Context(), pool, cfg, box, log)
 			if err != nil {
 				return err
@@ -51,5 +68,6 @@ func newSeedCmd(o *rootOpts) *cobra.Command {
 		},
 	}
 	cmd.Flags().BoolVar(&reset, "force", false, "seed even when REPUTECAST_ENV is not development")
+	cmd.Flags().StringVar(&sample, "sample", "acme", "which sample: acme, or northwind (an agency with seven clients, into an empty database)")
 	return cmd
 }

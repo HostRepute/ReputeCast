@@ -45,6 +45,9 @@ var (
 	seedAI                    = noop // AI assistant: Anthropic connected, this month's usage and activity log, a kept report summary (seed_ai.go)
 	// the publication website: news.acme.io's posts, tags, members, views and Daniel's post waiting for approval (seed_website.go)
 	seedWebsite = noop
+	// agency accounts: Acme stays without agency mode; the agency sample is
+	// Northwind Studio, loaded on its own by SeedNorthwind (seed_agency.go)
+	seedAgency = noop
 )
 
 func noop(context.Context, *Seeder) error { return nil }
